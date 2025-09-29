@@ -1,0 +1,191 @@
+name: ✨ Feature Request
+description: Suggest a new feature for the Hospital Management System
+title: "[FEATURE] "
+labels: ["enhancement", "needs-review"]
+assignees:
+  - Kutou01
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🏥 Hospital Management System Feature Request
+        
+        Thank you for suggesting a new feature! Please provide detailed information to help us understand and evaluate your request.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component would this feature affect?
+      options:
+        - Frontend (Next.js)
+        - API Gateway
+        - GraphQL Gateway
+        - Auth Service
+        - Doctor Service
+        - Patient Service
+        - Appointment Service
+        - Medical Records Service
+        - Payment Service
+        - Notification Service
+        - Department Service
+        - Receptionist Service
+        - Database/Supabase
+        - Infrastructure
+        - New Service
+        - Cross-cutting (multiple components)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - Critical (Required for system operation)
+        - High (Important for user experience)
+        - Medium (Nice to have)
+        - Low (Future enhancement)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user_type
+    attributes:
+      label: Target User
+      description: Who would primarily use this feature?
+      options:
+        - Admin
+        - Doctor
+        - Patient
+        - Receptionist
+        - All Users
+        - System/Internal
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: Describe the problem or need this feature addresses...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution
+      placeholder: How would you like this feature to work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered any alternative solutions?
+      placeholder: What other approaches could solve this problem?
+
+  - type: textarea
+    id: user_story
+    attributes:
+      label: User Story
+      description: Write a user story for this feature
+      placeholder: |
+        As a [user type], 
+        I want [feature], 
+        so that [benefit/goal].
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What criteria must be met for this feature to be considered complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+
+  - type: checkboxes
+    id: hipaa_considerations
+    attributes:
+      label: HIPAA/Compliance Considerations
+      description: Does this feature have any healthcare compliance implications?
+      options:
+        - label: This feature handles patient data
+        - label: This feature requires audit logging
+        - label: This feature affects access controls
+        - label: This feature requires encryption
+        - label: No compliance implications
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Simple (1-2 days)
+        - Medium (1 week)
+        - Complex (2-4 weeks)
+        - Very Complex (1+ months)
+        - Unknown
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: Technical Considerations
+      description: Any technical notes or requirements?
+      placeholder: |
+        - Database changes needed
+        - API changes required
+        - Third-party integrations
+        - Performance considerations
+        - Security requirements
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups/Wireframes
+      description: If applicable, provide mockups or wireframes
+      placeholder: Attach images or provide links to mockups...
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: What areas might this feature impact?
+      options:
+        - label: Database schema changes
+        - label: API breaking changes
+        - label: Frontend UI changes
+        - label: Authentication/Authorization
+        - label: Performance implications
+        - label: Security implications
+        - label: Third-party integrations
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any additional information about the feature request
+      placeholder: Any other context, links, or references...
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have provided clear acceptance criteria
+          required: true
+        - label: I understand this is a healthcare system with strict compliance requirements
+          required: true

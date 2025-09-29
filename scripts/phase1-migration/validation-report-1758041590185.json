@@ -1,0 +1,131 @@
+{
+  "serviceHealth": {
+    "api-gateway": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3100"
+    },
+    "auth-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3001"
+    },
+    "doctor-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3002"
+    },
+    "patient-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3003"
+    },
+    "appointment-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3004"
+    },
+    "department-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3005"
+    },
+    "receptionist-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3006"
+    },
+    "medical-records-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3007"
+    },
+    "payment-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3009"
+    },
+    "notification-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3011"
+    },
+    "file-service": {
+      "status": "unhealthy",
+      "error": "connect ECONNREFUSED ::1:3107"
+    }
+  },
+  "schemaConnections": {
+    "auth-service": {
+      "status": "error",
+      "error": "\"failed to parse select parameter (count(*))\" (line 1, column 6)",
+      "testMethod": "table_access"
+    },
+    "doctor-service": {
+      "status": "error",
+      "error": "\"failed to parse select parameter (count(*))\" (line 1, column 6)",
+      "testMethod": "table_access"
+    },
+    "patient-service": {
+      "status": "error",
+      "error": "\"failed to parse select parameter (count(*))\" (line 1, column 6)",
+      "testMethod": "table_access"
+    },
+    "appointment-service": {
+      "status": "error",
+      "error": "\"failed to parse select parameter (count(*))\" (line 1, column 6)",
+      "testMethod": "table_access"
+    },
+    "medical-records-service": {
+      "status": "error",
+      "error": "\"failed to parse select parameter (count(*))\" (line 1, column 6)",
+      "testMethod": "table_access"
+    },
+    "payment-service": {
+      "status": "error",
+      "error": "\"failed to parse select parameter (count(*))\" (line 1, column 6)",
+      "testMethod": "table_access"
+    },
+    "file-service": {
+      "status": "error",
+      "error": "\"failed to parse select parameter (count(*))\" (line 1, column 6)",
+      "testMethod": "table_access"
+    }
+  },
+  "crossServiceCommunication": {
+    "auth-service": {
+      "status": "failed",
+      "route": "/api/auth/health",
+      "error": "connect ECONNREFUSED ::1:3100"
+    },
+    "doctor-service": {
+      "status": "failed",
+      "route": "/api/doctors/health",
+      "error": "connect ECONNREFUSED ::1:3100"
+    },
+    "patient-service": {
+      "status": "failed",
+      "route": "/api/patients/health",
+      "error": "connect ECONNREFUSED ::1:3100"
+    },
+    "appointment-service": {
+      "status": "failed",
+      "route": "/api/appointments/health",
+      "error": "connect ECONNREFUSED ::1:3100"
+    }
+  },
+  "performanceMetrics": {
+    "Auth Login": {
+      "status": "failed",
+      "error": "connect ECONNREFUSED ::1:3100"
+    },
+    "Doctor List": {
+      "status": "failed",
+      "error": "connect ECONNREFUSED ::1:3100"
+    },
+    "Patient Search": {
+      "status": "failed",
+      "error": "connect ECONNREFUSED ::1:3100"
+    }
+  },
+  "complianceChecks": {
+    "auditLogging": {
+      "status": "unknown",
+      "error": "connect ECONNREFUSED ::1:3100"
+    },
+    "rowLevelSecurity": {
+      "status": "disabled",
+      "details": null
+    }
+  }
+}

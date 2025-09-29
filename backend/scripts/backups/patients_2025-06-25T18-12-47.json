@@ -1,0 +1,1230 @@
+[
+  {
+    "patient_id": "PAT-202506-550",
+    "profile_id": "f5de8fd2-59b3-44fc-b869-9957c9ca16a7",
+    "gender": "other",
+    "blood_type": null,
+    "address": {},
+    "emergency_contact": {},
+    "insurance_info": {},
+    "medical_history": "No medical history recorded",
+    "allergies": [],
+    "chronic_conditions": [],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T09:07:53.029+00:00",
+    "updated_at": "2025-06-22T09:07:53.029+00:00",
+    "created_by": null,
+    "full_name": null,
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-810",
+    "profile_id": "c3a58ff9-c5ef-4ac3-a99d-d843ce0336d4",
+    "gender": "male",
+    "blood_type": "A+",
+    "address": {
+      "city": "Ho Chi Minh City",
+      "street": "456 Test Street"
+    },
+    "emergency_contact": {
+      "name": "Emergency Contact",
+      "phone": "0123456789",
+      "relationship": "Family"
+    },
+    "insurance_info": {},
+    "medical_history": "No medical history recorded",
+    "allergies": [],
+    "chronic_conditions": [],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T11:08:59.751+00:00",
+    "updated_at": "2025-06-22T11:08:59.751+00:00",
+    "created_by": null,
+    "full_name": null,
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-218",
+    "profile_id": "baaa2f0d-73ec-468a-be90-426ae2c76deb",
+    "gender": "male",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "22 Đường Lê Lợi",
+      "district": "Quận 12"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Cao Văn Minh",
+      "phone": "0912606354",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0398399036"
+    },
+    "medical_history": "Viêm phổi",
+    "allergies": [
+      "Dị ứng thuốc kháng sinh"
+    ],
+    "chronic_conditions": [
+      "Viêm phổi"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:07:48.259988+00:00",
+    "updated_at": "2025-06-22T17:07:48.259988+00:00",
+    "created_by": null,
+    "full_name": "Cao Văn Minh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-734",
+    "profile_id": "475299db-f850-493c-94dc-ad3a43b5c636",
+    "gender": "female",
+    "blood_type": "O+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "752 Đường Lê Lợi",
+      "district": "Quận 6"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Đinh Thị Lan",
+      "phone": "0912592576",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0168794454"
+    },
+    "medical_history": "Sốt virus",
+    "allergies": [],
+    "chronic_conditions": [
+      "Sốt virus"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:07:48.714148+00:00",
+    "updated_at": "2025-06-22T17:07:48.714148+00:00",
+    "created_by": null,
+    "full_name": "Đinh Thị Lan",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-212",
+    "profile_id": "5e1331cc-f1c2-4fa6-beae-40fbdb985123",
+    "gender": "male",
+    "blood_type": "B+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "788 Đường Lê Lợi",
+      "district": "Quận 8"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Phan Văn Nam",
+      "phone": "0917694219",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0211425326"
+    },
+    "medical_history": "Hen suyễn",
+    "allergies": [],
+    "chronic_conditions": [
+      "Hen suyễn"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:07:49.030349+00:00",
+    "updated_at": "2025-06-22T17:07:49.030349+00:00",
+    "created_by": null,
+    "full_name": "Phan Văn Nam",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-628",
+    "profile_id": "7b5b4e4e-2746-4ca9-9a23-cf0f46d318ce",
+    "gender": "female",
+    "blood_type": "AB+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "190 Đường Lê Lợi",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Võ Thị Oanh",
+      "phone": "0910777694",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0840256954"
+    },
+    "medical_history": "Rối loạn tiêu hóa",
+    "allergies": [],
+    "chronic_conditions": [
+      "Rối loạn tiêu hóa"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:07:49.344572+00:00",
+    "updated_at": "2025-06-22T17:07:49.344572+00:00",
+    "created_by": null,
+    "full_name": "Võ Thị Oanh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-593",
+    "profile_id": "4ba3fbb4-e966-4672-9131-b24a16e2eb76",
+    "gender": "male",
+    "blood_type": "A-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "88 Đường Lê Lợi",
+      "district": "Quận 5"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Dương Văn Phúc",
+      "phone": "0914691933",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0858432444"
+    },
+    "medical_history": "Dị ứng thức ăn",
+    "allergies": [
+      "Dị ứng thuốc kháng sinh"
+    ],
+    "chronic_conditions": [
+      "Dị ứng thức ăn"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:07:49.768034+00:00",
+    "updated_at": "2025-06-22T17:07:49.768034+00:00",
+    "created_by": null,
+    "full_name": "Dương Văn Phúc",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-125",
+    "profile_id": "ed2c179a-9431-45ff-837f-e3b6e8a6e6f9",
+    "gender": "male",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "921 Đường Nguyễn Huệ",
+      "district": "Quận 11"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Nguyễn Văn An",
+      "phone": "0915704469",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0651351135"
+    },
+    "medical_history": "Cao huyết áp",
+    "allergies": [
+      "Dị ứng thuốc kháng sinh"
+    ],
+    "chronic_conditions": [
+      "Cao huyết áp"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:16.546685+00:00",
+    "updated_at": "2025-06-22T17:09:16.546685+00:00",
+    "created_by": null,
+    "full_name": "Nguyễn Văn An",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-745",
+    "profile_id": "c2d974a2-f3b4-4bde-aceb-a739a56650d8",
+    "gender": "female",
+    "blood_type": "O+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "910 Đường Nguyễn Huệ",
+      "district": "Quận 6"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Trần Thị Bình",
+      "phone": "0916209724",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0035141696"
+    },
+    "medical_history": "Bệnh tim mạch vành",
+    "allergies": [],
+    "chronic_conditions": [
+      "Bệnh tim mạch vành"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:16.916188+00:00",
+    "updated_at": "2025-06-22T17:09:16.916188+00:00",
+    "created_by": null,
+    "full_name": "Trần Thị Bình",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-793",
+    "profile_id": "ffb9dd42-a5a3-4d76-8ae4-c90e74a5d8b7",
+    "gender": "male",
+    "blood_type": "B+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "929 Đường Lê Lợi",
+      "district": "Quận 4"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Lê Văn Cường",
+      "phone": "0915766421",
+      "relationship": "Vợ/Chồng"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0424993376"
+    },
+    "medical_history": "Rối loạn nhịp tim",
+    "allergies": [
+      "Dị ứng thuốc kháng sinh"
+    ],
+    "chronic_conditions": [
+      "Rối loạn nhịp tim"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:17.275663+00:00",
+    "updated_at": "2025-06-22T17:09:17.275663+00:00",
+    "created_by": null,
+    "full_name": "Lê Văn Cường",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-801",
+    "profile_id": "11c68c19-4204-499f-9124-6715e64c182e",
+    "gender": "female",
+    "blood_type": "AB+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "276 Đường Lê Lợi",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Phạm Thị Dung",
+      "phone": "0911584762",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0699176832"
+    },
+    "medical_history": "Suy tim",
+    "allergies": [
+      "Dị ứng thuốc kháng sinh"
+    ],
+    "chronic_conditions": [
+      "Suy tim"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:17.586974+00:00",
+    "updated_at": "2025-06-22T17:09:17.586974+00:00",
+    "created_by": null,
+    "full_name": "Phạm Thị Dung",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-695",
+    "profile_id": "42f4c692-9e65-4e3d-b37d-7a5fcd43e191",
+    "gender": "male",
+    "blood_type": "A-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "628 Đường Pasteur",
+      "district": "Quận 12"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Hoàng Văn Em",
+      "phone": "0919902237",
+      "relationship": "Vợ/Chồng"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0215822797"
+    },
+    "medical_history": "Tăng cholesterol",
+    "allergies": [],
+    "chronic_conditions": [
+      "Tăng cholesterol"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:17.906862+00:00",
+    "updated_at": "2025-06-22T17:09:17.906862+00:00",
+    "created_by": null,
+    "full_name": "Hoàng Văn Em",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-108",
+    "profile_id": "8aa5cf9a-4611-4beb-8135-f33c4a8b77fa",
+    "gender": "female",
+    "blood_type": "O+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "596 Đường Nguyễn Huệ",
+      "district": "Quận 9"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Vũ Thị Phương",
+      "phone": "0919376805",
+      "relationship": "Anh/Chị"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0802057579"
+    },
+    "medical_history": "Gãy xương tay",
+    "allergies": [],
+    "chronic_conditions": [
+      "Gãy xương tay"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:18.529412+00:00",
+    "updated_at": "2025-06-22T17:09:18.529412+00:00",
+    "created_by": null,
+    "full_name": "Vũ Thị Phương",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-508",
+    "profile_id": "ef869308-4100-4118-8e13-589dfe6b4927",
+    "gender": "male",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "689 Đường Nguyễn Huệ",
+      "district": "Quận 7"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Đặng Văn Quang",
+      "phone": "0918992325",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0640811756"
+    },
+    "medical_history": "Chấn thương cột sống",
+    "allergies": [],
+    "chronic_conditions": [
+      "Chấn thương cột sống"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:18.878601+00:00",
+    "updated_at": "2025-06-22T17:09:18.878601+00:00",
+    "created_by": null,
+    "full_name": "Đặng Văn Quang",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-738",
+    "profile_id": "1208f797-2029-454a-9b3b-371e98d3be32",
+    "gender": "female",
+    "blood_type": "B+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "924 Đường Lê Lợi",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Bùi Thị Hoa",
+      "phone": "0911035268",
+      "relationship": "Vợ/Chồng"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0312585532"
+    },
+    "medical_history": "Thoái hóa khớp",
+    "allergies": [],
+    "chronic_conditions": [
+      "Thoái hóa khớp"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:19.241619+00:00",
+    "updated_at": "2025-06-22T17:09:19.241619+00:00",
+    "created_by": null,
+    "full_name": "Bùi Thị Hoa",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-383",
+    "profile_id": "5a2d075d-7c32-49fc-90e3-a3f3ff05e8d0",
+    "gender": "male",
+    "blood_type": "AB-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "86 Đường Nguyễn Huệ",
+      "district": "Quận 2"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Trịnh Văn Sơn",
+      "phone": "0913164005",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0095007901"
+    },
+    "medical_history": "Đau lưng mãn tính",
+    "allergies": [],
+    "chronic_conditions": [
+      "Đau lưng mãn tính"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:19.924499+00:00",
+    "updated_at": "2025-06-22T17:09:19.924499+00:00",
+    "created_by": null,
+    "full_name": "Trịnh Văn Sơn",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-081",
+    "profile_id": "fae44d28-6420-48d3-bb40-16715317e48b",
+    "gender": "female",
+    "blood_type": "O+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "829 Đường Lê Lợi",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Ngô Thị Quỳnh",
+      "phone": "0919802474",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0777591036"
+    },
+    "medical_history": "Đau đầu mãn tính",
+    "allergies": [],
+    "chronic_conditions": [
+      "Đau đầu mãn tính"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:21.105431+00:00",
+    "updated_at": "2025-06-22T17:09:21.105431+00:00",
+    "created_by": null,
+    "full_name": "Ngô Thị Quỳnh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-194",
+    "profile_id": "bcec41a3-4fdb-42a2-8eec-b718a4608204",
+    "gender": "female",
+    "blood_type": "O-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "205 Đường Lê Lợi",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Lý Thị Tâm",
+      "phone": "0919557202",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0672962808"
+    },
+    "medical_history": "Viêm khớp",
+    "allergies": [],
+    "chronic_conditions": [
+      "Viêm khớp"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:20.349235+00:00",
+    "updated_at": "2025-06-22T17:09:20.349235+00:00",
+    "created_by": null,
+    "full_name": "Lý Thị Tâm",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-376",
+    "profile_id": "1576aa25-8e66-4bc3-b9ed-bd5dac2df3ee",
+    "gender": "male",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "593 Đường Pasteur",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Tạ Văn Rồng",
+      "phone": "0918134880",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0634886805"
+    },
+    "medical_history": "Đột quỵ",
+    "allergies": [],
+    "chronic_conditions": [
+      "Đột quỵ"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:21.410004+00:00",
+    "updated_at": "2025-06-22T17:09:21.410004+00:00",
+    "created_by": null,
+    "full_name": "Tạ Văn Rồng",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-993",
+    "profile_id": "df56e3e6-c049-4436-ac10-bdb36d8753cd",
+    "gender": "female",
+    "blood_type": "A-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "904 Đường Pasteur",
+      "district": "Quận 6"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Trương Thị Bích",
+      "phone": "0910484269",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0534803723"
+    },
+    "medical_history": "Khám thai định kỳ",
+    "allergies": [],
+    "chronic_conditions": [
+      "Khám thai định kỳ"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:24.836613+00:00",
+    "updated_at": "2025-06-22T17:09:24.836613+00:00",
+    "created_by": null,
+    "full_name": "Trương Thị Bích",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-073",
+    "profile_id": "0fd15ef6-6a83-48ef-814b-1bd56cbffcbc",
+    "gender": "female",
+    "blood_type": "O+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "358 Đường Lê Lợi",
+      "district": "Quận 11"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Đặng Thị Ích",
+      "phone": "0912257457",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0138679429"
+    },
+    "medical_history": "Viêm ruột thừa",
+    "allergies": [],
+    "chronic_conditions": [
+      "Viêm ruột thừa"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:27.590239+00:00",
+    "updated_at": "2025-06-22T17:09:27.590239+00:00",
+    "created_by": null,
+    "full_name": "Đặng Thị Ích",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-637",
+    "profile_id": "e0b96cac-f2e0-441a-bf6d-4704f06a208c",
+    "gender": "female",
+    "blood_type": "B+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "769 Đường Pasteur",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Lưu Thị Sương",
+      "phone": "0913097351",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0559266104"
+    },
+    "medical_history": "Động kinh",
+    "allergies": [],
+    "chronic_conditions": [
+      "Động kinh"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:21.72369+00:00",
+    "updated_at": "2025-06-22T17:09:21.72369+00:00",
+    "created_by": null,
+    "full_name": "Lưu Thị Sương",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-249",
+    "profile_id": "6e82bd4e-8bfa-4b53-91cb-aa751968c4f2",
+    "gender": "male",
+    "blood_type": "B+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "280 Đường Lê Lợi",
+      "district": "Quận 1"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Bùi Văn Khánh",
+      "phone": "0910951730",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0064540445"
+    },
+    "medical_history": "Thoát vị bẹn",
+    "allergies": [
+      "Dị ứng thuốc kháng sinh"
+    ],
+    "chronic_conditions": [
+      "Thoát vị bẹn"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:28.029359+00:00",
+    "updated_at": "2025-06-22T17:09:28.029359+00:00",
+    "created_by": null,
+    "full_name": "Bùi Văn Khánh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-244",
+    "profile_id": "dc79859d-d266-4cdd-8e0e-667fb8ae26e4",
+    "gender": "male",
+    "blood_type": "AB+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "399 Đường Lê Lợi",
+      "district": "Quận 9"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Hồ Văn Thắng",
+      "phone": "0912800969",
+      "relationship": "Anh/Chị"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0049935151"
+    },
+    "medical_history": "Parkinson",
+    "allergies": [],
+    "chronic_conditions": [
+      "Parkinson"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:22.080756+00:00",
+    "updated_at": "2025-06-22T17:09:22.080756+00:00",
+    "created_by": null,
+    "full_name": "Hồ Văn Thắng",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-428",
+    "profile_id": "b220645d-a5fd-4e19-b93b-5917340269c4",
+    "gender": "male",
+    "blood_type": "O+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "372 Đường Nguyễn Huệ",
+      "district": "Quận 12"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Huỳnh Văn Cảnh",
+      "phone": "0913965347",
+      "relationship": "Vợ/Chồng"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0446383383"
+    },
+    "medical_history": "Đái tháo đường",
+    "allergies": [],
+    "chronic_conditions": [
+      "Đái tháo đường"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:25.329361+00:00",
+    "updated_at": "2025-06-22T17:09:25.329361+00:00",
+    "created_by": null,
+    "full_name": "Huỳnh Văn Cảnh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-731",
+    "profile_id": "bd394873-d5ec-4d97-ab36-1e325b9d6aa2",
+    "gender": "female",
+    "blood_type": "AB+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "232 Đường Lê Lợi",
+      "district": "Quận 12"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Lý Thị Linh",
+      "phone": "0912788789",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0009431446"
+    },
+    "medical_history": "U tuyến giáp",
+    "allergies": [],
+    "chronic_conditions": [
+      "U tuyến giáp"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:28.565863+00:00",
+    "updated_at": "2025-06-22T17:09:28.565863+00:00",
+    "created_by": null,
+    "full_name": "Lý Thị Linh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-357",
+    "profile_id": "3cf933cc-7f04-4876-9bd9-9e028af84cf3",
+    "gender": "female",
+    "blood_type": "O-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "826 Đường Lê Lợi",
+      "district": "Quận 7"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Chu Thị Uyên",
+      "phone": "0910188928",
+      "relationship": "Anh/Chị"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0897556239"
+    },
+    "medical_history": "Rối loạn lo âu",
+    "allergies": [
+      "Dị ứng thuốc kháng sinh"
+    ],
+    "chronic_conditions": [
+      "Rối loạn lo âu"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:22.448997+00:00",
+    "updated_at": "2025-06-22T17:09:22.448997+00:00",
+    "created_by": null,
+    "full_name": "Chu Thị Uyên",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-382",
+    "profile_id": "73bdb30d-ffd7-479f-96fa-4ec4d898885d",
+    "gender": "female",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "60 Đường Lê Lợi",
+      "district": "Quận 2"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Nguyễn Thị Diệu",
+      "phone": "0917178190",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0875208154"
+    },
+    "medical_history": "Viêm gan B",
+    "allergies": [],
+    "chronic_conditions": [
+      "Viêm gan B"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:25.622312+00:00",
+    "updated_at": "2025-06-22T17:09:25.622312+00:00",
+    "created_by": null,
+    "full_name": "Nguyễn Thị Diệu",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-054",
+    "profile_id": "d8564cfb-487d-4812-bc7b-a6126ff4be26",
+    "gender": "male",
+    "blood_type": "A-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "803 Đường Lê Lợi",
+      "district": "Quận 12"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Cao Văn Minh",
+      "phone": "0912435706",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0639105484"
+    },
+    "medical_history": "Polyp đại tràng",
+    "allergies": [],
+    "chronic_conditions": [
+      "Polyp đại tràng"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:29.131722+00:00",
+    "updated_at": "2025-06-22T17:09:29.131722+00:00",
+    "created_by": null,
+    "full_name": "Cao Văn Minh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-517",
+    "profile_id": "5c16f7f5-0bd0-40c1-aa4d-be7420f435c9",
+    "gender": "female",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "517 Đường Pasteur",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Mai Thị Vân",
+      "phone": "0911178633",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0742066419"
+    },
+    "medical_history": "Thai kỳ bình thường",
+    "allergies": [],
+    "chronic_conditions": [
+      "Thai kỳ bình thường"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:23.173341+00:00",
+    "updated_at": "2025-06-22T17:09:23.173341+00:00",
+    "created_by": null,
+    "full_name": "Mai Thị Vân",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-686",
+    "profile_id": "85dec49e-b712-4e28-bd72-c41b5a1bdbaa",
+    "gender": "female",
+    "blood_type": "AB-",
+    "address": {
+      "city": "TP.HCM",
+      "street": "728 Đường Lê Lợi",
+      "district": "Quận 4"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Lê Thị Phượng",
+      "phone": "0912248863",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0893310864"
+    },
+    "medical_history": "Loét dạ dày",
+    "allergies": [],
+    "chronic_conditions": [
+      "Loét dạ dày"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:26.324176+00:00",
+    "updated_at": "2025-06-22T17:09:26.324176+00:00",
+    "created_by": null,
+    "full_name": "Lê Thị Phượng",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-243",
+    "profile_id": "13f4e1ea-2e04-4f68-ae4e-f3a187137d39",
+    "gender": "female",
+    "blood_type": "O+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "790 Đường Lê Lợi",
+      "district": "Quận 1"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Đỗ Thị Xuân",
+      "phone": "0913866288",
+      "relationship": "Con"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0521305278"
+    },
+    "medical_history": "Viêm phụ khoa",
+    "allergies": [],
+    "chronic_conditions": [
+      "Viêm phụ khoa"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:23.534088+00:00",
+    "updated_at": "2025-06-22T17:09:23.534088+00:00",
+    "created_by": null,
+    "full_name": "Đỗ Thị Xuân",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-608",
+    "profile_id": "8383da36-bd41-474e-9e56-b0f2ce2b8f3c",
+    "gender": "female",
+    "blood_type": "B+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "766 Đường Pasteur",
+      "district": "Quận 9"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Lê Thị Yến",
+      "phone": "0910445164",
+      "relationship": "Anh/Chị"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0475947951"
+    },
+    "medical_history": "Rối loạn kinh nguyệt",
+    "allergies": [],
+    "chronic_conditions": [
+      "Rối loạn kinh nguyệt"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:24.115187+00:00",
+    "updated_at": "2025-06-22T17:09:24.115187+00:00",
+    "created_by": null,
+    "full_name": "Lê Thị Yến",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-661",
+    "profile_id": "43794602-297b-4185-a8fe-1b6d360171ce",
+    "gender": "female",
+    "blood_type": "AB+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "879 Đường Nguyễn Huệ",
+      "district": "Quận 3"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Phùng Thị Ánh",
+      "phone": "0912076881",
+      "relationship": "Anh/Chị"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0457802272"
+    },
+    "medical_history": "U xơ tử cung",
+    "allergies": [],
+    "chronic_conditions": [
+      "U xơ tử cung"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:24.52305+00:00",
+    "updated_at": "2025-06-22T17:09:24.52305+00:00",
+    "created_by": null,
+    "full_name": "Phùng Thị Ánh",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-339",
+    "profile_id": "452f9243-0b04-47de-8016-528d7a884803",
+    "gender": "male",
+    "blood_type": "B+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "782 Đường Nguyễn Huệ",
+      "district": "Quận 8"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Trần Văn Ế",
+      "phone": "0917326547",
+      "relationship": "Anh/Chị"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0859336357"
+    },
+    "medical_history": "Suy thận mãn tính",
+    "allergies": [],
+    "chronic_conditions": [
+      "Suy thận mãn tính"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:26.008871+00:00",
+    "updated_at": "2025-06-22T17:09:26.008871+00:00",
+    "created_by": null,
+    "full_name": "Trần Văn Ế",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-678",
+    "profile_id": "93162976-bf1f-4129-abf9-1d60f751c50d",
+    "gender": "male",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "502 Đường Nguyễn Huệ",
+      "district": "Quận 12"
+    },
+    "emergency_contact": {
+      "name": "Người thân của Phan Văn Hải",
+      "phone": "0919190347",
+      "relationship": "Bố/Mẹ"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "policy_number": "DN0298707279"
+    },
+    "medical_history": "Sỏi mật",
+    "allergies": [],
+    "chronic_conditions": [
+      "Sỏi mật"
+    ],
+    "current_medications": {},
+    "status": "active",
+    "notes": null,
+    "created_at": "2025-06-22T17:09:27.284918+00:00",
+    "updated_at": "2025-06-22T17:09:27.284918+00:00",
+    "created_by": null,
+    "full_name": "Phan Văn Hải",
+    "date_of_birth": null
+  },
+  {
+    "patient_id": "PAT-202506-544",
+    "profile_id": "5eb99067-74ac-46d1-8068-1c074d26da4c",
+    "gender": "female",
+    "blood_type": "A+",
+    "address": {
+      "city": "TP.HCM",
+      "street": "456 Đường Lê Lợi",
+      "zipcode": "70000",
+      "district": "Quận 1"
+    },
+    "emergency_contact": {
+      "name": "Trần Văn Minh",
+      "phone": "0912345678",
+      "address": "456 Đường Lê Lợi, Quận 1, TP.HCM",
+      "relationship": "Chồng"
+    },
+    "insurance_info": {
+      "provider": "BHYT",
+      "expiry_date": "2025-12-31",
+      "coverage_type": "Toàn diện",
+      "policy_number": "DN1234567890"
+    },
+    "medical_history": "Tiền sử cao huyết áp từ năm 2020. Đã phẫu thuật cắt ruột thừa năm 2018. Không có tiền sử dị ứng thuốc.",
+    "allergies": [
+      "Dị ứng với Penicillin",
+      "Dị ứng với tôm cua"
+    ],
+    "chronic_conditions": [
+      "Cao huyết áp",
+      "Tiểu đường type 2 nhẹ"
+    ],
+    "current_medications": {
+      "Vitamin D3": "Uống 1 viên/tuần",
+      "Amlodipine 5mg": "Uống 1 viên/ngày vào buổi sáng",
+      "Metformin 500mg": "Uống 1 viên x 2 lần/ngày sau ăn"
+    },
+    "status": "active",
+    "notes": "Bệnh nhân tuân thủ điều trị tốt. Cần theo dõi đường huyết định kỳ 3 tháng/lần.",
+    "created_at": "2025-06-22T09:37:56.384+00:00",
+    "updated_at": "2025-06-22T17:14:07.075797+00:00",
+    "created_by": null,
+    "full_name": "Trần Thị Hương",
+    "date_of_birth": "1985-08-20"
+  }
+]

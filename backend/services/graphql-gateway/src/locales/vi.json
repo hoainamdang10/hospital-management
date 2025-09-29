@@ -1,0 +1,152 @@
+{
+  "patient": {
+    "errors": {
+      "missing_identifier": "Cần cung cấp ID hoặc mã bệnh nhân",
+      "fetch_failed": "Không thể lấy thông tin bệnh nhân",
+      "search_failed": "Không thể tìm kiếm bệnh nhân",
+      "medical_summary_failed": "Không thể lấy tóm tắt y tế của bệnh nhân",
+      "stats_failed": "Không thể lấy thống kê bệnh nhân",
+      "history_failed": "Không thể lấy lịch sử khám bệnh",
+      "create_failed": "Không thể tạo hồ sơ bệnh nhân",
+      "update_failed": "Không thể cập nhật thông tin bệnh nhân",
+      "delete_failed": "Không thể xóa hồ sơ bệnh nhân",
+      "activate_failed": "Không thể kích hoạt tài khoản bệnh nhân",
+      "deactivate_failed": "Không thể vô hiệu hóa tài khoản bệnh nhân",
+      "medical_update_failed": "Không thể cập nhật thông tin y tế",
+      "insurance_update_failed": "Không thể cập nhật thông tin bảo hiểm"
+    }
+  },
+  "appointment": {
+    "errors": {
+      "missing_identifier": "Cần cung cấp ID hoặc mã lịch hẹn",
+      "fetch_failed": "Không thể lấy thông tin lịch hẹn",
+      "today_failed": "Không thể lấy lịch hẹn hôm nay",
+      "upcoming_failed": "Không thể lấy lịch hẹn sắp tới",
+      "stats_failed": "Không thể lấy thống kê lịch hẹn",
+      "create_failed": "Không thể tạo lịch hẹn",
+      "update_failed": "Không thể cập nhật lịch hẹn",
+      "cancel_failed": "Không thể hủy lịch hẹn",
+      "confirm_failed": "Không thể xác nhận lịch hẹn",
+      "reschedule_failed": "Không thể đổi lịch hẹn",
+      "checkin_failed": "Không thể check-in lịch hẹn",
+      "complete_failed": "Không thể hoàn thành lịch hẹn"
+    }
+  },
+  "medical_record": {
+    "errors": {
+      "missing_id": "Cần cung cấp ID hồ sơ y tế",
+      "fetch_failed": "Không thể lấy hồ sơ y tế",
+      "patient_records_failed": "Không thể lấy hồ sơ y tế của bệnh nhân",
+      "doctor_records_failed": "Không thể lấy hồ sơ y tế của bác sĩ",
+      "search_failed": "Không thể tìm kiếm hồ sơ y tế",
+      "vital_signs_failed": "Không thể lấy chỉ số sinh tồn",
+      "lab_results_failed": "Không thể lấy kết quả xét nghiệm",
+      "create_failed": "Không thể tạo hồ sơ y tế",
+      "update_failed": "Không thể cập nhật hồ sơ y tế",
+      "delete_failed": "Không thể xóa hồ sơ y tế"
+    }
+  },
+  "doctor": {
+    "errors": {
+      "missing_identifier": "Cần cung cấp ID hoặc mã bác sĩ",
+      "fetch_failed": "Không thể lấy thông tin bác sĩ",
+      "search_failed": "Không thể tìm kiếm bác sĩ",
+      "availability_failed": "Không thể kiểm tra lịch trống của bác sĩ",
+      "stats_failed": "Không thể lấy thống kê bác sĩ",
+      "create_failed": "Không thể tạo hồ sơ bác sĩ",
+      "update_failed": "Không thể cập nhật thông tin bác sĩ",
+      "delete_failed": "Không thể xóa hồ sơ bác sĩ",
+      "activate_failed": "Không thể kích hoạt tài khoản bác sĩ",
+      "deactivate_failed": "Không thể vô hiệu hóa tài khoản bác sĩ"
+    }
+  },
+  "department": {
+    "errors": {
+      "missing_id": "Cần cung cấp ID khoa",
+      "fetch_failed": "Không thể lấy thông tin khoa",
+      "search_failed": "Không thể tìm kiếm khoa",
+      "create_failed": "Không thể tạo khoa mới",
+      "update_failed": "Không thể cập nhật thông tin khoa",
+      "delete_failed": "Không thể xóa khoa"
+    }
+  },
+  "auth": {
+    "errors": {
+      "authentication_required": "Yêu cầu xác thực",
+      "access_denied": "Không có quyền truy cập",
+      "invalid_token": "Token không hợp lệ",
+      "token_expired": "Token đã hết hạn",
+      "insufficient_permissions": "Không đủ quyền hạn"
+    }
+  },
+  "general": {
+    "errors": {
+      "not_found": "Không tìm thấy",
+      "invalid_input": "Dữ liệu không hợp lệ",
+      "internal_error": "Lỗi hệ thống",
+      "service_unavailable": "Dịch vụ không khả dụng",
+      "timeout": "Hết thời gian chờ",
+      "network_error": "Lỗi mạng",
+      "database_error": "Lỗi cơ sở dữ liệu",
+      "validation_error": "Lỗi xác thực dữ liệu"
+    },
+    "success": {
+      "created": "Tạo thành công",
+      "updated": "Cập nhật thành công",
+      "deleted": "Xóa thành công",
+      "activated": "Kích hoạt thành công",
+      "deactivated": "Vô hiệu hóa thành công"
+    }
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "pending": "Đang chờ",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy",
+    "confirmed": "Đã xác nhận",
+    "scheduled": "Đã lên lịch",
+    "in_progress": "Đang thực hiện",
+    "no_show": "Không đến"
+  },
+  "appointment_types": {
+    "consultation": "Tư vấn",
+    "follow_up": "Tái khám",
+    "emergency": "Cấp cứu",
+    "surgery": "Phẫu thuật",
+    "diagnostic": "Chẩn đoán",
+    "vaccination": "Tiêm chủng",
+    "health_checkup": "Khám sức khỏe",
+    "telemedicine": "Khám từ xa"
+  },
+  "medical_terms": {
+    "blood_pressure": "Huyết áp",
+    "heart_rate": "Nhịp tim",
+    "temperature": "Nhiệt độ",
+    "respiratory_rate": "Nhịp thở",
+    "oxygen_saturation": "Độ bão hòa oxy",
+    "height": "Chiều cao",
+    "weight": "Cân nặng",
+    "bmi": "Chỉ số BMI",
+    "diagnosis": "Chẩn đoán",
+    "treatment": "Điều trị",
+    "prescription": "Đơn thuốc",
+    "allergies": "Dị ứng",
+    "chronic_conditions": "Bệnh mãn tính",
+    "medications": "Thuốc đang dùng"
+  },
+  "departments": {
+    "cardiology": "Tim mạch",
+    "neurology": "Thần kinh",
+    "orthopedics": "Chấn thương chỉnh hình",
+    "pediatrics": "Nhi khoa",
+    "gynecology": "Phụ khoa",
+    "dermatology": "Da liễu",
+    "ophthalmology": "Mắt",
+    "ent": "Tai mũi họng",
+    "internal_medicine": "Nội khoa",
+    "surgery": "Ngoại khoa",
+    "emergency": "Cấp cứu",
+    "radiology": "Chẩn đoán hình ảnh"
+  }
+}

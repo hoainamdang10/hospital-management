@@ -1,0 +1,49 @@
+name: Qodana Code Quality Analysis
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        # Install frontend dependencies
+        echo "Installing frontend dependencies..."
+        cd frontend && npm install
+
+        # Install backend service dependencies
+        echo "Installing backend service dependencies..."
+        cd ../backend
+        find services -name "package.json" -execdir npm install \;
+    
+    - name: Qodana Scan
+      uses: JetBrains/qodana-action@v2023.3
+      with:
+        # Scan the entire project
+        args: --fail-threshold 0
+      env:
+        QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+    
+    - name: Upload Qodana results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: qodana-results
+        path: ${{ runner.temp }}/qodana/results/

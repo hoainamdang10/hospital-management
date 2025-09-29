@@ -1,0 +1,138 @@
+# Docker Compose Override Example for Development
+# Copy this file to docker-compose.override.yml and fill in your actual values
+# This file is automatically loaded by docker-compose and overrides values in docker-compose.yml
+
+version: '3.8'
+
+services:
+  # GraphQL Gateway
+  graphql-gateway:
+    environment:
+      # Override with your actual development values
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - SUPABASE_JWT_SECRET=your_actual_jwt_secret_here
+      - JWT_SECRET=your_actual_custom_jwt_secret_here
+      # Development specific settings
+      - NODE_ENV=development
+      - DEBUG=true
+      - LOG_LEVEL=debug
+
+  # API Gateway
+  api-gateway:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - SUPABASE_JWT_SECRET=your_actual_jwt_secret_here
+      - JWT_SECRET=your_actual_custom_jwt_secret_here
+      - NODE_ENV=development
+      - DEBUG=true
+      - LOG_LEVEL=debug
+
+  # Auth Service
+  auth-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - SUPABASE_JWT_SECRET=your_actual_jwt_secret_here
+      - JWT_SECRET=your_actual_custom_jwt_secret_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Doctor Service
+  doctor-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Patient Service
+  patient-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Appointment Service
+  appointment-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Department Service
+  department-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - SUPABASE_ANON_KEY=your_actual_anon_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Medical Records Service
+  medical-records-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Prescription Service
+  prescription-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Billing Service
+  billing-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Payment Service
+  payment-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - PAYOS_CLIENT_ID=your_actual_payos_client_id
+      - PAYOS_API_KEY=your_actual_payos_api_key
+      - PAYOS_CHECKSUM_KEY=your_actual_payos_checksum_key
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Notification Service
+  notification-service:
+    environment:
+      - SUPABASE_URL=https://your-project-id.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+      - NODE_ENV=development
+      - DEBUG=true
+
+  # Redis - Development settings
+  redis:
+    command: redis-server --appendonly yes --requirepass your_redis_password
+    environment:
+      - REDIS_PASSWORD=your_redis_password
+
+  # RabbitMQ - Development settings
+  rabbitmq:
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=your_secure_admin_password
+
+# Development volumes for hot reloading (optional)
+volumes:
+  redis_data:
+  rabbitmq_data:
+
+# Development networks (optional)
+networks:
+  hospital-network:
+    driver: bridge

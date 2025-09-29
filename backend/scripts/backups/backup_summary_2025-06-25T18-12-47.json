@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-06-25T18:12:47.865Z",
+  "supabase_url": "https://ciasxktujslgsdgylimv.supabase.co",
+  "tables": {
+    "profiles": {
+      "records": 82,
+      "file": "profiles_2025-06-25T18-12-47.json",
+      "status": "success"
+    },
+    "doctors": {
+      "records": 41,
+      "file": "doctors_2025-06-25T18-12-47.json",
+      "status": "success"
+    },
+    "patients": {
+      "records": 37,
+      "file": "patients_2025-06-25T18-12-47.json",
+      "status": "success"
+    },
+    "departments": {
+      "records": 13,
+      "file": "departments_2025-06-25T18-12-47.json",
+      "status": "success"
+    },
+    "appointments": {
+      "records": 53,
+      "file": "appointments_2025-06-25T18-12-47.json",
+      "status": "success"
+    },
+    "medical_records": {
+      "records": 0,
+      "file": null,
+      "status": "failed"
+    },
+    "doctor_work_schedules": {
+      "records": 0,
+      "file": null,
+      "status": "failed"
+    },
+    "doctor_work_experiences": {
+      "records": 0,
+      "file": null,
+      "status": "failed"
+    },
+    "doctor_reviews": {
+      "records": 0,
+      "file": null,
+      "status": "failed"
+    },
+    "doctor_emergency_contacts": {
+      "records": 0,
+      "file": null,
+      "status": "failed"
+    },
+    "doctor_settings": {
+      "records": 0,
+      "file": null,
+      "status": "failed"
+    },
+    "doctor_statistics": {
+      "records": 0,
+      "file": null,
+      "status": "failed"
+    }
+  },
+  "files": [
+    "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\profiles_2025-06-25T18-12-47.json",
+    "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\doctors_2025-06-25T18-12-47.json",
+    "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\patients_2025-06-25T18-12-47.json",
+    "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\departments_2025-06-25T18-12-47.json",
+    "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\appointments_2025-06-25T18-12-47.json"
+  ],
+  "total_records": 226
+}

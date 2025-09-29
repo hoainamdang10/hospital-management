@@ -1,0 +1,241 @@
+# Prometheus Alerting Rules for Hospital Management System
+# Performance and Health Monitoring
+
+groups:
+  - name: hospital.performance
+    rules:
+      # High Response Time Alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for service {{ $labels.service }}"
+
+      # Low Cache Hit Rate
+      - alert: LowCacheHitRate
+        expr: (cache_hits_total / (cache_hits_total + cache_misses_total)) * 100 < 70
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value }}% for service {{ $labels.service }}"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024) > 800
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}MB for service {{ $labels.service }}"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% for service {{ $labels.service }}"
+
+  - name: hospital.availability
+    rules:
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High error rate"
+          description: "Error rate is {{ $value }}% for service {{ $labels.service }}"
+
+      # GraphQL Query Complexity Too High
+      - alert: HighGraphQLComplexity
+        expr: graphql_query_complexity > 800
+        for: 1m
+        labels:
+          severity: warning
+          service: "graphql-gateway"
+        annotations:
+          summary: "High GraphQL query complexity"
+          description: "Query complexity is {{ $value }} (threshold: 800)"
+
+  - name: hospital.database
+    rules:
+      # High Database Connection Usage
+      - alert: HighDatabaseConnections
+        expr: database_connections_active / database_connections_max * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value }}% for service {{ $labels.service }}"
+
+      # Slow Database Queries
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m])) > 1
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time is {{ $value }}s for service {{ $labels.service }}"
+
+  - name: hospital.business
+    rules:
+      # High Appointment Booking Failures
+      - alert: HighAppointmentFailures
+        expr: rate(appointment_bookings_failed_total[5m]) / rate(appointment_bookings_total[5m]) * 100 > 10
+        for: 3m
+        labels:
+          severity: warning
+          service: "appointment-service"
+        annotations:
+          summary: "High appointment booking failure rate"
+          description: "Appointment booking failure rate is {{ $value }}%"
+
+      # Payment Processing Issues
+      - alert: PaymentProcessingIssues
+        expr: rate(payment_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: "payment-service"
+        annotations:
+          summary: "Payment processing issues detected"
+          description: "Payment failure rate is {{ $value }} failures per second"
+
+      # Medical Records Access Delays
+      - alert: MedicalRecordsDelay
+        expr: histogram_quantile(0.90, rate(medical_records_access_duration_seconds_bucket[5m])) > 3
+        for: 2m
+        labels:
+          severity: warning
+          service: "medical-records-service"
+        annotations:
+          summary: "Medical records access delays"
+          description: "90th percentile access time is {{ $value }}s"
+
+  - name: hospital.security
+    rules:
+      # High Authentication Failures
+      - alert: HighAuthFailures
+        expr: rate(auth_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: "auth-service"
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }} failures per second"
+
+      # Suspicious Activity
+      - alert: SuspiciousActivity
+        expr: rate(http_requests_total{status="401"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "High rate of 401 responses: {{ $value }} per second"
+
+  - name: hospital.infrastructure
+    rules:
+      # Redis Connection Issues
+      - alert: RedisConnectionIssues
+        expr: redis_connected_clients < 1
+        for: 1m
+        labels:
+          severity: critical
+          service: "redis"
+        annotations:
+          summary: "Redis connection issues"
+          description: "Redis has {{ $value }} connected clients"
+
+      # RabbitMQ Queue Buildup
+      - alert: RabbitMQQueueBuildup
+        expr: rabbitmq_queue_messages > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: "rabbitmq"
+          queue: "{{ $labels.queue }}"
+        annotations:
+          summary: "RabbitMQ queue buildup"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages"
+
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          service: "infrastructure"
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value }}% available on {{ $labels.device }}"
+
+  - name: hospital.performance.sla
+    rules:
+      # SLA Violation - Response Time
+      - alert: SLAViolationResponseTime
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[10m])) > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+          sla: "response_time"
+        annotations:
+          summary: "SLA violation: Response time"
+          description: "99th percentile response time {{ $value }}s exceeds SLA (5s) for {{ $labels.service }}"
+
+      # SLA Violation - Availability
+      - alert: SLAViolationAvailability
+        expr: (rate(http_requests_total{status!~"5.."}[10m]) / rate(http_requests_total[10m])) * 100 < 99.5
+        for: 5m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+          sla: "availability"
+        annotations:
+          summary: "SLA violation: Availability"
+          description: "Service availability {{ $value }}% is below SLA (99.5%) for {{ $labels.service }}"
+
+      # SLA Violation - Error Rate
+      - alert: SLAViolationErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[10m]) / rate(http_requests_total[10m]) * 100 > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+          sla: "error_rate"
+        annotations:
+          summary: "SLA violation: Error rate"
+          description: "Error rate {{ $value }}% exceeds SLA (0.5%) for {{ $labels.service }}"

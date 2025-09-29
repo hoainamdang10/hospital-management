@@ -1,0 +1,78 @@
+{
+  "name": "hospital-management-services-v2",
+  "version": "2.0.0",
+  "description": "Hospital Management System - Clean Architecture Services V2",
+  "main": "index.js",
+  "scripts": {
+    "generate:service": "node scripts/generate-service.js",
+    "dev:infrastructure": "docker-compose -f docker-compose.v2.yml --profile infrastructure up -d",
+    "dev:core": "docker-compose -f docker-compose.v2.yml --profile core up -d",
+    "dev:business": "docker-compose -f docker-compose.v2.yml --profile business up -d",
+    "dev:supporting": "docker-compose -f docker-compose.v2.yml --profile supporting up -d",
+    "dev:all": "docker-compose -f docker-compose.v2.yml --profile full up -d",
+    "dev:stop": "docker-compose -f docker-compose.v2.yml down",
+    "dev:clean": "docker-compose -f docker-compose.v2.yml down -v --remove-orphans",
+    "build:all": "npm run build:identity && npm run build:patient && npm run build:provider && npm run build:scheduling && npm run build:clinical && npm run build:billing && npm run build:notifications",
+    "build:identity": "cd identity-service && npm run build",
+    "build:patient": "cd patient-registry-service && npm run build",
+    "build:provider": "cd provider-staff-service && npm run build",
+    "build:scheduling": "cd scheduling-service && npm run build",
+    "build:clinical": "cd clinical-emr-service && npm run build",
+    "build:billing": "cd billing-service && npm run build",
+    "build:notifications": "cd notifications-service && npm run build",
+    "test:all": "npm run test:identity && npm run test:patient && npm run test:provider && npm run test:scheduling && npm run test:clinical && npm run test:billing && npm run test:notifications",
+    "test:identity": "cd identity-service && npm test",
+    "test:patient": "cd patient-registry-service && npm test",
+    "test:provider": "cd provider-staff-service && npm test",
+    "test:scheduling": "cd scheduling-service && npm test",
+    "test:clinical": "cd clinical-emr-service && npm test",
+    "test:billing": "cd billing-service && npm test",
+    "test:notifications": "cd notifications-service && npm test",
+    "install:all": "npm run install:identity && npm run install:patient && npm run install:provider && npm run install:scheduling && npm run install:clinical && npm run install:billing && npm run install:notifications",
+    "install:identity": "cd identity-service && npm install",
+    "install:patient": "cd patient-registry-service && npm install",
+    "install:provider": "cd provider-staff-service && npm install",
+    "install:scheduling": "cd scheduling-service && npm install",
+    "install:clinical": "cd clinical-emr-service && npm install",
+    "install:billing": "cd billing-service && npm install",
+    "install:notifications": "cd notifications-service && npm install",
+    "health:check": "node scripts/health-check.js",
+    "logs:all": "docker-compose -f docker-compose.v2.yml logs -f",
+    "logs:identity": "docker-compose -f docker-compose.v2.yml logs -f identity-service",
+    "logs:patient": "docker-compose -f docker-compose.v2.yml logs -f patient-registry-service",
+    "logs:provider": "docker-compose -f docker-compose.v2.yml logs -f provider-staff-service",
+    "logs:scheduling": "docker-compose -f docker-compose.v2.yml logs -f scheduling-service",
+    "logs:clinical": "docker-compose -f docker-compose.v2.yml logs -f clinical-emr-service",
+    "logs:billing": "docker-compose -f docker-compose.v2.yml logs -f billing-service",
+    "logs:notifications": "docker-compose -f docker-compose.v2.yml logs -f notifications-service"
+  },
+  "keywords": [
+    "hospital-management",
+    "healthcare",
+    "microservices",
+    "clean-architecture",
+    "ddd",
+    "cqrs",
+    "event-driven",
+    "typescript",
+    "nodejs"
+  ],
+  "author": "Hospital Management Team",
+  "license": "MIT",
+  "devDependencies": {
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hospital-management/services-v2"
+  },
+  "bugs": {
+    "url": "https://github.com/hospital-management/services-v2/issues"
+  },
+  "homepage": "https://github.com/hospital-management/services-v2#readme"
+}

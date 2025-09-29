@@ -1,0 +1,5888 @@
+{
+  "metadata": {
+    "timestamp": "2025-06-25T18:12:47.865Z",
+    "supabase_url": "https://ciasxktujslgsdgylimv.supabase.co",
+    "tables": {
+      "profiles": {
+        "records": 82,
+        "file": "profiles_2025-06-25T18-12-47.json",
+        "status": "success"
+      },
+      "doctors": {
+        "records": 41,
+        "file": "doctors_2025-06-25T18-12-47.json",
+        "status": "success"
+      },
+      "patients": {
+        "records": 37,
+        "file": "patients_2025-06-25T18-12-47.json",
+        "status": "success"
+      },
+      "departments": {
+        "records": 13,
+        "file": "departments_2025-06-25T18-12-47.json",
+        "status": "success"
+      },
+      "appointments": {
+        "records": 53,
+        "file": "appointments_2025-06-25T18-12-47.json",
+        "status": "success"
+      },
+      "medical_records": {
+        "records": 0,
+        "file": null,
+        "status": "failed"
+      },
+      "doctor_work_schedules": {
+        "records": 0,
+        "file": null,
+        "status": "failed"
+      },
+      "doctor_work_experiences": {
+        "records": 0,
+        "file": null,
+        "status": "failed"
+      },
+      "doctor_reviews": {
+        "records": 0,
+        "file": null,
+        "status": "failed"
+      },
+      "doctor_emergency_contacts": {
+        "records": 0,
+        "file": null,
+        "status": "failed"
+      },
+      "doctor_settings": {
+        "records": 0,
+        "file": null,
+        "status": "failed"
+      },
+      "doctor_statistics": {
+        "records": 0,
+        "file": null,
+        "status": "failed"
+      }
+    },
+    "files": [
+      "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\profiles_2025-06-25T18-12-47.json",
+      "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\doctors_2025-06-25T18-12-47.json",
+      "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\patients_2025-06-25T18-12-47.json",
+      "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\departments_2025-06-25T18-12-47.json",
+      "D:\\TEST\\hospital-management\\backend\\scripts\\backups\\appointments_2025-06-25T18-12-47.json"
+    ],
+    "total_records": 226
+  },
+  "data": {
+    "profiles": [
+      {
+        "id": "f5de8fd2-59b3-44fc-b869-9957c9ca16a7",
+        "email": "newpatient@hospital.com",
+        "full_name": "New Test Patient",
+        "role": "patient",
+        "phone_number": "0901234567",
+        "date_of_birth": "1990-01-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T09:08:00.725523",
+        "updated_at": "2025-06-22T09:08:00.725523",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "64358551-8246-4ae2-9b67-9c5d61c8cc53",
+        "email": "obgyn1@hospital.com",
+        "full_name": "BS. Mai Thị Hồng",
+        "role": "doctor",
+        "phone_number": "0905145879",
+        "date_of_birth": "1974-04-27",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:55.554673",
+        "updated_at": "2025-06-22T17:04:55.554673",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "c3a58ff9-c5ef-4ac3-a99d-d843ce0336d4",
+        "email": "test.patient.1750590539007@hospital.com",
+        "full_name": "Unified Test Patient",
+        "role": "patient",
+        "phone_number": "0987654321",
+        "date_of_birth": "1990-01-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T11:09:07.63603",
+        "updated_at": "2025-06-22T11:09:07.63603",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "4c18831c-eae9-4762-b892-cfed32652d03",
+        "email": "admin@hospital.com",
+        "full_name": "ADMIN",
+        "role": "admin",
+        "phone_number": "0359889754",
+        "date_of_birth": null,
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": "2025-06-22T11:19:28.512158",
+        "login_count": 1,
+        "created_at": "2025-06-22T10:53:07.756814",
+        "updated_at": "2025-06-22T11:19:28.512158",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "dd750bac-bbdd-4f6c-8850-71eb317ecc72",
+        "email": "obgyn2@hospital.com",
+        "full_name": "BS. Đỗ Văn Kiên",
+        "role": "doctor",
+        "phone_number": "0905548129",
+        "date_of_birth": "1981-09-21",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:55.768137",
+        "updated_at": "2025-06-22T17:04:55.768137",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "b1d3b145-30d5-4865-98b4-285cfedd5166",
+        "email": "namprophunong003@gmail.com",
+        "full_name": "Đặng Hoài Nam",
+        "role": "patient",
+        "phone_number": "0832497495",
+        "date_of_birth": null,
+        "is_active": true,
+        "email_verified": false,
+        "phone_verified": false,
+        "last_login": "2025-06-22T14:19:47.845",
+        "login_count": 0,
+        "created_at": "2025-06-22T10:00:48.654551",
+        "updated_at": "2025-06-22T14:19:46.307782",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "07399584-2cb8-4567-8c32-7fb33167efd6",
+        "email": "obgyn3@hospital.com",
+        "full_name": "BS. Lê Thị Xuân",
+        "role": "doctor",
+        "phone_number": "0905458024",
+        "date_of_birth": "1979-09-06",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:56.00925",
+        "updated_at": "2025-06-22T17:04:56.00925",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "b4f2ee7d-ab0b-4c4a-a175-18e27ae458a0",
+        "email": "obgyn4@hospital.com",
+        "full_name": "BS. Phùng Văn Đạt",
+        "role": "doctor",
+        "phone_number": "0905235743",
+        "date_of_birth": "1971-10-16",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:56.25066",
+        "updated_at": "2025-06-22T17:04:56.25066",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "8f851537-d658-4304-945f-5be0f1746377",
+        "email": "obgyn5@hospital.com",
+        "full_name": "BS. Trương Thị Yến",
+        "role": "doctor",
+        "phone_number": "0903511530",
+        "date_of_birth": "1983-09-05",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:56.47405",
+        "updated_at": "2025-06-22T17:04:56.47405",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "eef0d4ef-1c9c-4f07-beff-9307dea0d3df",
+        "email": "internal1@hospital.com",
+        "full_name": "BS. Huỳnh Văn Tâm",
+        "role": "doctor",
+        "phone_number": "0906945156",
+        "date_of_birth": "1970-05-16",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:57.074363",
+        "updated_at": "2025-06-22T17:04:57.074363",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "7cb7736c-1634-47f4-82d2-8560e1845112",
+        "email": "internal2@hospital.com",
+        "full_name": "BS. Nguyễn Thị Thu",
+        "role": "doctor",
+        "phone_number": "0906774900",
+        "date_of_birth": "1986-08-04",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:57.295771",
+        "updated_at": "2025-06-22T17:04:57.295771",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "efeb6563-c34f-4ffd-8a58-bc476dfe0b68",
+        "email": "internal3@hospital.com",
+        "full_name": "BS. Trần Văn Phúc",
+        "role": "doctor",
+        "phone_number": "0908772591",
+        "date_of_birth": "1971-12-03",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:57.587234",
+        "updated_at": "2025-06-22T17:04:57.587234",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "5ae37a9f-baf4-43c2-b290-50e652a39e39",
+        "email": "internal4@hospital.com",
+        "full_name": "BS. Lê Thị Hạnh",
+        "role": "doctor",
+        "phone_number": "0904107716",
+        "date_of_birth": "1979-10-21",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:58.69334",
+        "updated_at": "2025-06-22T17:04:58.69334",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "f853060f-f40b-41be-90c5-725f541e5eeb",
+        "email": "internal5@hospital.com",
+        "full_name": "BS. Võ Văn Sơn",
+        "role": "doctor",
+        "phone_number": "0900391444",
+        "date_of_birth": "1978-02-02",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:59.263248",
+        "updated_at": "2025-06-22T17:04:59.263248",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "a1361955-ff70-4ab7-b752-969d170c3ccb",
+        "email": "surgery1@hospital.com",
+        "full_name": "BS. Phan Văn Dũng",
+        "role": "doctor",
+        "phone_number": "0904051375",
+        "date_of_birth": "1982-11-26",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:59.988994",
+        "updated_at": "2025-06-22T17:04:59.988994",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "aa5e9f06-1076-4311-8ed9-5af96625eff6",
+        "email": "surgery2@hospital.com",
+        "full_name": "BS. Đặng Thị Liên",
+        "role": "doctor",
+        "phone_number": "0901214966",
+        "date_of_birth": "1977-09-21",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:05:00.473732",
+        "updated_at": "2025-06-22T17:05:00.473732",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "7d2f6a4f-0712-4788-903c-019718cc0b03",
+        "email": "surgery3@hospital.com",
+        "full_name": "BS. Bùi Văn Hùng",
+        "role": "doctor",
+        "phone_number": "0907527239",
+        "date_of_birth": "1981-05-22",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:05:01.054729",
+        "updated_at": "2025-06-22T17:05:01.054729",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "8ba9edc7-afb0-4890-be7c-72b41db2e9a5",
+        "email": "surgery4@hospital.com",
+        "full_name": "BS. Lý Thị Phương",
+        "role": "doctor",
+        "phone_number": "0901540880",
+        "date_of_birth": "1984-12-06",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:05:01.302836",
+        "updated_at": "2025-06-22T17:05:01.302836",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "7c7199ae-83c4-4782-800e-d70ec7de1a41",
+        "email": "surgery5@hospital.com",
+        "full_name": "BS. Cao Văn Minh",
+        "role": "doctor",
+        "phone_number": "0905910851",
+        "date_of_birth": "1973-03-13",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:05:02.016627",
+        "updated_at": "2025-06-22T17:05:02.016627",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "ee49439c-eff4-4d22-93d6-ca5dfe81c629",
+        "email": "doctor1@hospital.com",
+        "full_name": "BS. Nguyễn Văn Hùng",
+        "role": "doctor",
+        "phone_number": "0901234567",
+        "date_of_birth": "1980-01-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T16:54:04.245054",
+        "updated_at": "2025-06-22T16:54:04.245054",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "3ead98c1-e683-4a76-ba59-d67c9ab1112f",
+        "email": "doctor2@hospital.com",
+        "full_name": "BS. Trần Thị Lan",
+        "role": "doctor",
+        "phone_number": "0901234568",
+        "date_of_birth": "1980-01-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T16:54:04.245054",
+        "updated_at": "2025-06-22T16:54:04.245054",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "610361c3-5e41-493e-b6fc-7ca1ec67c580",
+        "email": "doctor3@hospital.com",
+        "full_name": "BS. Lê Minh Tuấn",
+        "role": "doctor",
+        "phone_number": "0901234569",
+        "date_of_birth": "1980-01-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T16:54:04.245054",
+        "updated_at": "2025-06-22T16:54:04.245054",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "c43e91c5-3882-4fa4-966d-780251840512",
+        "email": "doctor4@hospital.com",
+        "full_name": "BS. Phạm Thị Mai",
+        "role": "doctor",
+        "phone_number": "0901234570",
+        "date_of_birth": "1980-01-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T16:54:04.245054",
+        "updated_at": "2025-06-22T16:54:04.245054",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "a79e851e-94ef-4ab7-a9d5-40a20568d913",
+        "email": "doctor5@hospital.com",
+        "full_name": "BS. Hoàng Văn Nam",
+        "role": "doctor",
+        "phone_number": "0901234571",
+        "date_of_birth": "1980-01-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T16:54:04.245054",
+        "updated_at": "2025-06-22T16:54:04.245054",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "74ab2783-9a46-4c2e-a02c-34a39079aed2",
+        "email": "nhi1@hospital.com",
+        "full_name": "BS. Cao Văn Thành",
+        "role": "doctor",
+        "phone_number": "0906411239",
+        "date_of_birth": "1971-12-20",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:03:24.338669",
+        "updated_at": "2025-06-22T17:03:24.338669",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "4c9dfc92-161d-4733-afc7-279e648a9a98",
+        "email": "nhi2@hospital.com",
+        "full_name": "BS. Đinh Thị Hương",
+        "role": "doctor",
+        "phone_number": "0905230875",
+        "date_of_birth": "1988-04-21",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:03:24.610445",
+        "updated_at": "2025-06-22T17:03:24.610445",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "d970346d-31d9-4a8b-b9b5-ede036095d08",
+        "email": "nhi3@hospital.com",
+        "full_name": "BS. Phan Văn Long",
+        "role": "doctor",
+        "phone_number": "0900798717",
+        "date_of_birth": "1977-12-23",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:03:24.854031",
+        "updated_at": "2025-06-22T17:03:24.854031",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "4307835a-cbd3-4722-a46d-255d439a10ad",
+        "email": "nhi4@hospital.com",
+        "full_name": "BS. Võ Thị Kim",
+        "role": "doctor",
+        "phone_number": "0904085913",
+        "date_of_birth": "1973-08-09",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:03:25.087235",
+        "updated_at": "2025-06-22T17:03:25.087235",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "f00a85ea-88f0-4460-a08f-adde55ba05d0",
+        "email": "nhi5@hospital.com",
+        "full_name": "BS. Dương Văn Hải",
+        "role": "doctor",
+        "phone_number": "0904704333",
+        "date_of_birth": "1982-05-17",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:03:25.319859",
+        "updated_at": "2025-06-22T17:03:25.319859",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "d8c759a0-977c-4e39-8911-e134606ab2fb",
+        "email": "cardio1@hospital.com",
+        "full_name": "BS. Nguyễn Văn Hùng",
+        "role": "doctor",
+        "phone_number": "0907812972",
+        "date_of_birth": "1975-01-13",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:48.513594",
+        "updated_at": "2025-06-22T17:04:48.513594",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "eecb57c5-42d4-4523-b39d-2a00b9fcbf48",
+        "email": "cardio2@hospital.com",
+        "full_name": "BS. Trần Thị Lan",
+        "role": "doctor",
+        "phone_number": "0906563182",
+        "date_of_birth": "1984-12-05",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:48.77743",
+        "updated_at": "2025-06-22T17:04:48.77743",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "d307767d-b4cc-4cc7-aa46-42c3f50d7d09",
+        "email": "cardio3@hospital.com",
+        "full_name": "BS. Lê Minh Tuấn",
+        "role": "doctor",
+        "phone_number": "0909145654",
+        "date_of_birth": "1976-04-17",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:49.034964",
+        "updated_at": "2025-06-22T17:04:49.034964",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "58a8989e-4a9b-4fbb-9029-03b12649fb11",
+        "email": "cardio4@hospital.com",
+        "full_name": "BS. Phạm Thị Mai",
+        "role": "doctor",
+        "phone_number": "0900553239",
+        "date_of_birth": "1976-06-15",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:49.273043",
+        "updated_at": "2025-06-22T17:04:49.273043",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "28d94e9b-1c49-4902-a77f-b47069a425fe",
+        "email": "cardio5@hospital.com",
+        "full_name": "BS. Hoàng Văn Nam",
+        "role": "doctor",
+        "phone_number": "0905011258",
+        "date_of_birth": "1989-04-28",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:49.546433",
+        "updated_at": "2025-06-22T17:04:49.546433",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "4aceda7b-5cce-4aa1-b9ac-cea09b8481b3",
+        "email": "ortho1@hospital.com",
+        "full_name": "BS. Vũ Thị Hoa",
+        "role": "doctor",
+        "phone_number": "0905800637",
+        "date_of_birth": "1985-08-08",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:50.253812",
+        "updated_at": "2025-06-22T17:04:50.253812",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "96b45bf8-d677-4581-9664-350651e2a3ac",
+        "email": "ortho2@hospital.com",
+        "full_name": "BS. Đặng Văn Minh",
+        "role": "doctor",
+        "phone_number": "0909259271",
+        "date_of_birth": "1983-10-23",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:50.502297",
+        "updated_at": "2025-06-22T17:04:50.502297",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "8ec05d84-cfd0-446a-a19a-995393477f1e",
+        "email": "ortho3@hospital.com",
+        "full_name": "BS. Bùi Thị Linh",
+        "role": "doctor",
+        "phone_number": "0907491377",
+        "date_of_birth": "1988-05-21",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:51.094532",
+        "updated_at": "2025-06-22T17:04:51.094532",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "6e56e1b0-d03a-4afe-a160-20ff906a0e98",
+        "email": "ortho4@hospital.com",
+        "full_name": "BS. Trịnh Văn Đức",
+        "role": "doctor",
+        "phone_number": "0902588524",
+        "date_of_birth": "1985-04-20",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:51.825595",
+        "updated_at": "2025-06-22T17:04:51.825595",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "808f51c2-5b7b-4ace-9838-350834964e77",
+        "email": "ortho5@hospital.com",
+        "full_name": "BS. Lý Thị Nga",
+        "role": "doctor",
+        "phone_number": "0907306864",
+        "date_of_birth": "1981-10-03",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:52.093793",
+        "updated_at": "2025-06-22T17:04:52.093793",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "a0d3dae6-bfbd-4da3-94aa-56ffab6fdbbd",
+        "email": "neuro1@hospital.com",
+        "full_name": "BS. Ngô Thị Bình",
+        "role": "doctor",
+        "phone_number": "0901677482",
+        "date_of_birth": "1979-05-20",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:52.867009",
+        "updated_at": "2025-06-22T17:04:52.867009",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "3b649498-2325-43d6-ab09-863d8c3148df",
+        "email": "neuro2@hospital.com",
+        "full_name": "BS. Tạ Văn Quang",
+        "role": "doctor",
+        "phone_number": "0906233230",
+        "date_of_birth": "1989-05-25",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:53.373214",
+        "updated_at": "2025-06-22T17:04:53.373214",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "fe5ca258-1c11-4ca4-a289-a5231b71cc1e",
+        "email": "neuro3@hospital.com",
+        "full_name": "BS. Lưu Thị Oanh",
+        "role": "doctor",
+        "phone_number": "0905404765",
+        "date_of_birth": "1974-03-26",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:53.685265",
+        "updated_at": "2025-06-22T17:04:53.685265",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "90bb2207-413a-4996-be2c-77b07b398242",
+        "email": "neuro4@hospital.com",
+        "full_name": "BS. Hồ Văn Tùng",
+        "role": "doctor",
+        "phone_number": "0901237338",
+        "date_of_birth": "1974-12-15",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:54.343525",
+        "updated_at": "2025-06-22T17:04:54.343525",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "461d1a16-e8f9-42a9-890c-acfdefa5dca2",
+        "email": "neuro5@hospital.com",
+        "full_name": "BS. Chu Thị Lan",
+        "role": "doctor",
+        "phone_number": "0900482731",
+        "date_of_birth": "1989-05-13",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:04:54.632757",
+        "updated_at": "2025-06-22T17:04:54.632757",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "baaa2f0d-73ec-468a-be90-426ae2c76deb",
+        "email": "nhipatient1@test.com",
+        "full_name": "Cao Văn Minh",
+        "role": "patient",
+        "phone_number": "0903333001",
+        "date_of_birth": "2016-07-08",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:07:48.171523",
+        "updated_at": "2025-06-22T17:07:48.171523",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "475299db-f850-493c-94dc-ad3a43b5c636",
+        "email": "nhipatient2@test.com",
+        "full_name": "Đinh Thị Lan",
+        "role": "patient",
+        "phone_number": "0903333002",
+        "date_of_birth": "2019-10-16",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:07:48.629955",
+        "updated_at": "2025-06-22T17:07:48.629955",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "5e1331cc-f1c2-4fa6-beae-40fbdb985123",
+        "email": "nhipatient3@test.com",
+        "full_name": "Phan Văn Nam",
+        "role": "patient",
+        "phone_number": "0903333003",
+        "date_of_birth": "2012-06-01",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:07:48.956122",
+        "updated_at": "2025-06-22T17:07:48.956122",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "7b5b4e4e-2746-4ca9-9a23-cf0f46d318ce",
+        "email": "nhipatient4@test.com",
+        "full_name": "Võ Thị Oanh",
+        "role": "patient",
+        "phone_number": "0903333004",
+        "date_of_birth": "2017-01-16",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:07:49.27732",
+        "updated_at": "2025-06-22T17:07:49.27732",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "4ba3fbb4-e966-4672-9131-b24a16e2eb76",
+        "email": "nhipatient5@test.com",
+        "full_name": "Dương Văn Phúc",
+        "role": "patient",
+        "phone_number": "0903333005",
+        "date_of_birth": "2014-03-03",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:07:49.610469",
+        "updated_at": "2025-06-22T17:07:49.610469",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "ed2c179a-9431-45ff-837f-e3b6e8a6e6f9",
+        "email": "cardiopatient1@test.com",
+        "full_name": "Nguyễn Văn An",
+        "role": "patient",
+        "phone_number": "0906714292",
+        "date_of_birth": "1979-02-04",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:16.433628",
+        "updated_at": "2025-06-22T17:09:16.433628",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "c2d974a2-f3b4-4bde-aceb-a739a56650d8",
+        "email": "cardiopatient2@test.com",
+        "full_name": "Trần Thị Bình",
+        "role": "patient",
+        "phone_number": "0905529482",
+        "date_of_birth": "1972-04-17",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:16.82383",
+        "updated_at": "2025-06-22T17:09:16.82383",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "ffb9dd42-a5a3-4d76-8ae4-c90e74a5d8b7",
+        "email": "cardiopatient3@test.com",
+        "full_name": "Lê Văn Cường",
+        "role": "patient",
+        "phone_number": "0900234349",
+        "date_of_birth": "1986-04-24",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:17.182381",
+        "updated_at": "2025-06-22T17:09:17.182381",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "11c68c19-4204-499f-9124-6715e64c182e",
+        "email": "cardiopatient4@test.com",
+        "full_name": "Phạm Thị Dung",
+        "role": "patient",
+        "phone_number": "0902797454",
+        "date_of_birth": "1964-09-28",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:17.508847",
+        "updated_at": "2025-06-22T17:09:17.508847",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "42f4c692-9e65-4e3d-b37d-7a5fcd43e191",
+        "email": "cardiopatient5@test.com",
+        "full_name": "Hoàng Văn Em",
+        "role": "patient",
+        "phone_number": "0903649430",
+        "date_of_birth": "1969-05-13",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:17.823348",
+        "updated_at": "2025-06-22T17:09:17.823348",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "8aa5cf9a-4611-4beb-8135-f33c4a8b77fa",
+        "email": "orthopatient1@test.com",
+        "full_name": "Vũ Thị Phương",
+        "role": "patient",
+        "phone_number": "0907975519",
+        "date_of_birth": "1989-10-20",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:18.327983",
+        "updated_at": "2025-06-22T17:09:18.327983",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "ef869308-4100-4118-8e13-589dfe6b4927",
+        "email": "orthopatient2@test.com",
+        "full_name": "Đặng Văn Quang",
+        "role": "patient",
+        "phone_number": "0905729498",
+        "date_of_birth": "1996-09-19",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:18.796192",
+        "updated_at": "2025-06-22T17:09:18.796192",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "1208f797-2029-454a-9b3b-371e98d3be32",
+        "email": "orthopatient3@test.com",
+        "full_name": "Bùi Thị Hoa",
+        "role": "patient",
+        "phone_number": "0906518521",
+        "date_of_birth": "1982-02-04",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:19.150042",
+        "updated_at": "2025-06-22T17:09:19.150042",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "fae44d28-6420-48d3-bb40-16715317e48b",
+        "email": "neuropatient1@test.com",
+        "full_name": "Ngô Thị Quỳnh",
+        "role": "patient",
+        "phone_number": "0900706388",
+        "date_of_birth": "1976-05-08",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:21.030676",
+        "updated_at": "2025-06-22T17:09:21.030676",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "dc79859d-d266-4cdd-8e0e-667fb8ae26e4",
+        "email": "neuropatient4@test.com",
+        "full_name": "Hồ Văn Thắng",
+        "role": "patient",
+        "phone_number": "0907587145",
+        "date_of_birth": "1962-01-28",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:22.014587",
+        "updated_at": "2025-06-22T17:09:22.014587",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "3cf933cc-7f04-4876-9bd9-9e028af84cf3",
+        "email": "neuropatient5@test.com",
+        "full_name": "Chu Thị Uyên",
+        "role": "patient",
+        "phone_number": "0909679197",
+        "date_of_birth": "1989-07-16",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:22.358505",
+        "updated_at": "2025-06-22T17:09:22.358505",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "5c16f7f5-0bd0-40c1-aa4d-be7420f435c9",
+        "email": "obgynpatient1@test.com",
+        "full_name": "Mai Thị Vân",
+        "role": "patient",
+        "phone_number": "0905623960",
+        "date_of_birth": "1996-07-13",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:23.05222",
+        "updated_at": "2025-06-22T17:09:23.05222",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "13f4e1ea-2e04-4f68-ae4e-f3a187137d39",
+        "email": "obgynpatient2@test.com",
+        "full_name": "Đỗ Thị Xuân",
+        "role": "patient",
+        "phone_number": "0909574081",
+        "date_of_birth": "1992-06-27",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:23.424647",
+        "updated_at": "2025-06-22T17:09:23.424647",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "8383da36-bd41-474e-9e56-b0f2ce2b8f3c",
+        "email": "obgynpatient3@test.com",
+        "full_name": "Lê Thị Yến",
+        "role": "patient",
+        "phone_number": "0908630861",
+        "date_of_birth": "1999-01-19",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:23.975351",
+        "updated_at": "2025-06-22T17:09:23.975351",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "b220645d-a5fd-4e19-b93b-5917340269c4",
+        "email": "internalpatient1@test.com",
+        "full_name": "Huỳnh Văn Cảnh",
+        "role": "patient",
+        "phone_number": "0902837449",
+        "date_of_birth": "1974-06-26",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:25.258356",
+        "updated_at": "2025-06-22T17:09:25.258356",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "73bdb30d-ffd7-479f-96fa-4ec4d898885d",
+        "email": "internalpatient2@test.com",
+        "full_name": "Nguyễn Thị Diệu",
+        "role": "patient",
+        "phone_number": "0907602243",
+        "date_of_birth": "1979-09-09",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:25.55325",
+        "updated_at": "2025-06-22T17:09:25.55325",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "85dec49e-b712-4e28-bd72-c41b5a1bdbaa",
+        "email": "internalpatient4@test.com",
+        "full_name": "Lê Thị Phượng",
+        "role": "patient",
+        "phone_number": "0900489684",
+        "date_of_birth": "1982-01-22",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:26.249067",
+        "updated_at": "2025-06-22T17:09:26.249067",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "658cd040-9f51-4294-8b4d-456e2eb7d61a",
+        "email": "internalpatient5@test.com",
+        "full_name": "Võ Văn Giang",
+        "role": "patient",
+        "phone_number": "0908343222",
+        "date_of_birth": "1976-11-26",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:26.589626",
+        "updated_at": "2025-06-22T17:09:26.589626",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "bd394873-d5ec-4d97-ab36-1e325b9d6aa2",
+        "email": "surgerypatient4@test.com",
+        "full_name": "Lý Thị Linh",
+        "role": "patient",
+        "phone_number": "0909941578",
+        "date_of_birth": "1986-03-08",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:28.352167",
+        "updated_at": "2025-06-22T17:09:28.352167",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "d8564cfb-487d-4812-bc7b-a6126ff4be26",
+        "email": "surgerypatient5@test.com",
+        "full_name": "Cao Văn Minh",
+        "role": "patient",
+        "phone_number": "0900066892",
+        "date_of_birth": "1979-11-09",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:28.967072",
+        "updated_at": "2025-06-22T17:09:28.967072",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "5a2d075d-7c32-49fc-90e3-a3f3ff05e8d0",
+        "email": "orthopatient4@test.com",
+        "full_name": "Trịnh Văn Sơn",
+        "role": "patient",
+        "phone_number": "0906101304",
+        "date_of_birth": "1974-01-04",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:19.716146",
+        "updated_at": "2025-06-22T17:09:19.716146",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "43794602-297b-4185-a8fe-1b6d360171ce",
+        "email": "obgynpatient4@test.com",
+        "full_name": "Phùng Thị Ánh",
+        "role": "patient",
+        "phone_number": "0909532278",
+        "date_of_birth": "1989-12-09",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:24.385835",
+        "updated_at": "2025-06-22T17:09:24.385835",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "93162976-bf1f-4129-abf9-1d60f751c50d",
+        "email": "surgerypatient1@test.com",
+        "full_name": "Phan Văn Hải",
+        "role": "patient",
+        "phone_number": "0902155123",
+        "date_of_birth": "1984-07-22",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:27.203879",
+        "updated_at": "2025-06-22T17:09:27.203879",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "bcec41a3-4fdb-42a2-8eec-b718a4608204",
+        "email": "orthopatient5@test.com",
+        "full_name": "Lý Thị Tâm",
+        "role": "patient",
+        "phone_number": "0907983965",
+        "date_of_birth": "1991-10-23",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:20.261383",
+        "updated_at": "2025-06-22T17:09:20.261383",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "1576aa25-8e66-4bc3-b9ed-bd5dac2df3ee",
+        "email": "neuropatient2@test.com",
+        "full_name": "Tạ Văn Rồng",
+        "role": "patient",
+        "phone_number": "0908883003",
+        "date_of_birth": "1969-02-24",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:21.341717",
+        "updated_at": "2025-06-22T17:09:21.341717",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "df56e3e6-c049-4436-ac10-bdb36d8753cd",
+        "email": "obgynpatient5@test.com",
+        "full_name": "Trương Thị Bích",
+        "role": "patient",
+        "phone_number": "0905439608",
+        "date_of_birth": "1994-11-24",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:24.760735",
+        "updated_at": "2025-06-22T17:09:24.760735",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "0fd15ef6-6a83-48ef-814b-1bd56cbffcbc",
+        "email": "surgerypatient2@test.com",
+        "full_name": "Đặng Thị Ích",
+        "role": "patient",
+        "phone_number": "0900891550",
+        "date_of_birth": "1989-11-11",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:27.518119",
+        "updated_at": "2025-06-22T17:09:27.518119",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "e0b96cac-f2e0-441a-bf6d-4704f06a208c",
+        "email": "neuropatient3@test.com",
+        "full_name": "Lưu Thị Sương",
+        "role": "patient",
+        "phone_number": "0909162794",
+        "date_of_birth": "1984-11-06",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:21.655721",
+        "updated_at": "2025-06-22T17:09:21.655721",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "452f9243-0b04-47de-8016-528d7a884803",
+        "email": "internalpatient3@test.com",
+        "full_name": "Trần Văn Ế",
+        "role": "patient",
+        "phone_number": "0903386381",
+        "date_of_birth": "1966-08-11",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:25.901832",
+        "updated_at": "2025-06-22T17:09:25.901832",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "6e82bd4e-8bfa-4b53-91cb-aa751968c4f2",
+        "email": "surgerypatient3@test.com",
+        "full_name": "Bùi Văn Khánh",
+        "role": "patient",
+        "phone_number": "0905702277",
+        "date_of_birth": "1972-02-09",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": null,
+        "login_count": 0,
+        "created_at": "2025-06-22T17:09:27.912729",
+        "updated_at": "2025-06-22T17:09:27.912729",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "5eb99067-74ac-46d1-8068-1c074d26da4c",
+        "email": "patient@hospital.com",
+        "full_name": "Trần Thị Hương",
+        "role": "patient",
+        "phone_number": "0987654321",
+        "date_of_birth": "1985-08-20",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": "2025-06-22T16:38:52.553148",
+        "login_count": 14,
+        "created_at": "2025-06-22T09:38:04.122823",
+        "updated_at": "2025-06-22T17:14:07.14756",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "7cadaabe-0089-4c88-9aa8-bbde3b559d38",
+        "email": "admin.quick.11d73729@hospital.com",
+        "full_name": "Quick Test Admin",
+        "role": "admin",
+        "phone_number": null,
+        "date_of_birth": null,
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": "2025-06-22T17:19:01.993954",
+        "login_count": 1,
+        "created_at": "2025-06-22T17:19:00.971511",
+        "updated_at": "2025-06-22T17:19:01.993954",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      },
+      {
+        "id": "5bdcbd80-f344-40b7-a46b-3760ca487693",
+        "email": "doctor@hospital.com",
+        "full_name": "BS. Nguyễn Văn Đức",
+        "role": "doctor",
+        "phone_number": "0901234567",
+        "date_of_birth": "1980-05-15",
+        "is_active": true,
+        "email_verified": true,
+        "phone_verified": false,
+        "last_login": "2025-06-25T17:51:49.640251",
+        "login_count": 86,
+        "created_at": "2025-06-22T10:49:45.415507",
+        "updated_at": "2025-06-25T17:51:49.640251",
+        "created_by": null,
+        "two_factor_enabled": false,
+        "last_2fa_verification": null
+      }
+    ],
+    "doctors": [
+      {
+        "doctor_id": "CARD-DOC-202506-001",
+        "profile_id": "d8c759a0-977c-4e39-8911-e134606ab2fb",
+        "full_name": "BS. Nguyễn Văn Hùng",
+        "specialty": "Tim Mạch",
+        "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+        "department_id": "DEPT001",
+        "license_number": "VN-TM-CARD-1001",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 6,
+        "consultation_fee": 500000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.89,
+        "total_reviews": 69,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611889,
+        "average_consultation_time": 49,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Tim Mạch"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:48.513594+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "CARD-DOC-202506-002",
+        "profile_id": "eecb57c5-42d4-4523-b39d-2a00b9fcbf48",
+        "full_name": "BS. Trần Thị Lan",
+        "specialty": "Tim Mạch",
+        "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+        "department_id": "DEPT001",
+        "license_number": "VN-TM-CARD-1002",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 6,
+        "consultation_fee": 500000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.89,
+        "total_reviews": 69,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611889,
+        "average_consultation_time": 49,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Tim Mạch"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:48.77743+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "CARD-DOC-202506-003",
+        "profile_id": "d307767d-b4cc-4cc7-aa46-42c3f50d7d09",
+        "full_name": "BS. Lê Minh Tuấn",
+        "specialty": "Tim Mạch",
+        "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+        "department_id": "DEPT001",
+        "license_number": "VN-TM-CARD-1003",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 6,
+        "consultation_fee": 500000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.89,
+        "total_reviews": 69,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611889,
+        "average_consultation_time": 49,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Tim Mạch"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:49.034964+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "CARD-DOC-202506-004",
+        "profile_id": "58a8989e-4a9b-4fbb-9029-03b12649fb11",
+        "full_name": "BS. Phạm Thị Mai",
+        "specialty": "Tim Mạch",
+        "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+        "department_id": "DEPT001",
+        "license_number": "VN-TM-CARD-1004",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 6,
+        "consultation_fee": 500000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.89,
+        "total_reviews": 69,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611889,
+        "average_consultation_time": 49,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Tim Mạch"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:49.273043+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "CARD-DOC-202506-005",
+        "profile_id": "28d94e9b-1c49-4902-a77f-b47069a425fe",
+        "full_name": "BS. Hoàng Văn Nam",
+        "specialty": "Tim Mạch",
+        "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+        "department_id": "DEPT001",
+        "license_number": "VN-TM-CARD-1005",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 7,
+        "consultation_fee": 500000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.9,
+        "total_reviews": 70,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 91,
+        "total_revenue": 40611890,
+        "average_consultation_time": 50,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Tim Mạch"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:49.546433+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-001",
+        "profile_id": "ee49439c-eff4-4d22-93d6-ca5dfe81c629",
+        "full_name": "BS. Nguyễn Văn Hùng",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-TH-GENE-1001",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.44,
+        "total_reviews": 64,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 89,
+        "total_revenue": 40611244,
+        "average_consultation_time": 34,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T16:54:04.245054+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-002",
+        "profile_id": "3ead98c1-e683-4a76-ba59-d67c9ab1112f",
+        "full_name": "BS. Trần Thị Lan",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-TH-GENE-1002",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.44,
+        "total_reviews": 64,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 89,
+        "total_revenue": 40611244,
+        "average_consultation_time": 34,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T16:54:04.245054+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-003",
+        "profile_id": "610361c3-5e41-493e-b6fc-7ca1ec67c580",
+        "full_name": "BS. Lê Minh Tuấn",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-TH-GENE-1003",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.44,
+        "total_reviews": 64,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 89,
+        "total_revenue": 40611244,
+        "average_consultation_time": 34,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T16:54:04.245054+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-004",
+        "profile_id": "c43e91c5-3882-4fa4-966d-780251840512",
+        "full_name": "BS. Phạm Thị Mai",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-TH-GENE-1004",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.44,
+        "total_reviews": 64,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 89,
+        "total_revenue": 40611244,
+        "average_consultation_time": 34,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T16:54:04.245054+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-005",
+        "profile_id": "a79e851e-94ef-4ab7-a9d5-40a20568d913",
+        "full_name": "BS. Hoàng Văn Nam",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-TH-GENE-1005",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.44,
+        "total_reviews": 64,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 89,
+        "total_revenue": 40611244,
+        "average_consultation_time": 34,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T16:54:04.245054+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-006",
+        "profile_id": "5bdcbd80-f344-40b7-a46b-3760ca487693",
+        "full_name": "BS. Nguyễn Văn Đức",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-TH-GENE-1006",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 14,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.85,
+        "total_reviews": 45,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 98,
+        "total_revenue": 40589385,
+        "average_consultation_time": 45,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T10:49:45.415507+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-007",
+        "profile_id": "eef0d4ef-1c9c-4f07-beff-9307dea0d3df",
+        "full_name": "BS. Huỳnh Văn Tâm",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-NT-GENE-1007",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 14,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.97,
+        "total_reviews": 77,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 98,
+        "total_revenue": 40611897,
+        "average_consultation_time": 57,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:57.074363+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-008",
+        "profile_id": "7cb7736c-1634-47f4-82d2-8560e1845112",
+        "full_name": "BS. Nguyễn Thị Thu",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-NT-GENE-1008",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 14,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.97,
+        "total_reviews": 77,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 98,
+        "total_revenue": 40611897,
+        "average_consultation_time": 57,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:57.295771+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-009",
+        "profile_id": "efeb6563-c34f-4ffd-8a58-bc476dfe0b68",
+        "full_name": "BS. Trần Văn Phúc",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-NT-GENE-1009",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 15,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.98,
+        "total_reviews": 78,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 85,
+        "total_revenue": 40611898,
+        "average_consultation_time": 58,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:57.587234+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-010",
+        "profile_id": "5ae37a9f-baf4-43c2-b290-50e652a39e39",
+        "full_name": "BS. Lê Thị Hạnh",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-NT-GENE-1010",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 16,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.99,
+        "total_reviews": 79,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 86,
+        "total_revenue": 40611899,
+        "average_consultation_time": 59,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:58.69334+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GENE-DOC-202506-011",
+        "profile_id": "f853060f-f40b-41be-90c5-725f541e5eeb",
+        "full_name": "BS. Võ Văn Sơn",
+        "specialty": "Nội Tổng Hợp",
+        "qualification": "Bác sĩ Đa khoa",
+        "department_id": "DEPT008",
+        "license_number": "VN-NT-GENE-1011",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 16,
+        "consultation_fee": 250000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.99,
+        "total_reviews": 79,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 86,
+        "total_revenue": 40611899,
+        "average_consultation_time": 59,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nội Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:59.263248+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GYNE-DOC-202506-001",
+        "profile_id": "64358551-8246-4ae2-9b67-9c5d61c8cc53",
+        "full_name": "BS. Mai Thị Hồng",
+        "specialty": "Phụ Sản",
+        "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+        "department_id": "DEPT006",
+        "license_number": "VN-PS-GYNE-1001",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 13,
+        "consultation_fee": 350000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.96,
+        "total_reviews": 76,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 97,
+        "total_revenue": 40611896,
+        "average_consultation_time": 56,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phụ Sản"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:55.554673+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GYNE-DOC-202506-002",
+        "profile_id": "dd750bac-bbdd-4f6c-8850-71eb317ecc72",
+        "full_name": "BS. Đỗ Văn Kiên",
+        "specialty": "Phụ Sản",
+        "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+        "department_id": "DEPT006",
+        "license_number": "VN-PS-GYNE-1002",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 13,
+        "consultation_fee": 350000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.96,
+        "total_reviews": 76,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 97,
+        "total_revenue": 40611896,
+        "average_consultation_time": 56,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phụ Sản"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:55.768137+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GYNE-DOC-202506-003",
+        "profile_id": "07399584-2cb8-4567-8c32-7fb33167efd6",
+        "full_name": "BS. Lê Thị Xuân",
+        "specialty": "Phụ Sản",
+        "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+        "department_id": "DEPT006",
+        "license_number": "VN-PS-GYNE-1003",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 13,
+        "consultation_fee": 350000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.96,
+        "total_reviews": 76,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 97,
+        "total_revenue": 40611896,
+        "average_consultation_time": 56,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phụ Sản"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:56.00925+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GYNE-DOC-202506-004",
+        "profile_id": "b4f2ee7d-ab0b-4c4a-a175-18e27ae458a0",
+        "full_name": "BS. Phùng Văn Đạt",
+        "specialty": "Phụ Sản",
+        "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+        "department_id": "DEPT006",
+        "license_number": "VN-PS-GYNE-1004",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 13,
+        "consultation_fee": 350000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.96,
+        "total_reviews": 76,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 97,
+        "total_revenue": 40611896,
+        "average_consultation_time": 56,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phụ Sản"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:56.25066+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "GYNE-DOC-202506-005",
+        "profile_id": "8f851537-d658-4304-945f-5be0f1746377",
+        "full_name": "BS. Trương Thị Yến",
+        "specialty": "Phụ Sản",
+        "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+        "department_id": "DEPT006",
+        "license_number": "VN-PS-GYNE-1005",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 13,
+        "consultation_fee": 350000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.96,
+        "total_reviews": 76,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 97,
+        "total_revenue": 40611896,
+        "average_consultation_time": 56,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phụ Sản"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:56.47405+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "NEUR-DOC-202506-001",
+        "profile_id": "a0d3dae6-bfbd-4da3-94aa-56ffab6fdbbd",
+        "full_name": "BS. Ngô Thị Bình",
+        "specialty": "Thần Kinh",
+        "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+        "department_id": "DEPT004",
+        "license_number": "VN-TK-NEUR-1001",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 10,
+        "consultation_fee": 450000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.93,
+        "total_reviews": 73,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 94,
+        "total_revenue": 40611893,
+        "average_consultation_time": 53,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Thần Kinh"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:52.867009+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "NEUR-DOC-202506-002",
+        "profile_id": "3b649498-2325-43d6-ab09-863d8c3148df",
+        "full_name": "BS. Tạ Văn Quang",
+        "specialty": "Thần Kinh",
+        "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+        "department_id": "DEPT004",
+        "license_number": "VN-TK-NEUR-1002",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 10,
+        "consultation_fee": 450000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.93,
+        "total_reviews": 73,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 94,
+        "total_revenue": 40611893,
+        "average_consultation_time": 53,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Thần Kinh"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:53.373214+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "NEUR-DOC-202506-003",
+        "profile_id": "fe5ca258-1c11-4ca4-a289-a5231b71cc1e",
+        "full_name": "BS. Lưu Thị Oanh",
+        "specialty": "Thần Kinh",
+        "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+        "department_id": "DEPT004",
+        "license_number": "VN-TK-NEUR-1003",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 11,
+        "consultation_fee": 450000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.94,
+        "total_reviews": 74,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 95,
+        "total_revenue": 40611894,
+        "average_consultation_time": 54,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Thần Kinh"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:53.685265+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "NEUR-DOC-202506-004",
+        "profile_id": "90bb2207-413a-4996-be2c-77b07b398242",
+        "full_name": "BS. Hồ Văn Tùng",
+        "specialty": "Thần Kinh",
+        "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+        "department_id": "DEPT004",
+        "license_number": "VN-TK-NEUR-1004",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 11,
+        "consultation_fee": 450000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.94,
+        "total_reviews": 74,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 95,
+        "total_revenue": 40611894,
+        "average_consultation_time": 54,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Thần Kinh"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:54.343525+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "NEUR-DOC-202506-005",
+        "profile_id": "461d1a16-e8f9-42a9-890c-acfdefa5dca2",
+        "full_name": "BS. Chu Thị Lan",
+        "specialty": "Thần Kinh",
+        "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+        "department_id": "DEPT004",
+        "license_number": "VN-TK-NEUR-1005",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 12,
+        "consultation_fee": 450000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.95,
+        "total_reviews": 75,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 96,
+        "total_revenue": 40611895,
+        "average_consultation_time": 55,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Thần Kinh"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:54.632757+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "ORTH-DOC-202506-001",
+        "profile_id": "4aceda7b-5cce-4aa1-b9ac-cea09b8481b3",
+        "full_name": "BS. Vũ Thị Hoa",
+        "specialty": "Chấn Thương Chỉnh Hình",
+        "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+        "department_id": "DEPT002",
+        "license_number": "VN-CT-ORTH-1001",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 7,
+        "consultation_fee": 400000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.9,
+        "total_reviews": 70,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 91,
+        "total_revenue": 40611890,
+        "average_consultation_time": 50,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Chấn Thương Chỉnh Hình"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:50.253812+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "ORTH-DOC-202506-002",
+        "profile_id": "96b45bf8-d677-4581-9664-350651e2a3ac",
+        "full_name": "BS. Đặng Văn Minh",
+        "specialty": "Chấn Thương Chỉnh Hình",
+        "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+        "department_id": "DEPT002",
+        "license_number": "VN-CT-ORTH-1002",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 8,
+        "consultation_fee": 400000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.91,
+        "total_reviews": 71,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 92,
+        "total_revenue": 40611891,
+        "average_consultation_time": 51,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Chấn Thương Chỉnh Hình"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:50.502297+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "ORTH-DOC-202506-003",
+        "profile_id": "8ec05d84-cfd0-446a-a19a-995393477f1e",
+        "full_name": "BS. Bùi Thị Linh",
+        "specialty": "Chấn Thương Chỉnh Hình",
+        "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+        "department_id": "DEPT002",
+        "license_number": "VN-CT-ORTH-1003",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 8,
+        "consultation_fee": 400000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.91,
+        "total_reviews": 71,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 92,
+        "total_revenue": 40611891,
+        "average_consultation_time": 51,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Chấn Thương Chỉnh Hình"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:51.094532+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "ORTH-DOC-202506-004",
+        "profile_id": "6e56e1b0-d03a-4afe-a160-20ff906a0e98",
+        "full_name": "BS. Trịnh Văn Đức",
+        "specialty": "Chấn Thương Chỉnh Hình",
+        "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+        "department_id": "DEPT002",
+        "license_number": "VN-CT-ORTH-1004",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 9,
+        "consultation_fee": 400000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.92,
+        "total_reviews": 72,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 93,
+        "total_revenue": 40611892,
+        "average_consultation_time": 52,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Chấn Thương Chỉnh Hình"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:51.825595+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "ORTH-DOC-202506-005",
+        "profile_id": "808f51c2-5b7b-4ace-9838-350834964e77",
+        "full_name": "BS. Lý Thị Nga",
+        "specialty": "Chấn Thương Chỉnh Hình",
+        "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+        "department_id": "DEPT002",
+        "license_number": "VN-CT-ORTH-1005",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 9,
+        "consultation_fee": 400000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.92,
+        "total_reviews": 72,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 93,
+        "total_revenue": 40611892,
+        "average_consultation_time": 52,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Chấn Thương Chỉnh Hình"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:52.093793+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "PEDI-DOC-202506-001",
+        "profile_id": "74ab2783-9a46-4c2e-a02c-34a39079aed2",
+        "full_name": "BS. Cao Văn Thành",
+        "specialty": "Nhi Khoa",
+        "qualification": "Bác sĩ Chuyên khoa I Nhi",
+        "department_id": "DEPT003",
+        "license_number": "VN-NK-PEDI-1001",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 300000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.04,
+        "total_reviews": 64,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 89,
+        "total_revenue": 40611804,
+        "average_consultation_time": 54,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nhi Khoa"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:03:24.338669+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "PEDI-DOC-202506-002",
+        "profile_id": "4c9dfc92-161d-4733-afc7-279e648a9a98",
+        "full_name": "BS. Đinh Thị Hương",
+        "specialty": "Nhi Khoa",
+        "qualification": "Bác sĩ Chuyên khoa I Nhi",
+        "department_id": "DEPT003",
+        "license_number": "VN-NK-PEDI-1002",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 18,
+        "consultation_fee": 300000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.05,
+        "total_reviews": 65,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611805,
+        "average_consultation_time": 55,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nhi Khoa"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:03:24.610445+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "PEDI-DOC-202506-003",
+        "profile_id": "d970346d-31d9-4a8b-b9b5-ede036095d08",
+        "full_name": "BS. Phan Văn Long",
+        "specialty": "Nhi Khoa",
+        "qualification": "Bác sĩ Chuyên khoa I Nhi",
+        "department_id": "DEPT003",
+        "license_number": "VN-NK-PEDI-1003",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 18,
+        "consultation_fee": 300000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.05,
+        "total_reviews": 65,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611805,
+        "average_consultation_time": 55,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nhi Khoa"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:03:24.854031+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "PEDI-DOC-202506-004",
+        "profile_id": "4307835a-cbd3-4722-a46d-255d439a10ad",
+        "full_name": "BS. Võ Thị Kim",
+        "specialty": "Nhi Khoa",
+        "qualification": "Bác sĩ Chuyên khoa I Nhi",
+        "department_id": "DEPT003",
+        "license_number": "VN-NK-PEDI-1004",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 18,
+        "consultation_fee": 300000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.05,
+        "total_reviews": 65,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611805,
+        "average_consultation_time": 55,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nhi Khoa"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:03:25.087235+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "PEDI-DOC-202506-005",
+        "profile_id": "f00a85ea-88f0-4460-a08f-adde55ba05d0",
+        "full_name": "BS. Dương Văn Hải",
+        "specialty": "Nhi Khoa",
+        "qualification": "Bác sĩ Chuyên khoa I Nhi",
+        "department_id": "DEPT003",
+        "license_number": "VN-NK-PEDI-1005",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 18,
+        "consultation_fee": 300000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.05,
+        "total_reviews": 65,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 90,
+        "total_revenue": 40611805,
+        "average_consultation_time": 55,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Nhi Khoa"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:03:25.319859+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "SURG-DOC-202506-001",
+        "profile_id": "a1361955-ff70-4ab7-b752-969d170c3ccb",
+        "full_name": "BS. Phan Văn Dũng",
+        "specialty": "Phẫu Thuật Tổng Hợp",
+        "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+        "department_id": "DEPT009",
+        "license_number": "VN-PT-SURG-1001",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 600000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4,
+        "total_reviews": 80,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 87,
+        "total_revenue": 40611900,
+        "average_consultation_time": 30,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phẫu Thuật Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:04:59.988994+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "SURG-DOC-202506-002",
+        "profile_id": "aa5e9f06-1076-4311-8ed9-5af96625eff6",
+        "full_name": "BS. Đặng Thị Liên",
+        "specialty": "Phẫu Thuật Tổng Hợp",
+        "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+        "department_id": "DEPT009",
+        "license_number": "VN-PT-SURG-1002",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 17,
+        "consultation_fee": 600000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4,
+        "total_reviews": 80,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 87,
+        "total_revenue": 40611900,
+        "average_consultation_time": 30,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phẫu Thuật Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:05:00.473732+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "SURG-DOC-202506-003",
+        "profile_id": "7d2f6a4f-0712-4788-903c-019718cc0b03",
+        "full_name": "BS. Bùi Văn Hùng",
+        "specialty": "Phẫu Thuật Tổng Hợp",
+        "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+        "department_id": "DEPT009",
+        "license_number": "VN-PT-SURG-1003",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 18,
+        "consultation_fee": 600000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.01,
+        "total_reviews": 81,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 88,
+        "total_revenue": 40611901,
+        "average_consultation_time": 31,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phẫu Thuật Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:05:01.054729+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "SURG-DOC-202506-004",
+        "profile_id": "8ba9edc7-afb0-4890-be7c-72b41db2e9a5",
+        "full_name": "BS. Lý Thị Phương",
+        "specialty": "Phẫu Thuật Tổng Hợp",
+        "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+        "department_id": "DEPT009",
+        "license_number": "VN-PT-SURG-1004",
+        "gender": "Female",
+        "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 18,
+        "consultation_fee": 600000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.01,
+        "total_reviews": 81,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 88,
+        "total_revenue": 40611901,
+        "average_consultation_time": 31,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phẫu Thuật Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:05:01.302836+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      },
+      {
+        "doctor_id": "SURG-DOC-202506-005",
+        "profile_id": "7c7199ae-83c4-4782-800e-d70ec7de1a41",
+        "full_name": "BS. Cao Văn Minh",
+        "specialty": "Phẫu Thuật Tổng Hợp",
+        "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+        "department_id": "DEPT009",
+        "license_number": "VN-PT-SURG-1005",
+        "gender": "Male",
+        "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+        "experience_years": 19,
+        "consultation_fee": 600000,
+        "address": {
+          "city": "TP.HCM",
+          "street": "Bệnh viện Đa khoa",
+          "district": "Quận 1"
+        },
+        "languages_spoken": [
+          "Vietnamese",
+          "English"
+        ],
+        "availability_status": "available",
+        "rating": 4.02,
+        "total_reviews": 82,
+        "status": "active",
+        "is_active": true,
+        "success_rate": 89,
+        "total_revenue": 40611902,
+        "average_consultation_time": 32,
+        "certifications": [
+          "Chứng chỉ hành nghề",
+          "Chứng chỉ chuyên khoa"
+        ],
+        "specializations": [
+          "Phẫu Thuật Tổng Hợp"
+        ],
+        "awards": [
+          "Bác sĩ tận tâm"
+        ],
+        "created_at": "2025-06-22T17:05:02.016627+00:00",
+        "updated_at": "2025-06-25T18:06:06.103922+00:00",
+        "created_by": null
+      }
+    ],
+    "patients": [
+      {
+        "patient_id": "PAT-202506-550",
+        "profile_id": "f5de8fd2-59b3-44fc-b869-9957c9ca16a7",
+        "gender": "other",
+        "blood_type": null,
+        "address": {},
+        "emergency_contact": {},
+        "insurance_info": {},
+        "medical_history": "No medical history recorded",
+        "allergies": [],
+        "chronic_conditions": [],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T09:07:53.029+00:00",
+        "updated_at": "2025-06-22T09:07:53.029+00:00",
+        "created_by": null,
+        "full_name": null,
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-810",
+        "profile_id": "c3a58ff9-c5ef-4ac3-a99d-d843ce0336d4",
+        "gender": "male",
+        "blood_type": "A+",
+        "address": {
+          "city": "Ho Chi Minh City",
+          "street": "456 Test Street"
+        },
+        "emergency_contact": {
+          "name": "Emergency Contact",
+          "phone": "0123456789",
+          "relationship": "Family"
+        },
+        "insurance_info": {},
+        "medical_history": "No medical history recorded",
+        "allergies": [],
+        "chronic_conditions": [],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T11:08:59.751+00:00",
+        "updated_at": "2025-06-22T11:08:59.751+00:00",
+        "created_by": null,
+        "full_name": null,
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-218",
+        "profile_id": "baaa2f0d-73ec-468a-be90-426ae2c76deb",
+        "gender": "male",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "22 Đường Lê Lợi",
+          "district": "Quận 12"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Cao Văn Minh",
+          "phone": "0912606354",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0398399036"
+        },
+        "medical_history": "Viêm phổi",
+        "allergies": [
+          "Dị ứng thuốc kháng sinh"
+        ],
+        "chronic_conditions": [
+          "Viêm phổi"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:07:48.259988+00:00",
+        "updated_at": "2025-06-22T17:07:48.259988+00:00",
+        "created_by": null,
+        "full_name": "Cao Văn Minh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-734",
+        "profile_id": "475299db-f850-493c-94dc-ad3a43b5c636",
+        "gender": "female",
+        "blood_type": "O+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "752 Đường Lê Lợi",
+          "district": "Quận 6"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Đinh Thị Lan",
+          "phone": "0912592576",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0168794454"
+        },
+        "medical_history": "Sốt virus",
+        "allergies": [],
+        "chronic_conditions": [
+          "Sốt virus"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:07:48.714148+00:00",
+        "updated_at": "2025-06-22T17:07:48.714148+00:00",
+        "created_by": null,
+        "full_name": "Đinh Thị Lan",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-212",
+        "profile_id": "5e1331cc-f1c2-4fa6-beae-40fbdb985123",
+        "gender": "male",
+        "blood_type": "B+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "788 Đường Lê Lợi",
+          "district": "Quận 8"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Phan Văn Nam",
+          "phone": "0917694219",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0211425326"
+        },
+        "medical_history": "Hen suyễn",
+        "allergies": [],
+        "chronic_conditions": [
+          "Hen suyễn"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:07:49.030349+00:00",
+        "updated_at": "2025-06-22T17:07:49.030349+00:00",
+        "created_by": null,
+        "full_name": "Phan Văn Nam",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-628",
+        "profile_id": "7b5b4e4e-2746-4ca9-9a23-cf0f46d318ce",
+        "gender": "female",
+        "blood_type": "AB+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "190 Đường Lê Lợi",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Võ Thị Oanh",
+          "phone": "0910777694",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0840256954"
+        },
+        "medical_history": "Rối loạn tiêu hóa",
+        "allergies": [],
+        "chronic_conditions": [
+          "Rối loạn tiêu hóa"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:07:49.344572+00:00",
+        "updated_at": "2025-06-22T17:07:49.344572+00:00",
+        "created_by": null,
+        "full_name": "Võ Thị Oanh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-593",
+        "profile_id": "4ba3fbb4-e966-4672-9131-b24a16e2eb76",
+        "gender": "male",
+        "blood_type": "A-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "88 Đường Lê Lợi",
+          "district": "Quận 5"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Dương Văn Phúc",
+          "phone": "0914691933",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0858432444"
+        },
+        "medical_history": "Dị ứng thức ăn",
+        "allergies": [
+          "Dị ứng thuốc kháng sinh"
+        ],
+        "chronic_conditions": [
+          "Dị ứng thức ăn"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:07:49.768034+00:00",
+        "updated_at": "2025-06-22T17:07:49.768034+00:00",
+        "created_by": null,
+        "full_name": "Dương Văn Phúc",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-125",
+        "profile_id": "ed2c179a-9431-45ff-837f-e3b6e8a6e6f9",
+        "gender": "male",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "921 Đường Nguyễn Huệ",
+          "district": "Quận 11"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Nguyễn Văn An",
+          "phone": "0915704469",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0651351135"
+        },
+        "medical_history": "Cao huyết áp",
+        "allergies": [
+          "Dị ứng thuốc kháng sinh"
+        ],
+        "chronic_conditions": [
+          "Cao huyết áp"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:16.546685+00:00",
+        "updated_at": "2025-06-22T17:09:16.546685+00:00",
+        "created_by": null,
+        "full_name": "Nguyễn Văn An",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-745",
+        "profile_id": "c2d974a2-f3b4-4bde-aceb-a739a56650d8",
+        "gender": "female",
+        "blood_type": "O+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "910 Đường Nguyễn Huệ",
+          "district": "Quận 6"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Trần Thị Bình",
+          "phone": "0916209724",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0035141696"
+        },
+        "medical_history": "Bệnh tim mạch vành",
+        "allergies": [],
+        "chronic_conditions": [
+          "Bệnh tim mạch vành"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:16.916188+00:00",
+        "updated_at": "2025-06-22T17:09:16.916188+00:00",
+        "created_by": null,
+        "full_name": "Trần Thị Bình",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-793",
+        "profile_id": "ffb9dd42-a5a3-4d76-8ae4-c90e74a5d8b7",
+        "gender": "male",
+        "blood_type": "B+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "929 Đường Lê Lợi",
+          "district": "Quận 4"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Lê Văn Cường",
+          "phone": "0915766421",
+          "relationship": "Vợ/Chồng"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0424993376"
+        },
+        "medical_history": "Rối loạn nhịp tim",
+        "allergies": [
+          "Dị ứng thuốc kháng sinh"
+        ],
+        "chronic_conditions": [
+          "Rối loạn nhịp tim"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:17.275663+00:00",
+        "updated_at": "2025-06-22T17:09:17.275663+00:00",
+        "created_by": null,
+        "full_name": "Lê Văn Cường",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-801",
+        "profile_id": "11c68c19-4204-499f-9124-6715e64c182e",
+        "gender": "female",
+        "blood_type": "AB+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "276 Đường Lê Lợi",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Phạm Thị Dung",
+          "phone": "0911584762",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0699176832"
+        },
+        "medical_history": "Suy tim",
+        "allergies": [
+          "Dị ứng thuốc kháng sinh"
+        ],
+        "chronic_conditions": [
+          "Suy tim"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:17.586974+00:00",
+        "updated_at": "2025-06-22T17:09:17.586974+00:00",
+        "created_by": null,
+        "full_name": "Phạm Thị Dung",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-695",
+        "profile_id": "42f4c692-9e65-4e3d-b37d-7a5fcd43e191",
+        "gender": "male",
+        "blood_type": "A-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "628 Đường Pasteur",
+          "district": "Quận 12"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Hoàng Văn Em",
+          "phone": "0919902237",
+          "relationship": "Vợ/Chồng"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0215822797"
+        },
+        "medical_history": "Tăng cholesterol",
+        "allergies": [],
+        "chronic_conditions": [
+          "Tăng cholesterol"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:17.906862+00:00",
+        "updated_at": "2025-06-22T17:09:17.906862+00:00",
+        "created_by": null,
+        "full_name": "Hoàng Văn Em",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-108",
+        "profile_id": "8aa5cf9a-4611-4beb-8135-f33c4a8b77fa",
+        "gender": "female",
+        "blood_type": "O+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "596 Đường Nguyễn Huệ",
+          "district": "Quận 9"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Vũ Thị Phương",
+          "phone": "0919376805",
+          "relationship": "Anh/Chị"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0802057579"
+        },
+        "medical_history": "Gãy xương tay",
+        "allergies": [],
+        "chronic_conditions": [
+          "Gãy xương tay"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:18.529412+00:00",
+        "updated_at": "2025-06-22T17:09:18.529412+00:00",
+        "created_by": null,
+        "full_name": "Vũ Thị Phương",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-508",
+        "profile_id": "ef869308-4100-4118-8e13-589dfe6b4927",
+        "gender": "male",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "689 Đường Nguyễn Huệ",
+          "district": "Quận 7"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Đặng Văn Quang",
+          "phone": "0918992325",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0640811756"
+        },
+        "medical_history": "Chấn thương cột sống",
+        "allergies": [],
+        "chronic_conditions": [
+          "Chấn thương cột sống"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:18.878601+00:00",
+        "updated_at": "2025-06-22T17:09:18.878601+00:00",
+        "created_by": null,
+        "full_name": "Đặng Văn Quang",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-738",
+        "profile_id": "1208f797-2029-454a-9b3b-371e98d3be32",
+        "gender": "female",
+        "blood_type": "B+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "924 Đường Lê Lợi",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Bùi Thị Hoa",
+          "phone": "0911035268",
+          "relationship": "Vợ/Chồng"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0312585532"
+        },
+        "medical_history": "Thoái hóa khớp",
+        "allergies": [],
+        "chronic_conditions": [
+          "Thoái hóa khớp"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:19.241619+00:00",
+        "updated_at": "2025-06-22T17:09:19.241619+00:00",
+        "created_by": null,
+        "full_name": "Bùi Thị Hoa",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-383",
+        "profile_id": "5a2d075d-7c32-49fc-90e3-a3f3ff05e8d0",
+        "gender": "male",
+        "blood_type": "AB-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "86 Đường Nguyễn Huệ",
+          "district": "Quận 2"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Trịnh Văn Sơn",
+          "phone": "0913164005",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0095007901"
+        },
+        "medical_history": "Đau lưng mãn tính",
+        "allergies": [],
+        "chronic_conditions": [
+          "Đau lưng mãn tính"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:19.924499+00:00",
+        "updated_at": "2025-06-22T17:09:19.924499+00:00",
+        "created_by": null,
+        "full_name": "Trịnh Văn Sơn",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-081",
+        "profile_id": "fae44d28-6420-48d3-bb40-16715317e48b",
+        "gender": "female",
+        "blood_type": "O+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "829 Đường Lê Lợi",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Ngô Thị Quỳnh",
+          "phone": "0919802474",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0777591036"
+        },
+        "medical_history": "Đau đầu mãn tính",
+        "allergies": [],
+        "chronic_conditions": [
+          "Đau đầu mãn tính"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:21.105431+00:00",
+        "updated_at": "2025-06-22T17:09:21.105431+00:00",
+        "created_by": null,
+        "full_name": "Ngô Thị Quỳnh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-194",
+        "profile_id": "bcec41a3-4fdb-42a2-8eec-b718a4608204",
+        "gender": "female",
+        "blood_type": "O-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "205 Đường Lê Lợi",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Lý Thị Tâm",
+          "phone": "0919557202",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0672962808"
+        },
+        "medical_history": "Viêm khớp",
+        "allergies": [],
+        "chronic_conditions": [
+          "Viêm khớp"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:20.349235+00:00",
+        "updated_at": "2025-06-22T17:09:20.349235+00:00",
+        "created_by": null,
+        "full_name": "Lý Thị Tâm",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-376",
+        "profile_id": "1576aa25-8e66-4bc3-b9ed-bd5dac2df3ee",
+        "gender": "male",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "593 Đường Pasteur",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Tạ Văn Rồng",
+          "phone": "0918134880",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0634886805"
+        },
+        "medical_history": "Đột quỵ",
+        "allergies": [],
+        "chronic_conditions": [
+          "Đột quỵ"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:21.410004+00:00",
+        "updated_at": "2025-06-22T17:09:21.410004+00:00",
+        "created_by": null,
+        "full_name": "Tạ Văn Rồng",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-993",
+        "profile_id": "df56e3e6-c049-4436-ac10-bdb36d8753cd",
+        "gender": "female",
+        "blood_type": "A-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "904 Đường Pasteur",
+          "district": "Quận 6"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Trương Thị Bích",
+          "phone": "0910484269",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0534803723"
+        },
+        "medical_history": "Khám thai định kỳ",
+        "allergies": [],
+        "chronic_conditions": [
+          "Khám thai định kỳ"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:24.836613+00:00",
+        "updated_at": "2025-06-22T17:09:24.836613+00:00",
+        "created_by": null,
+        "full_name": "Trương Thị Bích",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-073",
+        "profile_id": "0fd15ef6-6a83-48ef-814b-1bd56cbffcbc",
+        "gender": "female",
+        "blood_type": "O+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "358 Đường Lê Lợi",
+          "district": "Quận 11"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Đặng Thị Ích",
+          "phone": "0912257457",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0138679429"
+        },
+        "medical_history": "Viêm ruột thừa",
+        "allergies": [],
+        "chronic_conditions": [
+          "Viêm ruột thừa"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:27.590239+00:00",
+        "updated_at": "2025-06-22T17:09:27.590239+00:00",
+        "created_by": null,
+        "full_name": "Đặng Thị Ích",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-637",
+        "profile_id": "e0b96cac-f2e0-441a-bf6d-4704f06a208c",
+        "gender": "female",
+        "blood_type": "B+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "769 Đường Pasteur",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Lưu Thị Sương",
+          "phone": "0913097351",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0559266104"
+        },
+        "medical_history": "Động kinh",
+        "allergies": [],
+        "chronic_conditions": [
+          "Động kinh"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:21.72369+00:00",
+        "updated_at": "2025-06-22T17:09:21.72369+00:00",
+        "created_by": null,
+        "full_name": "Lưu Thị Sương",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-249",
+        "profile_id": "6e82bd4e-8bfa-4b53-91cb-aa751968c4f2",
+        "gender": "male",
+        "blood_type": "B+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "280 Đường Lê Lợi",
+          "district": "Quận 1"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Bùi Văn Khánh",
+          "phone": "0910951730",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0064540445"
+        },
+        "medical_history": "Thoát vị bẹn",
+        "allergies": [
+          "Dị ứng thuốc kháng sinh"
+        ],
+        "chronic_conditions": [
+          "Thoát vị bẹn"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:28.029359+00:00",
+        "updated_at": "2025-06-22T17:09:28.029359+00:00",
+        "created_by": null,
+        "full_name": "Bùi Văn Khánh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-244",
+        "profile_id": "dc79859d-d266-4cdd-8e0e-667fb8ae26e4",
+        "gender": "male",
+        "blood_type": "AB+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "399 Đường Lê Lợi",
+          "district": "Quận 9"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Hồ Văn Thắng",
+          "phone": "0912800969",
+          "relationship": "Anh/Chị"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0049935151"
+        },
+        "medical_history": "Parkinson",
+        "allergies": [],
+        "chronic_conditions": [
+          "Parkinson"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:22.080756+00:00",
+        "updated_at": "2025-06-22T17:09:22.080756+00:00",
+        "created_by": null,
+        "full_name": "Hồ Văn Thắng",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-428",
+        "profile_id": "b220645d-a5fd-4e19-b93b-5917340269c4",
+        "gender": "male",
+        "blood_type": "O+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "372 Đường Nguyễn Huệ",
+          "district": "Quận 12"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Huỳnh Văn Cảnh",
+          "phone": "0913965347",
+          "relationship": "Vợ/Chồng"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0446383383"
+        },
+        "medical_history": "Đái tháo đường",
+        "allergies": [],
+        "chronic_conditions": [
+          "Đái tháo đường"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:25.329361+00:00",
+        "updated_at": "2025-06-22T17:09:25.329361+00:00",
+        "created_by": null,
+        "full_name": "Huỳnh Văn Cảnh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-731",
+        "profile_id": "bd394873-d5ec-4d97-ab36-1e325b9d6aa2",
+        "gender": "female",
+        "blood_type": "AB+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "232 Đường Lê Lợi",
+          "district": "Quận 12"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Lý Thị Linh",
+          "phone": "0912788789",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0009431446"
+        },
+        "medical_history": "U tuyến giáp",
+        "allergies": [],
+        "chronic_conditions": [
+          "U tuyến giáp"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:28.565863+00:00",
+        "updated_at": "2025-06-22T17:09:28.565863+00:00",
+        "created_by": null,
+        "full_name": "Lý Thị Linh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-357",
+        "profile_id": "3cf933cc-7f04-4876-9bd9-9e028af84cf3",
+        "gender": "female",
+        "blood_type": "O-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "826 Đường Lê Lợi",
+          "district": "Quận 7"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Chu Thị Uyên",
+          "phone": "0910188928",
+          "relationship": "Anh/Chị"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0897556239"
+        },
+        "medical_history": "Rối loạn lo âu",
+        "allergies": [
+          "Dị ứng thuốc kháng sinh"
+        ],
+        "chronic_conditions": [
+          "Rối loạn lo âu"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:22.448997+00:00",
+        "updated_at": "2025-06-22T17:09:22.448997+00:00",
+        "created_by": null,
+        "full_name": "Chu Thị Uyên",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-382",
+        "profile_id": "73bdb30d-ffd7-479f-96fa-4ec4d898885d",
+        "gender": "female",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "60 Đường Lê Lợi",
+          "district": "Quận 2"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Nguyễn Thị Diệu",
+          "phone": "0917178190",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0875208154"
+        },
+        "medical_history": "Viêm gan B",
+        "allergies": [],
+        "chronic_conditions": [
+          "Viêm gan B"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:25.622312+00:00",
+        "updated_at": "2025-06-22T17:09:25.622312+00:00",
+        "created_by": null,
+        "full_name": "Nguyễn Thị Diệu",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-054",
+        "profile_id": "d8564cfb-487d-4812-bc7b-a6126ff4be26",
+        "gender": "male",
+        "blood_type": "A-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "803 Đường Lê Lợi",
+          "district": "Quận 12"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Cao Văn Minh",
+          "phone": "0912435706",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0639105484"
+        },
+        "medical_history": "Polyp đại tràng",
+        "allergies": [],
+        "chronic_conditions": [
+          "Polyp đại tràng"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:29.131722+00:00",
+        "updated_at": "2025-06-22T17:09:29.131722+00:00",
+        "created_by": null,
+        "full_name": "Cao Văn Minh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-517",
+        "profile_id": "5c16f7f5-0bd0-40c1-aa4d-be7420f435c9",
+        "gender": "female",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "517 Đường Pasteur",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Mai Thị Vân",
+          "phone": "0911178633",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0742066419"
+        },
+        "medical_history": "Thai kỳ bình thường",
+        "allergies": [],
+        "chronic_conditions": [
+          "Thai kỳ bình thường"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:23.173341+00:00",
+        "updated_at": "2025-06-22T17:09:23.173341+00:00",
+        "created_by": null,
+        "full_name": "Mai Thị Vân",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-686",
+        "profile_id": "85dec49e-b712-4e28-bd72-c41b5a1bdbaa",
+        "gender": "female",
+        "blood_type": "AB-",
+        "address": {
+          "city": "TP.HCM",
+          "street": "728 Đường Lê Lợi",
+          "district": "Quận 4"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Lê Thị Phượng",
+          "phone": "0912248863",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0893310864"
+        },
+        "medical_history": "Loét dạ dày",
+        "allergies": [],
+        "chronic_conditions": [
+          "Loét dạ dày"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:26.324176+00:00",
+        "updated_at": "2025-06-22T17:09:26.324176+00:00",
+        "created_by": null,
+        "full_name": "Lê Thị Phượng",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-243",
+        "profile_id": "13f4e1ea-2e04-4f68-ae4e-f3a187137d39",
+        "gender": "female",
+        "blood_type": "O+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "790 Đường Lê Lợi",
+          "district": "Quận 1"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Đỗ Thị Xuân",
+          "phone": "0913866288",
+          "relationship": "Con"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0521305278"
+        },
+        "medical_history": "Viêm phụ khoa",
+        "allergies": [],
+        "chronic_conditions": [
+          "Viêm phụ khoa"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:23.534088+00:00",
+        "updated_at": "2025-06-22T17:09:23.534088+00:00",
+        "created_by": null,
+        "full_name": "Đỗ Thị Xuân",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-608",
+        "profile_id": "8383da36-bd41-474e-9e56-b0f2ce2b8f3c",
+        "gender": "female",
+        "blood_type": "B+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "766 Đường Pasteur",
+          "district": "Quận 9"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Lê Thị Yến",
+          "phone": "0910445164",
+          "relationship": "Anh/Chị"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0475947951"
+        },
+        "medical_history": "Rối loạn kinh nguyệt",
+        "allergies": [],
+        "chronic_conditions": [
+          "Rối loạn kinh nguyệt"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:24.115187+00:00",
+        "updated_at": "2025-06-22T17:09:24.115187+00:00",
+        "created_by": null,
+        "full_name": "Lê Thị Yến",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-661",
+        "profile_id": "43794602-297b-4185-a8fe-1b6d360171ce",
+        "gender": "female",
+        "blood_type": "AB+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "879 Đường Nguyễn Huệ",
+          "district": "Quận 3"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Phùng Thị Ánh",
+          "phone": "0912076881",
+          "relationship": "Anh/Chị"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0457802272"
+        },
+        "medical_history": "U xơ tử cung",
+        "allergies": [],
+        "chronic_conditions": [
+          "U xơ tử cung"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:24.52305+00:00",
+        "updated_at": "2025-06-22T17:09:24.52305+00:00",
+        "created_by": null,
+        "full_name": "Phùng Thị Ánh",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-339",
+        "profile_id": "452f9243-0b04-47de-8016-528d7a884803",
+        "gender": "male",
+        "blood_type": "B+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "782 Đường Nguyễn Huệ",
+          "district": "Quận 8"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Trần Văn Ế",
+          "phone": "0917326547",
+          "relationship": "Anh/Chị"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0859336357"
+        },
+        "medical_history": "Suy thận mãn tính",
+        "allergies": [],
+        "chronic_conditions": [
+          "Suy thận mãn tính"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:26.008871+00:00",
+        "updated_at": "2025-06-22T17:09:26.008871+00:00",
+        "created_by": null,
+        "full_name": "Trần Văn Ế",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-678",
+        "profile_id": "93162976-bf1f-4129-abf9-1d60f751c50d",
+        "gender": "male",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "502 Đường Nguyễn Huệ",
+          "district": "Quận 12"
+        },
+        "emergency_contact": {
+          "name": "Người thân của Phan Văn Hải",
+          "phone": "0919190347",
+          "relationship": "Bố/Mẹ"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "policy_number": "DN0298707279"
+        },
+        "medical_history": "Sỏi mật",
+        "allergies": [],
+        "chronic_conditions": [
+          "Sỏi mật"
+        ],
+        "current_medications": {},
+        "status": "active",
+        "notes": null,
+        "created_at": "2025-06-22T17:09:27.284918+00:00",
+        "updated_at": "2025-06-22T17:09:27.284918+00:00",
+        "created_by": null,
+        "full_name": "Phan Văn Hải",
+        "date_of_birth": null
+      },
+      {
+        "patient_id": "PAT-202506-544",
+        "profile_id": "5eb99067-74ac-46d1-8068-1c074d26da4c",
+        "gender": "female",
+        "blood_type": "A+",
+        "address": {
+          "city": "TP.HCM",
+          "street": "456 Đường Lê Lợi",
+          "zipcode": "70000",
+          "district": "Quận 1"
+        },
+        "emergency_contact": {
+          "name": "Trần Văn Minh",
+          "phone": "0912345678",
+          "address": "456 Đường Lê Lợi, Quận 1, TP.HCM",
+          "relationship": "Chồng"
+        },
+        "insurance_info": {
+          "provider": "BHYT",
+          "expiry_date": "2025-12-31",
+          "coverage_type": "Toàn diện",
+          "policy_number": "DN1234567890"
+        },
+        "medical_history": "Tiền sử cao huyết áp từ năm 2020. Đã phẫu thuật cắt ruột thừa năm 2018. Không có tiền sử dị ứng thuốc.",
+        "allergies": [
+          "Dị ứng với Penicillin",
+          "Dị ứng với tôm cua"
+        ],
+        "chronic_conditions": [
+          "Cao huyết áp",
+          "Tiểu đường type 2 nhẹ"
+        ],
+        "current_medications": {
+          "Vitamin D3": "Uống 1 viên/tuần",
+          "Amlodipine 5mg": "Uống 1 viên/ngày vào buổi sáng",
+          "Metformin 500mg": "Uống 1 viên x 2 lần/ngày sau ăn"
+        },
+        "status": "active",
+        "notes": "Bệnh nhân tuân thủ điều trị tốt. Cần theo dõi đường huyết định kỳ 3 tháng/lần.",
+        "created_at": "2025-06-22T09:37:56.384+00:00",
+        "updated_at": "2025-06-22T17:14:07.075797+00:00",
+        "created_by": null,
+        "full_name": "Trần Thị Hương",
+        "date_of_birth": "1985-08-20"
+      }
+    ],
+    "departments": [
+      {
+        "department_id": "DEPT001",
+        "department_name": "Khoa Tim Mạch",
+        "department_code": "CARD",
+        "description": "Chuyên khoa tim mạch và phẫu thuật tim",
+        "head_doctor_id": null,
+        "location": "Tầng 2, Tòa A",
+        "phone_number": "028-3123-4567",
+        "email": "timmach@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT001"
+      },
+      {
+        "department_id": "DEPT002",
+        "department_name": "Khoa Chấn Thương Chỉnh Hình",
+        "department_code": "ORTH",
+        "description": "Chuyên khoa chấn thương và chỉnh hình",
+        "head_doctor_id": null,
+        "location": "Tầng 3, Tòa B",
+        "phone_number": "028-3123-4568",
+        "email": "chanthuong@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT002"
+      },
+      {
+        "department_id": "DEPT003",
+        "department_name": "Khoa Nhi",
+        "department_code": "PEDI",
+        "description": "Chuyên khoa nhi và chăm sóc trẻ em",
+        "head_doctor_id": null,
+        "location": "Tầng 1, Tòa C",
+        "phone_number": "028-3123-4569",
+        "email": "nhi@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT003"
+      },
+      {
+        "department_id": "DEPT004",
+        "department_name": "Khoa Thần Kinh",
+        "department_code": "NEUR",
+        "description": "Chuyên khoa thần kinh và phẫu thuật não",
+        "head_doctor_id": null,
+        "location": "Tầng 4, Tòa A",
+        "phone_number": "028-3123-4570",
+        "email": "thankinh@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT004"
+      },
+      {
+        "department_id": "DEPT005",
+        "department_name": "Khoa Da Liễu",
+        "department_code": "DERM",
+        "description": "Chuyên khoa da liễu và thẩm mỹ",
+        "head_doctor_id": null,
+        "location": "Tầng 2, Tòa C",
+        "phone_number": "028-3123-4571",
+        "email": "dalieu@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT005"
+      },
+      {
+        "department_id": "DEPT006",
+        "department_name": "Khoa Phụ Sản",
+        "department_code": "GYNE",
+        "description": "Chuyên khoa phụ sản và sức khỏe sinh sản",
+        "head_doctor_id": null,
+        "location": "Tầng 3, Tòa A",
+        "phone_number": "028-3123-4572",
+        "email": "phusan@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT006"
+      },
+      {
+        "department_id": "DEPT007",
+        "department_name": "Khoa Cấp Cứu",
+        "department_code": "EMER",
+        "description": "Khoa cấp cứu và hồi sức",
+        "head_doctor_id": null,
+        "location": "Tầng trệt, Tòa A",
+        "phone_number": "028-3123-4573",
+        "email": "capcuu@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT007"
+      },
+      {
+        "department_id": "DEPT008",
+        "department_name": "Khoa Nội Tổng Hợp",
+        "department_code": "GENE",
+        "description": "Khoa nội tổng hợp và y học gia đình",
+        "head_doctor_id": null,
+        "location": "Tầng 1, Tòa B",
+        "phone_number": "028-3123-4574",
+        "email": "noitonghop@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT008"
+      },
+      {
+        "department_id": "DEPT009",
+        "department_name": "Khoa Ngoại Tổng Hợp",
+        "department_code": "SURG",
+        "description": "Khoa phẫu thuật tổng hợp",
+        "head_doctor_id": null,
+        "location": "Tầng 5, Tòa A",
+        "phone_number": "028-3123-4575",
+        "email": "ngoaitonghop@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT009"
+      },
+      {
+        "department_id": "DEPT010",
+        "department_name": "Khoa Mắt",
+        "department_code": "OPHT",
+        "description": "Chuyên khoa mắt và phẫu thuật mắt",
+        "head_doctor_id": null,
+        "location": "Tầng 2, Tòa B",
+        "phone_number": "028-3123-4576",
+        "email": "mat@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT010"
+      },
+      {
+        "department_id": "DEPT011",
+        "department_name": "Khoa Tai Mũi Họng",
+        "department_code": "ENT",
+        "description": "Chuyên khoa tai mũi họng",
+        "head_doctor_id": null,
+        "location": "Tầng 3, Tòa C",
+        "phone_number": "028-3123-4577",
+        "email": "taimuihong@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT011"
+      },
+      {
+        "department_id": "DEPT012",
+        "department_name": "Khoa Tâm Thần",
+        "department_code": "PSYC",
+        "description": "Chuyên khoa tâm thần và sức khỏe tâm lý",
+        "head_doctor_id": null,
+        "location": "Tầng 4, Tòa C",
+        "phone_number": "028-3123-4578",
+        "email": "tamthan@hospital.vn",
+        "is_active": true,
+        "created_at": "2025-06-10T11:01:43.903737",
+        "updated_at": "2025-06-10T11:01:43.903737",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT012"
+      },
+      {
+        "department_id": "DEPT013",
+        "department_name": "Khoa Sản phụ khoa",
+        "department_code": "OBGY",
+        "description": "Chuyên khoa sản khoa và phụ khoa",
+        "head_doctor_id": null,
+        "location": "Tầng 5, Tòa nhà B",
+        "phone_number": "0123456792",
+        "email": "obstetrics@hospital.com",
+        "is_active": true,
+        "created_at": "2025-06-15T05:08:24.611",
+        "updated_at": "2025-06-15T05:08:24.612",
+        "code": null,
+        "name": null,
+        "color_code": null,
+        "icon_name": null,
+        "sort_order": 0,
+        "parent_department_id": null,
+        "level": 1,
+        "path": "/DEPT013"
+      }
+    ],
+    "appointments": [
+      {
+        "appointment_id": "APT1152684900",
+        "patient_id": "PAT-202506-550",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-18",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Test appointment 1",
+        "notes": "Notes for appointment 1",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T16:58:54.764627",
+        "updated_at": "2025-06-22T16:58:54.764627",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT1152684901",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-844",
+        "appointment_date": "2025-06-19",
+        "start_time": "10:00:00",
+        "end_time": "11:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Test appointment 2",
+        "notes": "Notes for appointment 2",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T16:58:54.897522",
+        "updated_at": "2025-06-22T16:58:54.897522",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT1152684902",
+        "patient_id": "PAT-202506-810",
+        "doctor_id": "GEN-DOC-202506-293",
+        "appointment_date": "2025-06-20",
+        "start_time": "11:00:00",
+        "end_time": "12:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Test appointment 3",
+        "notes": "Notes for appointment 3",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T16:58:54.996868",
+        "updated_at": "2025-06-22T16:58:54.996868",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293372000",
+        "patient_id": "PAT-202506-550",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-02",
+        "start_time": "08:00:00",
+        "end_time": "09:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 1",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375001",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-662",
+        "appointment_date": "2025-06-03",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 2",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375002",
+        "patient_id": "PAT-202506-810",
+        "doctor_id": "GEN-DOC-202506-332",
+        "appointment_date": "2025-06-04",
+        "start_time": "10:00:00",
+        "end_time": "11:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 3",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375003",
+        "patient_id": "PAT-202506-218",
+        "doctor_id": "GEN-DOC-202506-779",
+        "appointment_date": "2025-06-05",
+        "start_time": "11:00:00",
+        "end_time": "12:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 4",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375004",
+        "patient_id": "PAT-202506-734",
+        "doctor_id": "GEN-DOC-202506-128",
+        "appointment_date": "2025-06-06",
+        "start_time": "12:00:00",
+        "end_time": "13:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 5",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375005",
+        "patient_id": "PAT-202506-212",
+        "doctor_id": "GEN-DOC-202506-557",
+        "appointment_date": "2025-06-07",
+        "start_time": "13:00:00",
+        "end_time": "14:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 6",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375006",
+        "patient_id": "PAT-202506-628",
+        "doctor_id": "GEN-DOC-202506-341",
+        "appointment_date": "2025-06-08",
+        "start_time": "14:00:00",
+        "end_time": "15:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 7",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375007",
+        "patient_id": "PAT-202506-593",
+        "doctor_id": "GEN-DOC-202506-412",
+        "appointment_date": "2025-06-09",
+        "start_time": "15:00:00",
+        "end_time": "16:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 8",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375008",
+        "patient_id": "PAT-202506-125",
+        "doctor_id": "GEN-DOC-202506-844",
+        "appointment_date": "2025-06-10",
+        "start_time": "08:00:00",
+        "end_time": "09:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 9",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375009",
+        "patient_id": "PAT-202506-745",
+        "doctor_id": "GEN-DOC-202506-293",
+        "appointment_date": "2025-06-11",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 10",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.202041",
+        "updated_at": "2025-06-22T17:11:41.202041",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375010",
+        "patient_id": "PAT-202506-793",
+        "doctor_id": "GEN-DOC-202506-628",
+        "appointment_date": "2025-06-12",
+        "start_time": "10:00:00",
+        "end_time": "11:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 11",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375011",
+        "patient_id": "PAT-202506-801",
+        "doctor_id": "GEN-DOC-202506-231",
+        "appointment_date": "2025-06-13",
+        "start_time": "11:00:00",
+        "end_time": "12:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 12",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375012",
+        "patient_id": "PAT-202506-695",
+        "doctor_id": "GEN-DOC-202506-181",
+        "appointment_date": "2025-06-14",
+        "start_time": "12:00:00",
+        "end_time": "13:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 13",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375013",
+        "patient_id": "PAT-202506-108",
+        "doctor_id": "GEN-DOC-202506-901",
+        "appointment_date": "2025-06-15",
+        "start_time": "13:00:00",
+        "end_time": "14:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 14",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375014",
+        "patient_id": "PAT-202506-508",
+        "doctor_id": "GEN-DOC-202506-107",
+        "appointment_date": "2025-06-16",
+        "start_time": "14:00:00",
+        "end_time": "15:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 15",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375015",
+        "patient_id": "PAT-202506-738",
+        "doctor_id": "GEN-DOC-202506-881",
+        "appointment_date": "2025-06-17",
+        "start_time": "15:00:00",
+        "end_time": "16:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 16",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375016",
+        "patient_id": "PAT-202506-383",
+        "doctor_id": "GEN-DOC-202506-588",
+        "appointment_date": "2025-06-18",
+        "start_time": "08:00:00",
+        "end_time": "09:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 17",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375017",
+        "patient_id": "PAT-202506-081",
+        "doctor_id": "GEN-DOC-202506-796",
+        "appointment_date": "2025-06-19",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 18",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375018",
+        "patient_id": "PAT-202506-194",
+        "doctor_id": "GEN-DOC-202506-876",
+        "appointment_date": "2025-06-20",
+        "start_time": "10:00:00",
+        "end_time": "11:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 19",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375019",
+        "patient_id": "PAT-202506-376",
+        "doctor_id": "GEN-DOC-202506-823",
+        "appointment_date": "2025-06-21",
+        "start_time": "11:00:00",
+        "end_time": "12:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 20",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.29311",
+        "updated_at": "2025-06-22T17:11:41.29311",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375020",
+        "patient_id": "PAT-202506-993",
+        "doctor_id": "GEN-DOC-202506-833",
+        "appointment_date": "2025-06-22",
+        "start_time": "12:00:00",
+        "end_time": "13:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 21",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375021",
+        "patient_id": "PAT-202506-073",
+        "doctor_id": "GEN-DOC-202506-694",
+        "appointment_date": "2025-06-23",
+        "start_time": "13:00:00",
+        "end_time": "14:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 22",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375022",
+        "patient_id": "PAT-202506-637",
+        "doctor_id": "GEN-DOC-202506-423",
+        "appointment_date": "2025-06-24",
+        "start_time": "14:00:00",
+        "end_time": "15:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 23",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375023",
+        "patient_id": "PAT-202506-249",
+        "doctor_id": "GEN-DOC-202506-441",
+        "appointment_date": "2025-06-25",
+        "start_time": "15:00:00",
+        "end_time": "16:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 24",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375024",
+        "patient_id": "PAT-202506-244",
+        "doctor_id": "GEN-DOC-202506-864",
+        "appointment_date": "2025-06-26",
+        "start_time": "08:00:00",
+        "end_time": "09:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 25",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375025",
+        "patient_id": "PAT-202506-428",
+        "doctor_id": "GEN-DOC-202506-639",
+        "appointment_date": "2025-06-27",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 26",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375026",
+        "patient_id": "PAT-202506-731",
+        "doctor_id": "GEN-DOC-202506-767",
+        "appointment_date": "2025-06-28",
+        "start_time": "10:00:00",
+        "end_time": "11:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 27",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375027",
+        "patient_id": "PAT-202506-357",
+        "doctor_id": "GEN-DOC-202506-215",
+        "appointment_date": "2025-06-29",
+        "start_time": "11:00:00",
+        "end_time": "12:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 28",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375028",
+        "patient_id": "PAT-202506-382",
+        "doctor_id": "GEN-DOC-202506-388",
+        "appointment_date": "2025-06-30",
+        "start_time": "12:00:00",
+        "end_time": "13:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 29",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375029",
+        "patient_id": "PAT-202506-054",
+        "doctor_id": "GEN-DOC-202506-305",
+        "appointment_date": "2025-07-01",
+        "start_time": "13:00:00",
+        "end_time": "14:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 30",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.372054",
+        "updated_at": "2025-06-22T17:11:41.372054",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375030",
+        "patient_id": "PAT-202506-517",
+        "doctor_id": "GEN-DOC-202506-390",
+        "appointment_date": "2025-07-02",
+        "start_time": "14:00:00",
+        "end_time": "15:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 31",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375031",
+        "patient_id": "PAT-202506-686",
+        "doctor_id": "GEN-DOC-202506-697",
+        "appointment_date": "2025-07-03",
+        "start_time": "15:00:00",
+        "end_time": "16:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 32",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375032",
+        "patient_id": "PAT-202506-243",
+        "doctor_id": "GEN-DOC-202506-198",
+        "appointment_date": "2025-07-04",
+        "start_time": "08:00:00",
+        "end_time": "09:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 33",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375033",
+        "patient_id": "PAT-202506-608",
+        "doctor_id": "GEN-DOC-202506-603",
+        "appointment_date": "2025-07-05",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 34",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375034",
+        "patient_id": "PAT-202506-661",
+        "doctor_id": "GEN-DOC-202506-579",
+        "appointment_date": "2025-07-06",
+        "start_time": "10:00:00",
+        "end_time": "11:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 35",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375035",
+        "patient_id": "PAT-202506-339",
+        "doctor_id": "GEN-DOC-202506-999",
+        "appointment_date": "2025-07-07",
+        "start_time": "11:00:00",
+        "end_time": "12:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 36",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375036",
+        "patient_id": "PAT-202506-678",
+        "doctor_id": "GEN-DOC-202506-130",
+        "appointment_date": "2025-07-08",
+        "start_time": "12:00:00",
+        "end_time": "13:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 37",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375037",
+        "patient_id": "PAT-202506-550",
+        "doctor_id": "GEN-DOC-202506-079",
+        "appointment_date": "2025-07-09",
+        "start_time": "13:00:00",
+        "end_time": "14:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 38",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375038",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-328",
+        "appointment_date": "2025-07-10",
+        "start_time": "14:00:00",
+        "end_time": "15:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 39",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "APT293375039",
+        "patient_id": "PAT-202506-810",
+        "doctor_id": "GEN-DOC-202506-816",
+        "appointment_date": "2025-07-11",
+        "start_time": "15:00:00",
+        "end_time": "16:00:00",
+        "appointment_type": "consultation",
+        "status": "cancelled",
+        "reason": "Khám bệnh định kỳ",
+        "notes": "Cuộc hẹn số 40",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:11:41.443564",
+        "updated_at": "2025-06-22T17:11:41.443564",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43939900",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-05-23",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám tổng quát định kỳ",
+        "notes": "Cuộc hẹn khám tổng quát định kỳ - completed",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940001",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-02",
+        "start_time": "10:00:00",
+        "end_time": "11:00:00",
+        "appointment_type": "follow_up",
+        "status": "completed",
+        "reason": "Tái khám sau điều trị",
+        "notes": "Cuộc hẹn tái khám sau điều trị - completed",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940002",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-12",
+        "start_time": "14:00:00",
+        "end_time": "15:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Khám chuyên khoa tim mạch",
+        "notes": "Cuộc hẹn khám chuyên khoa tim mạch - completed",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940003",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-17",
+        "start_time": "11:00:00",
+        "end_time": "12:00:00",
+        "appointment_type": "consultation",
+        "status": "completed",
+        "reason": "Kiểm tra huyết áp",
+        "notes": "Cuộc hẹn kiểm tra huyết áp - completed",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940004",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-22",
+        "start_time": "15:00:00",
+        "end_time": "16:00:00",
+        "appointment_type": "consultation",
+        "status": "confirmed",
+        "reason": "Khám định kỳ hôm nay",
+        "notes": "Cuộc hẹn khám định kỳ hôm nay - confirmed",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940005",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-25",
+        "start_time": "09:30:00",
+        "end_time": "10:30:00",
+        "appointment_type": "follow_up",
+        "status": "confirmed",
+        "reason": "Tái khám kết quả xét nghiệm",
+        "notes": "Cuộc hẹn tái khám kết quả xét nghiệm - confirmed",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940006",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-06-29",
+        "start_time": "10:30:00",
+        "end_time": "11:30:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám tim mạch định kỳ",
+        "notes": "Cuộc hẹn khám tim mạch định kỳ - scheduled",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940007",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-07-06",
+        "start_time": "14:30:00",
+        "end_time": "15:30:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Theo dõi điều trị",
+        "notes": "Cuộc hẹn theo dõi điều trị - scheduled",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940008",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-07-13",
+        "start_time": "11:30:00",
+        "end_time": "12:30:00",
+        "appointment_type": "follow_up",
+        "status": "scheduled",
+        "reason": "Tái khám sau 3 tuần",
+        "notes": "Cuộc hẹn tái khám sau 3 tuần - scheduled",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      },
+      {
+        "appointment_id": "MAIN43940009",
+        "patient_id": "PAT-202506-544",
+        "doctor_id": "GEN-DOC-202506-480",
+        "appointment_date": "2025-07-22",
+        "start_time": "16:00:00",
+        "end_time": "17:00:00",
+        "appointment_type": "consultation",
+        "status": "scheduled",
+        "reason": "Khám định kỳ tháng tới",
+        "notes": "Cuộc hẹn khám định kỳ tháng tới - scheduled",
+        "diagnosis": null,
+        "prescription": null,
+        "follow_up_required": false,
+        "follow_up_date": null,
+        "room_id": null,
+        "created_at": "2025-06-22T17:14:07.219113",
+        "updated_at": "2025-06-22T17:14:07.219113",
+        "created_by": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,257 @@
+name: Security Scanning & Compliance
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Secret Scanning
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: GitLeaks Secret Scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}}
+
+  # Job 2: Dependency Vulnerability Scan
+  dependency-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path: ['frontend', 'backend']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.path }}
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: ${{ matrix.path }}
+        run: |
+          npm audit --audit-level=moderate --json > audit-results.json || true
+          npm audit --audit-level=moderate
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-results-${{ matrix.path }}
+          path: ${{ matrix.path }}/audit-results.json
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=${{ matrix.path }}/package.json
+
+  # Job 3: SAST (Static Application Security Testing)
+  sast-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+
+  # Job 4: Container Security Scan
+  container-security:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build test image
+        run: |
+          docker build -t hospital-test:latest -f backend/services/api-gateway/Dockerfile backend/
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'hospital-test:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Hadolint (Dockerfile linter)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/services/api-gateway/Dockerfile
+          format: sarif
+          output-file: hadolint-results.sarif
+          no-fail: true
+
+      - name: Upload Hadolint scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: hadolint-results.sarif
+
+  # Job 5: HIPAA Compliance Check
+  hipaa-compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: HIPAA Compliance Checker
+        run: |
+          echo "🏥 HIPAA Compliance Check for Hospital Management System"
+          
+          # Check for sensitive data patterns
+          echo "Checking for potential PHI exposure..."
+          
+          # Check database queries for proper encryption
+          find . -name "*.ts" -o -name "*.js" | xargs grep -l "patient\|medical\|health" | while read file; do
+            echo "Reviewing: $file"
+            if grep -q "SELECT.*patient.*WHERE" "$file" && ! grep -q "RLS\|row_level_security" "$file"; then
+              echo "⚠️  Potential RLS missing in: $file"
+            fi
+          done
+          
+          # Check for proper authentication
+          echo "Checking authentication patterns..."
+          if ! find . -name "*.ts" -o -name "*.js" | xargs grep -l "supabase.*auth\|jwt\|token"; then
+            echo "⚠️  Authentication patterns not found"
+          fi
+          
+          # Check for audit logging
+          echo "Checking audit logging..."
+          if ! find . -name "*.ts" -o -name "*.js" | xargs grep -l "audit\|log.*access\|activity"; then
+            echo "⚠️  Audit logging patterns not found"
+          fi
+          
+          echo "✅ HIPAA compliance check completed"
+
+  # Job 6: Infrastructure Security
+  infrastructure-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov (Infrastructure as Code Security)
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: dockerfile,github_actions
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+
+      - name: Upload Checkov scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+
+      - name: Docker Compose Security Check
+        run: |
+          echo "🔒 Docker Compose Security Analysis"
+          
+          # Check for exposed ports
+          if grep -r "ports:" backend/docker-compose.yml; then
+            echo "⚠️  Exposed ports found - review for production deployment"
+          fi
+          
+          # Check for hardcoded secrets
+          if grep -r "password\|secret\|key" backend/docker-compose.yml | grep -v "\${"; then
+            echo "⚠️  Potential hardcoded secrets found"
+          fi
+          
+          # Check for privileged containers
+          if grep -r "privileged.*true" backend/docker-compose.yml; then
+            echo "⚠️  Privileged containers found"
+          fi
+          
+          echo "✅ Docker Compose security check completed"
+
+  # Job 7: Security Report
+  security-report:
+    runs-on: ubuntu-latest
+    needs: [secret-scan, dependency-scan, sast-scan, container-security, hipaa-compliance, infrastructure-security]
+    if: always()
+    steps:
+      - name: Generate Security Report
+        run: |
+          echo "## 🔒 Hospital Management Security Report" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Scanning | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Scan | ${{ needs.dependency-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST Analysis | ${{ needs.sast-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Container Security | ${{ needs.container-security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| HIPAA Compliance | ${{ needs.hipaa-compliance.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Infrastructure Security | ${{ needs.infrastructure-security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🏥 Healthcare Compliance Notes" >> $GITHUB_STEP_SUMMARY
+          echo "- All patient data must be encrypted at rest and in transit" >> $GITHUB_STEP_SUMMARY
+          echo "- Row Level Security (RLS) must be enabled for all patient tables" >> $GITHUB_STEP_SUMMARY
+          echo "- Audit logging is required for all data access" >> $GITHUB_STEP_SUMMARY
+          echo "- Regular security assessments are mandatory" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create Security Issue
+        if: needs.secret-scan.result == 'failure' || needs.dependency-scan.result == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Security Vulnerabilities Detected',
+              body: `Security scan failed on ${context.sha}. Please review the security tab for details.`,
+              labels: ['security', 'high-priority']
+            })

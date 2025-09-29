@@ -1,0 +1,56 @@
+# Standalone Dockerfile for Payment Service
+# This version avoids workspace dependencies and builds everything from scratch
+
+FROM node:18-alpine AS base
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies needed for native modules
+RUN apk add --no-cache python3 make g++
+
+# Copy only the payment service files
+COPY services/payment-service/package*.json ./
+COPY services/payment-service/tsconfig.json ./
+
+# Install dependencies without shared package first
+RUN npm install --omit=optional
+
+# Copy source code
+COPY services/payment-service/src ./src
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Create app directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S payment -u 1001
+
+# Copy package files
+COPY services/payment-service/package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production --omit=optional && npm cache clean --force
+
+# Copy built application
+COPY --from=base /app/dist ./dist
+
+# Change ownership to nodejs user
+RUN chown -R payment:nodejs /app
+USER payment
+
+# Expose port
+EXPOSE 3008
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3008/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start the application
+CMD ["node", "dist/app.js"]

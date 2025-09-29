@@ -1,0 +1,723 @@
+"use strict";
+// ============================================================================
+// HOSPITAL MANAGEMENT SYSTEM - COMPREHENSIVE FORMAT VALIDATION
+// ============================================================================
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.validateTableRecord = exports.validateFormat = exports.JSON_STRUCTURES = exports.TABLE_FORMATS = exports.RANGES = exports.ENUM_VALUES = exports.FORMAT_PATTERNS = void 0;
+// Common Format Patterns - Department-Based ID System Only
+exports.FORMAT_PATTERNS = {
+    // Department-Based ID Patterns
+    DOCTOR_ID: /^[A-Z]{4}-DOC-\d{6}-\d{3}$/, // CARD-DOC-202506-001
+    PATIENT_ID: /^PAT-\d{6}-\d{3}$/, // PAT-202506-001
+    APPOINTMENT_ID: /^[A-Z]{4}-APT-\d{6}-\d{3}$/, // CARD-APT-202506-001
+    ADMIN_ID: /^ADM-\d{6}-\d{3}$/, // ADM-202506-001
+    RECEPTIONIST_ID: /^REC-\d{6}-\d{3}$/, // REC-202501-001
+    MEDICAL_RECORD_ID: /^[A-Z]{4}-MR-\d{6}-\d{3}$/, // CARD-MR-202506-001
+    PRESCRIPTION_ID: /^[A-Z]{4}-RX-\d{6}-\d{3}$/, // CARD-RX-202506-001
+    // Department and Room IDs
+    DEPARTMENT_ID: /^DEPT\d{3}$/, // DEPT001
+    ROOM_ID: /^ROOM\d+$/, // ROOM1747555777
+    // UUID Pattern (Supabase Auth)
+    UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    // Contact Patterns
+    EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    PHONE: /^[0-9+\-\s()]+$/,
+    URL: /^https?:\/\/.+/,
+    // Time Patterns
+    TIME_RANGE: /^([01]?[0-9]|2[0-3]):[0-5][0-9]-([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    TIME: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    // Medical Patterns
+    LICENSE_NUMBER: /^[A-Z]{2,4}\d{6,10}$/, // BS001235, MD123456
+    BLOOD_TYPE: /^(A|B|AB|O)[+-]$/, // A+, B-, AB+, O-
+};
+// Enum Values
+exports.ENUM_VALUES = {
+    // User & Profile Enums
+    ROLE: ["admin", "doctor", "patient", "receptionist"],
+    GENDER: ["male", "female", "other"],
+    // Doctor Enums
+    DOCTOR_STATUS: ["active", "inactive", "on_leave"],
+    // Patient Enums
+    PATIENT_STATUS: ["active", "inactive", "deceased"],
+    BLOOD_TYPE: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    // Appointment Enums
+    APPOINTMENT_TYPE: ["consultation", "follow_up", "emergency", "surgery"],
+    APPOINTMENT_STATUS: [
+        "scheduled",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "no_show",
+    ],
+    // Room Enums
+    ROOM_TYPE: [
+        "consultation",
+        "surgery",
+        "emergency",
+        "ward",
+        "icu",
+        "laboratory",
+        "Phòng khám",
+        "Phòng mổ",
+        "Phòng bệnh",
+        "Phòng hồi sức",
+    ],
+    ROOM_STATUS: ["available", "occupied", "maintenance", "out_of_service"],
+    // Medical Record Enums
+    MEDICAL_RECORD_STATUS: ["active", "archived"],
+    // Prescription Enums
+    PRESCRIPTION_STATUS: ["active", "dispensed", "expired", "cancelled"],
+};
+// Range Constraints
+exports.RANGES = {
+    EXPERIENCE_YEARS: { min: 0, max: 50 },
+    CONSULTATION_FEE: { min: 0, max: 999999.99 },
+    DURATION_MINUTES: { min: 15, max: 480 },
+    ROOM_CAPACITY: { min: 1, max: 100 },
+    TEMPERATURE: { min: 30.0, max: 45.0 },
+    HEART_RATE: { min: 30, max: 200 },
+    BLOOD_PRESSURE_SYSTOLIC: { min: 60, max: 250 },
+    BLOOD_PRESSURE_DIASTOLIC: { min: 40, max: 150 },
+    RESPIRATORY_RATE: { min: 8, max: 40 },
+    OXYGEN_SATURATION: { min: 70.0, max: 100.0 },
+    WEIGHT: { min: 0.5, max: 300.0 },
+    HEIGHT: { min: 30.0, max: 250.0 },
+    BMI: { min: 10.0, max: 50.0 },
+};
+// ============================================================================
+// TABLE-SPECIFIC FORMAT REQUIREMENTS
+// ============================================================================
+exports.TABLE_FORMATS = {
+    // PROFILES TABLE
+    profiles: {
+        id: {
+            pattern: exports.FORMAT_PATTERNS.UUID,
+            required: true,
+            description: "Supabase Auth UUID",
+        },
+        email: {
+            pattern: exports.FORMAT_PATTERNS.EMAIL,
+            required: true,
+            unique: true,
+            description: "Valid email address",
+        },
+        full_name: {
+            required: true,
+            minLength: 2,
+            maxLength: 100,
+            description: "Full name 2-100 characters",
+        },
+        phone_number: {
+            pattern: exports.FORMAT_PATTERNS.PHONE,
+            required: false,
+            description: "Phone number with +, -, spaces, ()",
+        },
+        role: {
+            enum: exports.ENUM_VALUES.ROLE,
+            required: true,
+            description: "User role: admin, doctor, patient, receptionist",
+        },
+        avatar_url: {
+            pattern: exports.FORMAT_PATTERNS.URL,
+            required: false,
+            description: "Valid URL for avatar image",
+        },
+    },
+    // DOCTORS TABLE
+    doctors: {
+        doctor_id: {
+            pattern: exports.FORMAT_PATTERNS.DOCTOR_ID,
+            required: true,
+            autoGenerated: true,
+            description: "DOC + 6 digits (e.g., DOC000001)",
+        },
+        profile_id: {
+            pattern: exports.FORMAT_PATTERNS.UUID,
+            required: true,
+            foreignKey: "profiles.id",
+            description: "Link to profiles table",
+        },
+        license_number: {
+            pattern: exports.FORMAT_PATTERNS.LICENSE_NUMBER,
+            required: true,
+            unique: true,
+            description: "2-4 letters + 6-10 digits (e.g., BS001235)",
+        },
+        specialization: {
+            required: true,
+            minLength: 2,
+            maxLength: 100,
+            description: "Medical specialization",
+        },
+        qualification: {
+            required: true,
+            minLength: 2,
+            maxLength: 200,
+            description: "Medical qualification",
+        },
+        experience_years: {
+            type: "integer",
+            range: exports.RANGES.EXPERIENCE_YEARS,
+            required: false,
+            description: "Years of experience (0-50)",
+        },
+        consultation_fee: {
+            type: "decimal",
+            precision: [8, 2],
+            range: exports.RANGES.CONSULTATION_FEE,
+            required: false,
+            description: "Consultation fee (0-999,999.99)",
+        },
+        department_id: {
+            pattern: exports.FORMAT_PATTERNS.DEPARTMENT_ID,
+            required: true,
+            foreignKey: "departments.department_id",
+            description: "DEPT + numbers (e.g., DEPT001)",
+        },
+        status: {
+            enum: exports.ENUM_VALUES.DOCTOR_STATUS,
+            required: true,
+            default: "active",
+            description: "Doctor status",
+        },
+        working_hours: {
+            type: "json",
+            structure: "time_schedule",
+            required: false,
+            description: "JSON with day: time-range format",
+        },
+    },
+    // PATIENTS TABLE
+    patients: {
+        patient_id: {
+            pattern: exports.FORMAT_PATTERNS.PATIENT_ID,
+            required: true,
+            autoGenerated: true,
+            description: "PAT + timestamp",
+        },
+        profile_id: {
+            pattern: exports.FORMAT_PATTERNS.UUID,
+            required: true,
+            foreignKey: "profiles.id",
+            description: "Link to profiles table",
+        },
+        date_of_birth: {
+            type: "date",
+            required: true,
+            description: "Date of birth (YYYY-MM-DD)",
+        },
+        gender: {
+            enum: exports.ENUM_VALUES.GENDER,
+            required: true,
+            description: "Gender: male, female, other",
+        },
+        blood_type: {
+            enum: exports.ENUM_VALUES.BLOOD_TYPE,
+            required: false,
+            description: "Blood type: A+, A-, B+, B-, AB+, AB-, O+, O-",
+        },
+        address: {
+            type: "json",
+            structure: "address",
+            required: false,
+            description: "JSON address object",
+        },
+        emergency_contact: {
+            type: "json",
+            structure: "contact",
+            required: false,
+            description: "JSON emergency contact object",
+        },
+        insurance_info: {
+            type: "json",
+            structure: "insurance",
+            required: false,
+            description: "JSON insurance information",
+        },
+        allergies: {
+            type: "array",
+            itemType: "string",
+            required: false,
+            description: "Array of allergies",
+        },
+        chronic_conditions: {
+            type: "array",
+            itemType: "string",
+            required: false,
+            description: "Array of chronic conditions",
+        },
+        status: {
+            enum: exports.ENUM_VALUES.PATIENT_STATUS,
+            required: true,
+            default: "active",
+            description: "Patient status",
+        },
+    },
+    // APPOINTMENTS TABLE
+    appointments: {
+        appointment_id: {
+            pattern: exports.FORMAT_PATTERNS.APPOINTMENT_ID,
+            required: true,
+            autoGenerated: true,
+            description: "APT + timestamp",
+        },
+        patient_id: {
+            pattern: exports.FORMAT_PATTERNS.PATIENT_ID,
+            required: true,
+            foreignKey: "patients.patient_id",
+            description: "Reference to patient",
+        },
+        doctor_id: {
+            pattern: exports.FORMAT_PATTERNS.DOCTOR_ID,
+            required: true,
+            foreignKey: "doctors.doctor_id",
+            description: "Reference to doctor",
+        },
+        appointment_datetime: {
+            type: "timestamptz",
+            required: true,
+            description: "ISO timestamp with timezone",
+        },
+        duration_minutes: {
+            type: "integer",
+            range: exports.RANGES.DURATION_MINUTES,
+            required: true,
+            default: 30,
+            description: "Duration in minutes (15-480)",
+        },
+        type: {
+            enum: exports.ENUM_VALUES.APPOINTMENT_TYPE,
+            required: true,
+            default: "consultation",
+            description: "Appointment type",
+        },
+        status: {
+            enum: exports.ENUM_VALUES.APPOINTMENT_STATUS,
+            required: true,
+            default: "scheduled",
+            description: "Appointment status",
+        },
+        room_id: {
+            pattern: exports.FORMAT_PATTERNS.ROOM_ID,
+            required: false,
+            foreignKey: "rooms.room_id",
+            description: "Reference to room",
+        },
+    },
+    // DEPARTMENTS TABLE
+    departments: {
+        department_id: {
+            pattern: exports.FORMAT_PATTERNS.DEPARTMENT_ID,
+            required: true,
+            autoGenerated: true,
+            description: "DEPT + timestamp",
+        },
+        name: {
+            required: true,
+            unique: true,
+            minLength: 2,
+            maxLength: 100,
+            description: "Department name (unique)",
+        },
+        description: {
+            required: false,
+            maxLength: 500,
+            description: "Department description",
+        },
+        head_doctor_id: {
+            pattern: exports.FORMAT_PATTERNS.DOCTOR_ID,
+            required: false,
+            foreignKey: "doctors.doctor_id",
+            description: "Reference to head doctor",
+        },
+        location: {
+            required: false,
+            maxLength: 200,
+            description: "Department location",
+        },
+        phone_number: {
+            pattern: exports.FORMAT_PATTERNS.PHONE,
+            required: false,
+            description: "Department phone number",
+        },
+        email: {
+            pattern: exports.FORMAT_PATTERNS.EMAIL,
+            required: false,
+            description: "Department email address",
+        },
+        is_active: {
+            type: "boolean",
+            required: true,
+            default: true,
+            description: "Department active status",
+        },
+    },
+    // ROOMS TABLE
+    rooms: {
+        room_id: {
+            pattern: exports.FORMAT_PATTERNS.ROOM_ID,
+            required: true,
+            autoGenerated: true,
+            description: "ROOM + timestamp",
+        },
+        room_number: {
+            required: true,
+            minLength: 1,
+            maxLength: 20,
+            description: "Room number (e.g., 101, A-205)",
+        },
+        room_type: {
+            enum: exports.ENUM_VALUES.ROOM_TYPE,
+            required: true,
+            description: "Room type",
+        },
+        department_id: {
+            pattern: exports.FORMAT_PATTERNS.DEPARTMENT_ID,
+            required: true,
+            foreignKey: "departments.department_id",
+            description: "Reference to department",
+        },
+        capacity: {
+            type: "integer",
+            range: exports.RANGES.ROOM_CAPACITY,
+            required: true,
+            default: 1,
+            description: "Room capacity (1-100)",
+        },
+        status: {
+            enum: exports.ENUM_VALUES.ROOM_STATUS,
+            required: true,
+            default: "available",
+            description: "Room status",
+        },
+        equipment: {
+            type: "json",
+            structure: "array",
+            required: false,
+            description: "JSON array of equipment",
+        },
+        location: {
+            required: false,
+            maxLength: 200,
+            description: "Room location details",
+        },
+        notes: {
+            required: false,
+            maxLength: 1000,
+            description: "Additional notes",
+        },
+    },
+    // MEDICAL_RECORDS TABLE
+    medical_records: {
+        record_id: {
+            pattern: exports.FORMAT_PATTERNS.MEDICAL_RECORD_ID,
+            required: true,
+            autoGenerated: true,
+            description: "MR + timestamp",
+        },
+        patient_id: {
+            pattern: exports.FORMAT_PATTERNS.PATIENT_ID,
+            required: true,
+            foreignKey: "patients.patient_id",
+            description: "Reference to patient",
+        },
+        doctor_id: {
+            pattern: exports.FORMAT_PATTERNS.DOCTOR_ID,
+            required: true,
+            foreignKey: "doctors.doctor_id",
+            description: "Reference to doctor",
+        },
+        appointment_id: {
+            pattern: exports.FORMAT_PATTERNS.APPOINTMENT_ID,
+            required: false,
+            foreignKey: "appointments.appointment_id",
+            description: "Reference to appointment",
+        },
+        visit_date: {
+            type: "timestamptz",
+            required: true,
+            description: "Visit date and time",
+        },
+        chief_complaint: {
+            required: false,
+            maxLength: 1000,
+            description: "Patient chief complaint",
+        },
+        present_illness: {
+            required: false,
+            maxLength: 2000,
+            description: "Present illness description",
+        },
+        past_medical_history: {
+            required: false,
+            maxLength: 2000,
+            description: "Past medical history",
+        },
+        physical_examination: {
+            type: "json",
+            structure: "examination",
+            required: false,
+            description: "JSON physical examination data",
+        },
+        vital_signs: {
+            type: "json",
+            structure: "vital_signs",
+            required: false,
+            description: "JSON vital signs data",
+        },
+        diagnosis: {
+            required: false,
+            maxLength: 1000,
+            description: "Medical diagnosis",
+        },
+        treatment_plan: {
+            required: false,
+            maxLength: 2000,
+            description: "Treatment plan",
+        },
+        medications: {
+            type: "json",
+            structure: "array",
+            required: false,
+            description: "JSON array of medications",
+        },
+        follow_up_instructions: {
+            required: false,
+            maxLength: 1000,
+            description: "Follow-up instructions",
+        },
+        attachments: {
+            type: "array",
+            itemType: "string",
+            required: false,
+            description: "Array of attachment URLs",
+        },
+        status: {
+            enum: exports.ENUM_VALUES.MEDICAL_RECORD_STATUS,
+            required: true,
+            default: "active",
+            description: "Record status",
+        },
+    },
+    // PRESCRIPTIONS TABLE
+    prescriptions: {
+        prescription_id: {
+            pattern: exports.FORMAT_PATTERNS.PRESCRIPTION_ID,
+            required: true,
+            autoGenerated: true,
+            description: "PRE + timestamp",
+        },
+        patient_id: {
+            pattern: exports.FORMAT_PATTERNS.PATIENT_ID,
+            required: true,
+            foreignKey: "patients.patient_id",
+            description: "Reference to patient",
+        },
+        doctor_id: {
+            pattern: exports.FORMAT_PATTERNS.DOCTOR_ID,
+            required: true,
+            foreignKey: "doctors.doctor_id",
+            description: "Reference to doctor",
+        },
+        medical_record_id: {
+            pattern: exports.FORMAT_PATTERNS.MEDICAL_RECORD_ID,
+            required: false,
+            foreignKey: "medical_records.record_id",
+            description: "Reference to medical record",
+        },
+        medications: {
+            type: "json",
+            structure: "medications_array",
+            required: true,
+            description: "JSON array of prescribed medications",
+        },
+        instructions: {
+            required: false,
+            maxLength: 2000,
+            description: "Prescription instructions",
+        },
+        issued_date: {
+            type: "date",
+            required: true,
+            default: "CURRENT_DATE",
+            description: "Date prescription was issued",
+        },
+        valid_until: {
+            type: "date",
+            required: false,
+            description: "Prescription expiry date",
+        },
+        status: {
+            enum: exports.ENUM_VALUES.PRESCRIPTION_STATUS,
+            required: true,
+            default: "active",
+            description: "Prescription status",
+        },
+    },
+};
+// ============================================================================
+// JSON STRUCTURE DEFINITIONS
+// ============================================================================
+exports.JSON_STRUCTURES = {
+    // Address structure for patients
+    address: {
+        street: { type: "string", maxLength: 200 },
+        district: { type: "string", maxLength: 100 },
+        city: { type: "string", maxLength: 100 },
+        zipcode: { type: "string", maxLength: 20 },
+    },
+    // Emergency contact structure
+    contact: {
+        name: { type: "string", required: true, maxLength: 100 },
+        phone: { type: "string", required: true, pattern: exports.FORMAT_PATTERNS.PHONE },
+        relationship: { type: "string", maxLength: 50 },
+    },
+    // Insurance information structure
+    insurance: {
+        provider: { type: "string", maxLength: 100 },
+        policy_number: { type: "string", maxLength: 50 },
+        expiry_date: { type: "date" },
+    },
+    // Working hours structure for doctors
+    time_schedule: {
+        monday: {
+            type: "string",
+            pattern: exports.FORMAT_PATTERNS.TIME_RANGE,
+            optional: true,
+        },
+        tuesday: {
+            type: "string",
+            pattern: exports.FORMAT_PATTERNS.TIME_RANGE,
+            optional: true,
+        },
+        wednesday: {
+            type: "string",
+            pattern: exports.FORMAT_PATTERNS.TIME_RANGE,
+            optional: true,
+        },
+        thursday: {
+            type: "string",
+            pattern: exports.FORMAT_PATTERNS.TIME_RANGE,
+            optional: true,
+        },
+        friday: {
+            type: "string",
+            pattern: exports.FORMAT_PATTERNS.TIME_RANGE,
+            optional: true,
+        },
+        saturday: {
+            type: "string",
+            pattern: exports.FORMAT_PATTERNS.TIME_RANGE,
+            optional: true,
+        },
+        sunday: {
+            type: "string",
+            pattern: exports.FORMAT_PATTERNS.TIME_RANGE,
+            optional: true,
+        },
+    },
+    // Vital signs structure
+    vital_signs: {
+        temperature: { type: "number", range: exports.RANGES.TEMPERATURE },
+        heart_rate: { type: "integer", range: exports.RANGES.HEART_RATE },
+        blood_pressure: { type: "string", pattern: /^\d{2,3}\/\d{2,3}$/ },
+        respiratory_rate: { type: "integer", range: exports.RANGES.RESPIRATORY_RATE },
+        oxygen_saturation: { type: "number", range: exports.RANGES.OXYGEN_SATURATION },
+        weight: { type: "number", range: exports.RANGES.WEIGHT },
+        height: { type: "number", range: exports.RANGES.HEIGHT },
+        bmi: { type: "number", range: exports.RANGES.BMI },
+    },
+    // Physical examination structure
+    examination: {
+        general: { type: "string", maxLength: 500 },
+        cardiovascular: { type: "string", maxLength: 500 },
+        respiratory: { type: "string", maxLength: 500 },
+        neurological: { type: "string", maxLength: 500 },
+        musculoskeletal: { type: "string", maxLength: 500 },
+    },
+    // Medications array structure
+    medications_array: {
+        type: "array",
+        items: {
+            name: { type: "string", required: true, maxLength: 200 },
+            dosage: { type: "string", required: true, maxLength: 100 },
+            frequency: { type: "string", required: true, maxLength: 100 },
+            duration: { type: "string", maxLength: 100 },
+            instructions: { type: "string", maxLength: 500 },
+        },
+    },
+};
+// ============================================================================
+// VALIDATION FUNCTIONS
+// ============================================================================
+const validateFormat = (value, fieldConfig) => {
+    // Check required
+    if (fieldConfig.required &&
+        (value === null || value === undefined || value === "")) {
+        return { valid: false, error: "Field is required" };
+    }
+    // Skip validation if optional and empty
+    if (!fieldConfig.required &&
+        (value === null || value === undefined || value === "")) {
+        return { valid: true };
+    }
+    // Pattern validation
+    if (fieldConfig.pattern && !fieldConfig.pattern.test(value)) {
+        return {
+            valid: false,
+            error: `Invalid format. ${fieldConfig.description}`,
+        };
+    }
+    // Enum validation
+    if (fieldConfig.enum && !fieldConfig.enum.includes(value)) {
+        return {
+            valid: false,
+            error: `Invalid value. Must be one of: ${fieldConfig.enum.join(", ")}`,
+        };
+    }
+    // Range validation
+    if (fieldConfig.range) {
+        const numValue = Number(value);
+        if (numValue < fieldConfig.range.min || numValue > fieldConfig.range.max) {
+            return {
+                valid: false,
+                error: `Value must be between ${fieldConfig.range.min} and ${fieldConfig.range.max}`,
+            };
+        }
+    }
+    // Length validation
+    if (fieldConfig.minLength && value.length < fieldConfig.minLength) {
+        return {
+            valid: false,
+            error: `Minimum length is ${fieldConfig.minLength}`,
+        };
+    }
+    if (fieldConfig.maxLength && value.length > fieldConfig.maxLength) {
+        return {
+            valid: false,
+            error: `Maximum length is ${fieldConfig.maxLength}`,
+        };
+    }
+    return { valid: true };
+};
+exports.validateFormat = validateFormat;
+const validateTableRecord = (tableName, record) => {
+    const tableConfig = exports.TABLE_FORMATS[tableName];
+    if (!tableConfig) {
+        return { valid: false, errors: { general: "Unknown table" } };
+    }
+    const errors = {};
+    for (const [fieldName, fieldConfig] of Object.entries(tableConfig)) {
+        const validation = (0, exports.validateFormat)(record[fieldName], fieldConfig);
+        if (!validation.valid) {
+            errors[fieldName] = validation.error;
+        }
+    }
+    return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+    };
+};
+exports.validateTableRecord = validateTableRecord;
+//# sourceMappingURL=all-tables.validators.js.map

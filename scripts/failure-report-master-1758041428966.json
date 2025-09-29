@@ -1,0 +1,7 @@
+{
+  "deploymentId": "master-1758041428966",
+  "failureTime": "2025-09-16T16:50:28.973Z",
+  "currentPhase": "unknown",
+  "error": "Missing required environment variable: SUPABASE_URL",
+  "rollbackRequired": true
+}

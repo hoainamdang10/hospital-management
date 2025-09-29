@@ -1,0 +1,562 @@
+# Hospital Management System - Gitignore
+
+# Dependencies
+node_modules/
+*/node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+/coverage
+.nyc_output
+
+# Next.js
+/.next/
+/out/
+frontend/.next/
+frontend/out/
+
+# Production builds
+/build
+/dist
+frontend/build/
+backend/dist/
+backend/build/
+
+# Environment files
+.env*
+frontend/.env*
+backend/.env*
+**/.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+backend/logs/
+backend/*/logs/
+
+# Database
+*.sqlite
+*.db
+
+# Docker
+docker-compose.override.yml
+
+# IDEs and editors
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.pem
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Monitoring
+monitoring/logs/
+monitoring/data/
+
+# Deployment secrets
+deployment/secrets/
+deployment/configs/*.local.*
+
+# Security files
+*.key
+*.crt
+*.p12
+*.pfx
+*.keystore
+*.jks
+security-audit-report.txt
+*.backup.*
+
+# API Keys and Secrets (additional patterns)
+**/secrets/
+**/keys/
+**/.secrets/
+**/config/secrets.json
+**/config/keys.json
+secrets.json
+keys.json
+
+# Temporary files
+tmp/
+temp/
+
+# Added by Task Master AI
+dev-debug.log
+# Dependency directories
+# Environment variables
+.env
+# Editor directories and files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+# Task files
+tasks.json
+tasks/
+
+# Development and Testing
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
+test-results/
+coverage-reports/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+
+# Local configuration
+local.json
+local.config.js
+local.config.ts
+
+# Large build artifacts and generated files
+index.html
+*.html.gz
+*.html.bak
+
+# Serena MCP (Model Context Protocol) - AI Development Tools
+# Serena configuration and cache files
+.serena/
+**/.serena/
+serena/
+**/serena/
+
+# Serena cache and temporary files
+*.pkl
+**/*.pkl
+serena-cache/
+**/serena-cache/
+
+# Serena MCP server logs and runtime files
+serena-mcp.log
+serena-mcp-*.log
+mcp-server.log
+mcp-*.log
+
+# Serena project-specific files
+.serena-config.yml
+serena-config.yml
+**/serena-config.yml
+
+# Serena memory and context files
+serena-memories/
+**/serena-memories/
+serena-context/
+**/serena-context/
+
+# Serena LSP (Language Server Protocol) files
+.serena-lsp/
+**/.serena-lsp/
+serena-lsp.log
+**/serena-lsp.log
+
+# Serena development and debugging files
+serena-debug/
+**/serena-debug/
+serena-temp/
+**/serena-temp/
+
+# Serena MCP transport and communication files
+mcp-transport/
+**/mcp-transport/
+mcp-socket/
+**/mcp-socket/
+mcp-pipe/
+**/mcp-pipe/
+
+# Serena agent and automation files
+serena-agents/
+**/serena-agents/
+serena-automation/
+**/serena-automation/
+
+# Serena project indexing and analysis files
+serena-index/
+**/serena-index/
+serena-analysis/
+**/serena-analysis/
+
+# Serena MCP client configuration
+mcp-client-config.json
+**/mcp-client-config.json
+serena-client-config.json
+**/serena-client-config.json
+
+# Serena MCP server configuration
+mcp-server-config.json
+**/mcp-server-config.json
+serena-server-config.json
+**/serena-server-config.json
+
+# Serena MCP protocol files
+mcp-protocol/
+**/mcp-protocol/
+serena-protocol/
+**/serena-protocol/
+
+# Serena MCP tool definitions and schemas
+mcp-tools/
+**/mcp-tools/
+serena-tools/
+**/serena-tools/
+
+# Serena MCP session and connection files
+mcp-sessions/
+**/mcp-sessions/
+serena-sessions/
+**/serena-sessions/
+
+# Serena MCP authentication and security files
+mcp-auth/
+**/mcp-auth/
+serena-auth/
+**/serena-auth/
+
+# Serena MCP monitoring and metrics
+mcp-metrics/
+**/mcp-metrics/
+serena-metrics/
+**/serena-metrics/
+
+# Serena MCP backup and recovery files
+mcp-backup/
+**/mcp-backup/
+serena-backup/
+**/serena-backup/
+
+# Serena MCP development tools and scripts
+serena-dev-tools/
+**/serena-dev-tools/
+mcp-dev-tools/
+**/mcp-dev-tools/
+
+# Serena MCP testing and validation files
+serena-tests/
+**/serena-tests/
+mcp-tests/
+**/mcp-tests/
+
+# Serena MCP documentation and guides
+serena-docs/
+**/serena-docs/
+mcp-docs/
+**/mcp-docs/
+
+# Serena MCP examples and samples
+serena-examples/
+**/serena-examples/
+mcp-examples/
+**/mcp-examples/
+
+# Serena MCP plugins and extensions
+serena-plugins/
+**/serena-plugins/
+mcp-plugins/
+**/mcp-plugins/
+
+# Serena MCP integrations and connectors
+serena-integrations/
+**/serena-integrations/
+mcp-integrations/
+**/mcp-integrations/
+
+# Serena MCP deployment and infrastructure
+serena-deploy/
+**/serena-deploy/
+mcp-deploy/
+**/mcp-deploy/
+
+# Serena MCP configuration overrides
+serena-overrides/
+**/serena-overrides/
+mcp-overrides/
+**/mcp-overrides/
+
+# Serena MCP user preferences and settings
+serena-user/
+**/serena-user/
+mcp-user/
+**/mcp-user/
+
+# Serena MCP system and environment files
+serena-system/
+**/serena-system/
+mcp-system/
+**/mcp-system/
+
+# Serena MCP network and communication logs
+serena-network/
+**/serena-network/
+mcp-network/
+**/mcp-network/
+
+# Serena MCP performance and profiling data
+serena-performance/
+**/serena-performance/
+mcp-performance/
+**/mcp-performance/
+
+# Serena MCP error and crash reports
+serena-errors/
+**/serena-errors/
+mcp-errors/
+**/mcp-errors/
+
+# Serena MCP update and version files
+serena-updates/
+**/serena-updates/
+mcp-updates/
+**/mcp-updates/
+
+# Serena MCP license and legal files
+serena-license/
+**/serena-license/
+mcp-license/
+**/mcp-license/
+
+# Serena MCP vendor and third-party files
+serena-vendor/
+**/serena-vendor/
+mcp-vendor/
+**/mcp-vendor/
+
+# Serena MCP custom and local modifications
+serena-custom/
+**/serena-custom/
+mcp-custom/
+**/mcp-custom/
+
+# Serena MCP experimental and beta features
+serena-experimental/
+**/serena-experimental/
+mcp-experimental/
+**/mcp-experimental/
+
+# Serena MCP deprecated and legacy files
+serena-deprecated/
+**/serena-deprecated/
+mcp-deprecated/
+**/mcp-deprecated/
+
+# Serena MCP migration and upgrade files
+serena-migration/
+**/serena-migration/
+mcp-migration/
+**/mcp-migration/
+
+# Serena MCP rollback and recovery files
+serena-rollback/
+**/serena-rollback/
+mcp-rollback/
+**/mcp-rollback/
+
+# Serena MCP health check and monitoring files
+serena-health/
+**/serena-health/
+mcp-health/
+**/mcp-health/
+
+# Serena MCP audit and compliance files
+serena-audit/
+**/serena-audit/
+mcp-audit/
+**/mcp-audit/
+
+# Serena MCP security and vulnerability files
+serena-security/
+**/serena-security/
+mcp-security/
+**/mcp-security/
+
+# Serena MCP backup and archive files
+serena-archive/
+**/serena-archive/
+mcp-archive/
+**/mcp-archive/
+
+# Serena MCP export and import files
+serena-export/
+**/serena-export/
+mcp-export/
+**/mcp-export/
+
+# Serena MCP sync and replication files
+serena-sync/
+**/serena-sync/
+mcp-sync/
+**/mcp-sync/
+
+# Serena MCP queue and job files
+serena-queue/
+**/serena-queue/
+mcp-queue/
+**/mcp-queue/
+
+# Serena MCP cache and storage files
+serena-storage/
+**/serena-storage/
+mcp-storage/
+**/mcp-storage/
+
+# Serena MCP lock and semaphore files
+serena-lock/
+**/serena-lock/
+mcp-lock/
+**/mcp-lock/
+
+# Serena MCP pid and process files
+serena-pid/
+**/serena-pid/
+mcp-pid/
+**/mcp-pid/
+
+# Serena MCP socket and pipe files
+serena-socket/
+**/serena-socket/
+mcp-socket/
+**/mcp-socket/
+
+# Serena MCP fifo and named pipe files
+serena-fifo/
+**/serena-fifo/
+mcp-fifo/
+**/mcp-fifo/
+
+# Serena MCP shared memory files
+serena-shm/
+**/serena-shm/
+mcp-shm/
+**/mcp-shm/
+
+# Serena MCP device and hardware files
+serena-dev/
+**/serena-dev/
+mcp-dev/
+**/mcp-dev/
+
+# Serena MCP proc and sys files
+serena-proc/
+**/serena-proc/
+mcp-proc/
+**/mcp-proc/
+
+# Serena MCP tmp and var files
+serena-tmp/
+**/serena-tmp/
+mcp-tmp/
+**/mcp-tmp/
+
+# Serena MCP etc and config files
+serena-etc/
+**/serena-etc/
+mcp-etc/
+**/mcp-etc/
+
+# Serena MCP usr and bin files
+serena-usr/
+**/serena-usr/
+mcp-usr/
+**/mcp-usr/
+
+# Serena MCP home and user files
+serena-home/
+**/serena-home/
+mcp-home/
+**/mcp-home/
+
+# Serena MCP root and system files
+serena-root/
+**/serena-root/
+mcp-root/
+**/mcp-root/
+
+# Serena MCP boot and kernel files
+serena-boot/
+**/serena-boot/
+mcp-boot/
+**/mcp-boot/
+
+# Serena MCP lib and module files
+serena-lib/
+**/serena-lib/
+mcp-lib/
+**/mcp-lib/
+
+# Serena MCP opt and local files
+serena-opt/
+**/serena-opt/
+mcp-opt/
+**/mcp-opt/
+
+# Serena MCP srv and data files
+serena-srv/
+**/serena-srv/
+mcp-srv/
+**/mcp-srv/
+
+# Serena MCP media and mount files
+serena-media/
+**/serena-media/
+mcp-media/
+**/mcp-media/
+
+# Serena MCP mnt and mount files
+serena-mnt/
+**/serena-mnt/
+mcp-mnt/
+**/mcp-mnt/
+
+# Serena MCP run and runtime files
+serena-run/
+**/serena-run/
+mcp-run/
+**/mcp-run/
+
+# Serena MCP sbin and system files
+serena-sbin/
+**/serena-sbin/
+mcp-sbin/
+**/mcp-sbin/
+
+# Serena MCP var and variable files
+serena-var/
+**/serena-var/
+mcp-var/
+**/mcp-var/

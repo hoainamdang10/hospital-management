@@ -1,0 +1,1765 @@
+[
+  {
+    "doctor_id": "CARD-DOC-202506-001",
+    "profile_id": "d8c759a0-977c-4e39-8911-e134606ab2fb",
+    "full_name": "BS. Nguyễn Văn Hùng",
+    "specialty": "Tim Mạch",
+    "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+    "department_id": "DEPT001",
+    "license_number": "VN-TM-CARD-1001",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 6,
+    "consultation_fee": 500000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.89,
+    "total_reviews": 69,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611889,
+    "average_consultation_time": 49,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Tim Mạch"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:48.513594+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "CARD-DOC-202506-002",
+    "profile_id": "eecb57c5-42d4-4523-b39d-2a00b9fcbf48",
+    "full_name": "BS. Trần Thị Lan",
+    "specialty": "Tim Mạch",
+    "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+    "department_id": "DEPT001",
+    "license_number": "VN-TM-CARD-1002",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 6,
+    "consultation_fee": 500000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.89,
+    "total_reviews": 69,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611889,
+    "average_consultation_time": 49,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Tim Mạch"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:48.77743+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "CARD-DOC-202506-003",
+    "profile_id": "d307767d-b4cc-4cc7-aa46-42c3f50d7d09",
+    "full_name": "BS. Lê Minh Tuấn",
+    "specialty": "Tim Mạch",
+    "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+    "department_id": "DEPT001",
+    "license_number": "VN-TM-CARD-1003",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 6,
+    "consultation_fee": 500000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.89,
+    "total_reviews": 69,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611889,
+    "average_consultation_time": 49,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Tim Mạch"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:49.034964+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "CARD-DOC-202506-004",
+    "profile_id": "58a8989e-4a9b-4fbb-9029-03b12649fb11",
+    "full_name": "BS. Phạm Thị Mai",
+    "specialty": "Tim Mạch",
+    "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+    "department_id": "DEPT001",
+    "license_number": "VN-TM-CARD-1004",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 6,
+    "consultation_fee": 500000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.89,
+    "total_reviews": 69,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611889,
+    "average_consultation_time": 49,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Tim Mạch"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:49.273043+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "CARD-DOC-202506-005",
+    "profile_id": "28d94e9b-1c49-4902-a77f-b47069a425fe",
+    "full_name": "BS. Hoàng Văn Nam",
+    "specialty": "Tim Mạch",
+    "qualification": "Bác sĩ Chuyên khoa I Tim Mạch",
+    "department_id": "DEPT001",
+    "license_number": "VN-TM-CARD-1005",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Tim Mạch với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 7,
+    "consultation_fee": 500000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.9,
+    "total_reviews": 70,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 91,
+    "total_revenue": 40611890,
+    "average_consultation_time": 50,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Tim Mạch"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:49.546433+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-001",
+    "profile_id": "ee49439c-eff4-4d22-93d6-ca5dfe81c629",
+    "full_name": "BS. Nguyễn Văn Hùng",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-TH-GENE-1001",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.44,
+    "total_reviews": 64,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 89,
+    "total_revenue": 40611244,
+    "average_consultation_time": 34,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T16:54:04.245054+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-002",
+    "profile_id": "3ead98c1-e683-4a76-ba59-d67c9ab1112f",
+    "full_name": "BS. Trần Thị Lan",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-TH-GENE-1002",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.44,
+    "total_reviews": 64,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 89,
+    "total_revenue": 40611244,
+    "average_consultation_time": 34,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T16:54:04.245054+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-003",
+    "profile_id": "610361c3-5e41-493e-b6fc-7ca1ec67c580",
+    "full_name": "BS. Lê Minh Tuấn",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-TH-GENE-1003",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.44,
+    "total_reviews": 64,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 89,
+    "total_revenue": 40611244,
+    "average_consultation_time": 34,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T16:54:04.245054+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-004",
+    "profile_id": "c43e91c5-3882-4fa4-966d-780251840512",
+    "full_name": "BS. Phạm Thị Mai",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-TH-GENE-1004",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.44,
+    "total_reviews": 64,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 89,
+    "total_revenue": 40611244,
+    "average_consultation_time": 34,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T16:54:04.245054+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-005",
+    "profile_id": "a79e851e-94ef-4ab7-a9d5-40a20568d913",
+    "full_name": "BS. Hoàng Văn Nam",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-TH-GENE-1005",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.44,
+    "total_reviews": 64,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 89,
+    "total_revenue": 40611244,
+    "average_consultation_time": 34,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T16:54:04.245054+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-006",
+    "profile_id": "5bdcbd80-f344-40b7-a46b-3760ca487693",
+    "full_name": "BS. Nguyễn Văn Đức",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-TH-GENE-1006",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 14,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.85,
+    "total_reviews": 45,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 98,
+    "total_revenue": 40589385,
+    "average_consultation_time": 45,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T10:49:45.415507+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-007",
+    "profile_id": "eef0d4ef-1c9c-4f07-beff-9307dea0d3df",
+    "full_name": "BS. Huỳnh Văn Tâm",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-NT-GENE-1007",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 14,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.97,
+    "total_reviews": 77,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 98,
+    "total_revenue": 40611897,
+    "average_consultation_time": 57,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:57.074363+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-008",
+    "profile_id": "7cb7736c-1634-47f4-82d2-8560e1845112",
+    "full_name": "BS. Nguyễn Thị Thu",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-NT-GENE-1008",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 14,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.97,
+    "total_reviews": 77,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 98,
+    "total_revenue": 40611897,
+    "average_consultation_time": 57,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:57.295771+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-009",
+    "profile_id": "efeb6563-c34f-4ffd-8a58-bc476dfe0b68",
+    "full_name": "BS. Trần Văn Phúc",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-NT-GENE-1009",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 15,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.98,
+    "total_reviews": 78,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 85,
+    "total_revenue": 40611898,
+    "average_consultation_time": 58,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:57.587234+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-010",
+    "profile_id": "5ae37a9f-baf4-43c2-b290-50e652a39e39",
+    "full_name": "BS. Lê Thị Hạnh",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-NT-GENE-1010",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 16,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.99,
+    "total_reviews": 79,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 86,
+    "total_revenue": 40611899,
+    "average_consultation_time": 59,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:58.69334+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GENE-DOC-202506-011",
+    "profile_id": "f853060f-f40b-41be-90c5-725f541e5eeb",
+    "full_name": "BS. Võ Văn Sơn",
+    "specialty": "Nội Tổng Hợp",
+    "qualification": "Bác sĩ Đa khoa",
+    "department_id": "DEPT008",
+    "license_number": "VN-NT-GENE-1011",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nội Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 16,
+    "consultation_fee": 250000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.99,
+    "total_reviews": 79,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 86,
+    "total_revenue": 40611899,
+    "average_consultation_time": 59,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nội Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:59.263248+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GYNE-DOC-202506-001",
+    "profile_id": "64358551-8246-4ae2-9b67-9c5d61c8cc53",
+    "full_name": "BS. Mai Thị Hồng",
+    "specialty": "Phụ Sản",
+    "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+    "department_id": "DEPT006",
+    "license_number": "VN-PS-GYNE-1001",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 13,
+    "consultation_fee": 350000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.96,
+    "total_reviews": 76,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 97,
+    "total_revenue": 40611896,
+    "average_consultation_time": 56,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phụ Sản"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:55.554673+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GYNE-DOC-202506-002",
+    "profile_id": "dd750bac-bbdd-4f6c-8850-71eb317ecc72",
+    "full_name": "BS. Đỗ Văn Kiên",
+    "specialty": "Phụ Sản",
+    "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+    "department_id": "DEPT006",
+    "license_number": "VN-PS-GYNE-1002",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 13,
+    "consultation_fee": 350000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.96,
+    "total_reviews": 76,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 97,
+    "total_revenue": 40611896,
+    "average_consultation_time": 56,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phụ Sản"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:55.768137+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GYNE-DOC-202506-003",
+    "profile_id": "07399584-2cb8-4567-8c32-7fb33167efd6",
+    "full_name": "BS. Lê Thị Xuân",
+    "specialty": "Phụ Sản",
+    "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+    "department_id": "DEPT006",
+    "license_number": "VN-PS-GYNE-1003",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 13,
+    "consultation_fee": 350000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.96,
+    "total_reviews": 76,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 97,
+    "total_revenue": 40611896,
+    "average_consultation_time": 56,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phụ Sản"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:56.00925+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GYNE-DOC-202506-004",
+    "profile_id": "b4f2ee7d-ab0b-4c4a-a175-18e27ae458a0",
+    "full_name": "BS. Phùng Văn Đạt",
+    "specialty": "Phụ Sản",
+    "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+    "department_id": "DEPT006",
+    "license_number": "VN-PS-GYNE-1004",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 13,
+    "consultation_fee": 350000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.96,
+    "total_reviews": 76,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 97,
+    "total_revenue": 40611896,
+    "average_consultation_time": 56,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phụ Sản"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:56.25066+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "GYNE-DOC-202506-005",
+    "profile_id": "8f851537-d658-4304-945f-5be0f1746377",
+    "full_name": "BS. Trương Thị Yến",
+    "specialty": "Phụ Sản",
+    "qualification": "Bác sĩ Chuyên khoa I Phụ Sản",
+    "department_id": "DEPT006",
+    "license_number": "VN-PS-GYNE-1005",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Phụ Sản với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 13,
+    "consultation_fee": 350000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.96,
+    "total_reviews": 76,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 97,
+    "total_revenue": 40611896,
+    "average_consultation_time": 56,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phụ Sản"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:56.47405+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "NEUR-DOC-202506-001",
+    "profile_id": "a0d3dae6-bfbd-4da3-94aa-56ffab6fdbbd",
+    "full_name": "BS. Ngô Thị Bình",
+    "specialty": "Thần Kinh",
+    "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+    "department_id": "DEPT004",
+    "license_number": "VN-TK-NEUR-1001",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 10,
+    "consultation_fee": 450000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.93,
+    "total_reviews": 73,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 94,
+    "total_revenue": 40611893,
+    "average_consultation_time": 53,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Thần Kinh"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:52.867009+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "NEUR-DOC-202506-002",
+    "profile_id": "3b649498-2325-43d6-ab09-863d8c3148df",
+    "full_name": "BS. Tạ Văn Quang",
+    "specialty": "Thần Kinh",
+    "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+    "department_id": "DEPT004",
+    "license_number": "VN-TK-NEUR-1002",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 10,
+    "consultation_fee": 450000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.93,
+    "total_reviews": 73,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 94,
+    "total_revenue": 40611893,
+    "average_consultation_time": 53,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Thần Kinh"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:53.373214+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "NEUR-DOC-202506-003",
+    "profile_id": "fe5ca258-1c11-4ca4-a289-a5231b71cc1e",
+    "full_name": "BS. Lưu Thị Oanh",
+    "specialty": "Thần Kinh",
+    "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+    "department_id": "DEPT004",
+    "license_number": "VN-TK-NEUR-1003",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 11,
+    "consultation_fee": 450000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.94,
+    "total_reviews": 74,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 95,
+    "total_revenue": 40611894,
+    "average_consultation_time": 54,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Thần Kinh"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:53.685265+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "NEUR-DOC-202506-004",
+    "profile_id": "90bb2207-413a-4996-be2c-77b07b398242",
+    "full_name": "BS. Hồ Văn Tùng",
+    "specialty": "Thần Kinh",
+    "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+    "department_id": "DEPT004",
+    "license_number": "VN-TK-NEUR-1004",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 11,
+    "consultation_fee": 450000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.94,
+    "total_reviews": 74,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 95,
+    "total_revenue": 40611894,
+    "average_consultation_time": 54,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Thần Kinh"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:54.343525+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "NEUR-DOC-202506-005",
+    "profile_id": "461d1a16-e8f9-42a9-890c-acfdefa5dca2",
+    "full_name": "BS. Chu Thị Lan",
+    "specialty": "Thần Kinh",
+    "qualification": "Bác sĩ Chuyên khoa I Thần Kinh",
+    "department_id": "DEPT004",
+    "license_number": "VN-TK-NEUR-1005",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Thần Kinh với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 12,
+    "consultation_fee": 450000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.95,
+    "total_reviews": 75,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 96,
+    "total_revenue": 40611895,
+    "average_consultation_time": 55,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Thần Kinh"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:54.632757+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "ORTH-DOC-202506-001",
+    "profile_id": "4aceda7b-5cce-4aa1-b9ac-cea09b8481b3",
+    "full_name": "BS. Vũ Thị Hoa",
+    "specialty": "Chấn Thương Chỉnh Hình",
+    "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+    "department_id": "DEPT002",
+    "license_number": "VN-CT-ORTH-1001",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 7,
+    "consultation_fee": 400000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.9,
+    "total_reviews": 70,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 91,
+    "total_revenue": 40611890,
+    "average_consultation_time": 50,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Chấn Thương Chỉnh Hình"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:50.253812+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "ORTH-DOC-202506-002",
+    "profile_id": "96b45bf8-d677-4581-9664-350651e2a3ac",
+    "full_name": "BS. Đặng Văn Minh",
+    "specialty": "Chấn Thương Chỉnh Hình",
+    "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+    "department_id": "DEPT002",
+    "license_number": "VN-CT-ORTH-1002",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 8,
+    "consultation_fee": 400000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.91,
+    "total_reviews": 71,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 92,
+    "total_revenue": 40611891,
+    "average_consultation_time": 51,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Chấn Thương Chỉnh Hình"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:50.502297+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "ORTH-DOC-202506-003",
+    "profile_id": "8ec05d84-cfd0-446a-a19a-995393477f1e",
+    "full_name": "BS. Bùi Thị Linh",
+    "specialty": "Chấn Thương Chỉnh Hình",
+    "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+    "department_id": "DEPT002",
+    "license_number": "VN-CT-ORTH-1003",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 8,
+    "consultation_fee": 400000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.91,
+    "total_reviews": 71,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 92,
+    "total_revenue": 40611891,
+    "average_consultation_time": 51,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Chấn Thương Chỉnh Hình"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:51.094532+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "ORTH-DOC-202506-004",
+    "profile_id": "6e56e1b0-d03a-4afe-a160-20ff906a0e98",
+    "full_name": "BS. Trịnh Văn Đức",
+    "specialty": "Chấn Thương Chỉnh Hình",
+    "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+    "department_id": "DEPT002",
+    "license_number": "VN-CT-ORTH-1004",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 9,
+    "consultation_fee": 400000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.92,
+    "total_reviews": 72,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 93,
+    "total_revenue": 40611892,
+    "average_consultation_time": 52,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Chấn Thương Chỉnh Hình"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:51.825595+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "ORTH-DOC-202506-005",
+    "profile_id": "808f51c2-5b7b-4ace-9838-350834964e77",
+    "full_name": "BS. Lý Thị Nga",
+    "specialty": "Chấn Thương Chỉnh Hình",
+    "qualification": "Bác sĩ Chuyên khoa I Chấn Thương Chỉnh Hình",
+    "department_id": "DEPT002",
+    "license_number": "VN-CT-ORTH-1005",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Chấn Thương Chỉnh Hình với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 9,
+    "consultation_fee": 400000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.92,
+    "total_reviews": 72,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 93,
+    "total_revenue": 40611892,
+    "average_consultation_time": 52,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Chấn Thương Chỉnh Hình"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:52.093793+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "PEDI-DOC-202506-001",
+    "profile_id": "74ab2783-9a46-4c2e-a02c-34a39079aed2",
+    "full_name": "BS. Cao Văn Thành",
+    "specialty": "Nhi Khoa",
+    "qualification": "Bác sĩ Chuyên khoa I Nhi",
+    "department_id": "DEPT003",
+    "license_number": "VN-NK-PEDI-1001",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 300000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.04,
+    "total_reviews": 64,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 89,
+    "total_revenue": 40611804,
+    "average_consultation_time": 54,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nhi Khoa"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:03:24.338669+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "PEDI-DOC-202506-002",
+    "profile_id": "4c9dfc92-161d-4733-afc7-279e648a9a98",
+    "full_name": "BS. Đinh Thị Hương",
+    "specialty": "Nhi Khoa",
+    "qualification": "Bác sĩ Chuyên khoa I Nhi",
+    "department_id": "DEPT003",
+    "license_number": "VN-NK-PEDI-1002",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 18,
+    "consultation_fee": 300000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.05,
+    "total_reviews": 65,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611805,
+    "average_consultation_time": 55,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nhi Khoa"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:03:24.610445+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "PEDI-DOC-202506-003",
+    "profile_id": "d970346d-31d9-4a8b-b9b5-ede036095d08",
+    "full_name": "BS. Phan Văn Long",
+    "specialty": "Nhi Khoa",
+    "qualification": "Bác sĩ Chuyên khoa I Nhi",
+    "department_id": "DEPT003",
+    "license_number": "VN-NK-PEDI-1003",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 18,
+    "consultation_fee": 300000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.05,
+    "total_reviews": 65,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611805,
+    "average_consultation_time": 55,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nhi Khoa"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:03:24.854031+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "PEDI-DOC-202506-004",
+    "profile_id": "4307835a-cbd3-4722-a46d-255d439a10ad",
+    "full_name": "BS. Võ Thị Kim",
+    "specialty": "Nhi Khoa",
+    "qualification": "Bác sĩ Chuyên khoa I Nhi",
+    "department_id": "DEPT003",
+    "license_number": "VN-NK-PEDI-1004",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 18,
+    "consultation_fee": 300000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.05,
+    "total_reviews": 65,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611805,
+    "average_consultation_time": 55,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nhi Khoa"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:03:25.087235+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "PEDI-DOC-202506-005",
+    "profile_id": "f00a85ea-88f0-4460-a08f-adde55ba05d0",
+    "full_name": "BS. Dương Văn Hải",
+    "specialty": "Nhi Khoa",
+    "qualification": "Bác sĩ Chuyên khoa I Nhi",
+    "department_id": "DEPT003",
+    "license_number": "VN-NK-PEDI-1005",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Nhi Khoa với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 18,
+    "consultation_fee": 300000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.05,
+    "total_reviews": 65,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 90,
+    "total_revenue": 40611805,
+    "average_consultation_time": 55,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Nhi Khoa"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:03:25.319859+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "SURG-DOC-202506-001",
+    "profile_id": "a1361955-ff70-4ab7-b752-969d170c3ccb",
+    "full_name": "BS. Phan Văn Dũng",
+    "specialty": "Phẫu Thuật Tổng Hợp",
+    "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+    "department_id": "DEPT009",
+    "license_number": "VN-PT-SURG-1001",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 600000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4,
+    "total_reviews": 80,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 87,
+    "total_revenue": 40611900,
+    "average_consultation_time": 30,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phẫu Thuật Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:04:59.988994+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "SURG-DOC-202506-002",
+    "profile_id": "aa5e9f06-1076-4311-8ed9-5af96625eff6",
+    "full_name": "BS. Đặng Thị Liên",
+    "specialty": "Phẫu Thuật Tổng Hợp",
+    "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+    "department_id": "DEPT009",
+    "license_number": "VN-PT-SURG-1002",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 17,
+    "consultation_fee": 600000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4,
+    "total_reviews": 80,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 87,
+    "total_revenue": 40611900,
+    "average_consultation_time": 30,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phẫu Thuật Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:05:00.473732+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "SURG-DOC-202506-003",
+    "profile_id": "7d2f6a4f-0712-4788-903c-019718cc0b03",
+    "full_name": "BS. Bùi Văn Hùng",
+    "specialty": "Phẫu Thuật Tổng Hợp",
+    "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+    "department_id": "DEPT009",
+    "license_number": "VN-PT-SURG-1003",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 18,
+    "consultation_fee": 600000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.01,
+    "total_reviews": 81,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 88,
+    "total_revenue": 40611901,
+    "average_consultation_time": 31,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phẫu Thuật Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:05:01.054729+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "SURG-DOC-202506-004",
+    "profile_id": "8ba9edc7-afb0-4890-be7c-72b41db2e9a5",
+    "full_name": "BS. Lý Thị Phương",
+    "specialty": "Phẫu Thuật Tổng Hợp",
+    "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+    "department_id": "DEPT009",
+    "license_number": "VN-PT-SURG-1004",
+    "gender": "Female",
+    "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 18,
+    "consultation_fee": 600000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.01,
+    "total_reviews": 81,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 88,
+    "total_revenue": 40611901,
+    "average_consultation_time": 31,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phẫu Thuật Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:05:01.302836+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  },
+  {
+    "doctor_id": "SURG-DOC-202506-005",
+    "profile_id": "7c7199ae-83c4-4782-800e-d70ec7de1a41",
+    "full_name": "BS. Cao Văn Minh",
+    "specialty": "Phẫu Thuật Tổng Hợp",
+    "qualification": "Bác sĩ Chuyên khoa I Phẫu Thuật",
+    "department_id": "DEPT009",
+    "license_number": "VN-PT-SURG-1005",
+    "gender": "Male",
+    "bio": "Bác sĩ chuyên khoa Phẫu Thuật Tổng Hợp với nhiều năm kinh nghiệm trong lĩnh vực điều trị và chăm sóc bệnh nhân.",
+    "experience_years": 19,
+    "consultation_fee": 600000,
+    "address": {
+      "city": "TP.HCM",
+      "street": "Bệnh viện Đa khoa",
+      "district": "Quận 1"
+    },
+    "languages_spoken": [
+      "Vietnamese",
+      "English"
+    ],
+    "availability_status": "available",
+    "rating": 4.02,
+    "total_reviews": 82,
+    "status": "active",
+    "is_active": true,
+    "success_rate": 89,
+    "total_revenue": 40611902,
+    "average_consultation_time": 32,
+    "certifications": [
+      "Chứng chỉ hành nghề",
+      "Chứng chỉ chuyên khoa"
+    ],
+    "specializations": [
+      "Phẫu Thuật Tổng Hợp"
+    ],
+    "awards": [
+      "Bác sĩ tận tâm"
+    ],
+    "created_at": "2025-06-22T17:05:02.016627+00:00",
+    "updated_at": "2025-06-25T18:06:06.103922+00:00",
+    "created_by": null
+  }
+]
