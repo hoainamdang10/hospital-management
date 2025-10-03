@@ -15,9 +15,9 @@ export interface PersonalInfoProps {
   gender: 'male' | 'female' | 'other';
   nationalId: string; // CMND/CCCD
   nationality: string;
-  ethnicity?: string;
-  occupation?: string;
-  maritalStatus?: string;
+  ethnicity?: string | undefined;
+  occupation?: string | undefined;
+  maritalStatus?: string | undefined;
 }
 
 export class PersonalInfo extends ValueObject<PersonalInfoProps> {

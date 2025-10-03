@@ -13,9 +13,9 @@ export interface PersonalInfoProps {
     gender: 'male' | 'female' | 'other';
     nationalId: string;
     nationality: string;
-    ethnicity?: string;
-    occupation?: string;
-    maritalStatus?: string;
+    ethnicity?: string | undefined;
+    occupation?: string | undefined;
+    maritalStatus?: string | undefined;
 }
 export declare class PersonalInfo extends ValueObject<PersonalInfoProps> {
     private constructor();
