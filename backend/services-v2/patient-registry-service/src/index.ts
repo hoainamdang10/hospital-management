@@ -20,6 +20,13 @@ import { logger } from './infrastructure/logging/logger';
 const app = express();
 const PORT = process.env.PORT || 3003;
 
+// Service configuration
+const serviceName = 'patient-registry-service';
+const config = {
+  features: ["Patient Registration", "Demographics", "Contact Management", "Insurance Info"],
+  patterns: ["Repository", "Domain Events", "CQRS"]
+};
+
 // Create DI container
 const container = new DIContainer({
   enableHealthcareCompliance: true,
