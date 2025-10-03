@@ -25,9 +25,9 @@ interface Medication {
   name: string;
   dosage: string;
   frequency: string;
-  prescribedBy?: string;
+  prescribedBy?: string | undefined;
   startDate: Date;
-  endDate?: Date;
+  endDate?: Date | undefined;
   isActive: boolean;
 }
 

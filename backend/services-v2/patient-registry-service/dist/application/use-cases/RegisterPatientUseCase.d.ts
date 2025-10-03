@@ -24,8 +24,10 @@ export interface RegisterPatientRequest {
         maritalStatus?: string;
     };
     contactInfo: {
-        phoneNumber: string;
+        primaryPhone: string;
+        secondaryPhone?: string;
         email?: string;
+        preferredContactMethod?: 'phone' | 'email' | 'sms';
         address: {
             street: string;
             ward: string;
@@ -37,11 +39,26 @@ export interface RegisterPatientRequest {
         };
     };
     medicalInfo: {
-        bloodType?: string;
+        bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
         allergies?: string[];
         chronicConditions?: string[];
-        currentMedications?: string[];
+        currentMedications?: Array<{
+            name: string;
+            dosage: string;
+            frequency: string;
+            prescribedBy?: string;
+            startDate: string;
+            endDate?: string;
+            isActive: boolean;
+        }>;
         emergencyMedicalInfo?: string;
+        height?: number;
+        weight?: number;
+        smokingStatus?: 'never' | 'former' | 'current';
+        alcoholConsumption?: 'none' | 'occasional' | 'moderate' | 'heavy';
+        exerciseFrequency?: 'none' | 'rare' | 'weekly' | 'daily';
+        dietaryRestrictions?: string[];
+        familyMedicalHistory?: string[];
     };
     insuranceInfo?: {
         provider: string;

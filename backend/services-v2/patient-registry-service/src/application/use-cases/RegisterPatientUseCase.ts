@@ -31,8 +31,10 @@ export interface RegisterPatientRequest {
     maritalStatus?: string;
   };
   contactInfo: {
-    phoneNumber: string;
+    primaryPhone: string;
+    secondaryPhone?: string;
     email?: string;
+    preferredContactMethod?: 'phone' | 'email' | 'sms';
     address: {
       street: string;
       ward: string;
@@ -44,11 +46,26 @@ export interface RegisterPatientRequest {
     };
   };
   medicalInfo: {
-    bloodType?: string;
+    bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
     allergies?: string[];
     chronicConditions?: string[];
-    currentMedications?: string[];
+    currentMedications?: Array<{
+      name: string;
+      dosage: string;
+      frequency: string;
+      prescribedBy?: string;
+      startDate: string;
+      endDate?: string;
+      isActive: boolean;
+    }>;
     emergencyMedicalInfo?: string;
+    height?: number;
+    weight?: number;
+    smokingStatus?: 'never' | 'former' | 'current';
+    alcoholConsumption?: 'none' | 'occasional' | 'moderate' | 'heavy';
+    exerciseFrequency?: 'none' | 'rare' | 'weekly' | 'daily';
+    dietaryRestrictions?: string[];
+    familyMedicalHistory?: string[];
   };
   insuranceInfo?: {
     provider: string;
@@ -155,8 +172,10 @@ export class RegisterPatientUseCase extends BaseHealthcareUseCase<RegisterPatien
       });
 
       const contactInfo = ContactInfo.create({
-        phoneNumber: request.contactInfo.phoneNumber,
+        primaryPhone: request.contactInfo.primaryPhone,
+        secondaryPhone: request.contactInfo.secondaryPhone,
         email: request.contactInfo.email,
+        preferredContactMethod: request.contactInfo.preferredContactMethod || 'phone',
         address: request.contactInfo.address
       });
 
@@ -164,8 +183,19 @@ export class RegisterPatientUseCase extends BaseHealthcareUseCase<RegisterPatien
         bloodType: request.medicalInfo.bloodType,
         allergies: request.medicalInfo.allergies || [],
         chronicConditions: request.medicalInfo.chronicConditions || [],
-        currentMedications: request.medicalInfo.currentMedications || [],
-        emergencyMedicalInfo: request.medicalInfo.emergencyMedicalInfo
+        currentMedications: (request.medicalInfo.currentMedications || []).map(med => ({
+          ...med,
+          startDate: new Date(med.startDate),
+          endDate: med.endDate ? new Date(med.endDate) : undefined
+        })),
+        emergencyMedicalInfo: request.medicalInfo.emergencyMedicalInfo,
+        height: request.medicalInfo.height,
+        weight: request.medicalInfo.weight,
+        smokingStatus: request.medicalInfo.smokingStatus || 'never',
+        alcoholConsumption: request.medicalInfo.alcoholConsumption || 'none',
+        exerciseFrequency: request.medicalInfo.exerciseFrequency || 'none',
+        dietaryRestrictions: request.medicalInfo.dietaryRestrictions || [],
+        familyMedicalHistory: request.medicalInfo.familyMedicalHistory || []
       });
 
       // 5. Create insurance info if provided
@@ -297,7 +327,7 @@ export class RegisterPatientUseCase extends BaseHealthcareUseCase<RegisterPatien
     }
 
     // Contact info validation
-    if (!request.contactInfo.phoneNumber || request.contactInfo.phoneNumber.trim().length === 0) {
+    if (!request.contactInfo.primaryPhone || request.contactInfo.primaryPhone.trim().length === 0) {
       errors.push('Số điện thoại không được để trống');
     }
 

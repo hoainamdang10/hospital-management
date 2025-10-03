@@ -73,16 +73,29 @@ class RegisterPatientUseCase extends base_healthcare_use_case_1.BaseHealthcareUs
                 maritalStatus: request.personalInfo.maritalStatus
             });
             const contactInfo = ContactInfo_1.ContactInfo.create({
-                phoneNumber: request.contactInfo.phoneNumber,
+                primaryPhone: request.contactInfo.primaryPhone,
+                secondaryPhone: request.contactInfo.secondaryPhone,
                 email: request.contactInfo.email,
+                preferredContactMethod: request.contactInfo.preferredContactMethod || 'phone',
                 address: request.contactInfo.address
             });
             const medicalInfo = MedicalInfo_1.MedicalInfo.create({
                 bloodType: request.medicalInfo.bloodType,
                 allergies: request.medicalInfo.allergies || [],
                 chronicConditions: request.medicalInfo.chronicConditions || [],
-                currentMedications: request.medicalInfo.currentMedications || [],
-                emergencyMedicalInfo: request.medicalInfo.emergencyMedicalInfo
+                currentMedications: (request.medicalInfo.currentMedications || []).map(med => ({
+                    ...med,
+                    startDate: new Date(med.startDate),
+                    endDate: med.endDate ? new Date(med.endDate) : undefined
+                })),
+                emergencyMedicalInfo: request.medicalInfo.emergencyMedicalInfo,
+                height: request.medicalInfo.height,
+                weight: request.medicalInfo.weight,
+                smokingStatus: request.medicalInfo.smokingStatus || 'never',
+                alcoholConsumption: request.medicalInfo.alcoholConsumption || 'none',
+                exerciseFrequency: request.medicalInfo.exerciseFrequency || 'none',
+                dietaryRestrictions: request.medicalInfo.dietaryRestrictions || [],
+                familyMedicalHistory: request.medicalInfo.familyMedicalHistory || []
             });
             // 5. Create insurance info if provided
             let insuranceInfo;
@@ -186,7 +199,7 @@ class RegisterPatientUseCase extends base_healthcare_use_case_1.BaseHealthcareUs
             errors.push('CMND/CCCD không được để trống');
         }
         // Contact info validation
-        if (!request.contactInfo.phoneNumber || request.contactInfo.phoneNumber.trim().length === 0) {
+        if (!request.contactInfo.primaryPhone || request.contactInfo.primaryPhone.trim().length === 0) {
             errors.push('Số điện thoại không được để trống');
         }
         if (!request.contactInfo.address.street || request.contactInfo.address.street.trim().length === 0) {

@@ -7,8 +7,8 @@ import { ValueObject } from '../../../shared/domain/ValueObject';
 
 interface ContactInfoProps {
   primaryPhone: string;
-  secondaryPhone?: string;
-  email?: string;
+  secondaryPhone?: string | undefined;
+  email?: string | undefined;
   address: Address;
   preferredContactMethod: 'phone' | 'email' | 'sms';
 }
