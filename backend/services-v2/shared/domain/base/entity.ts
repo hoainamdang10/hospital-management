@@ -100,7 +100,7 @@ export abstract class Entity<T> {
   /**
    * Create entity from persistence data
    */
-  static fromPersistence<T>(data: any): Entity<T> {
+  static fromPersistence<T>(_data: any): Entity<T> {
     throw new Error('fromPersistence method must be implemented by subclasses');
   }
 }

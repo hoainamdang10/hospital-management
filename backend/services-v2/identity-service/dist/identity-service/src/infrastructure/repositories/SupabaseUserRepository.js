@@ -31,21 +31,22 @@ class SupabaseUserRepository {
             USER_PERMISSIONS: 900, // 15 minutes
             SESSION: 60 // 1 minute
         };
-        // Configure Supabase client with public schema (access auth_schema via SQL)
+        // Configure Supabase client with auth_schema
+        // Note: TypeScript will infer the correct schema type from createClient options
         this.supabaseClient = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
             auth: {
                 autoRefreshToken: false,
                 persistSession: false,
             },
             db: {
-                schema: 'auth_schema', // ✅ Fixed: Use auth_schema for user_profiles
+                schema: 'auth_schema', // Use auth_schema for user_profiles
             },
             global: {
                 headers: {
                     'X-Client-Info': 'identity-service',
                 },
             },
-        });
+        }); // Type assertion to bypass schema type mismatch
         this.cacheService = cacheService;
     }
     /**
@@ -344,6 +345,11 @@ class SupabaseUserRepository {
                 .eq('id', id)
                 .single();
             if (error) {
+                // If user not found, return empty array instead of throwing
+                if (error.code === 'PGRST116') {
+                    this.logger.debug('User not found', { userId: id });
+                    return [];
+                }
                 throw new Error(`Failed to get user roles: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             const roles = [data.role_type];
@@ -354,7 +360,7 @@ class SupabaseUserRepository {
             return roles;
         }, async () => {
             this.logger.warn('Using fallback for getUserRoles', { userId: id });
-            return ['patient']; // Default fallback role
+            return []; // Return empty array for non-existent user
         });
     }
     /**

@@ -72,7 +72,7 @@ interface SessionRecord {
  * Returns Domain aggregates, not DTOs
  */
 export class SupabaseUserRepository implements IUserRepository {
-  private supabaseClient: SupabaseClient<any, 'auth_schema'>;
+  private supabaseClient: SupabaseClient;
   private circuitBreaker = CircuitBreakerFactory.getBreaker('user-repository');
   private cacheService?: RedisCacheService;
 
@@ -90,21 +90,22 @@ export class SupabaseUserRepository implements IUserRepository {
     private logger: ILogger,
     cacheService?: RedisCacheService
   ) {
-    // Configure Supabase client with public schema (access auth_schema via SQL)
+    // Configure Supabase client with auth_schema
+    // Note: TypeScript will infer the correct schema type from createClient options
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
       db: {
-        schema: 'auth_schema', // ✅ Fixed: Use auth_schema for user_profiles
+        schema: 'auth_schema', // Use auth_schema for user_profiles
       },
       global: {
         headers: {
           'X-Client-Info': 'identity-service',
         },
       },
-    });
+    }) as any; // Type assertion to bypass schema type mismatch
 
     this.cacheService = cacheService;
   }

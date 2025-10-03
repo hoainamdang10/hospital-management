@@ -32,6 +32,14 @@ class SupabaseAuthClient {
      */
     async signInWithPassword(credentials) {
         try {
+            // Validate credentials
+            if (!credentials.email || !credentials.password) {
+                return {
+                    success: false,
+                    mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                    degradationReason: 'Missing email or password'
+                };
+            }
             this.logger.info('Attempting Supabase authentication', {
                 email: credentials.email
             });
@@ -45,10 +53,18 @@ class SupabaseAuthClient {
                     email: credentials.email,
                     error: error.message
                 });
-                throw new Error(`Authentication failed: ${error.message}`);
+                return {
+                    success: false,
+                    mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                    degradationReason: `Authentication failed: ${error.message}`
+                };
             }
             if (!data.user || !data.session) {
-                throw new Error('Authentication failed: No user or session returned');
+                return {
+                    success: false,
+                    mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                    degradationReason: 'No user or session returned'
+                };
             }
             // Get user profile from database
             const userProfile = await this.getUserProfile(data.user.id);
@@ -84,15 +100,21 @@ class SupabaseAuthClient {
                 email: credentials.email,
                 error: (0, error_helper_1.getErrorMessage)(error)
             });
-            throw error;
+            return {
+                success: false,
+                mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                degradationReason: `Unexpected error: ${(0, error_helper_1.getErrorMessage)(error)}`
+            };
         }
     }
     /**
      * Get user profile from database
      */
     async getUserProfile(userId) {
+        // Query view in public schema (maintains schema per service architecture)
+        // View: public.auth_user_profiles_view -> auth_schema.user_profiles
         const { data, error } = await this.supabaseClient
-            .from('user_profiles')
+            .from('auth_user_profiles_view')
             .select('*')
             .eq('id', userId)
             .single();
@@ -179,12 +201,9 @@ class SupabaseAuthClient {
      */
     async updateLastLogin(userId) {
         try {
+            // Use security definer function for controlled access to auth_schema
             await this.supabaseClient
-                .from('user_profiles')
-                .update({
-                updated_at: new Date().toISOString()
-            })
-                .eq('id', userId);
+                .rpc('auth_update_user_last_login', { user_id: userId });
             // Log login attempt
             await this.supabaseClient
                 .from('login_attempts')
@@ -229,7 +248,11 @@ class SupabaseAuthClient {
                 refresh_token: refreshToken
             });
             if (error || !data.session) {
-                throw new Error(`Session refresh failed: ${error?.message || 'No session returned'}`);
+                return {
+                    success: false,
+                    mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                    degradationReason: `Session refresh failed: ${error?.message || 'No session returned'}`
+                };
             }
             const userProfile = await this.getUserProfile(data.user.id);
             return {
@@ -253,7 +276,11 @@ class SupabaseAuthClient {
             this.logger.error('Session refresh error', {
                 error: (0, error_helper_1.getErrorMessage)(error)
             });
-            throw error;
+            return {
+                success: false,
+                mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                degradationReason: `Unexpected error: ${(0, error_helper_1.getErrorMessage)(error)}`
+            };
         }
     }
     /**

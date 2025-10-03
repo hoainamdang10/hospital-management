@@ -1,199 +1,123 @@
-# AGENTS.md - Hospital Management System
+# AGENTS.md - Hospital Management System V2
 
-## Language Requirements
-
-- When a user asks in a language other than English, reiterate the request in English before proceeding
-- Always think, answer, and perform in English, answer in Vietnamese
-
-## Code Quality Standards
-
-### Core Principles
-
-- Don't write unused code - ensure everything written is utilized in the project
-- Prioritize readability for human understanding over execution efficiency
-- Maintain long-term maintainability over short-term optimization
-- Avoid unnecessary complexity - implement simple solutions unless complexity is truly required
-- Follow Linus Torvalds' clean code principles: keep it simple, make code readable like prose, avoid premature optimization, express intent clearly, minimize abstraction layers
-
-### Documentation Standards
-
-- Comments must explain 'what' (business logic/purpose) and 'why' (reasoning/decisions), not 'how'
-- Avoid over-commenting - excessive comments indicate poor code quality
-- Function comments must explain purpose and reasoning, placed at function beginnings
-- Well-written code should be self-explanatory through meaningful names and clear structure
-
-### Development Process
-
-1. **Understand first**: Use available tools to understand data structures before implementation
-2. **Design data structures**: Good data structures lead to good code
-3. **Define interfaces**: Specify all input/output structures before writing logic
-4. **Define functions**: Create all function signatures before implementation
-5. **Implement logic**: Write implementation only after structures and definitions are complete
-
-### Quality Guidelines
-
-- Avoid over-engineering - focus on minimal viable solutions meeting acceptance criteria
-- Only create automated tests if explicitly required
-- Never add functionality "just in case" - implement only what's needed now
-
-## Decision-Making Framework
-
-Apply these principles systematically:
-
-1. Gather Complete Information
-2. Multi-Perspective Analysis
-3. Consider All Stakeholders
-4. Evaluate Alternatives
-5. Assess Impact & Consequences
-6. Apply Ethical Framework
-7. Take Responsibility
-8. Learn & Adapt
-
-## User Guidelines
+**Machine-Friendly Documentation for Coding Agents**
 
 ## Overview
 
-Hospital Management System - Microservices architecture với Node.js/TypeScript backend, Next.js frontend, và Supabase database. Hệ thống quản lý bệnh viện hoàn chỉnh với 13 microservices (8 active, 5 decommissioned), authentication, real-time features, và HIPAA compliance.
+Hospital Management System V2 - Clean Architecture + DDD + CQRS + Event-Driven microservices.
 
-**Architecture**: Microservices + API Gateway + GraphQL Gateway
-**Tech Stack**: Node.js, TypeScript, Next.js, Docker, Supabase, Redis, RabbitMQ
-**Ports**: API Gateway (3100), GraphQL Gateway (3200), Frontend (3000)
-**Status**: Production-ready, HIPAA-compliant với comprehensive audit logging
+**Architecture**: Clean Architecture (4 layers: Domain, Application, Infrastructure, Presentation)
+**Tech Stack**: Node.js 18+, TypeScript, Docker, Supabase (PostgreSQL), Redis, RabbitMQ
+**Services**: 7 core services (3 completed: Identity, Patient, Provider | 4 in development: Scheduling, Clinical, Billing, Notifications)
+**Status**: 40-50% Complete
 
 ## Setup
 
 ### Prerequisites
 
 ```bash
-# Required
 node --version  # >= 18.0.0
 npm --version   # >= 9.0.0
 docker --version
 ```
 
-### Environment Setup
+### Environment Configuration
+
+Create `.env` in `backend/services-v2/`:
 
 ```bash
-# 1. Clone and install dependencies
-git clone <repository-url>
-cd hospital-management
-npm install
-
-# 2. Install backend dependencies
-cd backend
-npm install
-
-# 3. Install frontend dependencies
-cd ../frontend
-npm install
-```
-
-### Environment Variables
-
-Create `.env` files in:
-
-- `backend/.env`
-- `frontend/.env.local`
-
-Required variables:
-
-```bash
-# Supabase
-SUPABASE_URL=your_supabase_url
+# Supabase (Required)
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_JWT_SECRET=your_jwt_secret
 
-# Application
-JWT_SECRET=your_jwt_secret
+# Service Config
 NODE_ENV=development
+JWT_SECRET=your_jwt_secret
+
+# Infrastructure (Auto-configured)
+REDIS_URL=redis://redis-v2:6379
+RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3101
+```
+
+### Database Setup
+
+Run in Supabase SQL Editor:
+
+```sql
+CREATE SCHEMA IF NOT EXISTS auth_schema;
+CREATE SCHEMA IF NOT EXISTS patient_schema;
+CREATE SCHEMA IF NOT EXISTS provider_schema;
+CREATE SCHEMA IF NOT EXISTS scheduling_schema;
+CREATE SCHEMA IF NOT EXISTS clinical_schema;
+CREATE SCHEMA IF NOT EXISTS billing_schema;
+CREATE SCHEMA IF NOT EXISTS notification_schema;
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
 
 ## Build
 
-### Development Mode
+### Start Services
 
 ```bash
-# Start backend services (recommended)
-cd backend
-docker compose --profile core up -d
+cd backend/services-v2
 
-# Start frontend
-cd frontend
-npm run dev
-```
+# Start infrastructure (Redis, RabbitMQ)
+docker-compose -f docker-compose.v2.yml --profile infrastructure up -d
 
-### Production Build
+# Start core services (Identity, Patient, Provider)
+docker-compose -f docker-compose.v2.yml --profile core up -d
 
-```bash
-# Build all services
-cd backend
-npm run build
-
-# Build frontend
-cd frontend
-npm run build
-npm start
+# Start all services (including in-development)
+docker-compose -f docker-compose.v2.yml --profile dev up -d
 ```
 
 ### Docker Commands
 
 ```bash
-# Start core services only
-docker compose --profile core up -d
-
-# Start all services including monitoring
-docker compose --profile full up -d
-
-# Check service status
-docker compose ps
+# Check status
+docker-compose ps
 
 # View logs
-docker compose logs [service-name]
+docker-compose logs -f [service-name]
 
 # Stop services
-docker compose down
+docker-compose down
+
+# Clean restart
+docker-compose down -v
+docker-compose --profile core up -d
 ```
 
 ## Test
 
+### Health Checks
+
+```bash
+# Identity Service
+curl http://localhost:3021/health
+
+# Patient Registry
+curl http://localhost:3023/health
+
+# Provider/Staff
+curl http://localhost:3022/health
+```
+
 ### Run Tests
 
 ```bash
-# Root level tests
+# All services
+cd backend/services-v2
+npm run test:all
+
+# Specific service
+cd identity-service-consolidated
 npm test
-
-# Backend service tests
-cd backend
-npm run test:services
-
-# Frontend tests
-cd frontend
-npm run test
-
-# Integration tests
-cd backend
-npm run test:integration
-```
-
-### Service Health Check
-
-```bash
-cd backend
-node test-services-status.js
-```
-
-### API Testing
-
-```bash
-# Test all endpoints
-cd backend
-node test-api-endpoints.js
-
-# Test specific services
-npm run test:patient
-npm run test:doctor
-npm run test:appointment
 ```
 
 ## Development Workflow
@@ -252,17 +176,40 @@ npm run format
 - **TypeScript**: camelCase (variables), PascalCase (types)
 - **Environment Variables**: UPPER_SNAKE_CASE
 
-### File Structure
+### File Structure - V2
 
 ```
-hospital-management/
-├── backend/                 # Microservices
-│   ├── services/           # 13 microservices
-│   ├── docker-compose.yml  # Container orchestration
-│   └── shared/            # Shared utilities
-├── frontend/              # Next.js application
-├── schemas/              # Database schemas
-└── docs/                # Documentation
+hospital-management-V2/
+├── backend/
+│   └── services-v2/              # 🎯 Clean Architecture V2 Services
+│       ├── identity-service/           # ✅ Auth & User Management
+│       ├── patient-registry-service/   # ✅ Patient Management
+│       ├── provider-staff-service/     # ✅ Doctor/Staff Management
+│       ├── scheduling-service/         # 🔄 Appointments (In Development)
+│       ├── clinical-emr-service/       # 🔄 Medical Records (In Development)
+│       ├── billing-service/            # 🔄 Billing (In Development)
+│       ├── notifications-service/      # 🔄 Notifications (In Development)
+│       ├── shared/                     # Shared domain primitives
+│       ├── scripts/                    # Deployment scripts
+│       └── docker-compose.v2.yml       # V2 orchestration
+├── frontend/                     # Next.js 15 (needs V2 migration)
+├── README.md                     # Project overview
+├── V2-QUICK-START.md            # Quick start guide
+└── AGENTS.md                     # This file
+```
+
+### Service Structure (Clean Architecture)
+
+```
+service-name/
+├── src/
+│   ├── domain/            # Business logic, entities, value objects, domain events
+│   ├── application/       # Use cases, CQRS handlers, application services
+│   ├── infrastructure/    # Repositories, external services, database
+│   └── presentation/      # Controllers, routes, DTOs
+├── tests/
+├── Dockerfile
+└── package.json
 ```
 
 ### API Standards
@@ -288,71 +235,54 @@ hospital-management/
 - **Database**: Supabase (PostgreSQL)
 - **Infrastructure**: Docker, Redis, RabbitMQ, Prometheus, Grafana
 
-### Service Ports
+### Service Ports - V2
 
 ```
-3000  - Frontend (Next.js)
-3100  - API Gateway
-3200  - GraphQL Gateway
-3001  - Auth Service
-3002  - Doctor Service
-3003  - Patient Service
-3004  - Appointment Service
-3005  - Department Service (DECOMMISSIONED - migrated to auth-service)
-3006  - Receptionist Service (DECOMMISSIONED - migrated to appointment-service)
-3007  - Medical Records Service
-3009  - Payment Service
-3011  - Notification Service (DECOMMISSIONED - converted to shared library)
-3107  - File Service
-6379  - Redis
-5672  - RabbitMQ
-15672 - RabbitMQ Management UI
-9090  - Prometheus
-9100  - Node Exporter
-3010  - Grafana
-5432  - PostgreSQL (doctor-db)
+# V2 Services (External Ports)
+3021  - Identity Service (✅ Ready)
+3023  - Patient Registry Service (✅ Ready)
+3022  - Provider/Staff Service (✅ Ready)
+3024  - Scheduling Service (🔄 In Development)
+3027  - Clinical EMR Service (🔄 In Development)
+3029  - Billing Service (🔄 In Development)
+3031  - Notifications Service (🔄 In Development)
+3101  - API Gateway V2 (❌ Not Started)
+
+# Infrastructure
+6380  - Redis V2
+5673  - RabbitMQ V2
+15673 - RabbitMQ Management UI V2
+
+# Frontend
+3000  - Next.js Frontend (⚠️ Still connects to V1)
 ```
 
-## Quick Commands
+## Quick Commands - V2
 
 ```bash
-# Complete development setup
-cd backend && docker compose --profile core up -d
-cd frontend && npm run dev
+# Complete V2 development setup
+cd backend/services-v2
+docker-compose -f docker-compose.v2.yml --profile core up -d
 
-# Health check all services
-cd backend && node test-services-status.js
+# Check V2 service health
+curl http://localhost:3021/health  # Identity
+curl http://localhost:3023/health  # Patient Registry
+curl http://localhost:3022/health  # Provider/Staff
 
-# Run all tests
-npm test && cd backend && npm run test:services
+# View V2 service logs
+cd backend/services-v2
+docker-compose logs -f identity-service
+docker-compose logs -f patient-registry-service
+docker-compose logs -f provider-staff-service
 
-# Build for production
-cd backend && npm run build && cd ../frontend && npm run build
+# Clean restart V2
+docker-compose down && docker-compose --profile core up -d
 
-# Clean restart
-docker compose down && docker compose --profile core up -d
-```
+# Stop all V2 services
+docker-compose down
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Port conflicts**: Check if ports 3000, 3100, 3200 are available
-2. **Docker issues**: Restart Docker Desktop, run `docker compose down -v`
-3. **Environment variables**: Verify all required .env files exist
-4. **Database connection**: Check Supabase credentials and network
-
-### Debug Commands
-
-```bash
-# Check service logs
-docker compose logs [service-name]
-
-# Verify environment
-cd backend && npm run db:check
-
-# Test database connection
-cd backend && node scripts/check-database-status.js
+# Stop and remove all data (clean slate)
+docker-compose down -v
 ```
 
 ## Troubleshooting
@@ -379,4 +309,51 @@ cd backend && node scripts/check-database-status.js
 
 ---
 
-**Note**: Xem README.md để biết thêm chi tiết về architecture và features. File này chỉ chứa essential commands cho coding agents.
+## V2 Development Guidelines
+
+### Clean Architecture Pattern
+
+V2 services MUST follow Clean Architecture:
+
+**Layer Structure:**
+```
+src/
+├── domain/            # Business logic, entities, value objects, domain events
+├── application/       # Use cases, CQRS handlers, application services
+├── infrastructure/    # Repositories, external services, database
+└── presentation/      # Controllers, routes, DTOs
+```
+
+### Domain-Driven Design (DDD)
+
+- **Aggregates**: Use `AggregateRoot` base class
+- **Value Objects**: Immutable objects with validation
+- **Entities**: Objects with identity
+- **Domain Events**: Publish events for important business actions
+
+### CQRS Pattern
+
+- **Commands**: Mutations that change state
+- **Queries**: Read operations without side effects
+- **Handlers**: Separate command and query handlers
+
+### Code Standards for V2
+
+1. **Always check completed services first** (Identity, Patient, Provider) for patterns to follow
+2. **Never mix layers** - respect Clean Architecture boundaries
+3. **Domain logic stays in domain layer** - no business logic in controllers
+4. **Use TypeScript strict mode** - no `any` types
+5. **Write tests for domain logic** - target 90%+ coverage
+6. **Follow Vietnamese healthcare standards** - PAT-YYYYMM-XXX patient IDs, etc.
+
+### Essential Reading for Agents
+
+Before coding V2 services:
+1. `backend/services-v2/README.md` - V2 overview
+2. `backend/services-v2/ARCHITECTURE_AUDIT_REPORT.md` - Patterns to replicate
+3. `backend/services-v2/STRATEGIC_DEVELOPMENT_PLAN.md` - Development roadmap
+4. Study completed services: identity-service, patient-registry-service, provider-staff-service
+
+---
+
+**Note**: V2 is a complete rewrite with Clean Architecture. Xem V2-QUICK-START.md để setup môi trường development. File này chỉ chứa essential commands và guidelines cho coding agents working on V2.

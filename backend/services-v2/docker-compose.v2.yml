@@ -50,10 +50,11 @@ services:
       - full
 
   # Core Services
+  # Identity Service - Production-Ready with Circuit Breaker & Monitoring
   identity-service:
     build:
-      context: ./identity-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./identity-service/Dockerfile
     container_name: hospital-identity-service-v2
     ports:
       - "3021:3001"
@@ -66,7 +67,10 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - REDIS_URL=redis://redis-v2:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
-      - DATABASE_SCHEMA=identity_schema
+      - DATABASE_SCHEMA=auth_schema
+      - SERVICE_NAME=identity-service
+      - SERVICE_VERSION=2.0.0
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3101
     depends_on:
       - redis-v2
       - rabbitmq-v2
@@ -76,6 +80,12 @@ services:
       - core
       - dev
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   patient-registry-service:
     build:

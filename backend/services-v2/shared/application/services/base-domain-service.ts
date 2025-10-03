@@ -1,14 +1,11 @@
 /**
  * Base Domain Service - Clean Architecture + DDD
  * Enhanced domain services with healthcare-specific features
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA, Domain Services
  */
-
-import { DomainEvent } from '../../domain/base/domain-event';
-import { AggregateRoot } from '../../domain/base/aggregate-root';
 
 /**
  * Base domain service interface
@@ -144,7 +141,7 @@ export abstract class BaseDomainService implements IHealthcareDomainService {
   /**
    * Custom validation rules (to be implemented by subclasses)
    */
-  protected async validateCustomRules(context: HealthcareContext): Promise<ValidationResult> {
+  protected async validateCustomRules(_context: HealthcareContext): Promise<ValidationResult> {
     return {
       isValid: true,
       errors: [],

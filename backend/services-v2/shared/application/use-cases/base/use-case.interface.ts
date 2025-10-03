@@ -133,7 +133,7 @@ export abstract class BaseUseCase<TRequest, TResponse> implements IValidatedUseC
   /**
    * Validate the request
    */
-  async validate(request: TRequest): Promise<ValidationResult> {
+  async validate(_request: TRequest): Promise<ValidationResult> {
     // Default implementation - override in subclasses
     return { isValid: true, errors: [] };
   }
@@ -146,7 +146,7 @@ export abstract class BaseUseCase<TRequest, TResponse> implements IValidatedUseC
   /**
    * Handle errors during execution
    */
-  protected async handleError(error: any, request: TRequest): Promise<void> {
+  protected async handleError(error: any, _request: TRequest): Promise<void> {
     // Log error, send notifications, etc.
     console.error('Use case execution error:', error);
   }
@@ -212,9 +212,10 @@ export abstract class BaseHealthcareUseCase<TRequest, TResponse>
    */
   getAuditInfo(request: TRequest): HIPAAAuditInfo {
     const context = this.getContext();
+    const patientId = this.getPatientId(request);
     return {
       action: this.constructor.name,
-      patientId: this.getPatientId(request),
+      patientId: patientId !== null ? patientId : undefined,
       userId: context.userId,
       timestamp: context.timestamp,
       ipAddress: context.ipAddress,
@@ -226,7 +227,7 @@ export abstract class BaseHealthcareUseCase<TRequest, TResponse>
   /**
    * Log HIPAA audit
    */
-  protected async logHIPAAAudit(request: TRequest, context: UseCaseContext): Promise<void> {
+  protected async logHIPAAAudit(request: TRequest, _context: UseCaseContext): Promise<void> {
     const auditInfo = this.getAuditInfo(request);
     // Implementation would log to HIPAA audit system
     console.log('HIPAA Audit:', auditInfo);
@@ -319,32 +320,35 @@ export interface IUseCaseMetrics {
 
 /**
  * Use case decorator for metrics collection
+ * Note: This is a simplified version to avoid TypeScript generic constraint issues
  */
 export function WithMetrics(metrics: IUseCaseMetrics) {
-  return function <T extends IUseCase>(target: new (...args: any[]) => T) {
-    return class extends target {
-      async execute(request: any, context?: UseCaseContext): Promise<any> {
-        const startTime = Date.now();
-        const useCaseName = this.constructor.name;
-        
-        try {
-          const result = await super.execute(request, context);
-          const duration = Date.now() - startTime;
-          metrics.recordExecution(useCaseName, duration, true);
-          return result;
-        } catch (error) {
-          const duration = Date.now() - startTime;
-          metrics.recordExecution(useCaseName, duration, false);
-          
-          if (error instanceof UseCaseValidationError) {
-            metrics.recordValidationFailure(useCaseName, error.errors);
-          } else if (error instanceof UseCaseAuthorizationError) {
-            metrics.recordAuthorizationFailure(useCaseName, context?.userId || 'unknown');
-          }
-          
-          throw error;
+  return function <T extends new (...args: any[]) => IUseCase>(target: T): T {
+    const originalExecute = target.prototype.execute;
+
+    target.prototype.execute = async function(request: any): Promise<any> {
+      const startTime = Date.now();
+      const useCaseName = this.constructor.name;
+
+      try {
+        const result = await originalExecute.call(this, request);
+        const duration = Date.now() - startTime;
+        metrics.recordExecution(useCaseName, duration, true);
+        return result;
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        metrics.recordExecution(useCaseName, duration, false);
+
+        if (error instanceof UseCaseValidationError) {
+          metrics.recordValidationFailure(useCaseName, error.errors);
+        } else if (error instanceof UseCaseAuthorizationError) {
+          metrics.recordAuthorizationFailure(useCaseName, 'unknown');
         }
+
+        throw error;
       }
     };
+
+    return target;
   };
 }

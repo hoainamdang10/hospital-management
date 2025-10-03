@@ -28,7 +28,7 @@ export abstract class DomainEvent {
     eventType: string,
     aggregateId: string,
     aggregateType: string,
-    eventData: any,
+    _eventData: any,
     eventVersion: number = 1,
     correlationId?: string,
     causationId?: string,
@@ -124,7 +124,7 @@ export abstract class DomainEvent {
   /**
    * Create event from JSON
    */
-  public static fromJSON(data: SerializedEvent): DomainEvent {
+  public static fromJSON(_data: SerializedEvent): DomainEvent {
     throw new Error('fromJSON method must be implemented by subclasses');
   }
 }
