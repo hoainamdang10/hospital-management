@@ -3,9 +3,9 @@
  * Patient contact information with Vietnamese standards
  */
 
-import { ValueObject } from '../../../shared/domain/ValueObject';
+import { ValueObject } from '@shared/domain/base/value-object';
 
-interface ContactInfoProps {
+export interface ContactInfoProps {
   primaryPhone: string;
   secondaryPhone?: string | undefined;
   email?: string | undefined;
@@ -13,12 +13,12 @@ interface ContactInfoProps {
   preferredContactMethod: 'phone' | 'email' | 'sms';
 }
 
-interface Address {
+export interface Address {
   street: string;
   ward: string;
   district: string;
   city: string;
-  postalCode?: string;
+  postalCode?: string | undefined;
   country: string;
 }
 

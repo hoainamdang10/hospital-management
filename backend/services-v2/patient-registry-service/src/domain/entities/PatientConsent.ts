@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { Entity } from '../../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 import { PatientId } from '../value-objects/PatientId';
 
 export interface PatientConsentProps {

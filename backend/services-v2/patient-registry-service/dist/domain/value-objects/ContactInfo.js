@@ -5,8 +5,8 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContactInfo = void 0;
-const ValueObject_1 = require("../../../shared/domain/ValueObject");
-class ContactInfo extends ValueObject_1.ValueObject {
+const value_object_1 = require("@shared/domain/base/value-object");
+class ContactInfo extends value_object_1.ValueObject {
     constructor(props) {
         super(props);
     }

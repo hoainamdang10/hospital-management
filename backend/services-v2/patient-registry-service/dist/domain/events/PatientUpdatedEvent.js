@@ -9,38 +9,20 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientUpdatedEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class PatientUpdatedEvent extends domain_event_1.DomainEvent {
-    constructor(patientId, updateType, updatedAt) {
-        super('PatientUpdated', {
-            patientId: patientId.value,
-            updateType,
-            updatedAt: (updatedAt || new Date()).toISOString()
-        });
-        this.patientId = patientId;
+    constructor(patient, updateType, updatedBy) {
+        super('PatientUpdated', patient.getPatientId().getValue());
+        this.patient = patient;
         this.updateType = updateType;
-        this.updatedAt = updatedAt || new Date();
+        this.updatedBy = updatedBy;
     }
-    /**
-     * Get event payload for event bus
-     */
     getPayload() {
         return {
-            patientId: this.patientId,
+            patientId: this.patient.getPatientId().getValue(),
             updateType: this.updateType,
-            updatedAt: this.updatedAt
-        };
-    }
-    /**
-     * Get event summary for logging
-     */
-    getSummaryForLogging() {
-        return {
-            eventType: this.eventType,
-            eventId: this.eventId,
-            patientId: this.patientId.value,
-            updateType: this.updateType,
-            timestamp: this.timestamp.toISOString()
+            updatedBy: this.updatedBy,
+            updatedAt: this.occurredAt
         };
     }
 }

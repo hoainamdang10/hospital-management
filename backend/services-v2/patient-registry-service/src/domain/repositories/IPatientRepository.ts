@@ -78,6 +78,31 @@ export interface IPatientRepository {
   }>;
 
   /**
+   * Match patients (PMI $match operation)
+   * Find potential duplicate patients based on demographic data
+   */
+  matchPatients(
+    criteria: {
+      fullName?: string;
+      dateOfBirth?: Date;
+      nationalId?: string;
+      primaryPhone?: string;
+      email?: string;
+    },
+    onlyCertainMatches?: boolean,
+    limit?: number
+  ): Promise<Array<{
+    patient: Patient;
+    matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
+    score: number;
+  }>>;
+
+  /**
+   * Find patient by BHYT number
+   */
+  findByBHYTNumber(bhytNumber: string): Promise<Patient | null>;
+
+  /**
    * Get repository health status
    */
   getHealthStatus(): Promise<any>;

@@ -3,7 +3,7 @@
  * Vietnamese Healthcare Patient ID Format: PAT-YYYYMM-XXX
  */
 
-import { ValueObject } from '../../../shared/domain/ValueObject';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 interface PatientIdProps {
   value: string;
@@ -47,6 +47,10 @@ export class PatientId extends ValueObject<PatientIdProps> {
   }
 
   public get value(): string {
+    return this.props.value;
+  }
+
+  public getValue(): string {
     return this.props.value;
   }
 

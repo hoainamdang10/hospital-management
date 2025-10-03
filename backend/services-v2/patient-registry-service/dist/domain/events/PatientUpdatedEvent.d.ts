@@ -6,25 +6,13 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
-import { PatientId } from '../value-objects/PatientId';
-export interface PatientUpdatedEventPayload {
-    patientId: PatientId;
-    updateType: string;
-    updatedAt: Date;
-}
+import { DomainEvent } from '@shared/domain/base/domain-event';
+import { Patient } from '../aggregates/Patient';
 export declare class PatientUpdatedEvent extends DomainEvent {
-    readonly patientId: PatientId;
+    readonly patient: Patient;
     readonly updateType: string;
-    readonly updatedAt: Date;
-    constructor(patientId: PatientId, updateType: string, updatedAt?: Date);
-    /**
-     * Get event payload for event bus
-     */
-    getPayload(): PatientUpdatedEventPayload;
-    /**
-     * Get event summary for logging
-     */
-    getSummaryForLogging(): object;
+    readonly updatedBy: string;
+    constructor(patient: Patient, updateType: string, updatedBy: string);
+    getPayload(): any;
 }
 //# sourceMappingURL=PatientUpdatedEvent.d.ts.map

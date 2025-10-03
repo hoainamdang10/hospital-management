@@ -6,14 +6,15 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-import { Entity } from '../../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 export interface EmergencyContactProps {
     id: string;
     name: string;
     relationship: string;
-    phoneNumber: string;
-    email?: string;
-    address?: string;
+    primaryPhone: string;
+    secondaryPhone?: string | undefined;
+    email?: string | undefined;
+    address?: string | undefined;
     isPrimary: boolean;
     isActive: boolean;
     createdAt: Date;
@@ -24,7 +25,7 @@ export declare class EmergencyContact extends Entity<EmergencyContactProps> {
     /**
      * Create new emergency contact
      */
-    static create(name: string, relationship: string, phoneNumber: string, email?: string, address?: string, isPrimary?: boolean): EmergencyContact;
+    static create(name: string, relationship: string, primaryPhone: string, secondaryPhone?: string, email?: string, address?: string, isPrimary?: boolean): EmergencyContact;
     /**
      * Reconstitute from persistence
      */

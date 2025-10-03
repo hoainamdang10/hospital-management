@@ -9,38 +9,21 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientConsentGrantedEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class PatientConsentGrantedEvent extends domain_event_1.DomainEvent {
-    constructor(patientId, consentType, grantedAt) {
-        super('PatientConsentGranted', {
-            patientId: patientId.value,
-            consentType,
-            grantedAt: (grantedAt || new Date()).toISOString()
-        });
-        this.patientId = patientId;
-        this.consentType = consentType;
-        this.grantedAt = grantedAt || new Date();
+    constructor(patient, consent, grantedBy) {
+        super('PatientConsentGranted', patient.getPatientId().getValue());
+        this.patient = patient;
+        this.consent = consent;
+        this.grantedBy = grantedBy;
     }
-    /**
-     * Get event payload for event bus
-     */
     getPayload() {
         return {
-            patientId: this.patientId,
-            consentType: this.consentType,
-            grantedAt: this.grantedAt
-        };
-    }
-    /**
-     * Get event summary for logging
-     */
-    getSummaryForLogging() {
-        return {
-            eventType: this.eventType,
-            eventId: this.eventId,
-            patientId: this.patientId.value,
-            consentType: this.consentType,
-            timestamp: this.timestamp.toISOString()
+            patientId: this.patient.getPatientId().getValue(),
+            consentId: this.consent.id,
+            consentType: this.consent.consentType,
+            grantedBy: this.grantedBy,
+            grantedAt: this.occurredAt
         };
     }
 }

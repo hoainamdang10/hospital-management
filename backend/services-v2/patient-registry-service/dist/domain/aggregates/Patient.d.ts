@@ -1,127 +1,116 @@
 /**
- * Patient Aggregate Root - Patient Registry Management
- * V2 Clean Architecture + DDD Implementation
- * Consolidated from Patient.ts and patient.aggregate.ts
- * Schema: patient_schema
+ * Patient Aggregate Root - Patient Registry V2
+ *
+ * Manages patient master data and enforces business invariants
+ * Based on HL7 FHIR Patient Resource specification
  *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
+ * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
  */
 import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
 import { PatientId } from '../value-objects/PatientId';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { ContactInfo } from '../value-objects/ContactInfo';
-import { MedicalInfo } from '../value-objects/MedicalInfo';
+import { BasicMedicalInfo } from '../value-objects/BasicMedicalInfo';
+import { PatientLink } from '../value-objects/PatientLink';
+import { PatientStatus } from '../value-objects/PatientStatus';
 import { InsuranceInfo } from '../entities/InsuranceInfo';
 import { EmergencyContact } from '../entities/EmergencyContact';
 import { PatientConsent } from '../entities/PatientConsent';
-import { MedicalHistory } from '../entities/MedicalHistory';
 export interface PatientProps {
     id: PatientId;
     userId: string;
     personalInfo: PersonalInfo;
     contactInfo: ContactInfo;
-    medicalInfo: MedicalInfo;
+    basicMedicalInfo: BasicMedicalInfo;
     insuranceInfo?: InsuranceInfo;
     emergencyContacts: EmergencyContact[];
     consents: PatientConsent[];
-    medicalHistory: MedicalHistory[];
-    registrationDate: Date;
-    lastVisitDate?: Date;
-    isActive: boolean;
+    status: PatientStatus;
+    mergedInto?: PatientId;
+    links: PatientLink[];
     createdAt: Date;
     updatedAt: Date;
+    createdBy: string;
+    updatedBy: string;
 }
 export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
     private constructor();
-    static create(userId: string, personalInfo: PersonalInfo, contactInfo: ContactInfo, medicalInfo: MedicalInfo, insuranceInfo?: InsuranceInfo): Patient;
+    /**
+     * Factory method: Register new patient
+     */
+    static register(userId: string, personalInfo: PersonalInfo, contactInfo: ContactInfo, basicMedicalInfo: BasicMedicalInfo, insuranceInfo: InsuranceInfo | undefined, emergencyContacts: EmergencyContact[], createdBy: string): Patient;
+    /**
+     * Factory method: Reconstitute from persistence
+     */
     static reconstitute(props: PatientProps): Patient;
-    get id(): PatientId;
-    get userId(): string;
-    get personalInfo(): PersonalInfo;
-    get contactInfo(): ContactInfo;
-    get medicalInfo(): MedicalInfo;
-    get insuranceInfo(): InsuranceInfo | undefined;
-    get emergencyContacts(): EmergencyContact[];
-    get consents(): PatientConsent[];
-    get medicalHistory(): MedicalHistory[];
-    get registrationDate(): Date;
-    get lastVisitDate(): Date | undefined;
-    get isActive(): boolean;
-    updatePersonalInfo(personalInfo: PersonalInfo): void;
-    updateContactInfo(contactInfo: ContactInfo): void;
-    updateMedicalInfo(medicalInfo: MedicalInfo): void;
-    updateInsuranceInfo(insuranceInfo: InsuranceInfo): void;
-    addEmergencyContact(emergencyContact: EmergencyContact): void;
-    removeEmergencyContact(contactId: string): void;
-    grantConsent(consentType: string, witnessId?: string): void;
-    withdrawConsent(consentType: string): void;
-    addMedicalHistory(medicalHistory: MedicalHistory): void;
-    updateLastVisit(): void;
-    deactivate(): void;
-    activate(): void;
-    hasValidInsurance(): boolean;
-    getPrimaryInsurance(): InsuranceInfo | undefined;
-    getPrimaryEmergencyContact(): EmergencyContact | undefined;
-    hasConsentFor(consentType: string): boolean;
-    getActiveConsents(): PatientConsent[];
-    getAge(): number;
-    isMinor(): boolean;
-    requiresGuardianConsent(): boolean;
+    /**
+     * Update personal information
+     */
+    updatePersonalInfo(personalInfo: PersonalInfo, updatedBy: string): void;
+    /**
+     * Update contact information
+     */
+    updateContactInfo(contactInfo: ContactInfo, updatedBy: string): void;
+    /**
+     * Update basic medical information
+     */
+    updateBasicMedicalInfo(basicMedicalInfo: BasicMedicalInfo, updatedBy: string): void;
+    /**
+     * Update insurance information
+     */
+    updateInsuranceInfo(insuranceInfo: InsuranceInfo | undefined, updatedBy: string): void;
+    /**
+     * Add emergency contact
+     */
+    addEmergencyContact(contact: EmergencyContact, updatedBy: string): void;
+    /**
+     * Remove emergency contact
+     */
+    removeEmergencyContact(contactId: string, updatedBy: string): void;
+    /**
+     * Grant consent
+     */
+    grantConsent(consent: PatientConsent, updatedBy: string): void;
+    /**
+     * Merge into master patient (mark as duplicate)
+     */
+    mergeInto(masterPatientId: PatientId, reason: string, performedBy: string): void;
+    /**
+     * Link to another patient
+     */
+    linkTo(otherPatientId: PatientId, linkType: 'refer' | 'seealso', performedBy: string): void;
+    /**
+     * Deactivate patient
+     */
+    deactivate(reason: string, performedBy: string): void;
+    /**
+     * Mark patient as deceased
+     */
+    markAsDeceased(performedBy: string): void;
+    getPatientId(): PatientId;
+    getUserId(): string;
+    getPersonalInfo(): PersonalInfo;
+    getContactInfo(): ContactInfo;
+    getBasicMedicalInfo(): BasicMedicalInfo;
+    getInsuranceInfo(): InsuranceInfo | undefined;
+    getEmergencyContacts(): EmergencyContact[];
+    getConsents(): PatientConsent[];
+    getStatus(): PatientStatus;
+    getMergedInto(): PatientId | undefined;
+    getLinks(): PatientLink[];
+    getProps(): PatientProps;
+    isActive(): boolean;
+    isInactive(): boolean;
+    isMerged(): boolean;
+    isDeceased(): boolean;
     hasBHYTInsurance(): boolean;
-    hasBHTNInsurance(): boolean;
-    hasPrivateInsurance(): boolean;
-    isSelfPay(): boolean;
-    hasCondition(conditionName: string): boolean;
-    getActiveConditions(): MedicalHistory[];
-    getChronicConditions(): MedicalHistory[];
-    getCriticalConditions(): MedicalHistory[];
-    canScheduleAppointment(): boolean;
-    canAccessMedicalRecords(): boolean;
-    canParticipateInResearch(): boolean;
-    getAuditInfo(): object;
-    equals(other: Patient): boolean;
-    /**
-     * Validate business invariants
-     */
+    hasValidInsurance(): boolean;
+    hasEmergencyContacts(): boolean;
+    hasActiveConsents(): boolean;
+    hasLinks(): boolean;
     protected validateBusinessInvariants(): void;
-    /**
-     * Apply domain event
-     */
-    protected applyEvent(event: DomainEvent): void;
-    /**
-     * Get patient ID (required by HealthcareAggregateRoot)
-     */
-    getPatientId(): string | null;
-    /**
-     * Convert to persistence format
-     */
-    toPersistence(): any;
-    /**
-     * Create from persistence data
-     */
-    static fromPersistence(data: any): Patient;
-    /**
-     * Vietnamese healthcare compliance check
-     */
-    isVietnameseHealthcareCompliant(): boolean;
-    /**
-     * HIPAA compliance check
-     */
-    isHIPAACompliant(): boolean;
-    /**
-     * Get patient summary for logging (no sensitive data)
-     */
-    getSummaryForLogging(): object;
-    /**
-     * Check if patient has valid Vietnamese insurance
-     */
-    hasVietnameseInsurance(): boolean;
-    /**
-     * Get Vietnamese insurance number (BHYT)
-     */
-    getVietnameseInsuranceNumber(): string | null;
+    private ensureCanUpdate;
 }
 //# sourceMappingURL=Patient.d.ts.map

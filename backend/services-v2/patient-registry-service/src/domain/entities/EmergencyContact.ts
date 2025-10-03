@@ -7,15 +7,16 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { Entity } from '../../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 
 export interface EmergencyContactProps {
   id: string;
   name: string;
   relationship: string;
-  phoneNumber: string;
-  email?: string;
-  address?: string;
+  primaryPhone: string;
+  secondaryPhone?: string | undefined;
+  email?: string | undefined;
+  address?: string | undefined;
   isPrimary: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -33,18 +34,20 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
   public static create(
     name: string,
     relationship: string,
-    phoneNumber: string,
+    primaryPhone: string,
+    secondaryPhone?: string,
     email?: string,
     address?: string,
     isPrimary: boolean = false
   ): EmergencyContact {
     const now = new Date();
-    
+
     return new EmergencyContact({
       id: Entity.generateId(),
       name: name.trim(),
       relationship: relationship.trim(),
-      phoneNumber: phoneNumber.trim(),
+      primaryPhone: primaryPhone.trim(),
+      secondaryPhone: secondaryPhone?.trim(),
       email: email?.trim(),
       address: address?.trim(),
       isPrimary,

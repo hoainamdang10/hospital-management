@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { ValueObject } from '../../../../shared/domain/base/value-object';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 export interface PersonalInfoProps {
   fullName: string;

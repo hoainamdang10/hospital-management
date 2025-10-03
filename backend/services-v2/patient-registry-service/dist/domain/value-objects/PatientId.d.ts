@@ -2,7 +2,7 @@
  * PatientId Value Object
  * Vietnamese Healthcare Patient ID Format: PAT-YYYYMM-XXX
  */
-import { ValueObject } from '../../../shared/domain/ValueObject';
+import { ValueObject } from '@shared/domain/base/value-object';
 interface PatientIdProps {
     value: string;
 }
@@ -15,6 +15,7 @@ export declare class PatientId extends ValueObject<PatientIdProps> {
      */
     static fromString(value: string): PatientId;
     get value(): string;
+    getValue(): string;
     getYear(): number;
     getMonth(): number;
     getSequence(): number;

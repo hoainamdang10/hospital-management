@@ -5,8 +5,8 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientId = void 0;
-const ValueObject_1 = require("../../../shared/domain/ValueObject");
-class PatientId extends ValueObject_1.ValueObject {
+const value_object_1 = require("@shared/domain/base/value-object");
+class PatientId extends value_object_1.ValueObject {
     constructor(props) {
         super(props);
     }
@@ -36,6 +36,9 @@ class PatientId extends ValueObject_1.ValueObject {
         return PatientId.create(value);
     }
     get value() {
+        return this.props.value;
+    }
+    getValue() {
         return this.props.value;
     }
     getYear() {

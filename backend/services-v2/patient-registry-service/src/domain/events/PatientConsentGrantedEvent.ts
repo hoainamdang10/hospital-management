@@ -1,63 +1,32 @@
 /**
  * PatientConsentGrantedEvent - Domain Event
  * Published when patient grants consent
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, HIPAA
  */
 
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
-import { PatientId } from '../value-objects/PatientId';
-
-export interface PatientConsentGrantedEventPayload {
-  patientId: PatientId;
-  consentType: string;
-  grantedAt: Date;
-}
+import { DomainEvent } from '@shared/domain/base/domain-event';
+import { Patient } from '../aggregates/Patient';
+import { PatientConsent } from '../entities/PatientConsent';
 
 export class PatientConsentGrantedEvent extends DomainEvent {
-  public readonly patientId: PatientId;
-  public readonly consentType: string;
-  public readonly grantedAt: Date;
-
   constructor(
-    patientId: PatientId,
-    consentType: string,
-    grantedAt?: Date
+    public readonly patient: Patient,
+    public readonly consent: PatientConsent,
+    public readonly grantedBy: string
   ) {
-    super('PatientConsentGranted', {
-      patientId: patientId.value,
-      consentType,
-      grantedAt: (grantedAt || new Date()).toISOString()
-    });
-
-    this.patientId = patientId;
-    this.consentType = consentType;
-    this.grantedAt = grantedAt || new Date();
+    super('PatientConsentGranted', patient.getPatientId().getValue());
   }
 
-  /**
-   * Get event payload for event bus
-   */
-  public getPayload(): PatientConsentGrantedEventPayload {
+  public getPayload(): any {
     return {
-      patientId: this.patientId,
-      consentType: this.consentType,
-      grantedAt: this.grantedAt
-    };
-  }
-
-  /**
-   * Get event summary for logging
-   */
-  public getSummaryForLogging(): object {
-    return {
-      eventType: this.eventType,
-      eventId: this.eventId,
-      patientId: this.patientId.value,
-      consentType: this.consentType,
-      timestamp: this.timestamp.toISOString()
+      patientId: this.patient.getPatientId().getValue(),
+      consentId: this.consent.id,
+      consentType: this.consent.consentType,
+      grantedBy: this.grantedBy,
+      grantedAt: this.occurredAt
     };
   }
 }

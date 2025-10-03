@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmergencyContact = void 0;
-const entity_1 = require("../../../../shared/domain/base/entity");
+const entity_1 = require("@shared/domain/base/entity");
 class EmergencyContact extends entity_1.Entity {
     constructor(props) {
         super(props);
@@ -17,13 +17,14 @@ class EmergencyContact extends entity_1.Entity {
     /**
      * Create new emergency contact
      */
-    static create(name, relationship, phoneNumber, email, address, isPrimary = false) {
+    static create(name, relationship, primaryPhone, secondaryPhone, email, address, isPrimary = false) {
         const now = new Date();
         return new EmergencyContact({
             id: entity_1.Entity.generateId(),
             name: name.trim(),
             relationship: relationship.trim(),
-            phoneNumber: phoneNumber.trim(),
+            primaryPhone: primaryPhone.trim(),
+            secondaryPhone: secondaryPhone?.trim(),
             email: email?.trim(),
             address: address?.trim(),
             isPrimary,

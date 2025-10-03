@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientConsent = void 0;
-const entity_1 = require("../../../../shared/domain/base/entity");
+const entity_1 = require("@shared/domain/base/entity");
 const PatientId_1 = require("../value-objects/PatientId");
 class PatientConsent extends entity_1.Entity {
     constructor(props) {

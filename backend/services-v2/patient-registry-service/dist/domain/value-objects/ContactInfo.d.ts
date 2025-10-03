@@ -2,20 +2,20 @@
  * ContactInfo Value Object
  * Patient contact information with Vietnamese standards
  */
-import { ValueObject } from '../../../shared/domain/ValueObject';
-interface ContactInfoProps {
+import { ValueObject } from '@shared/domain/base/value-object';
+export interface ContactInfoProps {
     primaryPhone: string;
-    secondaryPhone?: string;
-    email?: string;
+    secondaryPhone?: string | undefined;
+    email?: string | undefined;
     address: Address;
     preferredContactMethod: 'phone' | 'email' | 'sms';
 }
-interface Address {
+export interface Address {
     street: string;
     ward: string;
     district: string;
     city: string;
-    postalCode?: string;
+    postalCode?: string | undefined;
     country: string;
 }
 export declare class ContactInfo extends ValueObject<ContactInfoProps> {
@@ -48,5 +48,4 @@ export declare class ContactInfo extends ValueObject<ContactInfoProps> {
     updatePreferredContactMethod(method: 'phone' | 'email' | 'sms'): ContactInfo;
     equals(other: ContactInfo): boolean;
 }
-export {};
 //# sourceMappingURL=ContactInfo.d.ts.map

@@ -1,43 +1,64 @@
 /**
- * Patient Aggregate Root - Patient Registry Management
- * V2 Clean Architecture + DDD Implementation
- * Consolidated from Patient.ts and patient.aggregate.ts
- * Schema: patient_schema
- *
+ * Patient Aggregate Root - Patient Registry V2
+ * 
+ * Manages patient master data and enforces business invariants
+ * Based on HL7 FHIR Patient Resource specification
+ * 
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
+ * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
  */
 
 import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
 import { PatientId } from '../value-objects/PatientId';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { ContactInfo } from '../value-objects/ContactInfo';
-import { MedicalInfo } from '../value-objects/MedicalInfo';
+import { BasicMedicalInfo } from '../value-objects/BasicMedicalInfo';
+import { PatientLink } from '../value-objects/PatientLink';
+import { PatientStatus } from '../value-objects/PatientStatus';
 import { InsuranceInfo } from '../entities/InsuranceInfo';
 import { EmergencyContact } from '../entities/EmergencyContact';
 import { PatientConsent } from '../entities/PatientConsent';
-import { MedicalHistory } from '../entities/MedicalHistory';
 import { PatientRegisteredEvent } from '../events/PatientRegisteredEvent';
 import { PatientUpdatedEvent } from '../events/PatientUpdatedEvent';
+import { PatientMergedEvent } from '../events/PatientMergedEvent';
+import { PatientLinkedEvent } from '../events/PatientLinkedEvent';
+import { PatientDeactivatedEvent } from '../events/PatientDeactivatedEvent';
 import { PatientConsentGrantedEvent } from '../events/PatientConsentGrantedEvent';
 
 export interface PatientProps {
+  // Identity
   id: PatientId;
-  userId: string; // Reference to auth_schema.user_profiles
+  userId: string; // Reference to Identity Service (auth_schema.user_profiles)
+
+  // Demographics
   personalInfo: PersonalInfo;
   contactInfo: ContactInfo;
-  medicalInfo: MedicalInfo;
+
+  // Basic Medical (Emergency only)
+  basicMedicalInfo: BasicMedicalInfo;
+
+  // Insurance
   insuranceInfo?: InsuranceInfo;
+
+  // Contacts
   emergencyContacts: EmergencyContact[];
+
+  // Consent
   consents: PatientConsent[];
-  medicalHistory: MedicalHistory[];
-  registrationDate: Date;
-  lastVisitDate?: Date;
-  isActive: boolean;
+
+  // Status
+  status: PatientStatus;
+  mergedInto?: PatientId; // If merged, reference to master patient
+
+  // Linking (FHIR-style)
+  links: PatientLink[];
+
+  // Metadata
   createdAt: Date;
   updatedAt: Date;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export class Patient extends HealthcareAggregateRoot<PatientProps> {
@@ -45,13 +66,17 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     super(props, id);
   }
 
-  // Factory method for creating new patients
-  public static create(
+  /**
+   * Factory method: Register new patient
+   */
+  public static register(
     userId: string,
     personalInfo: PersonalInfo,
     contactInfo: ContactInfo,
-    medicalInfo: MedicalInfo,
-    insuranceInfo?: InsuranceInfo
+    basicMedicalInfo: BasicMedicalInfo,
+    insuranceInfo: InsuranceInfo | undefined,
+    emergencyContacts: EmergencyContact[],
+    createdBy: string
   ): Patient {
     const patientId = PatientId.generate();
     const now = new Date();
@@ -61,478 +86,329 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       userId,
       personalInfo,
       contactInfo,
-      medicalInfo,
+      basicMedicalInfo,
       insuranceInfo,
-      emergencyContacts: [],
+      emergencyContacts,
       consents: [],
-      medicalHistory: [],
-      registrationDate: now,
-      isActive: true,
+      status: PatientStatus.ACTIVE,
+      links: [],
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      createdBy,
+      updatedBy: createdBy
     });
 
-    // Domain event for patient registration
-    patient.addDomainEvent(new PatientRegisteredEvent(patientId, userId, personalInfo));
+    // Publish domain event
+    patient.addDomainEvent(new PatientRegisteredEvent(patient));
 
     return patient;
   }
 
-  // Factory method for reconstituting from persistence
+  /**
+   * Factory method: Reconstitute from persistence
+   */
   public static reconstitute(props: PatientProps): Patient {
     return new Patient(props);
   }
 
-  // Getters
-  public get id(): PatientId {
-    return this.props.id;
-  }
+  // ==================== Business Methods ====================
 
-  public get userId(): string {
-    return this.props.userId;
-  }
+  /**
+   * Update personal information
+   */
+  public updatePersonalInfo(personalInfo: PersonalInfo, updatedBy: string): void {
+    this.ensureCanUpdate();
 
-  public get personalInfo(): PersonalInfo {
-    return this.props.personalInfo;
-  }
-
-  public get contactInfo(): ContactInfo {
-    return this.props.contactInfo;
-  }
-
-  public get medicalInfo(): MedicalInfo {
-    return this.props.medicalInfo;
-  }
-
-  public get insuranceInfo(): InsuranceInfo | undefined {
-    return this.props.insuranceInfo;
-  }
-
-  public get emergencyContacts(): EmergencyContact[] {
-    return this.props.emergencyContacts.slice();
-  }
-
-  public get consents(): PatientConsent[] {
-    return this.props.consents.slice();
-  }
-
-  public get medicalHistory(): MedicalHistory[] {
-    return this.props.medicalHistory.slice();
-  }
-
-  public get registrationDate(): Date {
-    return this.props.registrationDate;
-  }
-
-  public get lastVisitDate(): Date | undefined {
-    return this.props.lastVisitDate;
-  }
-
-  public get isActive(): boolean {
-    return this.props.isActive;
-  }
-
-  // Business methods
-  public updatePersonalInfo(personalInfo: PersonalInfo): void {
     this.props.personalInfo = personalInfo;
     this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this.props.id, 'personal_info'));
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'personal_info', updatedBy));
   }
 
-  public updateContactInfo(contactInfo: ContactInfo): void {
+  /**
+   * Update contact information
+   */
+  public updateContactInfo(contactInfo: ContactInfo, updatedBy: string): void {
+    this.ensureCanUpdate();
+
     this.props.contactInfo = contactInfo;
     this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this.props.id, 'contact_info'));
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'contact_info', updatedBy));
   }
 
-  public updateMedicalInfo(medicalInfo: MedicalInfo): void {
-    this.props.medicalInfo = medicalInfo;
+  /**
+   * Update basic medical information
+   */
+  public updateBasicMedicalInfo(basicMedicalInfo: BasicMedicalInfo, updatedBy: string): void {
+    this.ensureCanUpdate();
+
+    this.props.basicMedicalInfo = basicMedicalInfo;
     this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this.props.id, 'medical_info'));
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'basic_medical_info', updatedBy));
   }
 
-  public updateInsuranceInfo(insuranceInfo: InsuranceInfo): void {
+  /**
+   * Update insurance information
+   */
+  public updateInsuranceInfo(insuranceInfo: InsuranceInfo | undefined, updatedBy: string): void {
+    this.ensureCanUpdate();
+
     this.props.insuranceInfo = insuranceInfo;
     this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this.props.id, 'insurance_info'));
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'insurance_info', updatedBy));
   }
 
-  public addEmergencyContact(emergencyContact: EmergencyContact): void {
-    // Validate maximum emergency contacts (e.g., 5)
-    if (this.props.emergencyContacts.length >= 5) {
-      throw new Error('Không thể thêm quá 5 người liên hệ khẩn cấp');
-    }
+  /**
+   * Add emergency contact
+   */
+  public addEmergencyContact(contact: EmergencyContact, updatedBy: string): void {
+    this.ensureCanUpdate();
 
-    // If this is primary contact, remove primary from others
-    if (emergencyContact.isPrimary) {
-      this.props.emergencyContacts.forEach(contact => contact.removePrimary());
-    }
-
-    this.props.emergencyContacts.push(emergencyContact);
+    this.props.emergencyContacts.push(contact);
     this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
+
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'emergency_contact', updatedBy));
   }
 
-  public removeEmergencyContact(contactId: string): void {
+  /**
+   * Remove emergency contact
+   */
+  public removeEmergencyContact(contactId: string, updatedBy: string): void {
+    this.ensureCanUpdate();
+
     this.props.emergencyContacts = this.props.emergencyContacts.filter(
       contact => contact.id !== contactId
     );
     this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
+
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'emergency_contact', updatedBy));
   }
 
-  public grantConsent(consentType: string, witnessId?: string): void {
-    // Check if consent already exists
-    const existingConsent = this.props.consents.find(
-      consent => consent.consentType === consentType && consent.isActive
-    );
+  /**
+   * Grant consent
+   */
+  public grantConsent(consent: PatientConsent, updatedBy: string): void {
+    this.ensureCanUpdate();
 
-    if (existingConsent) {
-      throw new Error(`Đã có sự đồng ý cho ${consentType}`);
-    }
-
-    const consent = PatientConsent.grant(this.props.id, consentType, witnessId);
     this.props.consents.push(consent);
     this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientConsentGrantedEvent(this.props.id, consentType));
+    this.addDomainEvent(new PatientConsentGrantedEvent(this, consent, updatedBy));
   }
 
-  public withdrawConsent(consentType: string): void {
-    const consent = this.props.consents.find(
-      consent => consent.consentType === consentType && consent.isActive
-    );
-
-    if (!consent) {
-      throw new Error(`Không tìm thấy sự đồng ý cho ${consentType}`);
+  /**
+   * Merge into master patient (mark as duplicate)
+   */
+  public mergeInto(masterPatientId: PatientId, reason: string, performedBy: string): void {
+    if (this.props.status === PatientStatus.MERGED) {
+      throw new Error('Bệnh nhân đã được gộp trước đó');
     }
 
-    consent.withdraw();
+    if (this.props.status === PatientStatus.DECEASED) {
+      throw new Error('Không thể gộp bệnh nhân đã qua đời');
+    }
+
+    if (this.props.id.equals(masterPatientId)) {
+      throw new Error('Không thể gộp bệnh nhân vào chính nó');
+    }
+
+    this.props.status = PatientStatus.MERGED;
+    this.props.mergedInto = masterPatientId;
     this.props.updatedAt = new Date();
+    this.props.updatedBy = performedBy;
+
+    // Create "replaced-by" link
+    const link = PatientLink.createReplacedBy(masterPatientId, performedBy);
+    this.props.links.push(link);
+
+    this.addDomainEvent(new PatientMergedEvent(this, masterPatientId, reason, performedBy));
   }
 
-  public addMedicalHistory(medicalHistory: MedicalHistory): void {
-    this.props.medicalHistory.push(medicalHistory);
-    this.props.updatedAt = new Date();
-  }
+  /**
+   * Link to another patient
+   */
+  public linkTo(otherPatientId: PatientId, linkType: 'refer' | 'seealso', performedBy: string): void {
+    if (this.props.id.equals(otherPatientId)) {
+      throw new Error('Không thể liên kết bệnh nhân với chính nó');
+    }
 
-  public updateLastVisit(): void {
-    this.props.lastVisitDate = new Date();
-    this.props.updatedAt = new Date();
-  }
-
-  public deactivate(): void {
-    this.props.isActive = false;
-    this.props.updatedAt = new Date();
-  }
-
-  public activate(): void {
-    this.props.isActive = true;
-    this.props.updatedAt = new Date();
-  }
-
-  // Healthcare-specific business methods
-  public hasValidInsurance(): boolean {
-    return this.props.insuranceInfo?.isActive && 
-           this.props.insuranceInfo?.isNotExpired();
-  }
-
-  public getPrimaryInsurance(): InsuranceInfo | undefined {
-    return this.props.insuranceInfo?.isPrimary ? this.props.insuranceInfo : undefined;
-  }
-
-  public getPrimaryEmergencyContact(): EmergencyContact | undefined {
-    return this.props.emergencyContacts.find(contact => contact.isPrimary);
-  }
-
-  public hasConsentFor(consentType: string): boolean {
-    return this.props.consents.some(
-      consent => consent.consentType === consentType && 
-                consent.isActive && 
-                !consent.isExpired()
+    // Check if link already exists
+    const existingLink = this.props.links.find(
+      link => link.otherPatientId.equals(otherPatientId) && link.linkType === linkType
     );
+
+    if (existingLink) {
+      throw new Error(`Liên kết ${linkType} đã tồn tại với bệnh nhân ${otherPatientId.getValue()}`);
+    }
+
+    const link = PatientLink.create(otherPatientId, linkType, performedBy);
+    this.props.links.push(link);
+    this.props.updatedAt = new Date();
+    this.props.updatedBy = performedBy;
+
+    this.addDomainEvent(new PatientLinkedEvent(this, otherPatientId, linkType, performedBy));
   }
 
-  public getActiveConsents(): PatientConsent[] {
-    return this.props.consents.filter(consent => consent.isActive && !consent.isExpired());
+  /**
+   * Deactivate patient
+   */
+  public deactivate(reason: string, performedBy: string): void {
+    if (this.props.status === PatientStatus.INACTIVE) {
+      throw new Error('Bệnh nhân đã bị vô hiệu hóa');
+    }
+
+    if (this.props.status === PatientStatus.MERGED) {
+      throw new Error('Không thể vô hiệu hóa bệnh nhân đã được gộp');
+    }
+
+    if (this.props.status === PatientStatus.DECEASED) {
+      throw new Error('Không thể vô hiệu hóa bệnh nhân đã qua đời');
+    }
+
+    this.props.status = PatientStatus.INACTIVE;
+    this.props.updatedAt = new Date();
+    this.props.updatedBy = performedBy;
+
+    this.addDomainEvent(new PatientDeactivatedEvent(this, reason, performedBy));
   }
 
-  public getAge(): number {
-    return this.props.personalInfo.getAge();
+  /**
+   * Mark patient as deceased
+   */
+  public markAsDeceased(performedBy: string): void {
+    if (this.props.status === PatientStatus.DECEASED) {
+      throw new Error('Bệnh nhân đã được đánh dấu qua đời');
+    }
+
+    this.props.status = PatientStatus.DECEASED;
+    this.props.updatedAt = new Date();
+    this.props.updatedBy = performedBy;
+
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'status', performedBy));
   }
 
-  public isMinor(): boolean {
-    return this.getAge() < 18;
+  // ==================== Getters ====================
+
+  public getPatientId(): PatientId {
+    return this.props.id;
   }
 
-  public requiresGuardianConsent(): boolean {
-    return this.isMinor();
+  public getUserId(): string {
+    return this.props.userId;
   }
 
-  // Vietnamese healthcare specific methods
+  public getPersonalInfo(): PersonalInfo {
+    return this.props.personalInfo;
+  }
+
+  public getContactInfo(): ContactInfo {
+    return this.props.contactInfo;
+  }
+
+  public getBasicMedicalInfo(): BasicMedicalInfo {
+    return this.props.basicMedicalInfo;
+  }
+
+  public getInsuranceInfo(): InsuranceInfo | undefined {
+    return this.props.insuranceInfo;
+  }
+
+  public getEmergencyContacts(): EmergencyContact[] {
+    return this.props.emergencyContacts.slice(); // Return copy
+  }
+
+  public getConsents(): PatientConsent[] {
+    return this.props.consents.slice(); // Return copy
+  }
+
+  public getStatus(): PatientStatus {
+    return this.props.status;
+  }
+
+  public getMergedInto(): PatientId | undefined {
+    return this.props.mergedInto;
+  }
+
+  public getLinks(): PatientLink[] {
+    return this.props.links.slice(); // Return copy
+  }
+
+  public getProps(): PatientProps {
+    return { ...this.props };
+  }
+
+  // ==================== Business Queries ====================
+
+  public isActive(): boolean {
+    return this.props.status === PatientStatus.ACTIVE;
+  }
+
+  public isInactive(): boolean {
+    return this.props.status === PatientStatus.INACTIVE;
+  }
+
+  public isMerged(): boolean {
+    return this.props.status === PatientStatus.MERGED;
+  }
+
+  public isDeceased(): boolean {
+    return this.props.status === PatientStatus.DECEASED;
+  }
+
   public hasBHYTInsurance(): boolean {
-    return this.props.insuranceInfo?.coverageType === 'BHYT';
+    return this.props.insuranceInfo?.isBHYT() ?? false;
   }
 
-  public hasBHTNInsurance(): boolean {
-    return this.props.insuranceInfo?.coverageType === 'BHTN';
+  public hasValidInsurance(): boolean {
+    return this.props.insuranceInfo?.isValid() ?? false;
   }
 
-  public hasPrivateInsurance(): boolean {
-    return this.props.insuranceInfo?.coverageType === 'private';
+  public hasEmergencyContacts(): boolean {
+    return this.props.emergencyContacts.length > 0;
   }
 
-  public isSelfPay(): boolean {
-    return !this.props.insuranceInfo || this.props.insuranceInfo.coverageType === 'self_pay';
+  public hasActiveConsents(): boolean {
+    return this.props.consents.some(consent => consent.isActive);
   }
 
-  // Medical history methods
-  public hasCondition(conditionName: string): boolean {
-    return this.props.medicalHistory.some(
-      history => history.conditionName.toLowerCase() === conditionName.toLowerCase() &&
-                history.isActive()
-    );
+  public hasLinks(): boolean {
+    return this.props.links.length > 0;
   }
 
-  public getActiveConditions(): MedicalHistory[] {
-    return this.props.medicalHistory.filter(history => history.isActive());
-  }
+  // ==================== Business Invariants ====================
 
-  public getChronicConditions(): MedicalHistory[] {
-    return this.props.medicalHistory.filter(history => history.isChronic());
-  }
-
-  public getCriticalConditions(): MedicalHistory[] {
-    return this.props.medicalHistory.filter(history => history.isCritical());
-  }
-
-  // Validation methods
-  public canScheduleAppointment(): boolean {
-    return this.props.isActive && this.hasConsentFor('treatment');
-  }
-
-  public canAccessMedicalRecords(): boolean {
-    return this.hasConsentFor('data_sharing');
-  }
-
-  public canParticipateInResearch(): boolean {
-    return this.hasConsentFor('research');
-  }
-
-  // Audit methods
-  public getAuditInfo(): object {
-    return {
-      patientId: this.props.id.value,
-      userId: this.props.userId,
-      fullName: this.props.personalInfo.fullName,
-      dateOfBirth: this.props.personalInfo.dateOfBirth,
-      registrationDate: this.props.registrationDate,
-      lastVisitDate: this.props.lastVisitDate,
-      isActive: this.props.isActive,
-      hasInsurance: !!this.props.insuranceInfo,
-      emergencyContactsCount: this.props.emergencyContacts.length,
-      activeConsentsCount: this.getActiveConsents().length,
-      medicalHistoryCount: this.props.medicalHistory.length
-    };
-  }
-
-  public equals(other: Patient): boolean {
-    return this.props.id.equals(other.props.id);
-  }
-
-  // ==================== V2 HEALTHCARE AGGREGATE METHODS ====================
-
-  /**
-   * Validate business invariants
-   */
   protected validateBusinessInvariants(): void {
-    // Personal info must be valid
-    if (!this.props.personalInfo || !this.props.personalInfo.isValid()) {
-      throw new Error('Thông tin cá nhân bệnh nhân không hợp lệ');
+    if (!this.props.personalInfo) {
+      throw new Error('Thông tin cá nhân không được để trống');
     }
 
-    // Contact info must be valid
-    if (!this.props.contactInfo || !this.props.contactInfo.isValid()) {
-      throw new Error('Thông tin liên hệ bệnh nhân không hợp lệ');
+    if (!this.props.contactInfo) {
+      throw new Error('Thông tin liên hệ không được để trống');
     }
 
-    // Medical info must be valid
-    if (!this.props.medicalInfo || !this.props.medicalInfo.isValid()) {
-      throw new Error('Thông tin y tế bệnh nhân không hợp lệ');
+    if (!this.props.basicMedicalInfo) {
+      throw new Error('Thông tin y tế cơ bản không được để trống');
     }
 
-    // Must have valid user ID
-    if (!this.props.userId || this.props.userId.trim().length === 0) {
-      throw new Error('ID người dùng không được để trống');
-    }
-
-    // Registration date must be valid
-    if (!this.props.registrationDate || this.props.registrationDate > new Date()) {
-      throw new Error('Ngày đăng ký không hợp lệ');
-    }
-
-    // Last visit date must be after registration date
-    if (this.props.lastVisitDate && this.props.lastVisitDate < this.props.registrationDate) {
-      throw new Error('Ngày khám cuối phải sau ngày đăng ký');
-    }
-
-    // Emergency contacts validation
-    if (this.props.emergencyContacts.length === 0) {
-      throw new Error('Phải có ít nhất một liên hệ khẩn cấp');
-    }
-
-    // Insurance validation for Vietnamese healthcare
-    if (this.props.insuranceInfo && !this.props.insuranceInfo.isValid()) {
-      throw new Error('Thông tin bảo hiểm không hợp lệ');
+    if (this.props.status === PatientStatus.MERGED && !this.props.mergedInto) {
+      throw new Error('Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính');
     }
   }
 
-  /**
-   * Apply domain event
-   */
-  protected applyEvent(event: DomainEvent): void {
-    switch (event.eventType) {
-      case 'PatientRegistered':
-        this.props.isActive = true;
-        this.props.updatedAt = new Date();
-        break;
-
-      case 'PatientUpdated':
-        this.props.updatedAt = new Date();
-        break;
-
-      case 'PatientConsentGranted':
-        this.props.updatedAt = new Date();
-        break;
-
-      case 'PatientDeactivated':
-        this.props.isActive = false;
-        this.props.updatedAt = new Date();
-        break;
-
-      case 'PatientVisitRecorded':
-        this.props.lastVisitDate = new Date();
-        this.props.updatedAt = new Date();
-        break;
-
-      default:
-        // Unknown event type - log but don't throw
-        console.warn(`Unknown event type: ${event.eventType}`);
+  private ensureCanUpdate(): void {
+    if (this.props.status !== PatientStatus.ACTIVE) {
+      throw new Error(`Không thể cập nhật bệnh nhân với trạng thái: ${this.props.status}`);
     }
-  }
-
-  /**
-   * Get patient ID (required by HealthcareAggregateRoot)
-   */
-  getPatientId(): string | null {
-    return this.props.id.value;
-  }
-
-  /**
-   * Convert to persistence format
-   */
-  toPersistence(): any {
-    return {
-      id: this.props.id.value,
-      user_id: this.props.userId,
-      personal_info: this.props.personalInfo.toPersistence(),
-      contact_info: this.props.contactInfo.toPersistence(),
-      medical_info: this.props.medicalInfo.toPersistence(),
-      insurance_info: this.props.insuranceInfo?.toPersistence(),
-      emergency_contacts: this.props.emergencyContacts.map(ec => ec.toPersistence()),
-      consents: this.props.consents.map(c => c.toPersistence()),
-      medical_history: this.props.medicalHistory.map(mh => mh.toPersistence()),
-      registration_date: this.props.registrationDate.toISOString(),
-      last_visit_date: this.props.lastVisitDate?.toISOString(),
-      is_active: this.props.isActive,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString()
-    };
-  }
-
-  /**
-   * Create from persistence data
-   */
-  static fromPersistence(data: any): Patient {
-    const props: PatientProps = {
-      id: PatientId.fromString(data.id),
-      userId: data.user_id,
-      personalInfo: PersonalInfo.fromPersistence(data.personal_info),
-      contactInfo: ContactInfo.fromPersistence(data.contact_info),
-      medicalInfo: MedicalInfo.fromPersistence(data.medical_info),
-      insuranceInfo: data.insurance_info ? InsuranceInfo.fromPersistence(data.insurance_info) : undefined,
-      emergencyContacts: (data.emergency_contacts || []).map((ec: any) => EmergencyContact.fromPersistence(ec)),
-      consents: (data.consents || []).map((c: any) => PatientConsent.fromPersistence(c)),
-      medicalHistory: (data.medical_history || []).map((mh: any) => MedicalHistory.fromPersistence(mh)),
-      registrationDate: new Date(data.registration_date),
-      lastVisitDate: data.last_visit_date ? new Date(data.last_visit_date) : undefined,
-      isActive: data.is_active,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
-    };
-
-    return new Patient(props);
-  }
-
-  /**
-   * Vietnamese healthcare compliance check
-   */
-  public isVietnameseHealthcareCompliant(): boolean {
-    // Check if patient has required Vietnamese healthcare information
-    const hasValidPersonalInfo = this.props.personalInfo.isVietnameseCompliant();
-    const hasValidContactInfo = this.props.contactInfo.isVietnameseCompliant();
-    const hasValidMedicalInfo = this.props.medicalInfo.isVietnameseCompliant();
-    const hasValidInsurance = !this.props.insuranceInfo || this.props.insuranceInfo.isVietnameseCompliant();
-
-    return hasValidPersonalInfo && hasValidContactInfo && hasValidMedicalInfo && hasValidInsurance;
-  }
-
-  /**
-   * HIPAA compliance check
-   */
-  public isHIPAACompliant(): boolean {
-    return (
-      this.props.personalInfo.isHIPAACompliant() &&
-      this.props.contactInfo.isHIPAACompliant() &&
-      this.props.medicalInfo.isHIPAACompliant() &&
-      this.props.consents.some(c => c.isHIPAAConsent() && c.isActive()) &&
-      (!this.props.insuranceInfo || this.props.insuranceInfo.isHIPAACompliant())
-    );
-  }
-
-  /**
-   * Get patient summary for logging (no sensitive data)
-   */
-  public getSummaryForLogging(): object {
-    return {
-      patientId: this.props.id.value,
-      userId: this.props.userId,
-      age: this.getAge(),
-      gender: this.props.personalInfo.gender,
-      registrationDate: this.props.registrationDate.toISOString(),
-      lastVisitDate: this.props.lastVisitDate?.toISOString(),
-      isActive: this.props.isActive,
-      hasInsurance: !!this.props.insuranceInfo,
-      emergencyContactsCount: this.props.emergencyContacts.length,
-      activeConsentsCount: this.getActiveConsents().length,
-      medicalHistoryCount: this.props.medicalHistory.length,
-      createdAt: this.props.createdAt.toISOString()
-    };
-  }
-
-  /**
-   * Check if patient has valid Vietnamese insurance
-   */
-  public hasVietnameseInsurance(): boolean {
-    return !!this.props.insuranceInfo && this.props.insuranceInfo.isVietnameseInsurance();
-  }
-
-  /**
-   * Get Vietnamese insurance number (BHYT)
-   */
-  public getVietnameseInsuranceNumber(): string | null {
-    return this.props.insuranceInfo?.getVietnameseInsuranceNumber() || null;
   }
 }
+
