@@ -9,8 +9,8 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { HealthcareAggregateRoot } from '../../../shared/domain/base/aggregate-root';
-import { DomainEvent } from '../../../shared/domain/base/domain-event';
+import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { PatientId } from '../value-objects/PatientId';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { ContactInfo } from '../value-objects/ContactInfo';
@@ -41,8 +41,8 @@ export interface PatientProps {
 }
 
 export class Patient extends HealthcareAggregateRoot<PatientProps> {
-  private constructor(props: PatientProps) {
-    super(props);
+  private constructor(props: PatientProps, id?: string) {
+    super(props, id);
   }
 
   // Factory method for creating new patients

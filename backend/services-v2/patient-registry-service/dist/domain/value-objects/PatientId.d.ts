@@ -10,6 +10,10 @@ export declare class PatientId extends ValueObject<PatientIdProps> {
     private constructor();
     static create(value: string): PatientId;
     static generate(): PatientId;
+    /**
+     * Create from string value (alias for create)
+     */
+    static fromString(value: string): PatientId;
     get value(): string;
     getYear(): number;
     getMonth(): number;

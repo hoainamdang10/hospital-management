@@ -29,6 +29,12 @@ class PatientId extends ValueObject_1.ValueObject {
         const patientId = `PAT-${year}${month}-${sequenceStr}`;
         return new PatientId({ value: patientId });
     }
+    /**
+     * Create from string value (alias for create)
+     */
+    static fromString(value) {
+        return PatientId.create(value);
+    }
     get value() {
         return this.props.value;
     }

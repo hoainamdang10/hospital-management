@@ -24,8 +24,8 @@ const PatientRegisteredEvent_1 = require("../events/PatientRegisteredEvent");
 const PatientUpdatedEvent_1 = require("../events/PatientUpdatedEvent");
 const PatientConsentGrantedEvent_1 = require("../events/PatientConsentGrantedEvent");
 class Patient extends aggregate_root_1.HealthcareAggregateRoot {
-    constructor(props) {
-        super(props);
+    constructor(props, id) {
+        super(props, id);
     }
     // Factory method for creating new patients
     static create(userId, personalInfo, contactInfo, medicalInfo, insuranceInfo) {

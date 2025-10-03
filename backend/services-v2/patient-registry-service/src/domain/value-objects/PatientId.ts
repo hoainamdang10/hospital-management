@@ -34,9 +34,16 @@ export class PatientId extends ValueObject<PatientIdProps> {
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const sequence = Math.floor(Math.random() * 999) + 1;
     const sequenceStr = sequence.toString().padStart(3, '0');
-    
+
     const patientId = `PAT-${year}${month}-${sequenceStr}`;
     return new PatientId({ value: patientId });
+  }
+
+  /**
+   * Create from string value (alias for create)
+   */
+  public static fromString(value: string): PatientId {
+    return PatientId.create(value);
   }
 
   public get value(): string {
