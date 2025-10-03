@@ -1,0 +1,298 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Identity Service Consolidated - Production Monitoring",
+    "tags": ["identity", "authentication", "healthcare", "consolidated"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"identity-service-consolidated\"}",
+            "legendFormat": "Service Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+              {"options": {"1": {"text": "UP"}}, "type": "value"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Circuit Breaker Status",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "circuit_breaker_open_total{service=\"identity-service-consolidated\"}",
+            "legendFormat": "Open Breakers"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 3}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Authentication Requests per Second",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"identity-service-consolidated\",endpoint=\"/auth/login\"}[5m])",
+            "legendFormat": "Login Requests/sec"
+          },
+          {
+            "expr": "rate(http_requests_total{job=\"identity-service-consolidated\",endpoint=\"/auth/logout\"}[5m])",
+            "legendFormat": "Logout Requests/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Response Time Distribution",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"identity-service-consolidated\"}[5m]))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"identity-service-consolidated\"}[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=\"identity-service-consolidated\"}[5m]))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response Time (seconds)",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"identity-service-consolidated\",status=~\"4..|5..\"}[5m]) / rate(http_requests_total{job=\"identity-service-consolidated\"}[5m]) * 100",
+            "legendFormat": "Error Rate %"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Error Rate (%)",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 5,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Database Connection Pool",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "database_connections_active{service=\"identity-service-consolidated\"}",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "database_connections_idle{service=\"identity-service-consolidated\"}",
+            "legendFormat": "Idle Connections"
+          },
+          {
+            "expr": "database_connections_max{service=\"identity-service-consolidated\"}",
+            "legendFormat": "Max Connections"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Connections",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"identity-service-consolidated\"} / 1024 / 1024",
+            "legendFormat": "Memory Usage (MB)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory (MB)",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Authentication Success Rate",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(authentication_success_total{service=\"identity-service-consolidated\"}[5m]) / rate(authentication_attempts_total{service=\"identity-service-consolidated\"}[5m]) * 100",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "valueName": "current",
+        "format": "percent",
+        "thresholds": "80,95",
+        "colorBackground": true
+      },
+      {
+        "id": 9,
+        "title": "Failed Login Attempts",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(authentication_failures_total{service=\"identity-service-consolidated\"}[5m])",
+            "legendFormat": "Failed Attempts/sec"
+          }
+        ],
+        "valueName": "current",
+        "format": "short",
+        "thresholds": "5,10",
+        "colorBackground": true
+      },
+      {
+        "id": 10,
+        "title": "Active Sessions",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "active_sessions_total{service=\"identity-service-consolidated\"}",
+            "legendFormat": "Active Sessions"
+          }
+        ],
+        "valueName": "current",
+        "format": "short"
+      },
+      {
+        "id": 11,
+        "title": "HIPAA Audit Events",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(audit_events_total{service=\"identity-service-consolidated\"}[5m])",
+            "legendFormat": "Audit Events/sec"
+          }
+        ],
+        "valueName": "current",
+        "format": "short"
+      },
+      {
+        "id": 12,
+        "title": "Top Error Messages",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 36},
+        "targets": [
+          {
+            "expr": "topk(10, rate(log_messages_total{service=\"identity-service-consolidated\",level=\"error\"}[5m]))",
+            "legendFormat": "{{message}}",
+            "format": "table"
+          }
+        ],
+        "styles": [
+          {
+            "alias": "Error Message",
+            "pattern": "message"
+          },
+          {
+            "alias": "Rate/sec",
+            "pattern": "Value",
+            "type": "number",
+            "unit": "short"
+          }
+        ]
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "prometheus",
+          "enable": true,
+          "expr": "changes(deployment_timestamp{service=\"identity-service-consolidated\"}[1h])",
+          "iconColor": "blue",
+          "titleFormat": "Deployment"
+        }
+      ]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up{job=\"identity-service-consolidated\"}, instance)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    }
+  }
+}

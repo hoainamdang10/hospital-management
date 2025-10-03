@@ -1,0 +1,41 @@
+feb1f637d7c1830ea7ba33f062f7c028
+"use strict";
+/**
+ * UserAuthenticatedEvent Domain Event
+ * Fired when a user successfully authenticates
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserAuthenticatedEvent = void 0;
+const domain_event_1 = require("@shared/domain/base/domain-event");
+class UserAuthenticatedEvent extends domain_event_1.DomainEvent {
+    constructor(userIdVO, ipAddress, userAgent, timestamp) {
+        super('UserAuthenticated', userIdVO.value, 'User', { ipAddress, userAgent, timestamp }, 1, // eventVersion
+        undefined, // correlationId
+        undefined, // causationId
+        userIdVO.value // userId as string for base class
+        );
+        this.userIdVO = userIdVO;
+        this.ipAddress = ipAddress;
+        this.userAgent = userAgent;
+        this.timestamp = timestamp;
+    }
+    getEventData() {
+        return {
+            userId: this.userIdVO.value,
+            ipAddress: this.ipAddress,
+            userAgent: this.userAgent,
+            timestamp: this.timestamp
+        };
+    }
+    containsPHI() {
+        return false; // IP and user agent are not PHI
+    }
+    getPatientId() {
+        return null;
+    }
+}
+exports.UserAuthenticatedEvent = UserAuthenticatedEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGRvbWFpblxcZXZlbnRzXFxVc2VyQXV0aGVudGljYXRlZEV2ZW50LnRzIiwibWFwcGluZ3MiOiI7QUFBQTs7Ozs7O0dBTUc7OztBQUVILG1FQUErRDtBQUcvRCxNQUFhLHNCQUF1QixTQUFRLDBCQUFXO0lBQ3JELFlBQ2tCLFFBQWdCLEVBQ2hCLFNBQWlCLEVBQ2pCLFNBQWlCLEVBQ2pCLFNBQWU7UUFFL0IsS0FBSyxDQUNILG1CQUFtQixFQUNuQixRQUFRLENBQUMsS0FBSyxFQUNkLE1BQU0sRUFDTixFQUFFLFNBQVMsRUFBRSxTQUFTLEVBQUUsU0FBUyxFQUFFLEVBQ25DLENBQUMsRUFBRSxlQUFlO1FBQ2xCLFNBQVMsRUFBRSxnQkFBZ0I7UUFDM0IsU0FBUyxFQUFFLGNBQWM7UUFDekIsUUFBUSxDQUFDLEtBQUssQ0FBQyxrQ0FBa0M7U0FDbEQsQ0FBQztRQWRjLGFBQVEsR0FBUixRQUFRLENBQVE7UUFDaEIsY0FBUyxHQUFULFNBQVMsQ0FBUTtRQUNqQixjQUFTLEdBQVQsU0FBUyxDQUFRO1FBQ2pCLGNBQVMsR0FBVCxTQUFTLENBQU07SUFZakMsQ0FBQztJQUVELFlBQVk7UUFDVixPQUFPO1lBQ0wsTUFBTSxFQUFFLElBQUksQ0FBQyxRQUFRLENBQUMsS0FBSztZQUMzQixTQUFTLEVBQUUsSUFBSSxDQUFDLFNBQVM7WUFDekIsU0FBUyxFQUFFLElBQUksQ0FBQyxTQUFTO1lBQ3pCLFNBQVMsRUFBRSxJQUFJLENBQUMsU0FBUztTQUMxQixDQUFDO0lBQ0osQ0FBQztJQUVELFdBQVc7UUFDVCxPQUFPLEtBQUssQ0FBQyxDQUFDLGdDQUFnQztJQUNoRCxDQUFDO0lBRUQsWUFBWTtRQUNWLE9BQU8sSUFBSSxDQUFDO0lBQ2QsQ0FBQztDQUNGO0FBbkNELHdEQW1DQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcaG9zcGl0YWwtbWFuYWdlbWVudC1WMlxcYmFja2VuZFxcc2VydmljZXMtdjJcXGlkZW50aXR5LXNlcnZpY2VcXHNyY1xcZG9tYWluXFxldmVudHNcXFVzZXJBdXRoZW50aWNhdGVkRXZlbnQudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBVc2VyQXV0aGVudGljYXRlZEV2ZW50IERvbWFpbiBFdmVudFxuICogRmlyZWQgd2hlbiBhIHVzZXIgc3VjY2Vzc2Z1bGx5IGF1dGhlbnRpY2F0ZXNcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKi9cblxuaW1wb3J0IHsgRG9tYWluRXZlbnQgfSBmcm9tICdAc2hhcmVkL2RvbWFpbi9iYXNlL2RvbWFpbi1ldmVudCc7XG5pbXBvcnQgeyBVc2VySWQgfSBmcm9tICcuLi92YWx1ZS1vYmplY3RzL1VzZXJJZCc7XG5cbmV4cG9ydCBjbGFzcyBVc2VyQXV0aGVudGljYXRlZEV2ZW50IGV4dGVuZHMgRG9tYWluRXZlbnQge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwdWJsaWMgcmVhZG9ubHkgdXNlcklkVk86IFVzZXJJZCxcbiAgICBwdWJsaWMgcmVhZG9ubHkgaXBBZGRyZXNzOiBzdHJpbmcsXG4gICAgcHVibGljIHJlYWRvbmx5IHVzZXJBZ2VudDogc3RyaW5nLFxuICAgIHB1YmxpYyByZWFkb25seSB0aW1lc3RhbXA6IERhdGVcbiAgKSB7XG4gICAgc3VwZXIoXG4gICAgICAnVXNlckF1dGhlbnRpY2F0ZWQnLFxuICAgICAgdXNlcklkVk8udmFsdWUsXG4gICAgICAnVXNlcicsXG4gICAgICB7IGlwQWRkcmVzcywgdXNlckFnZW50LCB0aW1lc3RhbXAgfSxcbiAgICAgIDEsIC8vIGV2ZW50VmVyc2lvblxuICAgICAgdW5kZWZpbmVkLCAvLyBjb3JyZWxhdGlvbklkXG4gICAgICB1bmRlZmluZWQsIC8vIGNhdXNhdGlvbklkXG4gICAgICB1c2VySWRWTy52YWx1ZSAvLyB1c2VySWQgYXMgc3RyaW5nIGZvciBiYXNlIGNsYXNzXG4gICAgKTtcbiAgfVxuXG4gIGdldEV2ZW50RGF0YSgpOiBhbnkge1xuICAgIHJldHVybiB7XG4gICAgICB1c2VySWQ6IHRoaXMudXNlcklkVk8udmFsdWUsXG4gICAgICBpcEFkZHJlc3M6IHRoaXMuaXBBZGRyZXNzLFxuICAgICAgdXNlckFnZW50OiB0aGlzLnVzZXJBZ2VudCxcbiAgICAgIHRpbWVzdGFtcDogdGhpcy50aW1lc3RhbXBcbiAgICB9O1xuICB9XG5cbiAgY29udGFpbnNQSEkoKTogYm9vbGVhbiB7XG4gICAgcmV0dXJuIGZhbHNlOyAvLyBJUCBhbmQgdXNlciBhZ2VudCBhcmUgbm90IFBISVxuICB9XG5cbiAgZ2V0UGF0aWVudElkKCk6IHN0cmluZyB8IG51bGwge1xuICAgIHJldHVybiBudWxsO1xuICB9XG59XG4iXSwidmVyc2lvbiI6M30=

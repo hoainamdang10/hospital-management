@@ -1,10 +1,12 @@
 /**
  * UserId Value Object
- * Strongly-typed identifier for User aggregate
+ * User ID Format: USR-YYYYMM-XXX
+ * 
+ * @author Hospital Management Team
+ * @version 2.0.0
  */
 
-import { ValueObject } from '../../../shared/domain/ValueObject';
-import { v4 as uuidv4 } from 'uuid';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 interface UserIdProps {
   value: string;
@@ -15,33 +17,44 @@ export class UserId extends ValueObject<UserIdProps> {
     super(props);
   }
 
+  /**
+   * Validate format - required by ValueObject base class
+   */
+  protected validateFormat(): void {
+    if (!this.props.value || this.props.value.trim().length === 0) {
+      throw new Error('User ID không được để trống');
+    }
+  }
+
   public static create(value: string): UserId {
-    if (!value || value.trim().length === 0) {
-      throw new Error('UserId không được để trống');
-    }
-
-    if (!this.isValidUUID(value)) {
-      throw new Error('UserId phải là UUID hợp lệ');
-    }
-
     return new UserId({ value: value.trim() });
   }
 
   public static generate(): UserId {
-    return new UserId({ value: uuidv4() });
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const sequence = Math.floor(Math.random() * 999) + 1;
+    const sequenceStr = sequence.toString().padStart(3, '0');
+    
+    const userId = `USR-${year}${month}-${sequenceStr}`;
+    return new UserId({ value: userId });
+  }
+
+  public static fromUUID(uuid: string): UserId {
+    return new UserId({ value: uuid });
+  }
+
+  /**
+   * Create UserId from existing string value
+   * Used by repository when reconstituting from database
+   */
+  public static fromString(value: string): UserId {
+    return new UserId({ value });
   }
 
   public get value(): string {
     return this.props.value;
-  }
-
-  private static isValidUUID(value: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(value);
-  }
-
-  public equals(other: UserId): boolean {
-    return this.props.value === other.props.value;
   }
 
   public toString(): string {

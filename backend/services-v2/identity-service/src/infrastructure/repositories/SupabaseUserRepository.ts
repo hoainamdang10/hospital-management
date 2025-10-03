@@ -1,716 +1,906 @@
 /**
- * Supabase User Repository Implementation
+ * Supabase-Compatible User Repository Implementation
  * V2 Clean Architecture + DDD Implementation
- * Infrastructure Layer - Data Access with Vietnamese healthcare compliance
- * Schema: auth_schema
+ * Integrates with existing auth_schema on Supabase
  *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, DDD, Repository Pattern, HIPAA
+ * @compliance Clean Architecture, DDD, HIPAA-Compliant, Production-Ready
  */
 
-import { OptimizedSupabaseClient } from '../../../../shared/infrastructure/database/optimized-supabase-client';
-import { IUserRepository } from '../../domain/repositories/IUserRepository';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { CircuitBreakerFactory } from '../resilience/CircuitBreaker';
+import { RedisCacheService } from '../cache/RedisCacheService';
+import { getErrorMessage } from '../../utils/error-helper';
+import { UserMapper } from '../mappers/UserMapper';
+
+// Domain imports - Clean Architecture pattern
+import { IUserRepository } from '../../application/repositories/IUserRepository';
 import { User } from '../../domain/aggregates/User';
 import { UserId } from '../../domain/value-objects/UserId';
 import { Email } from '../../domain/value-objects/Email';
-import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
-import { HealthcareRole } from '../../domain/entities/HealthcareRole';
 import { UserSession } from '../../domain/entities/UserSession';
-import { LoginAttempt } from '../../domain/entities/LoginAttempt';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
-import { IAuditService } from '../../../../shared/application/services/audit.service.interface';
+import { ILogger } from '../../application/services/ILogger';
 
+// Request/Response types
+export interface CreateUserRequest {
+  email: string;
+  fullName: string;
+  roleType: string;
+  citizenId?: string;
+  dateOfBirth?: Date;
+  gender?: string;
+  phoneNumber?: string;
+}
+
+// Database record interfaces (internal to infrastructure layer)
 interface UserRecord {
   id: string;
   email: string;
-  password_hash: string;
   full_name: string;
-  phone_number: string;
+  role_type: string;
+  is_active: boolean;
+  is_verified: boolean;
+  citizen_id?: string;
   date_of_birth?: string;
   gender?: string;
   address?: string;
-  national_id?: string;
-  emergency_contact?: string;
-  role_name: string;
-  role_display_name: string;
-  role_permissions: any[];
-  role_hierarchy: number;
-  is_active: boolean;
-  is_email_verified: boolean;
-  last_login_at?: string;
+  phone_number?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
   created_at: string;
   updated_at: string;
+  last_login_at?: string;
 }
 
-export interface SupabaseUserRepositoryConfig {
-  supabase: OptimizedSupabaseClient;
-  logger: ILogger;
-  auditService: IAuditService;
-  schema: string;
-  tableName: string;
+interface SessionRecord {
+  id: string;
+  user_id: string;
+  session_token: string;
+  device_info: any;
+  ip_address: string;
+  user_agent: string;
+  expires_at: string;
+  is_active: boolean;
+  created_at: string;
+  last_accessed_at: string;
 }
 
 /**
- * Supabase User Repository
- * Implements user repository with Vietnamese healthcare compliance
+ * Repository for User operations with Supabase auth_schema
+ * Implements IUserRepository interface following Clean Architecture pattern
+ * Returns Domain aggregates, not DTOs
  */
 export class SupabaseUserRepository implements IUserRepository {
-  private readonly supabaseClient: OptimizedSupabaseClient;
-  private readonly logger: ILogger;
-  private readonly auditService: IAuditService;
-  private readonly schema: string;
-  private readonly tableName: string;
+  private supabaseClient: SupabaseClient<any, 'auth_schema'>;
+  private circuitBreaker = CircuitBreakerFactory.getBreaker('user-repository');
+  private cacheService?: RedisCacheService;
 
-  constructor(config: SupabaseUserRepositoryConfig) {
-    this.supabaseClient = config.supabase;
-    this.logger = config.logger;
-    this.auditService = config.auditService;
-    this.schema = config.schema || 'auth_schema';
-    this.tableName = config.tableName || 'user_profiles';
+  // Cache TTL constants (in seconds)
+  private readonly CACHE_TTL = {
+    USER_PROFILE: 300,      // 5 minutes
+    USER_ROLES: 900,        // 15 minutes
+    USER_PERMISSIONS: 900,  // 15 minutes
+    SESSION: 60             // 1 minute
+  };
+
+  constructor(
+    supabaseUrl: string,
+    supabaseKey: string,
+    private logger: ILogger,
+    cacheService?: RedisCacheService
+  ) {
+    // Configure Supabase client with public schema (access auth_schema via SQL)
+    this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      db: {
+        schema: 'auth_schema', // ✅ Fixed: Use auth_schema for user_profiles
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'identity-service',
+        },
+      },
+    });
+
+    this.cacheService = cacheService;
   }
 
-  public async save(user: User): Promise<void> {
-    try {
-      this.logger.info('Saving user to database', {
-        userId: user.id.value,
-        email: user.email.value,
-        role: user.healthcareRole.name
-      });
+  /**
+   * Find user by ID with circuit breaker protection and caching
+   * Returns Domain aggregate, not DTO
+   */
+  async findById(userId: UserId): Promise<User | null> {
+    const id = userId.value;
 
-      const client = await this.supabaseClient.getConnection();
+    // Try cache first
+    if (this.cacheService) {
+      const cacheKey = `user:${id}`;
+      const cached = await this.cacheService.get<UserRecord>(cacheKey);
+      if (cached) {
+        this.logger.debug('Cache hit for user', { userId: id });
+        return this.mapToUserAggregate(cached);
+      }
+    }
 
-      // Convert aggregate to persistence format
-      const record = this.toPersistence(user);
+    return await this.circuitBreaker.execute(
+      async () => {
+        const { data, error } = await this.supabaseClient
+          .from('user_profiles')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-      // Use upsert to handle both create and update
-      const { data, error } = await client
-        .schema(this.schema)
-        .from(this.tableName)
-        .upsert(record, {
-          onConflict: 'id',
-          ignoreDuplicates: false
-        })
-        .select()
-        .single();
+        if (error) {
+          if (error.code === 'PGRST116') {
+            return null; // Not found
+          }
+          throw new Error(`Failed to find user: ${getErrorMessage(error)}`);
+        }
 
-      if (error) {
-        this.logger.error('Error saving user to database', {
-          userId: user.id.value,
-          error: error.message,
-          details: error.details
+        // Cache the database record
+        if (this.cacheService && data) {
+          await this.cacheService.set(`user:${id}`, data, { ttl: this.CACHE_TTL.USER_PROFILE });
+        }
+
+        // Map to Domain aggregate
+        return this.mapToUserAggregate(data);
+      },
+      async () => {
+        this.logger.warn('Using fallback for findById', { userId: id });
+        return null; // Fallback: return null if database unavailable
+      }
+    );
+  }
+
+  /**
+   * Find user by email with caching
+   * Returns Domain aggregate, not DTO
+   */
+  async findByEmail(email: Email): Promise<User | null> {
+    const emailValue = email.value;
+
+    // Try cache first
+    if (this.cacheService) {
+      const cacheKey = `user:email:${emailValue}`;
+      const cached = await this.cacheService.get<UserRecord>(cacheKey);
+      if (cached) {
+        this.logger.debug('Cache hit for user by email', { email: emailValue });
+        return this.mapToUserAggregate(cached);
+      }
+    }
+
+    return await this.circuitBreaker.execute(
+      async () => {
+        const { data, error } = await this.supabaseClient
+          .from('user_profiles')
+          .select('*')
+          .eq('email', emailValue)
+          .single();
+
+        if (error) {
+          if (error.code === 'PGRST116') {
+            return null; // Not found
+          }
+          throw new Error(`Failed to find user by email: ${getErrorMessage(error)}`);
+        }
+
+        // Cache the database record
+        if (this.cacheService && data) {
+          await this.cacheService.set(`user:email:${emailValue}`, data, { ttl: this.CACHE_TTL.USER_PROFILE });
+          await this.cacheService.set(`user:${data.id}`, data, { ttl: this.CACHE_TTL.USER_PROFILE });
+        }
+
+        // Map to Domain aggregate
+        return this.mapToUserAggregate(data);
+      },
+      async () => {
+        this.logger.warn('Using fallback for findByEmail', { email: emailValue });
+        return null;
+      }
+    );
+  }
+
+  /**
+   * Create new user with audit logging
+   */
+  async create(userData: CreateUserRequest): Promise<User> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        const userRecord = {
+          email: userData.email,
+          full_name: userData.fullName,
+          role_type: userData.roleType,
+          citizen_id: userData.citizenId,
+          date_of_birth: userData.dateOfBirth?.toISOString().split('T')[0],
+          gender: userData.gender,
+          phone_number: userData.phoneNumber,
+          is_active: true,
+          is_verified: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await this.supabaseClient
+          .from('user_profiles')
+          .insert(userRecord)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(`Failed to create user: ${getErrorMessage(error)}`);
+        }
+
+        // Log user creation for audit
+        await this.logAuditEvent('USER_CREATED', data.id, {
+          email: userData.email,
+          roleType: userData.roleType
         });
 
-        throw new Error(`Lỗi lưu người dùng: ${error.message}`);
+        return this.mapToUserAggregate(data);
       }
+    );
+  }
 
-      // HIPAA audit logging
-      await this.auditService.logUserAccess(
-        'SAVE',
-        user.id.value,
-        'SYSTEM',
-        'User record saved to database',
-        {
-          email: user.email.value,
-          role: user.healthcareRole.name,
-          isActive: user.isActive
+  /**
+   * Update user information
+   * Accepts full User aggregate and maps to database format
+   */
+  async update(user: User): Promise<void> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        const id = user.id;
+
+        // Use UserMapper to convert domain to database format
+        const updateRecord = UserMapper.toUpdate(user);
+
+        // Remove undefined values with typed keys
+        for (const key of Object.keys(updateRecord) as Array<keyof typeof updateRecord>) {
+          if (updateRecord[key] === undefined) {
+            delete updateRecord[key];
+          }
         }
-      );
 
-      this.logger.info('User saved successfully', {
-        userId: user.id.value,
-        id: data?.id
-      });
+        const { error } = await this.supabaseClient
+          .from('user_profiles')
+          .update(updateRecord)
+          .eq('id', id)
+          .select()
+          .single();
 
-    } catch (error) {
-      this.logger.error('Error saving user', {
-        userId: user.id.value,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+        if (error) {
+          throw new Error(`Failed to update user: ${getErrorMessage(error)}`);
+        }
 
-      throw new Error(`Lỗi lưu người dùng: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+        // Log user update for audit
+        await this.logAuditEvent('USER_UPDATED', id, {
+          updatedFields: Object.keys(updateRecord)
+        });
+
+        // Invalidate cache after update
+        await this.invalidateUserCache(id, user.email.value);
+      }
+    );
   }
-
-  public async findById(id: UserId): Promise<User | null> {
-    const { data, error } = await this.supabase
+  /**
+   * Save user (create or update) - minimal implementation for schema-per-service
+   */
+  async save(user: User): Promise<void> {
+    const record = UserMapper.toPersistence(user);
+    // Upsert by id into auth_schema.user_profiles
+    const { error } = await this.supabaseClient
       .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('id', id.value)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Lỗi tìm người dùng: ${error.message}`);
-    }
-
-    return data ? this.toDomain(data) : null;
-  }
-
-  public async findByEmail(email: Email): Promise<User | null> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('email', email.value)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Lỗi tìm người dùng theo email: ${error.message}`);
-    }
-
-    return data ? this.toDomain(data) : null;
-  }
-
-  public async findByNationalId(nationalId: string): Promise<User | null> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('national_id', nationalId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Lỗi tìm người dùng theo CMND/CCCD: ${error.message}`);
-    }
-
-    return data ? this.toDomain(data) : null;
-  }
-
-  public async delete(id: UserId): Promise<void> {
-    const { error } = await this.supabase
-      .from('user_profiles')
-      .delete()
-      .eq('id', id.value);
-
+      .upsert(record, { onConflict: 'id' });
     if (error) {
-      throw new Error(`Lỗi xóa người dùng: ${error.message}`);
+      throw new Error(`Failed to save user: ${getErrorMessage(error)}`);
     }
+    // Invalidate caches
+    await this.invalidateUserCache(record.id!, record.email!);
   }
 
-  public async exists(id: UserId): Promise<boolean> {
-    const { data, error } = await this.supabase
+  /**
+   * Soft delete user
+   */
+  async delete(userId: UserId): Promise<void> {
+    const id = userId.value;
+    const { error } = await this.supabaseClient
+      .from('user_profiles')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) {
+      throw new Error(`Failed to delete user: ${getErrorMessage(error)}`);
+    }
+    await this.invalidateUserCache(id);
+  }
+
+  /**
+   * Check if user exists
+   */
+  async exists(userId: UserId): Promise<boolean> {
+    const id = userId.value;
+    const { data, error } = await this.supabaseClient
       .from('user_profiles')
       .select('id')
-      .eq('id', id.value)
-      .single();
-
+      .eq('id', id)
+      .limit(1)
+      .maybeSingle();
     if (error && error.code !== 'PGRST116') {
-      throw new Error(`Lỗi kiểm tra tồn tại người dùng: ${error.message}`);
+      throw new Error(`Failed to check user existence: ${getErrorMessage(error)}`);
     }
-
     return !!data;
   }
 
-  public async findByRole(role: HealthcareRole): Promise<User[]> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('role_name', role.name);
 
-    if (error) {
-      throw new Error(`Lỗi tìm người dùng theo vai trò: ${error.message}`);
-    }
+  /**
+   * Create user session
+   */
+  async createSession(session: UserSession): Promise<void> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        const sessionRecord = {
+          user_id: session.userId,
+          session_token: session.sessionToken,
+          device_info: session.deviceInfo,
+          ip_address: session.ipAddress,
+          user_agent: session.userAgent,
+          expires_at: session.expiresAt.toISOString(),
+          is_active: session.isActive,
+          created_at: new Date().toISOString(),
+          last_accessed_at: new Date().toISOString()
+        };
 
-    return data.map(record => this.toDomain(record));
+        const { data, error } = await this.supabaseClient
+          .from('user_sessions')
+          .insert(sessionRecord)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(`Failed to create session: ${getErrorMessage(error)}`);
+        }
+
+        // Log session creation for security audit
+        await this.logAuditEvent('SESSION_CREATED', session.userId, {
+          sessionId: data.id,
+          ipAddress: session.ipAddress,
+          userAgent: session.userAgent
+        });
+      }
+    );
   }
 
-  public async findActiveUsers(): Promise<User[]> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('is_active', true);
+  /**
+   * Find active session by token
+   */
+  async findSessionByToken(token: string): Promise<UserSession | null> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        const { data, error } = await this.supabaseClient
+          .from('user_sessions')
+          .select('*')
+          .eq('session_token', token)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single();
 
-    if (error) {
-      throw new Error(`Lỗi tìm người dùng đang hoạt động: ${error.message}`);
-    }
+        if (error) {
+          if (error.code === 'PGRST116') {
+            return null; // Not found
+          }
+          throw new Error(`Failed to find session: ${getErrorMessage(error)}`);
+        }
 
-    return data.map(record => this.toDomain(record));
+        return this.mapToSessionEntity(data);
+      },
+      async () => {
+        this.logger.warn('Using fallback for findSessionByToken');
+        return null;
+      }
+    );
   }
 
-  public async findInactiveUsers(): Promise<User[]> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('is_active', false);
+  /**
+   * Invalidate user session
+   */
+  async invalidateSession(sessionId: string, sessionToken?: string): Promise<void> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        const { error } = await this.supabaseClient
+          .from('user_sessions')
+          .update({
+            is_active: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sessionId);
 
-    if (error) {
-      throw new Error(`Lỗi tìm người dùng không hoạt động: ${error.message}`);
-    }
+        if (error) {
+          throw new Error(`Failed to invalidate session: ${getErrorMessage(error)}`);
+        }
 
-    return data.map(record => this.toDomain(record));
+        // Invalidate session cache if token provided
+        if (sessionToken) {
+          await this.invalidateSessionCache(sessionToken);
+        }
+
+        // Log session invalidation for security audit
+        await this.logAuditEvent('SESSION_INVALIDATED', null, {
+          sessionId
+        });
+      }
+    );
   }
 
-  public async findUnverifiedUsers(): Promise<User[]> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('is_email_verified', false);
-
-    if (error) {
-      throw new Error(`Lỗi tìm người dùng chưa xác thực: ${error.message}`);
-    }
-
-    return data.map(record => this.toDomain(record));
+  /**
+   * Deactivate session - alias for invalidateSession
+   */
+  async deactivateSession(sessionId: string, sessionToken?: string): Promise<void> {
+    return this.invalidateSession(sessionId, sessionToken);
   }
 
-  public async searchByName(name: string): Promise<User[]> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .ilike('full_name', `%${name}%`);
-
-    if (error) {
-      throw new Error(`Lỗi tìm kiếm người dùng theo tên: ${error.message}`);
+  /**
+   * Get user roles with caching
+   */
+  async getUserRoles(userId: UserId): Promise<string[]> {
+    const id = userId.value;
+    // Try cache first
+    if (this.cacheService) {
+      const cacheKey = `roles:${id}`;
+      const cached = await this.cacheService.get<string[]>(cacheKey);
+      if (cached) {
+        this.logger.debug('Cache hit for user roles', { userId: id });
+        return cached;
+      }
     }
 
-    return data.map(record => this.toDomain(record));
+    return await this.circuitBreaker.execute(
+      async () => {
+        const { data, error } = await this.supabaseClient
+          .from('user_profiles')
+          .select('role_type')
+          .eq('id', id)
+          .single();
+
+        if (error) {
+          // If user not found, return empty array instead of throwing
+          if (error.code === 'PGRST116') {
+            this.logger.debug('User not found', { userId: id });
+            return [];
+          }
+          throw new Error(`Failed to get user roles: ${getErrorMessage(error)}`);
+        }
+
+        const roles = [data.role_type];
+
+        // Cache the result
+        if (this.cacheService) {
+          await this.cacheService.set(`roles:${id}`, roles, { ttl: this.CACHE_TTL.USER_ROLES });
+        }
+
+        return roles;
+      },
+      async () => {
+        this.logger.warn('Using fallback for getUserRoles', { userId: id });
+        return []; // Return empty array for non-existent user
+      }
+    );
   }
 
-  public async searchByPhoneNumber(phoneNumber: string): Promise<User[]> {
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .eq('phone_number', phoneNumber);
+  /**
+   * Log audit event for HIPAA compliance
+   */
+  private async logAuditEvent(action: string, userId: string | null, details: any): Promise<void> {
+    try {
+      const auditRecord = {
+        actor_id: userId,
+        action,
+        resource_type: 'user',
+        resource_id: userId,
+        details,
+        severity: 'info',
+        success: true,
+        created_at: new Date().toISOString()
+      };
 
-    if (error) {
-      throw new Error(`Lỗi tìm kiếm người dùng theo số điện thoại: ${error.message}`);
+      await this.supabaseClient
+        .from('audit_logs')
+        .insert(auditRecord);
+    } catch (error) {
+      this.logger.error('Failed to log audit event', {
+        action,
+        userId,
+        error: getErrorMessage(error)
+      });
     }
-
-    return data.map(record => this.toDomain(record));
   }
 
-  public async findAll(page: number, limit: number): Promise<{
-    users: User[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }> {
-    const offset = (page - 1) * limit;
+  /**
+   * Map database record to User Domain aggregate
+   * Following Clean Architecture pattern - returns rich domain object
+   */
+  private mapToUserAggregate(data: UserRecord): User {
+    return UserMapper.toDomain(data);
+  }
 
-    const [dataResult, countResult] = await Promise.all([
-      this.supabase
+  /**
+   * Map database record to UserSession Domain entity
+   * Following Clean Architecture pattern - returns rich domain object
+   */
+  private mapToSessionEntity(data: SessionRecord): UserSession {
+    return UserSession.fromPersistenceData({
+      id: data.id,
+      userId: data.user_id,
+      sessionToken: data.session_token,
+      deviceInfo: data.device_info,
+      ipAddress: data.ip_address,
+      userAgent: data.user_agent,
+      expiresAt: new Date(data.expires_at),
+      isActive: data.is_active,
+      createdAt: new Date(data.created_at),
+      lastAccessedAt: new Date(data.last_accessed_at)
+    });
+  }
+
+  /**
+   * Disable MFA for user
+   */
+  async disableMFA(userId: UserId): Promise<void> {
+    const id = userId.value;
+    try {
+      // Disable MFA in two_factor_auth table
+      const { error: mfaError } = await this.supabaseClient
+        .from('two_factor_auth')
+        .update({
+          is_enabled: false,
+          secret_key: null,
+          backup_codes: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', id);
+
+      if (mfaError) {
+        throw new Error(`Failed to disable MFA: ${getErrorMessage(mfaError)}`);
+      }
+
+      // Update user profile
+      const { error: profileError } = await this.supabaseClient
         .from('user_profiles')
-        .select(`
-          *,
-          healthcare_roles (
-            name,
-            display_name,
-            description,
-            hierarchy,
-            is_active,
-            role_permissions (
-              permission_name,
-              resource_type,
-              actions,
-              conditions
-            )
-          )
-        `)
-        .range(offset, offset + limit - 1)
-        .order('created_at', { ascending: false }),
-      
-      this.supabase
-        .from('user_profiles')
-        .select('*', { count: 'exact', head: true })
-    ]);
+        .update({
+          two_factor_enabled: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
 
-    if (dataResult.error) {
-      throw new Error(`Lỗi lấy danh sách người dùng: ${dataResult.error.message}`);
+      if (profileError) {
+        throw new Error(`Failed to update user profile: ${getErrorMessage(profileError)}`);
+      }
+
+      this.logger.info('MFA disabled successfully', { userId: id });
+    } catch (error) {
+      this.logger.error('Failed to disable MFA', { userId: id, error: getErrorMessage(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Check if account is locked due to failed login attempts
+   * Returns: { isLocked: boolean, unlockAt?: Date, failedAttempts: number }
+   */
+  async checkAccountLockout(email: Email): Promise<{ isLocked: boolean; unlockAt?: Date; failedAttempts: number }> {
+    try {
+      const emailValue = email.value;
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+      // Get recent failed login attempts (last 30 minutes)
+      const { data: attempts, error } = await this.supabaseClient
+        .from('login_attempts')
+        .select('*')
+        .eq('email', emailValue)
+        .eq('is_successful', false)
+        .gte('created_at', thirtyMinutesAgo.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        this.logger.error('Failed to check account lockout', { email: emailValue, error: getErrorMessage(error) });
+        return { isLocked: false, failedAttempts: 0 };
+      }
+
+      const failedAttempts = attempts?.length || 0;
+
+      // Lock account if 5 or more failed attempts in last 30 minutes
+      if (failedAttempts >= 5) {
+        const firstFailedAttempt = attempts[attempts.length - 1];
+        const unlockAt = new Date(new Date(firstFailedAttempt.created_at).getTime() + 30 * 60 * 1000);
+
+        // Check if still locked
+        if (new Date() < unlockAt) {
+          this.logger.warn('Account is locked', { email: emailValue, failedAttempts, unlockAt });
+          return { isLocked: true, unlockAt, failedAttempts };
+        }
+      }
+
+      return { isLocked: false, failedAttempts };
+    } catch (error) {
+      this.logger.error('Error checking account lockout', { email: email.value, error: getErrorMessage(error) });
+      return { isLocked: false, failedAttempts: 0 };
+    }
+  }
+
+  /**
+   * Record login attempt (success or failure)
+   */
+  async recordLoginAttempt(
+    email: Email,
+    isSuccessful: boolean,
+    ipAddress?: string,
+    userAgent?: string,
+    errorMessage?: string
+  ): Promise<void> {
+    try {
+      const emailValue = email.value;
+      const attemptRecord = {
+        email: emailValue,
+        is_successful: isSuccessful,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        error_message: errorMessage,
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await this.supabaseClient
+        .from('login_attempts')
+        .insert(attemptRecord);
+
+      if (error) {
+        this.logger.error('Failed to record login attempt', { email: emailValue, error: getErrorMessage(error) });
+      }
+
+      // If successful, clear old failed attempts
+      if (isSuccessful) {
+        await this.clearFailedLoginAttempts(emailValue);
+      }
+    } catch (error) {
+      this.logger.error('Error recording login attempt', { email: email.value, error: getErrorMessage(error) });
+    }
+  }
+
+  /**
+   * Clear failed login attempts for user (after successful login)
+   */
+  private async clearFailedLoginAttempts(email: string): Promise<void> {
+    try {
+      const { error } = await this.supabaseClient
+        .from('login_attempts')
+        .delete()
+        .eq('email', email)
+        .eq('is_successful', false);
+
+      if (error) {
+        this.logger.error('Failed to clear failed login attempts', { email, error: getErrorMessage(error) });
+      }
+    } catch (error) {
+      this.logger.error('Error clearing failed login attempts', { email, error: getErrorMessage(error) });
+    }
+  }
+
+  /**
+   * Manually unlock account (admin function)
+   */
+  async unlockAccount(email: Email, adminUserId: string): Promise<void> {
+    try {
+      const emailValue = email.value;
+      // Delete all failed login attempts
+      const { error } = await this.supabaseClient
+        .from('login_attempts')
+        .delete()
+        .eq('email', emailValue)
+        .eq('is_successful', false);
+
+      if (error) {
+        throw new Error(`Failed to unlock account: ${getErrorMessage(error)}`);
+      }
+
+      // Log audit event
+      await this.logAuditEvent('account_unlocked', adminUserId, {
+        target_email: emailValue,
+        action: 'manual_unlock'
+      });
+
+      this.logger.info('Account unlocked successfully', { email: emailValue, adminUserId });
+    } catch (error) {
+      this.logger.error('Failed to unlock account', { email: email.value, error: getErrorMessage(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Invalidate user cache (call after updates)
+   */
+  async invalidateUserCache(userId: string, email?: string): Promise<void> {
+    if (!this.cacheService) {
+      return;
     }
 
-    if (countResult.error) {
-      throw new Error(`Lỗi đếm số lượng người dùng: ${countResult.error.message}`);
+    try {
+      // Delete user profile cache
+      await this.cacheService.delete(`user:${userId}`);
+
+      // Delete email-based cache if provided
+      if (email) {
+        await this.cacheService.delete(`user:email:${email}`);
+      }
+
+      // Delete roles cache
+      await this.cacheService.delete(`roles:${userId}`);
+
+      // Delete permissions cache
+      await this.cacheService.delete(`permissions:${userId}`);
+
+      this.logger.debug('User cache invalidated', { userId });
+    } catch (error) {
+      this.logger.error('Failed to invalidate user cache', { userId, error: getErrorMessage(error) });
+    }
+  }
+
+  /**
+   * Invalidate session cache
+   */
+  async invalidateSessionCache(sessionToken: string): Promise<void> {
+    if (!this.cacheService) {
+      return;
     }
 
-    const users = dataResult.data.map(record => this.toDomain(record));
-    const total = countResult.count || 0;
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      users,
-      total,
-      page,
-      limit,
-      totalPages
-    };
+    try {
+      await this.cacheService.delete(`session:${sessionToken}`);
+      this.logger.debug('Session cache invalidated', { sessionToken: sessionToken.substring(0, 10) + '...' });
+    } catch (error) {
+      this.logger.error('Failed to invalidate session cache', { error: getErrorMessage(error) });
+    }
   }
 
-  // Healthcare-specific queries
-  public async findDoctors(): Promise<User[]> {
-    return this.findByRole(HealthcareRole.createDoctor());
+  /**
+   * Clear all cache for this service
+   */
+  async clearAllCache(): Promise<void> {
+    if (!this.cacheService) {
+      return;
+    }
+
+    try {
+      const deletedCount = await this.cacheService.clear();
+      this.logger.info('All cache cleared', { deletedCount });
+    } catch (error) {
+      this.logger.error('Failed to clear all cache', { error: getErrorMessage(error) });
+    }
   }
 
-  public async findNurses(): Promise<User[]> {
-    return this.findByRole(HealthcareRole.createNurse());
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return this.cacheService?.getStats() || null;
   }
 
-  public async findPatients(): Promise<User[]> {
-    return this.findByRole(HealthcareRole.createPatient());
+  /**
+   * Check if email exists
+   */
+  async emailExists(email: Email): Promise<boolean> {
+    const user = await this.findByEmail(email);
+    return user !== null;
   }
 
-  public async findAdministrators(): Promise<User[]> {
-    return this.findByRole(HealthcareRole.createAdmin());
+  /**
+   * Get user permissions
+   */
+  async getUserPermissions(userId: UserId): Promise<string[]> {
+    const roles = await this.getUserRoles(userId);
+    // For now, return basic permissions based on roles
+    // TODO: Implement proper permission mapping
+    const permissions: string[] = [];
+    roles.forEach(role => {
+      if (role === 'admin') {
+        permissions.push('*'); // Admin has all permissions
+      } else if (role === 'doctor') {
+        permissions.push('read_patients', 'write_patients', 'read_appointments');
+      } else if (role === 'patient') {
+        permissions.push('read_own_data', 'book_appointments');
+      }
+    });
+    return permissions;
   }
 
-  public async findReceptionists(): Promise<User[]> {
-    return this.findByRole(HealthcareRole.createReceptionist());
-  }
-
-  public async countByRole(role: HealthcareRole): Promise<number> {
-    const { count, error } = await this.supabase
-      .from('user_profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('role_name', role.name);
+  /**
+   * Get active sessions for user
+   */
+  async getActiveSessions(userId: UserId): Promise<UserSession[]> {
+    const { data, error } = await this.supabaseClient
+      .from('user_sessions')
+      .select('*')
+      .eq('user_id', userId.value)
+      .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString());
 
     if (error) {
-      throw new Error(`Lỗi đếm người dùng theo vai trò: ${error.message}`);
+      throw new Error(`Failed to get active sessions: ${getErrorMessage(error)}`);
+    }
+
+    return data.map(record => this.mapToSessionEntity(record));
+  }
+
+  /**
+   * Get healthcare role by type
+   */
+  async getHealthcareRoleByType(roleType: string): Promise<any | null> {
+    const { data, error } = await this.supabaseClient
+      .from('healthcare_roles')
+      .select('*')
+      .eq('role_name', roleType)
+      .single();
+
+    if (error) {
+      return null;
+    }
+
+    return data;
+  }
+
+  /**
+   * List all users with pagination
+   */
+  async list(options?: {
+    limit?: number;
+    offset?: number;
+    filters?: Record<string, any>;
+  }): Promise<User[]> {
+    let query = this.supabaseClient
+      .from('user_profiles')
+      .select('*');
+
+    if (options?.filters) {
+      Object.entries(options.filters).forEach(([key, value]) => {
+        query = query.eq(key, value);
+      });
+    }
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to list users: ${getErrorMessage(error)}`);
+    }
+
+    return data.map(record => this.mapToUserAggregate(record));
+  }
+
+  /**
+   * Count total users
+   */
+  async count(filters?: Record<string, any>): Promise<number> {
+    let query = this.supabaseClient
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true });
+
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        query = query.eq(key, value);
+      });
+    }
+
+    const { count, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to count users: ${getErrorMessage(error)}`);
     }
 
     return count || 0;
-  }
-
-  public async countActiveUsers(): Promise<number> {
-    const { count, error } = await this.supabase
-      .from('user_profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true);
-
-    if (error) {
-      throw new Error(`Lỗi đếm người dùng đang hoạt động: ${error.message}`);
-    }
-
-    return count || 0;
-  }
-
-  public async countInactiveUsers(): Promise<number> {
-    const { count, error } = await this.supabase
-      .from('user_profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', false);
-
-    if (error) {
-      throw new Error(`Lỗi đếm người dùng không hoạt động: ${error.message}`);
-    }
-
-    return count || 0;
-  }
-
-  public async getRegistrationStats(startDate: Date, endDate: Date): Promise<{
-    total: number;
-    byRole: Record<string, number>;
-    byDay: Record<string, number>;
-  }> {
-    // Implementation for registration statistics
-    // This would involve complex queries to aggregate data
-    throw new Error('Method not implemented yet');
-  }
-
-  public async findUsersWithLastLogin(days: number): Promise<User[]> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .gte('last_login_at', cutoffDate.toISOString());
-
-    if (error) {
-      throw new Error(`Lỗi tìm người dùng có đăng nhập gần đây: ${error.message}`);
-    }
-
-    return data.map(record => this.toDomain(record));
-  }
-
-  public async findUsersWithoutLogin(days: number): Promise<User[]> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-
-    const { data, error } = await this.supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        healthcare_roles (
-          name,
-          display_name,
-          description,
-          hierarchy,
-          is_active,
-          role_permissions (
-            permission_name,
-            resource_type,
-            actions,
-            conditions
-          )
-        )
-      `)
-      .or(`last_login_at.is.null,last_login_at.lt.${cutoffDate.toISOString()}`);
-
-    if (error) {
-      throw new Error(`Lỗi tìm người dùng không đăng nhập lâu: ${error.message}`);
-    }
-
-    return data.map(record => this.toDomain(record));
-  }
-
-  public async findExpiredAccounts(): Promise<User[]> {
-    // Implementation for finding expired accounts
-    // This would depend on business rules for account expiration
-    throw new Error('Method not implemented yet');
-  }
-
-  public async saveMany(users: User[]): Promise<void> {
-    const records = users.map(user => this.toRecord(user));
-    
-    const { error } = await this.supabase
-      .from('user_profiles')
-      .upsert(records, { onConflict: 'id' });
-
-    if (error) {
-      throw new Error(`Lỗi lưu nhiều người dùng: ${error.message}`);
-    }
-  }
-
-  public async updateMany(userIds: UserId[], updates: Partial<User>): Promise<void> {
-    // Implementation for bulk updates
-    throw new Error('Method not implemented yet');
-  }
-
-  public async deactivateMany(userIds: UserId[]): Promise<void> {
-    const ids = userIds.map(id => id.value);
-    
-    const { error } = await this.supabase
-      .from('user_profiles')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .in('id', ids);
-
-    if (error) {
-      throw new Error(`Lỗi vô hiệu hóa nhiều người dùng: ${error.message}`);
-    }
-  }
-
-  public async activateMany(userIds: UserId[]): Promise<void> {
-    const ids = userIds.map(id => id.value);
-    
-    const { error } = await this.supabase
-      .from('user_profiles')
-      .update({ is_active: true, updated_at: new Date().toISOString() })
-      .in('id', ids);
-
-    if (error) {
-      throw new Error(`Lỗi kích hoạt nhiều người dùng: ${error.message}`);
-    }
-  }
-
-  // Mapping methods
-  private toRecord(user: User): UserRecord {
-    return {
-      id: user.id.value,
-      email: user.email.value,
-      password_hash: (user as any).props.passwordHash,
-      full_name: user.personalInfo.fullName,
-      phone_number: user.personalInfo.phoneNumber,
-      date_of_birth: user.personalInfo.dateOfBirth?.toISOString().split('T')[0],
-      gender: user.personalInfo.gender,
-      address: user.personalInfo.address,
-      national_id: user.personalInfo.nationalId,
-      emergency_contact: user.personalInfo.emergencyContact,
-      role_name: user.healthcareRole.name,
-      role_display_name: user.healthcareRole.displayName,
-      role_permissions: user.healthcareRole.permissions,
-      role_hierarchy: user.healthcareRole.hierarchy,
-      is_active: user.isActive,
-      is_email_verified: user.isEmailVerified,
-      last_login_at: user.lastLoginAt?.toISOString(),
-      created_at: (user as any).props.createdAt.toISOString(),
-      updated_at: (user as any).props.updatedAt.toISOString()
-    };
-  }
-
-  private toDomain(record: any): User {
-    const userId = UserId.create(record.id);
-    const email = Email.create(record.email);
-    const personalInfo = PersonalInfo.create({
-      fullName: record.full_name,
-      phoneNumber: record.phone_number,
-      dateOfBirth: record.date_of_birth ? new Date(record.date_of_birth) : undefined,
-      gender: record.gender,
-      address: record.address,
-      nationalId: record.national_id,
-      emergencyContact: record.emergency_contact
-    });
-
-    const healthcareRole = HealthcareRole.reconstitute({
-      id: record.healthcare_roles?.id || `role_${record.role_name}`,
-      name: record.role_name,
-      displayName: record.role_display_name,
-      description: record.healthcare_roles?.description || '',
-      permissions: record.healthcare_roles?.role_permissions || [],
-      hierarchy: record.role_hierarchy,
-      isActive: record.healthcare_roles?.is_active ?? true,
-      createdAt: new Date(record.created_at),
-      updatedAt: new Date(record.updated_at)
-    });
-
-    return User.reconstitute({
-      id: userId,
-      email,
-      personalInfo,
-      passwordHash: record.password_hash,
-      healthcareRole,
-      isActive: record.is_active,
-      isEmailVerified: record.is_email_verified,
-      lastLoginAt: record.last_login_at ? new Date(record.last_login_at) : undefined,
-      createdAt: new Date(record.created_at),
-      updatedAt: new Date(record.updated_at)
-    });
   }
 }

@@ -1,0 +1,96 @@
+/**
+ * Permission Middleware
+ * Express middleware for RBAC permission checking
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, RBAC, HIPAA
+ */
+import { Request, Response, NextFunction } from 'express';
+import { IPermissionService, Permission, ResourceType, Action } from '../../application/services/IPermissionService';
+/**
+ * Extended Request with user info
+ */
+export interface AuthenticatedRequest extends Request {
+    user?: {
+        userId: string;
+        email: string;
+        roles: string[];
+        permissions: string[];
+    };
+}
+/**
+ * Permission check options
+ */
+export interface PermissionOptions {
+    /**
+     * Required permissions (user must have at least one)
+     */
+    permissions?: Permission[];
+    /**
+     * Resource type and action (alternative to permissions array)
+     */
+    resource?: ResourceType;
+    action?: Action;
+    /**
+     * Require all permissions (default: false - any permission is enough)
+     */
+    requireAll?: boolean;
+    /**
+     * Custom error message
+     */
+    errorMessage?: string;
+    /**
+     * Check resource ownership
+     */
+    checkOwnership?: boolean;
+    /**
+     * Function to extract resource owner ID from request
+     */
+    getResourceOwnerId?: (req: AuthenticatedRequest) => string | undefined;
+}
+/**
+ * Permission Middleware Factory
+ */
+export declare class PermissionMiddleware {
+    private permissionService;
+    private logger;
+    constructor(permissionService: IPermissionService, logger: any);
+    /**
+     * Create middleware to check permissions
+     */
+    requirePermission(options: PermissionOptions): (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+    /**
+     * Shorthand: Require any of the permissions
+     */
+    requireAny(...permissions: Permission[]): (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+    /**
+     * Shorthand: Require all permissions
+     */
+    requireAll(...permissions: Permission[]): (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+    /**
+     * Shorthand: Require resource access
+     */
+    requireResource(resource: ResourceType, action: Action): (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+    /**
+     * Shorthand: Require admin permission
+     */
+    requireAdmin(): (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+    /**
+     * Shorthand: Require ownership or admin
+     */
+    requireOwnershipOrAdmin(getResourceOwnerId: (req: AuthenticatedRequest) => string | undefined): (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+}
+/**
+ * Helper to extract user ID from route params
+ */
+export declare function getUserIdFromParams(req: AuthenticatedRequest): string | undefined;
+/**
+ * Helper to extract patient ID from route params
+ */
+export declare function getPatientIdFromParams(req: AuthenticatedRequest): string | undefined;
+/**
+ * Helper to extract resource owner from request body
+ */
+export declare function getOwnerIdFromBody(req: AuthenticatedRequest): string | undefined;
+//# sourceMappingURL=PermissionMiddleware.d.ts.map

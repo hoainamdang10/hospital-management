@@ -1,262 +1,221 @@
 /**
  * HealthcareRole Entity
- * Manages roles and permissions in Vietnamese healthcare system
+ * Represents user roles in healthcare system
+ * 
+ * @author Hospital Management Team
+ * @version 2.0.0
  */
 
-import { Entity } from '../../../shared/domain/Entity';
-import { UserId } from '../value-objects/UserId';
+import { Entity } from '@shared/domain/base/entity';
 
-export interface HealthcareRoleProps {
-  id: string;
+export type HealthcareRoleType =
+  | 'ADMIN'
+  | 'DOCTOR'
+  | 'NURSE'
+  | 'RECEPTIONIST'
+  | 'PHARMACIST'
+  | 'LAB_TECHNICIAN'
+  | 'PATIENT'
+  | 'BILLING_STAFF';
+
+interface HealthcareRoleProps {
+  type: HealthcareRoleType;
   name: string;
-  displayName: string;
+  nameVietnamese: string;
   description: string;
-  permissions: Permission[];
-  hierarchy: number;
+  permissions: string[];
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Permission {
-  resource: string;
-  actions: string[];
-  conditions?: Record<string, any>;
+  hasHIPAATraining: boolean;
 }
 
 export class HealthcareRole extends Entity<HealthcareRoleProps> {
-  private constructor(props: HealthcareRoleProps) {
-    super(props);
+  private constructor(props: HealthcareRoleProps, id?: string) {
+    super(props, id);
   }
 
   public static create(
+    type: HealthcareRoleType,
     name: string,
-    displayName: string,
+    nameVietnamese: string,
     description: string,
-    permissions: Permission[],
-    hierarchy: number
+    permissions: string[] = [],
+    hasHIPAATraining: boolean = false
   ): HealthcareRole {
-    const now = new Date();
-
     return new HealthcareRole({
-      id: `role_${Date.now()}`,
+      type,
       name,
-      displayName,
+      nameVietnamese,
       description,
       permissions,
-      hierarchy,
       isActive: true,
-      createdAt: now,
-      updatedAt: now
+      hasHIPAATraining
     });
   }
 
-  public static reconstitute(props: HealthcareRoleProps): HealthcareRole {
-    return new HealthcareRole(props);
-  }
+  public static fromRoleType(roleType: string): HealthcareRole {
+    const roleMap: Record<string, { name: string; nameVi: string; desc: string; permissions: string[]; hipaa: boolean }> = {
+      'ADMIN': {
+        name: 'Administrator',
+        nameVi: 'Quản trị viên',
+        desc: 'System administrator with full access',
+        permissions: ['*'],
+        hipaa: true
+      },
+      'DOCTOR': {
+        name: 'Doctor',
+        nameVi: 'Bác sĩ',
+        desc: 'Medical doctor',
+        permissions: ['read:patients', 'write:patients', 'read:medical_records', 'write:medical_records'],
+        hipaa: true
+      },
+      'NURSE': {
+        name: 'Nurse',
+        nameVi: 'Y tá',
+        desc: 'Registered nurse',
+        permissions: ['read:patients', 'write:patients', 'read:medical_records'],
+        hipaa: true
+      },
+      'RECEPTIONIST': {
+        name: 'Receptionist',
+        nameVi: 'Lễ tân',
+        desc: 'Front desk receptionist',
+        permissions: ['read:patients', 'write:appointments'],
+        hipaa: false
+      },
+      'PHARMACIST': {
+        name: 'Pharmacist',
+        nameVi: 'Dược sĩ',
+        desc: 'Licensed pharmacist',
+        permissions: ['read:prescriptions', 'write:prescriptions'],
+        hipaa: true
+      },
+      'LAB_TECHNICIAN': {
+        name: 'Lab Technician',
+        nameVi: 'Kỹ thuật viên xét nghiệm',
+        desc: 'Laboratory technician',
+        permissions: ['read:lab_results', 'write:lab_results'],
+        hipaa: true
+      },
+      'PATIENT': {
+        name: 'Patient',
+        nameVi: 'Bệnh nhân',
+        desc: 'Patient user',
+        permissions: ['read:own_records'],
+        hipaa: false
+      },
+      'BILLING_STAFF': {
+        name: 'Billing Staff',
+        nameVi: 'Nhân viên thanh toán',
+        desc: 'Billing and payment staff',
+        permissions: ['read:billing', 'write:billing'],
+        hipaa: false
+      }
+    };
 
-  // Predefined Vietnamese healthcare roles
-  public static createAdmin(): HealthcareRole {
-    return this.create(
-      'admin',
-      'Quản trị viên',
-      'Quản trị viên hệ thống bệnh viện',
-      [
-        { resource: '*', actions: ['*'] },
-        { resource: 'users', actions: ['create', 'read', 'update', 'delete', 'manage'] },
-        { resource: 'system', actions: ['configure', 'monitor', 'backup'] }
-      ],
-      1
-    );
-  }
+    const roleData = roleMap[roleType.toUpperCase()];
+    if (!roleData) {
+      throw new Error(`Invalid role type: ${roleType}`);
+    }
 
-  public static createDoctor(): HealthcareRole {
-    return this.create(
-      'doctor',
-      'Bác sĩ',
-      'Bác sĩ điều trị',
-      [
-        { resource: 'patients', actions: ['read', 'update'] },
-        { resource: 'medical_records', actions: ['create', 'read', 'update'] },
-        { resource: 'appointments', actions: ['read', 'update'] },
-        { resource: 'prescriptions', actions: ['create', 'read', 'update'] },
-        { resource: 'diagnoses', actions: ['create', 'read', 'update'] }
-      ],
-      2
-    );
-  }
-
-  public static createNurse(): HealthcareRole {
-    return this.create(
-      'nurse',
-      'Y tá',
-      'Y tá chăm sóc bệnh nhân',
-      [
-        { resource: 'patients', actions: ['read', 'update'] },
-        { resource: 'medical_records', actions: ['read', 'update'] },
-        { resource: 'appointments', actions: ['read'] },
-        { resource: 'vital_signs', actions: ['create', 'read', 'update'] }
-      ],
-      3
-    );
-  }
-
-  public static createReceptionist(): HealthcareRole {
-    return this.create(
-      'receptionist',
-      'Lễ tân',
-      'Nhân viên lễ tân tiếp đón',
-      [
-        { resource: 'patients', actions: ['create', 'read', 'update'] },
-        { resource: 'appointments', actions: ['create', 'read', 'update', 'delete'] },
-        { resource: 'billing', actions: ['read', 'update'] }
-      ],
-      4
-    );
-  }
-
-  public static createPatient(): HealthcareRole {
-    return this.create(
-      'patient',
-      'Bệnh nhân',
-      'Bệnh nhân sử dụng dịch vụ',
-      [
-        { resource: 'own_profile', actions: ['read', 'update'] },
-        { resource: 'own_appointments', actions: ['create', 'read', 'update'] },
-        { resource: 'own_medical_records', actions: ['read'] },
-        { resource: 'own_billing', actions: ['read'] }
-      ],
-      5
-    );
+    return new HealthcareRole({
+      type: roleType.toUpperCase() as HealthcareRoleType,
+      name: roleData.name,
+      nameVietnamese: roleData.nameVi,
+      description: roleData.desc,
+      permissions: roleData.permissions,
+      isActive: true,
+      hasHIPAATraining: roleData.hipaa
+    });
   }
 
   // Getters
-  public get id(): string {
-    return this.props.id;
+  public get type(): HealthcareRoleType {
+    return this.props.type;
   }
 
   public get name(): string {
     return this.props.name;
   }
 
-  public get displayName(): string {
-    return this.props.displayName;
+  public get nameVietnamese(): string {
+    return this.props.nameVietnamese;
   }
 
   public get description(): string {
     return this.props.description;
   }
 
-  public get permissions(): Permission[] {
-    return this.props.permissions;
-  }
-
-  public get hierarchy(): number {
-    return this.props.hierarchy;
+  public get permissions(): string[] {
+    return [...this.props.permissions];
   }
 
   public get isActive(): boolean {
     return this.props.isActive;
   }
 
-  // Permission checking methods
+  public hasHIPAATraining(): boolean {
+    return this.props.hasHIPAATraining;
+  }
+
+  /**
+   * Check if role has specific permission
+   */
   public hasPermission(action: string, resource: string): boolean {
-    if (!this.props.isActive) return false;
-
-    return this.props.permissions.some(permission => {
-      const resourceMatch = permission.resource === '*' || permission.resource === resource;
-      const actionMatch = permission.actions.includes('*') || permission.actions.includes(action);
-      return resourceMatch && actionMatch;
-    });
+    const permission = `${action}:${resource}`;
+    return this.props.permissions.includes('*') || this.props.permissions.includes(permission);
   }
 
-  public canAccessResource(resource: string): boolean {
-    return this.props.permissions.some(permission => 
-      permission.resource === '*' || permission.resource === resource
-    );
+  /**
+   * Check if role is medical staff
+   */
+  public isMedicalStaff(): boolean {
+    return ['DOCTOR', 'NURSE', 'PHARMACIST', 'LAB_TECHNICIAN'].includes(this.props.type);
   }
 
-  public getPermissionsForResource(resource: string): string[] {
-    const permission = this.props.permissions.find(p => 
-      p.resource === resource || p.resource === '*'
-    );
-    return permission ? permission.actions : [];
+  /**
+   * Check if role is administrative staff
+   */
+  public isAdministrativeStaff(): boolean {
+    return ['ADMIN', 'RECEPTIONIST', 'BILLING_STAFF'].includes(this.props.type);
   }
 
-  // Hierarchy methods
-  public isHigherThan(otherRole: HealthcareRole): boolean {
-    return this.props.hierarchy < otherRole.props.hierarchy;
+  /**
+   * Check if role is Vietnamese healthcare role
+   */
+  public isVietnameseHealthcareRole(): boolean {
+    return this.props.nameVietnamese !== undefined && this.props.nameVietnamese.length > 0;
   }
 
-  public isLowerThan(otherRole: HealthcareRole): boolean {
-    return this.props.hierarchy > otherRole.props.hierarchy;
+  /**
+   * Validate entity state - required by Entity base class
+   */
+  validate(): void {
+    if (!this.props.type) {
+      throw new Error('Role type is required');
+    }
+    if (!this.props.name || this.props.name.trim().length === 0) {
+      throw new Error('Role name is required');
+    }
+    if (!this.props.nameVietnamese || this.props.nameVietnamese.trim().length === 0) {
+      throw new Error('Vietnamese role name is required');
+    }
   }
 
-  public isSameLevel(otherRole: HealthcareRole): boolean {
-    return this.props.hierarchy === otherRole.props.hierarchy;
-  }
-
-  // Vietnamese healthcare specific methods
-  public canPrescribeMedication(): boolean {
-    return this.hasPermission('create', 'prescriptions');
-  }
-
-  public canAccessPatientRecords(): boolean {
-    return this.hasPermission('read', 'medical_records');
-  }
-
-  public canModifyPatientRecords(): boolean {
-    return this.hasPermission('update', 'medical_records');
-  }
-
-  public canManageAppointments(): boolean {
-    return this.hasPermission('create', 'appointments') && 
-           this.hasPermission('update', 'appointments');
-  }
-
-  public canViewBilling(): boolean {
-    return this.hasPermission('read', 'billing');
-  }
-
-  public canManageUsers(): boolean {
-    return this.hasPermission('manage', 'users');
-  }
-
-  // Role validation for Vietnamese healthcare
-  public isHealthcareProvider(): boolean {
-    return ['doctor', 'nurse'].includes(this.props.name);
-  }
-
-  public isAdministrative(): boolean {
-    return ['admin', 'receptionist'].includes(this.props.name);
-  }
-
-  public isPatientRole(): boolean {
-    return this.props.name === 'patient';
-  }
-
-  // Update methods
-  public addPermission(permission: Permission): void {
-    this.props.permissions.push(permission);
-    this.props.updatedAt = new Date();
-  }
-
-  public removePermission(resource: string): void {
-    this.props.permissions = this.props.permissions.filter(p => p.resource !== resource);
-    this.props.updatedAt = new Date();
-  }
-
-  public deactivate(): void {
-    this.props.isActive = false;
-    this.props.updatedAt = new Date();
-  }
-
-  public activate(): void {
-    this.props.isActive = true;
-    this.props.updatedAt = new Date();
-  }
-
-  public equals(other: HealthcareRole): boolean {
-    return this.props.id === other.props.id;
+  /**
+   * Convert entity to persistence format - required by Entity base class
+   */
+  toPersistence(): any {
+    return {
+      id: this.id,
+      type: this.props.type,
+      name: this.props.name,
+      name_vietnamese: this.props.nameVietnamese,
+      description: this.props.description,
+      permissions: this.props.permissions,
+      is_active: this.props.isActive,
+      has_hipaa_training: this.props.hasHIPAATraining,
+      created_at: this.createdAt,
+      updated_at: this.updatedAt
+    };
   }
 }
