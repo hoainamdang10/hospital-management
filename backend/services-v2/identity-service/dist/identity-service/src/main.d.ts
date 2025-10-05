@@ -12,12 +12,14 @@
  */
 declare class IdentityServiceApp {
     private app;
+    private supabaseClient;
     private healthCheck;
     private degradationService;
     private userRepository;
     private authService;
     private authClient;
     private permissionService;
+    private mfaService;
     private cacheService;
     private authMiddleware;
     private permissionMiddleware;

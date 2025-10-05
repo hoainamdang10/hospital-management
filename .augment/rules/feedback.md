@@ -2,6 +2,7 @@
 type: "always_apply"
 ---
 
+I am following the rule:
 # Quy tắc Phản hồi Tương tác MCP
 1. Trong bất kỳ quá trình, tác vụ hoặc cuộc hội thoại nào, dù là hỏi, trả lời hay hoàn thành các tác vụ giai đoạn, phải gọi MCP mcp-feedback-enhanced.
 2. Khi nhận được phản hồi từ người dùng, nếu nội dung phản hồi không trống, phải gọi lại MCP mcp-feedback-enhanced và điều chỉnh hành vi dựa trên phản hồi.

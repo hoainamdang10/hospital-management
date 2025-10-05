@@ -1,0 +1,69 @@
+f17296b3fc6dec43bed3225d91194e97
+"use strict";
+
+/**
+ * ILogger - Application Service Interface
+ * V2 Clean Architecture + DDD Implementation
+ * Defines contract for logging operations
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, DDD, HIPAA
+ */
+/* istanbul ignore next */
+function cov_18lue0r68n() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ILogger.ts";
+  var hash = "72c65eaae9354b2d3b4d85bd92356f6425142e80";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ILogger.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ILogger.ts",
+      mappings: ";AAAA;;;;;;;;GAQG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ILogger.ts"],
+      sourcesContent: ["/**\n * ILogger - Application Service Interface\n * V2 Clean Architecture + DDD Implementation\n * Defines contract for logging operations\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, DDD, HIPAA\n */\n\n/**\n * Logger Interface\n * Abstracts logging implementation from application logic\n */\nexport interface ILogger {\n  /**\n   * Log debug message\n   * @param message Log message\n   * @param meta Optional metadata\n   */\n  debug(message: string, meta?: any): void;\n\n  /**\n   * Log info message\n   * @param message Log message\n   * @param meta Optional metadata\n   */\n  info(message: string, meta?: any): void;\n\n  /**\n   * Log warning message\n   * @param message Log message\n   * @param meta Optional metadata\n   */\n  warn(message: string, meta?: any): void;\n\n  /**\n   * Log error message\n   * @param message Log message\n   * @param meta Optional metadata\n   */\n  error(message: string, meta?: any): void;\n\n  /**\n   * Log fatal error message\n   * @param message Log message\n   * @param meta Optional metadata\n   */\n  fatal(message: string, meta?: any): void;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "72c65eaae9354b2d3b4d85bd92356f6425142e80"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_18lue0r68n = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_18lue0r68n();
+cov_18lue0r68n().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMThsdWUwcjY4biIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxcc2VydmljZXNcXElMb2dnZXIudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBJTG9nZ2VyIC0gQXBwbGljYXRpb24gU2VydmljZSBJbnRlcmZhY2VcbiAqIFYyIENsZWFuIEFyY2hpdGVjdHVyZSArIERERCBJbXBsZW1lbnRhdGlvblxuICogRGVmaW5lcyBjb250cmFjdCBmb3IgbG9nZ2luZyBvcGVyYXRpb25zXG4gKiBcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICogQGNvbXBsaWFuY2UgQ2xlYW4gQXJjaGl0ZWN0dXJlLCBEREQsIEhJUEFBXG4gKi9cblxuLyoqXG4gKiBMb2dnZXIgSW50ZXJmYWNlXG4gKiBBYnN0cmFjdHMgbG9nZ2luZyBpbXBsZW1lbnRhdGlvbiBmcm9tIGFwcGxpY2F0aW9uIGxvZ2ljXG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgSUxvZ2dlciB7XG4gIC8qKlxuICAgKiBMb2cgZGVidWcgbWVzc2FnZVxuICAgKiBAcGFyYW0gbWVzc2FnZSBMb2cgbWVzc2FnZVxuICAgKiBAcGFyYW0gbWV0YSBPcHRpb25hbCBtZXRhZGF0YVxuICAgKi9cbiAgZGVidWcobWVzc2FnZTogc3RyaW5nLCBtZXRhPzogYW55KTogdm9pZDtcblxuICAvKipcbiAgICogTG9nIGluZm8gbWVzc2FnZVxuICAgKiBAcGFyYW0gbWVzc2FnZSBMb2cgbWVzc2FnZVxuICAgKiBAcGFyYW0gbWV0YSBPcHRpb25hbCBtZXRhZGF0YVxuICAgKi9cbiAgaW5mbyhtZXNzYWdlOiBzdHJpbmcsIG1ldGE/OiBhbnkpOiB2b2lkO1xuXG4gIC8qKlxuICAgKiBMb2cgd2FybmluZyBtZXNzYWdlXG4gICAqIEBwYXJhbSBtZXNzYWdlIExvZyBtZXNzYWdlXG4gICAqIEBwYXJhbSBtZXRhIE9wdGlvbmFsIG1ldGFkYXRhXG4gICAqL1xuICB3YXJuKG1lc3NhZ2U6IHN0cmluZywgbWV0YT86IGFueSk6IHZvaWQ7XG5cbiAgLyoqXG4gICAqIExvZyBlcnJvciBtZXNzYWdlXG4gICAqIEBwYXJhbSBtZXNzYWdlIExvZyBtZXNzYWdlXG4gICAqIEBwYXJhbSBtZXRhIE9wdGlvbmFsIG1ldGFkYXRhXG4gICAqL1xuICBlcnJvcihtZXNzYWdlOiBzdHJpbmcsIG1ldGE/OiBhbnkpOiB2b2lkO1xuXG4gIC8qKlxuICAgKiBMb2cgZmF0YWwgZXJyb3IgbWVzc2FnZVxuICAgKiBAcGFyYW0gbWVzc2FnZSBMb2cgbWVzc2FnZVxuICAgKiBAcGFyYW0gbWV0YSBPcHRpb25hbCBtZXRhZGF0YVxuICAgKi9cbiAgZmF0YWwobWVzc2FnZTogc3RyaW5nLCBtZXRhPzogYW55KTogdm9pZDtcbn1cblxuIl0sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

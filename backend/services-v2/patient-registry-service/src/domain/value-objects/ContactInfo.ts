@@ -18,6 +18,7 @@ export interface Address {
   ward: string;
   district: string;
   city: string;
+  province: string; // Province/City level (e.g., "Hồ Chí Minh", "Đồng Nai", "Hà Nội")
   postalCode?: string | undefined;
   country: string;
 }
@@ -25,6 +26,15 @@ export interface Address {
 export class ContactInfo extends ValueObject<ContactInfoProps> {
   private constructor(props: ContactInfoProps) {
     super(props);
+  }
+
+  protected validateFormat(): void {
+    if (!ContactInfo.isValidVietnamesePhoneNumber(this.props.primaryPhone)) {
+      throw new Error('Số điện thoại chính không đúng định dạng Việt Nam');
+    }
+    if (this.props.email && !ContactInfo.isValidEmail(this.props.email)) {
+      throw new Error('Email không đúng định dạng');
+    }
   }
 
   public static create(props: ContactInfoProps): ContactInfo {
@@ -59,6 +69,10 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
     }
 
     if (!props.address.city || props.address.city.trim().length === 0) {
+      throw new Error('Thành phố/quận/huyện không được để trống');
+    }
+
+    if (!props.address.province || props.address.province.trim().length === 0) {
       throw new Error('Tỉnh/thành phố không được để trống');
     }
 
@@ -71,6 +85,7 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
         ward: props.address.ward.trim(),
         district: props.address.district.trim(),
         city: props.address.city.trim(),
+        province: props.address.province.trim(),
         postalCode: props.address.postalCode?.trim(),
         country: props.address.country || 'Việt Nam'
       },
@@ -106,14 +121,16 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
   }
 
   public getFormattedSecondaryPhone(): string | undefined {
-    if (!this.props.secondaryPhone) return undefined;
+    if (!this.props.secondaryPhone) {
+      return undefined;
+    }
     const phone = this.props.secondaryPhone;
     return `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`;
   }
 
   public getFullAddress(): string {
-    const { street, ward, district, city, country } = this.props.address;
-    return `${street}, ${ward}, ${district}, ${city}, ${country}`;
+    const { street, ward, district, city, province, country } = this.props.address;
+    return `${street}, ${ward}, ${district}, ${city}, ${province}, ${country}`;
   }
 
   public getShortAddress(): string {
@@ -130,8 +147,8 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
   }
 
   public canContactByEmail(): boolean {
-    return this.hasEmail() && 
-           (this.props.preferredContactMethod === 'email' || 
+    return this.hasEmail() &&
+           (this.props.preferredContactMethod === 'email' ||
             this.props.preferredContactMethod === 'sms');
   }
 
@@ -164,8 +181,8 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
   }
 
   public isInMajorCity(): boolean {
-    return this.isInHoChiMinhCity() || 
-           this.isInHanoi() || 
+    return this.isInHoChiMinhCity() ||
+           this.isInHanoi() ||
            this.props.address.city.toLowerCase().includes('đà nẵng') ||
            this.props.address.city.toLowerCase().includes('cần thơ') ||
            this.props.address.city.toLowerCase().includes('hải phòng');
@@ -179,8 +196,10 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
   }
 
   private static isValidEmail(email: string): boolean {
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    return emailRegex.test(email);
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/.source +
+      /(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.source;
+    return new RegExp(emailRegex).test(email);
   }
 
   // Update methods
@@ -219,7 +238,7 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
     });
   }
 
-  public equals(other: ContactInfo): boolean {
+  public override equals(other: ContactInfo): boolean {
     return (
       this.props.primaryPhone === other.props.primaryPhone &&
       this.props.secondaryPhone === other.props.secondaryPhone &&

@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
 export interface VerifyEmailRequest {

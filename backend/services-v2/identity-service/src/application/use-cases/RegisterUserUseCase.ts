@@ -138,7 +138,9 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
   }
 
   private validateRequest(request: RegisterUserRequest): string | null {
-    if (!request.email || !request.email.includes('@')) {
+    // Email format: basic RFC-compliant check (no spaces, must contain @ and a dot in domain)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!request.email || !emailRegex.test(request.email)) {
       return 'Email không hợp lệ';
     }
 

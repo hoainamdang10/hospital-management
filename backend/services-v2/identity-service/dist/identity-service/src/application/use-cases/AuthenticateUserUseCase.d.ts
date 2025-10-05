@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant, Anti-Pattern Mitigation
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { ServiceMode } from '../services/IDegradationService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { IUserRepository } from '../repositories/IUserRepository';

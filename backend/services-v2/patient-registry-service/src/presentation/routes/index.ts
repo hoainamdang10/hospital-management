@@ -6,15 +6,14 @@
  */
 
 import { Express } from 'express';
-import { DIContainer } from '../../../shared/infrastructure/di/container';
 
-export function setupRoutes(app: Express, container: DIContainer): void {
+export function setupRoutes(app: Express): void {
   // Setup API routes
-  app.get('/api/sample', (req, res) => {
+  app.get('/api/sample', (_req, res) => {
     res.json({
       message: 'Patient Registry Service API',
-      features: ["Patient Registration","Demographics","Contact Management","Insurance Info"],
-      patterns: ["Repository","Domain Events","CQRS"]
+      features: ['Patient Registration','Demographics','Contact Management','Insurance Info'],
+      patterns: ['Repository','Domain Events','CQRS']
     });
   });
 }

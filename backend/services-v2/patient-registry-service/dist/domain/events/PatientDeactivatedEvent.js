@@ -6,7 +6,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientDeactivatedEvent = void 0;
-const domain_event_1 = require("@shared/domain/base/domain-event");
+const domain_event_1 = require("../../shared/domain/base/domain-event");
 class PatientDeactivatedEvent extends domain_event_1.DomainEvent {
     constructor(patient, reason, performedBy) {
         super('PatientDeactivated', patient.getPatientId().getValue());

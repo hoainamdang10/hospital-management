@@ -3,7 +3,7 @@
  *
  * Published when duplicate patients are merged
  */
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../shared/domain/base/domain-event';
 import { Patient } from '../aggregates/Patient';
 import { PatientId } from '../value-objects/PatientId';
 export declare class PatientMergedEvent extends DomainEvent {

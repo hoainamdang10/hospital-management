@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InsuranceInfo = void 0;
-const entity_1 = require("@shared/domain/base/entity");
+const entity_1 = require("../../shared/domain/base/entity");
 class InsuranceInfo extends entity_1.Entity {
     constructor(props) {
         super(props);

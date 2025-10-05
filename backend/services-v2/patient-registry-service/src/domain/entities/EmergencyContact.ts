@@ -1,13 +1,14 @@
 /**
  * EmergencyContact Entity - Patient Registry
  * Patient emergency contact information
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
 import { Entity } from '@shared/domain/base/entity';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface EmergencyContactProps {
   id: string;
@@ -24,8 +25,8 @@ export interface EmergencyContactProps {
 }
 
 export class EmergencyContact extends Entity<EmergencyContactProps> {
-  private constructor(props: EmergencyContactProps) {
-    super(props);
+  private constructor(props: EmergencyContactProps, id?: string) {
+    super(props, id);
   }
 
   /**
@@ -41,9 +42,10 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
     isPrimary: boolean = false
   ): EmergencyContact {
     const now = new Date();
+    const id = uuidv4();
 
     return new EmergencyContact({
-      id: Entity.generateId(),
+      id,
       name: name.trim(),
       relationship: relationship.trim(),
       primaryPhone: primaryPhone.trim(),
@@ -54,7 +56,7 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
       isActive: true,
       createdAt: now,
       updatedAt: now
-    });
+    }, id);
   }
 
   /**
@@ -65,8 +67,8 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
   }
 
   // Getters
-  public get id(): string {
-    return this.props.id;
+  public getId(): string {
+    return this.id;
   }
 
   public get name(): string {
@@ -77,8 +79,12 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
     return this.props.relationship;
   }
 
-  public get phoneNumber(): string {
-    return this.props.phoneNumber;
+  public get primaryPhone(): string {
+    return this.props.primaryPhone;
+  }
+
+  public get secondaryPhone(): string | undefined {
+    return this.props.secondaryPhone;
   }
 
   public get email(): string | undefined {
@@ -120,24 +126,42 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
 
   public updateContactInfo(
     name?: string,
-    phoneNumber?: string,
+    primaryPhone?: string,
+    secondaryPhone?: string,
     email?: string,
     address?: string
   ): void {
-    if (name) this.props.name = name.trim();
-    if (phoneNumber) this.props.phoneNumber = phoneNumber.trim();
-    if (email !== undefined) this.props.email = email?.trim();
-    if (address !== undefined) this.props.address = address?.trim();
+    if (name) {
+      this.props.name = name.trim();
+    }
+    if (primaryPhone) {
+      this.props.primaryPhone = primaryPhone.trim();
+    }
+    if (secondaryPhone !== undefined) {
+      this.props.secondaryPhone = secondaryPhone?.trim();
+    }
+    if (email !== undefined) {
+      this.props.email = email?.trim();
+    }
+    if (address !== undefined) {
+      this.props.address = address?.trim();
+    }
     this.props.updatedAt = new Date();
   }
 
   // Validation methods
+  override validate(): void {
+    if (!this.isValid()) {
+      throw new Error('Invalid emergency contact');
+    }
+  }
+
   public isValid(): boolean {
     return (
       this.props.name.length > 0 &&
       this.props.relationship.length > 0 &&
-      this.props.phoneNumber.length > 0 &&
-      EmergencyContact.isValidVietnamesePhone(this.props.phoneNumber)
+      this.props.primaryPhone.length > 0 &&
+      EmergencyContact.isValidVietnamesePhone(this.props.primaryPhone)
     );
   }
 
@@ -148,34 +172,32 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
   }
 
   // Persistence methods
-  public toPersistence(): any {
+  override toPersistence(): {
+    id: string;
+    name: string;
+    relationship: string;
+    primary_phone: string;
+    secondary_phone?: string;
+    email?: string;
+    address?: string;
+    is_primary: boolean;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    } {
     return {
-      id: this.props.id,
+      id: this.id,
       name: this.props.name,
       relationship: this.props.relationship,
-      phoneNumber: this.props.phoneNumber,
+      primary_phone: this.props.primaryPhone,
+      secondary_phone: this.props.secondaryPhone,
       email: this.props.email,
       address: this.props.address,
-      isPrimary: this.props.isPrimary,
-      isActive: this.props.isActive,
-      createdAt: this.props.createdAt.toISOString(),
-      updatedAt: this.props.updatedAt.toISOString()
+      is_primary: this.props.isPrimary,
+      is_active: this.props.isActive,
+      created_at: this.props.createdAt.toISOString(),
+      updated_at: this.props.updatedAt.toISOString()
     };
-  }
-
-  public static fromPersistence(data: any): EmergencyContact {
-    return EmergencyContact.reconstitute({
-      id: data.id,
-      name: data.name,
-      relationship: data.relationship,
-      phoneNumber: data.phoneNumber,
-      email: data.email,
-      address: data.address,
-      isPrimary: data.isPrimary,
-      isActive: data.isActive,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt)
-    });
   }
 
   // Logging methods
@@ -190,8 +212,10 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
   }
 
   public getMaskedPhoneNumber(): string {
-    const phone = this.props.phoneNumber;
-    if (phone.length <= 4) return '***';
+    const phone = this.props.primaryPhone;
+    if (phone.length <= 4) {
+      return '***';
+    }
     return '***' + phone.slice(-4);
   }
 }

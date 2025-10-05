@@ -1,15 +1,14 @@
 /**
  * SearchPatientsUseCase - Application Use Case
- * 
+ *
  * Searches for patients by various criteria
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { Patient } from '../../domain/aggregates/Patient';
 
 export interface SearchPatientsRequest {
   searchTerm: string;  // Search by name, phone, email, national ID
@@ -105,7 +104,7 @@ export class SearchPatientsUseCase {
 
       if (request.filters?.province) {
         filteredPatients = filteredPatients.filter(patient =>
-          patient.getContactInfo().address.city.toLowerCase().includes(request.filters!.province!.toLowerCase())
+          patient.getContactInfo().address.province.toLowerCase().includes(request.filters!.province!.toLowerCase())
         );
       }
 
@@ -126,8 +125,8 @@ export class SearchPatientsUseCase {
       if (request.pagination?.sorting) {
         const { field, direction } = request.pagination.sorting;
         filteredPatients.sort((a, b) => {
-          let aValue: any;
-          let bValue: any;
+          let aValue: string | number;
+          let bValue: string | number;
 
           switch (field) {
             case 'fullName':
@@ -148,7 +147,7 @@ export class SearchPatientsUseCase {
               break;
             default:
               aValue = a.getPersonalInfo().fullName;
-              bValue = b.getPersonalInfo().fullName();
+              bValue = b.getPersonalInfo().fullName;
           }
 
           if (direction === 'asc') {
@@ -166,7 +165,7 @@ export class SearchPatientsUseCase {
         const insuranceInfo = patient.getInsuranceInfo();
 
         return {
-          patientId: patient.getPatientId().getValue(),
+          patientId: patient.getPatientId() || '',
           userId: patient.getUserId(),
           fullName: personalInfo.fullName,
           dateOfBirth: personalInfo.dateOfBirth.toISOString(),
@@ -175,7 +174,7 @@ export class SearchPatientsUseCase {
           primaryPhone: contactInfo.primaryPhone,
           email: contactInfo.email,
           city: contactInfo.address.city,
-          province: contactInfo.address.city,
+          province: contactInfo.address.province, // Province/City level (e.g., "Hồ Chí Minh", "Đồng Nai")
           status: patient.getStatus(),
           hasInsurance: patient.hasValidInsurance(),
           insuranceType: insuranceInfo?.coverageType,

@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA, Anti-Pattern Mitigation
  */
-import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { HealthcareAggregateRoot } from '../../../../shared/domain/base/aggregate-root';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 import { UserId } from '../value-objects/UserId';
 import { Email } from '../value-objects/Email';
 import { PersonalInfo } from '../value-objects/PersonalInfo';

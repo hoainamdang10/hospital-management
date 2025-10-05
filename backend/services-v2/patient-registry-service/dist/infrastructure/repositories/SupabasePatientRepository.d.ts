@@ -1,36 +1,24 @@
 /**
- * SupabasePatientRepository - Infrastructure Repository Implementation
- * V2 Clean Architecture + DDD Implementation
- * Supabase implementation of patient repository with Vietnamese healthcare context
+ * SupabasePatientRepository - Infrastructure Layer
+ * Implements IPatientRepository with Supabase PostgreSQL
  *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, DDD, Repository Pattern, Vietnamese Healthcare Standards, HIPAA
+ * @compliance Clean Architecture, DDD, HIPAA
  */
-import { OptimizedSupabaseClient } from '../../../../shared/infrastructure/database/optimized-supabase-client';
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { Patient } from '../../domain/aggregates/Patient';
 import { PatientId } from '../../domain/value-objects/PatientId';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
-import { IAuditService } from '../../../../shared/application/services/audit.service.interface';
-export interface SupabasePatientRepositoryConfig {
-    supabase: OptimizedSupabaseClient;
-    logger: ILogger;
-    auditService: IAuditService;
-    schema: string;
-    tableName: string;
-}
+import { ILogger } from '../../shared/application/services/logger.interface';
 /**
- * Supabase Patient Repository
- * Implements patient repository with Vietnamese healthcare compliance
+ * Supabase Patient Repository Implementation
  */
 export declare class SupabasePatientRepository implements IPatientRepository {
-    private readonly supabaseClient;
-    private readonly logger;
-    private readonly auditService;
-    private readonly schema;
-    private readonly tableName;
-    constructor(config: SupabasePatientRepositoryConfig);
+    private logger;
+    private supabaseClient;
+    private circuitBreaker;
+    private matchingService;
+    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger);
     /**
      * Find patient by ID
      */
@@ -44,7 +32,11 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      */
     findByNationalId(nationalId: string): Promise<Patient | null>;
     /**
-     * Save patient
+     * Find patient by BHYT number
+     */
+    findByBHYTNumber(bhytNumber: string): Promise<Patient | null>;
+    /**
+     * Save patient (create or update)
      */
     save(patient: Patient): Promise<void>;
     /**
@@ -54,24 +46,85 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     /**
      * Find patients with filters
      */
-    findWithFilters(filters: any, pagination?: any): Promise<{
+    findWithFilters(filters: {
+        isActive?: boolean;
+        registrationDateFrom?: string;
+        registrationDateTo?: string;
+        city?: string;
+        province?: string;
+    }, pagination?: {
+        page: number;
+        limit: number;
+        sorting?: {
+            field: string;
+            direction: 'asc' | 'desc';
+        };
+    }): Promise<{
         patients: Patient[];
         total: number;
     }>;
     /**
      * Search patients by term
      */
-    searchPatients(searchTerm: string, filters?: any, pagination?: any): Promise<{
+    searchPatients(searchTerm: string, filters?: {
+        isActive?: boolean;
+    }, pagination?: {
+        page: number;
+        limit: number;
+    }): Promise<{
         patients: Patient[];
         total: number;
     }>;
     /**
-     * Map database record to Patient aggregate
+     * Match patients (PMI $match operation)
+     * Delegates to PatientMatchingService
      */
-    private mapToPatient;
+    matchPatients(criteria: {
+        fullName?: string;
+        dateOfBirth?: Date;
+        nationalId?: string;
+        primaryPhone?: string;
+        email?: string;
+    }, onlyCertainMatches?: boolean, limit?: number): Promise<Array<{
+        patient: Patient;
+        matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
+        score: number;
+    }>>;
     /**
      * Get repository health status
      */
     getHealthStatus(): Promise<any>;
+    /**
+     * Fetch insurance info for patient
+     */
+    private fetchInsurance;
+    /**
+     * Fetch emergency contacts for patient
+     */
+    private fetchEmergencyContacts;
+    /**
+     * Fetch consents for patient
+     */
+    private fetchConsents;
+    /**
+     * Fetch links for patient
+     */
+    private fetchLinks;
+    /**
+     * Save insurance info
+     */
+    private saveInsurance;
+    /**
+     * Save emergency contacts
+     */
+    private saveEmergencyContacts;
+    /**
+     * Save consents
+     */
+    private saveConsents;
+    /**
+     * Save links
+     */
+    private saveLinks;
 }
 //# sourceMappingURL=SupabasePatientRepository.d.ts.map

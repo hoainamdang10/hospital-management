@@ -1,0 +1,443 @@
+/**
+ * Patient Registry Service V2 - Main Application
+ * Production-ready service with Clean Architecture + DDD + CQRS
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, HIPAA, Vietnamese Healthcare Standards
+ */
+
+// Load environment variables FIRST
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+
+// Infrastructure imports
+import { SupabasePatientRepository } from './infrastructure/repositories/SupabasePatientRepository';
+
+// Application Services imports
+import { PatientMatchingService } from './application/services/PatientMatchingService';
+import { InsuranceValidationService } from './application/services/InsuranceValidationService';
+import { RabbitMQEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
+import { ILogger, LogMetadata } from '@shared/application/services/logger.interface';
+
+// Application imports
+import { RegisterPatientUseCase } from './application/use-cases/RegisterPatientUseCase';
+import { UpdatePatientInfoUseCase } from './application/use-cases/UpdatePatientInfoUseCase';
+import { GetPatientProfileUseCase } from './application/use-cases/GetPatientProfileUseCase';
+import { SearchPatientsUseCase } from './application/use-cases/SearchPatientsUseCase';
+import { MatchPatientsUseCase } from './application/use-cases/MatchPatientsUseCase';
+import { MergePatientsUseCase } from './application/use-cases/MergePatientsUseCase';
+import { LinkPatientsUseCase } from './application/use-cases/LinkPatientsUseCase';
+import { DeactivatePatientUseCase } from './application/use-cases/DeactivatePatientUseCase';
+import { ValidateInsuranceUseCase } from './application/use-cases/ValidateInsuranceUseCase';
+import { AddEmergencyContactUseCase } from './application/use-cases/AddEmergencyContactUseCase';
+import { GrantConsentUseCase } from './application/use-cases/GrantConsentUseCase';
+import { MarkAsDeceasedUseCase } from './application/use-cases/MarkAsDeceasedUseCase';
+import { ReactivatePatientUseCase } from './application/use-cases/ReactivatePatientUseCase';
+import { PatientCommandHandlers } from './application/handlers/PatientCommandHandlers';
+
+// Presentation imports
+import { PatientController } from './presentation/controllers/PatientController';
+import { CommandController } from './presentation/controllers/CommandController';
+import { createPatientRoutes } from './presentation/routes/patientRoutes';
+import { createCommandRoutes } from './presentation/routes/commandRoutes';
+import { ErrorHandlingMiddleware } from './presentation/middleware/ErrorHandlingMiddleware';
+
+// Configuration
+const config = {
+  port: process.env.PORT || 3023,
+  supabaseUrl: process.env.SUPABASE_URL || '',
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5672',
+  nodeEnv: process.env.NODE_ENV || 'development',
+  serviceName: 'patient-registry-service',
+  version: '2.0.0',
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',')
+};
+
+// Logger setup (simplified - in production use Winston or similar)
+const logger: ILogger = {
+  debug: (message: string, meta: LogMetadata = {}) => {
+    if (config.nodeEnv === 'development') {
+      console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
+    }
+  },
+  info: (message: string, meta: LogMetadata = {}) => {
+    console.log(`[INFO] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
+  },
+  warn: (message: string, meta: LogMetadata = {}) => {
+    console.warn(`[WARN] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
+  },
+  error: (message: string, meta: LogMetadata = {}) => {
+    console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
+  },
+  fatal: (message: string, meta: LogMetadata = {}) => {
+    console.error(`[FATAL] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
+  }
+};
+
+/**
+ * Patient Registry Service Application Class
+ */
+class PatientRegistryServiceApp {
+  private app: express.Application;
+  private eventPublisher!: RabbitMQEventPublisher;
+  private patientRepository!: SupabasePatientRepository;
+  private matchingService!: PatientMatchingService;
+  private insuranceValidationService!: InsuranceValidationService;
+
+  // Use Cases
+  private registerPatientUseCase!: RegisterPatientUseCase;
+  private updatePatientInfoUseCase!: UpdatePatientInfoUseCase;
+  private getPatientProfileUseCase!: GetPatientProfileUseCase;
+  private searchPatientsUseCase!: SearchPatientsUseCase;
+  private matchPatientsUseCase!: MatchPatientsUseCase;
+  private mergePatientsUseCase!: MergePatientsUseCase;
+  private linkPatientsUseCase!: LinkPatientsUseCase;
+  private deactivatePatientUseCase!: DeactivatePatientUseCase;
+  private validateInsuranceUseCase!: ValidateInsuranceUseCase;
+  private addEmergencyContactUseCase!: AddEmergencyContactUseCase;
+  private grantConsentUseCase!: GrantConsentUseCase;
+  private markAsDeceasedUseCase!: MarkAsDeceasedUseCase;
+  private reactivatePatientUseCase!: ReactivatePatientUseCase;
+
+  // Command Handlers
+  private patientCommandHandlers!: PatientCommandHandlers;
+
+  // Controllers
+  private patientController!: PatientController;
+  private commandController!: CommandController;
+
+  // Middleware
+  private errorHandlingMiddleware!: ErrorHandlingMiddleware;
+
+  constructor() {
+    this.app = express();
+  }
+
+  /**
+   * Initialize all dependencies
+   */
+  private async initializeDependencies(): Promise<void> {
+    logger.info('Initializing dependencies...');
+
+    try {
+      // Validate configuration
+      this.validateConfiguration();
+
+      // Initialize Event Publisher
+      this.eventPublisher = new RabbitMQEventPublisher(
+        {
+          url: config.rabbitmqUrl,
+          exchange: 'patient-registry-events',
+          exchangeType: 'topic',
+          durable: true,
+          autoDelete: false
+        },
+        {
+          enableRetry: true,
+          maxRetries: 3,
+          retryDelayMs: 1000,
+          enableLogging: true
+        },
+        logger
+      );
+
+      // Connect to RabbitMQ
+      await this.eventPublisher.connect();
+
+      // Initialize Application Services (Domain Services)
+      this.matchingService = new PatientMatchingService(logger);
+      this.insuranceValidationService = new InsuranceValidationService(logger);
+
+      // Initialize Infrastructure Layer (inject services + event publisher)
+      this.patientRepository = new SupabasePatientRepository(
+        config.supabaseUrl,
+        config.supabaseKey,
+        logger,
+        this.matchingService,  // ✅ Inject matching service
+        this.eventPublisher    // ✅ Inject event publisher
+      );
+
+      // Initialize Application Layer (Use Cases)
+      this.registerPatientUseCase = new RegisterPatientUseCase(
+        this.patientRepository
+      );
+
+      this.updatePatientInfoUseCase = new UpdatePatientInfoUseCase(
+        this.patientRepository
+      );
+
+      this.getPatientProfileUseCase = new GetPatientProfileUseCase(
+        this.patientRepository
+      );
+
+      this.searchPatientsUseCase = new SearchPatientsUseCase(
+        this.patientRepository
+      );
+
+      this.matchPatientsUseCase = new MatchPatientsUseCase(
+        this.patientRepository
+      );
+
+      this.mergePatientsUseCase = new MergePatientsUseCase(
+        this.patientRepository
+      );
+
+      this.linkPatientsUseCase = new LinkPatientsUseCase(
+        this.patientRepository
+      );
+
+      this.deactivatePatientUseCase = new DeactivatePatientUseCase(
+        this.patientRepository
+      );
+
+      this.validateInsuranceUseCase = new ValidateInsuranceUseCase(
+        this.patientRepository,
+        this.insuranceValidationService  // ✅ Inject insurance validation service
+      );
+
+      this.addEmergencyContactUseCase = new AddEmergencyContactUseCase(
+        this.patientRepository
+      );
+
+      this.grantConsentUseCase = new GrantConsentUseCase(
+        this.patientRepository
+      );
+
+      this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase(
+        this.patientRepository
+      );
+
+      this.reactivatePatientUseCase = new ReactivatePatientUseCase(
+        this.patientRepository
+      );
+
+      // Initialize Command Handlers (CQRS)
+      this.patientCommandHandlers = new PatientCommandHandlers(
+        this.registerPatientUseCase,
+        this.updatePatientInfoUseCase,
+        this.deactivatePatientUseCase,
+        this.grantConsentUseCase,
+        this.addEmergencyContactUseCase,
+        logger
+      );
+
+      // Initialize Presentation Layer
+      this.patientController = new PatientController(
+        logger,
+        this.registerPatientUseCase,
+        this.updatePatientInfoUseCase,
+        this.getPatientProfileUseCase,
+        this.searchPatientsUseCase,
+        this.matchPatientsUseCase,
+        this.mergePatientsUseCase,
+        this.linkPatientsUseCase,
+        this.deactivatePatientUseCase,
+        this.validateInsuranceUseCase,
+        this.addEmergencyContactUseCase,
+        this.grantConsentUseCase,
+        this.markAsDeceasedUseCase,
+        this.reactivatePatientUseCase
+      );
+
+      this.commandController = new CommandController(
+        logger,
+        this.patientCommandHandlers
+      );
+
+      this.errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
+
+      logger.info('Dependencies initialized successfully');
+    } catch (error) {
+      logger.fatal('Failed to initialize dependencies', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Validate configuration
+   */
+  private validateConfiguration(): void {
+    const requiredEnvVars = [
+      'SUPABASE_URL',
+      'SUPABASE_SERVICE_ROLE_KEY'
+    ];
+
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+
+    logger.info('Configuration validated successfully');
+  }
+
+  /**
+   * Setup Express middleware
+   */
+  private setupMiddleware(): void {
+    logger.info('Setting up middleware...');
+
+    // Security middleware
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:']
+        }
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+      }
+    }));
+
+    // CORS
+    this.app.use(cors({
+      origin: config.allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    }));
+
+    // Compression
+    this.app.use(compression());
+
+    // Body parsing
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    // Rate limiting
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // limit each IP to 100 requests per windowMs
+      message: 'Too many requests from this IP, please try again later',
+      standardHeaders: true,
+      legacyHeaders: false
+    });
+    this.app.use('/api/', limiter);
+
+    // Request logging
+    this.app.use((req, _res, next) => {
+      logger.info('Incoming request', {
+        method: req.method,
+        path: req.path,
+        ip: req.ip
+      });
+      next();
+    });
+
+    logger.info('Middleware setup complete');
+  }
+
+  /**
+   * Setup routes
+   */
+  private setupRoutes(): void {
+    logger.info('Setting up routes...');
+
+    // Health check
+    this.app.get('/health', (_req, res) => {
+      res.status(200).json({
+        status: 'healthy',
+        service: config.serviceName,
+        version: config.version,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    // API routes
+    const patientRoutes = createPatientRoutes(this.patientController);
+    this.app.use('/api/v1/patients', patientRoutes);
+
+    // CQRS Command routes
+    const commandRoutes = createCommandRoutes(this.commandController);
+    this.app.use('/api/v1/commands', commandRoutes);
+
+    // 404 handler
+    this.app.use(this.errorHandlingMiddleware.notFound());
+
+    // Error handling middleware (must be last)
+    this.app.use(this.errorHandlingMiddleware.handle());
+
+    logger.info('Routes setup complete');
+  }
+
+  /**
+   * Start the server
+   */
+  async start(): Promise<void> {
+    try {
+      logger.info(`Starting ${config.serviceName} v${config.version}...`);
+
+      // Initialize dependencies
+      await this.initializeDependencies();
+
+      // Setup middleware
+      this.setupMiddleware();
+
+      // Setup routes
+      this.setupRoutes();
+
+      // Start listening
+      this.app.listen(config.port, () => {
+        logger.info(`${config.serviceName} is running`, {
+          port: config.port,
+          environment: config.nodeEnv,
+          version: config.version
+        });
+      });
+
+    } catch (error) {
+      logger.fatal('Failed to start service', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      process.exit(1);
+    }
+  }
+
+  /**
+   * Graceful shutdown
+   */
+  async shutdown(): Promise<void> {
+    logger.info('Shutting down gracefully...');
+
+    // Close RabbitMQ connection
+    if (this.eventPublisher) {
+      await this.eventPublisher.close();
+    }
+
+    // Close database connections, etc.
+    // await this.patientRepository.close();
+
+    logger.info('Shutdown complete');
+    process.exit(0);
+  }
+}
+
+// Create and start the application
+const app = new PatientRegistryServiceApp();
+
+// Handle shutdown signals
+process.on('SIGTERM', () => app.shutdown());
+process.on('SIGINT', () => app.shutdown());
+
+// Start the service
+app.start().catch((error) => {
+  logger.fatal('Unhandled error during startup', {
+    error: error instanceof Error ? error.message : 'Unknown error'
+  });
+  process.exit(1);
+});

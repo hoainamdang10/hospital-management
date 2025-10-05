@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, HIPAA
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 export interface GetUserRequest {
     userId: string;

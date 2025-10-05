@@ -1,6 +1,6 @@
 /**
  * PatientStatus Enum
- * 
+ *
  * Patient record status based on HL7 FHIR Patient.active specification
  */
 

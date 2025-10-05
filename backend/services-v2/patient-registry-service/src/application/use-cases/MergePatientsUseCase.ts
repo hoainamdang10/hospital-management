@@ -1,8 +1,8 @@
 /**
  * MergePatientsUseCase - Application Use Case
- * 
+ *
  * Merges duplicate patient into master patient
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HL7 FHIR, PMI Best Practices
@@ -127,7 +127,7 @@ export class MergePatientsUseCase {
         success: false,
         message: 'Đã xảy ra lỗi không mong muốn',
         errors: ['UNEXPECTED_ERROR']
-        };
+      };
     }
   }
 }

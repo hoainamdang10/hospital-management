@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HealthcareRole = void 0;
-const entity_1 = require("@shared/domain/base/entity");
+const entity_1 = require("../../../../shared/domain/base/entity");
 class HealthcareRole extends entity_1.Entity {
     constructor(props, id) {
         super(props, id);

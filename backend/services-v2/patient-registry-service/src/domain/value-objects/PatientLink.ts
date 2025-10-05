@@ -1,6 +1,6 @@
 /**
  * PatientLink Value Object
- * 
+ *
  * FHIR-style patient linking for duplicate management
  * Based on HL7 FHIR R5 Patient.link specification
  */
@@ -20,6 +20,13 @@ export interface PatientLinkProps {
 export class PatientLink extends ValueObject<PatientLinkProps> {
   private constructor(props: PatientLinkProps) {
     super(props);
+  }
+
+  protected validateFormat(): void {
+    // Validation - link type should be valid
+    if (!['refer', 'seealso'].includes(this.props.linkType)) {
+      throw new Error('Invalid link type');
+    }
   }
 
   /**
@@ -121,7 +128,12 @@ export class PatientLink extends ValueObject<PatientLinkProps> {
   /**
    * Convert to plain object for serialization
    */
-  public toJSON(): any {
+  public toJSON(): {
+    otherPatientId: string;
+    linkType: PatientLinkType;
+    createdAt: string;
+    createdBy: string;
+    } {
     return {
       otherPatientId: this.props.otherPatientId.getValue(),
       linkType: this.props.linkType,

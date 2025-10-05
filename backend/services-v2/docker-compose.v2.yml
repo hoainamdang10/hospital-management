@@ -89,8 +89,8 @@ services:
 
   patient-registry-service:
     build:
-      context: ./patient-registry-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./patient-registry-service/Dockerfile
     container_name: hospital-patient-registry-v2
     ports:
       - "3023:3003"
@@ -118,8 +118,8 @@ services:
 
   provider-staff-service:
     build:
-      context: ./provider-staff-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./provider-staff-service/Dockerfile
     container_name: hospital-provider-staff-v2
     ports:
       - "3022:3002"
@@ -148,8 +148,8 @@ services:
   # Business Services
   scheduling-service:
     build:
-      context: ./scheduling-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./scheduling-service/Dockerfile
     container_name: hospital-scheduling-v2
     ports:
       - "3024:3004"
@@ -181,8 +181,8 @@ services:
 
   clinical-emr-service:
     build:
-      context: ./clinical-emr-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./clinical-emr-service/Dockerfile
     container_name: hospital-clinical-emr-v2
     ports:
       - "3027:3007"
@@ -217,8 +217,8 @@ services:
   # Supporting Services
   billing-service:
     build:
-      context: ./billing-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./billing-service/Dockerfile
     container_name: hospital-billing-v2
     ports:
       - "3029:3009"
@@ -253,8 +253,8 @@ services:
 
   notifications-service:
     build:
-      context: ./notifications-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./notifications-service/Dockerfile
     container_name: hospital-notifications-v2
     ports:
       - "3031:3011"
@@ -285,8 +285,8 @@ services:
   # API Gateway V2
   api-gateway-v2:
     build:
-      context: ./api-gateway-v2
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api-gateway-v2/Dockerfile
     container_name: hospital-api-gateway-v2
     ports:
       - "3101:3101"

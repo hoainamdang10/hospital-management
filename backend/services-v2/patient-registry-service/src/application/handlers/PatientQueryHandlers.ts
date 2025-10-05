@@ -2,15 +2,82 @@
  * PatientQueryHandlers - Application Query Handlers
  * V2 Clean Architecture + DDD Implementation
  * CQRS Query handlers for patient registry read operations
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, CQRS, Vietnamese Healthcare Standards, HIPAA
  */
 
 import { GetPatientProfileUseCase, GetPatientProfileRequest, GetPatientProfileResponse } from '../use-cases/GetPatientProfileUseCase';
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
+
+type QueryFailure = { success: false; message: string };
+
+interface PaginationMetadata {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface PatientListData {
+  patients: unknown[];
+  pagination: PaginationMetadata;
+}
+
+type PatientListQueryResult = QueryFailure | {
+  success: true;
+  message: string;
+  data: PatientListData;
+};
+
+interface SearchPatientsData {
+  patients: unknown[];
+  searchTerm: string;
+  totalResults: number;
+  pagination: PaginationMetadata;
+}
+
+type SearchPatientsQueryResult = QueryFailure | {
+  success: true;
+  message: string;
+  data: SearchPatientsData;
+};
+
+interface PatientStatisticsData {
+  totalPatients: number;
+  activePatients: number;
+  newRegistrations: number;
+  patientsWithInsurance: number;
+  registrationTrend: unknown[];
+  demographicBreakdown: {
+    byGender: {
+      male: number;
+      female: number;
+      other: number;
+    };
+    byAgeGroup: {
+      '0-18': number;
+      '19-35': number;
+      '36-60': number;
+      '60+': number;
+    };
+    byProvince: Record<string, number>;
+  };
+}
+
+type PatientStatisticsQueryResult = QueryFailure | {
+  success: true;
+  message: string;
+  data: PatientStatisticsData;
+};
+
+type PatientQueryResult =
+  | GetPatientProfileResponse
+  | PatientListQueryResult
+  | SearchPatientsQueryResult
+  | PatientStatisticsQueryResult
+  | QueryFailure;
 
 // Query interfaces
 export interface GetPatientProfileQuery {
@@ -85,10 +152,10 @@ export interface GetPatientStatisticsQuery {
   };
 }
 
-export type PatientQuery = 
-  | GetPatientProfileQuery 
-  | GetPatientListQuery 
-  | SearchPatientsQuery 
+export type PatientQuery =
+  | GetPatientProfileQuery
+  | GetPatientListQuery
+  | SearchPatientsQuery
   | GetPatientStatisticsQuery;
 
 /**
@@ -98,7 +165,6 @@ export type PatientQuery =
 export class PatientQueryHandlers {
   constructor(
     private readonly getPatientProfileUseCase: GetPatientProfileUseCase,
-    private readonly patientRepository: IPatientRepository,
     private readonly logger: ILogger
   ) {}
 
@@ -149,7 +215,7 @@ export class PatientQueryHandlers {
   /**
    * Handle GetPatientList query
    */
-  async handleGetPatientList(query: GetPatientListQuery): Promise<any> {
+  async handleGetPatientList(query: GetPatientListQuery): Promise<PatientListQueryResult> {
     try {
       this.logger.info('Processing GetPatientList query', {
         queryId: query.queryId,
@@ -175,7 +241,7 @@ export class PatientQueryHandlers {
 
       // TODO: Implement patient list retrieval
       // For now, return mock data
-      const result = {
+      const result: Extract<PatientListQueryResult, { success: true }> = {
         success: true,
         message: 'Lấy danh sách bệnh nhân thành công',
         data: {
@@ -213,7 +279,7 @@ export class PatientQueryHandlers {
   /**
    * Handle SearchPatients query
    */
-  async handleSearchPatients(query: SearchPatientsQuery): Promise<any> {
+  async handleSearchPatients(query: SearchPatientsQuery): Promise<SearchPatientsQueryResult> {
     try {
       this.logger.info('Processing SearchPatients query', {
         queryId: query.queryId,
@@ -239,7 +305,7 @@ export class PatientQueryHandlers {
 
       // TODO: Implement patient search
       // For now, return mock data
-      const result = {
+      const result: Extract<SearchPatientsQueryResult, { success: true }> = {
         success: true,
         message: 'Tìm kiếm bệnh nhân thành công',
         data: {
@@ -279,7 +345,7 @@ export class PatientQueryHandlers {
   /**
    * Handle GetPatientStatistics query
    */
-  async handleGetPatientStatistics(query: GetPatientStatisticsQuery): Promise<any> {
+  async handleGetPatientStatistics(query: GetPatientStatisticsQuery): Promise<PatientStatisticsQueryResult> {
     try {
       this.logger.info('Processing GetPatientStatistics query', {
         queryId: query.queryId,
@@ -305,7 +371,7 @@ export class PatientQueryHandlers {
 
       // TODO: Implement patient statistics
       // For now, return mock data
-      const result = {
+      const result: Extract<PatientStatisticsQueryResult, { success: true }> = {
         success: true,
         message: 'Lấy thống kê bệnh nhân thành công',
         data: {
@@ -345,26 +411,23 @@ export class PatientQueryHandlers {
   /**
    * Generic query handler dispatcher
    */
-  async handleQuery(query: PatientQuery): Promise<any> {
+  async handleQuery(query: PatientQuery): Promise<PatientQueryResult> {
     switch (query.queryType) {
       case 'GetPatientProfile':
         return this.handleGetPatientProfile(query as GetPatientProfileQuery);
-      
+
       case 'GetPatientList':
         return this.handleGetPatientList(query as GetPatientListQuery);
-      
+
       case 'SearchPatients':
         return this.handleSearchPatients(query as SearchPatientsQuery);
-      
+
       case 'GetPatientStatistics':
         return this.handleGetPatientStatistics(query as GetPatientStatisticsQuery);
-      
+
       default:
-        this.logger.warn('Unknown query type', {
-          queryType: (query as any).queryType,
-          queryId: query.queryId
-        });
-        
+        this.logger.warn('Unknown query type');
+
         return {
           success: false,
           message: 'Loại truy vấn không được hỗ trợ'
@@ -379,8 +442,7 @@ export class PatientQueryHandlers {
       query.queryType === 'GetPatientProfile' &&
       query.data &&
       (query.data.patientId || query.data.userId) &&
-      query.data.requestedBy &&
-      query.data.requestedByRole
+      query.data.requestedBy
     );
   }
 
@@ -431,7 +493,7 @@ export class PatientQueryHandlers {
   /**
    * Get handler status for health checks
    */
-  getStatus(): any {
+  getStatus() {
     return {
       handlerName: 'PatientQueryHandlers',
       supportedQueries: [

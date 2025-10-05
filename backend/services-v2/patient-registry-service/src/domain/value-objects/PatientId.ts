@@ -14,6 +14,12 @@ export class PatientId extends ValueObject<PatientIdProps> {
     super(props);
   }
 
+  protected validateFormat(): void {
+    if (!PatientId.isValidPatientId(this.props.value)) {
+      throw new Error('Mã bệnh nhân không đúng định dạng (PAT-YYYYMM-XXX)');
+    }
+  }
+
   public static create(value: string): PatientId {
     if (!value || value.trim().length === 0) {
       throw new Error('Mã bệnh nhân không được để trống');
@@ -76,7 +82,7 @@ export class PatientId extends ValueObject<PatientIdProps> {
   private static isValidPatientId(value: string): boolean {
     // Format: PAT-YYYYMM-XXX
     const patientIdRegex = /^PAT-\d{6}-\d{3}$/;
-    
+
     if (!patientIdRegex.test(value)) {
       return false;
     }
@@ -85,9 +91,9 @@ export class PatientId extends ValueObject<PatientIdProps> {
     const yearMonth = value.split('-')[1];
     const year = parseInt(yearMonth.substring(0, 4));
     const month = parseInt(yearMonth.substring(4, 6));
-    
+
     const currentYear = new Date().getFullYear();
-    
+
     // Year should be reasonable (not too far in past or future)
     if (year < 2000 || year > currentYear + 1) {
       return false;
@@ -101,11 +107,11 @@ export class PatientId extends ValueObject<PatientIdProps> {
     return true;
   }
 
-  public equals(other: PatientId): boolean {
+  public override equals(other: PatientId): boolean {
     return this.props.value === other.props.value;
   }
 
-  public toString(): string {
+  public override toString(): string {
     return this.props.value;
   }
 }

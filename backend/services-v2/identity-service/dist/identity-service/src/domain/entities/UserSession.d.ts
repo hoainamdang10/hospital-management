@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from '../../../../shared/domain/base/entity';
 interface UserSessionProps {
     userId: string;
     sessionToken: string;

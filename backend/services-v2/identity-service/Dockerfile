@@ -11,9 +11,6 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
-
 # Copy entire identity-service and shared folders to maintain structure
 COPY identity-service/ ./identity-service/
 COPY shared/ ./shared/
@@ -37,20 +34,20 @@ FROM node:18-alpine AS production
 RUN addgroup -g 1001 -S nodejs && \
   adduser -S identity -u 1001
 
-# Set working directory
-WORKDIR /app
+# Set working directory to match build structure
+WORKDIR /app/identity-service
 
-# Copy entire structure from builder
+# Copy entire structure from builder maintaining relative paths
 COPY --from=builder --chown=identity:nodejs /app/identity-service/package*.json ./
 COPY --from=builder --chown=identity:nodejs /app/identity-service/dist ./dist
 COPY --from=builder --chown=identity:nodejs /app/identity-service/node_modules ./node_modules
-COPY --from=builder --chown=identity:nodejs /app/shared ./shared
+COPY --from=builder --chown=identity:nodejs /app/shared ../shared
 
 # Install production dependencies only (if needed)
 RUN npm prune --production && npm cache clean --force
 
 # Create necessary directories
-RUN mkdir -p /app/logs && chown identity:nodejs /app/logs
+RUN mkdir -p /app/identity-service/logs && chown identity:nodejs /app/identity-service/logs
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -71,4 +68,4 @@ USER identity
 EXPOSE 3001
 
 # Start the application
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/identity-service/src/main.js"]

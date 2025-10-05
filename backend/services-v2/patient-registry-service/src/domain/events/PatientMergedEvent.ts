@@ -1,12 +1,20 @@
 /**
  * PatientMergedEvent
- * 
+ *
  * Published when duplicate patients are merged
  */
 
 import { DomainEvent } from '@shared/domain/base/domain-event';
 import { Patient } from '../aggregates/Patient';
 import { PatientId } from '../value-objects/PatientId';
+
+export interface PatientMergedEventData {
+  duplicatePatientId: string;
+  masterPatientId: string;
+  reason: string;
+  performedBy: string;
+  mergedAt: Date;
+}
 
 export class PatientMergedEvent extends DomainEvent {
   constructor(
@@ -15,17 +23,44 @@ export class PatientMergedEvent extends DomainEvent {
     public readonly reason: string,
     public readonly performedBy: string
   ) {
-    super('PatientMerged', duplicatePatient.getPatientId().getValue());
+    const patientId = duplicatePatient.getPatientId() || '';
+    const eventData = {
+      duplicatePatientId: patientId,
+      masterPatientId: masterPatientId.value,
+      reason,
+      performedBy
+    };
+
+    super(
+      'PatientMerged',
+      patientId,
+      'Patient',
+      eventData,
+      1
+    );
   }
 
-  public getPayload(): any {
+  public getEventData(): PatientMergedEventData {
+    const patientId = this.duplicatePatient.getPatientId() || '';
     return {
-      duplicatePatientId: this.duplicatePatient.getPatientId().getValue(),
-      masterPatientId: this.masterPatientId.getValue(),
+      duplicatePatientId: patientId,
+      masterPatientId: this.masterPatientId.value,
       reason: this.reason,
       performedBy: this.performedBy,
       mergedAt: this.occurredAt
     };
+  }
+
+  public containsPHI(): boolean {
+    return true;
+  }
+
+  public getPatientId(): string | null {
+    return this.duplicatePatient.getPatientId();
+  }
+
+  public getPayload(): PatientMergedEventData {
+    return this.getEventData();
   }
 }
 

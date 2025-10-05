@@ -5,12 +5,14 @@ const error_helper_1 = require("../../utils/error-helper");
 const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const UserId_1 = require("../../domain/value-objects/UserId");
 /**
- * Disable MFA Use Case
+ * Disable MFA Use Case - Refactored
  * Requires verification before disabling MFA
+ * Uses IMFAService interface for infrastructure independence
  */
 class DisableMFAUseCase {
-    constructor(userRepository, verifyMFAUseCase, logger) {
+    constructor(userRepository, mfaService, verifyMFAUseCase, logger) {
         this.userRepository = userRepository;
+        this.mfaService = mfaService;
         this.verifyMFAUseCase = verifyMFAUseCase;
         this.logger = logger;
         this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('disable-mfa-use-case');
@@ -62,8 +64,8 @@ class DisableMFAUseCase {
                     error: 'INVALID_VERIFICATION_CODE'
                 };
             }
-            // 4. Disable MFA in database
-            await this.userRepository.disableMFA(userId);
+            // 4. Disable MFA via service
+            await this.mfaService.disableMFA(request.userId);
             this.logger.info('MFA disabled successfully', { userId: request.userId });
             return {
                 success: true,

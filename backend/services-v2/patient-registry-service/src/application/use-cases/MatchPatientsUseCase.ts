@@ -1,9 +1,9 @@
 /**
  * MatchPatientsUseCase - Application Use Case
- * 
+ *
  * Implements Patient Master Index (PMI) $match operation
  * Finds potential duplicate patients based on demographic data
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HL7 FHIR, PMI Best Practices
@@ -91,7 +91,9 @@ export class MatchPatientsUseCase {
 
         // Determine which fields matched
         const matchedFields: string[] = [];
-        if (request.criteria.fullName && personalInfo.fullName.toLowerCase() === request.criteria.fullName.toLowerCase()) {
+        const criteriaFullName = request.criteria.fullName?.toLowerCase();
+        const patientFullName = personalInfo.fullName.toLowerCase();
+        if (criteriaFullName && patientFullName === criteriaFullName) {
           matchedFields.push('fullName');
         }
         if (request.criteria.dateOfBirth && personalInfo.dateOfBirth.toISOString().split('T')[0] === request.criteria.dateOfBirth) {
@@ -109,7 +111,7 @@ export class MatchPatientsUseCase {
 
         return {
           patient: {
-            patientId: patient.getPatientId().getValue(),
+            patientId: patient.getPatientId() || '',
             userId: patient.getUserId(),
             fullName: personalInfo.fullName,
             dateOfBirth: personalInfo.dateOfBirth.toISOString(),

@@ -8,7 +8,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
  */
-import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
+import { HealthcareAggregateRoot } from '../../shared/domain/base/aggregate-root';
 import { PatientId } from '../value-objects/PatientId';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { ContactInfo } from '../value-objects/ContactInfo';

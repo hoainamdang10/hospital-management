@@ -1,15 +1,16 @@
 /**
  * Patient Aggregate Root - Patient Registry V2
- * 
+ *
  * Manages patient master data and enforces business invariants
  * Based on HL7 FHIR Patient Resource specification
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
  */
 
 import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { PatientId } from '../value-objects/PatientId';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { ContactInfo } from '../value-objects/ContactInfo';
@@ -297,9 +298,28 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.addDomainEvent(new PatientUpdatedEvent(this, 'status', performedBy));
   }
 
+  /**
+   * Reactivate patient (from INACTIVE status)
+   */
+  public reactivate(_reason: string, performedBy: string): void {
+    if (this.props.status !== PatientStatus.INACTIVE) {
+      throw new Error('Chỉ có thể kích hoạt lại bệnh nhân đã bị vô hiệu hóa');
+    }
+
+    this.props.status = PatientStatus.ACTIVE;
+    this.props.updatedAt = new Date();
+    this.props.updatedBy = performedBy;
+
+    this.addDomainEvent(new PatientUpdatedEvent(this, 'status', performedBy));
+  }
+
   // ==================== Getters ====================
 
-  public getPatientId(): PatientId {
+  override getPatientId(): string | null {
+    return this.props.id.value;
+  }
+
+  public getPatientIdObject(): PatientId {
     return this.props.id;
   }
 
@@ -343,8 +363,43 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     return this.props.links.slice(); // Return copy
   }
 
-  public getProps(): PatientProps {
-    return { ...this.props };
+  override getProps(): PatientProps {
+    // Deep clone to prevent external mutation of nested collections
+    return {
+      ...this.props,
+      emergencyContacts: this.props.emergencyContacts.slice(),
+      consents: this.props.consents.slice(),
+      links: this.props.links.slice()
+    };
+  }
+
+  // ==================== Required Abstract Methods ====================
+
+  /**
+   * Validate entity state (required by Entity base class)
+   */
+  validate(): void {
+    this.validateInvariants();
+  }
+
+  /**
+   * Convert to persistence format (required by Entity base class)
+   * Note: This is a minimal stub. Use PatientMapper.toPersistence() for actual persistence.
+   */
+  toPersistence(): { id: string; patient_id: string } {
+    return {
+      id: this.id,
+      patient_id: this.props.id.value
+    };
+  }
+
+  /**
+   * Apply domain event (required by AggregateRoot base class)
+   */
+  protected applyEvent(_event: DomainEvent): void {
+    // Event sourcing: Apply event to rebuild state
+    // For now, we use state-based persistence, so this is a no-op
+    // In future, implement event sourcing logic here
   }
 
   // ==================== Business Queries ====================

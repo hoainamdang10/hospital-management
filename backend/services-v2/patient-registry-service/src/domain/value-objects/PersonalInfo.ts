@@ -1,7 +1,7 @@
 /**
  * PersonalInfo Value Object - Patient Registry
  * Patient personal information with Vietnamese healthcare standards
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
@@ -143,11 +143,11 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
     const birthDate = this.props.dateOfBirth;
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -203,7 +203,16 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
   /**
    * Convert to persistence format
    */
-  public toPersistence(): any {
+  public toPersistence(): {
+    fullName: string;
+    dateOfBirth: string;
+    gender: 'male' | 'female' | 'other';
+    nationalId: string;
+    nationality: string;
+    ethnicity?: string;
+    occupation?: string;
+    maritalStatus?: string;
+    } {
     return {
       fullName: this.props.fullName,
       dateOfBirth: this.props.dateOfBirth.toISOString(),
@@ -219,7 +228,16 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
   /**
    * Create from persistence data
    */
-  public static fromPersistence(data: any): PersonalInfo {
+  public static fromPersistence(data: {
+    fullName: string;
+    dateOfBirth: string;
+    gender: 'male' | 'female' | 'other';
+    nationalId: string;
+    nationality: string;
+    ethnicity?: string;
+    occupation?: string;
+    maritalStatus?: string;
+  }): PersonalInfo {
     return PersonalInfo.create({
       fullName: data.fullName,
       dateOfBirth: new Date(data.dateOfBirth),
@@ -244,7 +262,9 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
    */
   public getMaskedNationalId(): string {
     const id = this.props.nationalId;
-    if (id.length <= 4) return '***';
+    if (id.length <= 4) {
+      return '***';
+    }
     return '***' + id.slice(-4);
   }
 

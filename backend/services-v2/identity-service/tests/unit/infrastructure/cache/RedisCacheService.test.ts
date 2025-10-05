@@ -1,7 +1,7 @@
 /**
  * Unit Tests for RedisCacheService
  * Tests caching functionality with Redis
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -30,13 +30,30 @@ describe('RedisCacheService', () => {
   let mockRedisClient: any;
 
   beforeEach(() => {
+    // Ensure redis.createClient returns a valid mock after Jest resets mocks
+    const redisModule: any = require('redis');
+    const clientMock = {
+      connect: jest.fn().mockResolvedValue(undefined),
+      quit: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn(),
+      setEx: jest.fn(),
+      del: jest.fn(),
+      keys: jest.fn(),
+      exists: jest.fn(),
+      ttl: jest.fn(),
+      on: jest.fn()
+    };
+    redisModule.createClient.mockReturnValue(clientMock);
+  });
+
+  beforeEach(() => {
     mockLogger = TestUtils.createMockLogger();
     cacheService = new RedisCacheService(
       'redis://localhost:6379',
       mockLogger,
       'test:'
     );
-    
+
     // Get mock client
     mockRedisClient = (cacheService as any).client;
   });

@@ -1,8 +1,8 @@
 /**
  * ValidateInsuranceUseCase - Application Use Case
- * 
+ *
  * Validates patient insurance (BHYT/BHTN)
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
@@ -10,6 +10,7 @@
 
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { PatientId } from '../../domain/value-objects/PatientId';
+import { IInsuranceValidationService } from '../services/IInsuranceValidationService';
 
 export interface ValidateInsuranceRequest {
   patientId: string;
@@ -44,7 +45,8 @@ export interface ValidateInsuranceResponse {
 
 export class ValidateInsuranceUseCase {
   constructor(
-    private readonly patientRepository: IPatientRepository
+    private readonly patientRepository: IPatientRepository,
+    private readonly insuranceValidationService: IInsuranceValidationService
   ) {}
 
   async execute(request: ValidateInsuranceRequest): Promise<ValidateInsuranceResponse> {
@@ -79,15 +81,26 @@ export class ValidateInsuranceUseCase {
         };
       }
 
-      // 3. Validate insurance
-      const now = new Date();
+      // 3. Validate insurance using service
       const validFrom = insuranceInfo.validFrom;
       const validTo = insuranceInfo.validTo;
-      const isNotExpired = now >= validFrom && now <= validTo;
-      const daysUntilExpiration = Math.ceil((validTo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
+      // Use insurance validation service
+      const validationResult = await this.insuranceValidationService.validateInsurance(
+        insuranceInfo.coverageType,
+        insuranceInfo.policyNumber,
+        validFrom,
+        validTo
+      );
+
+      // Check expiration
+      const expirationCheck = this.insuranceValidationService.checkExpiration(validFrom, validTo);
+      const isNotExpired = !expirationCheck.isExpired;
+      const daysUntilExpiration = expirationCheck.daysUntilExpiration;
+
+      // Build reasons list
       const reasons: string[] = [];
-      let isValid = true;
+      let isValid = validationResult.isValid;
 
       // Check if insurance is active
       if (!insuranceInfo.isActive) {
@@ -95,28 +108,18 @@ export class ValidateInsuranceUseCase {
         reasons.push('INSURANCE_NOT_ACTIVE');
       }
 
-      // Check if insurance is expired
-      if (!isNotExpired) {
+      // Add validation errors as reasons
+      if (validationResult.errors.length > 0) {
         isValid = false;
-        if (now < validFrom) {
-          reasons.push('INSURANCE_NOT_YET_VALID');
-        } else {
-          reasons.push('INSURANCE_EXPIRED');
-        }
+        reasons.push(...validationResult.errors);
       }
 
-      // Check if insurance is expiring soon (within 30 days)
-      if (isNotExpired && daysUntilExpiration <= 30 && daysUntilExpiration > 0) {
+      // Add expiration warnings
+      if (expirationCheck.isExpired) {
+        isValid = false;
+        reasons.push('INSURANCE_EXPIRED');
+      } else if (expirationCheck.isExpiringSoon) {
         reasons.push('INSURANCE_EXPIRING_SOON');
-      }
-
-      // Check BHYT number format (if Vietnamese insurance)
-      if (insuranceInfo.isVietnameseInsurance && insuranceInfo.bhytNumber) {
-        const bhytRegex = /^[A-Z]{2}-\d{1}-\d{2}-\d{4}-\d{5}-\d{5}$/;
-        if (!bhytRegex.test(insuranceInfo.bhytNumber)) {
-          isValid = false;
-          reasons.push('INVALID_BHYT_NUMBER_FORMAT');
-        }
       }
 
       // If no issues found

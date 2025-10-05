@@ -137,7 +137,7 @@ export class ListUsersUseCase implements IUseCase<ListUsersRequest, ListUsersRes
         email: user.email.value,
         fullName: user.personalInfo.fullName,
         phoneNumber: user.personalInfo.phoneNumber,
-        roleType: user.healthcareRole.type,
+        roleType: (user.healthcareRole.type || '').toLowerCase(),
         isActive: user.isActive,
         isEmailVerified: user.isEmailVerified,
         lastLoginAt: user.lastLoginAt?.toISOString(),

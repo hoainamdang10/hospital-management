@@ -1,8 +1,8 @@
 /**
  * GetPatientProfileUseCase - Application Use Case
- * 
+ *
  * Retrieves patient profile information
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
@@ -144,7 +144,7 @@ export class GetPatientProfileUseCase {
         success: true,
         message: 'Lấy thông tin bệnh nhân thành công',
         data: {
-          patientId: patient.getPatientId().getValue(),
+          patientId: patient.getPatientId() || '',
           userId: patient.getUserId(),
           personalInfo: {
             fullName: personalInfo.fullName,
@@ -200,15 +200,15 @@ export class GetPatientProfileUseCase {
           consents: consents.map(consent => ({
             id: consent.getId(),
             consentType: consent.consentType,
-            isGranted: consent.isGranted,
-            grantedAt: consent.grantedAt?.toISOString(),
-            revokedAt: consent.revokedAt?.toISOString(),
+            isGranted: consent.isGranted(),
+            grantedAt: consent.grantedAt.toISOString(),
+            revokedAt: consent.revokedAt()?.toISOString(),
             expiresAt: consent.expiresAt?.toISOString()
           })),
-          status: patient.getStatus(),
-          mergedInto: patient.getMergedInto()?.getValue(),
+          status: patient.getStatus().valueOf(),
+          mergedInto: patient.getMergedInto()?.value,
           links: links.map(link => ({
-            otherPatientId: link.otherPatientId.getValue(),
+            otherPatientId: link.otherPatientId.value,
             linkType: link.linkType,
             createdAt: link.createdAt.toISOString(),
             createdBy: link.createdBy

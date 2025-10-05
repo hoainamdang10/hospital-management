@@ -1,8 +1,8 @@
 /**
  * LinkPatientsUseCase - Application Use Case
- * 
+ *
  * Links related patients (FHIR-style linking)
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HL7 FHIR R5

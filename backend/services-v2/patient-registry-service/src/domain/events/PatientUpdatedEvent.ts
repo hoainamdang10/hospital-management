@@ -10,22 +10,55 @@
 import { DomainEvent } from '@shared/domain/base/domain-event';
 import { Patient } from '../aggregates/Patient';
 
+export interface PatientUpdatedEventData {
+  patientId: string;
+  updateType: string;
+  updatedBy: string;
+  updatedAt: Date;
+}
+
 export class PatientUpdatedEvent extends DomainEvent {
   constructor(
     public readonly patient: Patient,
     public readonly updateType: string,
     public readonly updatedBy: string
   ) {
-    super('PatientUpdated', patient.getPatientId().getValue());
+    const patientId = patient.getPatientId() || '';
+    const eventData = {
+      patientId,
+      updateType,
+      updatedBy
+    };
+
+    super(
+      'PatientUpdated',
+      patientId,
+      'Patient',
+      eventData,
+      1
+    );
   }
 
-  public getPayload(): any {
+  public getEventData(): PatientUpdatedEventData {
+    const patientId = this.patient.getPatientId() || '';
     return {
-      patientId: this.patient.getPatientId().getValue(),
+      patientId,
       updateType: this.updateType,
       updatedBy: this.updatedBy,
       updatedAt: this.occurredAt
     };
+  }
+
+  public containsPHI(): boolean {
+    return true;
+  }
+
+  public getPatientId(): string | null {
+    return this.patient.getPatientId();
+  }
+
+  public getPayload(): PatientUpdatedEventData {
+    return this.getEventData();
   }
 }
 

@@ -1,9 +1,9 @@
 /**
  * BasicMedicalInfo Value Object
- * 
+ *
  * ONLY basic medical info for emergency purposes
  * Detailed clinical data belongs to Clinical EMR Service
- * 
+ *
  * Based on HL7 FHIR Patient Resource specification
  */
 
@@ -20,6 +20,13 @@ export interface BasicMedicalInfoProps {
 export class BasicMedicalInfo extends ValueObject<BasicMedicalInfoProps> {
   private constructor(props: BasicMedicalInfoProps) {
     super(props);
+  }
+
+  protected validateFormat(): void {
+    // Basic validation - allergies should be array
+    if (!Array.isArray(this.props.knownAllergies)) {
+      throw new Error('Known allergies must be an array');
+    }
   }
 
   /**
@@ -70,7 +77,7 @@ export class BasicMedicalInfo extends ValueObject<BasicMedicalInfoProps> {
   }
 
   public hasEmergencyInfo(): boolean {
-    return this.props.emergencyMedicalInfo !== undefined && 
+    return this.props.emergencyMedicalInfo !== undefined &&
            this.props.emergencyMedicalInfo.trim().length > 0;
   }
 

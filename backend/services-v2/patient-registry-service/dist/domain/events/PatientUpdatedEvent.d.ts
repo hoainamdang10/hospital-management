@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../shared/domain/base/domain-event';
 import { Patient } from '../aggregates/Patient';
 export declare class PatientUpdatedEvent extends DomainEvent {
     readonly patient: Patient;

@@ -1,8 +1,8 @@
 /**
  * RegisterPatientUseCase - Application Use Case
- * 
+ *
  * Handles patient registration with Vietnamese healthcare compliance
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
@@ -85,7 +85,7 @@ export class RegisterPatientUseCase {
   async execute(request: RegisterPatientRequest): Promise<RegisterPatientResponse> {
     try {
       // 1. Validate user exists (should be done by caller or Identity Service)
-      
+
       // 2. Check if patient already exists
       const existingPatient = await this.patientRepository.findByUserId(request.userId);
       if (existingPatient) {
@@ -144,10 +144,10 @@ export class RegisterPatientUseCase {
 
       const basicMedicalInfo = request.basicMedicalInfo
         ? BasicMedicalInfo.create({
-            bloodType: request.basicMedicalInfo.bloodType,
-            knownAllergies: request.basicMedicalInfo.knownAllergies || [],
-            emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo
-          })
+          bloodType: request.basicMedicalInfo.bloodType,
+          knownAllergies: request.basicMedicalInfo.knownAllergies || [],
+          emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo
+        })
         : BasicMedicalInfo.createEmpty();
 
       // 6. Create insurance info entity (if provided)
@@ -197,7 +197,7 @@ export class RegisterPatientUseCase {
       // 10. Return success response
       return {
         success: true,
-        patientId: patient.getPatientId().getValue(),
+        patientId: patient.getPatientId() || '',
         message: 'Đăng ký bệnh nhân thành công'
       };
 

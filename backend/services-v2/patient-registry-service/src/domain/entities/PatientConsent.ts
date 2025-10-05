@@ -1,7 +1,7 @@
 /**
  * PatientConsent Entity - Patient Registry
  * Patient consent management for HIPAA compliance
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
@@ -9,6 +9,7 @@
 
 import { Entity } from '@shared/domain/base/entity';
 import { PatientId } from '../value-objects/PatientId';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface PatientConsentProps {
   id: string;
@@ -25,8 +26,8 @@ export interface PatientConsentProps {
 }
 
 export class PatientConsent extends Entity<PatientConsentProps> {
-  private constructor(props: PatientConsentProps) {
-    super(props);
+  private constructor(props: PatientConsentProps, id?: string) {
+    super(props, id);
   }
 
   /**
@@ -40,9 +41,10 @@ export class PatientConsent extends Entity<PatientConsentProps> {
     notes?: string
   ): PatientConsent {
     const now = new Date();
-    
+    const id = uuidv4();
+
     return new PatientConsent({
-      id: Entity.generateId(),
+      id,
       patientId,
       consentType: consentType.trim(),
       isActive: true,
@@ -52,7 +54,7 @@ export class PatientConsent extends Entity<PatientConsentProps> {
       notes: notes?.trim(),
       createdAt: now,
       updatedAt: now
-    });
+    }, id);
   }
 
   /**
@@ -63,8 +65,16 @@ export class PatientConsent extends Entity<PatientConsentProps> {
   }
 
   // Getters
-  public get id(): string {
-    return this.props.id;
+  public getId(): string {
+    return this.id;
+  }
+
+  public isGranted(): boolean {
+    return this.props.isActive && !this.props.withdrawnAt;
+  }
+
+  public revokedAt(): Date | undefined {
+    return this.props.withdrawnAt;
   }
 
   public get patientId(): PatientId {
@@ -107,7 +117,9 @@ export class PatientConsent extends Entity<PatientConsentProps> {
   }
 
   public isExpired(): boolean {
-    if (!this.props.expiresAt) return false;
+    if (!this.props.expiresAt) {
+      return false;
+    }
     return this.props.expiresAt < new Date();
   }
 
@@ -116,8 +128,10 @@ export class PatientConsent extends Entity<PatientConsentProps> {
   }
 
   public getDaysUntilExpiry(): number | null {
-    if (!this.props.expiresAt) return null;
-    
+    if (!this.props.expiresAt) {
+      return null;
+    }
+
     const today = new Date();
     const diffTime = this.props.expiresAt.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -125,7 +139,9 @@ export class PatientConsent extends Entity<PatientConsentProps> {
 
   public isExpiringWithin(days: number): boolean {
     const daysUntilExpiry = this.getDaysUntilExpiry();
-    if (daysUntilExpiry === null) return false;
+    if (daysUntilExpiry === null) {
+      return false;
+    }
     return daysUntilExpiry > 0 && daysUntilExpiry <= days;
   }
 
@@ -143,6 +159,12 @@ export class PatientConsent extends Entity<PatientConsentProps> {
   }
 
   // Validation methods
+  override validate(): void {
+    if (!this.isHIPAACompliant()) {
+      throw new Error('Consent is not HIPAA compliant');
+    }
+  }
+
   public isHIPAACompliant(): boolean {
     return (
       this.props.consentType.length > 0 &&
@@ -152,36 +174,32 @@ export class PatientConsent extends Entity<PatientConsentProps> {
   }
 
   // Persistence methods
-  public toPersistence(): any {
+  override toPersistence(): {
+    id: string;
+    patient_id: string;
+    consent_type: string;
+    is_active: boolean;
+    granted_at: string;
+    withdrawn_at?: string;
+    expires_at?: string;
+    witness_id?: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+    } {
     return {
-      id: this.props.id,
-      patientId: this.props.patientId.value,
-      consentType: this.props.consentType,
-      isActive: this.props.isActive,
-      grantedAt: this.props.grantedAt.toISOString(),
-      withdrawnAt: this.props.withdrawnAt?.toISOString(),
-      expiresAt: this.props.expiresAt?.toISOString(),
-      witnessId: this.props.witnessId,
+      id: this.id,
+      patient_id: this.props.patientId.value,
+      consent_type: this.props.consentType,
+      is_active: this.props.isActive,
+      granted_at: this.props.grantedAt.toISOString(),
+      withdrawn_at: this.props.withdrawnAt?.toISOString(),
+      expires_at: this.props.expiresAt?.toISOString(),
+      witness_id: this.props.witnessId,
       notes: this.props.notes,
-      createdAt: this.props.createdAt.toISOString(),
-      updatedAt: this.props.updatedAt.toISOString()
+      created_at: this.props.createdAt.toISOString(),
+      updated_at: this.props.updatedAt.toISOString()
     };
-  }
-
-  public static fromPersistence(data: any): PatientConsent {
-    return PatientConsent.reconstitute({
-      id: data.id,
-      patientId: PatientId.fromString(data.patientId),
-      consentType: data.consentType,
-      isActive: data.isActive,
-      grantedAt: new Date(data.grantedAt),
-      withdrawnAt: data.withdrawnAt ? new Date(data.withdrawnAt) : undefined,
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
-      witnessId: data.witnessId,
-      notes: data.notes,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt)
-    });
   }
 
   // Logging methods

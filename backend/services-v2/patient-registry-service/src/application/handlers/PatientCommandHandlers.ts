@@ -2,7 +2,7 @@
  * PatientCommandHandlers - Application Command Handlers
  * V2 Clean Architecture + DDD Implementation
  * CQRS Command handlers for patient registry operations
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, CQRS, Vietnamese Healthcare Standards, HIPAA
@@ -10,7 +10,10 @@
 
 import { RegisterPatientUseCase, RegisterPatientRequest, RegisterPatientResponse } from '../use-cases/RegisterPatientUseCase';
 import { UpdatePatientInfoUseCase, UpdatePatientInfoRequest, UpdatePatientInfoResponse } from '../use-cases/UpdatePatientInfoUseCase';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
+import { DeactivatePatientUseCase, DeactivatePatientResponse } from '../use-cases/DeactivatePatientUseCase';
+import { GrantConsentUseCase, GrantConsentResult } from '../use-cases/GrantConsentUseCase';
+import { AddEmergencyContactUseCase, AddEmergencyContactResult } from '../use-cases/AddEmergencyContactUseCase';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 // Command interfaces
 export interface RegisterPatientCommand {
@@ -67,20 +70,33 @@ export interface AddEmergencyContactCommand {
       name: string;
       relationship: string;
       phoneNumber: string;
+      secondaryPhone?: string;
       email?: string;
       address?: string;
+      isPrimary?: boolean;
     };
     requestedBy: string;
     requestedByRole: string;
   };
 }
 
-export type PatientCommand = 
-  | RegisterPatientCommand 
-  | UpdatePatientInfoCommand 
-  | DeactivatePatientCommand 
+export type PatientCommand =
+  | RegisterPatientCommand
+  | UpdatePatientInfoCommand
+  | DeactivatePatientCommand
   | GrantPatientConsentCommand
   | AddEmergencyContactCommand;
+
+/**
+ * Union type for all command results
+ */
+export type PatientCommandResult =
+  | RegisterPatientResponse
+  | UpdatePatientInfoResponse
+  | DeactivatePatientResponse
+  | GrantConsentResult
+  | AddEmergencyContactResult
+  | { success: false; message: string }; // For unknown command types
 
 /**
  * Patient Command Handlers
@@ -90,6 +106,9 @@ export class PatientCommandHandlers {
   constructor(
     private readonly registerPatientUseCase: RegisterPatientUseCase,
     private readonly updatePatientInfoUseCase: UpdatePatientInfoUseCase,
+    private readonly deactivatePatientUseCase: DeactivatePatientUseCase,
+    private readonly grantConsentUseCase: GrantConsentUseCase,
+    private readonly addEmergencyContactUseCase: AddEmergencyContactUseCase,
     private readonly logger: ILogger
   ) {}
 
@@ -198,17 +217,20 @@ export class PatientCommandHandlers {
         };
       }
 
-      // TODO: Implement deactivate patient use case
-      // For now, return success
-      this.logger.info('DeactivatePatient command processed', {
-        commandId: command.commandId,
-        patientId: command.data.patientId
+      // Execute use case
+      const result = await this.deactivatePatientUseCase.execute({
+        patientId: command.data.patientId,
+        reason: command.data.reason,
+        performedBy: command.data.requestedBy
       });
 
-      return {
-        success: true,
-        message: 'Vô hiệu hóa bệnh nhân thành công'
-      };
+      this.logger.info('DeactivatePatient command processed', {
+        commandId: command.commandId,
+        patientId: command.data.patientId,
+        success: result.success
+      });
+
+      return result;
 
     } catch (error) {
       this.logger.error('Error processing DeactivatePatient command', {
@@ -242,16 +264,25 @@ export class PatientCommandHandlers {
         };
       }
 
-      // TODO: Implement grant patient consent use case
-      // For now, return success
+      // Execute use case
+      const result = await this.grantConsentUseCase.execute({
+        patientId: command.data.patientId,
+        consentType: command.data.consentType,
+        grantedBy: command.data.grantedBy,
+        expiresAt: command.data.expiresAt,
+        performedBy: command.requestedBy
+      });
+
       this.logger.info('GrantPatientConsent command processed', {
         commandId: command.commandId,
-        patientId: command.data.patientId
+        patientId: command.data.patientId,
+        success: result.success,
+        consentId: result.consentId
       });
 
       return {
-        success: true,
-        message: 'Cấp phép bệnh nhân thành công'
+        success: result.success,
+        message: result.message
       };
 
     } catch (error) {
@@ -286,16 +317,29 @@ export class PatientCommandHandlers {
         };
       }
 
-      // TODO: Implement add emergency contact use case
-      // For now, return success
+      // Execute use case
+      const result = await this.addEmergencyContactUseCase.execute({
+        patientId: command.data.patientId,
+        name: command.data.contactInfo.name,
+        relationship: command.data.contactInfo.relationship,
+        primaryPhone: command.data.contactInfo.phoneNumber,
+        secondaryPhone: command.data.contactInfo.secondaryPhone,
+        email: command.data.contactInfo.email,
+        address: command.data.contactInfo.address,
+        isPrimary: command.data.contactInfo.isPrimary,
+        performedBy: command.data.requestedBy
+      });
+
       this.logger.info('AddEmergencyContact command processed', {
         commandId: command.commandId,
-        patientId: command.data.patientId
+        patientId: command.data.patientId,
+        success: result.success,
+        contactId: result.contactId
       });
 
       return {
-        success: true,
-        message: 'Thêm liên hệ khẩn cấp thành công'
+        success: result.success,
+        message: result.message
       };
 
     } catch (error) {
@@ -314,29 +358,26 @@ export class PatientCommandHandlers {
   /**
    * Generic command handler dispatcher
    */
-  async handleCommand(command: PatientCommand): Promise<any> {
+  async handleCommand(command: PatientCommand): Promise<PatientCommandResult> {
     switch (command.commandType) {
       case 'RegisterPatient':
         return this.handleRegisterPatient(command as RegisterPatientCommand);
-      
+
       case 'UpdatePatientInfo':
         return this.handleUpdatePatientInfo(command as UpdatePatientInfoCommand);
-      
+
       case 'DeactivatePatient':
         return this.handleDeactivatePatient(command as DeactivatePatientCommand);
-      
+
       case 'GrantPatientConsent':
         return this.handleGrantPatientConsent(command as GrantPatientConsentCommand);
-      
+
       case 'AddEmergencyContact':
         return this.handleAddEmergencyContact(command as AddEmergencyContactCommand);
-      
+
       default:
-        this.logger.warn('Unknown command type', {
-          commandType: (command as any).commandType,
-          commandId: command.commandId
-        });
-        
+        this.logger.warn('Unknown command type');
+
         return {
           success: false,
           message: 'Loại lệnh không được hỗ trợ'
@@ -363,8 +404,7 @@ export class PatientCommandHandlers {
       command.commandType === 'UpdatePatientInfo' &&
       command.data &&
       command.data.patientId &&
-      command.data.updates &&
-      command.data.requestedBy
+      command.data.updatedBy
     );
   }
 
@@ -406,7 +446,12 @@ export class PatientCommandHandlers {
   /**
    * Get handler status for health checks
    */
-  getStatus(): any {
+  getStatus(): {
+    handlerName: string;
+    supportedCommands: string[];
+    isHealthy: boolean;
+    lastProcessedAt: string;
+    } {
     return {
       handlerName: 'PatientCommandHandlers',
       supportedCommands: [

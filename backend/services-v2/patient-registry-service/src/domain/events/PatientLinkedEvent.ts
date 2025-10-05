@@ -1,12 +1,20 @@
 /**
  * PatientLinkedEvent
- * 
+ *
  * Published when patients are linked (FHIR-style)
  */
 
 import { DomainEvent } from '@shared/domain/base/domain-event';
 import { Patient } from '../aggregates/Patient';
 import { PatientId } from '../value-objects/PatientId';
+
+export interface PatientLinkedEventData {
+  patientId: string;
+  otherPatientId: string;
+  linkType: 'refer' | 'seealso';
+  performedBy: string;
+  linkedAt: Date;
+}
 
 export class PatientLinkedEvent extends DomainEvent {
   constructor(
@@ -15,17 +23,44 @@ export class PatientLinkedEvent extends DomainEvent {
     public readonly linkType: 'refer' | 'seealso',
     public readonly performedBy: string
   ) {
-    super('PatientLinked', patient.getPatientId().getValue());
+    const patientId = patient.getPatientId() || '';
+    const eventData = {
+      patientId,
+      otherPatientId: otherPatientId.value,
+      linkType,
+      performedBy
+    };
+
+    super(
+      'PatientLinked',
+      patientId,
+      'Patient',
+      eventData,
+      1
+    );
   }
 
-  public getPayload(): any {
+  public getEventData(): PatientLinkedEventData {
+    const patientId = this.patient.getPatientId() || '';
     return {
-      patientId: this.patient.getPatientId().getValue(),
-      otherPatientId: this.otherPatientId.getValue(),
+      patientId,
+      otherPatientId: this.otherPatientId.value,
       linkType: this.linkType,
       performedBy: this.performedBy,
       linkedAt: this.occurredAt
     };
+  }
+
+  public containsPHI(): boolean {
+    return true; // Contains patient linking information
+  }
+
+  public getPatientId(): string | null {
+    return this.patient.getPatientId();
+  }
+
+  public getPayload(): PatientLinkedEventData {
+    return this.getEventData();
   }
 }
 

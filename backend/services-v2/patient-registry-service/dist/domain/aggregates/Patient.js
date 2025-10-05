@@ -11,7 +11,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Patient = void 0;
-const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("../../shared/domain/base/aggregate-root");
 const PatientId_1 = require("../value-objects/PatientId");
 const PatientLink_1 = require("../value-objects/PatientLink");
 const PatientStatus_1 = require("../value-objects/PatientStatus");

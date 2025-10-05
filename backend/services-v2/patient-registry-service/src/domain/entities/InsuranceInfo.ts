@@ -1,13 +1,14 @@
 /**
  * InsuranceInfo Entity - Patient Registry
  * Patient insurance information with Vietnamese healthcare standards (BHYT/BHTN)
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
 import { Entity } from '@shared/domain/base/entity';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface InsuranceInfoProps {
   id: string;
@@ -26,8 +27,8 @@ export interface InsuranceInfoProps {
 }
 
 export class InsuranceInfo extends Entity<InsuranceInfoProps> {
-  private constructor(props: InsuranceInfoProps) {
-    super(props);
+  private constructor(props: InsuranceInfoProps, id?: string) {
+    super(props, id);
   }
 
   /**
@@ -35,13 +36,14 @@ export class InsuranceInfo extends Entity<InsuranceInfoProps> {
    */
   public static create(props: Omit<InsuranceInfoProps, 'id' | 'createdAt' | 'updatedAt'>): InsuranceInfo {
     const now = new Date();
-    
+    const id = uuidv4();
+
     return new InsuranceInfo({
       ...props,
-      id: Entity.generateId(),
+      id,
       createdAt: now,
       updatedAt: now
-    });
+    }, id);
   }
 
   /**
@@ -52,8 +54,8 @@ export class InsuranceInfo extends Entity<InsuranceInfoProps> {
   }
 
   // Getters
-  public get id(): string {
-    return this.props.id;
+  public getId(): string {
+    return this.id;
   }
 
   public get provider(): string {
@@ -193,41 +195,52 @@ export class InsuranceInfo extends Entity<InsuranceInfoProps> {
     );
   }
 
-  // Persistence methods
-  public toPersistence(): any {
-    return {
-      id: this.props.id,
-      provider: this.props.provider,
-      policyNumber: this.props.policyNumber,
-      groupNumber: this.props.groupNumber,
-      validFrom: this.props.validFrom.toISOString(),
-      validTo: this.props.validTo.toISOString(),
-      coverageType: this.props.coverageType,
-      isActive: this.props.isActive,
-      isPrimary: this.props.isPrimary,
-      isVietnameseInsurance: this.props.isVietnameseInsurance,
-      bhytNumber: this.props.bhytNumber,
-      createdAt: this.props.createdAt.toISOString(),
-      updatedAt: this.props.updatedAt.toISOString()
-    };
+  // Validation
+  override validate(): void {
+    if (!this.isValidInsurance()) {
+      throw new Error('Invalid insurance info');
+    }
   }
 
-  public static fromPersistence(data: any): InsuranceInfo {
-    return InsuranceInfo.reconstitute({
-      id: data.id,
-      provider: data.provider,
-      policyNumber: data.policyNumber,
-      groupNumber: data.groupNumber,
-      validFrom: new Date(data.validFrom),
-      validTo: new Date(data.validTo),
-      coverageType: data.coverageType,
-      isActive: data.isActive,
-      isPrimary: data.isPrimary,
-      isVietnameseInsurance: data.isVietnameseInsurance,
-      bhytNumber: data.bhytNumber,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt)
-    });
+  private isValidInsurance(): boolean {
+    return (
+      this.props.provider.length > 0 &&
+      this.props.policyNumber.length > 0 &&
+      this.props.validFrom < this.props.validTo
+    );
+  }
+
+  // Persistence methods
+  override toPersistence(): {
+    id: string;
+    provider: string;
+    policy_number: string;
+    group_number?: string;
+    valid_from: string;
+    valid_to: string;
+    coverage_type: string;
+    is_active: boolean;
+    is_primary: boolean;
+    is_vietnamese_insurance: boolean;
+    bhyt_number?: string;
+    created_at: string;
+    updated_at: string;
+    } {
+    return {
+      id: this.id,
+      provider: this.props.provider,
+      policy_number: this.props.policyNumber,
+      group_number: this.props.groupNumber,
+      valid_from: this.props.validFrom.toISOString(),
+      valid_to: this.props.validTo.toISOString(),
+      coverage_type: this.props.coverageType,
+      is_active: this.props.isActive,
+      is_primary: this.props.isPrimary,
+      is_vietnamese_insurance: this.props.isVietnameseInsurance,
+      bhyt_number: this.props.bhytNumber,
+      created_at: this.props.createdAt.toISOString(),
+      updated_at: this.props.updatedAt.toISOString()
+    };
   }
 
   // Logging methods
@@ -245,7 +258,9 @@ export class InsuranceInfo extends Entity<InsuranceInfoProps> {
 
   public getMaskedPolicyNumber(): string {
     const policy = this.props.policyNumber;
-    if (policy.length <= 4) return '***';
+    if (policy.length <= 4) {
+      return '***';
+    }
     return '***' + policy.slice(-4);
   }
 }

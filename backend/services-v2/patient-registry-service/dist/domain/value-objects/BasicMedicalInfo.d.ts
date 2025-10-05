@@ -6,7 +6,7 @@
  *
  * Based on HL7 FHIR Patient Resource specification
  */
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from '../../shared/domain/base/value-object';
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
 export interface BasicMedicalInfoProps {
     bloodType?: BloodType;

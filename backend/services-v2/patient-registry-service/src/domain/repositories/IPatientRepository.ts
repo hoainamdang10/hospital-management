@@ -1,7 +1,7 @@
 /**
  * IPatientRepository - Repository Interface
  * Defines contract for patient data access
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Repository Pattern
@@ -105,6 +105,6 @@ export interface IPatientRepository {
   /**
    * Get repository health status
    */
-  getHealthStatus(): Promise<any>;
+  getHealthStatus(): Promise<{ status: string; message?: string }>;
 }
 

@@ -11,11 +11,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// Load environment variables first
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const compression_1 = __importDefault(require("compression"));
+const supabase_js_1 = require("@supabase/supabase-js");
 // Infrastructure imports
 const HealthChecks_1 = require("./infrastructure/monitoring/HealthChecks");
 const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegradation");
@@ -23,6 +27,7 @@ const CircuitBreaker_1 = require("./infrastructure/resilience/CircuitBreaker");
 const SupabaseUserRepository_1 = require("./infrastructure/repositories/SupabaseUserRepository");
 const SupabaseAuthClient_1 = require("./infrastructure/auth/SupabaseAuthClient");
 const PermissionService_1 = require("./infrastructure/services/PermissionService");
+const SupabaseMFAService_1 = require("./infrastructure/services/SupabaseMFAService");
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
 // Middleware imports
 const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
@@ -92,6 +97,13 @@ class IdentityServiceApp {
      */
     initializeInfrastructure() {
         try {
+            // Initialize shared Supabase client
+            this.supabaseClient = (0, supabase_js_1.createClient)(config.supabaseUrl, config.supabaseKey, {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            });
             // Initialize health check service
             this.healthCheck = new HealthChecks_1.IdentityServiceHealthCheck(config.supabaseUrl, config.supabaseKey, logger);
             // Initialize graceful degradation service
@@ -125,6 +137,9 @@ class IdentityServiceApp {
             }
             // Initialize Permission Service
             this.permissionService = new PermissionService_1.PermissionService(this.userRepository, this.cacheService, logger);
+            // Initialize MFA Service
+            this.mfaService = new SupabaseMFAService_1.SupabaseMFAService(this.supabaseClient, // Use shared Supabase client
+            logger);
             // Initialize Middleware
             this.authMiddleware = new AuthenticationMiddleware_1.AuthenticationMiddleware(this.authClient, this.permissionService, logger);
             this.permissionMiddleware = new PermissionMiddleware_1.PermissionMiddleware(this.permissionService, logger);
@@ -136,9 +151,9 @@ class IdentityServiceApp {
             this.resetPasswordUseCase = new ResetPasswordUseCase_1.ResetPasswordUseCase(this.authService, logger);
             this.verifyEmailUseCase = new VerifyEmailUseCase_1.VerifyEmailUseCase(this.authService, this.userRepository, logger);
             this.logoutUserUseCase = new LogoutUserUseCase_1.LogoutUserUseCase(this.authService, this.userRepository, logger);
-            this.enableMFAUseCase = new EnableMFAUseCase_1.EnableMFAUseCase(this.userRepository, logger, process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            this.verifyMFAUseCase = new VerifyMFAUseCase_1.VerifyMFAUseCase(logger, process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-            this.disableMFAUseCase = new DisableMFAUseCase_1.DisableMFAUseCase(this.userRepository, this.verifyMFAUseCase, logger);
+            this.enableMFAUseCase = new EnableMFAUseCase_1.EnableMFAUseCase(this.userRepository, this.mfaService, logger);
+            this.verifyMFAUseCase = new VerifyMFAUseCase_1.VerifyMFAUseCase(this.mfaService, logger);
+            this.disableMFAUseCase = new DisableMFAUseCase_1.DisableMFAUseCase(this.userRepository, this.mfaService, this.verifyMFAUseCase, logger);
             // Initialize user management use cases
             this.getUserUseCase = new GetUserUseCase_1.GetUserUseCase(this.userRepository, logger);
             this.updateUserUseCase = new UpdateUserUseCase_1.UpdateUserUseCase(this.userRepository, logger);

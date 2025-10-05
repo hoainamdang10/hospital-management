@@ -172,7 +172,7 @@ export abstract class BaseHealthcareUseCase<TRequest, TResponse>
   /**
    * Execute with HIPAA compliance
    */
-  async execute(request: TRequest, context?: UseCaseContext): Promise<TResponse> {
+  override async execute(request: TRequest, context?: UseCaseContext): Promise<TResponse> {
     if (!context?.userId) {
       throw new UseCaseAuthorizationError('User context required for healthcare operations');
     }

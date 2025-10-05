@@ -1,8 +1,8 @@
 /**
  * DeactivatePatientUseCase - Application Use Case
- * 
+ *
  * Deactivates a patient (soft delete)
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA

@@ -1,12 +1,14 @@
 /**
- * Enable MFA Use Case
+ * Enable MFA Use Case - Refactored
  * Handles MFA setup for users with TOTP generation
  *
  * @author Hospital Management Team
  * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
-import { SupabaseUserRepository } from '../../infrastructure/repositories/SupabaseUserRepository';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
+import { IUserRepository } from '../repositories/IUserRepository';
+import { IMFAService } from '../services/IMFAService';
 export interface EnableMFARequest {
     userId: string;
     method: '2fa_app' | 'sms' | 'email';
@@ -22,36 +24,21 @@ export interface EnableMFAResponse {
     error?: string;
 }
 /**
- * Enable MFA Use Case
+ * Enable MFA Use Case - Refactored
  * Generates TOTP secret, QR code, and backup codes for user
+ * Uses IMFAService interface for infrastructure independence
  */
 export declare class EnableMFAUseCase implements IUseCase<EnableMFARequest, EnableMFAResponse> {
     private userRepository;
+    private mfaService;
     private logger;
     private circuitBreaker;
-    private supabaseClient;
-    constructor(userRepository: SupabaseUserRepository, logger: any, supabaseUrl: string, supabaseKey: string);
+    constructor(userRepository: IUserRepository, mfaService: IMFAService, logger: any);
     execute(request: EnableMFARequest): Promise<EnableMFAResponse>;
     private executeImpl;
     /**
      * Validate request
      */
     private validateRequest;
-    /**
-     * Generate TOTP secret (Base32 encoded)
-     */
-    private generateSecret;
-    /**
-     * Generate QR code URL for authenticator apps
-     */
-    private generateQRCodeURL;
-    /**
-     * Generate backup codes
-     */
-    private generateBackupCodes;
-    /**
-     * Generate backup codes locally (fallback)
-     */
-    private generateBackupCodesLocally;
 }
 //# sourceMappingURL=EnableMFAUseCase.d.ts.map

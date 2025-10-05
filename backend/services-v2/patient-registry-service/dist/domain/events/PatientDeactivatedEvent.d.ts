@@ -3,7 +3,7 @@
  *
  * Published when a patient is deactivated
  */
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../shared/domain/base/domain-event';
 import { Patient } from '../aggregates/Patient';
 export declare class PatientDeactivatedEvent extends DomainEvent {
     readonly patient: Patient;

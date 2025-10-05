@@ -1,0 +1,116 @@
+/**
+ * Patient Aggregate Root - Patient Registry V2
+ *
+ * Manages patient master data and enforces business invariants
+ * Based on HL7 FHIR Patient Resource specification
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
+ */
+import { HealthcareAggregateRoot } from '../../../shared/domain/base/aggregate-root';
+import { PatientId } from '../value-objects/PatientId';
+import { PersonalInfo } from '../value-objects/PersonalInfo';
+import { ContactInfo } from '../value-objects/ContactInfo';
+import { BasicMedicalInfo } from '../value-objects/BasicMedicalInfo';
+import { PatientLink } from '../value-objects/PatientLink';
+import { PatientStatus } from '../value-objects/PatientStatus';
+import { InsuranceInfo } from '../entities/InsuranceInfo';
+import { EmergencyContact } from '../entities/EmergencyContact';
+import { PatientConsent } from '../entities/PatientConsent';
+export interface PatientProps {
+    id: PatientId;
+    userId: string;
+    personalInfo: PersonalInfo;
+    contactInfo: ContactInfo;
+    basicMedicalInfo: BasicMedicalInfo;
+    insuranceInfo?: InsuranceInfo;
+    emergencyContacts: EmergencyContact[];
+    consents: PatientConsent[];
+    status: PatientStatus;
+    mergedInto?: PatientId;
+    links: PatientLink[];
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy: string;
+    updatedBy: string;
+}
+export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
+    private constructor();
+    /**
+     * Factory method: Register new patient
+     */
+    static register(userId: string, personalInfo: PersonalInfo, contactInfo: ContactInfo, basicMedicalInfo: BasicMedicalInfo, insuranceInfo: InsuranceInfo | undefined, emergencyContacts: EmergencyContact[], createdBy: string): Patient;
+    /**
+     * Factory method: Reconstitute from persistence
+     */
+    static reconstitute(props: PatientProps): Patient;
+    /**
+     * Update personal information
+     */
+    updatePersonalInfo(personalInfo: PersonalInfo, updatedBy: string): void;
+    /**
+     * Update contact information
+     */
+    updateContactInfo(contactInfo: ContactInfo, updatedBy: string): void;
+    /**
+     * Update basic medical information
+     */
+    updateBasicMedicalInfo(basicMedicalInfo: BasicMedicalInfo, updatedBy: string): void;
+    /**
+     * Update insurance information
+     */
+    updateInsuranceInfo(insuranceInfo: InsuranceInfo | undefined, updatedBy: string): void;
+    /**
+     * Add emergency contact
+     */
+    addEmergencyContact(contact: EmergencyContact, updatedBy: string): void;
+    /**
+     * Remove emergency contact
+     */
+    removeEmergencyContact(contactId: string, updatedBy: string): void;
+    /**
+     * Grant consent
+     */
+    grantConsent(consent: PatientConsent, updatedBy: string): void;
+    /**
+     * Merge into master patient (mark as duplicate)
+     */
+    mergeInto(masterPatientId: PatientId, reason: string, performedBy: string): void;
+    /**
+     * Link to another patient
+     */
+    linkTo(otherPatientId: PatientId, linkType: 'refer' | 'seealso', performedBy: string): void;
+    /**
+     * Deactivate patient
+     */
+    deactivate(reason: string, performedBy: string): void;
+    /**
+     * Mark patient as deceased
+     */
+    markAsDeceased(performedBy: string): void;
+    getPatientId(): PatientId;
+    getUserId(): string;
+    getPersonalInfo(): PersonalInfo;
+    getContactInfo(): ContactInfo;
+    getBasicMedicalInfo(): BasicMedicalInfo;
+    getInsuranceInfo(): InsuranceInfo | undefined;
+    getEmergencyContacts(): EmergencyContact[];
+    getConsents(): PatientConsent[];
+    getStatus(): PatientStatus;
+    getMergedInto(): PatientId | undefined;
+    getLinks(): PatientLink[];
+    getProps(): PatientProps;
+    isActive(): boolean;
+    isInactive(): boolean;
+    isMerged(): boolean;
+    isDeceased(): boolean;
+    hasBHYTInsurance(): boolean;
+    hasValidInsurance(): boolean;
+    hasEmergencyContacts(): boolean;
+    hasActiveConsents(): boolean;
+    hasLinks(): boolean;
+    protected validateBusinessInvariants(): void;
+    private ensureCanUpdate;
+}
+//# sourceMappingURL=Patient.d.ts.map

@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from '../../../../shared/domain/base/entity';
 export type HealthcareRoleType = 'ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST' | 'PHARMACIST' | 'LAB_TECHNICIAN' | 'PATIENT' | 'BILLING_STAFF';
 interface HealthcareRoleProps {
     type: HealthcareRoleType;

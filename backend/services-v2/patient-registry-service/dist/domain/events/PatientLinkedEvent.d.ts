@@ -3,7 +3,7 @@
  *
  * Published when patients are linked (FHIR-style)
  */
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../shared/domain/base/domain-event';
 import { Patient } from '../aggregates/Patient';
 import { PatientId } from '../value-objects/PatientId';
 export declare class PatientLinkedEvent extends DomainEvent {

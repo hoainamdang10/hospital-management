@@ -1,8 +1,8 @@
 /**
  * UpdatePatientInfoUseCase - Application Use Case
- * 
+ *
  * Handles patient information updates
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
