@@ -1,17 +1,22 @@
 /**
  * Identity Service Consolidated - Main Application
  * Production-ready service with enhanced monitoring and resilience
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant, Anti-Pattern Mitigation
  */
+
+// Load environment variables first
+import dotenv from 'dotenv';
+dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // Infrastructure imports
 import { IdentityServiceHealthCheck } from './infrastructure/monitoring/HealthChecks';
 import { IdentityServiceDegradation } from './infrastructure/resilience/GracefulDegradation';
@@ -19,6 +24,7 @@ import { CircuitBreakerFactory } from './infrastructure/resilience/CircuitBreake
 import { SupabaseUserRepository } from './infrastructure/repositories/SupabaseUserRepository';
 import { SupabaseAuthClient } from './infrastructure/auth/SupabaseAuthClient';
 import { PermissionService } from './infrastructure/services/PermissionService';
+import { SupabaseMFAService } from './infrastructure/services/SupabaseMFAService';
 import { RedisCacheService } from './infrastructure/cache/RedisCacheService';
 
 // Middleware imports
@@ -84,12 +90,14 @@ function getErrorMessage(error: unknown): string {
  */
 class IdentityServiceApp {
   private app: express.Application;
+  private supabaseClient!: SupabaseClient;
   private healthCheck!: IdentityServiceHealthCheck;
   private degradationService!: IdentityServiceDegradation;
   private userRepository!: SupabaseUserRepository;
   private authService!: IAuthenticationService;
   private authClient!: SupabaseAuthClient;
   private permissionService!: PermissionService;
+  private mfaService!: SupabaseMFAService;
   private cacheService!: RedisCacheService | null;
   private authMiddleware!: AuthenticationMiddleware;
   private permissionMiddleware!: PermissionMiddleware;
@@ -120,6 +128,18 @@ class IdentityServiceApp {
    */
   private initializeInfrastructure(): void {
     try {
+      // Initialize shared Supabase client
+      this.supabaseClient = createClient(
+        config.supabaseUrl,
+        config.supabaseKey,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      );
+
       // Initialize health check service
       this.healthCheck = new IdentityServiceHealthCheck(
         config.supabaseUrl,
@@ -185,6 +205,12 @@ class IdentityServiceApp {
         logger
       );
 
+      // Initialize MFA Service
+      this.mfaService = new SupabaseMFAService(
+        this.supabaseClient, // Use shared Supabase client
+        logger
+      );
+
       // Initialize Middleware
       this.authMiddleware = new AuthenticationMiddleware(
         this.authClient,
@@ -238,19 +264,18 @@ class IdentityServiceApp {
 
       this.enableMFAUseCase = new EnableMFAUseCase(
         this.userRepository,
-        logger,
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        this.mfaService,
+        logger
       );
 
       this.verifyMFAUseCase = new VerifyMFAUseCase(
-        logger,
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        this.mfaService,
+        logger
       );
 
       this.disableMFAUseCase = new DisableMFAUseCase(
         this.userRepository,
+        this.mfaService,
         this.verifyMFAUseCase,
         logger
       );

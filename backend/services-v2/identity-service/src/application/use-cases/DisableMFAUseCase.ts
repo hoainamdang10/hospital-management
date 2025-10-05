@@ -1,14 +1,16 @@
 import { getErrorMessage } from '../../utils/error-helper';
 /**
- * Disable MFA Use Case
+ * Disable MFA Use Case - Refactored
  * Handles disabling MFA for users with verification
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
  */
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
-import { SupabaseUserRepository } from '../../infrastructure/repositories/SupabaseUserRepository';
+import { IUserRepository } from '../repositories/IUserRepository';
+import { IMFAService } from '../services/IMFAService';
 import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
 import { VerifyMFAUseCase } from './VerifyMFAUseCase';
 import { UserId } from '../../domain/value-objects/UserId';
@@ -27,14 +29,16 @@ export interface DisableMFAResponse {
 }
 
 /**
- * Disable MFA Use Case
+ * Disable MFA Use Case - Refactored
  * Requires verification before disabling MFA
+ * Uses IMFAService interface for infrastructure independence
  */
 export class DisableMFAUseCase implements IUseCase<DisableMFARequest, DisableMFAResponse> {
   private circuitBreaker = CircuitBreakerFactory.getBreaker('disable-mfa-use-case');
 
   constructor(
-    private userRepository: SupabaseUserRepository,
+    private userRepository: IUserRepository,
+    private mfaService: IMFAService,
     private verifyMFAUseCase: VerifyMFAUseCase,
     private logger: any
   ) {}
@@ -95,8 +99,8 @@ export class DisableMFAUseCase implements IUseCase<DisableMFARequest, DisableMFA
         };
       }
 
-      // 4. Disable MFA in database
-      await this.userRepository.disableMFA(userId);
+      // 4. Disable MFA via service
+      await this.mfaService.disableMFA(request.userId);
 
       this.logger.info('MFA disabled successfully', { userId: request.userId });
 

@@ -1,22 +1,22 @@
 import { getErrorMessage } from '../../utils/error-helper';
 /**
- * Verify MFA Use Case
+ * Verify MFA Use Case - Refactored
  * Handles MFA code verification during login or setup
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
  */
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IMFAService, MFAMethod } from '../services/IMFAService';
 import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { createHmac } from 'crypto';
 
 export interface VerifyMFARequest {
   userId: string;
   code: string;
   attemptType: 'login' | 'setup' | 'disable';
-  method?: '2fa_app' | 'sms' | 'email' | 'backup';
+  method?: MFAMethod;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -30,20 +30,17 @@ export interface VerifyMFAResponse {
 }
 
 /**
- * Verify MFA Use Case
+ * Verify MFA Use Case - Refactored
  * Verifies TOTP codes or backup codes
+ * Uses IMFAService interface for infrastructure independence
  */
 export class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, VerifyMFAResponse> {
   private circuitBreaker = CircuitBreakerFactory.getBreaker('verify-mfa-use-case');
-  private supabaseClient: SupabaseClient;
 
   constructor(
-    private logger: any,
-    supabaseUrl: string,
-    supabaseKey: string
-  ) {
-    this.supabaseClient = createClient(supabaseUrl, supabaseKey);
-  }
+    private mfaService: IMFAService,
+    private logger: any
+  ) {}
 
   async execute(request: VerifyMFARequest): Promise<VerifyMFAResponse> {
     return await this.circuitBreaker.execute(
@@ -79,7 +76,7 @@ export class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, VerifyMFARes
       }
 
       // 2. Check rate limiting
-      const rateLimitOk = await this.checkRateLimit(request.userId, request.attemptType);
+      const rateLimitOk = await this.mfaService.checkRateLimit(request.userId, request.attemptType);
       if (!rateLimitOk) {
         return {
           success: false,
@@ -90,13 +87,8 @@ export class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, VerifyMFARes
       }
 
       // 3. Get MFA settings
-      const { data: mfaSettings, error: mfaError } = await this.supabaseClient
-        .from('two_factor_auth')
-        .select('*')
-        .eq('user_id', request.userId)
-        .single();
-
-      if (mfaError || !mfaSettings) {
+      const mfaSettings = await this.mfaService.getMFASettings(request.userId);
+      if (!mfaSettings) {
         return {
           success: false,
           valid: false,
@@ -107,43 +99,24 @@ export class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, VerifyMFARes
 
       // 4. Verify code based on method
       let isValid = false;
-      let usedMethod = request.method || mfaSettings.method;
+      const usedMethod = request.method || mfaSettings.method;
 
-      if (request.method === 'backup' || (!request.method && mfaSettings.backup_codes?.includes(request.code))) {
+      if (usedMethod === 'backup') {
         // Verify backup code
-        isValid = await this.verifyBackupCode(request.userId, request.code);
-        usedMethod = 'backup';
-      } else if (mfaSettings.method === '2fa_app' && mfaSettings.secret_key) {
-        // Verify TOTP
-        isValid = this.verifyTOTP(mfaSettings.secret_key, request.code);
-        usedMethod = '2fa_app';
+        isValid = await this.mfaService.validateBackupCode(request.userId, request.code);
+      } else {
+        // Verify TOTP code
+        isValid = await this.mfaService.verifyCode(request.userId, request.code, usedMethod);
       }
 
-      // 5. Log attempt
-      await this.logAttempt(
-        request.userId,
-        request.attemptType,
-        usedMethod,
-        request.code,
-        isValid,
-        request.ipAddress,
-        request.userAgent
-      );
-
-      // 6. Handle successful verification
+      // 5. Handle result
       if (isValid) {
-        // Update last used timestamp
-        await this.supabaseClient
-          .from('two_factor_auth')
-          .update({ 
-            last_used_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', request.userId);
+        // Clear failed attempts
+        await this.mfaService.clearFailedAttempts(request.userId, request.attemptType);
 
         // If this is setup verification, enable MFA
         if (request.attemptType === 'setup') {
-          await this.enableMFA(request.userId);
+          await this.mfaService.updateMFASettings(request.userId, { isEnabled: true });
         }
 
         this.logger.info('MFA verification successful', { userId: request.userId });
@@ -154,6 +127,14 @@ export class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, VerifyMFARes
           message: 'Xác thực MFA thành công'
         };
       } else {
+        // Record failed attempt
+        await this.mfaService.recordFailedAttempt(
+          request.userId,
+          request.attemptType,
+          request.ipAddress,
+          request.userAgent
+        );
+
         this.logger.warn('MFA verification failed', { userId: request.userId });
 
         return {
@@ -202,170 +183,6 @@ export class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, VerifyMFARes
     return null;
   }
 
-  /**
-   * Check rate limiting
-   */
-  private async checkRateLimit(userId: string, attemptType: string): Promise<boolean> {
-    try {
-      const { data, error } = await this.supabaseClient
-        .rpc('check_2fa_rate_limit', {
-          user_uuid: userId,
-          attempt_type_param: attemptType
-        });
-
-      if (error) {
-        this.logger.warn('Rate limit check failed, allowing attempt', { error });
-        return true; // Allow on error
-      }
-
-      return data === true;
-    } catch (error) {
-      this.logger.warn('Rate limit check error, allowing attempt', { error });
-      return true; // Allow on error
-    }
-  }
-
-  /**
-   * Verify TOTP code
-   */
-  private verifyTOTP(secret: string, token: string): boolean {
-    const window = 30; // 30 second window
-    const currentTime = Math.floor(Date.now() / 1000 / window);
-    
-    // Check current time window and adjacent windows for clock drift
-    for (let i = -1; i <= 1; i++) {
-      const timeStep = currentTime + i;
-      const expectedToken = this.generateTOTP(secret, timeStep);
-      if (expectedToken === token) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
-
-  /**
-   * Generate TOTP token
-   */
-  private generateTOTP(secret: string, timeStep: number): string {
-    const decodedSecret = this.base32Decode(secret);
-    const timeBuffer = Buffer.alloc(8);
-    timeBuffer.writeBigInt64BE(BigInt(timeStep));
-    
-    const hmac = createHmac('sha1', decodedSecret);
-    hmac.update(timeBuffer);
-    const hash = hmac.digest();
-    
-    const offset = hash[hash.length - 1] & 0xf;
-    const code = ((hash[offset] & 0x7f) << 24) |
-                 ((hash[offset + 1] & 0xff) << 16) |
-                 ((hash[offset + 2] & 0xff) << 8) |
-                 (hash[offset + 3] & 0xff);
-    
-    return (code % 1000000).toString().padStart(6, '0');
-  }
-
-  /**
-   * Base32 decode
-   */
-  private base32Decode(encoded: string): Buffer {
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    const bytes: number[] = [];
-    
-    for (let i = 0; i < encoded.length; i += 8) {
-      const chunk = encoded.slice(i, i + 8).padEnd(8, '=');
-      let bits = 0;
-      let bitsCount = 0;
-      
-      for (const char of chunk) {
-        if (char === '=') break;
-        bits = (bits << 5) | alphabet.indexOf(char);
-        bitsCount += 5;
-        
-        if (bitsCount >= 8) {
-          bytes.push((bits >> (bitsCount - 8)) & 0xff);
-          bitsCount -= 8;
-        }
-      }
-    }
-    
-    return Buffer.from(bytes);
-  }
-
-  /**
-   * Verify backup code
-   */
-  private async verifyBackupCode(userId: string, code: string): Promise<boolean> {
-    try {
-      const { data, error } = await this.supabaseClient
-        .rpc('validate_backup_code', {
-          user_uuid: userId,
-          input_code: code
-        });
-
-      if (error) {
-        this.logger.error('Backup code validation failed', { error });
-        return false;
-      }
-
-      return data === true;
-    } catch (error) {
-      this.logger.error('Backup code validation error', { error });
-      return false;
-    }
-  }
-
-  /**
-   * Log MFA attempt
-   */
-  private async logAttempt(
-    userId: string,
-    attemptType: string,
-    method: string,
-    code: string,
-    isSuccessful: boolean,
-    ipAddress?: string,
-    userAgent?: string
-  ): Promise<void> {
-    try {
-      await this.supabaseClient
-        .from('two_factor_attempts')
-        .insert({
-          user_id: userId,
-          attempt_type: attemptType,
-          method,
-          code_used: code.substring(0, 2) + '****', // Log partial code for security
-          is_successful: isSuccessful,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          created_at: new Date().toISOString()
-        });
-    } catch (error) {
-      this.logger.error('Failed to log MFA attempt', { error });
-    }
-  }
-
-  /**
-   * Enable MFA after successful setup verification
-   */
-  private async enableMFA(userId: string): Promise<void> {
-    await this.supabaseClient
-      .from('two_factor_auth')
-      .update({ 
-        is_enabled: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
-
-    // Update user profile
-    await this.supabaseClient
-      .from('user_profiles')
-      .update({ 
-        two_factor_enabled: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-  }
 }
 
 
