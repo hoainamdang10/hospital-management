@@ -13,6 +13,20 @@ import { Email } from '../../domain/value-objects/Email';
 import { UserSession } from '../../domain/entities/UserSession';
 import { HealthcareRole } from '../../domain/entities/HealthcareRole';
 
+export interface CreateAuthUserData {
+  email: string;
+  password: string;
+  fullName: string;
+  roleType: string;
+  phoneNumber?: string;
+  citizenId?: string;
+  dateOfBirth?: Date;
+  gender?: string;
+  address?: string;
+  emailConfirm?: boolean;
+  metadata?: Record<string, any>;
+}
+
 /**
  * User Repository Interface
  * Application layer defines the contract, infrastructure implements it
@@ -32,6 +46,11 @@ export interface IUserRepository {
    * Save new user
    */
   save(user: User): Promise<void>;
+
+  /**
+   * Create user in auth system + profile (atomic operation)
+   */
+  createAuthUser(data: CreateAuthUserData): Promise<User>;
 
   /**
    * Update existing user
@@ -97,5 +116,51 @@ export interface IUserRepository {
    * Count total users
    */
   count(filters?: Record<string, any>): Promise<number>;
-}
 
+  /**
+   * Store staff invitation
+   */
+  storeStaffInvitation(data: {
+    email: string;
+    role: string;
+    invitedBy: string;
+    invitationToken: string;
+    expiresAt: Date;
+    invitationData?: any;
+  }): Promise<void>;
+
+  /**
+   * Verify staff invitation token
+   */
+  verifyStaffInvitation(token: string): Promise<{
+    isValid: boolean;
+    email?: string;
+    role?: string;
+    invitationData?: any;
+  }>;
+
+  /**
+   * Mark staff invitation as used
+   */
+  markInvitationAsUsed(token: string, userId: string): Promise<void>;
+
+  /**
+   * Check if account is locked due to failed login attempts
+   */
+  checkAccountLockout(email: Email): Promise<{
+    isLocked: boolean;
+    unlockAt?: Date;
+    failedAttempts: number;
+  }>;
+
+  /**
+   * Record login attempt (success or failure)
+   */
+  recordLoginAttempt(
+    email: Email,
+    isSuccessful: boolean,
+    ipAddress?: string,
+    userAgent?: string,
+    errorMessage?: string
+  ): Promise<void>;
+}

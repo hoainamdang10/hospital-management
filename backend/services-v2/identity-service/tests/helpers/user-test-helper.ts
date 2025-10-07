@@ -47,7 +47,7 @@ export function createMockUser(overrides?: {
       gender: overrides?.gender || 'male',
       citizenId: overrides?.citizenId || '001234567890'
     }),
-    HealthcareRole.fromRoleType(roleType),
+    [HealthcareRole.fromRoleType(roleType)], // Array of roles for Pure RBAC
     isActive,
     isEmailVerified,
     undefined, // twoFactorEnabled
@@ -68,7 +68,7 @@ export function createNewMockUser(
   return User.create(
     Email.create(email),
     PersonalInfo.create({ fullName }),
-    HealthcareRole.fromRoleType(roleType)
+    [HealthcareRole.fromRoleType(roleType)] // Array of roles for Pure RBAC
   );
 }
 

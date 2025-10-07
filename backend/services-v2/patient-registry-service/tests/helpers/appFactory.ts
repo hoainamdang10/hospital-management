@@ -36,6 +36,7 @@ import { GrantConsentUseCase } from '../../src/application/use-cases/GrantConsen
 import { MarkAsDeceasedUseCase } from '../../src/application/use-cases/MarkAsDeceasedUseCase';
 import { ReactivatePatientUseCase } from '../../src/application/use-cases/ReactivatePatientUseCase';
 import { PatientCommandHandlers } from '../../src/application/handlers/PatientCommandHandlers';
+import { PatientQueryHandlers } from '../../src/application/handlers/PatientQueryHandlers';
 
 // Presentation
 import { PatientController } from '../../src/presentation/controllers/PatientController';
@@ -143,6 +144,13 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const markAsDeceasedUseCase = new MarkAsDeceasedUseCase(patientRepository);
   const reactivatePatientUseCase = new ReactivatePatientUseCase(patientRepository);
 
+  const patientQueryHandlers = new PatientQueryHandlers(
+    getPatientProfileUseCase,
+    searchPatientsUseCase,
+    patientRepository,
+    logger
+  );
+
   // Initialize Command Handlers
   const patientCommandHandlers = new PatientCommandHandlers(
     registerPatientUseCase,
@@ -158,8 +166,6 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger,
     registerPatientUseCase,
     updatePatientInfoUseCase,
-    getPatientProfileUseCase,
-    searchPatientsUseCase,
     matchPatientsUseCase,
     mergePatientsUseCase,
     linkPatientsUseCase,
@@ -168,7 +174,8 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     addEmergencyContactUseCase,
     grantConsentUseCase,
     markAsDeceasedUseCase,
-    reactivatePatientUseCase
+    reactivatePatientUseCase,
+    patientQueryHandlers
   );
 
   const commandController = new CommandController(logger, patientCommandHandlers);

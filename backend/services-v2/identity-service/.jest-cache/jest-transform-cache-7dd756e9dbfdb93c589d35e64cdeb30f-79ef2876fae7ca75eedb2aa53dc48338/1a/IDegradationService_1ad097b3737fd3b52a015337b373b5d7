@@ -1,0 +1,223 @@
+9cd37f2e32b618bdf58f8629eb0a7272
+"use strict";
+
+/**
+ * IDegradationService - Application Service Interface
+ * V2 Clean Architecture + DDD Implementation
+ * Defines contract for graceful degradation operations
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, DDD, HIPAA
+ */
+/* istanbul ignore next */
+function cov_2fah4bxbh9() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IDegradationService.ts";
+  var hash = "672d47e399b87d6869eeb0a76e38547e0d5930db";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IDegradationService.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 12,
+          column: 0
+        },
+        end: {
+          line: 12,
+          column: 29
+        }
+      },
+      "2": {
+        start: {
+          line: 14,
+          column: 0
+        },
+        end: {
+          line: 19,
+          column: 60
+        }
+      },
+      "3": {
+        start: {
+          line: 15,
+          column: 4
+        },
+        end: {
+          line: 15,
+          column: 49
+        }
+      },
+      "4": {
+        start: {
+          line: 16,
+          column: 4
+        },
+        end: {
+          line: 16,
+          column: 57
+        }
+      },
+      "5": {
+        start: {
+          line: 17,
+          column: 4
+        },
+        end: {
+          line: 17,
+          column: 43
+        }
+      },
+      "6": {
+        start: {
+          line: 18,
+          column: 4
+        },
+        end: {
+          line: 18,
+          column: 53
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 14,
+            column: 1
+          },
+          end: {
+            line: 14,
+            column: 2
+          }
+        },
+        loc: {
+          start: {
+            line: 14,
+            column: 24
+          },
+          end: {
+            line: 19,
+            column: 1
+          }
+        },
+        line: 14
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 19,
+            column: 3
+          },
+          end: {
+            line: 19,
+            column: 58
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 19,
+            column: 3
+          },
+          end: {
+            line: 19,
+            column: 14
+          }
+        }, {
+          start: {
+            line: 19,
+            column: 19
+          },
+          end: {
+            line: 19,
+            column: 57
+          }
+        }],
+        line: 19
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0
+    },
+    f: {
+      "0": 0
+    },
+    b: {
+      "0": [0, 0]
+    },
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IDegradationService.ts",
+      mappings: ";AAAA;;;;;;;;GAQG;;;AAEH,IAAY,WAKX;AALD,WAAY,WAAW;IACrB,4CAA6B,CAAA;IAC7B,oDAAqC,CAAA;IACrC,sCAAuB,CAAA;IACvB,gDAAiC,CAAA;AACnC,CAAC,EALW,WAAW,2BAAX,WAAW,QAKtB",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IDegradationService.ts"],
+      sourcesContent: ["/**\n * IDegradationService - Application Service Interface\n * V2 Clean Architecture + DDD Implementation\n * Defines contract for graceful degradation operations\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, DDD, HIPAA\n */\n\nexport enum ServiceMode {\n  FULL_SERVICE = 'FULL_SERVICE',\n  DEGRADED_SERVICE = 'DEGRADED_SERVICE',\n  READ_ONLY = 'READ_ONLY',\n  EMERGENCY_MODE = 'EMERGENCY_MODE'\n}\n\nexport interface AuthResult {\n  success: boolean;\n  userId?: string;\n  email?: string;\n  sessionToken?: string;\n  refreshToken?: string;\n  roles?: string[];\n  permissions?: string[];\n  mode: ServiceMode;\n  expiresAt?: Date;\n  degradationReason?: string;\n  metadata?: Record<string, any>;\n}\n\nexport interface UserCredentials {\n  email: string;\n  password: string;\n  mfaCode?: string;\n}\n\n/**\n * Degradation Service Interface\n * Handles graceful degradation and fallback authentication\n */\nexport interface IDegradationService {\n  /**\n   * Authenticate user with graceful degradation\n   * @param credentials User credentials\n   * @returns Authentication result with service mode\n   */\n  authenticateUser(credentials: UserCredentials): Promise<AuthResult>;\n\n  /**\n   * Get current service mode\n   * @returns Current service mode\n   */\n  getCurrentMode(): ServiceMode;\n\n  /**\n   * Check if service is healthy\n   * @returns Whether service is healthy\n   */\n  isHealthy(): Promise<boolean>;\n\n  /**\n   * Cache authentication result for fallback\n   * @param email User email\n   * @param authResult Authentication result to cache\n   */\n  cacheAuthentication(email: string, authResult: AuthResult): Promise<void>;\n\n  /**\n   * Get cached authentication result\n   * @param email User email\n   * @returns Cached authentication result or null\n   */\n  getCachedAuthentication(email: string): Promise<AuthResult | null>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "672d47e399b87d6869eeb0a76e38547e0d5930db"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2fah4bxbh9 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2fah4bxbh9();
+cov_2fah4bxbh9().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_2fah4bxbh9().s[1]++;
+exports.ServiceMode = void 0;
+var ServiceMode;
+/* istanbul ignore next */
+cov_2fah4bxbh9().s[2]++;
+(function (ServiceMode) {
+  /* istanbul ignore next */
+  cov_2fah4bxbh9().f[0]++;
+  cov_2fah4bxbh9().s[3]++;
+  ServiceMode["FULL_SERVICE"] = "FULL_SERVICE";
+  /* istanbul ignore next */
+  cov_2fah4bxbh9().s[4]++;
+  ServiceMode["DEGRADED_SERVICE"] = "DEGRADED_SERVICE";
+  /* istanbul ignore next */
+  cov_2fah4bxbh9().s[5]++;
+  ServiceMode["READ_ONLY"] = "READ_ONLY";
+  /* istanbul ignore next */
+  cov_2fah4bxbh9().s[6]++;
+  ServiceMode["EMERGENCY_MODE"] = "EMERGENCY_MODE";
+})(
+/* istanbul ignore next */
+(cov_2fah4bxbh9().b[0][0]++, ServiceMode) ||
+/* istanbul ignore next */
+(cov_2fah4bxbh9().b[0][1]++, exports.ServiceMode = ServiceMode = {}));
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmZhaDRieGJoOSIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsIm5hbWUiLCJkZWNsIiwibG9jIiwiYnJhbmNoTWFwIiwidHlwZSIsImxvY2F0aW9ucyIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSIsIlNlcnZpY2VNb2RlIiwiZXhwb3J0cyJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxcc2VydmljZXNcXElEZWdyYWRhdGlvblNlcnZpY2UudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBJRGVncmFkYXRpb25TZXJ2aWNlIC0gQXBwbGljYXRpb24gU2VydmljZSBJbnRlcmZhY2VcbiAqIFYyIENsZWFuIEFyY2hpdGVjdHVyZSArIERERCBJbXBsZW1lbnRhdGlvblxuICogRGVmaW5lcyBjb250cmFjdCBmb3IgZ3JhY2VmdWwgZGVncmFkYXRpb24gb3BlcmF0aW9uc1xuICogXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqIEBjb21wbGlhbmNlIENsZWFuIEFyY2hpdGVjdHVyZSwgRERELCBISVBBQVxuICovXG5cbmV4cG9ydCBlbnVtIFNlcnZpY2VNb2RlIHtcbiAgRlVMTF9TRVJWSUNFID0gJ0ZVTExfU0VSVklDRScsXG4gIERFR1JBREVEX1NFUlZJQ0UgPSAnREVHUkFERURfU0VSVklDRScsXG4gIFJFQURfT05MWSA9ICdSRUFEX09OTFknLFxuICBFTUVSR0VOQ1lfTU9ERSA9ICdFTUVSR0VOQ1lfTU9ERSdcbn1cblxuZXhwb3J0IGludGVyZmFjZSBBdXRoUmVzdWx0IHtcbiAgc3VjY2VzczogYm9vbGVhbjtcbiAgdXNlcklkPzogc3RyaW5nO1xuICBlbWFpbD86IHN0cmluZztcbiAgc2Vzc2lvblRva2VuPzogc3RyaW5nO1xuICByZWZyZXNoVG9rZW4/OiBzdHJpbmc7XG4gIHJvbGVzPzogc3RyaW5nW107XG4gIHBlcm1pc3Npb25zPzogc3RyaW5nW107XG4gIG1vZGU6IFNlcnZpY2VNb2RlO1xuICBleHBpcmVzQXQ/OiBEYXRlO1xuICBkZWdyYWRhdGlvblJlYXNvbj86IHN0cmluZztcbiAgbWV0YWRhdGE/OiBSZWNvcmQ8c3RyaW5nLCBhbnk+O1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIFVzZXJDcmVkZW50aWFscyB7XG4gIGVtYWlsOiBzdHJpbmc7XG4gIHBhc3N3b3JkOiBzdHJpbmc7XG4gIG1mYUNvZGU/OiBzdHJpbmc7XG59XG5cbi8qKlxuICogRGVncmFkYXRpb24gU2VydmljZSBJbnRlcmZhY2VcbiAqIEhhbmRsZXMgZ3JhY2VmdWwgZGVncmFkYXRpb24gYW5kIGZhbGxiYWNrIGF1dGhlbnRpY2F0aW9uXG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgSURlZ3JhZGF0aW9uU2VydmljZSB7XG4gIC8qKlxuICAgKiBBdXRoZW50aWNhdGUgdXNlciB3aXRoIGdyYWNlZnVsIGRlZ3JhZGF0aW9uXG4gICAqIEBwYXJhbSBjcmVkZW50aWFscyBVc2VyIGNyZWRlbnRpYWxzXG4gICAqIEByZXR1cm5zIEF1dGhlbnRpY2F0aW9uIHJlc3VsdCB3aXRoIHNlcnZpY2UgbW9kZVxuICAgKi9cbiAgYXV0aGVudGljYXRlVXNlcihjcmVkZW50aWFsczogVXNlckNyZWRlbnRpYWxzKTogUHJvbWlzZTxBdXRoUmVzdWx0PjtcblxuICAvKipcbiAgICogR2V0IGN1cnJlbnQgc2VydmljZSBtb2RlXG4gICAqIEByZXR1cm5zIEN1cnJlbnQgc2VydmljZSBtb2RlXG4gICAqL1xuICBnZXRDdXJyZW50TW9kZSgpOiBTZXJ2aWNlTW9kZTtcblxuICAvKipcbiAgICogQ2hlY2sgaWYgc2VydmljZSBpcyBoZWFsdGh5XG4gICAqIEByZXR1cm5zIFdoZXRoZXIgc2VydmljZSBpcyBoZWFsdGh5XG4gICAqL1xuICBpc0hlYWx0aHkoKTogUHJvbWlzZTxib29sZWFuPjtcblxuICAvKipcbiAgICogQ2FjaGUgYXV0aGVudGljYXRpb24gcmVzdWx0IGZvciBmYWxsYmFja1xuICAgKiBAcGFyYW0gZW1haWwgVXNlciBlbWFpbFxuICAgKiBAcGFyYW0gYXV0aFJlc3VsdCBBdXRoZW50aWNhdGlvbiByZXN1bHQgdG8gY2FjaGVcbiAgICovXG4gIGNhY2hlQXV0aGVudGljYXRpb24oZW1haWw6IHN0cmluZywgYXV0aFJlc3VsdDogQXV0aFJlc3VsdCk6IFByb21pc2U8dm9pZD47XG5cbiAgLyoqXG4gICAqIEdldCBjYWNoZWQgYXV0aGVudGljYXRpb24gcmVzdWx0XG4gICAqIEBwYXJhbSBlbWFpbCBVc2VyIGVtYWlsXG4gICAqIEByZXR1cm5zIENhY2hlZCBhdXRoZW50aWNhdGlvbiByZXN1bHQgb3IgbnVsbFxuICAgKi9cbiAgZ2V0Q2FjaGVkQXV0aGVudGljYXRpb24oZW1haWw6IHN0cmluZyk6IFByb21pc2U8QXV0aFJlc3VsdCB8IG51bGw+O1xufVxuXG4iXSwibWFwcGluZ3MiOiI7O0FBQUE7Ozs7Ozs7OztBQUFBO0FBQUEsU0FBQUEsZUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsTUFBQSxPQUFBQyxRQUFBO0VBQUEsSUFBQUMsR0FBQTtFQUFBLElBQUFDLFlBQUE7SUFBQUwsSUFBQTtJQUFBTSxZQUFBO01BQUE7UUFBQUMsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7SUFBQTtJQUFBRSxLQUFBO01BQUE7UUFBQUMsSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO0lBQUE7SUFBQU8sU0FBQTtNQUFBO1FBQUFELEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQU8sSUFBQTtRQUFBQyxTQUFBO1VBQUFWLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1VBQUFGLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtJQUFBO0lBQUFVLENBQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLGNBQUE7TUFBQUMsSUFBQTtNQUFBQyxRQUFBO01BQUFDLEtBQUE7TUFBQUMsT0FBQTtNQUFBQyxjQUFBO01BQUFDLE9BQUE7SUFBQTtJQUFBQyxlQUFBO0lBQUEzQixJQUFBO0VBQUE7RUFBQSxJQUFBNEIsUUFBQSxHQUFBM0IsTUFBQSxDQUFBRSxHQUFBLE1BQUFGLE1BQUEsQ0FBQUUsR0FBQTtFQUFBLEtBQUF5QixRQUFBLENBQUE3QixJQUFBLEtBQUE2QixRQUFBLENBQUE3QixJQUFBLEVBQUFDLElBQUEsS0FBQUEsSUFBQTtJQUFBNEIsUUFBQSxDQUFBN0IsSUFBQSxJQUFBSyxZQUFBO0VBQUE7RUFBQSxJQUFBeUIsY0FBQSxHQUFBRCxRQUFBLENBQUE3QixJQUFBO0VBQUE7SUFZRTtJQUFBRCxjQUFBLFlBQUFBLENBQUE7TUFBQSxPQUFBK0IsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQS9CLGNBQUE7QUFBQUEsY0FBQSxHQUFBbUIsQ0FBQTs7Ozs7OztBQUZGLElBQVlhLFdBS1g7QUFBQTtBQUFBaEMsY0FBQSxHQUFBbUIsQ0FBQTtBQUxELFdBQVlhLFdBQVc7RUFBQTtFQUFBaEMsY0FBQSxHQUFBb0IsQ0FBQTtFQUFBcEIsY0FBQSxHQUFBbUIsQ0FBQTtFQUNyQmEsV0FBQSxpQ0FBNkI7RUFBQTtFQUFBaEMsY0FBQSxHQUFBbUIsQ0FBQTtFQUM3QmEsV0FBQSx5Q0FBcUM7RUFBQTtFQUFBaEMsY0FBQSxHQUFBbUIsQ0FBQTtFQUNyQ2EsV0FBQSwyQkFBdUI7RUFBQTtFQUFBaEMsY0FBQSxHQUFBbUIsQ0FBQTtFQUN2QmEsV0FBQSxxQ0FBaUM7QUFDbkMsQ0FBQztBQUxXO0FBQUEsQ0FBQWhDLGNBQUEsR0FBQXFCLENBQUEsVUFBQVcsV0FBVztBQUFBO0FBQUEsQ0FBQWhDLGNBQUEsR0FBQXFCLENBQUEsVUFBQVksT0FBQSxDQUFBRCxXQUFBLEdBQVhBLFdBQVciLCJpZ25vcmVMaXN0IjpbXX0=

@@ -3,12 +3,12 @@
  * Express middleware for JWT token verification
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, HIPAA
  */
 import { Request, Response, NextFunction } from 'express';
 import { SupabaseAuthClient } from '../../infrastructure/auth/SupabaseAuthClient';
-import { IPermissionService } from '../../application/services/IPermissionService';
+import { IPermissionService } from '../../domain/services/IPermissionService';
 /**
  * Extended Request with user info
  */

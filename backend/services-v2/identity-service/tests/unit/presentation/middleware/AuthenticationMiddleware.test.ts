@@ -6,7 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticationMiddleware, AuthenticatedRequest } from '@presentation/middleware/AuthenticationMiddleware';
 import { SupabaseAuthClient } from '@infrastructure/auth/SupabaseAuthClient';
-import { IPermissionService } from '@application/services/IPermissionService';
+import { IPermissionService } from '@domain/services/IPermissionService';
 import { TestUtils } from '@tests/setup';
 
 describe('AuthenticationMiddleware', () => {
@@ -24,9 +24,21 @@ describe('AuthenticationMiddleware', () => {
       verifyToken: jest.fn(),
     } as any;
 
-    // Mock PermissionService
+    // Mock PermissionService (domain interface)
     mockPermissionService = {
-      getUserPermissions: jest.fn(),
+      checkPermission: jest.fn(),
+      checkPermissionWithOwnership: jest.fn(),
+      hasAnyPermission: jest.fn(),
+      hasAllPermissions: jest.fn(),
+      getEffectivePermissions: jest.fn(),
+      getEffectivePermissionsAsObjects: jest.fn(),
+      invalidateCache: jest.fn(),
+      invalidateCacheForRole: jest.fn(),
+      expandPermissions: jest.fn(),
+      isAdmin: jest.fn(),
+      getPermissionsGroupedByResource: jest.fn(),
+      warmUpCache: jest.fn(),
+      getCacheStats: jest.fn(),
     } as any;
 
     logger = TestUtils.createMockLogger();
@@ -65,13 +77,13 @@ describe('AuthenticationMiddleware', () => {
       };
 
       mockAuthClient.verifyToken.mockResolvedValue(mockUser as any);
-      mockPermissionService.getUserPermissions.mockResolvedValue(['patients:read', 'patients:write']);
+      mockPermissionService.getEffectivePermissions.mockResolvedValue(['patients:read', 'patients:write']);
 
       const authenticateMiddleware = middleware.authenticate();
       await authenticateMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
       expect(mockAuthClient.verifyToken).toHaveBeenCalledWith('valid-token');
-      expect(mockPermissionService.getUserPermissions).toHaveBeenCalledWith('u-123');
+      expect(mockPermissionService.getEffectivePermissions).toHaveBeenCalled();
       expect(mockReq.user).toEqual({
         userId: 'u-123',
         email: 'doctor@hospital.vn',
@@ -165,7 +177,7 @@ describe('AuthenticationMiddleware', () => {
       };
 
       mockAuthClient.verifyToken.mockResolvedValue(mockUser as any);
-      mockPermissionService.getUserPermissions.mockResolvedValue(['patients:read_own']);
+      mockPermissionService.getEffectivePermissions.mockResolvedValue(['patients:read_own']);
 
       const authenticateMiddleware = middleware.authenticate();
       await authenticateMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
@@ -186,7 +198,7 @@ describe('AuthenticationMiddleware', () => {
       };
 
       mockAuthClient.verifyToken.mockResolvedValue(mockUser as any);
-      mockPermissionService.getUserPermissions.mockRejectedValue(new Error('Permission service error'));
+      mockPermissionService.getEffectivePermissions.mockRejectedValue(new Error('Permission service error'));
 
       const authenticateMiddleware = middleware.authenticate();
       await authenticateMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
@@ -210,7 +222,7 @@ describe('AuthenticationMiddleware', () => {
       };
 
       mockAuthClient.verifyToken.mockResolvedValue(mockUser as any);
-      mockPermissionService.getUserPermissions.mockResolvedValue(['patients:read']);
+      mockPermissionService.getEffectivePermissions.mockResolvedValue(['patients:read']);
 
       const optionalMiddleware = middleware.optionalAuthenticate();
       await optionalMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);

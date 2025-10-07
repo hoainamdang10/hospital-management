@@ -28,7 +28,8 @@ export interface ListUsersResponse {
     email: string;
     fullName: string;
     phoneNumber?: string;
-    roleType: string;
+    roleType: string; // Primary role (backward compatible)
+    roles: string[]; // All roles (Pure RBAC)
     isActive: boolean;
     isEmailVerified: boolean;
     lastLoginAt?: string;
@@ -99,27 +100,33 @@ export class ListUsersUseCase implements IUseCase<ListUsersRequest, ListUsersRes
     const offset = (page - 1) * limit;
 
     try {
-      // Build filter options
-      const filterOptions: any = {
-        limit,
-        offset
-      };
+      // Build filter options with proper structure
+      const filters: Record<string, any> = {};
 
       if (roleType) {
-        filterOptions.roleType = roleType;
+        filters.role_type = roleType; // Database column name
       }
 
       if (isActive !== undefined) {
-        filterOptions.isActive = isActive;
+        filters.is_active = isActive; // Database column name
       }
 
+      // Note: searchTerm requires special handling (LIKE query)
+      // For now, we'll pass it as a filter but repository needs to handle it
       if (searchTerm) {
-        filterOptions.searchTerm = searchTerm;
+        filters.search_term = searchTerm;
       }
+
+      const filterOptions = {
+        limit,
+        offset,
+        filters // Wrap filters in filters object
+      };
 
       // Get users from repository
       const users = await this.userRepository.list(filterOptions);
-      const totalCount = await this.userRepository.count(filterOptions);
+      // Fix: Only pass filters to count(), not limit/offset
+      const totalCount = await this.userRepository.count(filters);
 
       // Log access for audit
       this.logger.info('Users list accessed', {
@@ -137,7 +144,8 @@ export class ListUsersUseCase implements IUseCase<ListUsersRequest, ListUsersRes
         email: user.email.value,
         fullName: user.personalInfo.fullName,
         phoneNumber: user.personalInfo.phoneNumber,
-        roleType: (user.healthcareRole.type || '').toLowerCase(),
+        roleType: (user.healthcareRole.type || '').toLowerCase(), // Primary role (backward compatible)
+        roles: user.getRoleTypes().map(r => r.toLowerCase()), // All roles (Pure RBAC)
         isActive: user.isActive,
         isEmailVerified: user.isEmailVerified,
         lastLoginAt: user.lastLoginAt?.toISOString(),

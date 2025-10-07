@@ -10,8 +10,7 @@ import { Request, Response } from 'express';
 import { ILogger } from '@shared/application/services/logger.interface';
 import { RegisterPatientUseCase } from '../../application/use-cases/RegisterPatientUseCase';
 import { UpdatePatientInfoUseCase } from '../../application/use-cases/UpdatePatientInfoUseCase';
-import { GetPatientProfileUseCase } from '../../application/use-cases/GetPatientProfileUseCase';
-import { SearchPatientsUseCase } from '../../application/use-cases/SearchPatientsUseCase';
+import { PatientQueryHandlers } from '../../application/handlers/PatientQueryHandlers';
 import { MatchPatientsUseCase } from '../../application/use-cases/MatchPatientsUseCase';
 import { MergePatientsUseCase } from '../../application/use-cases/MergePatientsUseCase';
 import { LinkPatientsUseCase } from '../../application/use-cases/LinkPatientsUseCase';
@@ -28,8 +27,6 @@ export declare class PatientController {
     private logger;
     private registerPatientUseCase;
     private updatePatientInfoUseCase;
-    private getPatientProfileUseCase;
-    private searchPatientsUseCase;
     private matchPatientsUseCase;
     private mergePatientsUseCase;
     private linkPatientsUseCase;
@@ -39,7 +36,8 @@ export declare class PatientController {
     private grantConsentUseCase;
     private markAsDeceasedUseCase;
     private reactivatePatientUseCase;
-    constructor(logger: ILogger, registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, getPatientProfileUseCase: GetPatientProfileUseCase, searchPatientsUseCase: SearchPatientsUseCase, matchPatientsUseCase: MatchPatientsUseCase, mergePatientsUseCase: MergePatientsUseCase, linkPatientsUseCase: LinkPatientsUseCase, deactivatePatientUseCase: DeactivatePatientUseCase, validateInsuranceUseCase: ValidateInsuranceUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, grantConsentUseCase: GrantConsentUseCase, markAsDeceasedUseCase: MarkAsDeceasedUseCase, reactivatePatientUseCase: ReactivatePatientUseCase);
+    private patientQueryHandlers;
+    constructor(logger: ILogger, registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, matchPatientsUseCase: MatchPatientsUseCase, mergePatientsUseCase: MergePatientsUseCase, linkPatientsUseCase: LinkPatientsUseCase, deactivatePatientUseCase: DeactivatePatientUseCase, validateInsuranceUseCase: ValidateInsuranceUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, grantConsentUseCase: GrantConsentUseCase, markAsDeceasedUseCase: MarkAsDeceasedUseCase, reactivatePatientUseCase: ReactivatePatientUseCase, patientQueryHandlers: PatientQueryHandlers);
     /**
      * Register new patient
      * POST /api/v1/patients

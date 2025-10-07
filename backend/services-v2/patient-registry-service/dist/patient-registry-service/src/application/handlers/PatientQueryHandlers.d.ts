@@ -8,19 +8,38 @@
  * @compliance Clean Architecture, DDD, CQRS, Vietnamese Healthcare Standards, HIPAA
  */
 import { GetPatientProfileUseCase, GetPatientProfileRequest, GetPatientProfileResponse } from '../use-cases/GetPatientProfileUseCase';
+import { SearchPatientsUseCase } from '../use-cases/SearchPatientsUseCase';
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { ILogger } from '@shared/application/services/logger.interface';
 type QueryFailure = {
     success: false;
     message: string;
 };
+type GroupByPeriod = 'day' | 'week' | 'month' | 'year';
 interface PaginationMetadata {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
 }
+interface PatientSummary {
+    patientId: string;
+    userId: string;
+    fullName: string;
+    dateOfBirth: string;
+    gender: string;
+    nationalId: string;
+    primaryPhone: string;
+    email?: string;
+    city: string;
+    province: string;
+    status: string;
+    hasInsurance: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
 interface PatientListData {
-    patients: unknown[];
+    patients: PatientSummary[];
     pagination: PaginationMetadata;
 }
 type PatientListQueryResult = QueryFailure | {
@@ -29,7 +48,7 @@ type PatientListQueryResult = QueryFailure | {
     data: PatientListData;
 };
 interface SearchPatientsData {
-    patients: unknown[];
+    patients: PatientSummary[];
     searchTerm: string;
     totalResults: number;
     pagination: PaginationMetadata;
@@ -39,24 +58,23 @@ type SearchPatientsQueryResult = QueryFailure | {
     message: string;
     data: SearchPatientsData;
 };
+type AgeGroup = '0-18' | '19-35' | '36-60' | '60+';
 interface PatientStatisticsData {
     totalPatients: number;
     activePatients: number;
     newRegistrations: number;
     patientsWithInsurance: number;
-    registrationTrend: unknown[];
+    registrationTrend: Array<{
+        period: string;
+        count: number;
+    }>;
     demographicBreakdown: {
         byGender: {
             male: number;
             female: number;
             other: number;
         };
-        byAgeGroup: {
-            '0-18': number;
-            '19-35': number;
-            '36-60': number;
-            '60+': number;
-        };
+        byAgeGroup: Record<AgeGroup, number>;
         byProvince: Record<string, number>;
     };
 }
@@ -129,7 +147,7 @@ export interface GetPatientStatisticsQuery {
             from: string;
             to: string;
         };
-        groupBy?: 'day' | 'week' | 'month' | 'year';
+        groupBy?: GroupByPeriod;
         requestedBy: string;
         requestedByRole: string;
     };
@@ -141,8 +159,10 @@ export type PatientQuery = GetPatientProfileQuery | GetPatientListQuery | Search
  */
 export declare class PatientQueryHandlers {
     private readonly getPatientProfileUseCase;
+    private readonly searchPatientsUseCase;
+    private readonly patientRepository;
     private readonly logger;
-    constructor(getPatientProfileUseCase: GetPatientProfileUseCase, logger: ILogger);
+    constructor(getPatientProfileUseCase: GetPatientProfileUseCase, searchPatientsUseCase: SearchPatientsUseCase, patientRepository: IPatientRepository, logger: ILogger);
     /**
      * Handle GetPatientProfile query
      */
@@ -179,6 +199,13 @@ export declare class PatientQueryHandlers {
         isHealthy: boolean;
         lastProcessedAt: string;
     };
+    private mapToSummary;
+    private calculateTotalPages;
+    private buildRegistrationTrend;
+    private buildTrendKey;
+    private buildDemographicBreakdown;
+    private resolveAgeGroup;
+    private calculateAge;
 }
 export {};
 //# sourceMappingURL=PatientQueryHandlers.d.ts.map

@@ -10,12 +10,15 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:integration": "jest tests/integration",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "health-check": "curl -f http://localhost:3001/health || exit 1",
     "docker:build": "docker build -t identity-service:latest .",
-    "docker:run": "docker run -p 3001:3001 --env-file .env identity-service:latest"
+    "docker:run": "docker run -p 3001:3001 --env-file .env identity-service:latest",
+    "db:seed": "ts-node scripts/seed-test-data.ts",
+    "db:create-users": "ts-node scripts/create-test-users.ts"
   },
   "keywords": [
     "identity",
@@ -39,7 +42,8 @@
     "compression": "^1.7.4",
     "uuid": "^9.0.1",
     "dotenv": "^16.3.1",
-    "redis": "^4.6.10"
+    "redis": "^4.6.10",
+    "amqplib": "^0.10.3"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",
@@ -47,6 +51,7 @@
     "@types/cors": "^2.8.15",
     "@types/compression": "^1.7.4",
     "@types/uuid": "^9.0.6",
+    "@types/amqplib": "^0.10.1",
     "@types/jest": "^29.5.6",
     "typescript": "^5.2.2",
     "tsc-alias": "^1.8.8",

@@ -5,9 +5,10 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { IAuthenticationService } from '../services/IAuthenticationService';
+import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
+import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
+import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
 export interface RegisterUserRequest {
     email: string;
     password: string;
@@ -29,16 +30,29 @@ export interface RegisterUserResponse {
 }
 /**
  * Register User Use Case
- * Flow: Supabase Auth signUp  Trigger creates user_profiles  Return success
+ * Flow: Explicit user creation via Repository (NO trigger dependency)
+ *
+ * This use case creates both auth user and profile explicitly through
+ * the repository layer, ensuring full control, rollback capability,
+ * and Clean Architecture compliance.
  */
 export declare class RegisterUserUseCase implements IUseCase<RegisterUserRequest, RegisterUserResponse> {
-    private authService;
     private userRepository;
+    private permissionRepository;
     private logger;
+    private eventPublisher?;
     private circuitBreaker;
-    constructor(authService: IAuthenticationService, userRepository: IUserRepository, logger: any);
+    private validRolesCache;
+    private validRolesCacheTime;
+    private readonly CACHE_TTL;
+    constructor(userRepository: IUserRepository, permissionRepository: IPermissionRepository, logger: any, eventPublisher?: IEventPublisher | undefined);
     execute(request: RegisterUserRequest): Promise<RegisterUserResponse>;
     private executeImpl;
+    /**
+     * Get valid roles from database with caching
+     * Cache for 5 minutes to avoid repeated database queries
+     */
+    private getValidRoles;
     private validateRequest;
 }
 //# sourceMappingURL=RegisterUserUseCase.d.ts.map

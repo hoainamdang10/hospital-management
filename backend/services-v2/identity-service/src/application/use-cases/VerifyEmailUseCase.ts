@@ -12,6 +12,8 @@ import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
 import { Email } from '../../domain/value-objects/Email';
+import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
+import { UserActivatedEvent } from '../../domain/events/UserActivatedEvent';
 
 export interface VerifyEmailRequest {
   email: string;
@@ -31,7 +33,8 @@ export class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEm
   constructor(
     private authService: IAuthenticationService,
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: any,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: VerifyEmailRequest): Promise<VerifyEmailResponse> {
@@ -94,6 +97,39 @@ export class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEm
       await this.userRepository.update(user);
 
       this.logger.info('User profile updated with email verification', { userId: user.id });
+
+      // Publish UserActivated event
+      if (this.eventPublisher) {
+        try {
+          const event = new UserActivatedEvent(
+            user.id, // Pass string directly
+            email.value, // Pass string directly
+            new Date()
+          );
+
+          await this.eventPublisher.publish({
+            eventType: event.constructor.name,
+            aggregateId: user.id,
+            aggregateType: 'User',
+            occurredAt: event.occurredAt,
+            payload: {
+              userId: user.id,
+              email: email.value,
+              activatedAt: new Date()
+            }
+          });
+
+          this.logger.info('UserActivated event published', {
+            userId: user.id
+          });
+        } catch (error) {
+          this.logger.error('Failed to publish UserActivated event', {
+            userId: user.id,
+            error: getErrorMessage(error)
+          });
+          // Don't fail verification if event publishing fails
+        }
+      }
 
       return {
         success: true,

@@ -1,4 +1,4 @@
-/**
+ /**
  * Supabase Authentication Client
  * Handles real authentication using Supabase Auth
  * 
@@ -107,8 +107,8 @@ export class SupabaseAuthClient {
         }
       };
 
-      // Update last login timestamp
-      await this.updateLastLogin(data.user.id);
+      // Update last login timestamp with email and IP
+      await this.updateLastLogin(data.user.id, data.user.email || credentials.email, credentials.ipAddress);
 
       this.logger.info('Authentication successful', {
         userId: data.user.id,
@@ -156,106 +156,46 @@ export class SupabaseAuthClient {
 
   /**
    * Get user permissions based on role
+   *
+   * @deprecated This method is deprecated in Pure RBAC implementation.
+   * Use IPermissionRepository.getUserPermissions() instead.
+   *
+   * This method is kept for backward compatibility but returns empty array.
+   * All permission logic should go through PermissionRepository and PermissionService.
    */
   private async getUserPermissions(userId: string, roleType: string): Promise<string[]> {
-    try {
-      // Get role from healthcare_roles table
-      const { data: roleData, error: roleError } = await this.supabaseClient
-        .from('healthcare_roles')
-        .select('id, permissions')
-        .eq('role_name', roleType)
-        .single();
-
-      if (roleError || !roleData) {
-        this.logger.warn('Role not found, using default permissions', {
-          userId,
-          roleType
-        });
-        return this.getDefaultPermissions(roleType);
-      }
-
-      // Get role permissions
-      const { data: permissionsData, error: permissionsError } = await this.supabaseClient
-        .from('role_permissions')
-        .select('permission_name, actions')
-        .eq('role_id', roleData.id)
-        .eq('is_active', true);
-
-      if (permissionsError || !permissionsData || permissionsData.length === 0) {
-        return this.getDefaultPermissions(roleType);
-      }
-
-      // Flatten permissions
-      const permissions = permissionsData.flatMap(p => 
-        p.actions.map((action: string) => `${p.permission_name}:${action}`)
-      );
-
-      return permissions;
-
-    } catch (error) {
-      this.logger.error('Failed to get permissions', {
-        userId,
-        roleType,
-        error: getErrorMessage(error)
-      });
-      return this.getDefaultPermissions(roleType);
-    }
+    this.logger.warn('getUserPermissions() called on SupabaseAuthClient. Use IPermissionRepository instead.', {
+      userId,
+      roleType
+    });
+    return [];
   }
 
-  /**
-   * Get default permissions for role type
-   */
-  private getDefaultPermissions(roleType: string): string[] {
-    const defaultPermissions: Record<string, string[]> = {
-      'admin': ['*'], // Admin has all permissions
-      'doctor': [
-        'patients:read',
-        'patients:write',
-        'appointments:read',
-        'appointments:write',
-        'medical_records:read',
-        'medical_records:write',
-        'prescriptions:write'
-      ],
-      'patient': [
-        'own_data:read',
-        'appointments:read',
-        'appointments:create',
-        'medical_records:read_own'
-      ],
-      'receptionist': [
-        'patients:read',
-        'appointments:read',
-        'appointments:write',
-        'appointments:create'
-      ]
-    };
 
-    return defaultPermissions[roleType] || ['read_own_data'];
-  }
 
   /**
-   * Update last login timestamp
+   * Update last login timestamp with email and IP address
    */
-  private async updateLastLogin(userId: string): Promise<void> {
+  private async updateLastLogin(userId: string, email: string, ipAddress?: string): Promise<void> {
     try {
       // Use security definer function for controlled access to auth_schema
       await this.supabaseClient
         .rpc('auth_update_user_last_login', { user_id: userId });
 
-      // Log login attempt
+      // Log login attempt with actual email and IP
       await this.supabaseClient
         .from('login_attempts')
         .insert({
-          email: userId, // Will be updated with actual email
-          ip_address: '0.0.0.0', // Will be updated with actual IP
-          success: true,
-          attempted_at: new Date().toISOString()
+          email: email, // Actual email from auth result
+          ip_address: ipAddress || 'unknown', // Actual IP from request or 'unknown'
+          success: true, // Matches migration schema (002_create_login_attempts_table.sql line 25)
+          attempted_at: new Date().toISOString() // Matches migration schema (line 29)
         });
 
     } catch (error) {
       this.logger.warn('Failed to update last login', {
         userId,
+        email,
         error: getErrorMessage(error)
       });
       // Don't throw - this is not critical

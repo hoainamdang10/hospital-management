@@ -25,10 +25,13 @@ const HealthChecks_1 = require("./infrastructure/monitoring/HealthChecks");
 const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegradation");
 const CircuitBreaker_1 = require("./infrastructure/resilience/CircuitBreaker");
 const SupabaseUserRepository_1 = require("./infrastructure/repositories/SupabaseUserRepository");
+const SupabasePermissionRepository_1 = require("./infrastructure/repositories/SupabasePermissionRepository");
 const SupabaseAuthClient_1 = require("./infrastructure/auth/SupabaseAuthClient");
 const PermissionService_1 = require("./infrastructure/services/PermissionService");
 const SupabaseMFAService_1 = require("./infrastructure/services/SupabaseMFAService");
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
+const PermissionCache_1 = require("./infrastructure/cache/PermissionCache");
+const UserId_1 = require("./domain/value-objects/UserId");
 // Middleware imports
 const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
 const PermissionMiddleware_1 = require("./presentation/middleware/PermissionMiddleware");
@@ -46,6 +49,9 @@ const GetUserUseCase_1 = require("./application/use-cases/GetUserUseCase");
 const UpdateUserUseCase_1 = require("./application/use-cases/UpdateUserUseCase");
 const DeleteUserUseCase_1 = require("./application/use-cases/DeleteUserUseCase");
 const ListUsersUseCase_1 = require("./application/use-cases/ListUsersUseCase");
+const RefreshTokenUseCase_1 = require("./application/use-cases/RefreshTokenUseCase");
+const ProvisionStaffUseCase_1 = require("./application/use-cases/ProvisionStaffUseCase");
+const RabbitMQEventPublisher_1 = require("./infrastructure/events/RabbitMQEventPublisher");
 // Configuration
 const config = {
     port: process.env.PORT || 3001,
@@ -54,7 +60,9 @@ const config = {
     jwtSecret: process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || '',
     nodeEnv: process.env.NODE_ENV || 'development',
     serviceName: 'identity-service',
-    version: '2.0.0'
+    version: '2.0.0',
+    // Pure RBAC Configuration
+    defaultUserRole: process.env.DEFAULT_USER_ROLE || 'patient' // Default role for new users
 };
 // Logger setup (simplified - in production use Winston or similar)
 const logger = {
@@ -87,15 +95,21 @@ function getErrorMessage(error) {
 class IdentityServiceApp {
     constructor() {
         this.app = (0, express_1.default)();
-        this.initializeInfrastructure();
+        // Note: initializeInfrastructure is now async, called in initialize()
         this.setupMiddleware();
         this.setupRoutes();
         this.setupErrorHandling();
     }
     /**
+     * Initialize the application (async wrapper for constructor)
+     */
+    async initialize() {
+        await this.initializeInfrastructure();
+    }
+    /**
      * Initialize infrastructure components
      */
-    initializeInfrastructure() {
+    async initializeInfrastructure() {
         try {
             // Initialize shared Supabase client
             this.supabaseClient = (0, supabase_js_1.createClient)(config.supabaseUrl, config.supabaseKey, {
@@ -117,26 +131,54 @@ class IdentityServiceApp {
                 supabaseServiceRoleKey: config.supabaseKey,
                 jwtSecret: config.jwtSecret
             }, logger);
-            // Initialize repository
-            this.userRepository = new SupabaseUserRepository_1.SupabaseUserRepository(config.supabaseUrl, config.supabaseKey, logger);
-            // Initialize Supabase Auth Service
-            this.authService = new SupabaseAuthService_1.SupabaseAuthService(config.supabaseUrl, config.supabaseKey, logger);
+            // Initialize Redis Cache Service (optional)
+            try {
+                this.cacheService = new RedisCacheService_1.RedisCacheService(process.env.REDIS_URL || 'redis://localhost:6379', logger);
+                // IMPORTANT: Connect to Redis immediately
+                await this.cacheService.connect();
+                logger.info('Redis cache service initialized and connected');
+            }
+            catch (error) {
+                logger.warn('Redis cache not available, running without cache', { error });
+                this.cacheService = null;
+            }
+            // Initialize Event Publisher (RabbitMQ)
+            const rabbitMQUrl = process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673';
+            this.eventPublisher = new RabbitMQEventPublisher_1.RabbitMQEventPublisher(rabbitMQUrl, logger);
+            try {
+                await this.eventPublisher.initialize();
+                logger.info('Event Publisher initialized successfully');
+            }
+            catch (error) {
+                logger.error('Failed to initialize Event Publisher', { error: getErrorMessage(error) });
+                logger.warn('Continuing without event publishing');
+            }
+            // Initialize Permission Cache (Pure RBAC)
+            const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+            this.permissionCache = new PermissionCache_1.PermissionCache(redisUrl);
+            try {
+                await this.permissionCache.connect();
+                logger.info('Permission Cache connected successfully');
+            }
+            catch (error) {
+                logger.error('Failed to connect Permission Cache', { error: getErrorMessage(error) });
+                logger.warn('Continuing without permission caching - permissions will be fetched from database');
+                // Service can continue without cache, just slower
+            }
+            // Initialize Permission Repository (Pure RBAC)
+            this.permissionRepository = new SupabasePermissionRepository_1.SupabasePermissionRepository(this.supabaseClient, this.permissionCache);
+            // Initialize User Repository (with permissionRepository for Pure RBAC)
+            this.userRepository = new SupabaseUserRepository_1.SupabaseUserRepository(config.supabaseUrl, config.supabaseKey, logger, this.cacheService || undefined, this.permissionRepository);
+            // Initialize Supabase Auth Service with configurable default role
+            this.authService = new SupabaseAuthService_1.SupabaseAuthService(config.supabaseUrl, config.supabaseKey, logger, config.defaultUserRole);
             // Initialize Supabase Auth Client for middleware
             this.authClient = new SupabaseAuthClient_1.SupabaseAuthClient({
                 supabaseUrl: config.supabaseUrl,
                 supabaseServiceRoleKey: config.supabaseKey,
                 jwtSecret: config.jwtSecret
             }, logger);
-            // Initialize Redis Cache Service (optional)
-            try {
-                this.cacheService = new RedisCacheService_1.RedisCacheService(process.env.REDIS_URL || 'redis://localhost:6379', logger);
-            }
-            catch (error) {
-                logger.warn('Redis cache not available, running without cache', { error });
-                this.cacheService = null;
-            }
-            // Initialize Permission Service
-            this.permissionService = new PermissionService_1.PermissionService(this.userRepository, this.cacheService, logger);
+            // Initialize Permission Service (Pure RBAC)
+            this.permissionService = new PermissionService_1.PermissionService(this.permissionRepository, this.permissionCache);
             // Initialize MFA Service
             this.mfaService = new SupabaseMFAService_1.SupabaseMFAService(this.supabaseClient, // Use shared Supabase client
             logger);
@@ -145,12 +187,19 @@ class IdentityServiceApp {
             this.permissionMiddleware = new PermissionMiddleware_1.PermissionMiddleware(this.permissionService, logger);
             // Initialize use cases
             const authCircuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('authentication-use-case');
-            this.authenticateUserUseCase = new AuthenticateUserUseCase_1.AuthenticateUserUseCase(this.userRepository, this.authService, this.degradationService, authCircuitBreaker, logger);
-            this.registerUserUseCase = new RegisterUserUseCase_1.RegisterUserUseCase(this.authService, this.userRepository, logger);
+            this.authenticateUserUseCase = new AuthenticateUserUseCase_1.AuthenticateUserUseCase(this.userRepository, this.authService, this.degradationService, authCircuitBreaker, logger, this.permissionRepository, this.eventPublisher // Add event publisher
+            );
+            // RegisterUserUseCase now uses explicit control via repository
+            // No longer needs authService - repository handles auth user creation
+            // Requires permissionRepository for dynamic role validation
+            this.registerUserUseCase = new RegisterUserUseCase_1.RegisterUserUseCase(this.userRepository, this.permissionRepository, logger, this.eventPublisher // Add event publisher
+            );
             this.forgotPasswordUseCase = new ForgotPasswordUseCase_1.ForgotPasswordUseCase(this.authService, this.userRepository, logger);
             this.resetPasswordUseCase = new ResetPasswordUseCase_1.ResetPasswordUseCase(this.authService, logger);
-            this.verifyEmailUseCase = new VerifyEmailUseCase_1.VerifyEmailUseCase(this.authService, this.userRepository, logger);
-            this.logoutUserUseCase = new LogoutUserUseCase_1.LogoutUserUseCase(this.authService, this.userRepository, logger);
+            this.verifyEmailUseCase = new VerifyEmailUseCase_1.VerifyEmailUseCase(this.authService, this.userRepository, logger, this.eventPublisher // Add event publisher
+            );
+            this.logoutUserUseCase = new LogoutUserUseCase_1.LogoutUserUseCase(this.authService, this.userRepository, logger, this.eventPublisher // Add event publisher
+            );
             this.enableMFAUseCase = new EnableMFAUseCase_1.EnableMFAUseCase(this.userRepository, this.mfaService, logger);
             this.verifyMFAUseCase = new VerifyMFAUseCase_1.VerifyMFAUseCase(this.mfaService, logger);
             this.disableMFAUseCase = new DisableMFAUseCase_1.DisableMFAUseCase(this.userRepository, this.mfaService, this.verifyMFAUseCase, logger);
@@ -159,6 +208,9 @@ class IdentityServiceApp {
             this.updateUserUseCase = new UpdateUserUseCase_1.UpdateUserUseCase(this.userRepository, logger);
             this.deleteUserUseCase = new DeleteUserUseCase_1.DeleteUserUseCase(this.userRepository, logger);
             this.listUsersUseCase = new ListUsersUseCase_1.ListUsersUseCase(this.userRepository, logger);
+            this.refreshTokenUseCase = new RefreshTokenUseCase_1.RefreshTokenUseCase(this.authService, logger);
+            this.provisionStaffUseCase = new ProvisionStaffUseCase_1.ProvisionStaffUseCase(this.userRepository, logger, this.eventPublisher // Add event publisher
+            );
             logger.info('Infrastructure initialized successfully');
         }
         catch (error) {
@@ -290,14 +342,15 @@ class IdentityServiceApp {
                 });
             }
         });
-        // User Registration endpoint
+        // Patient Self-Registration endpoint (PUBLIC)
+        // Security: Only allows patient registration, staff accounts must be created by admin
         this.app.post('/auth/register', async (req, res) => {
             try {
                 const request = {
                     email: req.body.email,
                     password: req.body.password,
                     fullName: req.body.fullName,
-                    roleType: req.body.roleType,
+                    roleType: 'PATIENT', // ✅ SECURITY: Force patient role, prevent privilege escalation
                     phoneNumber: req.body.phoneNumber,
                     citizenId: req.body.citizenId,
                     dateOfBirth: req.body.dateOfBirth,
@@ -386,6 +439,26 @@ class IdentityServiceApp {
             }
             catch (error) {
                 logger.error('Logout endpoint error', { error: getErrorMessage(error) });
+                res.status(500).json({
+                    success: false,
+                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
+                });
+            }
+        });
+        // Token Refresh endpoint
+        this.app.post('/auth/refresh', async (req, res) => {
+            try {
+                const request = {
+                    refreshToken: req.body.refreshToken,
+                    ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
+                    userAgent: req.get('User-Agent') || 'unknown'
+                };
+                const result = await this.refreshTokenUseCase.execute(request);
+                const statusCode = result.success ? 200 : 401;
+                res.status(statusCode).json(result);
+            }
+            catch (error) {
+                logger.error('Refresh token endpoint error', { error: getErrorMessage(error) });
                 res.status(500).json({
                     success: false,
                     error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -576,11 +649,12 @@ class IdentityServiceApp {
         // Invalidate user permission cache (admin only)
         this.app.post('/admin/permissions/invalidate/:userId', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
             try {
-                const userId = req.params.userId;
+                const userIdString = req.params.userId;
+                const userId = UserId_1.UserId.fromString(userIdString);
                 await this.permissionService.invalidateCache(userId);
                 res.json({
                     success: true,
-                    message: `Permission cache invalidated for user ${userId}`
+                    message: `Permission cache invalidated for user ${userIdString}`
                 });
             }
             catch (error) {
@@ -588,6 +662,28 @@ class IdentityServiceApp {
                 res.status(500).json({
                     success: false,
                     error: 'Failed to invalidate cache'
+                });
+            }
+        });
+        // Provision staff account (admin only)
+        this.app.post('/admin/staff/register', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
+            try {
+                const request = {
+                    email: req.body.email,
+                    fullName: req.body.fullName,
+                    roleType: req.body.roleType,
+                    phoneNumber: req.body.phoneNumber,
+                    requesterId: req.user?.userId || '' // Admin user ID from auth middleware
+                };
+                const result = await this.provisionStaffUseCase.execute(request);
+                const statusCode = result.success ? 201 : 400;
+                res.status(statusCode).json(result);
+            }
+            catch (error) {
+                logger.error('Provision staff endpoint error', { error: getErrorMessage(error) });
+                res.status(500).json({
+                    success: false,
+                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
                 });
             }
         });
@@ -634,6 +730,8 @@ class IdentityServiceApp {
      */
     async start() {
         try {
+            // Initialize infrastructure (async)
+            await this.initialize();
             // Perform initial health check
             const health = await this.healthCheck.checkHealth();
             if (health.overall === 'UNHEALTHY') {
@@ -667,6 +765,30 @@ class IdentityServiceApp {
 // Start the application
 if (require.main === module) {
     const app = new IdentityServiceApp();
+    // Graceful shutdown
+    const shutdown = async (signal) => {
+        logger.info(`${signal} received, shutting down gracefully...`);
+        try {
+            // Close RabbitMQ connection
+            if (app['eventPublisher']) {
+                await app['eventPublisher'].close();
+                logger.info('Event Publisher closed');
+            }
+            // Close Redis connection
+            if (app['permissionCache']) {
+                await app['permissionCache'].disconnect();
+                logger.info('Permission Cache disconnected');
+            }
+            logger.info('Graceful shutdown complete');
+            process.exit(0);
+        }
+        catch (error) {
+            logger.error('Error during shutdown', { error: getErrorMessage(error) });
+            process.exit(1);
+        }
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
     app.start().catch((error) => {
         console.error('Failed to start application:', error);
         process.exit(1);

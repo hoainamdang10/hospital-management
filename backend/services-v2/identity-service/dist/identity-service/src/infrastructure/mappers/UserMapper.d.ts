@@ -3,8 +3,10 @@
  * Maps between Domain entities and Database records
  * Implements Clean Architecture - Infrastructure knows about both Domain and Database
  *
+ * Pure RBAC: Supports multiple roles per user
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, DDD
  */
 import { User } from '../../domain/aggregates/User';
@@ -41,8 +43,27 @@ export interface UserRecord {
 export declare class UserMapper {
     /**
      * Map from database record to User aggregate
+     *
+     * Pure RBAC: Accepts roles as parameter (multiple roles)
+     *
+     * @param record - Database record from user_profiles table
+     * @param roleTypes - Array of role type strings from user_roles table
+     * @returns User aggregate
+     *
+     * @example
+     * ```typescript
+     * const roles = ['doctor', 'admin'];
+     * const user = UserMapper.toDomain(record, roles);
+     * ```
      */
-    static toDomain(record: UserRecord): User;
+    static toDomain(record: UserRecord, roleTypes: string[]): User;
+    /**
+     * Map from database record to User aggregate (backward compatibility)
+     *
+     * @deprecated Use toDomain(record, roleTypes) instead
+     * This method uses record.role_type as single role for backward compatibility
+     */
+    static toDomainLegacy(record: UserRecord): User;
     /**
      * Map from User aggregate to database record
      */

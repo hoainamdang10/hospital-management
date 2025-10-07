@@ -1,239 +1,296 @@
 /**
- * Permission Service Implementation
- * Implements RBAC permission checking with caching
- * 
+ * PermissionService
+ *
+ * Implementation of IPermissionService.
+ * High-level permission checking with caching and business logic.
+ *
+ * Features:
+ * - Permission checking with caching
+ * - Ownership checks
+ * - Permission expansion with hierarchy
+ * - Cache management
+ * - Admin bypass
+ *
  * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, RBAC, HIPAA
+ * @version 3.0.0 - Pure RBAC
  */
 
-import { 
-  IPermissionService, 
-  Permission, 
-  PermissionCheckResult, 
-  PermissionContext,
-  ResourceType,
-  Action,
-  matchesPermission
-} from '../../application/services/IPermissionService';
-import { IUserRepository } from '../../application/repositories/IUserRepository';
+import { IPermissionService } from '../../domain/services/IPermissionService';
+import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
 import { UserId } from '../../domain/value-objects/UserId';
-import { RedisCacheService } from '../cache/RedisCacheService';
-import { getErrorMessage } from '../../utils/error-helper';
+import { Permission } from '../../domain/value-objects/Permission';
+import { PermissionCache } from '../cache/PermissionCache';
 
-/**
- * Permission Service
- * Handles permission checking with caching and conditional logic
- */
 export class PermissionService implements IPermissionService {
-  private readonly CACHE_TTL = 300; // 5 minutes
-  private readonly CACHE_PREFIX = 'permissions:';
-
   constructor(
-    private userRepository: IUserRepository,
-    private cacheService: RedisCacheService | null,
-    private logger: any
+    private readonly permissionRepository: IPermissionRepository,
+    private readonly cache: PermissionCache
   ) {}
 
   /**
-   * Check if user has specific permission
+   * Check if user has a specific permission
+   *
+   * Overloaded method - supports both formats:
+   * - checkPermission(userId, 'patients:read')
+   * - checkPermission(userId, 'patients', 'read')
    */
-  async hasPermission(
-    userId: string,
-    permission: Permission,
-    context?: PermissionContext
+  async checkPermission(
+    userId: UserId,
+    permissionOrResource: string,
+    action?: string
   ): Promise<boolean> {
     try {
-      const userPermissions = await this.getUserPermissions(userId);
+      // Determine permission string
+      const permission = action
+        ? `${permissionOrResource}:${action}`
+        : permissionOrResource;
 
-      // Check if any user permission matches required permission
-      const hasPermission = userPermissions.some(userPerm => 
-        matchesPermission(userPerm, permission)
-      );
+      // Get effective permissions (cached)
+      const permissions = await this.getEffectivePermissions(userId);
 
-      // Apply conditional logic if context provided
-      if (hasPermission && context) {
-        return await this.checkConditionalPermission(userId, permission, context);
+      // Check wildcard (admin bypass)
+      if (permissions.includes('*')) {
+        return true;
       }
 
-      return hasPermission;
+      // Check exact match
+      if (permissions.includes(permission)) {
+        return true;
+      }
+
+      // Check resource wildcard (e.g., 'patients:*' matches 'patients:read')
+      const [resource] = permission.split(':');
+      if (resource && permissions.includes(`${resource}:*`)) {
+        return true;
+      }
+
+      return false;
     } catch (error) {
-      this.logger.error('Permission check failed', {
-        userId,
-        permission,
-        error: getErrorMessage(error)
-      });
+      console.error('[PermissionService] Error checking permission', error);
       return false;
     }
   }
 
   /**
-   * Check if user has any of the permissions
+   * Check if user has permission with ownership check
+   *
+   * This method checks if a user can access a resource owned by another user.
+   * Returns true if:
+   * - User is the resource owner, OR
+   * - User has wildcard permission (*), OR
+   * - User has ownership-based permission (own_*)
+   *
+   * Returns false if:
+   * - User is NOT the resource owner AND doesn't have wildcard permission
    */
-  async hasAnyPermission(
-    userId: string,
-    permissions: Permission[],
-    context?: PermissionContext
+  async checkPermissionWithOwnership(
+    userId: UserId,
+    permission: string,
+    resourceOwnerId: string
   ): Promise<boolean> {
-    for (const permission of permissions) {
-      if (await this.hasPermission(userId, permission, context)) {
+    try {
+      // Check if user is the resource owner
+      if (userId.value === resourceOwnerId) {
         return true;
       }
-    }
-    return false;
-  }
 
-  /**
-   * Check if user has all permissions
-   */
-  async hasAllPermissions(
-    userId: string,
-    permissions: Permission[],
-    context?: PermissionContext
-  ): Promise<boolean> {
-    for (const permission of permissions) {
-      if (!(await this.hasPermission(userId, permission, context))) {
+      // User is NOT the owner - check if they have permission to access others' resources
+      const userPermissions = await this.getEffectivePermissions(userId);
+
+      // Check wildcard (admin bypass)
+      if (userPermissions.includes('*')) {
+        return true;
+      }
+
+      // Check if permission is ownership-based (starts with 'own_')
+      if (permission.startsWith('own_')) {
+        // Ownership permission requires being the owner
         return false;
       }
+
+      // For non-ownership permissions, deny access to others' resources
+      // (This enforces ownership check - user can only access their own resources)
+      return false;
+    } catch (error) {
+      console.error('[PermissionService] Error checking permission with ownership', error);
+      return false;
     }
-    return true;
   }
 
   /**
-   * Get all permissions for user (with caching)
+   * Check if user has ANY of the specified permissions
    */
-  async getUserPermissions(userId: string): Promise<Permission[]> {
+  async hasAnyPermission(userId: UserId, permissions: string[]): Promise<boolean> {
     try {
-      // Try cache first
-      const cacheKey = `${this.CACHE_PREFIX}${userId}`;
-      if (this.cacheService) {
-        const cached = await this.cacheService.get<Permission[]>(cacheKey);
-        if (cached) {
-          return cached;
+      const userPermissions = await this.getEffectivePermissions(userId);
+
+      // Check wildcard
+      if (userPermissions.includes('*')) {
+        return true;
+      }
+
+      // Check if any permission matches (with wildcard support)
+      for (const permission of permissions) {
+        // Check exact match
+        if (userPermissions.includes(permission)) {
+          return true;
+        }
+
+        // Check resource wildcard (e.g., 'patients:*' matches 'patients:read')
+        const [resource] = permission.split(':');
+        if (resource && userPermissions.includes(`${resource}:*`)) {
+          return true;
         }
       }
 
-      // Load from repository
-      const userIdVO = UserId.fromString(userId);
-      const permissions = await this.userRepository.getUserPermissions(userIdVO);
+      return false;
+    } catch (error) {
+      console.error('[PermissionService] Error checking any permission', error);
+      return false;
+    }
+  }
 
-      // Cache for future use
-      if (this.cacheService) {
-        await this.cacheService.set(cacheKey, permissions, { ttl: this.CACHE_TTL });
+  /**
+   * Check if user has ALL of the specified permissions
+   */
+  async hasAllPermissions(userId: UserId, permissions: string[]): Promise<boolean> {
+    try {
+      const userPermissions = await this.getEffectivePermissions(userId);
+
+      // Check wildcard
+      if (userPermissions.includes('*')) {
+        return true;
       }
 
-      return permissions;
+      // Check if all permissions match
+      return permissions.every((p) => userPermissions.includes(p));
     } catch (error) {
-      this.logger.error('Failed to get user permissions', {
-        userId,
-        error: getErrorMessage(error)
-      });
+      console.error('[PermissionService] Error checking all permissions', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get effective permissions for a user (cached)
+   */
+  async getEffectivePermissions(userId: UserId): Promise<string[]> {
+    try {
+      // Delegate to repository (which uses cache)
+      return await this.permissionRepository.getUserPermissions(userId);
+    } catch (error) {
+      console.error('[PermissionService] Error getting effective permissions', error);
       return [];
     }
   }
 
   /**
-   * Check permission with detailed result
+   * Get effective permissions as Permission objects
    */
-  async checkPermission(
-    userId: string,
-    permission: Permission,
-    context?: PermissionContext
-  ): Promise<PermissionCheckResult> {
-    const userPermissions = await this.getUserPermissions(userId);
-    const allowed = await this.hasPermission(userId, permission, context);
-
-    let reason: string | undefined;
-    if (!allowed) {
-      if (userPermissions.length === 0) {
-        reason = 'User has no permissions';
-      } else if (context?.resourceOwnerId && context.resourceOwnerId !== userId) {
-        reason = 'User does not own this resource';
-      } else {
-        reason = `Missing required permission: ${permission}`;
-      }
-    }
-
-    return {
-      allowed,
-      reason,
-      requiredPermissions: [permission],
-      userPermissions
-    };
-  }
-
-  /**
-   * Check if user can access resource
-   */
-  async canAccessResource(
-    userId: string,
-    resourceType: ResourceType,
-    action: Action,
-    resourceId?: string
-  ): Promise<boolean> {
-    const permission = `${resourceType}:${action}`;
-    const context: PermissionContext = {
-      userId,
-      resourceId
-    };
-
-    return await this.hasPermission(userId, permission, context);
-  }
-
-  /**
-   * Invalidate permission cache for user
-   */
-  async invalidateCache(userId: string): Promise<void> {
+  async getEffectivePermissionsAsObjects(userId: UserId): Promise<Permission[]> {
     try {
-      if (this.cacheService) {
-        const cacheKey = `${this.CACHE_PREFIX}${userId}`;
-        await this.cacheService.delete(cacheKey);
-        this.logger.info('Permission cache invalidated', { userId });
-      }
+      const permissions = await this.getEffectivePermissions(userId);
+      return permissions.map((p) => Permission.fromString(p));
     } catch (error) {
-      this.logger.error('Failed to invalidate permission cache', {
-        userId,
-        error: getErrorMessage(error)
-      });
+      console.error('[PermissionService] Error getting permissions as objects', error);
+      return [];
     }
   }
 
   /**
-   * Check conditional permissions based on context
-   * Examples:
-   * - Patient can only read their own medical records
-   * - Doctor can only access patients in their department
+   * Invalidate permission cache for a user
    */
-  private async checkConditionalPermission(
-    userId: string,
-    permission: Permission,
-    context: PermissionContext
-  ): Promise<boolean> {
-    // Check if user is accessing their own resource
-    if (context.resourceOwnerId) {
-      // Allow if user owns the resource
-      if (context.resourceOwnerId === userId) {
-        return true;
-      }
+  async invalidateCache(userId: UserId): Promise<void> {
+    await this.cache.invalidate(userId);
+  }
 
-      // Check if permission allows accessing others' resources
-      const userPermissions = await this.getUserPermissions(userId);
-      
-      // Admin can access everything
-      if (userPermissions.includes('*')) {
-        return true;
-      }
+  /**
+   * Invalidate cache for all users with a specific role
+   */
+  async invalidateCacheForRole(roleType: string): Promise<void> {
+    await this.cache.invalidateForRole(roleType);
+  }
 
-      // Check for specific "others" permission
-      // e.g., "patients:read_others" allows reading other patients' data
-      const othersPermission = permission.replace(':', '_others:');
-      return userPermissions.some(p => matchesPermission(p, othersPermission));
+  /**
+   * Expand permissions with hierarchy
+   */
+  async expandPermissions(permissions: string[]): Promise<string[]> {
+    return await this.permissionRepository.expandPermissions(permissions);
+  }
+
+  /**
+   * Check if user is admin (has wildcard permission)
+   */
+  async isAdmin(userId: UserId): Promise<boolean> {
+    try {
+      const permissions = await this.getEffectivePermissions(userId);
+      return permissions.includes('*');
+    } catch (error) {
+      console.error('[PermissionService] Error checking admin status', error);
+      return false;
     }
+  }
 
-    // Additional conditional checks can be added here
-    // e.g., department-based access, time-based access, etc.
+  /**
+   * Get permissions grouped by resource type
+   */
+  async getPermissionsGroupedByResource(userId: UserId): Promise<Map<string, string[]>> {
+    try {
+      const permissions = await this.getEffectivePermissionsAsObjects(userId);
+      const grouped = new Map<string, string[]>();
 
-    return true;
+      for (const permission of permissions) {
+        if (permission.isWildcard()) {
+          // Wildcard permission
+          grouped.set('*', ['*']);
+          continue;
+        }
+
+        const resource = permission.resourceType;
+        const action = permission.action;
+
+        if (!grouped.has(resource)) {
+          grouped.set(resource, []);
+        }
+
+        grouped.get(resource)!.push(action);
+      }
+
+      return grouped;
+    } catch (error) {
+      console.error('[PermissionService] Error grouping permissions', error);
+      return new Map();
+    }
+  }
+
+  /**
+   * Warm up cache for a user
+   */
+  async warmUpCache(userId: UserId): Promise<void> {
+    try {
+      // Force load permissions into cache
+      await this.getEffectivePermissions(userId);
+    } catch (error) {
+      console.error('[PermissionService] Error warming up cache', error);
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  async getCacheStats(): Promise<{
+    hitRate: number;
+    missRate: number;
+    size: number;
+    l1Size: number;
+    l2Size: number;
+  }> {
+    const stats = this.cache.getStats();
+    return {
+      hitRate: stats.hitRate,
+      missRate: stats.missRate,
+      size: stats.l1Size, // Total size is L1 size (L2 is in Redis)
+      l1Size: stats.l1Size,
+      l2Size: 0, // Redis size not tracked
+    };
   }
 }
-

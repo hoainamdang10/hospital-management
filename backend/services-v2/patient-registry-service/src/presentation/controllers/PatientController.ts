@@ -8,11 +8,11 @@
  */
 
 import { Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { ILogger } from '@shared/application/services/logger.interface';
 import { RegisterPatientUseCase } from '../../application/use-cases/RegisterPatientUseCase';
 import { UpdatePatientInfoUseCase } from '../../application/use-cases/UpdatePatientInfoUseCase';
-import { GetPatientProfileUseCase } from '../../application/use-cases/GetPatientProfileUseCase';
-import { SearchPatientsUseCase } from '../../application/use-cases/SearchPatientsUseCase';
+import { PatientQueryHandlers } from '../../application/handlers/PatientQueryHandlers';
 import { MatchPatientsUseCase } from '../../application/use-cases/MatchPatientsUseCase';
 import { MergePatientsUseCase } from '../../application/use-cases/MergePatientsUseCase';
 import { LinkPatientsUseCase } from '../../application/use-cases/LinkPatientsUseCase';
@@ -48,6 +48,10 @@ function getUserId(req: Request): string {
   return (req as AuthenticatedRequest).user?.userId || 'system';
 }
 
+function getUserRole(req: Request): string {
+  return (req as AuthenticatedRequest).user?.role || 'system';
+}
+
 /**
  * Patient Controller
  */
@@ -56,8 +60,6 @@ export class PatientController {
     private logger: ILogger,
     private registerPatientUseCase: RegisterPatientUseCase,
     private updatePatientInfoUseCase: UpdatePatientInfoUseCase,
-    private getPatientProfileUseCase: GetPatientProfileUseCase,
-    private searchPatientsUseCase: SearchPatientsUseCase,
     private matchPatientsUseCase: MatchPatientsUseCase,
     private mergePatientsUseCase: MergePatientsUseCase,
     private linkPatientsUseCase: LinkPatientsUseCase,
@@ -66,7 +68,8 @@ export class PatientController {
     private addEmergencyContactUseCase: AddEmergencyContactUseCase,
     private grantConsentUseCase: GrantConsentUseCase,
     private markAsDeceasedUseCase: MarkAsDeceasedUseCase,
-    private reactivatePatientUseCase: ReactivatePatientUseCase
+    private reactivatePatientUseCase: ReactivatePatientUseCase,
+    private patientQueryHandlers: PatientQueryHandlers
   ) {}
 
   /**
@@ -148,15 +151,24 @@ export class PatientController {
   async getPatientById(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
+      const requestedBy = getUserId(req);
 
       this.logger.info('Getting patient by ID', { patientId });
 
-      const result = await this.getPatientProfileUseCase.execute({
-        patientId,
-        requestedBy: getUserId(req)
-      });
+      const query = {
+        queryId: randomUUID(),
+        queryType: 'GetPatientProfile' as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          patientId,
+          requestedBy
+        }
+      };
 
-      if (!result.success) {
+      const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+
+      if (!result.success || !result.data) {
         throw new NotFoundError('Bệnh nhân', patientId);
       }
 
@@ -178,15 +190,24 @@ export class PatientController {
   async getPatientByUserId(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
+      const requestedBy = getUserId(req);
 
       this.logger.info('Getting patient by user ID', { userId });
 
-      const result = await this.getPatientProfileUseCase.execute({
-        userId,
-        requestedBy: getUserId(req)
-      });
+      const query = {
+        queryId: randomUUID(),
+        queryType: 'GetPatientProfile' as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          userId,
+          requestedBy
+        }
+      };
 
-      if (!result.success) {
+      const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+
+      if (!result.success || !result.data) {
         throw new NotFoundError('Bệnh nhân với User ID', userId);
       }
 
@@ -208,15 +229,24 @@ export class PatientController {
   async getPatientByNationalId(req: Request, res: Response): Promise<void> {
     try {
       const { nationalId } = req.params;
+      const requestedBy = getUserId(req);
 
       this.logger.info('Getting patient by national ID', { nationalId });
 
-      const result = await this.getPatientProfileUseCase.execute({
-        nationalId,
-        requestedBy: getUserId(req)
-      });
+      const query = {
+        queryId: randomUUID(),
+        queryType: 'GetPatientProfile' as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          nationalId,
+          requestedBy
+        }
+      };
 
-      if (!result.success) {
+      const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+
+      if (!result.success || !result.data) {
         throw new NotFoundError('Bệnh nhân với CMND/CCCD', nationalId);
       }
 
@@ -238,15 +268,24 @@ export class PatientController {
   async getPatientByBHYTNumber(req: Request, res: Response): Promise<void> {
     try {
       const { bhytNumber } = req.params;
+      const requestedBy = getUserId(req);
 
       this.logger.info('Getting patient by BHYT number', { bhytNumber });
 
-      const result = await this.getPatientProfileUseCase.execute({
-        patientId: bhytNumber,
-        requestedBy: getUserId(req)
-      });
+      const query = {
+        queryId: randomUUID(),
+        queryType: 'GetPatientProfile' as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          bhytNumber,
+          requestedBy
+        }
+      };
 
-      if (!result.success) {
+      const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+
+      if (!result.success || !result.data) {
         throw new NotFoundError('Bệnh nhân với số BHYT', bhytNumber);
       }
 
@@ -299,32 +338,63 @@ export class PatientController {
    */
   async searchPatients(req: Request, res: Response): Promise<void> {
     try {
-      const { searchTerm, isActive, page = 1, limit = 20 } = req.query;
+      const { searchTerm, isActive, hasInsurance, page = '1', limit = '20' } = req.query;
+      const requestedBy = getUserId(req);
+      const requestedByRole = getUserRole(req);
 
       this.logger.info('Searching patients', { searchTerm, page, limit });
 
-      const result = await this.searchPatientsUseCase.execute({
-        searchTerm: searchTerm as string,
-        filters: {
-          isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined
-        },
-        pagination: {
-          page: parseInt(page as string),
-          limit: parseInt(limit as string)
-        },
-        requestedBy: getUserId(req)
-      });
+      const parsedPage = Number(page);
+      const parsedLimit = Number(limit);
+      const parsedIsActive =
+        typeof isActive === 'string'
+          ? isActive === 'true'
+            ? true
+            : isActive === 'false'
+              ? false
+              : undefined
+          : undefined;
+      const parsedHasInsurance =
+        typeof hasInsurance === 'string'
+          ? hasInsurance === 'true'
+            ? true
+            : hasInsurance === 'false'
+              ? false
+              : undefined
+          : undefined;
+
+      const query = {
+        queryId: randomUUID(),
+        queryType: 'SearchPatients' as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          searchTerm: (searchTerm as string) || '',
+          filters: {
+            isActive: parsedIsActive,
+            hasInsurance: parsedHasInsurance
+          },
+          pagination: {
+            page: Number.isNaN(parsedPage) ? 1 : parsedPage,
+            limit: Number.isNaN(parsedLimit) ? 20 : parsedLimit
+          },
+          requestedBy,
+          requestedByRole
+        }
+      };
+
+      const result = await this.patientQueryHandlers.handleSearchPatients(query);
 
       if (!result.success) {
-        throw new DomainError(result.errors?.[0] || 'Failed to search patients');
+        throw new DomainError(result.message);
       }
 
       ResponseHelper.paginated(
         res,
-        result.data!.patients,
-        parseInt(page as string),
-        parseInt(limit as string),
-        result.data!.pagination.total
+        result.data.patients,
+        result.data.pagination.page,
+        result.data.pagination.limit,
+        result.data.pagination.total
       );
 
     } catch (error) {

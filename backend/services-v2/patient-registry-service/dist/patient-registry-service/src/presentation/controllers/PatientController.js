@@ -9,6 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientController = void 0;
+const crypto_1 = require("crypto");
 const ErrorHandlingMiddleware_1 = require("../middleware/ErrorHandlingMiddleware");
 /**
  * Helper to get user ID from request
@@ -16,16 +17,17 @@ const ErrorHandlingMiddleware_1 = require("../middleware/ErrorHandlingMiddleware
 function getUserId(req) {
     return req.user?.userId || 'system';
 }
+function getUserRole(req) {
+    return req.user?.role || 'system';
+}
 /**
  * Patient Controller
  */
 class PatientController {
-    constructor(logger, registerPatientUseCase, updatePatientInfoUseCase, getPatientProfileUseCase, searchPatientsUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, grantConsentUseCase, markAsDeceasedUseCase, reactivatePatientUseCase) {
+    constructor(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, grantConsentUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, patientQueryHandlers) {
         this.logger = logger;
         this.registerPatientUseCase = registerPatientUseCase;
         this.updatePatientInfoUseCase = updatePatientInfoUseCase;
-        this.getPatientProfileUseCase = getPatientProfileUseCase;
-        this.searchPatientsUseCase = searchPatientsUseCase;
         this.matchPatientsUseCase = matchPatientsUseCase;
         this.mergePatientsUseCase = mergePatientsUseCase;
         this.linkPatientsUseCase = linkPatientsUseCase;
@@ -35,6 +37,7 @@ class PatientController {
         this.grantConsentUseCase = grantConsentUseCase;
         this.markAsDeceasedUseCase = markAsDeceasedUseCase;
         this.reactivatePatientUseCase = reactivatePatientUseCase;
+        this.patientQueryHandlers = patientQueryHandlers;
     }
     /**
      * Register new patient
@@ -110,12 +113,20 @@ class PatientController {
     async getPatientById(req, res) {
         try {
             const { patientId } = req.params;
+            const requestedBy = getUserId(req);
             this.logger.info('Getting patient by ID', { patientId });
-            const result = await this.getPatientProfileUseCase.execute({
-                patientId,
-                requestedBy: getUserId(req)
-            });
-            if (!result.success) {
+            const query = {
+                queryId: (0, crypto_1.randomUUID)(),
+                queryType: 'GetPatientProfile',
+                timestamp: new Date(),
+                requestedBy,
+                data: {
+                    patientId,
+                    requestedBy
+                }
+            };
+            const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+            if (!result.success || !result.data) {
                 throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân', patientId);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
@@ -135,12 +146,20 @@ class PatientController {
     async getPatientByUserId(req, res) {
         try {
             const { userId } = req.params;
+            const requestedBy = getUserId(req);
             this.logger.info('Getting patient by user ID', { userId });
-            const result = await this.getPatientProfileUseCase.execute({
-                userId,
-                requestedBy: getUserId(req)
-            });
-            if (!result.success) {
+            const query = {
+                queryId: (0, crypto_1.randomUUID)(),
+                queryType: 'GetPatientProfile',
+                timestamp: new Date(),
+                requestedBy,
+                data: {
+                    userId,
+                    requestedBy
+                }
+            };
+            const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+            if (!result.success || !result.data) {
                 throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân với User ID', userId);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
@@ -160,12 +179,20 @@ class PatientController {
     async getPatientByNationalId(req, res) {
         try {
             const { nationalId } = req.params;
+            const requestedBy = getUserId(req);
             this.logger.info('Getting patient by national ID', { nationalId });
-            const result = await this.getPatientProfileUseCase.execute({
-                nationalId,
-                requestedBy: getUserId(req)
-            });
-            if (!result.success) {
+            const query = {
+                queryId: (0, crypto_1.randomUUID)(),
+                queryType: 'GetPatientProfile',
+                timestamp: new Date(),
+                requestedBy,
+                data: {
+                    nationalId,
+                    requestedBy
+                }
+            };
+            const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+            if (!result.success || !result.data) {
                 throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân với CMND/CCCD', nationalId);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
@@ -185,12 +212,20 @@ class PatientController {
     async getPatientByBHYTNumber(req, res) {
         try {
             const { bhytNumber } = req.params;
+            const requestedBy = getUserId(req);
             this.logger.info('Getting patient by BHYT number', { bhytNumber });
-            const result = await this.getPatientProfileUseCase.execute({
-                patientId: bhytNumber,
-                requestedBy: getUserId(req)
-            });
-            if (!result.success) {
+            const query = {
+                queryId: (0, crypto_1.randomUUID)(),
+                queryType: 'GetPatientProfile',
+                timestamp: new Date(),
+                requestedBy,
+                data: {
+                    bhytNumber,
+                    requestedBy
+                }
+            };
+            const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
+            if (!result.success || !result.data) {
                 throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân với số BHYT', bhytNumber);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
@@ -236,23 +271,50 @@ class PatientController {
      */
     async searchPatients(req, res) {
         try {
-            const { searchTerm, isActive, page = 1, limit = 20 } = req.query;
+            const { searchTerm, isActive, hasInsurance, page = '1', limit = '20' } = req.query;
+            const requestedBy = getUserId(req);
+            const requestedByRole = getUserRole(req);
             this.logger.info('Searching patients', { searchTerm, page, limit });
-            const result = await this.searchPatientsUseCase.execute({
-                searchTerm: searchTerm,
-                filters: {
-                    isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined
-                },
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit)
-                },
-                requestedBy: getUserId(req)
-            });
+            const parsedPage = Number(page);
+            const parsedLimit = Number(limit);
+            const parsedIsActive = typeof isActive === 'string'
+                ? isActive === 'true'
+                    ? true
+                    : isActive === 'false'
+                        ? false
+                        : undefined
+                : undefined;
+            const parsedHasInsurance = typeof hasInsurance === 'string'
+                ? hasInsurance === 'true'
+                    ? true
+                    : hasInsurance === 'false'
+                        ? false
+                        : undefined
+                : undefined;
+            const query = {
+                queryId: (0, crypto_1.randomUUID)(),
+                queryType: 'SearchPatients',
+                timestamp: new Date(),
+                requestedBy,
+                data: {
+                    searchTerm: searchTerm || '',
+                    filters: {
+                        isActive: parsedIsActive,
+                        hasInsurance: parsedHasInsurance
+                    },
+                    pagination: {
+                        page: Number.isNaN(parsedPage) ? 1 : parsedPage,
+                        limit: Number.isNaN(parsedLimit) ? 20 : parsedLimit
+                    },
+                    requestedBy,
+                    requestedByRole
+                }
+            };
+            const result = await this.patientQueryHandlers.handleSearchPatients(query);
             if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to search patients');
+                throw new ErrorHandlingMiddleware_1.DomainError(result.message);
             }
-            ErrorHandlingMiddleware_1.ResponseHelper.paginated(res, result.data.patients, parseInt(page), parseInt(limit), result.data.pagination.total);
+            ErrorHandlingMiddleware_1.ResponseHelper.paginated(res, result.data.patients, result.data.pagination.page, result.data.pagination.limit, result.data.pagination.total);
         }
         catch (error) {
             this.logger.error('Error searching patients', {

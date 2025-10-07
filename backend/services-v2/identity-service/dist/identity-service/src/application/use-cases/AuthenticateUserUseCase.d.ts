@@ -2,17 +2,21 @@
  * Authenticate User Use Case - Enhanced with Circuit Breaker
  * Handles user authentication with graceful degradation
  *
+ * Pure RBAC: Uses IPermissionRepository for permission management
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Production-Ready, HIPAA-Compliant, Anti-Pattern Mitigation
  */
-import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { ServiceMode } from '../services/IDegradationService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IDegradationService } from '../services/IDegradationService';
 import { ILogger } from '../../application/services/ILogger';
+import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
+import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
 export interface AuthenticateUserRequest {
     email: string;
     password: string;
@@ -43,7 +47,9 @@ export declare class AuthenticateUserUseCase implements IUseCase<AuthenticateUse
     private degradationService;
     private circuitBreaker;
     private logger;
-    constructor(userRepository: IUserRepository, authService: IAuthenticationService, degradationService: IDegradationService, circuitBreaker: ICircuitBreaker, logger: ILogger);
+    private permissionRepository;
+    private eventPublisher?;
+    constructor(userRepository: IUserRepository, authService: IAuthenticationService, degradationService: IDegradationService, circuitBreaker: ICircuitBreaker, logger: ILogger, permissionRepository: IPermissionRepository, eventPublisher?: IEventPublisher | undefined);
     /**
      * Execute authentication with comprehensive error handling
      */
@@ -60,10 +66,6 @@ export declare class AuthenticateUserUseCase implements IUseCase<AuthenticateUse
      * Validate authentication request
      */
     private validateRequest;
-    /**
-     * Get permissions for roles
-     */
-    private getPermissionsForRoles;
     /**
      * Map AuthResult to response format
      */

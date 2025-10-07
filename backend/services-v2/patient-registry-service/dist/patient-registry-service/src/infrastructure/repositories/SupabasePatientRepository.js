@@ -153,32 +153,30 @@ class SupabasePatientRepository {
     }
     /**
      * Save patient (create or update)
+     * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
      */
     async save(patient) {
         return await this.circuitBreaker.execute(async () => {
             const { patientRecord, insuranceRecord, emergencyContactRecords, consentRecords, linkRecords } = PatientMapper_1.PatientMapper.toPersistence(patient);
-            // Upsert patient record
-            const { error: patientError } = await this.supabaseClient
-                .from('patients')
-                .upsert(patientRecord, { onConflict: 'patient_id' });
-            if (patientError) {
-                throw new Error(`Failed to save patient: ${patientError.message}`);
-            }
             const patientIdValue = patient.getPatientId();
             if (!patientIdValue) {
                 throw new Error('Patient ID is required');
             }
-            // Save insurance info
-            if (insuranceRecord) {
-                await this.saveInsurance(patientIdValue, insuranceRecord);
+            // ✅ Use PostgreSQL function for transaction support
+            const { data, error } = await this.supabaseClient.rpc('save_patient_transaction', {
+                p_patient_data: patientRecord,
+                p_insurance_data: insuranceRecord || null,
+                p_contacts_data: emergencyContactRecords || [],
+                p_consents_data: consentRecords || [],
+                p_links_data: linkRecords || []
+            });
+            if (error) {
+                throw new Error(`Failed to save patient: ${error.message}`);
             }
-            // Save emergency contacts
-            await this.saveEmergencyContacts(patientIdValue, emergencyContactRecords);
-            // Save consents
-            await this.saveConsents(patientIdValue, consentRecords);
-            // Save links
-            await this.saveLinks(patientIdValue, linkRecords);
-            this.logger.info('Patient saved successfully', { patientId: patientIdValue });
+            this.logger.info('Patient saved successfully (transaction)', {
+                patientId: patientIdValue,
+                result: data
+            });
             // Publish domain events
             await this.publishDomainEvents(patient);
         });
@@ -229,17 +227,19 @@ class SupabasePatientRepository {
             if (error) {
                 throw new Error(`Failed to find patients with filters: ${error.message}`);
             }
-            // Map to domain (without related data for performance)
-            const patients = await Promise.all((data || []).map(async (record) => {
-                const patientIdValue = record.patient_id;
-                const [insuranceData, emergencyContactsData, consentsData, linksData] = await Promise.all([
-                    this.fetchInsurance(patientIdValue),
-                    this.fetchEmergencyContacts(patientIdValue),
-                    this.fetchConsents(patientIdValue),
-                    this.fetchLinks(patientIdValue)
-                ]);
-                return PatientMapper_1.PatientMapper.toDomain(record, insuranceData, emergencyContactsData, consentsData, linksData);
-            }));
+            // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+            const patientIds = (data || []).map((record) => record.patient_id);
+            const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
+                this.fetchInsuranceBatch(patientIds),
+                this.fetchEmergencyContactsBatch(patientIds),
+                this.fetchConsentsBatch(patientIds),
+                this.fetchLinksBatch(patientIds)
+            ]);
+            // Map to domain with pre-fetched data
+            const patients = (data || []).map((record) => {
+                const patientId = record.patient_id;
+                return PatientMapper_1.PatientMapper.toDomain(record, insuranceMap.get(patientId) || null, contactsMap.get(patientId) || [], consentsMap.get(patientId) || [], linksMap.get(patientId) || []);
+            });
             return {
                 patients,
                 total: count || 0
@@ -274,16 +274,19 @@ class SupabasePatientRepository {
             if (error) {
                 throw new Error(`Failed to search patients: ${error.message}`);
             }
-            const patients = await Promise.all((data || []).map(async (record) => {
-                const patientIdValue = record.patient_id;
-                const [insuranceData, emergencyContactsData, consentsData, linksData] = await Promise.all([
-                    this.fetchInsurance(patientIdValue),
-                    this.fetchEmergencyContacts(patientIdValue),
-                    this.fetchConsents(patientIdValue),
-                    this.fetchLinks(patientIdValue)
-                ]);
-                return PatientMapper_1.PatientMapper.toDomain(record, insuranceData, emergencyContactsData, consentsData, linksData);
-            }));
+            // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+            const patientIds = (data || []).map((record) => record.patient_id);
+            const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
+                this.fetchInsuranceBatch(patientIds),
+                this.fetchEmergencyContactsBatch(patientIds),
+                this.fetchConsentsBatch(patientIds),
+                this.fetchLinksBatch(patientIds)
+            ]);
+            // Map to domain with pre-fetched data
+            const patients = (data || []).map((record) => {
+                const patientId = record.patient_id;
+                return PatientMapper_1.PatientMapper.toDomain(record, insuranceMap.get(patientId) || null, contactsMap.get(patientId) || [], consentsMap.get(patientId) || [], linksMap.get(patientId) || []);
+            });
             return { patients, total: count || 0 };
         }, async () => {
             this.logger.warn('Circuit breaker fallback for searchPatients');
@@ -317,17 +320,19 @@ class SupabasePatientRepository {
             if (error) {
                 throw new Error(`Failed to fetch candidate patients: ${error.message}`);
             }
-            // Map to domain
-            const candidates = await Promise.all((data || []).map(async (record) => {
-                const patientIdValue = record.patient_id;
-                const [insuranceData, emergencyContactsData, consentsData, linksData] = await Promise.all([
-                    this.fetchInsurance(patientIdValue),
-                    this.fetchEmergencyContacts(patientIdValue),
-                    this.fetchConsents(patientIdValue),
-                    this.fetchLinks(patientIdValue)
-                ]);
-                return PatientMapper_1.PatientMapper.toDomain(record, insuranceData, emergencyContactsData, consentsData, linksData);
-            }));
+            // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+            const patientIds = (data || []).map((record) => record.patient_id);
+            const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
+                this.fetchInsuranceBatch(patientIds),
+                this.fetchEmergencyContactsBatch(patientIds),
+                this.fetchConsentsBatch(patientIds),
+                this.fetchLinksBatch(patientIds)
+            ]);
+            // Map to domain with pre-fetched data
+            const candidates = (data || []).map((record) => {
+                const patientId = record.patient_id;
+                return PatientMapper_1.PatientMapper.toDomain(record, insuranceMap.get(patientId) || null, contactsMap.get(patientId) || [], consentsMap.get(patientId) || [], linksMap.get(patientId) || []);
+            });
             // Use matching service to score and rank
             const matches = await this.matchingService.matchPatients(candidates, criteria, onlyCertainMatches || false, limit || 10);
             return matches;
@@ -419,6 +424,104 @@ class SupabasePatientRepository {
             return [];
         }
         return (data || []);
+    }
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
+     */
+    async fetchInsuranceBatch(patientIds) {
+        if (patientIds.length === 0) {
+            return new Map();
+        }
+        const { data, error } = await this.supabaseClient
+            .from('insurance_info')
+            .select('*')
+            .in('patient_id', patientIds);
+        if (error) {
+            this.logger.warn('Failed to batch fetch insurance', { patientIds, error: error.message });
+            return new Map();
+        }
+        // Create map: patientId -> insurance record
+        const insuranceMap = new Map();
+        patientIds.forEach(id => insuranceMap.set(id, null));
+        (data || []).forEach((record) => {
+            insuranceMap.set(record.patient_id, record);
+        });
+        return insuranceMap;
+    }
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
+     */
+    async fetchEmergencyContactsBatch(patientIds) {
+        if (patientIds.length === 0) {
+            return new Map();
+        }
+        const { data, error } = await this.supabaseClient
+            .from('emergency_contacts')
+            .select('*')
+            .in('patient_id', patientIds);
+        if (error) {
+            this.logger.warn('Failed to batch fetch emergency contacts', { patientIds, error: error.message });
+            return new Map();
+        }
+        // Create map: patientId -> contacts array
+        const contactsMap = new Map();
+        patientIds.forEach(id => contactsMap.set(id, []));
+        (data || []).forEach((record) => {
+            const contacts = contactsMap.get(record.patient_id) || [];
+            contacts.push(record);
+            contactsMap.set(record.patient_id, contacts);
+        });
+        return contactsMap;
+    }
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch consents for multiple patients
+     */
+    async fetchConsentsBatch(patientIds) {
+        if (patientIds.length === 0) {
+            return new Map();
+        }
+        const { data, error } = await this.supabaseClient
+            .from('patient_consents')
+            .select('*')
+            .in('patient_id', patientIds);
+        if (error) {
+            this.logger.warn('Failed to batch fetch consents', { patientIds, error: error.message });
+            return new Map();
+        }
+        // Create map: patientId -> consents array
+        const consentsMap = new Map();
+        patientIds.forEach(id => consentsMap.set(id, []));
+        (data || []).forEach((record) => {
+            const consents = consentsMap.get(record.patient_id) || [];
+            consents.push(record);
+            consentsMap.set(record.patient_id, consents);
+        });
+        return consentsMap;
+    }
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch links for multiple patients
+     */
+    async fetchLinksBatch(patientIds) {
+        if (patientIds.length === 0) {
+            return new Map();
+        }
+        const { data, error } = await this.supabaseClient
+            .from('patient_links')
+            .select('*')
+            .in('patient_id', patientIds);
+        if (error) {
+            this.logger.warn('Failed to batch fetch links', { patientIds, error: error.message });
+            return new Map();
+        }
+        // Create map: patientId -> links array
+        const linksMap = new Map();
+        patientIds.forEach(id => linksMap.set(id, []));
+        (data || []).forEach((record) => {
+            const links = linksMap.get(record.patient_id) || [];
+            links.push(record);
+            linksMap.set(record.patient_id, links);
+        });
+        return linksMap;
     }
     /**
      * Save insurance info

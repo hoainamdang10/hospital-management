@@ -3,6 +3,12 @@
  * Wraps Supabase Auth API for domain use
  * Implements IAuthenticationService interface from application layer
  *
+ * Pure RBAC Note:
+ * - This service returns single role from user_metadata for backward compatibility
+ * - Full roles array is loaded by UserRepository from user_roles table
+ * - Permissions are loaded by PermissionRepository
+ * - Use AuthenticateUserUseCase which orchestrates both auth and role loading
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
@@ -34,11 +40,13 @@ export {
  */
 export class SupabaseAuthService implements IAuthenticationService {
   private supabaseClient: SupabaseClient;
+  private defaultUserRole: string;
 
   constructor(
     supabaseUrl: string,
     supabaseKey: string,
-    private logger: any
+    private logger: any,
+    defaultUserRole: string = 'patient' // Configurable default role
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
@@ -46,73 +54,44 @@ export class SupabaseAuthService implements IAuthenticationService {
         persistSession: false,
       },
     });
+    this.defaultUserRole = defaultUserRole.toUpperCase(); // Store in uppercase for consistency
   }
 
   /**
-   * Sign up new user with Supabase Auth
-   * This will automatically create auth.users record with encrypted_password
-   * Trigger will auto-create user_profiles record
+   * @deprecated This method is DISABLED and will be removed in v3.0.0
+   *
+   * ❌ DO NOT USE THIS METHOD
+   *
+   * REASON: This method relied on database triggers to create user_profiles,
+   * which violates Clean Architecture principles. The triggers have been
+   * removed from the system.
+   *
+   * ✅ USE INSTEAD: RegisterUserUseCase
+   *
+   * MIGRATION PATH:
+   * 1. Use RegisterUserUseCase which explicitly creates both auth.users
+   *    and user_profiles records in a controlled manner
+   * 2. See SupabaseUserRepository.createAuthUser() for implementation
+   *
+   * @see RegisterUserUseCase for the correct implementation
+   * @see SupabaseUserRepository.createAuthUser() for explicit user creation
+   * @throws Error Always throws error directing to use RegisterUserUseCase
    */
-  async signUp(data: UserRegistrationData): Promise<AuthResult> {
-    try {
-      this.logger.info('Signing up user with Supabase Auth', { email: data.email });
+  async signUp(_data: UserRegistrationData): Promise<AuthResult> {
+    // Log error and throw immediately
+    this.logger.error('DISABLED: SupabaseAuthService.signUp() is disabled. Use RegisterUserUseCase instead.', {
+      email: _data.email,
+      disabledSince: '2.1.0',
+      removedIn: '3.0.0',
+      reason: 'Trigger dependency removed from system'
+    });
 
-      const { data: authData, error } = await this.supabaseClient.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-            role_type: data.roleType,
-            phone_number: data.phoneNumber,
-            citizen_id: data.citizenId,
-            date_of_birth: data.dateOfBirth,
-            gender: data.gender,
-            address: data.address
-          },
-          emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify-email`
-        }
-      });
-
-      if (error) {
-        this.logger.error('Supabase Auth signUp failed', { email: data.email, error: getErrorMessage(error) });
-        return {
-          success: false,
-          error: getErrorMessage(error),
-          message: `Đăng ký thất bại: ${getErrorMessage(error)}`
-        };
-      }
-
-      if (!authData.user || !authData.session) {
-        return {
-          success: false,
-          error: 'No user or session returned',
-          message: 'Đăng ký thất bại: Không nhận được thông tin người dùng'
-        };
-      }
-
-      this.logger.info('User signed up successfully', { userId: authData.user.id, email: data.email });
-
-      return {
-        success: true,
-        user: {
-          id: authData.user.id,
-          email: authData.user.email!,
-          role: data.roleType,
-          fullName: data.fullName
-        },
-        accessToken: authData.session.access_token,
-        refreshToken: authData.session.refresh_token,
-        expiresIn: authData.session.expires_in
-      };
-    } catch (error) {
-      this.logger.error('Sign up error', { email: data.email, error: getErrorMessage(error) });
-      return {
-        success: false,
-        error: getErrorMessage(error),
-        message: `Đăng ký thất bại: ${getErrorMessage(error)}`
-      };
-    }
+    throw new Error(
+      'SupabaseAuthService.signUp() is DISABLED. ' +
+      'This method relied on database triggers which have been removed. ' +
+      'Please use RegisterUserUseCase instead. ' +
+      'See documentation: TRIGGER_ANALYSIS.md'
+    );
   }
 
   /**
@@ -152,7 +131,7 @@ export class SupabaseAuthService implements IAuthenticationService {
         user: {
           id: data.user.id,
           email: data.user.email!,
-          role: data.user.user_metadata?.role_type || 'PATIENT'
+          role: data.user.user_metadata?.role_type || this.defaultUserRole
         },
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
@@ -252,7 +231,7 @@ export class SupabaseAuthService implements IAuthenticationService {
         user: {
           id: data.user.id,
           email: data.user.email!,
-          role: data.user.user_metadata?.role_type || 'PATIENT'
+          role: data.user.user_metadata?.role_type || this.defaultUserRole
         },
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
@@ -290,7 +269,7 @@ export class SupabaseAuthService implements IAuthenticationService {
         user: data.user ? {
           id: data.user.id,
           email: data.user.email!,
-          role: data.user.user_metadata?.role_type || 'PATIENT'
+          role: data.user.user_metadata?.role_type || this.defaultUserRole
         } : undefined,
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
@@ -318,7 +297,7 @@ export class SupabaseAuthService implements IAuthenticationService {
     return {
       userId: data.user.id,
       email: data.user.email!,
-      role: data.user.user_metadata?.role_type || 'PATIENT',
+      role: data.user.user_metadata?.role_type || this.defaultUserRole,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 3600
     };
@@ -362,13 +341,24 @@ export class SupabaseAuthService implements IAuthenticationService {
   /**
    * Update user password (requires current password)
    */
-  async updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  async updatePassword(userId: string, newPassword: string): Promise<void> {
     try {
       this.logger.info('Updating user password', { userId });
 
-      // First verify current password by signing in
+      // Fetch user email from user_profiles table
+      const { data: profile, error: profileError } = await this.supabaseClient
+        .from('user_profiles')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error(`User not found: ${getErrorMessage(profileError)}`);
+      }
+
+      // First verify current password by signing in with email
       const { data: signInData, error: signInError } = await this.supabaseClient.auth.signInWithPassword({
-        email: userId, // Assuming userId is email, or need to fetch email first
+        email: profile.email, // Use actual email, not userId
         password: currentPassword
       });
 
@@ -466,7 +456,7 @@ export class SupabaseAuthService implements IAuthenticationService {
       return {
         id: data.user.id,
         email: data.user.email!,
-        role: data.user.user_metadata?.role_type || 'PATIENT'
+        role: data.user.user_metadata?.role_type || this.defaultUserRole
       };
     } catch {
       return null;

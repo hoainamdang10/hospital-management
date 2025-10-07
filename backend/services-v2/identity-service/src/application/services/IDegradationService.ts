@@ -33,6 +33,7 @@ export interface UserCredentials {
   email: string;
   password: string;
   mfaCode?: string;
+  ipAddress?: string; // IP address for audit logging
 }
 
 /**

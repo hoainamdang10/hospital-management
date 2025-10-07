@@ -12,6 +12,7 @@ export interface GetPatientProfileRequest {
     patientId?: string;
     userId?: string;
     nationalId?: string;
+    bhytNumber?: string;
     requestedBy: string;
 }
 export interface GetPatientProfileResponse {

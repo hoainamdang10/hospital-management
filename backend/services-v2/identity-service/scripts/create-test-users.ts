@@ -38,17 +38,12 @@ const testUsers = [
     password: 'TestAdmin123!',
     user_metadata: {
       full_name: 'Test Admin User',
-      role_type: 'admin'
-    },
-    profile: {
-      full_name: 'Test Admin User',
-      role_type: 'admin',
+      role: 'admin',  // Fixed: was 'role_type'
       phone_number: '0901234567',
       citizen_id: '001234567890',
       date_of_birth: '1980-01-01',
       gender: 'male',
-      address: '123 Test Street, District 1, Ho Chi Minh City',
-      is_verified: true
+      address: '123 Test Street, District 1, Ho Chi Minh City'
     }
   },
   {
@@ -56,17 +51,12 @@ const testUsers = [
     password: 'TestDoctor123!',
     user_metadata: {
       full_name: 'Test Doctor User',
-      role_type: 'doctor'
-    },
-    profile: {
-      full_name: 'Test Doctor User',
-      role_type: 'doctor',
+      role: 'doctor',  // Fixed: was 'role_type'
       phone_number: '0901234568',
       citizen_id: '001234567891',
       date_of_birth: '1985-05-15',
       gender: 'female',
-      address: '456 Test Avenue, District 3, Ho Chi Minh City',
-      is_verified: true
+      address: '456 Test Avenue, District 3, Ho Chi Minh City'
     }
   },
   {
@@ -74,17 +64,12 @@ const testUsers = [
     password: 'TestPatient123!',
     user_metadata: {
       full_name: 'Test Patient User',
-      role_type: 'patient'
-    },
-    profile: {
-      full_name: 'Test Patient User',
-      role_type: 'patient',
+      role: 'patient',  // Fixed: was 'role_type'
       phone_number: '0901234569',
       citizen_id: '001234567892',
       date_of_birth: '1990-12-25',
       gender: 'other',
-      address: '789 Test Road, District 5, Ho Chi Minh City',
-      is_verified: true
+      address: '789 Test Road, District 5, Ho Chi Minh City'
     }
   }
 ];
@@ -115,42 +100,58 @@ async function deleteExistingUsers() {
 
 async function createTestUsers() {
   console.log('\n👤 Creating test users...');
-  
+  console.log('   Note: Explicitly creating user_profiles (no trigger dependency)');
+
   for (const user of testUsers) {
     try {
-      // Create user via Admin API
+      // Step 1: Create auth.users record via Admin API
       const { data, error } = await supabase.auth.admin.createUser({
         email: user.email,
         password: user.password,
         email_confirm: true, // Auto-confirm email
         user_metadata: user.user_metadata
       });
-      
+
       if (error) {
-        console.error(`   ❌ Failed to create ${user.email}:`, error.message);
+        console.error(`   ❌ Failed to create auth user ${user.email}:`, error.message);
         continue;
       }
-      
-      console.log(`   ✅ Created ${user.email} (ID: ${data.user.id})`);
-      
-      // Update user profile
+
+      if (!data.user) {
+        console.error(`   ❌ No user data returned for ${user.email}`);
+        continue;
+      }
+
+      // Step 2: Explicitly create user_profiles record
+      // This ensures the profile exists even without database triggers
       const { error: profileError } = await supabase
-        .from('auth_schema.user_profiles')
-        .upsert({
+        .from('user_profiles')
+        .insert({
           id: data.user.id,
           email: user.email,
-          username: user.email.split('@')[0],
-          ...user.profile,
+          full_name: user.user_metadata.full_name,
+          role_type: user.user_metadata.role,
+          phone_number: user.user_metadata.phone_number,
+          citizen_id: user.user_metadata.citizen_id,
+          date_of_birth: user.user_metadata.date_of_birth,
+          gender: user.user_metadata.gender,
+          address: user.user_metadata.address,
+          is_active: true,
+          is_verified: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
-      
+
       if (profileError) {
-        console.error(`   ⚠️  Failed to update profile for ${user.email}:`, profileError.message);
-      } else {
-        console.log(`   ✅ Updated profile for ${user.email}`);
+        console.error(`   ❌ Failed to create profile for ${user.email}:`, profileError.message);
+        // Rollback: delete auth user
+        await supabase.auth.admin.deleteUser(data.user.id);
+        continue;
       }
-      
+
+      console.log(`   ✅ Created ${user.email} (ID: ${data.user.id})`);
+      console.log(`      Explicitly created profile with role: ${user.user_metadata.role}`);
+
     } catch (error: any) {
       console.error(`   ❌ Error creating ${user.email}:`, error.message);
     }

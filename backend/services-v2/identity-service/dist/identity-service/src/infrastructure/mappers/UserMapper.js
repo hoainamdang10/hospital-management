@@ -4,8 +4,10 @@
  * Maps between Domain entities and Database records
  * Implements Clean Architecture - Infrastructure knows about both Domain and Database
  *
+ * Pure RBAC: Supports multiple roles per user
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, DDD
  */
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -22,8 +24,20 @@ const error_helper_1 = require("../../utils/error-helper");
 class UserMapper {
     /**
      * Map from database record to User aggregate
+     *
+     * Pure RBAC: Accepts roles as parameter (multiple roles)
+     *
+     * @param record - Database record from user_profiles table
+     * @param roleTypes - Array of role type strings from user_roles table
+     * @returns User aggregate
+     *
+     * @example
+     * ```typescript
+     * const roles = ['doctor', 'admin'];
+     * const user = UserMapper.toDomain(record, roles);
+     * ```
      */
-    static toDomain(record) {
+    static toDomain(record, roleTypes) {
         try {
             const email = Email_1.Email.fromString(record.email);
             // Use PersonalInfo.create instead of fromSupabaseData
@@ -37,13 +51,26 @@ class UserMapper {
                 emergencyContactName: record.emergency_contact_name,
                 emergencyContactPhone: record.emergency_contact_phone
             });
-            const healthcareRole = HealthcareRole_1.HealthcareRole.fromRoleType(record.role_type);
-            return User_1.User.reconstitute(record.id, email, personalInfo, healthcareRole, record.is_active ?? true, record.is_verified ?? false, undefined, // lastLoginAt - will be set from user_sessions if needed
+            // Map multiple roles
+            const healthcareRoles = roleTypes.length > 0
+                ? roleTypes.map(roleType => HealthcareRole_1.HealthcareRole.fromRoleType(roleType))
+                : [HealthcareRole_1.HealthcareRole.fromRoleType('patient')]; // Default to patient if no roles
+            return User_1.User.reconstitute(record.id, email, personalInfo, healthcareRoles, // Multiple roles
+            record.is_active ?? true, record.is_verified ?? false, undefined, // lastLoginAt - will be set from user_sessions if needed
             new Date(record.created_at), new Date(record.updated_at));
         }
         catch (error) {
             throw new Error(`Failed to map database record to User domain: ${(0, error_helper_1.getErrorMessage)(error)}`);
         }
+    }
+    /**
+     * Map from database record to User aggregate (backward compatibility)
+     *
+     * @deprecated Use toDomain(record, roleTypes) instead
+     * This method uses record.role_type as single role for backward compatibility
+     */
+    static toDomainLegacy(record) {
+        return UserMapper.toDomain(record, [record.role_type]);
     }
     /**
      * Map from User aggregate to database record

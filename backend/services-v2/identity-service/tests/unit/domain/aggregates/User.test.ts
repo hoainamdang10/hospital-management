@@ -34,7 +34,7 @@ describe('User Aggregate Root', () => {
       const personalInfo = createValidPersonalInfo();
       const role = createValidRole();
 
-      const user = User.create(email, personalInfo, role);
+      const user = User.create(email, personalInfo, [role]);
 
       expect(user.id).toBeDefined();
       expect(user.email).toBe(email);
@@ -49,7 +49,7 @@ describe('User Aggregate Root', () => {
       const personalInfo = createValidPersonalInfo();
       const role = createValidRole();
 
-      const user = User.create(email, personalInfo, role);
+      const user = User.create(email, personalInfo, [role]);
       const events = user.getUncommittedEvents();
 
       expect(events).toHaveLength(1);
@@ -61,7 +61,7 @@ describe('User Aggregate Root', () => {
       const role = createValidRole();
       const invalidEmail = { isValid: () => false } as any;
 
-      expect(() => User.create(invalidEmail, personalInfo, role))
+      expect(() => User.create(invalidEmail, personalInfo, [role]))
         .toThrow();
     });
 
@@ -70,7 +70,7 @@ describe('User Aggregate Root', () => {
       const incompleteInfo = PersonalInfo.create({ fullName: 'Test User' });
       const role = createValidRole();
 
-      expect(() => User.create(email, incompleteInfo, role))
+      expect(() => User.create(email, incompleteInfo, [role]))
         .toThrow('Thông tin cá nhân phải đầy đủ cho người dùng đang hoạt động');
     });
   });
@@ -89,7 +89,7 @@ describe('User Aggregate Root', () => {
         id,
         email,
         personalInfo,
-        role,
+        [role],
         true,
         true,
         lastLoginAt,
@@ -116,7 +116,7 @@ describe('User Aggregate Root', () => {
         id,
         invalidEmail,
         personalInfo,
-        role,
+        [role],
         true,
         true,
         undefined,
@@ -131,13 +131,13 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       expect(user.isEmailVerified).toBe(false);
-      
+
       user.verifyEmail();
-      
+
       expect(user.isEmailVerified).toBe(true);
     });
 
@@ -145,11 +145,11 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       const originalUpdatedAt = user.toPersistence().updated_at;
-      
+
       // Wait a bit to ensure timestamp difference
       setTimeout(() => {
         user.verifyEmail();
@@ -164,13 +164,13 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       expect(user.isActive).toBe(true);
-      
+
       user.deactivate();
-      
+
       expect(user.isActive).toBe(false);
     });
 
@@ -178,11 +178,11 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.deactivate();
-      
+
       expect(user.toPersistence().updated_at).toBeDefined();
     });
   });
@@ -192,14 +192,14 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.deactivate();
       expect(user.isActive).toBe(false);
-      
+
       user.activate();
-      
+
       expect(user.isActive).toBe(true);
     });
 
@@ -207,11 +207,11 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.deactivate();
-      
+
       // Should not throw because personal info is complete
       expect(() => user.activate()).not.toThrow();
     });
@@ -222,7 +222,7 @@ describe('User Aggregate Root', () => {
         'test-id',
         createValidEmail(),
         incompleteInfo,
-        createValidRole(),
+        [createValidRole()],
         false, // inactive
         true,
         undefined,
@@ -240,7 +240,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       const session = user.recordAuthentication('192.168.1.1', 'Mozilla/5.0');
@@ -253,7 +253,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.deactivate();
@@ -266,7 +266,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.markEventsAsCommitted(); // Clear creation event
@@ -283,7 +283,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       const newRole = HealthcareRole.fromRoleType('NURSE');
@@ -298,7 +298,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.markEventsAsCommitted();
@@ -318,7 +318,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       const newInfo = PersonalInfo.create({
@@ -339,7 +339,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       const incompleteInfo = PersonalInfo.create({ fullName: 'Test' });
@@ -354,7 +354,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.verifyEmail();
@@ -366,7 +366,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       expect(user.isVietnameseHealthcareCompliant()).toBe(false);
@@ -385,7 +385,7 @@ describe('User Aggregate Root', () => {
         'test-id',
         createValidEmail(),
         infoWithoutCitizenId,
-        createValidRole(),
+        [createValidRole()],
         false,
         true,
         undefined,
@@ -409,7 +409,7 @@ describe('User Aggregate Root', () => {
         'test-id',
         createValidEmail(),
         infoWithoutPhone,
-        createValidRole(),
+        [createValidRole()],
         false,
         true,
         undefined,
@@ -426,7 +426,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.verifyEmail();
@@ -438,7 +438,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       user.verifyEmail();
@@ -451,7 +451,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       expect(user.isHIPAACompliant()).toBe(false);
@@ -462,7 +462,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        roleWithoutHIPAA
+        [roleWithoutHIPAA]
       );
 
       user.verifyEmail();
@@ -476,7 +476,7 @@ describe('User Aggregate Root', () => {
         'test-id',
         createValidEmail(),
         incompleteInfo,
-        createValidRole(),
+        [createValidRole()],
         false,
         true,
         undefined,
@@ -489,14 +489,16 @@ describe('User Aggregate Root', () => {
   });
 
   describe('canPerformAction', () => {
-    it('should return true for permitted action', () => {
+    it('should return false (deprecated method)', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
-      expect(user.canPerformAction('read', 'patients')).toBe(true);
+      // Method is deprecated and always returns false
+      // Use PermissionService instead for actual permission checks
+      expect(user.canPerformAction('read', 'patients')).toBe(false);
     });
 
     it('should return false for non-permitted action', () => {
@@ -504,21 +506,23 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        nurseRole
+        [nurseRole]
       );
 
       expect(user.canPerformAction('write', 'medical_records')).toBe(false);
     });
 
-    it('should return true for admin with wildcard permission', () => {
+    it('should return false for admin (deprecated method)', () => {
       const adminRole = HealthcareRole.fromRoleType('ADMIN');
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        adminRole
+        [adminRole]
       );
 
-      expect(user.canPerformAction('delete', 'anything')).toBe(true);
+      // Method is deprecated and always returns false
+      // Use PermissionService instead for actual permission checks
+      expect(user.canPerformAction('delete', 'anything')).toBe(false);
     });
   });
 
@@ -527,7 +531,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       const summary = user.getSummaryForLogging();
@@ -545,7 +549,7 @@ describe('User Aggregate Root', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
-        createValidRole()
+        [createValidRole()]
       );
 
       const persistence = user.toPersistence();

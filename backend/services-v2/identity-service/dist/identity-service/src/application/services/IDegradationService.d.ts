@@ -30,6 +30,7 @@ export interface UserCredentials {
     email: string;
     password: string;
     mfaCode?: string;
+    ipAddress?: string;
 }
 /**
  * Degradation Service Interface

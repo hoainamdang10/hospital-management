@@ -1,11 +1,11 @@
 /**
- * Supabase Authentication Client
- * Handles real authentication using Supabase Auth
- *
- * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Production-Ready, HIPAA-Compliant
- */
+* Supabase Authentication Client
+* Handles real authentication using Supabase Auth
+*
+* @author Hospital Management Team
+* @version 2.0.0
+* @compliance Production-Ready, HIPAA-Compliant
+*/
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { AuthResult, UserCredentials } from '../../application/services/IDegradationService';
 export interface SupabaseAuthConfig {
@@ -31,14 +31,16 @@ export declare class SupabaseAuthClient {
     private getUserProfile;
     /**
      * Get user permissions based on role
+     *
+     * @deprecated This method is deprecated in Pure RBAC implementation.
+     * Use IPermissionRepository.getUserPermissions() instead.
+     *
+     * This method is kept for backward compatibility but returns empty array.
+     * All permission logic should go through PermissionRepository and PermissionService.
      */
     private getUserPermissions;
     /**
-     * Get default permissions for role type
-     */
-    private getDefaultPermissions;
-    /**
-     * Update last login timestamp
+     * Update last login timestamp with email and IP address
      */
     private updateLastLogin;
     /**

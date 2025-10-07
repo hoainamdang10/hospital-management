@@ -8,7 +8,8 @@
  * @compliance Clean Architecture, DDD, HIPAA-Compliant, Production-Ready
  */
 import { RedisCacheService } from '../cache/RedisCacheService';
-import { IUserRepository } from '../../application/repositories/IUserRepository';
+import { IUserRepository, CreateAuthUserData } from '../../application/repositories/IUserRepository';
+import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
 import { User } from '../../domain/aggregates/User';
 import { UserId } from '../../domain/value-objects/UserId';
 import { Email } from '../../domain/value-objects/Email';
@@ -33,8 +34,9 @@ export declare class SupabaseUserRepository implements IUserRepository {
     private supabaseClient;
     private circuitBreaker;
     private cacheService?;
+    private permissionRepository?;
     private readonly CACHE_TTL;
-    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger, cacheService?: RedisCacheService);
+    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger, cacheService?: RedisCacheService, permissionRepository?: IPermissionRepository);
     /**
      * Find user by ID with circuit breaker protection and caching
      * Returns Domain aggregate, not DTO
@@ -47,8 +49,19 @@ export declare class SupabaseUserRepository implements IUserRepository {
     findByEmail(email: Email): Promise<User | null>;
     /**
      * Create new user with audit logging
+     * Note: This only creates user_profile, not auth user
+     * Use createAuthUser() to create both auth user + profile
      */
     create(userData: CreateUserRequest): Promise<User>;
+    /**
+     * Create auth user + user profile in one transaction
+     * This replaces the trigger-based approach with explicit control
+     *
+     * @param userData - User data including password
+     * @returns Created User aggregate
+     * @throws Error if auth user or profile creation fails
+     */
+    createAuthUser(userData: CreateAuthUserData): Promise<User>;
     /**
      * Update user information
      * Accepts full User aggregate and maps to database format
@@ -84,6 +97,8 @@ export declare class SupabaseUserRepository implements IUserRepository {
     deactivateSession(sessionId: string, sessionToken?: string): Promise<void>;
     /**
      * Get user roles with caching
+     *
+     * Pure RBAC: Queries user_roles table for multiple roles
      */
     getUserRoles(userId: UserId): Promise<string[]>;
     /**
@@ -93,6 +108,8 @@ export declare class SupabaseUserRepository implements IUserRepository {
     /**
      * Map database record to User Domain aggregate
      * Following Clean Architecture pattern - returns rich domain object
+     *
+     * Pure RBAC: Loads roles from user_roles table
      */
     private mapToUserAggregate;
     /**
@@ -147,6 +164,11 @@ export declare class SupabaseUserRepository implements IUserRepository {
     emailExists(email: Email): Promise<boolean>;
     /**
      * Get user permissions
+     *
+     * Pure RBAC: Delegates to PermissionRepository
+     *
+     * @deprecated This method is deprecated. Use IPermissionRepository.getUserPermissions() instead.
+     * Kept for backward compatibility with existing code.
      */
     getUserPermissions(userId: UserId): Promise<string[]>;
     /**
@@ -169,5 +191,25 @@ export declare class SupabaseUserRepository implements IUserRepository {
      * Count total users
      */
     count(filters?: Record<string, any>): Promise<number>;
+    /**
+     * Store staff invitation
+     */
+    storeStaffInvitation(data: {
+        email: string;
+        role: string;
+        invitedBy: string;
+        invitationToken: string;
+        expiresAt: Date;
+        invitationData?: any;
+    }): Promise<void>;
+    /**
+     * Verify staff invitation token
+     */
+    verifyStaffInvitation(token: string): Promise<{
+        isValid: boolean;
+        email?: string;
+        role?: string;
+        invitationData?: any;
+    }>;
 }
 //# sourceMappingURL=SupabaseUserRepository.d.ts.map

@@ -4,16 +4,26 @@ exports.RegisterUserUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
 const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const Email_1 = require("../../domain/value-objects/Email");
+const DomainEventMapper_1 = require("../../infrastructure/events/DomainEventMapper");
 /**
  * Register User Use Case
- * Flow: Supabase Auth signUp  Trigger creates user_profiles  Return success
+ * Flow: Explicit user creation via Repository (NO trigger dependency)
+ *
+ * This use case creates both auth user and profile explicitly through
+ * the repository layer, ensuring full control, rollback capability,
+ * and Clean Architecture compliance.
  */
 class RegisterUserUseCase {
-    constructor(authService, userRepository, logger) {
-        this.authService = authService;
+    constructor(userRepository, permissionRepository, logger, eventPublisher // Optional for backward compatibility
+    ) {
         this.userRepository = userRepository;
+        this.permissionRepository = permissionRepository;
         this.logger = logger;
+        this.eventPublisher = eventPublisher;
         this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('register-user-use-case');
+        this.validRolesCache = null;
+        this.validRolesCacheTime = 0;
+        this.CACHE_TTL = 5 * 60 * 1000; // 5 minutes
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -28,8 +38,8 @@ class RegisterUserUseCase {
     async executeImpl(request) {
         try {
             this.logger.info('Starting user registration', { email: request.email, roleType: request.roleType });
-            // 1. Validate input
-            const validationError = this.validateRequest(request);
+            // 1. Validate input (async - queries database for valid roles)
+            const validationError = await this.validateRequest(request);
             if (validationError) {
                 return {
                     success: false,
@@ -48,35 +58,55 @@ class RegisterUserUseCase {
                     error: 'USER_ALREADY_EXISTS'
                 };
             }
-            // 3. Sign up with Supabase Auth (creates auth.users + trigger creates user_profiles)
-            const authResult = await this.authService.signUp({
+            // 3. Create auth user + profile explicitly (NO TRIGGER DEPENDENCY)
+            // This method in repository handles:
+            // - Creating auth user via Supabase Admin API
+            // - Creating user profile in user_profiles table
+            // - Rollback if profile creation fails
+            // - Audit logging
+            // - Cache invalidation
+            const user = await this.userRepository.createAuthUser({
                 email: request.email,
                 password: request.password,
                 fullName: request.fullName,
                 roleType: request.roleType,
                 phoneNumber: request.phoneNumber,
                 citizenId: request.citizenId,
-                dateOfBirth: request.dateOfBirth,
+                dateOfBirth: request.dateOfBirth ? new Date(request.dateOfBirth) : undefined,
                 gender: request.gender,
-                address: request.address
+                address: request.address,
+                emailConfirm: false // Require email verification
             });
-            if (!authResult.success || !authResult.user) {
-                return {
-                    success: false,
-                    message: authResult.message || 'Đăng ký thất bại',
-                    error: authResult.error || 'REGISTRATION_FAILED'
-                };
-            }
             this.logger.info('User registration completed successfully', {
-                userId: authResult.user.id,
+                userId: user.id, // user.id getter returns string
                 email: request.email,
                 roleType: request.roleType
             });
-            // 4. Return success response
+            // 4. Publish domain events
+            if (this.eventPublisher) {
+                try {
+                    const domainEvents = user.getUncommittedEvents();
+                    const rabbitMQEvents = DomainEventMapper_1.DomainEventMapper.toRabbitMQEvents(domainEvents);
+                    await this.eventPublisher.publishBatch(rabbitMQEvents);
+                    user.markEventsAsCommitted();
+                    this.logger.info('Domain events published', {
+                        userId: user.id,
+                        eventCount: domainEvents.length
+                    });
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish domain events', {
+                        userId: user.id,
+                        error: (0, error_helper_1.getErrorMessage)(error)
+                    });
+                    // Don't fail registration if event publishing fails
+                }
+            }
+            // 5. Return success response
             return {
                 success: true,
-                userId: authResult.user.id,
-                email: authResult.user.email,
+                userId: user.id, // user.id getter returns string
+                email: user.email.value,
                 message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
                 requiresEmailVerification: true // Always require email verification
             };
@@ -93,7 +123,30 @@ class RegisterUserUseCase {
             };
         }
     }
-    validateRequest(request) {
+    /**
+     * Get valid roles from database with caching
+     * Cache for 5 minutes to avoid repeated database queries
+     */
+    async getValidRoles() {
+        const now = Date.now();
+        // Return cached roles if still valid
+        if (this.validRolesCache && (now - this.validRolesCacheTime) < this.CACHE_TTL) {
+            return this.validRolesCache;
+        }
+        // Query from database
+        try {
+            const roles = await this.permissionRepository.getAllRoles();
+            this.validRolesCache = roles.map(r => r.toLowerCase());
+            this.validRolesCacheTime = now;
+            return this.validRolesCache;
+        }
+        catch (error) {
+            this.logger.error('Failed to get valid roles from database', error);
+            // Fallback to hardcoded roles if database query fails
+            return ['admin', 'doctor', 'nurse', 'patient', 'receptionist', 'pharmacist', 'lab_technician', 'billing_staff'];
+        }
+    }
+    async validateRequest(request) {
         // Email format: basic RFC-compliant check (no spaces, must contain @ and a dot in domain)
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!request.email || !emailRegex.test(request.email)) {
@@ -105,9 +158,10 @@ class RegisterUserUseCase {
         if (!request.fullName || request.fullName.trim().length < 2) {
             return 'Họ tên phải có ít nhất 2 ký tự';
         }
-        const validRoles = ['admin', 'doctor', 'patient', 'receptionist'];
-        if (!request.roleType || !validRoles.includes(request.roleType)) {
-            return 'Vai trò không hợp lệ';
+        // Query valid roles from database (with caching)
+        const validRoles = await this.getValidRoles();
+        if (!request.roleType || !validRoles.includes(request.roleType.toLowerCase())) {
+            return `Vai trò không hợp lệ. Vai trò hợp lệ: ${validRoles.join(', ')}`;
         }
         if (request.phoneNumber && !/^[0-9]{10,11}$/.test(request.phoneNumber)) {
             return 'Số điện thoại không hợp lệ (phải có 10-11 chữ số)';

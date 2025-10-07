@@ -15,7 +15,8 @@ import { getErrorMessage } from '../../utils/error-helper';
 import { UserMapper } from '../mappers/UserMapper';
 
 // Domain imports - Clean Architecture pattern
-import { IUserRepository } from '../../application/repositories/IUserRepository';
+import { IUserRepository, CreateAuthUserData } from '../../application/repositories/IUserRepository';
+import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
 import { User } from '../../domain/aggregates/User';
 import { UserId } from '../../domain/value-objects/UserId';
 import { Email } from '../../domain/value-objects/Email';
@@ -75,6 +76,7 @@ export class SupabaseUserRepository implements IUserRepository {
   private supabaseClient: SupabaseClient;
   private circuitBreaker = CircuitBreakerFactory.getBreaker('user-repository');
   private cacheService?: RedisCacheService;
+  private permissionRepository?: IPermissionRepository;
 
   // Cache TTL constants (in seconds)
   private readonly CACHE_TTL = {
@@ -88,7 +90,8 @@ export class SupabaseUserRepository implements IUserRepository {
     supabaseUrl: string,
     supabaseKey: string,
     private logger: ILogger,
-    cacheService?: RedisCacheService
+    cacheService?: RedisCacheService,
+    permissionRepository?: IPermissionRepository
   ) {
     // Configure Supabase client with auth_schema
     // Note: TypeScript will infer the correct schema type from createClient options
@@ -108,6 +111,7 @@ export class SupabaseUserRepository implements IUserRepository {
     }) as any; // Type assertion to bypass schema type mismatch
 
     this.cacheService = cacheService;
+    this.permissionRepository = permissionRepository;
   }
 
   /**
@@ -123,7 +127,7 @@ export class SupabaseUserRepository implements IUserRepository {
       const cached = await this.cacheService.get<UserRecord>(cacheKey);
       if (cached) {
         this.logger.debug('Cache hit for user', { userId: id });
-        return this.mapToUserAggregate(cached);
+        return await this.mapToUserAggregate(cached);
       }
     }
 
@@ -148,7 +152,7 @@ export class SupabaseUserRepository implements IUserRepository {
         }
 
         // Map to Domain aggregate
-        return this.mapToUserAggregate(data);
+        return await this.mapToUserAggregate(data);
       },
       async () => {
         this.logger.warn('Using fallback for findById', { userId: id });
@@ -170,7 +174,7 @@ export class SupabaseUserRepository implements IUserRepository {
       const cached = await this.cacheService.get<UserRecord>(cacheKey);
       if (cached) {
         this.logger.debug('Cache hit for user by email', { email: emailValue });
-        return this.mapToUserAggregate(cached);
+        return await this.mapToUserAggregate(cached);
       }
     }
 
@@ -196,7 +200,7 @@ export class SupabaseUserRepository implements IUserRepository {
         }
 
         // Map to Domain aggregate
-        return this.mapToUserAggregate(data);
+        return await this.mapToUserAggregate(data);
       },
       async () => {
         this.logger.warn('Using fallback for findByEmail', { email: emailValue });
@@ -207,6 +211,8 @@ export class SupabaseUserRepository implements IUserRepository {
 
   /**
    * Create new user with audit logging
+   * Note: This only creates user_profile, not auth user
+   * Use createAuthUser() to create both auth user + profile
    */
   async create(userData: CreateUserRequest): Promise<User> {
     return await this.circuitBreaker.execute(
@@ -241,7 +247,163 @@ export class SupabaseUserRepository implements IUserRepository {
           roleType: userData.roleType
         });
 
-        return this.mapToUserAggregate(data);
+        return await this.mapToUserAggregate(data);
+      }
+    );
+  }
+
+  /**
+   * Create auth user + user profile in one transaction
+   * This replaces the trigger-based approach with explicit control
+   *
+   * @param userData - User data including password
+   * @returns Created User aggregate
+   * @throws Error if auth user or profile creation fails
+   */
+  async createAuthUser(userData: CreateAuthUserData): Promise<User> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        this.logger.info('Creating auth user with profile', { email: userData.email });
+
+        // Step 1: Create auth user via Admin API
+        const { data: authUser, error: authError } = await this.supabaseClient.auth.admin.createUser({
+          email: userData.email,
+          password: userData.password,
+          email_confirm: userData.emailConfirm ?? true, // Auto-confirm by default
+          user_metadata: {
+            full_name: userData.fullName,
+            role: userData.roleType, // Note: 'role', not 'role_type'
+            phone_number: userData.phoneNumber,
+            citizen_id: userData.citizenId,
+            date_of_birth: userData.dateOfBirth?.toISOString().split('T')[0],
+            gender: userData.gender,
+            address: userData.address
+          }
+        });
+
+        if (authError || !authUser.user) {
+          this.logger.error('Failed to create auth user', {
+            email: userData.email,
+            error: getErrorMessage(authError)
+          });
+          throw new Error(`Failed to create auth user: ${getErrorMessage(authError)}`);
+        }
+
+        this.logger.debug('Auth user created', {
+          userId: authUser.user.id,
+          email: userData.email
+        });
+
+        // Step 2: Create user profile explicitly (no trigger dependency)
+        const profileRecord = {
+          id: authUser.user.id, // Use auth user ID
+          email: userData.email,
+          full_name: userData.fullName,
+          role_type: userData.roleType,
+          citizen_id: userData.citizenId,
+          date_of_birth: userData.dateOfBirth?.toISOString().split('T')[0],
+          gender: userData.gender,
+          phone_number: userData.phoneNumber,
+          address: userData.address,
+          is_active: true,
+          is_verified: userData.emailConfirm ?? true,
+          subscription_tier: 'free',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const { data: profile, error: profileError } = await this.supabaseClient
+          .from('user_profiles')
+          .insert(profileRecord)
+          .select()
+          .single();
+
+        if (profileError) {
+          // Rollback: Delete auth user if profile creation fails
+          this.logger.error('Failed to create user profile, rolling back auth user', {
+            userId: authUser.user.id,
+            error: getErrorMessage(profileError)
+          });
+
+          await this.supabaseClient.auth.admin.deleteUser(authUser.user.id);
+
+          throw new Error(`Failed to create user profile: ${getErrorMessage(profileError)}`);
+        }
+
+        this.logger.info('User profile created successfully', {
+          userId: profile.id,
+          email: profile.email,
+          role: profile.role_type
+        });
+
+        // Step 3: Assign role in Pure RBAC (user_roles table)
+        // CRITICAL: This must succeed for Pure RBAC to work correctly
+        if (this.permissionRepository) {
+          // Validate role type by querying database
+          let validRoles: string[];
+          try {
+            validRoles = await this.permissionRepository.getAllRoles();
+          } catch (error) {
+            this.logger.error('Failed to get valid roles from database, using fallback', error);
+            // Fallback to hardcoded roles if database query fails
+            validRoles = ['admin', 'doctor', 'nurse', 'patient', 'receptionist', 'pharmacist', 'lab_technician', 'billing_staff'];
+          }
+
+          if (!validRoles.includes(userData.roleType.toLowerCase())) {
+            // Rollback: Delete auth user and profile
+            this.logger.error('Invalid role type, rolling back user creation', {
+              userId: profile.id,
+              roleType: userData.roleType,
+              validRoles
+            });
+            await this.supabaseClient.auth.admin.deleteUser(profile.id);
+            await this.supabaseClient.from('user_profiles').delete().eq('id', profile.id);
+            throw new Error(`Invalid role type: ${userData.roleType}. Valid roles: ${validRoles.join(', ')}`);
+          }
+
+          try {
+            const userId = UserId.fromString(profile.id);
+            await this.permissionRepository.assignRole(
+              userId,
+              userData.roleType,
+              'system' // assigned_by
+            );
+            this.logger.info('Role assigned in Pure RBAC', {
+              userId: profile.id,
+              role: userData.roleType
+            });
+          } catch (error) {
+            // CRITICAL ERROR: Rollback user creation
+            this.logger.error('Failed to assign role in Pure RBAC, rolling back user creation', {
+              userId: profile.id,
+              role: userData.roleType,
+              error: getErrorMessage(error)
+            });
+
+            // Rollback: Delete auth user and profile
+            await this.supabaseClient.auth.admin.deleteUser(profile.id);
+            await this.supabaseClient.from('user_profiles').delete().eq('id', profile.id);
+
+            throw new Error(`Failed to assign role: ${getErrorMessage(error)}`);
+          }
+        }
+
+        // Step 4: Log audit event
+        await this.logAuditEvent('USER_CREATED', profile.id, {
+          email: userData.email,
+          roleType: userData.roleType,
+          method: 'createAuthUser'
+        });
+
+        // Step 5: Invalidate cache (user + roles)
+        if (this.cacheService) {
+          await this.cacheService.delete(`user:${profile.id}`);
+          await this.cacheService.delete(`user:email:${profile.email}`);
+          await this.cacheService.delete(`roles:${profile.id}`); // Invalidate roles cache
+        }
+
+        // Step 6: Map to Domain aggregate
+        return await this.mapToUserAggregate(profile);
       }
     );
   }
@@ -443,6 +605,8 @@ export class SupabaseUserRepository implements IUserRepository {
 
   /**
    * Get user roles with caching
+   *
+   * Pure RBAC: Queries user_roles table for multiple roles
    */
   async getUserRoles(userId: UserId): Promise<string[]> {
     const id = userId.value;
@@ -458,22 +622,18 @@ export class SupabaseUserRepository implements IUserRepository {
 
     return await this.circuitBreaker.execute(
       async () => {
+        // Query user_roles table (Pure RBAC)
         const { data, error } = await this.supabaseClient
-          .from('user_profiles')
-          .select('role_type')
-          .eq('id', id)
-          .single();
+          .from('user_roles')
+          .select('role_name')
+          .eq('user_id', id);
 
         if (error) {
-          // If user not found, return empty array instead of throwing
-          if (error.code === 'PGRST116') {
-            this.logger.debug('User not found', { userId: id });
-            return [];
-          }
           throw new Error(`Failed to get user roles: ${getErrorMessage(error)}`);
         }
 
-        const roles = [data.role_type];
+        // Extract role names from user_roles table
+        const roles = data?.map((row: any) => row.role_name) || [];
 
         // Cache the result
         if (this.cacheService) {
@@ -520,9 +680,35 @@ export class SupabaseUserRepository implements IUserRepository {
   /**
    * Map database record to User Domain aggregate
    * Following Clean Architecture pattern - returns rich domain object
+   *
+   * Pure RBAC: Loads roles from user_roles table
    */
-  private mapToUserAggregate(data: UserRecord): User {
-    return UserMapper.toDomain(data);
+  private async mapToUserAggregate(data: UserRecord): Promise<User> {
+    // Load roles from Pure RBAC (user_roles table)
+    let roleTypes: string[] = [];
+
+    if (this.permissionRepository) {
+      try {
+        const userId = UserId.fromString(data.id);
+        roleTypes = await this.permissionRepository.getUserRoles(userId);
+      } catch (error) {
+        this.logger.warn('Failed to load user roles from Pure RBAC, falling back to role_type', {
+          userId: data.id,
+          error: getErrorMessage(error)
+        });
+        // Fallback to legacy role_type if Pure RBAC fails
+        if (data.role_type) {
+          roleTypes = [data.role_type];
+        }
+      }
+    } else {
+      // Fallback to legacy role_type if permissionRepository not available
+      if (data.role_type) {
+        roleTypes = [data.role_type];
+      }
+    }
+
+    return UserMapper.toDomain(data, roleTypes);
   }
 
   /**
@@ -599,9 +785,9 @@ export class SupabaseUserRepository implements IUserRepository {
         .from('login_attempts')
         .select('*')
         .eq('email', emailValue)
-        .eq('is_successful', false)
-        .gte('created_at', thirtyMinutesAgo.toISOString())
-        .order('created_at', { ascending: false });
+        .eq('success', false) // Fixed: Use 'success' to match migration schema
+        .gte('attempted_at', thirtyMinutesAgo.toISOString()) // Fixed: Use 'attempted_at' to match migration schema
+        .order('attempted_at', { ascending: false });
 
       if (error) {
         this.logger.error('Failed to check account lockout', { email: emailValue, error: getErrorMessage(error) });
@@ -613,7 +799,7 @@ export class SupabaseUserRepository implements IUserRepository {
       // Lock account if 5 or more failed attempts in last 30 minutes
       if (failedAttempts >= 5) {
         const firstFailedAttempt = attempts[attempts.length - 1];
-        const unlockAt = new Date(new Date(firstFailedAttempt.created_at).getTime() + 30 * 60 * 1000);
+        const unlockAt = new Date(new Date(firstFailedAttempt.attempted_at).getTime() + 30 * 60 * 1000); // Fixed: Use 'attempted_at'
 
         // Check if still locked
         if (new Date() < unlockAt) {
@@ -643,11 +829,11 @@ export class SupabaseUserRepository implements IUserRepository {
       const emailValue = email.value;
       const attemptRecord = {
         email: emailValue,
-        is_successful: isSuccessful,
+        success: isSuccessful, // Fixed: Use 'success' to match migration schema
         ip_address: ipAddress,
         user_agent: userAgent,
-        error_message: errorMessage,
-        created_at: new Date().toISOString()
+        failure_reason: errorMessage, // Fixed: Use 'failure_reason' to match migration schema
+        attempted_at: new Date().toISOString() // Fixed: Use 'attempted_at' to match migration schema
       };
 
       const { error } = await this.supabaseClient
@@ -676,7 +862,7 @@ export class SupabaseUserRepository implements IUserRepository {
         .from('login_attempts')
         .delete()
         .eq('email', email)
-        .eq('is_successful', false);
+        .eq('success', false); // Fixed: Use 'success' to match migration schema
 
       if (error) {
         this.logger.error('Failed to clear failed login attempts', { email, error: getErrorMessage(error) });
@@ -697,7 +883,7 @@ export class SupabaseUserRepository implements IUserRepository {
         .from('login_attempts')
         .delete()
         .eq('email', emailValue)
-        .eq('is_successful', false);
+        .eq('success', false); // Fixed: Use 'success' to match migration schema
 
       if (error) {
         throw new Error(`Failed to unlock account: ${getErrorMessage(error)}`);
@@ -794,22 +980,19 @@ export class SupabaseUserRepository implements IUserRepository {
 
   /**
    * Get user permissions
+   *
+   * Pure RBAC: Delegates to PermissionRepository
+   *
+   * @deprecated This method is deprecated. Use IPermissionRepository.getUserPermissions() instead.
+   * Kept for backward compatibility with existing code.
    */
   async getUserPermissions(userId: UserId): Promise<string[]> {
-    const roles = await this.getUserRoles(userId);
-    // For now, return basic permissions based on roles
-    // TODO: Implement proper permission mapping
-    const permissions: string[] = [];
-    roles.forEach(role => {
-      if (role === 'admin') {
-        permissions.push('*'); // Admin has all permissions
-      } else if (role === 'doctor') {
-        permissions.push('read_patients', 'write_patients', 'read_appointments');
-      } else if (role === 'patient') {
-        permissions.push('read_own_data', 'book_appointments');
-      }
+    // NOTE: This method should be removed once all code is migrated to use IPermissionRepository
+    // For now, we return empty array and log a warning
+    this.logger.warn('getUserPermissions() called on UserRepository. Use IPermissionRepository instead.', {
+      userId: userId.value
     });
-    return permissions;
+    return [];
   }
 
   /**
@@ -860,9 +1043,18 @@ export class SupabaseUserRepository implements IUserRepository {
       .select('*');
 
     if (options?.filters) {
-      Object.entries(options.filters).forEach(([key, value]) => {
+      // Handle search_term separately with ilike
+      const { search_term, ...otherFilters } = options.filters;
+
+      // Apply exact match filters
+      Object.entries(otherFilters).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
+
+      // Apply search term with ilike on full_name and email
+      if (search_term) {
+        query = query.or(`full_name.ilike.%${search_term}%,email.ilike.%${search_term}%`);
+      }
     }
 
     if (options?.limit) {
@@ -879,7 +1071,7 @@ export class SupabaseUserRepository implements IUserRepository {
       throw new Error(`Failed to list users: ${getErrorMessage(error)}`);
     }
 
-    return data.map(record => this.mapToUserAggregate(record));
+    return await Promise.all(data.map(record => this.mapToUserAggregate(record)));
   }
 
   /**
@@ -891,9 +1083,18 @@ export class SupabaseUserRepository implements IUserRepository {
       .select('*', { count: 'exact', head: true });
 
     if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
+      // Handle search_term separately with ilike
+      const { search_term, ...otherFilters } = filters;
+
+      // Apply exact match filters
+      Object.entries(otherFilters).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
+
+      // Apply search term with ilike on full_name and email
+      if (search_term) {
+        query = query.or(`full_name.ilike.%${search_term}%,email.ilike.%${search_term}%`);
+      }
     }
 
     const { count, error } = await query;
@@ -903,5 +1104,121 @@ export class SupabaseUserRepository implements IUserRepository {
     }
 
     return count || 0;
+  }
+
+  /**
+   * Store staff invitation
+   */
+  async storeStaffInvitation(data: {
+    email: string;
+    role: string;
+    invitedBy: string;
+    invitationToken: string;
+    expiresAt: Date;
+    invitationData?: any;
+  }): Promise<void> {
+    try {
+      const { error } = await this.supabaseClient
+        .from('staff_invitations')
+        .insert({
+          email: data.email,
+          role: data.role,
+          invited_by: data.invitedBy,
+          invitation_token: data.invitationToken,
+          expires_at: data.expiresAt.toISOString(),
+          status: 'PENDING',
+          invitation_data: data.invitationData || {}
+        });
+
+      if (error) {
+        throw new Error(`Failed to store staff invitation: ${getErrorMessage(error)}`);
+      }
+
+      this.logger.info('Staff invitation stored', {
+        email: data.email,
+        role: data.role
+      });
+    } catch (error) {
+      this.logger.error('Error storing staff invitation', {
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Verify staff invitation token
+   */
+  async verifyStaffInvitation(token: string): Promise<{
+    isValid: boolean;
+    email?: string;
+    role?: string;
+    invitationData?: any;
+  }> {
+    try {
+      const { data, error } = await this.supabaseClient
+        .from('staff_invitations')
+        .select('*')
+        .eq('invitation_token', token)
+        .eq('status', 'PENDING')
+        .single();
+
+      if (error || !data) {
+        return { isValid: false };
+      }
+
+      // Check if token is expired
+      const expiresAt = new Date(data.expires_at);
+      if (expiresAt < new Date()) {
+        this.logger.warn('Staff invitation token expired', {
+          email: data.email,
+          expiresAt
+        });
+        return { isValid: false };
+      }
+
+      return {
+        isValid: true,
+        email: data.email,
+        role: data.role,
+        invitationData: data.invitation_data
+      };
+    } catch (error) {
+      this.logger.error('Error verifying staff invitation', {
+        error: getErrorMessage(error)
+      });
+      return { isValid: false };
+    }
+  }
+
+  /**
+   * Mark staff invitation as used
+   */
+  async markInvitationAsUsed(token: string, userId: string): Promise<void> {
+    try {
+      const { error } = await this.supabaseClient
+        .from('staff_invitations')
+        .update({
+          status: 'ACCEPTED',
+          accepted_at: new Date().toISOString(),
+          accepted_by_user_id: userId
+        })
+        .eq('invitation_token', token)
+        .eq('status', 'PENDING');
+
+      if (error) {
+        throw new Error(`Failed to mark invitation as used: ${getErrorMessage(error)}`);
+      }
+
+      this.logger.info('Staff invitation marked as used', {
+        token: token.substring(0, 10) + '...',
+        userId
+      });
+    } catch (error) {
+      this.logger.error('Error marking invitation as used', {
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
   }
 }

@@ -1,0 +1,69 @@
+1e8fb55a2773481103464c70597c3d60
+"use strict";
+
+/**
+ * MFA Service Interface
+ * Application layer defines the contract for MFA operations
+ * Infrastructure layer provides concrete implementation
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
+ */
+/* istanbul ignore next */
+function cov_1edm32r6z9() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IMFAService.ts";
+  var hash = "35a93d25e6780f961dbf4fa993658955d485e34c";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IMFAService.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IMFAService.ts",
+      mappings: ";AAAA;;;;;;;;GAQG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IMFAService.ts"],
+      sourcesContent: ["/**\n * MFA Service Interface\n * Application layer defines the contract for MFA operations\n * Infrastructure layer provides concrete implementation\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, Dependency Inversion Principle\n */\n\n/**\n * MFA Method types\n */\nexport type MFAMethod = '2fa_app' | 'sms' | 'email' | 'backup';\n\n/**\n * MFA Setup Result\n */\nexport interface MFASetupResult {\n  secret: string;\n  qrCodeUrl: string;\n  backupCodes: string[];\n}\n\n/**\n * MFA Settings\n */\nexport interface MFASettings {\n  userId: string;\n  method: MFAMethod;\n  isEnabled: boolean;\n  secretKey?: string;\n  phoneNumber?: string;\n  email?: string;\n  backupCodes?: string[];\n  createdAt: Date;\n  updatedAt: Date;\n}\n\n/**\n * MFA Service Interface\n * Defines contract for MFA operations\n * \n * This interface follows Clean Architecture principles:\n * - Defined in Application layer\n * - Implemented by Infrastructure layer\n * - Used by Use Cases\n * \n * Benefits:\n * - Testability: Easy to mock for unit tests\n * - Flexibility: Can switch MFA providers (Supabase, Auth0, Twilio)\n * - Dependency Inversion: Application doesn't depend on infrastructure\n */\nexport interface IMFAService {\n  /**\n   * Enable MFA for user\n   * Generates TOTP secret, QR code, and backup codes\n   * \n   * @param userId User ID\n   * @param method MFA method (2fa_app, sms, email)\n   * @param phoneNumber Phone number (required for SMS)\n   * @param email Email (required for email method)\n   * @returns MFA setup result with secret, QR code, and backup codes\n   */\n  enableMFA(\n    userId: string,\n    method: MFAMethod,\n    phoneNumber?: string,\n    email?: string\n  ): Promise<MFASetupResult>;\n\n  /**\n   * Disable MFA for user\n   * Removes MFA settings from database\n   * \n   * @param userId User ID\n   */\n  disableMFA(userId: string): Promise<void>;\n\n  /**\n   * Verify MFA code\n   * Validates TOTP code against stored secret\n   * \n   * @param userId User ID\n   * @param code TOTP code to verify\n   * @param method MFA method\n   * @returns True if code is valid\n   */\n  verifyCode(userId: string, code: string, method: MFAMethod): Promise<boolean>;\n\n  /**\n   * Generate backup codes\n   * Creates new set of backup codes for user\n   * \n   * @param userId User ID\n   * @returns Array of backup codes\n   */\n  generateBackupCodes(userId: string): Promise<string[]>;\n\n  /**\n   * Validate backup code\n   * Checks if backup code is valid and marks it as used\n   * \n   * @param userId User ID\n   * @param code Backup code to validate\n   * @returns True if code is valid and not used\n   */\n  validateBackupCode(userId: string, code: string): Promise<boolean>;\n\n  /**\n   * Check if MFA is enabled for user\n   * \n   * @param userId User ID\n   * @returns True if MFA is enabled\n   */\n  isMFAEnabled(userId: string): Promise<boolean>;\n\n  /**\n   * Get MFA settings for user\n   * \n   * @param userId User ID\n   * @returns MFA settings or null if not found\n   */\n  getMFASettings(userId: string): Promise<MFASettings | null>;\n\n  /**\n   * Update MFA settings\n   * Updates MFA configuration for user\n   * \n   * @param userId User ID\n   * @param settings Partial MFA settings to update\n   */\n  updateMFASettings(userId: string, settings: Partial<MFASettings>): Promise<void>;\n\n  /**\n   * Check rate limit for MFA attempts\n   * Prevents brute force attacks\n   * \n   * @param userId User ID\n   * @param attemptType Type of attempt (login, setup, disable)\n   * @returns True if rate limit is not exceeded\n   */\n  checkRateLimit(userId: string, attemptType: string): Promise<boolean>;\n\n  /**\n   * Record failed MFA attempt\n   * Tracks failed attempts for rate limiting\n   * \n   * @param userId User ID\n   * @param attemptType Type of attempt\n   * @param ipAddress IP address of attempt\n   * @param userAgent User agent of attempt\n   */\n  recordFailedAttempt(\n    userId: string,\n    attemptType: string,\n    ipAddress?: string,\n    userAgent?: string\n  ): Promise<void>;\n\n  /**\n   * Clear failed attempts\n   * Resets failed attempt counter after successful verification\n   * \n   * @param userId User ID\n   * @param attemptType Type of attempt\n   */\n  clearFailedAttempts(userId: string, attemptType: string): Promise<void>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "35a93d25e6780f961dbf4fa993658955d485e34c"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1edm32r6z9 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1edm32r6z9();
+cov_1edm32r6z9().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMWVkbTMycjZ6OSIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxcc2VydmljZXNcXElNRkFTZXJ2aWNlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogTUZBIFNlcnZpY2UgSW50ZXJmYWNlXG4gKiBBcHBsaWNhdGlvbiBsYXllciBkZWZpbmVzIHRoZSBjb250cmFjdCBmb3IgTUZBIG9wZXJhdGlvbnNcbiAqIEluZnJhc3RydWN0dXJlIGxheWVyIHByb3ZpZGVzIGNvbmNyZXRlIGltcGxlbWVudGF0aW9uXG4gKiBcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICogQGNvbXBsaWFuY2UgQ2xlYW4gQXJjaGl0ZWN0dXJlLCBEZXBlbmRlbmN5IEludmVyc2lvbiBQcmluY2lwbGVcbiAqL1xuXG4vKipcbiAqIE1GQSBNZXRob2QgdHlwZXNcbiAqL1xuZXhwb3J0IHR5cGUgTUZBTWV0aG9kID0gJzJmYV9hcHAnIHwgJ3NtcycgfCAnZW1haWwnIHwgJ2JhY2t1cCc7XG5cbi8qKlxuICogTUZBIFNldHVwIFJlc3VsdFxuICovXG5leHBvcnQgaW50ZXJmYWNlIE1GQVNldHVwUmVzdWx0IHtcbiAgc2VjcmV0OiBzdHJpbmc7XG4gIHFyQ29kZVVybDogc3RyaW5nO1xuICBiYWNrdXBDb2Rlczogc3RyaW5nW107XG59XG5cbi8qKlxuICogTUZBIFNldHRpbmdzXG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgTUZBU2V0dGluZ3Mge1xuICB1c2VySWQ6IHN0cmluZztcbiAgbWV0aG9kOiBNRkFNZXRob2Q7XG4gIGlzRW5hYmxlZDogYm9vbGVhbjtcbiAgc2VjcmV0S2V5Pzogc3RyaW5nO1xuICBwaG9uZU51bWJlcj86IHN0cmluZztcbiAgZW1haWw/OiBzdHJpbmc7XG4gIGJhY2t1cENvZGVzPzogc3RyaW5nW107XG4gIGNyZWF0ZWRBdDogRGF0ZTtcbiAgdXBkYXRlZEF0OiBEYXRlO1xufVxuXG4vKipcbiAqIE1GQSBTZXJ2aWNlIEludGVyZmFjZVxuICogRGVmaW5lcyBjb250cmFjdCBmb3IgTUZBIG9wZXJhdGlvbnNcbiAqIFxuICogVGhpcyBpbnRlcmZhY2UgZm9sbG93cyBDbGVhbiBBcmNoaXRlY3R1cmUgcHJpbmNpcGxlczpcbiAqIC0gRGVmaW5lZCBpbiBBcHBsaWNhdGlvbiBsYXllclxuICogLSBJbXBsZW1lbnRlZCBieSBJbmZyYXN0cnVjdHVyZSBsYXllclxuICogLSBVc2VkIGJ5IFVzZSBDYXNlc1xuICogXG4gKiBCZW5lZml0czpcbiAqIC0gVGVzdGFiaWxpdHk6IEVhc3kgdG8gbW9jayBmb3IgdW5pdCB0ZXN0c1xuICogLSBGbGV4aWJpbGl0eTogQ2FuIHN3aXRjaCBNRkEgcHJvdmlkZXJzIChTdXBhYmFzZSwgQXV0aDAsIFR3aWxpbylcbiAqIC0gRGVwZW5kZW5jeSBJbnZlcnNpb246IEFwcGxpY2F0aW9uIGRvZXNuJ3QgZGVwZW5kIG9uIGluZnJhc3RydWN0dXJlXG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgSU1GQVNlcnZpY2Uge1xuICAvKipcbiAgICogRW5hYmxlIE1GQSBmb3IgdXNlclxuICAgKiBHZW5lcmF0ZXMgVE9UUCBzZWNyZXQsIFFSIGNvZGUsIGFuZCBiYWNrdXAgY29kZXNcbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgVXNlciBJRFxuICAgKiBAcGFyYW0gbWV0aG9kIE1GQSBtZXRob2QgKDJmYV9hcHAsIHNtcywgZW1haWwpXG4gICAqIEBwYXJhbSBwaG9uZU51bWJlciBQaG9uZSBudW1iZXIgKHJlcXVpcmVkIGZvciBTTVMpXG4gICAqIEBwYXJhbSBlbWFpbCBFbWFpbCAocmVxdWlyZWQgZm9yIGVtYWlsIG1ldGhvZClcbiAgICogQHJldHVybnMgTUZBIHNldHVwIHJlc3VsdCB3aXRoIHNlY3JldCwgUVIgY29kZSwgYW5kIGJhY2t1cCBjb2Rlc1xuICAgKi9cbiAgZW5hYmxlTUZBKFxuICAgIHVzZXJJZDogc3RyaW5nLFxuICAgIG1ldGhvZDogTUZBTWV0aG9kLFxuICAgIHBob25lTnVtYmVyPzogc3RyaW5nLFxuICAgIGVtYWlsPzogc3RyaW5nXG4gICk6IFByb21pc2U8TUZBU2V0dXBSZXN1bHQ+O1xuXG4gIC8qKlxuICAgKiBEaXNhYmxlIE1GQSBmb3IgdXNlclxuICAgKiBSZW1vdmVzIE1GQSBzZXR0aW5ncyBmcm9tIGRhdGFiYXNlXG4gICAqIFxuICAgKiBAcGFyYW0gdXNlcklkIFVzZXIgSURcbiAgICovXG4gIGRpc2FibGVNRkEodXNlcklkOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBWZXJpZnkgTUZBIGNvZGVcbiAgICogVmFsaWRhdGVzIFRPVFAgY29kZSBhZ2FpbnN0IHN0b3JlZCBzZWNyZXRcbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgVXNlciBJRFxuICAgKiBAcGFyYW0gY29kZSBUT1RQIGNvZGUgdG8gdmVyaWZ5XG4gICAqIEBwYXJhbSBtZXRob2QgTUZBIG1ldGhvZFxuICAgKiBAcmV0dXJucyBUcnVlIGlmIGNvZGUgaXMgdmFsaWRcbiAgICovXG4gIHZlcmlmeUNvZGUodXNlcklkOiBzdHJpbmcsIGNvZGU6IHN0cmluZywgbWV0aG9kOiBNRkFNZXRob2QpOiBQcm9taXNlPGJvb2xlYW4+O1xuXG4gIC8qKlxuICAgKiBHZW5lcmF0ZSBiYWNrdXAgY29kZXNcbiAgICogQ3JlYXRlcyBuZXcgc2V0IG9mIGJhY2t1cCBjb2RlcyBmb3IgdXNlclxuICAgKiBcbiAgICogQHBhcmFtIHVzZXJJZCBVc2VyIElEXG4gICAqIEByZXR1cm5zIEFycmF5IG9mIGJhY2t1cCBjb2Rlc1xuICAgKi9cbiAgZ2VuZXJhdGVCYWNrdXBDb2Rlcyh1c2VySWQ6IHN0cmluZyk6IFByb21pc2U8c3RyaW5nW10+O1xuXG4gIC8qKlxuICAgKiBWYWxpZGF0ZSBiYWNrdXAgY29kZVxuICAgKiBDaGVja3MgaWYgYmFja3VwIGNvZGUgaXMgdmFsaWQgYW5kIG1hcmtzIGl0IGFzIHVzZWRcbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgVXNlciBJRFxuICAgKiBAcGFyYW0gY29kZSBCYWNrdXAgY29kZSB0byB2YWxpZGF0ZVxuICAgKiBAcmV0dXJucyBUcnVlIGlmIGNvZGUgaXMgdmFsaWQgYW5kIG5vdCB1c2VkXG4gICAqL1xuICB2YWxpZGF0ZUJhY2t1cENvZGUodXNlcklkOiBzdHJpbmcsIGNvZGU6IHN0cmluZyk6IFByb21pc2U8Ym9vbGVhbj47XG5cbiAgLyoqXG4gICAqIENoZWNrIGlmIE1GQSBpcyBlbmFibGVkIGZvciB1c2VyXG4gICAqIFxuICAgKiBAcGFyYW0gdXNlcklkIFVzZXIgSURcbiAgICogQHJldHVybnMgVHJ1ZSBpZiBNRkEgaXMgZW5hYmxlZFxuICAgKi9cbiAgaXNNRkFFbmFibGVkKHVzZXJJZDogc3RyaW5nKTogUHJvbWlzZTxib29sZWFuPjtcblxuICAvKipcbiAgICogR2V0IE1GQSBzZXR0aW5ncyBmb3IgdXNlclxuICAgKiBcbiAgICogQHBhcmFtIHVzZXJJZCBVc2VyIElEXG4gICAqIEByZXR1cm5zIE1GQSBzZXR0aW5ncyBvciBudWxsIGlmIG5vdCBmb3VuZFxuICAgKi9cbiAgZ2V0TUZBU2V0dGluZ3ModXNlcklkOiBzdHJpbmcpOiBQcm9taXNlPE1GQVNldHRpbmdzIHwgbnVsbD47XG5cbiAgLyoqXG4gICAqIFVwZGF0ZSBNRkEgc2V0dGluZ3NcbiAgICogVXBkYXRlcyBNRkEgY29uZmlndXJhdGlvbiBmb3IgdXNlclxuICAgKiBcbiAgICogQHBhcmFtIHVzZXJJZCBVc2VyIElEXG4gICAqIEBwYXJhbSBzZXR0aW5ncyBQYXJ0aWFsIE1GQSBzZXR0aW5ncyB0byB1cGRhdGVcbiAgICovXG4gIHVwZGF0ZU1GQVNldHRpbmdzKHVzZXJJZDogc3RyaW5nLCBzZXR0aW5nczogUGFydGlhbDxNRkFTZXR0aW5ncz4pOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBDaGVjayByYXRlIGxpbWl0IGZvciBNRkEgYXR0ZW1wdHNcbiAgICogUHJldmVudHMgYnJ1dGUgZm9yY2UgYXR0YWNrc1xuICAgKiBcbiAgICogQHBhcmFtIHVzZXJJZCBVc2VyIElEXG4gICAqIEBwYXJhbSBhdHRlbXB0VHlwZSBUeXBlIG9mIGF0dGVtcHQgKGxvZ2luLCBzZXR1cCwgZGlzYWJsZSlcbiAgICogQHJldHVybnMgVHJ1ZSBpZiByYXRlIGxpbWl0IGlzIG5vdCBleGNlZWRlZFxuICAgKi9cbiAgY2hlY2tSYXRlTGltaXQodXNlcklkOiBzdHJpbmcsIGF0dGVtcHRUeXBlOiBzdHJpbmcpOiBQcm9taXNlPGJvb2xlYW4+O1xuXG4gIC8qKlxuICAgKiBSZWNvcmQgZmFpbGVkIE1GQSBhdHRlbXB0XG4gICAqIFRyYWNrcyBmYWlsZWQgYXR0ZW1wdHMgZm9yIHJhdGUgbGltaXRpbmdcbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgVXNlciBJRFxuICAgKiBAcGFyYW0gYXR0ZW1wdFR5cGUgVHlwZSBvZiBhdHRlbXB0XG4gICAqIEBwYXJhbSBpcEFkZHJlc3MgSVAgYWRkcmVzcyBvZiBhdHRlbXB0XG4gICAqIEBwYXJhbSB1c2VyQWdlbnQgVXNlciBhZ2VudCBvZiBhdHRlbXB0XG4gICAqL1xuICByZWNvcmRGYWlsZWRBdHRlbXB0KFxuICAgIHVzZXJJZDogc3RyaW5nLFxuICAgIGF0dGVtcHRUeXBlOiBzdHJpbmcsXG4gICAgaXBBZGRyZXNzPzogc3RyaW5nLFxuICAgIHVzZXJBZ2VudD86IHN0cmluZ1xuICApOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBDbGVhciBmYWlsZWQgYXR0ZW1wdHNcbiAgICogUmVzZXRzIGZhaWxlZCBhdHRlbXB0IGNvdW50ZXIgYWZ0ZXIgc3VjY2Vzc2Z1bCB2ZXJpZmljYXRpb25cbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgVXNlciBJRFxuICAgKiBAcGFyYW0gYXR0ZW1wdFR5cGUgVHlwZSBvZiBhdHRlbXB0XG4gICAqL1xuICBjbGVhckZhaWxlZEF0dGVtcHRzKHVzZXJJZDogc3RyaW5nLCBhdHRlbXB0VHlwZTogc3RyaW5nKTogUHJvbWlzZTx2b2lkPjtcbn1cblxuIl0sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

@@ -10,13 +10,16 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientQueryHandlers = void 0;
+const STAT_SAMPLE_LIMIT = 500;
 /**
  * Patient Query Handlers
  * Handles all patient-related queries with proper authorization and data masking
  */
 class PatientQueryHandlers {
-    constructor(getPatientProfileUseCase, logger) {
+    constructor(getPatientProfileUseCase, searchPatientsUseCase, patientRepository, logger) {
         this.getPatientProfileUseCase = getPatientProfileUseCase;
+        this.searchPatientsUseCase = searchPatientsUseCase;
+        this.patientRepository = patientRepository;
         this.logger = logger;
     }
     /**
@@ -28,21 +31,22 @@ class PatientQueryHandlers {
                 queryId: query.queryId,
                 requestedBy: query.requestedBy,
                 patientId: query.data.patientId,
-                userId: query.data.userId
+                userId: query.data.userId,
+                nationalId: query.data.nationalId,
+                bhytNumber: query.data.bhytNumber
             });
-            // Validate query structure
             if (!this.isValidGetPatientProfileQuery(query)) {
                 return {
                     success: false,
                     message: 'Cấu trúc truy vấn thông tin bệnh nhân không hợp lệ'
                 };
             }
-            // Execute use case
             const result = await this.getPatientProfileUseCase.execute(query.data);
             this.logger.info('GetPatientProfile query processed', {
                 queryId: query.queryId,
                 success: result.success,
-                patientId: query.data.patientId
+                patientId: query.data.patientId,
+                userId: query.data.userId
             });
             return result;
         }
@@ -67,39 +71,54 @@ class PatientQueryHandlers {
                 requestedBy: query.requestedBy,
                 requestedByRole: query.data.requestedByRole
             });
-            // Validate query structure
             if (!this.isValidGetPatientListQuery(query)) {
                 return {
                     success: false,
                     message: 'Cấu trúc truy vấn danh sách bệnh nhân không hợp lệ'
                 };
             }
-            // Check authorization
             if (!this.isAuthorizedForPatientList(query.data.requestedByRole)) {
                 return {
                     success: false,
                     message: 'Không có quyền truy cập danh sách bệnh nhân'
                 };
             }
-            // TODO: Implement patient list retrieval
-            // For now, return mock data
+            if (query.data.filters?.hasInsurance !== undefined) {
+                this.logger.warn('hasInsurance filter is not yet supported for GetPatientList queries');
+            }
+            const page = query.data.pagination?.page ?? 1;
+            const limit = query.data.pagination?.limit ?? 20;
+            const filters = query.data.filters ?? {};
+            const repositoryResult = await this.patientRepository.findWithFilters({
+                isActive: filters.isActive,
+                registrationDateFrom: filters.registrationDateFrom,
+                registrationDateTo: filters.registrationDateTo,
+                city: filters.city,
+                province: filters.province
+            }, {
+                page,
+                limit,
+                sorting: query.data.sorting
+            });
+            const patientSummaries = repositoryResult.patients.map(patient => this.mapToSummary(patient));
+            const totalPages = this.calculateTotalPages(repositoryResult.total, limit);
             const result = {
                 success: true,
                 message: 'Lấy danh sách bệnh nhân thành công',
                 data: {
-                    patients: [],
+                    patients: patientSummaries,
                     pagination: {
-                        page: query.data.pagination?.page || 1,
-                        limit: query.data.pagination?.limit || 20,
-                        total: 0,
-                        totalPages: 0
+                        page,
+                        limit,
+                        total: repositoryResult.total,
+                        totalPages
                     }
                 }
             };
             this.logger.info('GetPatientList query processed', {
                 queryId: query.queryId,
-                success: result.success,
-                totalPatients: result.data.patients.length
+                success: true,
+                totalPatients: repositoryResult.total
             });
             return result;
         }
@@ -124,40 +143,73 @@ class PatientQueryHandlers {
                 requestedBy: query.requestedBy,
                 searchTerm: query.data.searchTerm
             });
-            // Validate query structure
             if (!this.isValidSearchPatientsQuery(query)) {
                 return {
                     success: false,
                     message: 'Cấu trúc tìm kiếm bệnh nhân không hợp lệ'
                 };
             }
-            // Check authorization
             if (!this.isAuthorizedForPatientSearch(query.data.requestedByRole)) {
                 return {
                     success: false,
                     message: 'Không có quyền tìm kiếm bệnh nhân'
                 };
             }
-            // TODO: Implement patient search
-            // For now, return mock data
+            const page = query.data.pagination?.page ?? 1;
+            const limit = query.data.pagination?.limit ?? 20;
+            const request = {
+                searchTerm: query.data.searchTerm,
+                filters: {
+                    isActive: query.data.filters?.isActive,
+                    hasInsurance: query.data.filters?.hasInsurance
+                },
+                pagination: {
+                    page,
+                    limit
+                },
+                requestedBy: query.data.requestedBy
+            };
+            const useCaseResult = await this.searchPatientsUseCase.execute(request);
+            if (!useCaseResult.success || !useCaseResult.data) {
+                return {
+                    success: false,
+                    message: useCaseResult.message || 'Không thể tìm kiếm bệnh nhân'
+                };
+            }
+            const patients = useCaseResult.data.patients.map(patient => ({
+                patientId: patient.patientId,
+                userId: patient.userId,
+                fullName: patient.fullName,
+                dateOfBirth: patient.dateOfBirth,
+                gender: patient.gender,
+                nationalId: patient.nationalId,
+                primaryPhone: patient.primaryPhone,
+                email: patient.email,
+                city: patient.city,
+                province: patient.province,
+                status: patient.status,
+                hasInsurance: patient.hasInsurance,
+                createdAt: patient.createdAt,
+                updatedAt: patient.updatedAt
+            }));
             const result = {
                 success: true,
-                message: 'Tìm kiếm bệnh nhân thành công',
+                message: useCaseResult.message,
                 data: {
-                    patients: [],
+                    patients,
                     searchTerm: query.data.searchTerm,
-                    totalResults: 0,
+                    totalResults: useCaseResult.data.pagination.total,
                     pagination: {
-                        page: query.data.pagination?.page || 1,
-                        limit: query.data.pagination?.limit || 20,
-                        total: 0,
-                        totalPages: 0
+                        page: useCaseResult.data.pagination.page,
+                        limit: useCaseResult.data.pagination.limit,
+                        total: useCaseResult.data.pagination.total,
+                        totalPages: useCaseResult.data.pagination.totalPages
                     }
                 }
             };
             this.logger.info('SearchPatients query processed', {
                 queryId: query.queryId,
-                success: result.success,
+                success: true,
                 totalResults: result.data.totalResults
             });
             return result;
@@ -183,41 +235,60 @@ class PatientQueryHandlers {
                 requestedBy: query.requestedBy,
                 requestedByRole: query.data.requestedByRole
             });
-            // Validate query structure
             if (!this.isValidGetPatientStatisticsQuery(query)) {
                 return {
                     success: false,
                     message: 'Cấu trúc truy vấn thống kê bệnh nhân không hợp lệ'
                 };
             }
-            // Check authorization
             if (!this.isAuthorizedForPatientStatistics(query.data.requestedByRole)) {
                 return {
                     success: false,
-                    message: 'Không có quyền xem thống kê bệnh nhân'
+                    message: 'Không có quyền truy cập thống kê bệnh nhân'
                 };
             }
-            // TODO: Implement patient statistics
-            // For now, return mock data
+            const sampleFilters = {
+                registrationDateFrom: query.data.dateRange?.from,
+                registrationDateTo: query.data.dateRange?.to
+            };
+            const [overallSample, activeCountResult] = await Promise.all([
+                this.patientRepository.findWithFilters(sampleFilters, {
+                    page: 1,
+                    limit: STAT_SAMPLE_LIMIT,
+                    sorting: { field: 'created_at', direction: 'desc' }
+                }),
+                this.patientRepository.findWithFilters({ ...sampleFilters, isActive: true }, { page: 1, limit: 1 })
+            ]);
+            const samplePatients = overallSample.patients;
+            const sampleSize = samplePatients.length;
+            const totalPatients = overallSample.total;
+            const activePatients = activeCountResult.total;
+            const newRegistrations = overallSample.total;
+            const patientsWithInsuranceSample = samplePatients.filter(patient => patient.hasValidInsurance()).length;
+            const patientsWithInsurance = sampleSize === 0
+                ? 0
+                : sampleSize >= totalPatients
+                    ? patientsWithInsuranceSample
+                    : Math.round((patientsWithInsuranceSample / sampleSize) * totalPatients);
+            const groupBy = query.data.groupBy ?? 'month';
+            const registrationTrend = this.buildRegistrationTrend(samplePatients, groupBy);
+            const demographicBreakdown = this.buildDemographicBreakdown(samplePatients);
             const result = {
                 success: true,
                 message: 'Lấy thống kê bệnh nhân thành công',
                 data: {
-                    totalPatients: 0,
-                    activePatients: 0,
-                    newRegistrations: 0,
-                    patientsWithInsurance: 0,
-                    registrationTrend: [],
-                    demographicBreakdown: {
-                        byGender: { male: 0, female: 0, other: 0 },
-                        byAgeGroup: { '0-18': 0, '19-35': 0, '36-60': 0, '60+': 0 },
-                        byProvince: {}
-                    }
+                    totalPatients,
+                    activePatients,
+                    newRegistrations,
+                    patientsWithInsurance,
+                    registrationTrend,
+                    demographicBreakdown
                 }
             };
             this.logger.info('GetPatientStatistics query processed', {
                 queryId: query.queryId,
-                success: result.success
+                success: true,
+                totalPatients
             });
             return result;
         }
@@ -258,7 +329,7 @@ class PatientQueryHandlers {
         return !!(query.queryId &&
             query.queryType === 'GetPatientProfile' &&
             query.data &&
-            (query.data.patientId || query.data.userId) &&
+            (query.data.patientId || query.data.userId || query.data.nationalId || query.data.bhytNumber) &&
             query.data.requestedBy);
     }
     isValidGetPatientListQuery(query) {
@@ -308,6 +379,118 @@ class PatientQueryHandlers {
             isHealthy: true,
             lastProcessedAt: new Date().toISOString()
         };
+    }
+    mapToSummary(patient) {
+        const personalInfo = patient.getPersonalInfo();
+        const contactInfo = patient.getContactInfo();
+        return {
+            patientId: patient.getPatientId() || '',
+            userId: patient.getUserId(),
+            fullName: personalInfo.fullName,
+            dateOfBirth: personalInfo.dateOfBirth.toISOString(),
+            gender: personalInfo.gender,
+            nationalId: personalInfo.nationalId,
+            primaryPhone: contactInfo.primaryPhone,
+            email: contactInfo.email,
+            city: contactInfo.address.city,
+            province: contactInfo.address.province,
+            status: patient.getStatus(),
+            hasInsurance: patient.hasValidInsurance(),
+            createdAt: patient.getProps().createdAt.toISOString(),
+            updatedAt: patient.getProps().updatedAt.toISOString()
+        };
+    }
+    calculateTotalPages(total, limit) {
+        if (limit <= 0) {
+            return 0;
+        }
+        if (total === 0) {
+            return 0;
+        }
+        return Math.ceil(total / limit);
+    }
+    buildRegistrationTrend(patients, groupBy) {
+        const buckets = new Map();
+        for (const patient of patients) {
+            const createdAt = patient.getProps().createdAt;
+            const key = this.buildTrendKey(createdAt, groupBy);
+            buckets.set(key, (buckets.get(key) ?? 0) + 1);
+        }
+        return Array.from(buckets.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([period, count]) => ({ period, count }));
+    }
+    buildTrendKey(date, groupBy) {
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        switch (groupBy) {
+            case 'day':
+                return `${year}-${month}-${day}`;
+            case 'week': {
+                const firstDayOfYear = new Date(Date.UTC(year, 0, 1));
+                const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+                const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getUTCDay() + 1) / 7);
+                return `${year}-W${String(weekNumber).padStart(2, '0')}`;
+            }
+            case 'year':
+                return `${year}`;
+            case 'month':
+            default:
+                return `${year}-${month}`;
+        }
+    }
+    buildDemographicBreakdown(patients) {
+        const byGender = { male: 0, female: 0, other: 0 };
+        const ageGroupCounts = {
+            '0-18': 0,
+            '19-35': 0,
+            '36-60': 0,
+            '60+': 0
+        };
+        const byProvince = {};
+        for (const patient of patients) {
+            const personalInfo = patient.getPersonalInfo();
+            const contactInfo = patient.getContactInfo();
+            switch (personalInfo.gender) {
+                case 'male':
+                    byGender.male++;
+                    break;
+                case 'female':
+                    byGender.female++;
+                    break;
+                default:
+                    byGender.other++;
+            }
+            const ageGroup = this.resolveAgeGroup(personalInfo.dateOfBirth);
+            ageGroupCounts[ageGroup]++;
+            const province = contactInfo.address.province || 'Không xác định';
+            byProvince[province] = (byProvince[province] ?? 0) + 1;
+        }
+        return {
+            byGender,
+            byAgeGroup: ageGroupCounts,
+            byProvince
+        };
+    }
+    resolveAgeGroup(dateOfBirth) {
+        const age = this.calculateAge(dateOfBirth);
+        if (age <= 18)
+            return '0-18';
+        if (age <= 35)
+            return '19-35';
+        if (age <= 60)
+            return '36-60';
+        return '60+';
+    }
+    calculateAge(dateOfBirth) {
+        const today = new Date();
+        let age = today.getFullYear() - dateOfBirth.getFullYear();
+        const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
+            age--;
+        }
+        return age;
     }
 }
 exports.PatientQueryHandlers = PatientQueryHandlers;

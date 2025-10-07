@@ -5,17 +5,21 @@ const error_helper_1 = require("../../utils/error-helper");
 const IDegradationService_1 = require("../services/IDegradationService");
 const Email_1 = require("../../domain/value-objects/Email");
 const UserSession_1 = require("../../domain/entities/UserSession");
+const DomainEventMapper_1 = require("../../infrastructure/events/DomainEventMapper");
 /**
  * Use Case for authenticating users with enhanced error handling
  * Implements circuit breaker pattern and graceful degradation
  */
 class AuthenticateUserUseCase {
-    constructor(userRepository, authService, degradationService, circuitBreaker, logger) {
+    constructor(userRepository, authService, degradationService, circuitBreaker, logger, permissionRepository, eventPublisher // Optional for backward compatibility
+    ) {
         this.userRepository = userRepository;
         this.authService = authService;
         this.degradationService = degradationService;
         this.circuitBreaker = circuitBreaker;
         this.logger = logger;
+        this.permissionRepository = permissionRepository;
+        this.eventPublisher = eventPublisher;
     }
     /**
      * Execute authentication with comprehensive error handling
@@ -66,7 +70,19 @@ class AuthenticateUserUseCase {
      * Primary authentication flow
      */
     async performAuthentication(request) {
+        const email = Email_1.Email.create(request.email);
         try {
+            // Step 0: Check if account is locked
+            const lockoutStatus = await this.userRepository.checkAccountLockout(email);
+            if (lockoutStatus.isLocked) {
+                this.logger.warn('Account is locked', {
+                    email: email.getMaskedEmail(),
+                    unlockAt: lockoutStatus.unlockAt
+                });
+                // Record failed attempt (account locked)
+                await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, 'Account is locked');
+                throw new Error(`Tài khoản đã bị khóa. Vui lòng thử lại sau ${lockoutStatus.unlockAt?.toLocaleString('vi-VN')}`);
+            }
             // Step 1: Authenticate with Supabase Auth (password verification)
             // Use new interface with UserCredentials object
             const authResult = await this.authService.signIn({
@@ -74,28 +90,59 @@ class AuthenticateUserUseCase {
                 password: request.password
             });
             if (!authResult.success || !authResult.accessToken) {
+                // Record failed attempt (invalid credentials)
+                await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, authResult.error || 'Invalid credentials');
                 throw new Error(authResult.error || 'Authentication failed');
             }
             // Step 2: Find user domain aggregate
-            const email = Email_1.Email.create(request.email);
             const user = await this.userRepository.findByEmail(email);
             if (!user) {
+                // Record failed attempt (user not found)
+                await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, 'User not found');
                 throw new Error('Người dùng không tồn tại');
             }
             // Check if user is active
             if (!user.isActive) {
+                // Record failed attempt (account disabled)
+                await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, 'Account disabled');
                 throw new Error('Tài khoản đã bị vô hiệu hóa');
             }
-            // Step 3: Record authentication in domain (triggers domain event)
+            // Step 3: Record successful login attempt
+            await this.userRepository.recordLoginAttempt(email, true, request.ipAddress, request.userAgent);
+            // Step 4: Record authentication in domain (triggers domain event)
             user.recordAuthentication(request.ipAddress, request.userAgent);
-            // Step 4: Create session in database with Supabase tokens
+            // Step 5: Create session in database with Supabase tokens
             // Use new AuthResult structure (accessToken, expiresIn)
             const expiresAt = new Date(Date.now() + (authResult.expiresIn || 3600) * 1000);
             const sessionWithToken = UserSession_1.UserSession.create(user.id, authResult.accessToken, request.deviceInfo || {}, request.ipAddress, request.userAgent, expiresAt);
             await this.userRepository.createSession(sessionWithToken);
-            // Step 5: Get user roles and permissions
+            // Step 6: Get user roles and permissions (Pure RBAC)
             const roles = await this.userRepository.getUserRoles(user.userId);
-            const permissions = authResult.permissions || this.getPermissionsForRoles(roles);
+            const permissions = authResult.permissions || await this.permissionRepository.getUserPermissions(user.userId);
+            // Step 7: Publish domain events
+            if (this.eventPublisher) {
+                try {
+                    const domainEvents = user.getUncommittedEvents();
+                    const rabbitMQEvents = DomainEventMapper_1.DomainEventMapper.toRabbitMQEvents(domainEvents);
+                    await this.eventPublisher.publishBatch(rabbitMQEvents);
+                    user.markEventsAsCommitted();
+                    this.logger.info('Authentication events published', {
+                        userId: user.id,
+                        eventCount: domainEvents.length
+                    });
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish authentication events', {
+                        userId: user.id,
+                        error: (0, error_helper_1.getErrorMessage)(error)
+                    });
+                    // Don't fail authentication if event publishing fails
+                }
+            }
+            this.logger.info('Authentication successful', {
+                userId: user.id,
+                email: email.getMaskedEmail()
+            });
             return {
                 success: true,
                 userId: user.id,
@@ -154,51 +201,6 @@ class AuthenticateUserUseCase {
         if (errors.length > 0) {
             throw new Error(`Validation failed: ${errors.join(', ')}`);
         }
-    }
-    /**
-     * Get permissions for roles
-     */
-    getPermissionsForRoles(roles) {
-        const permissionMap = {
-            admin: [
-                'manage_users',
-                'manage_roles',
-                'view_all_data',
-                'manage_system',
-                'audit_access'
-            ],
-            doctor: [
-                'view_patient_data',
-                'edit_medical_records',
-                'prescribe_medication',
-                'schedule_appointments',
-                'view_lab_results'
-            ],
-            nurse: [
-                'view_patient_data',
-                'update_patient_status',
-                'schedule_appointments',
-                'view_medication'
-            ],
-            receptionist: [
-                'schedule_appointments',
-                'view_patient_basic_info',
-                'manage_appointments',
-                'check_in_patients'
-            ],
-            patient: [
-                'view_own_data',
-                'book_appointments',
-                'view_own_medical_records',
-                'update_personal_info'
-            ]
-        };
-        const permissions = new Set();
-        for (const role of roles) {
-            const rolePermissions = permissionMap[role] || [];
-            rolePermissions.forEach(permission => permissions.add(permission));
-        }
-        return Array.from(permissions);
     }
     /**
      * Map AuthResult to response format

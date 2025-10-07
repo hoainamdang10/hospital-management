@@ -4,11 +4,12 @@
  * Express middleware for JWT token verification
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, HIPAA
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthenticationMiddleware = void 0;
+const UserId_1 = require("../../domain/value-objects/UserId");
 const error_helper_1 = require("../../utils/error-helper");
 /**
  * Authentication Middleware
@@ -47,7 +48,8 @@ class AuthenticationMiddleware {
                     return;
                 }
                 // Load user permissions
-                const permissions = await this.permissionService.getUserPermissions(user.id);
+                const userId = UserId_1.UserId.fromString(user.id);
+                const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
                 // Extract roles from user metadata or default
                 const roles = user.user_metadata?.roles || ['patient'];
                 // Attach user info to request
@@ -55,7 +57,7 @@ class AuthenticationMiddleware {
                     userId: user.id,
                     email: user.email,
                     roles,
-                    permissions
+                    permissions: permissionsArray
                 };
                 // Log authentication for audit
                 this.logger.debug('User authenticated', {
@@ -94,13 +96,14 @@ class AuthenticationMiddleware {
                 const token = authHeader.substring(7);
                 const user = await this.authClient.verifyToken(token);
                 if (user) {
-                    const permissions = await this.permissionService.getUserPermissions(user.id);
+                    const userId = UserId_1.UserId.fromString(user.id);
+                    const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
                     const roles = user.user_metadata?.roles || ['patient'];
                     req.user = {
                         userId: user.id,
                         email: user.email,
                         roles,
-                        permissions
+                        permissions: permissionsArray
                     };
                 }
                 next();

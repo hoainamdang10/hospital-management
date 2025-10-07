@@ -3,11 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LogoutUserUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
 const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
+const UserLoggedOutEvent_1 = require("../../domain/events/UserLoggedOutEvent");
 class LogoutUserUseCase {
-    constructor(authService, userRepository, logger) {
+    constructor(authService, userRepository, logger, eventPublisher // Optional for backward compatibility
+    ) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.logger = logger;
+        this.eventPublisher = eventPublisher;
         this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('logout-user-use-case');
     }
     async execute(request) {
@@ -31,6 +34,34 @@ class LogoutUserUseCase {
                     userId: request.userId,
                     sessionId: request.sessionId
                 });
+            }
+            // Publish UserLoggedOut event
+            if (this.eventPublisher) {
+                try {
+                    const event = new UserLoggedOutEvent_1.UserLoggedOutEvent(request.userId, // Pass string directly
+                    request.sessionId || 'unknown', new Date());
+                    await this.eventPublisher.publish({
+                        eventType: event.constructor.name,
+                        aggregateId: request.userId,
+                        aggregateType: 'User',
+                        occurredAt: event.occurredAt,
+                        payload: {
+                            userId: request.userId,
+                            sessionId: request.sessionId,
+                            loggedOutAt: new Date()
+                        }
+                    });
+                    this.logger.info('UserLoggedOut event published', {
+                        userId: request.userId
+                    });
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish UserLoggedOut event', {
+                        userId: request.userId,
+                        error: (0, error_helper_1.getErrorMessage)(error)
+                    });
+                    // Don't fail logout if event publishing fails
+                }
             }
             return {
                 success: true,

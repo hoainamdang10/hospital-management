@@ -41,6 +41,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     findByBHYTNumber(bhytNumber: string): Promise<Patient | null>;
     /**
      * Save patient (create or update)
+     * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
      */
     save(patient: Patient): Promise<void>;
     /**
@@ -114,6 +115,22 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      * Fetch links for patient
      */
     private fetchLinks;
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
+     */
+    private fetchInsuranceBatch;
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
+     */
+    private fetchEmergencyContactsBatch;
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch consents for multiple patients
+     */
+    private fetchConsentsBatch;
+    /**
+     * ✅ FIX N+1 PROBLEM: Batch fetch links for multiple patients
+     */
+    private fetchLinksBatch;
     /**
      * Save insurance info
      */

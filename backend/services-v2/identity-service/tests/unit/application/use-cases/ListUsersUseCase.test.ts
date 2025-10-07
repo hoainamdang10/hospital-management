@@ -165,6 +165,7 @@ describe('ListUsersUseCase', () => {
         fullName: 'User One',
         phoneNumber: '0912345678',
         roleType: 'patient',
+        roles: ['patient'], // Pure RBAC: User now has roles array
         isActive: true,
         isEmailVerified: true,
         lastLoginAt: undefined,
@@ -202,7 +203,9 @@ describe('ListUsersUseCase', () => {
       expect(result.success).toBe(true);
       expect(mockUserRepository.list).toHaveBeenCalledWith(
         expect.objectContaining({
-          roleType: 'doctor'
+          filters: expect.objectContaining({
+            role_type: 'doctor'
+          })
         })
       );
     });
@@ -223,7 +226,9 @@ describe('ListUsersUseCase', () => {
       // Assert
       expect(mockUserRepository.list).toHaveBeenCalledWith(
         expect.objectContaining({
-          isActive: false
+          filters: expect.objectContaining({
+            is_active: false
+          })
         })
       );
     });
@@ -244,7 +249,9 @@ describe('ListUsersUseCase', () => {
       // Assert
       expect(mockUserRepository.list).toHaveBeenCalledWith(
         expect.objectContaining({
-          searchTerm: 'john'
+          filters: expect.objectContaining({
+            search_term: 'john'
+          })
         })
       );
     });
@@ -267,9 +274,11 @@ describe('ListUsersUseCase', () => {
       // Assert
       expect(mockUserRepository.list).toHaveBeenCalledWith(
         expect.objectContaining({
-          roleType: 'doctor',
-          isActive: true,
-          searchTerm: 'nguyen'
+          filters: expect.objectContaining({
+            role_type: 'doctor',
+            is_active: true,
+            search_term: 'nguyen'
+          })
         })
       );
     });

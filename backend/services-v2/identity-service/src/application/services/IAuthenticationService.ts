@@ -140,13 +140,13 @@ export interface IAuthenticationService {
 
   /**
    * Update password
-   * Changes user's password (requires current password)
-   * 
+   * Changes user's password (for authenticated users)
+   * Note: Current password verification should be done in use case
+   *
    * @param userId User ID
-   * @param currentPassword Current password
    * @param newPassword New password
    */
-  updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
+  updatePassword(userId: string, newPassword: string): Promise<void>;
 
   /**
    * Verify email with token

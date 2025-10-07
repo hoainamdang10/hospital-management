@@ -1,0 +1,54 @@
+c28e479eee8dabbea3a44d732d0b8138
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LogoutUserUseCase = void 0;
+const error_helper_1 = require("../../utils/error-helper");
+const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
+class LogoutUserUseCase {
+    constructor(authService, userRepository, logger) {
+        this.authService = authService;
+        this.userRepository = userRepository;
+        this.logger = logger;
+        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('logout-user-use-case');
+    }
+    async execute(request) {
+        return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
+            this.logger.error('Circuit breaker open for LogoutUserUseCase');
+            return {
+                success: false,
+                message: 'Dịch vụ đăng xuất tạm thời không khả dụng. Vui lòng thử lại sau.',
+                error: 'SERVICE_UNAVAILABLE'
+            };
+        });
+    }
+    async executeImpl(request) {
+        try {
+            this.logger.info('Processing user logout', { userId: request.userId });
+            await this.authService.signOut(request.accessToken);
+            this.logger.info('User signed out from Supabase Auth', { userId: request.userId });
+            if (request.sessionId) {
+                await this.userRepository.deactivateSession(request.sessionId);
+                this.logger.info('Session deactivated in database', {
+                    userId: request.userId,
+                    sessionId: request.sessionId
+                });
+            }
+            return {
+                success: true,
+                message: 'Đăng xuất thành công'
+            };
+        }
+        catch (error) {
+            this.logger.error('Logout failed', {
+                userId: request.userId,
+                error: (0, error_helper_1.getErrorMessage)(error)
+            });
+            return {
+                success: true,
+                message: 'Đăng xuất thành công'
+            };
+        }
+    }
+}
+exports.LogoutUserUseCase = LogoutUserUseCase;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFx1c2UtY2FzZXNcXExvZ291dFVzZXJVc2VDYXNlLnRzIiwibWFwcGluZ3MiOiI7OztBQUFBLDJEQUEyRDtBQVkzRCxtRkFBdUY7QUFjdkYsTUFBYSxpQkFBaUI7SUFHNUIsWUFDVSxXQUFtQyxFQUNuQyxjQUErQixFQUMvQixNQUFXO1FBRlgsZ0JBQVcsR0FBWCxXQUFXLENBQXdCO1FBQ25DLG1CQUFjLEdBQWQsY0FBYyxDQUFpQjtRQUMvQixXQUFNLEdBQU4sTUFBTSxDQUFLO1FBTGIsbUJBQWMsR0FBRyxzQ0FBcUIsQ0FBQyxVQUFVLENBQUMsc0JBQXNCLENBQUMsQ0FBQztJQU0vRSxDQUFDO0lBRUosS0FBSyxDQUFDLE9BQU8sQ0FBQyxPQUEwQjtRQUN0QyxPQUFPLE1BQU0sSUFBSSxDQUFDLGNBQWMsQ0FBQyxPQUFPLENBQ3RDLEtBQUssSUFBSSxFQUFFLENBQUMsSUFBSSxDQUFDLFdBQVcsQ0FBQyxPQUFPLENBQUMsRUFDckMsS0FBSyxJQUFJLEVBQUU7WUFDVCxJQUFJLENBQUMsTUFBTSxDQUFDLEtBQUssQ0FBQyw0Q0FBNEMsQ0FBQyxDQUFDO1lBQ2hFLE9BQU87Z0JBQ0wsT0FBTyxFQUFFLEtBQUs7Z0JBQ2QsT0FBTyxFQUFFLGtFQUFrRTtnQkFDM0UsS0FBSyxFQUFFLHFCQUFxQjthQUM3QixDQUFDO1FBQ0osQ0FBQyxDQUNGLENBQUM7SUFDSixDQUFDO0lBRU8sS0FBSyxDQUFDLFdBQVcsQ0FBQyxPQUEwQjtRQUNsRCxJQUFJLENBQUM7WUFDSCxJQUFJLENBQUMsTUFBTSxDQUFDLElBQUksQ0FBQyx3QkFBd0IsRUFBRSxFQUFFLE1BQU0sRUFBRSxPQUFPLENBQUMsTUFBTSxFQUFFLENBQUMsQ0FBQztZQUV2RSxNQUFNLElBQUksQ0FBQyxXQUFXLENBQUMsT0FBTyxDQUFDLE9BQU8sQ0FBQyxXQUFXLENBQUMsQ0FBQztZQUVwRCxJQUFJLENBQUMsTUFBTSxDQUFDLElBQUksQ0FBQyxvQ0FBb0MsRUFBRSxFQUFFLE1BQU0sRUFBRSxPQUFPLENBQUMsTUFBTSxFQUFFLENBQUMsQ0FBQztZQUVuRixJQUFJLE9BQU8sQ0FBQyxTQUFTLEVBQUUsQ0FBQztnQkFDdEIsTUFBTSxJQUFJLENBQUMsY0FBYyxDQUFDLGlCQUFpQixDQUFDLE9BQU8sQ0FBQyxTQUFTLENBQUMsQ0FBQztnQkFDL0QsSUFBSSxDQUFDLE1BQU0sQ0FBQyxJQUFJLENBQUMsaUNBQWlDLEVBQUU7b0JBQ2xELE1BQU0sRUFBRSxPQUFPLENBQUMsTUFBTTtvQkFDdEIsU0FBUyxFQUFFLE9BQU8sQ0FBQyxTQUFTO2lCQUM3QixDQUFDLENBQUM7WUFDTCxDQUFDO1lBRUQsT0FBTztnQkFDTCxPQUFPLEVBQUUsSUFBSTtnQkFDYixPQUFPLEVBQUUsc0JBQXNCO2FBQ2hDLENBQUM7UUFFSixDQUFDO1FBQUMsT0FBTyxLQUFLLEVBQUUsQ0FBQztZQUNmLElBQUksQ0FBQyxNQUFNLENBQUMsS0FBSyxDQUFDLGVBQWUsRUFBRTtnQkFDakMsTUFBTSxFQUFFLE9BQU8sQ0FBQyxNQUFNO2dCQUN0QixLQUFLLEVBQUUsSUFBQSw4QkFBZSxFQUFDLEtBQUssQ0FBQzthQUM5QixDQUFDLENBQUM7WUFFSCxPQUFPO2dCQUNMLE9BQU8sRUFBRSxJQUFJO2dCQUNiLE9BQU8sRUFBRSxzQkFBc0I7YUFDaEMsQ0FBQztRQUNKLENBQUM7SUFDSCxDQUFDO0NBQ0Y7QUF4REQsOENBd0RDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxcdXNlLWNhc2VzXFxMb2dvdXRVc2VyVXNlQ2FzZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBnZXRFcnJvck1lc3NhZ2UgfSBmcm9tICcuLi8uLi91dGlscy9lcnJvci1oZWxwZXInO1xyXG4vKipcclxuICogTG9nb3V0IFVzZXIgVXNlIENhc2VcclxuICogSGFuZGxlcyB1c2VyIGxvZ291dCBhbmQgc2Vzc2lvbiBjbGVhbnVwXHJcbiAqIFxyXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxyXG4gKiBAdmVyc2lvbiAyLjAuMFxyXG4gKi9cclxuXHJcbmltcG9ydCB7IElVc2VDYXNlIH0gZnJvbSAnQHNoYXJlZC9hcHBsaWNhdGlvbi91c2UtY2FzZXMvYmFzZS91c2UtY2FzZS5pbnRlcmZhY2UnO1xyXG5pbXBvcnQgeyBJQXV0aGVudGljYXRpb25TZXJ2aWNlIH0gZnJvbSAnLi4vc2VydmljZXMvSUF1dGhlbnRpY2F0aW9uU2VydmljZSc7XHJcbmltcG9ydCB7IElVc2VyUmVwb3NpdG9yeSB9IGZyb20gJy4uL3JlcG9zaXRvcmllcy9JVXNlclJlcG9zaXRvcnknO1xyXG5pbXBvcnQgeyBDaXJjdWl0QnJlYWtlckZhY3RvcnkgfSBmcm9tICcuLi8uLi9pbmZyYXN0cnVjdHVyZS9yZXNpbGllbmNlL0NpcmN1aXRCcmVha2VyJztcclxuXHJcbmV4cG9ydCBpbnRlcmZhY2UgTG9nb3V0VXNlclJlcXVlc3Qge1xyXG4gIHVzZXJJZDogc3RyaW5nO1xyXG4gIGFjY2Vzc1Rva2VuOiBzdHJpbmc7XHJcbiAgc2Vzc2lvbklkPzogc3RyaW5nO1xyXG59XHJcblxyXG5leHBvcnQgaW50ZXJmYWNlIExvZ291dFVzZXJSZXNwb25zZSB7XHJcbiAgc3VjY2VzczogYm9vbGVhbjtcclxuICBtZXNzYWdlOiBzdHJpbmc7XHJcbiAgZXJyb3I/OiBzdHJpbmc7XHJcbn1cclxuXHJcbmV4cG9ydCBjbGFzcyBMb2dvdXRVc2VyVXNlQ2FzZSBpbXBsZW1lbnRzIElVc2VDYXNlPExvZ291dFVzZXJSZXF1ZXN0LCBMb2dvdXRVc2VyUmVzcG9uc2U+IHtcclxuICBwcml2YXRlIGNpcmN1aXRCcmVha2VyID0gQ2lyY3VpdEJyZWFrZXJGYWN0b3J5LmdldEJyZWFrZXIoJ2xvZ291dC11c2VyLXVzZS1jYXNlJyk7XHJcblxyXG4gIGNvbnN0cnVjdG9yKFxyXG4gICAgcHJpdmF0ZSBhdXRoU2VydmljZTogSUF1dGhlbnRpY2F0aW9uU2VydmljZSxcclxuICAgIHByaXZhdGUgdXNlclJlcG9zaXRvcnk6IElVc2VyUmVwb3NpdG9yeSxcclxuICAgIHByaXZhdGUgbG9nZ2VyOiBhbnlcclxuICApIHt9XHJcblxyXG4gIGFzeW5jIGV4ZWN1dGUocmVxdWVzdDogTG9nb3V0VXNlclJlcXVlc3QpOiBQcm9taXNlPExvZ291dFVzZXJSZXNwb25zZT4ge1xyXG4gICAgcmV0dXJuIGF3YWl0IHRoaXMuY2lyY3VpdEJyZWFrZXIuZXhlY3V0ZShcclxuICAgICAgYXN5bmMgKCkgPT4gdGhpcy5leGVjdXRlSW1wbChyZXF1ZXN0KSxcclxuICAgICAgYXN5bmMgKCkgPT4ge1xyXG4gICAgICAgIHRoaXMubG9nZ2VyLmVycm9yKCdDaXJjdWl0IGJyZWFrZXIgb3BlbiBmb3IgTG9nb3V0VXNlclVzZUNhc2UnKTtcclxuICAgICAgICByZXR1cm4ge1xyXG4gICAgICAgICAgc3VjY2VzczogZmFsc2UsXHJcbiAgICAgICAgICBtZXNzYWdlOiAnROG7i2NoIHbhu6UgxJHEg25nIHh14bqldCB04bqhbSB0aOG7nWkga2jDtG5nIGto4bqjIGThu6VuZy4gVnVpIGzDsm5nIHRo4butIGzhuqFpIHNhdS4nLFxyXG4gICAgICAgICAgZXJyb3I6ICdTRVJWSUNFX1VOQVZBSUxBQkxFJ1xyXG4gICAgICAgIH07XHJcbiAgICAgIH1cclxuICAgICk7XHJcbiAgfVxyXG5cclxuICBwcml2YXRlIGFzeW5jIGV4ZWN1dGVJbXBsKHJlcXVlc3Q6IExvZ291dFVzZXJSZXF1ZXN0KTogUHJvbWlzZTxMb2dvdXRVc2VyUmVzcG9uc2U+IHtcclxuICAgIHRyeSB7XHJcbiAgICAgIHRoaXMubG9nZ2VyLmluZm8oJ1Byb2Nlc3NpbmcgdXNlciBsb2dvdXQnLCB7IHVzZXJJZDogcmVxdWVzdC51c2VySWQgfSk7XHJcblxyXG4gICAgICBhd2FpdCB0aGlzLmF1dGhTZXJ2aWNlLnNpZ25PdXQocmVxdWVzdC5hY2Nlc3NUb2tlbik7XHJcblxyXG4gICAgICB0aGlzLmxvZ2dlci5pbmZvKCdVc2VyIHNpZ25lZCBvdXQgZnJvbSBTdXBhYmFzZSBBdXRoJywgeyB1c2VySWQ6IHJlcXVlc3QudXNlcklkIH0pO1xyXG5cclxuICAgICAgaWYgKHJlcXVlc3Quc2Vzc2lvbklkKSB7XHJcbiAgICAgICAgYXdhaXQgdGhpcy51c2VyUmVwb3NpdG9yeS5kZWFjdGl2YXRlU2Vzc2lvbihyZXF1ZXN0LnNlc3Npb25JZCk7XHJcbiAgICAgICAgdGhpcy5sb2dnZXIuaW5mbygnU2Vzc2lvbiBkZWFjdGl2YXRlZCBpbiBkYXRhYmFzZScsIHsgXHJcbiAgICAgICAgICB1c2VySWQ6IHJlcXVlc3QudXNlcklkLCBcclxuICAgICAgICAgIHNlc3Npb25JZDogcmVxdWVzdC5zZXNzaW9uSWQgXHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIHJldHVybiB7XHJcbiAgICAgICAgc3VjY2VzczogdHJ1ZSxcclxuICAgICAgICBtZXNzYWdlOiAnxJDEg25nIHh14bqldCB0aMOgbmggY8O0bmcnXHJcbiAgICAgIH07XHJcblxyXG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcclxuICAgICAgdGhpcy5sb2dnZXIuZXJyb3IoJ0xvZ291dCBmYWlsZWQnLCB7IFxyXG4gICAgICAgIHVzZXJJZDogcmVxdWVzdC51c2VySWQsIFxyXG4gICAgICAgIGVycm9yOiBnZXRFcnJvck1lc3NhZ2UoZXJyb3IpIFxyXG4gICAgICB9KTtcclxuXHJcbiAgICAgIHJldHVybiB7XHJcbiAgICAgICAgc3VjY2VzczogdHJ1ZSxcclxuICAgICAgICBtZXNzYWdlOiAnxJDEg25nIHh14bqldCB0aMOgbmggY8O0bmcnXHJcbiAgICAgIH07XHJcbiAgICB9XHJcbiAgfVxyXG59XHJcblxyXG4iXSwidmVyc2lvbiI6M30=

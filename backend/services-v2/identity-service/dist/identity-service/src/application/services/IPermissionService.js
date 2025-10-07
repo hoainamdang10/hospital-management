@@ -1,10 +1,17 @@
 "use strict";
 /**
  * Permission Service Interface - Application Layer
- * Defines contract for RBAC permission checking
+ *
+ * @deprecated This interface is deprecated. Use domain/services/IPermissionService instead.
+ * This file will be removed in the next version.
+ *
+ * Migration Guide:
+ * - Import from: domain/services/IPermissionService
+ * - Use UserId value object instead of string
+ * - Use checkPermission() instead of hasPermission()
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.0.0 (DEPRECATED)
  * @compliance Clean Architecture, RBAC, HIPAA
  */
 Object.defineProperty(exports, "__esModule", { value: true });

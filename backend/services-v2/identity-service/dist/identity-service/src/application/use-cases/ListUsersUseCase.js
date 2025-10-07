@@ -57,20 +57,24 @@ class ListUsersUseCase {
         const limit = Math.min(this.MAX_LIMIT, Math.max(1, request.limit || this.DEFAULT_LIMIT));
         const offset = (page - 1) * limit;
         try {
-            // Build filter options
-            const filterOptions = {
-                limit,
-                offset
-            };
+            // Build filter options with proper structure
+            const filters = {};
             if (roleType) {
-                filterOptions.roleType = roleType;
+                filters.role_type = roleType; // Database column name
             }
             if (isActive !== undefined) {
-                filterOptions.isActive = isActive;
+                filters.is_active = isActive; // Database column name
             }
+            // Note: searchTerm requires special handling (LIKE query)
+            // For now, we'll pass it as a filter but repository needs to handle it
             if (searchTerm) {
-                filterOptions.searchTerm = searchTerm;
+                filters.search_term = searchTerm;
             }
+            const filterOptions = {
+                limit,
+                offset,
+                filters // Wrap filters in filters object
+            };
             // Get users from repository
             const users = await this.userRepository.list(filterOptions);
             const totalCount = await this.userRepository.count(filterOptions);
@@ -89,7 +93,8 @@ class ListUsersUseCase {
                 email: user.email.value,
                 fullName: user.personalInfo.fullName,
                 phoneNumber: user.personalInfo.phoneNumber,
-                roleType: (user.healthcareRole.type || '').toLowerCase(),
+                roleType: (user.healthcareRole.type || '').toLowerCase(), // Primary role (backward compatible)
+                roles: user.getRoleTypes().map(r => r.toLowerCase()), // All roles (Pure RBAC)
                 isActive: user.isActive,
                 isEmailVerified: user.isEmailVerified,
                 lastLoginAt: user.lastLoginAt?.toISOString(),

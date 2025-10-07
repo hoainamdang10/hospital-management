@@ -262,13 +262,17 @@ describe('RedisCacheService', () => {
 
     it('should delete keys matching pattern', async () => {
       mockRedisClient.keys.mockResolvedValueOnce(['test:user:1', 'test:user:2']);
-      mockRedisClient.del.mockResolvedValueOnce(2);
+      // Mock del to return 1 for each key
+      mockRedisClient.del.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
 
       const result = await cacheService.deletePattern('user:*');
 
       expect(result).toBe(2);
       expect(mockRedisClient.keys).toHaveBeenCalledWith('test:user:*');
-      expect(mockRedisClient.del).toHaveBeenCalledWith(['test:user:1', 'test:user:2']);
+      // Now del is called individually for each key
+      expect(mockRedisClient.del).toHaveBeenCalledTimes(2);
+      expect(mockRedisClient.del).toHaveBeenCalledWith('test:user:1');
+      expect(mockRedisClient.del).toHaveBeenCalledWith('test:user:2');
     });
 
     it('should return 0 if no keys match', async () => {

@@ -40,6 +40,7 @@ const GrantConsentUseCase_1 = require("./application/use-cases/GrantConsentUseCa
 const MarkAsDeceasedUseCase_1 = require("./application/use-cases/MarkAsDeceasedUseCase");
 const ReactivatePatientUseCase_1 = require("./application/use-cases/ReactivatePatientUseCase");
 const PatientCommandHandlers_1 = require("./application/handlers/PatientCommandHandlers");
+const PatientQueryHandlers_1 = require("./application/handlers/PatientQueryHandlers");
 // Presentation imports
 const PatientController_1 = require("./presentation/controllers/PatientController");
 const CommandController_1 = require("./presentation/controllers/CommandController");
@@ -129,10 +130,11 @@ class PatientRegistryServiceApp {
             this.grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(this.patientRepository);
             this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(this.patientRepository);
             this.reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(this.patientRepository);
+            this.patientQueryHandlers = new PatientQueryHandlers_1.PatientQueryHandlers(this.getPatientProfileUseCase, this.searchPatientsUseCase, this.patientRepository, logger);
             // Initialize Command Handlers (CQRS)
             this.patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(this.registerPatientUseCase, this.updatePatientInfoUseCase, this.deactivatePatientUseCase, this.grantConsentUseCase, this.addEmergencyContactUseCase, logger);
             // Initialize Presentation Layer
-            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.getPatientProfileUseCase, this.searchPatientsUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.grantConsentUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase);
+            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.grantConsentUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase, this.patientQueryHandlers);
             this.commandController = new CommandController_1.CommandController(logger, this.patientCommandHandlers);
             this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
             logger.info('Dependencies initialized successfully');

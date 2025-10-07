@@ -1,59 +1,89 @@
 /**
- * Permission Service Implementation
- * Implements RBAC permission checking with caching
+ * PermissionService
+ *
+ * Implementation of IPermissionService.
+ * High-level permission checking with caching and business logic.
+ *
+ * Features:
+ * - Permission checking with caching
+ * - Ownership checks
+ * - Permission expansion with hierarchy
+ * - Cache management
+ * - Admin bypass
  *
  * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, RBAC, HIPAA
+ * @version 3.0.0 - Pure RBAC
  */
-import { IPermissionService, Permission, PermissionCheckResult, PermissionContext, ResourceType, Action } from '../../application/services/IPermissionService';
-import { IUserRepository } from '../../application/repositories/IUserRepository';
-import { RedisCacheService } from '../cache/RedisCacheService';
-/**
- * Permission Service
- * Handles permission checking with caching and conditional logic
- */
+import { IPermissionService } from '../../domain/services/IPermissionService';
+import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
+import { UserId } from '../../domain/value-objects/UserId';
+import { Permission } from '../../domain/value-objects/Permission';
+import { PermissionCache } from '../cache/PermissionCache';
 export declare class PermissionService implements IPermissionService {
-    private userRepository;
-    private cacheService;
-    private logger;
-    private readonly CACHE_TTL;
-    private readonly CACHE_PREFIX;
-    constructor(userRepository: IUserRepository, cacheService: RedisCacheService | null, logger: any);
+    private readonly permissionRepository;
+    private readonly cache;
+    constructor(permissionRepository: IPermissionRepository, cache: PermissionCache);
     /**
-     * Check if user has specific permission
+     * Check if user has a specific permission
+     *
+     * Overloaded method - supports both formats:
+     * - checkPermission(userId, 'patients:read')
+     * - checkPermission(userId, 'patients', 'read')
      */
-    hasPermission(userId: string, permission: Permission, context?: PermissionContext): Promise<boolean>;
+    checkPermission(userId: UserId, permissionOrResource: string, action?: string): Promise<boolean>;
     /**
-     * Check if user has any of the permissions
+     * Check if user has permission with ownership check
      */
-    hasAnyPermission(userId: string, permissions: Permission[], context?: PermissionContext): Promise<boolean>;
+    checkPermissionWithOwnership(userId: UserId, permission: string, resourceOwnerId: string): Promise<boolean>;
     /**
-     * Check if user has all permissions
+     * Check if user has ANY of the specified permissions
      */
-    hasAllPermissions(userId: string, permissions: Permission[], context?: PermissionContext): Promise<boolean>;
+    hasAnyPermission(userId: UserId, permissions: string[]): Promise<boolean>;
     /**
-     * Get all permissions for user (with caching)
+     * Check if user has ALL of the specified permissions
      */
-    getUserPermissions(userId: string): Promise<Permission[]>;
+    hasAllPermissions(userId: UserId, permissions: string[]): Promise<boolean>;
     /**
-     * Check permission with detailed result
+     * Get effective permissions for a user (cached)
      */
-    checkPermission(userId: string, permission: Permission, context?: PermissionContext): Promise<PermissionCheckResult>;
+    getEffectivePermissions(userId: UserId): Promise<string[]>;
     /**
-     * Check if user can access resource
+     * Get effective permissions as Permission objects
      */
-    canAccessResource(userId: string, resourceType: ResourceType, action: Action, resourceId?: string): Promise<boolean>;
+    getEffectivePermissionsAsObjects(userId: UserId): Promise<Permission[]>;
     /**
-     * Invalidate permission cache for user
+     * Invalidate permission cache for a user
      */
-    invalidateCache(userId: string): Promise<void>;
+    invalidateCache(userId: UserId): Promise<void>;
     /**
-     * Check conditional permissions based on context
-     * Examples:
-     * - Patient can only read their own medical records
-     * - Doctor can only access patients in their department
+     * Invalidate cache for all users with a specific role
      */
-    private checkConditionalPermission;
+    invalidateCacheForRole(roleType: string): Promise<void>;
+    /**
+     * Expand permissions with hierarchy
+     */
+    expandPermissions(permissions: string[]): Promise<string[]>;
+    /**
+     * Check if user is admin (has wildcard permission)
+     */
+    isAdmin(userId: UserId): Promise<boolean>;
+    /**
+     * Get permissions grouped by resource type
+     */
+    getPermissionsGroupedByResource(userId: UserId): Promise<Map<string, string[]>>;
+    /**
+     * Warm up cache for a user
+     */
+    warmUpCache(userId: UserId): Promise<void>;
+    /**
+     * Get cache statistics
+     */
+    getCacheStats(): Promise<{
+        hitRate: number;
+        missRate: number;
+        size: number;
+        l1Size: number;
+        l2Size: number;
+    }>;
 }
 //# sourceMappingURL=PermissionService.d.ts.map

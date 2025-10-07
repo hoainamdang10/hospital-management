@@ -16,6 +16,7 @@ export interface GetPatientProfileRequest {
   patientId?: string;
   userId?: string;
   nationalId?: string;
+  bhytNumber?: string;
   requestedBy: string;
 }
 
@@ -115,10 +116,12 @@ export class GetPatientProfileUseCase {
         patient = await this.patientRepository.findByUserId(request.userId);
       } else if (request.nationalId) {
         patient = await this.patientRepository.findByNationalId(request.nationalId);
+      } else if (request.bhytNumber) {
+        patient = await this.patientRepository.findByBHYTNumber(request.bhytNumber);
       } else {
         return {
           success: false,
-          message: 'Vui lòng cung cấp patientId, userId hoặc nationalId',
+          message: 'Vui lòng cung cấp patientId, userId, nationalId hoặc bhytNumber',
           errors: ['MISSING_IDENTIFIER']
         };
       }

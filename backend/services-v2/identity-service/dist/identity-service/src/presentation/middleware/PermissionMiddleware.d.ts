@@ -3,11 +3,44 @@
  * Express middleware for RBAC permission checking
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, RBAC, HIPAA
  */
 import { Request, Response, NextFunction } from 'express';
-import { IPermissionService, Permission, ResourceType, Action } from '../../application/services/IPermissionService';
+import { IPermissionService } from '../../domain/services/IPermissionService';
+/**
+ * Permission format: "resource:action"
+ * Examples: "patients:read", "appointments:write", "*" (admin)
+ */
+export type Permission = string;
+/**
+ * Resource types in the system
+ */
+export declare enum ResourceType {
+    PATIENTS = "patients",
+    APPOINTMENTS = "appointments",
+    MEDICAL_RECORDS = "medical_records",
+    PRESCRIPTIONS = "prescriptions",
+    USERS = "users",
+    ROLES = "roles",
+    SYSTEM = "system"
+}
+/**
+ * Action types
+ */
+export declare enum Action {
+    CREATE = "create",
+    READ = "read",
+    UPDATE = "update",
+    DELETE = "delete",
+    WRITE = "write",
+    MANAGE = "manage",
+    ADMIN = "admin"
+}
+/**
+ * Helper to build permission string
+ */
+export declare function buildPermission(resource: ResourceType, action: Action): Permission;
 /**
  * Extended Request with user info
  */

@@ -15,6 +15,7 @@
 import { AuthenticateUserUseCase, AuthenticateUserRequest } from '../../../../src/application/use-cases/AuthenticateUserUseCase';
 import { IAuthenticationService } from '../../../../src/application/services/IAuthenticationService';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
+import { IPermissionRepository } from '../../../../src/domain/repositories/IPermissionRepository';
 import { IDegradationService, ServiceMode } from '../../../../src/application/services/IDegradationService';
 import { ICircuitBreaker } from '../../../../src/application/services/ICircuitBreaker';
 import { createMockUser } from '../../../helpers/user-test-helper';
@@ -23,6 +24,7 @@ describe('AuthenticateUserUseCase', () => {
   let useCase: AuthenticateUserUseCase;
   let mockAuthService: jest.Mocked<IAuthenticationService>;
   let mockUserRepository: jest.Mocked<IUserRepository>;
+  let mockPermissionRepository: jest.Mocked<IPermissionRepository>;
   let mockDegradationService: jest.Mocked<IDegradationService>;
   let mockCircuitBreaker: jest.Mocked<ICircuitBreaker>;
   let mockLogger: any;
@@ -50,7 +52,9 @@ describe('AuthenticateUserUseCase', () => {
       findAll: jest.fn(),
       getUserRoles: jest.fn(),
       getUserPermissions: jest.fn(),
-      createSession: jest.fn()
+      createSession: jest.fn(),
+      checkAccountLockout: jest.fn().mockResolvedValue({ isLocked: false, failedAttempts: 0 }),
+      recordLoginAttempt: jest.fn().mockResolvedValue(undefined)
     } as any;
 
     mockDegradationService = {
@@ -66,6 +70,11 @@ describe('AuthenticateUserUseCase', () => {
       reset: jest.fn()
     } as any;
 
+    mockPermissionRepository = {
+      getValidRoles: jest.fn().mockResolvedValue(['ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST', 'PATIENT']),
+      getUserPermissions: jest.fn().mockResolvedValue([])
+    } as unknown as jest.Mocked<IPermissionRepository>;
+
     mockLogger = {
       info: jest.fn(),
       warn: jest.fn(),
@@ -78,7 +87,8 @@ describe('AuthenticateUserUseCase', () => {
       mockAuthService,
       mockDegradationService,
       mockCircuitBreaker,
-      mockLogger
+      mockLogger,
+      mockPermissionRepository
     );
   });
 

@@ -1,0 +1,36 @@
+a86aaebc82a74a60da1479c4ae84c2a9
+"use strict";
+/**
+ * User Logged Out Event
+ * Triggered when a user logs out
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserLoggedOutEvent = void 0;
+const domain_event_1 = require("@shared/domain/base/domain-event");
+class UserLoggedOutEvent extends domain_event_1.DomainEvent {
+    constructor(userIdValue, // Changed from UserId to string
+    sessionId, loggedOutAt) {
+        super('UserLoggedOut', userIdValue, 'User', { userIdValue, sessionId, loggedOutAt });
+        this.userIdValue = userIdValue;
+        this.sessionId = sessionId;
+        this.loggedOutAt = loggedOutAt;
+    }
+    getEventData() {
+        return {
+            userId: this.userIdValue,
+            sessionId: this.sessionId,
+            loggedOutAt: this.loggedOutAt
+        };
+    }
+    containsPHI() {
+        return false; // No PHI in logout event
+    }
+    getPatientId() {
+        return null; // Not a patient-specific event
+    }
+}
+exports.UserLoggedOutEvent = UserLoggedOutEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGRvbWFpblxcZXZlbnRzXFxVc2VyTG9nZ2VkT3V0RXZlbnQudHMiLCJtYXBwaW5ncyI6IjtBQUFBOzs7Ozs7R0FNRzs7O0FBRUgsbUVBQStEO0FBRS9ELE1BQWEsa0JBQW1CLFNBQVEsMEJBQVc7SUFDakQsWUFDa0IsV0FBbUIsRUFBRSxnQ0FBZ0M7SUFDckQsU0FBaUIsRUFDakIsV0FBaUI7UUFFakMsS0FBSyxDQUNILGVBQWUsRUFDZixXQUFXLEVBQ1gsTUFBTSxFQUNOLEVBQUUsV0FBVyxFQUFFLFNBQVMsRUFBRSxXQUFXLEVBQUUsQ0FDeEMsQ0FBQztRQVRjLGdCQUFXLEdBQVgsV0FBVyxDQUFRO1FBQ25CLGNBQVMsR0FBVCxTQUFTLENBQVE7UUFDakIsZ0JBQVcsR0FBWCxXQUFXLENBQU07SUFRbkMsQ0FBQztJQUVELFlBQVk7UUFDVixPQUFPO1lBQ0wsTUFBTSxFQUFFLElBQUksQ0FBQyxXQUFXO1lBQ3hCLFNBQVMsRUFBRSxJQUFJLENBQUMsU0FBUztZQUN6QixXQUFXLEVBQUUsSUFBSSxDQUFDLFdBQVc7U0FDOUIsQ0FBQztJQUNKLENBQUM7SUFFRCxXQUFXO1FBQ1QsT0FBTyxLQUFLLENBQUMsQ0FBQyx5QkFBeUI7SUFDekMsQ0FBQztJQUVELFlBQVk7UUFDVixPQUFPLElBQUksQ0FBQyxDQUFDLCtCQUErQjtJQUM5QyxDQUFDO0NBQ0Y7QUE3QkQsZ0RBNkJDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxkb21haW5cXGV2ZW50c1xcVXNlckxvZ2dlZE91dEV2ZW50LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogVXNlciBMb2dnZWQgT3V0IEV2ZW50XG4gKiBUcmlnZ2VyZWQgd2hlbiBhIHVzZXIgbG9ncyBvdXRcbiAqXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqL1xuXG5pbXBvcnQgeyBEb21haW5FdmVudCB9IGZyb20gJ0BzaGFyZWQvZG9tYWluL2Jhc2UvZG9tYWluLWV2ZW50JztcblxuZXhwb3J0IGNsYXNzIFVzZXJMb2dnZWRPdXRFdmVudCBleHRlbmRzIERvbWFpbkV2ZW50IHtcbiAgY29uc3RydWN0b3IoXG4gICAgcHVibGljIHJlYWRvbmx5IHVzZXJJZFZhbHVlOiBzdHJpbmcsIC8vIENoYW5nZWQgZnJvbSBVc2VySWQgdG8gc3RyaW5nXG4gICAgcHVibGljIHJlYWRvbmx5IHNlc3Npb25JZDogc3RyaW5nLFxuICAgIHB1YmxpYyByZWFkb25seSBsb2dnZWRPdXRBdDogRGF0ZVxuICApIHtcbiAgICBzdXBlcihcbiAgICAgICdVc2VyTG9nZ2VkT3V0JyxcbiAgICAgIHVzZXJJZFZhbHVlLFxuICAgICAgJ1VzZXInLFxuICAgICAgeyB1c2VySWRWYWx1ZSwgc2Vzc2lvbklkLCBsb2dnZWRPdXRBdCB9XG4gICAgKTtcbiAgfVxuXG4gIGdldEV2ZW50RGF0YSgpIHtcbiAgICByZXR1cm4ge1xuICAgICAgdXNlcklkOiB0aGlzLnVzZXJJZFZhbHVlLFxuICAgICAgc2Vzc2lvbklkOiB0aGlzLnNlc3Npb25JZCxcbiAgICAgIGxvZ2dlZE91dEF0OiB0aGlzLmxvZ2dlZE91dEF0XG4gICAgfTtcbiAgfVxuXG4gIGNvbnRhaW5zUEhJKCk6IGJvb2xlYW4ge1xuICAgIHJldHVybiBmYWxzZTsgLy8gTm8gUEhJIGluIGxvZ291dCBldmVudFxuICB9XG5cbiAgZ2V0UGF0aWVudElkKCk6IHN0cmluZyB8IG51bGwge1xuICAgIHJldHVybiBudWxsOyAvLyBOb3QgYSBwYXRpZW50LXNwZWNpZmljIGV2ZW50XG4gIH1cbn1cblxuIl0sInZlcnNpb24iOjN9

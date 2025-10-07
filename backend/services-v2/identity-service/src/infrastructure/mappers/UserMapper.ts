@@ -2,9 +2,11 @@
  * User Mapper - Infrastructure Layer
  * Maps between Domain entities and Database records
  * Implements Clean Architecture - Infrastructure knows about both Domain and Database
- * 
+ *
+ * Pure RBAC: Supports multiple roles per user
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, DDD
  */
 
@@ -48,10 +50,23 @@ export interface UserRecord {
 export class UserMapper {
   /**
    * Map from database record to User aggregate
+   *
+   * Pure RBAC: Accepts roles as parameter (multiple roles)
+   *
+   * @param record - Database record from user_profiles table
+   * @param roleTypes - Array of role type strings from user_roles table
+   * @returns User aggregate
+   *
+   * @example
+   * ```typescript
+   * const roles = ['doctor', 'admin'];
+   * const user = UserMapper.toDomain(record, roles);
+   * ```
    */
-  static toDomain(record: UserRecord): User {
+  static toDomain(record: UserRecord, roleTypes: string[]): User {
     try {
       const email = Email.fromString(record.email);
+
       // Use PersonalInfo.create instead of fromSupabaseData
       const personalInfo = PersonalInfo.create({
         fullName: record.full_name,
@@ -63,13 +78,17 @@ export class UserMapper {
         emergencyContactName: record.emergency_contact_name,
         emergencyContactPhone: record.emergency_contact_phone
       });
-      const healthcareRole = HealthcareRole.fromRoleType(record.role_type);
+
+      // Map multiple roles
+      const healthcareRoles = roleTypes.length > 0
+        ? roleTypes.map(roleType => HealthcareRole.fromRoleType(roleType))
+        : [HealthcareRole.fromRoleType('patient')]; // Default to patient if no roles
 
       return User.reconstitute(
         record.id,
         email,
         personalInfo,
-        healthcareRole,
+        healthcareRoles, // Multiple roles
         record.is_active ?? true,
         record.is_verified ?? false,
         undefined, // lastLoginAt - will be set from user_sessions if needed
@@ -79,6 +98,16 @@ export class UserMapper {
     } catch (error) {
       throw new Error(`Failed to map database record to User domain: ${getErrorMessage(error)}`);
     }
+  }
+
+  /**
+   * Map from database record to User aggregate (backward compatibility)
+   *
+   * @deprecated Use toDomain(record, roleTypes) instead
+   * This method uses record.role_type as single role for backward compatibility
+   */
+  static toDomainLegacy(record: UserRecord): User {
+    return UserMapper.toDomain(record, [record.role_type]);
   }
 
   /**

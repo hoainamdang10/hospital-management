@@ -1,0 +1,40 @@
+4ab5be59ccfd6d05d18c606f4d6c92c7
+"use strict";
+/**
+ * Staff Invitation Created Event
+ * Triggered when admin creates a staff invitation
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StaffInvitationCreatedEvent = void 0;
+const domain_event_1 = require("@shared/domain/base/domain-event");
+class StaffInvitationCreatedEvent extends domain_event_1.DomainEvent {
+    constructor(email, role, invitedBy, invitationToken, expiresAt) {
+        super('StaffInvitationCreated', email, // Use email as aggregate ID
+        'StaffInvitation', { email, role, invitedBy, invitationToken, expiresAt });
+        this.email = email;
+        this.role = role;
+        this.invitedBy = invitedBy;
+        this.invitationToken = invitationToken;
+        this.expiresAt = expiresAt;
+    }
+    getEventData() {
+        return {
+            email: this.email,
+            role: this.role,
+            invitedBy: this.invitedBy,
+            invitationToken: this.invitationToken,
+            expiresAt: this.expiresAt
+        };
+    }
+    containsPHI() {
+        return true; // Email is PII
+    }
+    getPatientId() {
+        return null; // Not a patient event
+    }
+}
+exports.StaffInvitationCreatedEvent = StaffInvitationCreatedEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGRvbWFpblxcZXZlbnRzXFxTdGFmZkludml0YXRpb25DcmVhdGVkRXZlbnQudHMiLCJtYXBwaW5ncyI6IjtBQUFBOzs7Ozs7R0FNRzs7O0FBRUgsbUVBQStEO0FBRS9ELE1BQWEsMkJBQTRCLFNBQVEsMEJBQVc7SUFDMUQsWUFDa0IsS0FBYSxFQUNiLElBQVksRUFDWixTQUFpQixFQUNqQixlQUF1QixFQUN2QixTQUFlO1FBRS9CLEtBQUssQ0FDSCx3QkFBd0IsRUFDeEIsS0FBSyxFQUFFLDRCQUE0QjtRQUNuQyxpQkFBaUIsRUFDakIsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLFNBQVMsRUFBRSxlQUFlLEVBQUUsU0FBUyxFQUFFLENBQ3ZELENBQUM7UUFYYyxVQUFLLEdBQUwsS0FBSyxDQUFRO1FBQ2IsU0FBSSxHQUFKLElBQUksQ0FBUTtRQUNaLGNBQVMsR0FBVCxTQUFTLENBQVE7UUFDakIsb0JBQWUsR0FBZixlQUFlLENBQVE7UUFDdkIsY0FBUyxHQUFULFNBQVMsQ0FBTTtJQVFqQyxDQUFDO0lBRUQsWUFBWTtRQUNWLE9BQU87WUFDTCxLQUFLLEVBQUUsSUFBSSxDQUFDLEtBQUs7WUFDakIsSUFBSSxFQUFFLElBQUksQ0FBQyxJQUFJO1lBQ2YsU0FBUyxFQUFFLElBQUksQ0FBQyxTQUFTO1lBQ3pCLGVBQWUsRUFBRSxJQUFJLENBQUMsZUFBZTtZQUNyQyxTQUFTLEVBQUUsSUFBSSxDQUFDLFNBQVM7U0FDMUIsQ0FBQztJQUNKLENBQUM7SUFFRCxXQUFXO1FBQ1QsT0FBTyxJQUFJLENBQUMsQ0FBQyxlQUFlO0lBQzlCLENBQUM7SUFFRCxZQUFZO1FBQ1YsT0FBTyxJQUFJLENBQUMsQ0FBQyxzQkFBc0I7SUFDckMsQ0FBQztDQUNGO0FBakNELGtFQWlDQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcaG9zcGl0YWwtbWFuYWdlbWVudC1WMlxcYmFja2VuZFxcc2VydmljZXMtdjJcXGlkZW50aXR5LXNlcnZpY2VcXHNyY1xcZG9tYWluXFxldmVudHNcXFN0YWZmSW52aXRhdGlvbkNyZWF0ZWRFdmVudC50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIFN0YWZmIEludml0YXRpb24gQ3JlYXRlZCBFdmVudFxuICogVHJpZ2dlcmVkIHdoZW4gYWRtaW4gY3JlYXRlcyBhIHN0YWZmIGludml0YXRpb25cbiAqXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqL1xuXG5pbXBvcnQgeyBEb21haW5FdmVudCB9IGZyb20gJ0BzaGFyZWQvZG9tYWluL2Jhc2UvZG9tYWluLWV2ZW50JztcblxuZXhwb3J0IGNsYXNzIFN0YWZmSW52aXRhdGlvbkNyZWF0ZWRFdmVudCBleHRlbmRzIERvbWFpbkV2ZW50IHtcbiAgY29uc3RydWN0b3IoXG4gICAgcHVibGljIHJlYWRvbmx5IGVtYWlsOiBzdHJpbmcsXG4gICAgcHVibGljIHJlYWRvbmx5IHJvbGU6IHN0cmluZyxcbiAgICBwdWJsaWMgcmVhZG9ubHkgaW52aXRlZEJ5OiBzdHJpbmcsXG4gICAgcHVibGljIHJlYWRvbmx5IGludml0YXRpb25Ub2tlbjogc3RyaW5nLFxuICAgIHB1YmxpYyByZWFkb25seSBleHBpcmVzQXQ6IERhdGVcbiAgKSB7XG4gICAgc3VwZXIoXG4gICAgICAnU3RhZmZJbnZpdGF0aW9uQ3JlYXRlZCcsXG4gICAgICBlbWFpbCwgLy8gVXNlIGVtYWlsIGFzIGFnZ3JlZ2F0ZSBJRFxuICAgICAgJ1N0YWZmSW52aXRhdGlvbicsXG4gICAgICB7IGVtYWlsLCByb2xlLCBpbnZpdGVkQnksIGludml0YXRpb25Ub2tlbiwgZXhwaXJlc0F0IH1cbiAgICApO1xuICB9XG5cbiAgZ2V0RXZlbnREYXRhKCkge1xuICAgIHJldHVybiB7XG4gICAgICBlbWFpbDogdGhpcy5lbWFpbCxcbiAgICAgIHJvbGU6IHRoaXMucm9sZSxcbiAgICAgIGludml0ZWRCeTogdGhpcy5pbnZpdGVkQnksXG4gICAgICBpbnZpdGF0aW9uVG9rZW46IHRoaXMuaW52aXRhdGlvblRva2VuLFxuICAgICAgZXhwaXJlc0F0OiB0aGlzLmV4cGlyZXNBdFxuICAgIH07XG4gIH1cblxuICBjb250YWluc1BISSgpOiBib29sZWFuIHtcbiAgICByZXR1cm4gdHJ1ZTsgLy8gRW1haWwgaXMgUElJXG4gIH1cblxuICBnZXRQYXRpZW50SWQoKTogc3RyaW5nIHwgbnVsbCB7XG4gICAgcmV0dXJuIG51bGw7IC8vIE5vdCBhIHBhdGllbnQgZXZlbnRcbiAgfVxufVxuXG4iXSwidmVyc2lvbiI6M30=

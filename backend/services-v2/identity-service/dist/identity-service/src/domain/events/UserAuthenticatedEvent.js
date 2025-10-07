@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserAuthenticatedEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class UserAuthenticatedEvent extends domain_event_1.DomainEvent {
     constructor(userIdVO, ipAddress, userAgent, timestamp) {
         super('UserAuthenticated', userIdVO.value, 'User', { ipAddress, userAgent, timestamp }, 1, // eventVersion

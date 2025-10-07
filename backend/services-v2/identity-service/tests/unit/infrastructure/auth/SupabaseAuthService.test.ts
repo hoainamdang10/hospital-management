@@ -15,8 +15,17 @@ const mockAuth = {
   resend: jest.fn(),
 };
 
+// Create chainable mock for from()
+const mockFromChain = {
+  select: jest.fn().mockReturnThis(),
+  eq: jest.fn().mockReturnThis(),
+  single: jest.fn().mockResolvedValue({ data: { email: 'test@example.com' }, error: null }),
+  insert: jest.fn().mockResolvedValue({ error: null }),
+};
+
 const mockSupabaseClient = {
   auth: mockAuth,
+  from: jest.fn(() => mockFromChain),
 };
 
 jest.mock('@supabase/supabase-js', () => ({
@@ -33,21 +42,16 @@ const makeService = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Reset mock chain
+  mockFromChain.single.mockResolvedValue({ data: { email: 'test@example.com' }, error: null });
 });
 
 describe('SupabaseAuthService.signUp', () => {
-  it('thành công, map metadata đúng và trả về token', async () => {
+  it('should throw error - method is disabled', async () => {
     const { svc } = makeService();
 
-    mockAuth.signUp.mockResolvedValue({
-      data: {
-        user: { id: 'u1', email: 'a@example.com' },
-        session: { access_token: 'at', refresh_token: 'rt', expires_in: 3600 },
-      },
-      error: null,
-    });
-
-    const res = await svc.signUp({
+    // signUp() is now disabled and should throw immediately
+    await expect(svc.signUp({
       email: 'a@example.com',
       password: 'Passw0rd!',
       fullName: 'User A',
@@ -57,29 +61,24 @@ describe('SupabaseAuthService.signUp', () => {
       dateOfBirth: '1990-01-01' as any,
       gender: 'male' as any,
       address: 'Hanoi',
-    } as any);
+    } as any)).rejects.toThrow(/SupabaseAuthService.signUp\(\) is DISABLED/);
 
-    expect(res.success).toBe(true);
-    expect(res.user?.id).toBe('u1');
-    expect(res.user?.email).toBe('a@example.com');
-    expect(res.user?.role).toBe('doctor');
-    expect(res.user?.fullName).toBe('User A');
-    expect(res.accessToken).toBe('at');
-    expect(mockAuth.signUp).toHaveBeenCalled();
-    const args = mockAuth.signUp.mock.calls[0][0];
-    expect(args.options.data.full_name).toBe('User A');
-    expect(args.options.data.role_type).toBe('doctor');
-    expect(args.options.data.phone_number).toBe('0901234567');
+    // Should NOT call Supabase Auth API
+    expect(mockAuth.signUp).not.toHaveBeenCalled();
   });
 
-  it('lỗi: trả về message tiếng Việt', async () => {
+  it('should throw error with correct message', async () => {
     const { svc } = makeService();
-    mockAuth.signUp.mockResolvedValue({ data: { user: null, session: null }, error: { message: 'Email exists' } });
 
-    const res = await svc.signUp({ email: 'a@example.com', password: 'x' } as any);
+    await expect(svc.signUp({ email: 'a@example.com', password: 'x' } as any))
+      .rejects.toThrow(/database triggers which have been removed/);
+  });
 
-    expect(res.success).toBe(false);
-    expect(res.message).toMatch(/^Đăng ký thất bại/);
+  it('should throw error directing to RegisterUserUseCase', async () => {
+    const { svc } = makeService();
+
+    await expect(svc.signUp({ email: 'a@example.com', password: 'x' } as any))
+      .rejects.toThrow(/Please use RegisterUserUseCase instead/);
   });
 });
 
@@ -233,6 +232,14 @@ describe('SupabaseAuthService.resetPassword', () => {
 describe('SupabaseAuthService.updatePassword', () => {
   it('thành công: update password với current password', async () => {
     const { svc } = makeService();
+
+    // Ensure supabaseClient.from is properly mocked
+    (svc as any).supabaseClient.from = jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: { email: 'test@example.com' }, error: null }),
+    }));
+
     mockAuth.signInWithPassword.mockResolvedValue({
       data: {
         user: { id: 'u1', email: 'test@example.com' },
@@ -243,23 +250,39 @@ describe('SupabaseAuthService.updatePassword', () => {
     mockAuth.setSession.mockResolvedValue({ error: null });
     mockAuth.updateUser.mockResolvedValue({ error: null });
 
-    await expect(svc.updatePassword('test@example.com', 'OldPass123!', 'NewPass123!')).resolves.toBeUndefined();
+    await expect(svc.updatePassword('user-id-123', 'OldPass123!', 'NewPass123!')).resolves.toBeUndefined();
     expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({ email: 'test@example.com', password: 'OldPass123!' });
     expect(mockAuth.updateUser).toHaveBeenCalledWith({ password: 'NewPass123!' });
   });
 
   it('ném lỗi khi current password sai', async () => {
     const { svc } = makeService();
+
+    // Ensure supabaseClient.from is properly mocked
+    (svc as any).supabaseClient.from = jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: { email: 'test@example.com' }, error: null }),
+    }));
+
     mockAuth.signInWithPassword.mockResolvedValue({
       data: { user: null, session: null },
       error: { message: 'Invalid credentials' },
     });
 
-    await expect(svc.updatePassword('test@example.com', 'WrongPass', 'NewPass123!')).rejects.toThrow(/Current password is incorrect/);
+    await expect(svc.updatePassword('user-id-123', 'WrongPass', 'NewPass123!')).rejects.toThrow(/Current password is incorrect/);
   });
 
   it('ném lỗi khi setSession thất bại', async () => {
     const { svc } = makeService();
+
+    // Ensure supabaseClient.from is properly mocked
+    (svc as any).supabaseClient.from = jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: { email: 'test@example.com' }, error: null }),
+    }));
+
     mockAuth.signInWithPassword.mockResolvedValue({
       data: {
         user: { id: 'u1', email: 'test@example.com' },
@@ -269,7 +292,7 @@ describe('SupabaseAuthService.updatePassword', () => {
     });
     mockAuth.setSession.mockResolvedValue({ error: { message: 'Session error' } });
 
-    await expect(svc.updatePassword('test@example.com', 'OldPass123!', 'NewPass123!')).rejects.toThrow(/Set session failed/);
+    await expect(svc.updatePassword('user-id-123', 'OldPass123!', 'NewPass123!')).rejects.toThrow(/Set session failed/);
   });
 
   it('ném lỗi khi updateUser thất bại', async () => {

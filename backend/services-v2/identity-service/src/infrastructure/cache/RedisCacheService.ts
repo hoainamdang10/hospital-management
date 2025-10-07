@@ -215,9 +215,16 @@ export class RedisCacheService {
         return 0;
       }
 
-      const result = await this.client.del(keys);
-      this.stats.deletes += result;
-      return result;
+      // node-redis del() accepts multiple keys as separate arguments
+      // Use Promise.all to delete keys in batches
+      let deletedCount = 0;
+      for (const key of keys) {
+        const result = await this.client.del(key);
+        deletedCount += result;
+      }
+
+      this.stats.deletes += deletedCount;
+      return deletedCount;
     } catch (error) {
       this.stats.errors++;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

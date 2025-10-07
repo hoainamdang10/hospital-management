@@ -46,10 +46,12 @@ module.exports = {
     'jsx',
     'json'
   ],
-  
-  // Transform configuration
+
+  // Transform configuration (updated to remove deprecated globals)
   transform: {
-    '^.+\\.ts$': 'ts-jest'
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: '<rootDir>/tsconfig.json'
+    }]
   },
   
   // Coverage configuration
@@ -185,13 +187,6 @@ module.exports = {
   // Transform ignore patterns
   transformIgnorePatterns: [
     'node_modules/(?!(uuid)/)'
-  ],
-  
-  // Global variables
-  globals: {
-    'ts-jest': {
-      tsconfig: '<rootDir>/tsconfig.json'
-    }
-  }
+  ]
 };
 

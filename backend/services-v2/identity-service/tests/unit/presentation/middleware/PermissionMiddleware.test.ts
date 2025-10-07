@@ -9,9 +9,11 @@ import {
   AuthenticatedRequest,
   getUserIdFromParams,
   getPatientIdFromParams,
-  getOwnerIdFromBody
+  getOwnerIdFromBody,
+  ResourceType,
+  Action
 } from '@presentation/middleware/PermissionMiddleware';
-import { IPermissionService, ResourceType, Action } from '@application/services/IPermissionService';
+import { IPermissionService } from '@domain/services/IPermissionService';
 import { TestUtils } from '@tests/setup';
 
 describe('PermissionMiddleware', () => {
@@ -23,15 +25,21 @@ describe('PermissionMiddleware', () => {
   let mockNext: jest.MockedFunction<NextFunction>;
 
   beforeEach(() => {
-    // Mock PermissionService
+    // Mock PermissionService (domain interface)
     mockPermissionService = {
-      hasPermission: jest.fn(),
+      checkPermission: jest.fn(),
+      checkPermissionWithOwnership: jest.fn(),
       hasAnyPermission: jest.fn(),
       hasAllPermissions: jest.fn(),
-      getUserPermissions: jest.fn(),
-      checkPermission: jest.fn(),
-      canAccessResource: jest.fn(),
+      getEffectivePermissions: jest.fn(),
+      getEffectivePermissionsAsObjects: jest.fn(),
       invalidateCache: jest.fn(),
+      invalidateCacheForRole: jest.fn(),
+      expandPermissions: jest.fn(),
+      isAdmin: jest.fn(),
+      getPermissionsGroupedByResource: jest.fn(),
+      warmUpCache: jest.fn(),
+      getCacheStats: jest.fn(),
     } as any;
 
     logger = TestUtils.createMockLogger();
@@ -71,7 +79,10 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith('u-123', ['patients:read']);
+      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ props: expect.objectContaining({ value: 'u-123' }) }),
+        ['patients:read']
+      );
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
     });
@@ -86,7 +97,10 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith('u-123', ['patients:read']);
+      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ props: expect.objectContaining({ value: 'u-123' }) }),
+        ['patients:read']
+      );
       expect(mockNext).toHaveBeenCalled();
     });
 
@@ -156,7 +170,10 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasAllPermissions).toHaveBeenCalledWith('u-123', ['patients:read', 'patients:write']);
+      expect(mockPermissionService.hasAllPermissions).toHaveBeenCalledWith(
+        expect.objectContaining({ props: expect.objectContaining({ value: 'u-123' }) }),
+        ['patients:read', 'patients:write']
+      );
       expect(mockNext).toHaveBeenCalled();
     });
 
@@ -214,7 +231,7 @@ describe('PermissionMiddleware', () => {
 
     it('should allow admin to access any resource', async () => {
       mockPermissionService.hasAnyPermission.mockResolvedValue(true);
-      mockPermissionService.hasPermission.mockResolvedValue(true);
+      mockPermissionService.checkPermissionWithOwnership.mockResolvedValue(true);
       mockReq.params = { userId: 'u-456' }; // Different user
 
       const permissionMiddleware = middleware.requirePermission({
@@ -225,13 +242,13 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasPermission).toHaveBeenCalled();
+      expect(mockPermissionService.checkPermissionWithOwnership).toHaveBeenCalled();
       expect(mockNext).toHaveBeenCalled();
     });
 
     it('should deny non-owner without permission', async () => {
       mockPermissionService.hasAnyPermission.mockResolvedValue(true);
-      mockPermissionService.hasPermission.mockResolvedValue(false);
+      mockPermissionService.checkPermissionWithOwnership.mockResolvedValue(false);
       mockReq.params = { userId: 'u-456' }; // Different user
 
       const permissionMiddleware = middleware.requirePermission({
@@ -263,7 +280,7 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasPermission).not.toHaveBeenCalled();
+      expect(mockPermissionService.checkPermissionWithOwnership).not.toHaveBeenCalled();
       expect(mockNext).toHaveBeenCalled();
     });
   });
@@ -276,7 +293,10 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith('u-123', ['patients:read', 'patients:write']);
+      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ props: expect.objectContaining({ value: 'u-123' }) }),
+        ['patients:read', 'patients:write']
+      );
       expect(mockNext).toHaveBeenCalled();
     });
 
@@ -300,7 +320,10 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasAllPermissions).toHaveBeenCalledWith('u-123', ['patients:read', 'patients:write']);
+      expect(mockPermissionService.hasAllPermissions).toHaveBeenCalledWith(
+        expect.objectContaining({ props: expect.objectContaining({ value: 'u-123' }) }),
+        ['patients:read', 'patients:write']
+      );
       expect(mockNext).toHaveBeenCalled();
     });
 
@@ -324,7 +347,10 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith('u-123', ['patients:read']);
+      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ props: expect.objectContaining({ value: 'u-123' }) }),
+        ['patients:read']
+      );
       expect(mockNext).toHaveBeenCalled();
     });
   });
@@ -337,7 +363,10 @@ describe('PermissionMiddleware', () => {
 
       await permissionMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
-      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith('u-123', ['*']);
+      expect(mockPermissionService.hasAnyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ props: expect.objectContaining({ value: 'u-123' }) }),
+        ['*']
+      );
       expect(mockNext).toHaveBeenCalled();
     });
 
@@ -372,7 +401,7 @@ describe('PermissionMiddleware', () => {
 
     it('should allow admin to access any resource', async () => {
       mockPermissionService.hasAnyPermission.mockResolvedValue(true);
-      mockPermissionService.hasPermission.mockResolvedValue(true);
+      mockPermissionService.checkPermissionWithOwnership.mockResolvedValue(true);
       mockReq.params = { userId: 'u-456' };
 
       const permissionMiddleware = middleware.requireOwnershipOrAdmin((req) => req.params?.userId);

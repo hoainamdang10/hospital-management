@@ -41,6 +41,7 @@ import { GrantConsentUseCase } from './application/use-cases/GrantConsentUseCase
 import { MarkAsDeceasedUseCase } from './application/use-cases/MarkAsDeceasedUseCase';
 import { ReactivatePatientUseCase } from './application/use-cases/ReactivatePatientUseCase';
 import { PatientCommandHandlers } from './application/handlers/PatientCommandHandlers';
+import { PatientQueryHandlers } from './application/handlers/PatientQueryHandlers';
 
 // Presentation imports
 import { PatientController } from './presentation/controllers/PatientController';
@@ -109,6 +110,7 @@ class PatientRegistryServiceApp {
 
   // Command Handlers
   private patientCommandHandlers!: PatientCommandHandlers;
+  private patientQueryHandlers!: PatientQueryHandlers;
 
   // Controllers
   private patientController!: PatientController;
@@ -219,6 +221,13 @@ class PatientRegistryServiceApp {
         this.patientRepository
       );
 
+      this.patientQueryHandlers = new PatientQueryHandlers(
+        this.getPatientProfileUseCase,
+        this.searchPatientsUseCase,
+        this.patientRepository,
+        logger
+      );
+
       // Initialize Command Handlers (CQRS)
       this.patientCommandHandlers = new PatientCommandHandlers(
         this.registerPatientUseCase,
@@ -234,8 +243,6 @@ class PatientRegistryServiceApp {
         logger,
         this.registerPatientUseCase,
         this.updatePatientInfoUseCase,
-        this.getPatientProfileUseCase,
-        this.searchPatientsUseCase,
         this.matchPatientsUseCase,
         this.mergePatientsUseCase,
         this.linkPatientsUseCase,
@@ -244,7 +251,8 @@ class PatientRegistryServiceApp {
         this.addEmergencyContactUseCase,
         this.grantConsentUseCase,
         this.markAsDeceasedUseCase,
-        this.reactivatePatientUseCase
+        this.reactivatePatientUseCase,
+        this.patientQueryHandlers
       );
 
       this.commandController = new CommandController(

@@ -1,29 +1,45 @@
 /**
  * HealthcareRole Entity
  * Represents user roles in healthcare system
- * 
+ *
+ * Pure RBAC Design:
+ * - Role metadata only (no hardcoded permissions)
+ * - Permissions loaded from database via repository
+ * - Supports multiple roles per user
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  */
 
 import { Entity } from '@shared/domain/base/entity';
 
+/**
+ * Healthcare Role Types - Simplified for Graduation Project
+ *
+ * 5 Core Roles:
+ * - ADMIN: System administrator
+ * - DOCTOR: Medical doctor (includes pharmacy & lab orders)
+ * - NURSE: Registered nurse (includes pharmacy dispensing & lab specimen collection)
+ * - RECEPTIONIST: Front desk (includes billing & payment processing)
+ * - PATIENT: Patient user
+ *
+ * Merged Roles:
+ * - PHARMACIST → NURSE + DOCTOR (pharmacy permissions distributed)
+ * - LAB_TECHNICIAN → NURSE + DOCTOR (lab permissions distributed)
+ * - BILLING_STAFF → RECEPTIONIST + ADMIN (billing permissions distributed)
+ */
 export type HealthcareRoleType =
   | 'ADMIN'
   | 'DOCTOR'
   | 'NURSE'
   | 'RECEPTIONIST'
-  | 'PHARMACIST'
-  | 'LAB_TECHNICIAN'
-  | 'PATIENT'
-  | 'BILLING_STAFF';
+  | 'PATIENT';
 
 interface HealthcareRoleProps {
   type: HealthcareRoleType;
   name: string;
   nameVietnamese: string;
   description: string;
-  permissions: string[];
   isActive: boolean;
   hasHIPAATraining: boolean;
 }
@@ -38,7 +54,6 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
     name: string,
     nameVietnamese: string,
     description: string,
-    permissions: string[] = [],
     hasHIPAATraining: boolean = false
   ): HealthcareRole {
     return new HealthcareRole({
@@ -46,68 +61,57 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
       name,
       nameVietnamese,
       description,
-      permissions,
       isActive: true,
       hasHIPAATraining
     });
   }
 
+  /**
+   * Create HealthcareRole from role type string
+   *
+   * NOTE: Permissions are NO LONGER hardcoded here.
+   * Permissions are loaded from database via IPermissionRepository.
+   *
+   * @param roleType - Role type string (e.g., 'admin', 'doctor', 'patient')
+   * @returns HealthcareRole instance with metadata only
+   *
+   * @example
+   * ```typescript
+   * const role = HealthcareRole.fromRoleType('doctor');
+   * // To get permissions, use:
+   * // const permissions = await permissionRepository.getRolePermissions(role.type);
+   * ```
+   */
   public static fromRoleType(roleType: string): HealthcareRole {
-    const roleMap: Record<string, { name: string; nameVi: string; desc: string; permissions: string[]; hipaa: boolean }> = {
+    const roleMap: Record<string, { name: string; nameVi: string; desc: string; hipaa: boolean }> = {
       'ADMIN': {
         name: 'Administrator',
         nameVi: 'Quản trị viên',
-        desc: 'System administrator with full access',
-        permissions: ['*'],
+        desc: 'System administrator with full access (includes billing management)',
         hipaa: true
       },
       'DOCTOR': {
         name: 'Doctor',
         nameVi: 'Bác sĩ',
-        desc: 'Medical doctor',
-        permissions: ['read:patients', 'write:patients', 'read:medical_records', 'write:medical_records'],
+        desc: 'Medical doctor (includes pharmacy orders & lab orders)',
         hipaa: true
       },
       'NURSE': {
         name: 'Nurse',
         nameVi: 'Y tá',
-        desc: 'Registered nurse',
-        permissions: ['read:patients', 'write:patients', 'read:medical_records'],
+        desc: 'Registered nurse (includes pharmacy dispensing & lab specimen collection)',
         hipaa: true
       },
       'RECEPTIONIST': {
         name: 'Receptionist',
         nameVi: 'Lễ tân',
-        desc: 'Front desk receptionist',
-        permissions: ['read:patients', 'write:appointments'],
+        desc: 'Front desk receptionist (includes billing & payment processing)',
         hipaa: false
-      },
-      'PHARMACIST': {
-        name: 'Pharmacist',
-        nameVi: 'Dược sĩ',
-        desc: 'Licensed pharmacist',
-        permissions: ['read:prescriptions', 'write:prescriptions'],
-        hipaa: true
-      },
-      'LAB_TECHNICIAN': {
-        name: 'Lab Technician',
-        nameVi: 'Kỹ thuật viên xét nghiệm',
-        desc: 'Laboratory technician',
-        permissions: ['read:lab_results', 'write:lab_results'],
-        hipaa: true
       },
       'PATIENT': {
         name: 'Patient',
         nameVi: 'Bệnh nhân',
         desc: 'Patient user',
-        permissions: ['read:own_records'],
-        hipaa: false
-      },
-      'BILLING_STAFF': {
-        name: 'Billing Staff',
-        nameVi: 'Nhân viên thanh toán',
-        desc: 'Billing and payment staff',
-        permissions: ['read:billing', 'write:billing'],
         hipaa: false
       }
     };
@@ -122,7 +126,6 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
       name: roleData.name,
       nameVietnamese: roleData.nameVi,
       description: roleData.desc,
-      permissions: roleData.permissions,
       isActive: true,
       hasHIPAATraining: roleData.hipaa
     });
@@ -145,10 +148,6 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
     return this.props.description;
   }
 
-  public get permissions(): string[] {
-    return [...this.props.permissions];
-  }
-
   public get isActive(): boolean {
     return this.props.isActive;
   }
@@ -158,25 +157,17 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
   }
 
   /**
-   * Check if role has specific permission
-   */
-  public hasPermission(action: string, resource: string): boolean {
-    const permission = `${action}:${resource}`;
-    return this.props.permissions.includes('*') || this.props.permissions.includes(permission);
-  }
-
-  /**
    * Check if role is medical staff
    */
   public isMedicalStaff(): boolean {
-    return ['DOCTOR', 'NURSE', 'PHARMACIST', 'LAB_TECHNICIAN'].includes(this.props.type);
+    return ['DOCTOR', 'NURSE'].includes(this.props.type);
   }
 
   /**
    * Check if role is administrative staff
    */
   public isAdministrativeStaff(): boolean {
-    return ['ADMIN', 'RECEPTIONIST', 'BILLING_STAFF'].includes(this.props.type);
+    return ['ADMIN', 'RECEPTIONIST'].includes(this.props.type);
   }
 
   /**
@@ -211,7 +202,6 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
       name: this.props.name,
       name_vietnamese: this.props.nameVietnamese,
       description: this.props.description,
-      permissions: this.props.permissions,
       is_active: this.props.isActive,
       has_hipaa_training: this.props.hasHIPAATraining,
       created_at: this.createdAt,

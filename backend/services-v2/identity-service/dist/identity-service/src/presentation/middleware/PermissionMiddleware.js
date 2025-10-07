@@ -4,16 +4,49 @@
  * Express middleware for RBAC permission checking
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, RBAC, HIPAA
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PermissionMiddleware = void 0;
+exports.PermissionMiddleware = exports.Action = exports.ResourceType = void 0;
+exports.buildPermission = buildPermission;
 exports.getUserIdFromParams = getUserIdFromParams;
 exports.getPatientIdFromParams = getPatientIdFromParams;
 exports.getOwnerIdFromBody = getOwnerIdFromBody;
-const IPermissionService_1 = require("../../application/services/IPermissionService");
+const UserId_1 = require("../../domain/value-objects/UserId");
 const error_helper_1 = require("../../utils/error-helper");
+/**
+ * Resource types in the system
+ */
+var ResourceType;
+(function (ResourceType) {
+    ResourceType["PATIENTS"] = "patients";
+    ResourceType["APPOINTMENTS"] = "appointments";
+    ResourceType["MEDICAL_RECORDS"] = "medical_records";
+    ResourceType["PRESCRIPTIONS"] = "prescriptions";
+    ResourceType["USERS"] = "users";
+    ResourceType["ROLES"] = "roles";
+    ResourceType["SYSTEM"] = "system";
+})(ResourceType || (exports.ResourceType = ResourceType = {}));
+/**
+ * Action types
+ */
+var Action;
+(function (Action) {
+    Action["CREATE"] = "create";
+    Action["READ"] = "read";
+    Action["UPDATE"] = "update";
+    Action["DELETE"] = "delete";
+    Action["WRITE"] = "write";
+    Action["MANAGE"] = "manage";
+    Action["ADMIN"] = "admin";
+})(Action || (exports.Action = Action = {}));
+/**
+ * Helper to build permission string
+ */
+function buildPermission(resource, action) {
+    return `${resource}:${action}`;
+}
 /**
  * Permission Middleware Factory
  */
@@ -37,14 +70,15 @@ class PermissionMiddleware {
                     });
                     return;
                 }
-                const userId = req.user.userId;
+                // Convert string userId to UserId value object
+                const userId = UserId_1.UserId.fromString(req.user.userId);
                 // Build permissions to check
                 let permissionsToCheck = [];
                 if (options.permissions) {
                     permissionsToCheck = options.permissions;
                 }
                 else if (options.resource && options.action) {
-                    permissionsToCheck = [(0, IPermissionService_1.buildPermission)(options.resource, options.action)];
+                    permissionsToCheck = [buildPermission(options.resource, options.action)];
                 }
                 else {
                     this.logger.error('Invalid permission options', { options });
@@ -65,7 +99,7 @@ class PermissionMiddleware {
                 }
                 if (!hasPermission) {
                     this.logger.warn('Permission denied', {
-                        userId,
+                        userId: userId.value,
                         requiredPermissions: permissionsToCheck,
                         userPermissions: req.user.permissions,
                         path: req.path,
@@ -82,16 +116,13 @@ class PermissionMiddleware {
                 // Check resource ownership if required
                 if (options.checkOwnership && options.getResourceOwnerId) {
                     const resourceOwnerId = options.getResourceOwnerId(req);
-                    if (resourceOwnerId && resourceOwnerId !== userId) {
+                    if (resourceOwnerId && resourceOwnerId !== req.user.userId) {
                         // Check if user has permission to access others' resources
-                        const canAccessOthers = await this.permissionService.hasPermission(userId, permissionsToCheck[0], // Use first permission for ownership check
-                        {
-                            userId,
-                            resourceOwnerId
-                        });
+                        const canAccessOthers = await this.permissionService.checkPermissionWithOwnership(userId, permissionsToCheck[0], // Use first permission for ownership check
+                        resourceOwnerId);
                         if (!canAccessOthers) {
                             this.logger.warn('Resource ownership check failed', {
-                                userId,
+                                userId: userId.value,
                                 resourceOwnerId,
                                 path: req.path
                             });

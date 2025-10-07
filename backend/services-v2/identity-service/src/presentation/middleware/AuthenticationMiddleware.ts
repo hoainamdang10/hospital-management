@@ -1,15 +1,16 @@
 /**
  * Authentication Middleware
  * Express middleware for JWT token verification
- * 
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, HIPAA
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { SupabaseAuthClient } from '../../infrastructure/auth/SupabaseAuthClient';
-import { IPermissionService } from '../../application/services/IPermissionService';
+import { IPermissionService } from '../../domain/services/IPermissionService';
+import { UserId } from '../../domain/value-objects/UserId';
 import { getErrorMessage } from '../../utils/error-helper';
 
 /**
@@ -65,7 +66,8 @@ export class AuthenticationMiddleware {
         }
 
         // Load user permissions
-        const permissions = await this.permissionService.getUserPermissions(user.id);
+        const userId = UserId.fromString(user.id);
+        const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
 
         // Extract roles from user metadata or default
         const roles = user.user_metadata?.roles || ['patient'];
@@ -75,7 +77,7 @@ export class AuthenticationMiddleware {
           userId: user.id,
           email: user.email!,
           roles,
-          permissions
+          permissions: permissionsArray
         };
 
         // Log authentication for audit
@@ -118,16 +120,17 @@ export class AuthenticationMiddleware {
 
         const token = authHeader.substring(7);
         const user = await this.authClient.verifyToken(token);
-        
+
         if (user) {
-          const permissions = await this.permissionService.getUserPermissions(user.id);
+          const userId = UserId.fromString(user.id);
+          const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
           const roles = user.user_metadata?.roles || ['patient'];
 
           req.user = {
             userId: user.id,
             email: user.email!,
             roles,
-            permissions
+            permissions: permissionsArray
           };
         }
 

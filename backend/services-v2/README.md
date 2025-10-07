@@ -1,165 +1,336 @@
 # Hospital Management System - Services V2
 
-## 🏗️ **Clean Architecture Implementation**
-
-Đây là implementation mới của 7 core services sử dụng **Clean Architecture + DDD + CQRS + Event-Driven** patterns.
-
-## 📋 **7 Core Services**
-
-### **1. Identity & Access Service** (Port 3001)
-- **Domain**: User identity, roles, permissions, sessions
-- **Schema**: `identity_schema`
-- **Patterns**: Strategy Pattern (auth methods), Decorator Pattern (audit)
-
-### **2. Patient Registry Service** (Port 3003)  
-- **Domain**: Patient demographics, contact info, registration
-- **Schema**: `patient_schema`
-- **Patterns**: Repository Pattern, Domain Events, CQRS
-
-### **3. Provider/Staff Service** (Port 3002)
-- **Domain**: Doctors, nurses, departments, schedules
-- **Schema**: `provider_schema` 
-- **Patterns**: Aggregate Pattern, Event Sourcing, Saga Pattern
-
-### **4. Scheduling Service** (Port 3004)
-- **Domain**: Appointments, slots, availability, queues
-- **Schema**: `scheduling_schema`
-- **Patterns**: Command Pattern, Event-Driven workflows
-
-### **5. Clinical/EMR Service** (Port 3007)
-- **Domain**: Medical records, encounters, diagnoses, prescriptions
-- **Schema**: `clinical_schema`
-- **Patterns**: Medical Workflow Pattern, FHIR compliance
-
-### **6. Billing Service** (Port 3009)
-- **Domain**: Invoices, payments, insurance claims
-- **Schema**: `billing_schema`
-- **Patterns**: Strategy Pattern (payment methods), Outbox Pattern
-
-### **7. Notifications Service** (Port 3011)
-- **Domain**: Email, SMS, push notifications, templates
-- **Schema**: `notification_schema`
-- **Patterns**: Observer Pattern, Template Method, Circuit Breaker
-
-## 🏛️ **Clean Architecture Structure**
-
-```
-services-v2/
-├── shared/                          # Shared kernel
-│   ├── domain/                      # Domain layer
-│   │   ├── base/                    # Base classes
-│   │   ├── events/                  # Domain events
-│   │   ├── value-objects/           # Value objects
-│   │   └── interfaces/              # Domain interfaces
-│   ├── application/                 # Application layer
-│   │   ├── use-cases/               # Use cases
-│   │   ├── services/                # Application services
-│   │   └── interfaces/              # Application interfaces
-│   ├── infrastructure/              # Infrastructure layer
-│   │   ├── persistence/             # Database
-│   │   ├── messaging/               # Event bus, queues
-│   │   ├── external/                # External services
-│   │   └── di/                      # Dependency injection
-│   └── presentation/                # Presentation layer
-│       ├── controllers/             # API controllers
-│       ├── middleware/              # Middleware
-│       └── dto/                     # Data transfer objects
-│
-├── identity-service/                # Identity & Access Service
-│   ├── src/
-│   │   ├── domain/                  # Service-specific domain
-│   │   ├── application/             # Service-specific use cases
-│   │   ├── infrastructure/          # Service-specific infrastructure
-│   │   └── presentation/            # Service-specific API
-│   ├── Dockerfile
-│   └── package.json
-│
-├── patient-registry-service/        # Patient Registry Service
-├── provider-staff-service/          # Provider/Staff Service
-├── scheduling-service/              # Scheduling Service
-├── clinical-emr-service/            # Clinical/EMR Service
-├── billing-service/                 # Billing Service
-├── notifications-service/           # Notifications Service
-│
-└── docker-compose.v2.yml           # New orchestration
-```
-
-## 🎯 **Advanced Patterns Implementation**
-
-### **Tier 1: Foundation Patterns**
-- ✅ **Clean Architecture**: Layer separation, dependency inversion
-- ✅ **Domain-Driven Design**: Aggregates, value objects, domain events
-- ✅ **Dependency Injection**: IoC container, service lifetimes
-- ✅ **Repository Pattern**: Data access abstraction
-
-### **Tier 2: Core Patterns**
-- ✅ **CQRS**: Command/query separation, read models
-- ✅ **Event-Driven**: Domain events, integration events
-- ✅ **Use Cases**: Application layer orchestration
-- ✅ **Strategy Pattern**: Payment methods, notification channels
-
-### **Tier 3: Advanced Patterns**
-- ✅ **Outbox Pattern**: Transactional consistency
-- ✅ **Saga Pattern**: Long-running workflows
-- ✅ **Circuit Breaker**: Service resilience
-- ✅ **Medical Workflow Pattern**: Healthcare-specific processes
-
-## 🚀 **Implementation Roadmap**
-
-### **Week 1: Foundation (Current)**
-- [x] Clean Architecture template
-- [ ] DI Container setup
-- [ ] Base patterns implementation
-- [ ] Service generator script
-
-### **Week 2: Core Services**
-- [ ] Identity & Access Service
-- [ ] Patient Registry Service  
-- [ ] Provider/Staff Service
-
-### **Week 3: Business Services**
-- [ ] Scheduling Service
-- [ ] Clinical/EMR Service
-
-### **Week 4: Supporting Services**
-- [ ] Billing Service
-- [ ] Notifications Service
-- [ ] Integration testing
-
-## 🔧 **Development Commands**
-
-```bash
-# Generate new service
-npm run generate:service <service-name>
-
-# Start development
-cd services-v2
-docker-compose -f docker-compose.v2.yml --profile dev up -d
-
-# Run tests
-npm run test:services
-
-# Build for production
-npm run build:all
-```
-
-## 📊 **Quality Metrics**
-
-- **Code Coverage**: >90%
-- **API Response Time**: <200ms
-- **FHIR Compliance**: >85%
-- **HIPAA Compliance**: 100%
-- **Event Processing**: <100ms
-- **Service Availability**: >99.9%
-
-## 🏥 **Healthcare Compliance**
-
-- **HIPAA**: Audit logging, encryption, access controls
-- **FHIR R4**: Resource mapping, validation
-- **ICD-10**: Diagnosis coding
-- **HL7**: Message standards
-- **Vietnamese Healthcare**: Local regulations compliance
+**Version**: 2.0.0  
+**Status**: 🚧 In Development (40-50% Complete)  
+**Architecture**: Clean Architecture + DDD + CQRS + Event-Driven
 
 ---
 
-**Note**: Đây là implementation mới song song với hệ thống hiện tại. Migration sẽ được thực hiện từng service một cách an toàn.
+## 🎯 Quick Start
+
+### Prerequisites
+- Node.js >= 18.0.0
+- Docker & Docker Compose
+- Supabase account (for database)
+
+### Setup
+
+1. **Clone and install dependencies**
+```bash
+cd backend/services-v2
+npm install
+```
+
+2. **Configure environment**
+```bash
+# Create .env file
+cp .env.example .env
+
+# Add your Supabase credentials
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_JWT_SECRET=your_jwt_secret
+```
+
+3. **Start infrastructure**
+```bash
+# Start Redis and RabbitMQ
+docker-compose -f docker-compose.v2.yml --profile infrastructure up -d
+```
+
+4. **Start core services**
+```bash
+# Start Identity, Patient Registry, Provider/Staff services
+docker-compose -f docker-compose.v2.yml --profile core up -d
+```
+
+5. **Verify services**
+```bash
+# Check health
+curl http://localhost:3021/health  # Identity Service
+curl http://localhost:3023/health  # Patient Registry
+curl http://localhost:3022/health  # Provider/Staff
+```
+
+---
+
+## 📚 Documentation
+
+**📖 [Complete Documentation](docs/README.md)**
+
+### Quick Links
+- **[Services Overview](docs/architecture/SERVICES_OVERVIEW.md)** - Architecture and patterns
+- **[Role Boundaries & Use Cases](docs/design/ROLE_BOUNDARIES_AND_USE_CASES.md)** - User roles and workflows
+- **[Implementation Summary](docs/architecture/IMPLEMENTATION_SUMMARY.md)** - Current status
+
+---
+
+## 🏗️ Architecture
+
+### 7 Core Services
+
+| Service | Port | Status | Description |
+|---------|------|--------|-------------|
+| **Identity Service** | 3021 | ✅ Ready | Authentication, authorization, user management |
+| **Patient Registry** | 3023 | ✅ Ready | Patient demographics, registration |
+| **Provider/Staff** | 3022 | ✅ Ready | Doctor, nurse, staff management |
+| **Scheduling** | 3024 | 🔄 In Dev | Appointments, slots, availability |
+| **Clinical/EMR** | 3027 | 🔄 In Dev | Medical records, prescriptions |
+| **Billing** | 3029 | 🔄 In Dev | Invoices, payments, insurance |
+| **Notifications** | 3031 | 🔄 In Dev | Email, SMS, push notifications |
+
+### Infrastructure
+
+| Component | Port | Description |
+|-----------|------|-------------|
+| Redis V2 | 6380 | Caching and session storage |
+| RabbitMQ V2 | 5673 | Message queue for events |
+| RabbitMQ Management | 15673 | RabbitMQ admin UI |
+
+---
+
+## 🚀 Development
+
+### Run Individual Service
+
+```bash
+cd identity-service
+npm install
+npm run dev
+```
+
+### Run All Services
+
+```bash
+# Development mode
+docker-compose -f docker-compose.v2.yml --profile dev up -d
+
+# Production mode
+docker-compose -f docker-compose.v2.yml --profile prod up -d
+```
+
+### View Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f identity-service
+```
+
+### Stop Services
+
+```bash
+# Stop all
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+```
+
+---
+
+## 🧪 Testing
+
+### Run Tests
+
+```bash
+# All services
+npm run test:all
+
+# Specific service
+cd identity-service
+npm test
+
+# With coverage
+npm run test:coverage
+```
+
+### Integration Tests
+
+```bash
+cd identity-service
+npm run test:integration
+```
+
+---
+
+## 📦 Project Structure
+
+```
+services-v2/
+├── docs/                           # 📚 Documentation
+│   ├── architecture/               # Architecture docs
+│   ├── design/                     # Design specs
+│   ├── api/                        # API docs
+│   └── workflows/                  # Workflow diagrams
+│
+├── shared/                         # Shared kernel
+│   ├── domain/                     # Domain primitives
+│   ├── application/                # Application services
+│   ├── infrastructure/             # Infrastructure utilities
+│   └── events/                     # Domain events
+│
+├── identity-service/               # ✅ Identity & Access
+├── patient-registry-service/       # ✅ Patient Management
+├── provider-staff-service/         # ✅ Staff Management
+├── scheduling-service/             # 🔄 Appointments
+├── clinical-emr-service/           # 🔄 Medical Records
+├── billing-service/                # 🔄 Billing
+├── notifications-service/          # 🔄 Notifications
+│
+├── docker-compose.v2.yml          # Service orchestration
+├── package.json                    # Root package
+└── README.md                       # This file
+```
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+# Supabase (Required)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_JWT_SECRET=your_jwt_secret
+
+# Service Config
+NODE_ENV=development
+JWT_SECRET=your_jwt_secret
+
+# Infrastructure (Auto-configured)
+REDIS_URL=redis://redis-v2:6379
+RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3101
+```
+
+### Database Setup
+
+Run in Supabase SQL Editor:
+
+```sql
+CREATE SCHEMA IF NOT EXISTS auth_schema;
+CREATE SCHEMA IF NOT EXISTS patient_schema;
+CREATE SCHEMA IF NOT EXISTS provider_schema;
+CREATE SCHEMA IF NOT EXISTS scheduling_schema;
+CREATE SCHEMA IF NOT EXISTS clinical_schema;
+CREATE SCHEMA IF NOT EXISTS billing_schema;
+CREATE SCHEMA IF NOT EXISTS notification_schema;
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Port conflicts**
+```bash
+# Check if ports are in use
+netstat -ano | findstr :3021
+netstat -ano | findstr :6380
+
+# Kill process if needed
+taskkill /PID <process_id> /F
+```
+
+**Docker issues**
+```bash
+# Restart Docker Desktop
+# Then clean restart
+docker-compose down -v
+docker-compose --profile core up -d
+```
+
+**Database connection**
+```bash
+# Verify Supabase credentials in .env
+# Check network connectivity
+curl https://your-project.supabase.co
+```
+
+---
+
+## 📊 Service Status
+
+### ✅ Completed Services (3/7)
+
+1. **Identity Service** - Authentication, authorization, RBAC
+2. **Patient Registry** - Patient management, demographics
+3. **Provider/Staff** - Doctor, nurse, staff management
+
+### 🔄 In Development (4/7)
+
+4. **Scheduling Service** - Appointment booking, calendar
+5. **Clinical/EMR Service** - Medical records, prescriptions
+6. **Billing Service** - Invoices, payments
+7. **Notifications Service** - Email, SMS, push
+
+---
+
+## 🎯 Roadmap
+
+### Phase 1: Core Services (Completed)
+- [x] Identity Service
+- [x] Patient Registry Service
+- [x] Provider/Staff Service
+
+### Phase 2: Clinical Services (In Progress)
+- [ ] Scheduling Service
+- [ ] Clinical/EMR Service
+
+### Phase 3: Support Services (Planned)
+- [ ] Billing Service
+- [ ] Notifications Service
+
+### Phase 4: Integration (Planned)
+- [ ] API Gateway
+- [ ] Frontend Integration
+- [ ] Mobile App Support
+
+---
+
+## 🤝 Contributing
+
+### Development Workflow
+
+1. Create feature branch
+2. Implement feature following Clean Architecture
+3. Write tests (unit + integration)
+4. Update documentation
+5. Create pull request
+
+### Code Standards
+
+- Follow Clean Architecture principles
+- Write tests for all business logic
+- Use TypeScript strict mode
+- Follow Vietnamese healthcare standards
+- Document public APIs
+
+---
+
+## 📞 Support
+
+- **Documentation**: [docs/README.md](docs/README.md)
+- **Issues**: Create GitHub issue
+- **Questions**: Contact development team
+
+---
+
+## 📄 License
+
+[Your License Here]
+
+---
+
+**Maintained By**: Hospital Management Team  
+**Last Updated**: 2025-01-06
+

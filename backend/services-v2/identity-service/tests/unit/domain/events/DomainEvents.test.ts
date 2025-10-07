@@ -19,7 +19,7 @@ describe('Domain Events', () => {
     beforeEach(() => {
       userId = UserId.fromString('u-123');
       email = Email.create('doctor@hospital.vn');
-      role = HealthcareRole.create('DOCTOR', 'Doctor', 'Bác sĩ', 'Medical doctor', ['patients:read', 'patients:write'], true);
+      role = HealthcareRole.create('DOCTOR', 'Doctor', 'Bác sĩ', 'Medical doctor', true);
     });
 
     it('should create UserCreatedEvent with correct properties', () => {
@@ -63,7 +63,7 @@ describe('Domain Events', () => {
     });
 
     it('should create event for different role types', () => {
-      const nurseRole = HealthcareRole.create('NURSE', 'Nurse', 'Y tá', 'Registered nurse', ['patients:read'], true);
+      const nurseRole = HealthcareRole.create('NURSE', 'Nurse', 'Y tá', 'Registered nurse', true);
       const event = new UserCreatedEvent(userId, email, nurseRole);
 
       const eventData = event.getEventData();
@@ -71,7 +71,7 @@ describe('Domain Events', () => {
     });
 
     it('should create event for admin role', () => {
-      const adminRole = HealthcareRole.create('ADMIN', 'Admin', 'Quản trị viên', 'System administrator', ['*'], true);
+      const adminRole = HealthcareRole.create('ADMIN', 'Admin', 'Quản trị viên', 'System administrator', true);
       const event = new UserCreatedEvent(userId, email, adminRole);
 
       const eventData = event.getEventData();
@@ -79,7 +79,7 @@ describe('Domain Events', () => {
     });
 
     it('should create event for patient role', () => {
-      const patientRole = HealthcareRole.create('PATIENT', 'Patient', 'Bệnh nhân', 'Patient user', ['patients:read_own'], false);
+      const patientRole = HealthcareRole.create('PATIENT', 'Patient', 'Bệnh nhân', 'Patient user', false);
       const event = new UserCreatedEvent(userId, email, patientRole);
 
       const eventData = event.getEventData();
@@ -207,8 +207,8 @@ describe('Domain Events', () => {
 
     beforeEach(() => {
       userId = UserId.fromString('u-123');
-      oldRole = HealthcareRole.create('NURSE', 'Nurse', 'Y tá', 'Registered nurse', ['patients:read'], true);
-      newRole = HealthcareRole.create('DOCTOR', 'Doctor', 'Bác sĩ', 'Medical doctor', ['patients:read', 'patients:write'], true);
+      oldRole = HealthcareRole.create('NURSE', 'Nurse', 'Y tá', 'Registered nurse', true);
+      newRole = HealthcareRole.create('DOCTOR', 'Doctor', 'Bác sĩ', 'Medical doctor', true);
     });
 
     it('should create UserRoleChangedEvent with correct properties', () => {
@@ -249,8 +249,8 @@ describe('Domain Events', () => {
     });
 
     it('should handle role upgrade from patient to receptionist', () => {
-      const patientRole = HealthcareRole.create('PATIENT', 'Patient', 'Bệnh nhân', 'Patient user', ['patients:read_own'], false);
-      const receptionistRole = HealthcareRole.create('RECEPTIONIST', 'Receptionist', 'Lễ tân', 'Front desk staff', ['patients:read'], true);
+      const patientRole = HealthcareRole.create('PATIENT', 'Patient', 'Bệnh nhân', 'Patient user', false);
+      const receptionistRole = HealthcareRole.create('RECEPTIONIST', 'Receptionist', 'Lễ tân', 'Front desk staff', true);
       const event = new UserRoleChangedEvent(userId, patientRole, receptionistRole, 'admin-123');
 
       const eventData = event.getEventData();
@@ -259,8 +259,8 @@ describe('Domain Events', () => {
     });
 
     it('should handle role upgrade to admin', () => {
-      const receptionistRole = HealthcareRole.create('RECEPTIONIST', 'Receptionist', 'Lễ tân', 'Front desk staff', ['patients:read'], true);
-      const adminRole = HealthcareRole.create('ADMIN', 'Admin', 'Quản trị viên', 'System administrator', ['*'], true);
+      const receptionistRole = HealthcareRole.create('RECEPTIONIST', 'Receptionist', 'Lễ tân', 'Front desk staff', true);
+      const adminRole = HealthcareRole.create('ADMIN', 'Admin', 'Quản trị viên', 'System administrator', true);
       const event = new UserRoleChangedEvent(userId, receptionistRole, adminRole, 'super-admin');
 
       const eventData = event.getEventData();
@@ -269,8 +269,8 @@ describe('Domain Events', () => {
     });
 
     it('should handle role downgrade from admin to receptionist', () => {
-      const adminRole = HealthcareRole.create('ADMIN', 'Admin', 'Quản trị viên', 'System administrator', ['*'], true);
-      const receptionistRole = HealthcareRole.create('RECEPTIONIST', 'Receptionist', 'Lễ tân', 'Front desk staff', ['patients:read'], true);
+      const adminRole = HealthcareRole.create('ADMIN', 'Admin', 'Quản trị viên', 'System administrator', true);
+      const receptionistRole = HealthcareRole.create('RECEPTIONIST', 'Receptionist', 'Lễ tân', 'Front desk staff', false);
       const event = new UserRoleChangedEvent(userId, adminRole, receptionistRole, 'super-admin');
 
       const eventData = event.getEventData();

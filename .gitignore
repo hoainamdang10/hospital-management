@@ -1,5 +1,10 @@
 # Hospital Management System - Gitignore
 
+# Augment AI Configuration
+.augment/
+**/.augment/
+AGENTS.md
+
 # Dependencies
 node_modules/
 */node_modules/

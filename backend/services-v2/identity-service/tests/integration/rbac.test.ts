@@ -23,9 +23,21 @@ const mockLogger = {
   fatal: jest.fn() // Add missing fatal method
 };
 
-// Mock user repository
-const mockUserRepository = {
-  getUserPermissions: jest.fn()
+// Mock permission repository (IPermissionRepository)
+const mockPermissionRepository = {
+  getUserRoles: jest.fn(),
+  getUserPermissions: jest.fn(),
+  getRolePermissions: jest.fn(),
+  hasPermission: jest.fn(),
+  hasPermissionString: jest.fn(),
+  assignRole: jest.fn(),
+  removeRole: jest.fn(),
+  addUserPermission: jest.fn(),
+  removeUserPermission: jest.fn(),
+  getAllPermissions: jest.fn(),
+  getAllRoles: jest.fn(),
+  invalidateCache: jest.fn(),
+  expandPermissions: jest.fn().mockResolvedValue([]) // Default: no expansion
 };
 
 // Mock auth client
@@ -34,7 +46,13 @@ const mockAuthClient = {
 };
 
 // Mock cache service
-const mockCacheService = null; // No cache for tests
+const mockCacheService = {
+  get: jest.fn(),
+  set: jest.fn(),
+  delete: jest.fn(),
+  invalidate: jest.fn(),
+  invalidateForRole: jest.fn()
+} as any;
 
 describe('RBAC Integration Tests', () => {
   let app: express.Application;
@@ -48,9 +66,8 @@ describe('RBAC Integration Tests', () => {
 
     // Create services
     permissionService = new PermissionService(
-      mockUserRepository as any,
-      mockCacheService,
-      mockLogger
+      mockPermissionRepository as any,
+      mockCacheService
     );
 
     authMiddleware = new AuthenticationMiddleware(
@@ -153,7 +170,7 @@ describe('RBAC Integration Tests', () => {
         user_metadata: { roles: ['patient'] }
       });
 
-      mockUserRepository.getUserPermissions.mockResolvedValue(['own_data:read']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['own_data:read']);
 
       const response = await request(app)
         .get('/protected')
@@ -175,7 +192,7 @@ describe('RBAC Integration Tests', () => {
     });
 
     it('should allow admin access to admin endpoint', async () => {
-      mockUserRepository.getUserPermissions.mockResolvedValue(['*']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['*']);
 
       const response = await request(app)
         .get('/admin')
@@ -186,7 +203,7 @@ describe('RBAC Integration Tests', () => {
     });
 
     it('should deny non-admin access to admin endpoint', async () => {
-      mockUserRepository.getUserPermissions.mockResolvedValue(['patients:read']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['patients:read']);
 
       const response = await request(app)
         .get('/admin')
@@ -197,7 +214,7 @@ describe('RBAC Integration Tests', () => {
     });
 
     it('should allow access with specific permission', async () => {
-      mockUserRepository.getUserPermissions.mockResolvedValue(['patients:read']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['patients:read']);
 
       const response = await request(app)
         .get('/patients')
@@ -208,7 +225,7 @@ describe('RBAC Integration Tests', () => {
     });
 
     it('should deny access without required permission', async () => {
-      mockUserRepository.getUserPermissions.mockResolvedValue(['appointments:read']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['appointments:read']);
 
       const response = await request(app)
         .get('/patients')
@@ -225,7 +242,7 @@ describe('RBAC Integration Tests', () => {
         user_metadata: { roles: ['patient'] }
       });
 
-      mockUserRepository.getUserPermissions.mockResolvedValue(['users:read']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['users:read']);
 
       const response = await request(app)
         .get('/users/user-123')
@@ -242,7 +259,7 @@ describe('RBAC Integration Tests', () => {
         user_metadata: { roles: ['patient'] }
       });
 
-      mockUserRepository.getUserPermissions.mockResolvedValue(['users:read']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['users:read']);
 
       const response = await request(app)
         .get('/users/user-456')
@@ -259,7 +276,7 @@ describe('RBAC Integration Tests', () => {
         user_metadata: { roles: ['admin'] }
       });
 
-      mockUserRepository.getUserPermissions.mockResolvedValue(['*']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['*']);
 
       const response = await request(app)
         .get('/users/user-456')
@@ -280,7 +297,7 @@ describe('RBAC Integration Tests', () => {
     });
 
     it('should match wildcard permission', async () => {
-      mockUserRepository.getUserPermissions.mockResolvedValue(['*']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['*']);
 
       const response = await request(app)
         .get('/patients')
@@ -291,7 +308,7 @@ describe('RBAC Integration Tests', () => {
     });
 
     it('should match resource wildcard', async () => {
-      mockUserRepository.getUserPermissions.mockResolvedValue(['patients:*']);
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(['patients:*']);
 
       const response = await request(app)
         .get('/patients')

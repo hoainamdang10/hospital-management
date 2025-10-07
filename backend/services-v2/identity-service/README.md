@@ -177,6 +177,17 @@ ALLOWED_ORIGINS=http://localhost:3000
 - **MOH Compliance**: Ministry of Health reporting standards
 - **Vietnamese ID**: Citizen ID validation và verification
 
+### Healthcare Roles (5 Core Roles)
+System hỗ trợ 5 roles chính:
+1. **ADMIN** - System administrator (includes billing management)
+2. **DOCTOR** - Medical doctor (includes pharmacy orders & lab orders)
+3. **NURSE** - Registered nurse (includes pharmacy dispensing & lab specimen collection)
+4. **RECEPTIONIST** - Front desk (includes billing & payment processing)
+5. **PATIENT** - Patient user
+
+**Staff Roles** (4 roles): ADMIN, DOCTOR, NURSE, RECEPTIONIST
+**Patient Role** (1 role): PATIENT (self-registration only)
+
 ### Security Headers
 - Content Security Policy
 - X-Frame-Options
@@ -336,25 +347,28 @@ curl -X POST http://localhost:3021/auth/logout \
 
 ### User Management Endpoints
 
-#### GET /users/:id
-Get user profile by ID (requires `users:read` permission).
+#### GET /api/v1/users/:userId
+Get user profile by ID (requires `users:read` permission or ownership).
 
-#### PUT /users/:id
-Update user profile (requires `users:write` permission).
+#### PATCH /api/v1/users/:userId
+Update user profile (requires `users:update` permission or ownership).
 
-#### DELETE /users/:id
-Delete user (requires `users:delete` permission).
+#### DELETE /api/v1/users/:userId
+Delete user (requires admin permission).
 
-#### GET /users
-List all users (requires `users:read` permission).
+#### GET /api/v1/users
+List all users (requires admin permission).
 
 ### RBAC Endpoints
 
-#### GET /permissions/:userId
-Get user permissions (cached for 5 minutes).
+#### GET /api/v1/permissions/:userId
+Get user permissions (cached for 5 minutes). Users can check their own permissions, admins can check anyone's.
 
-#### POST /roles/:roleId/permissions
-Update role permissions (requires `roles:write` permission).
+#### POST /admin/permissions/invalidate/:userId
+Invalidate user permission cache (requires admin permission).
+
+#### POST /admin/permissions/invalidate-role/:roleType
+Invalidate permission cache for all users with a specific role (requires admin permission).
 
 ### Monitoring Endpoints
 

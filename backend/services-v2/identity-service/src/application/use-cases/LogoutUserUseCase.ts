@@ -11,6 +11,8 @@ import { IUseCase } from '@shared/application/use-cases/base/use-case.interface'
 import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
+import { UserLoggedOutEvent } from '../../domain/events/UserLoggedOutEvent';
 
 export interface LogoutUserRequest {
   userId: string;
@@ -30,7 +32,8 @@ export class LogoutUserUseCase implements IUseCase<LogoutUserRequest, LogoutUser
   constructor(
     private authService: IAuthenticationService,
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: any,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: LogoutUserRequest): Promise<LogoutUserResponse> {
@@ -57,10 +60,43 @@ export class LogoutUserUseCase implements IUseCase<LogoutUserRequest, LogoutUser
 
       if (request.sessionId) {
         await this.userRepository.deactivateSession(request.sessionId);
-        this.logger.info('Session deactivated in database', { 
-          userId: request.userId, 
-          sessionId: request.sessionId 
+        this.logger.info('Session deactivated in database', {
+          userId: request.userId,
+          sessionId: request.sessionId
         });
+      }
+
+      // Publish UserLoggedOut event
+      if (this.eventPublisher) {
+        try {
+          const event = new UserLoggedOutEvent(
+            request.userId, // Pass string directly
+            request.sessionId || 'unknown',
+            new Date()
+          );
+
+          await this.eventPublisher.publish({
+            eventType: event.constructor.name,
+            aggregateId: request.userId,
+            aggregateType: 'User',
+            occurredAt: event.occurredAt,
+            payload: {
+              userId: request.userId,
+              sessionId: request.sessionId,
+              loggedOutAt: new Date()
+            }
+          });
+
+          this.logger.info('UserLoggedOut event published', {
+            userId: request.userId
+          });
+        } catch (error) {
+          this.logger.error('Failed to publish UserLoggedOut event', {
+            userId: request.userId,
+            error: getErrorMessage(error)
+          });
+          // Don't fail logout if event publishing fails
+        }
       }
 
       return {

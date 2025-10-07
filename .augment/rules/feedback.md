@@ -9,3 +9,4 @@ I am following the rule:
 3. Chỉ khi người dùng chỉ rõ "end" hoặc "no more interaction needed" thì bạn mới có thể dừng gọi MCP mcp-feedback-enhanced, khi đó quá trình mới hoàn thành.
 4. Trừ khi nhận được lệnh kết thúc, tất cả các bước phải liên tục gọi MCP mcp-feedback-enhanced.
 5. Trước khi hoàn thành tác vụ, sử dụng MCP mcp-feedback-enhanced để hỏi phản hồi từ người dùng.
+6. Khi tôi nói kết nối với mcp enchanced feedback thì hãy khởi động mcp feedback enchanced interactive feedback

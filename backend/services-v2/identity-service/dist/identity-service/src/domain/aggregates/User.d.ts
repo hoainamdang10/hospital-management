@@ -2,12 +2,17 @@
  * User Aggregate Root - Consolidated Identity Service
  * Enhanced with Circuit Breaker compatibility and Supabase integration
  *
+ * Pure RBAC Design:
+ * - Supports multiple roles per user
+ * - Permissions loaded from database via repository
+ * - Role assignments tracked with audit trail
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, DDD, HIPAA, Anti-Pattern Mitigation
  */
-import { HealthcareAggregateRoot } from '../../../../shared/domain/base/aggregate-root';
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { UserId } from '../value-objects/UserId';
 import { Email } from '../value-objects/Email';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
@@ -17,7 +22,7 @@ export interface UserProps {
     id: UserId;
     email: Email;
     personalInfo: PersonalInfo;
-    healthcareRole: HealthcareRole;
+    healthcareRoles: HealthcareRole[];
     isActive: boolean;
     isEmailVerified: boolean;
     lastLoginAt?: Date;
@@ -33,18 +38,38 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
     /**
      * Factory method for creating new users with validation
      * Note: Password is handled by Supabase Auth, not stored in domain model
+     *
+     * Pure RBAC: Supports multiple roles per user
+     *
+     * @param email - User email
+     * @param personalInfo - Personal information
+     * @param healthcareRoles - Array of healthcare roles (at least one required)
+     * @returns User instance
      */
-    static create(email: Email, personalInfo: PersonalInfo, healthcareRole: HealthcareRole): User;
+    static create(email: Email, personalInfo: PersonalInfo, healthcareRoles: HealthcareRole[]): User;
     /**
      * Factory method for reconstituting from persistence
      * Used by infrastructure layer to rebuild domain object from database
      * This is a valid use case in Clean Architecture - domain provides factory for reconstitution
+     *
+     * Pure RBAC: Supports multiple roles per user
      */
-    static reconstitute(id: string, email: Email, personalInfo: PersonalInfo, healthcareRole: HealthcareRole, isActive: boolean, isEmailVerified: boolean, lastLoginAt: Date | undefined, createdAt: Date, updatedAt: Date): User;
+    static reconstitute(id: string, email: Email, personalInfo: PersonalInfo, healthcareRoles: HealthcareRole[], isActive: boolean, isEmailVerified: boolean, lastLoginAt: Date | undefined, createdAt: Date, updatedAt: Date): User;
     get id(): string;
     get userId(): UserId;
     get email(): Email;
     get personalInfo(): PersonalInfo;
+    /**
+     * Get all healthcare roles for this user
+     * Pure RBAC: Returns array of roles
+     */
+    get healthcareRoles(): HealthcareRole[];
+    /**
+     * Get primary healthcare role (first role in array)
+     * For backward compatibility with code expecting single role
+     *
+     * @deprecated Use healthcareRoles instead for Pure RBAC
+     */
     get healthcareRole(): HealthcareRole;
     get isActive(): boolean;
     get isEmailVerified(): boolean;
@@ -55,9 +80,30 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      */
     recordAuthentication(ipAddress: string, userAgent: string): UserSession;
     /**
+     * Add a role to user
+     * Pure RBAC: Supports multiple roles per user
+     */
+    addRole(newRole: HealthcareRole, assignedBy: UserId): void;
+    /**
+     * Remove a role from user
+     * Pure RBAC: User must have at least one role
+     */
+    removeRole(roleType: string, removedBy: UserId): void;
+    /**
      * Change role with audit trail
+     *
+     * @deprecated Use addRole() and removeRole() instead for Pure RBAC
+     * This method is kept for backward compatibility
      */
     changeRole(newRole: HealthcareRole, changedBy: UserId): void;
+    /**
+     * Check if user has a specific role
+     */
+    hasRole(roleType: string): boolean;
+    /**
+     * Get role types as string array
+     */
+    getRoleTypes(): string[];
     /**
      * Update personal info with validation
      */
@@ -84,6 +130,14 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
     isHIPAACompliant(): boolean;
     /**
      * Permission checks with fallback
+     */
+    /**
+     * Check if user can perform action on resource
+     *
+     * @deprecated This method is deprecated in Pure RBAC implementation.
+     * Use PermissionService.hasPermission() instead which queries database.
+     *
+     * This method is kept for backward compatibility but always returns false.
      */
     canPerformAction(action: string, resource: string): boolean;
     /**

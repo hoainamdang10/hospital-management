@@ -1,21 +1,55 @@
 /**
  * Permission Middleware
  * Express middleware for RBAC permission checking
- * 
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, RBAC, HIPAA
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { 
-  IPermissionService, 
-  Permission, 
-  ResourceType, 
-  Action,
-  buildPermission
-} from '../../application/services/IPermissionService';
+import { IPermissionService } from '../../domain/services/IPermissionService';
+import { UserId } from '../../domain/value-objects/UserId';
 import { getErrorMessage } from '../../utils/error-helper';
+
+/**
+ * Permission format: "resource:action"
+ * Examples: "patients:read", "appointments:write", "*" (admin)
+ */
+export type Permission = string;
+
+/**
+ * Resource types in the system
+ */
+export enum ResourceType {
+  PATIENTS = 'patients',
+  APPOINTMENTS = 'appointments',
+  MEDICAL_RECORDS = 'medical_records',
+  PRESCRIPTIONS = 'prescriptions',
+  USERS = 'users',
+  ROLES = 'roles',
+  SYSTEM = 'system'
+}
+
+/**
+ * Action types
+ */
+export enum Action {
+  CREATE = 'create',
+  READ = 'read',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  WRITE = 'write',
+  MANAGE = 'manage',
+  ADMIN = 'admin'
+}
+
+/**
+ * Helper to build permission string
+ */
+export function buildPermission(resource: ResourceType, action: Action): Permission {
+  return `${resource}:${action}`;
+}
 
 /**
  * Extended Request with user info
@@ -90,7 +124,8 @@ export class PermissionMiddleware {
           return;
         }
 
-        const userId = req.user.userId;
+        // Convert string userId to UserId value object
+        const userId = UserId.fromString(req.user.userId);
 
         // Build permissions to check
         let permissionsToCheck: Permission[] = [];
@@ -125,7 +160,7 @@ export class PermissionMiddleware {
 
         if (!hasPermission) {
           this.logger.warn('Permission denied', {
-            userId,
+            userId: userId.value,
             requiredPermissions: permissionsToCheck,
             userPermissions: req.user.permissions,
             path: req.path,
@@ -144,21 +179,18 @@ export class PermissionMiddleware {
         // Check resource ownership if required
         if (options.checkOwnership && options.getResourceOwnerId) {
           const resourceOwnerId = options.getResourceOwnerId(req);
-          
-          if (resourceOwnerId && resourceOwnerId !== userId) {
+
+          if (resourceOwnerId && resourceOwnerId !== req.user.userId) {
             // Check if user has permission to access others' resources
-            const canAccessOthers = await this.permissionService.hasPermission(
+            const canAccessOthers = await this.permissionService.checkPermissionWithOwnership(
               userId,
               permissionsToCheck[0], // Use first permission for ownership check
-              {
-                userId,
-                resourceOwnerId
-              }
+              resourceOwnerId
             );
 
             if (!canAccessOthers) {
               this.logger.warn('Resource ownership check failed', {
-                userId,
+                userId: userId.value,
                 resourceOwnerId,
                 path: req.path
               });

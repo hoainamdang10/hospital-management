@@ -3,6 +3,12 @@
  * Wraps Supabase Auth API for domain use
  * Implements IAuthenticationService interface from application layer
  *
+ * Pure RBAC Note:
+ * - This service returns single role from user_metadata for backward compatibility
+ * - Full roles array is loaded by UserRepository from user_roles table
+ * - Permissions are loaded by PermissionRepository
+ * - Use AuthenticateUserUseCase which orchestrates both auth and role loading
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
@@ -17,13 +23,29 @@ export { IAuthenticationService, AuthResult, UserCredentials, TokenPayload, User
 export declare class SupabaseAuthService implements IAuthenticationService {
     private logger;
     private supabaseClient;
-    constructor(supabaseUrl: string, supabaseKey: string, logger: any);
+    private defaultUserRole;
+    constructor(supabaseUrl: string, supabaseKey: string, logger: any, defaultUserRole?: string);
     /**
-     * Sign up new user with Supabase Auth
-     * This will automatically create auth.users record with encrypted_password
-     * Trigger will auto-create user_profiles record
+     * @deprecated This method is DISABLED and will be removed in v3.0.0
+     *
+     * ❌ DO NOT USE THIS METHOD
+     *
+     * REASON: This method relied on database triggers to create user_profiles,
+     * which violates Clean Architecture principles. The triggers have been
+     * removed from the system.
+     *
+     * ✅ USE INSTEAD: RegisterUserUseCase
+     *
+     * MIGRATION PATH:
+     * 1. Use RegisterUserUseCase which explicitly creates both auth.users
+     *    and user_profiles records in a controlled manner
+     * 2. See SupabaseUserRepository.createAuthUser() for implementation
+     *
+     * @see RegisterUserUseCase for the correct implementation
+     * @see SupabaseUserRepository.createAuthUser() for explicit user creation
+     * @throws Error Always throws error directing to use RegisterUserUseCase
      */
-    signUp(data: UserRegistrationData): Promise<AuthResult>;
+    signUp(_data: UserRegistrationData): Promise<AuthResult>;
     /**
      * Sign in user with Supabase Auth
      * Password verification is handled by Supabase

@@ -371,7 +371,11 @@ describe('SupabaseUserRepository.getUserRoles', () => {
     const { repo, cache } = makeRepo();
 
     (cache.get as jest.Mock).mockResolvedValueOnce(null);
-    fromMock.single.mockResolvedValueOnce({ data: { role_type: 'NURSE' }, error: null });
+    // Mock the chain: from('user_roles').select('role_name').eq('user_id', id)
+    fromMock.eq.mockResolvedValueOnce({
+      data: [{ role_name: 'NURSE' }],
+      error: null
+    });
 
     const roles = await repo.getUserRoles(UserId.fromString('u17'));
 
@@ -383,7 +387,11 @@ describe('SupabaseUserRepository.getUserRoles', () => {
     const { repo, cache } = makeRepo();
 
     (cache.get as jest.Mock).mockResolvedValueOnce(null);
-    fromMock.single.mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } });
+    // Mock the chain: from('user_roles').select('role_name').eq('user_id', id)
+    fromMock.eq.mockResolvedValueOnce({
+      data: [],
+      error: null
+    });
 
     const roles = await repo.getUserRoles(UserId.fromString('u18'));
 
@@ -394,7 +402,11 @@ describe('SupabaseUserRepository.getUserRoles', () => {
     const { repo, cache } = makeRepo();
 
     (cache.get as jest.Mock).mockResolvedValueOnce(null);
-    fromMock.single.mockResolvedValueOnce({ data: null, error: { code: 'XX', message: 'DB error' } });
+    // Mock the chain: from('user_roles').select('role_name').eq('user_id', id)
+    fromMock.eq.mockResolvedValueOnce({
+      data: null,
+      error: { code: 'XX', message: 'DB error' }
+    });
 
     const roles = await repo.getUserRoles(UserId.fromString('u19'));
 
@@ -568,8 +580,8 @@ describe('SupabaseUserRepository.checkAccountLockout', () => {
     const now = new Date();
     const attempts = Array(5).fill(null).map((_, i) => ({
       email: 'locked@example.com',
-      is_successful: false,
-      created_at: new Date(now.getTime() - (i * 60000)).toISOString()
+      success: false, // Changed from is_successful to success
+      attempted_at: new Date(now.getTime() - (i * 60000)).toISOString() // Changed from created_at to attempted_at
     }));
 
     fromMock.gte = jest.fn().mockReturnThis();
@@ -588,8 +600,8 @@ describe('SupabaseUserRepository.checkAccountLockout', () => {
     const oldAttempt = new Date(Date.now() - 40 * 60 * 1000); // 40 minutes ago
     const attempts = Array(5).fill(null).map(() => ({
       email: 'expired@example.com',
-      is_successful: false,
-      created_at: oldAttempt.toISOString()
+      success: false, // Changed from is_successful to success
+      attempted_at: oldAttempt.toISOString() // Changed from created_at to attempted_at
     }));
 
     fromMock.gte = jest.fn().mockReturnThis();
@@ -631,7 +643,7 @@ describe('SupabaseUserRepository.recordLoginAttempt', () => {
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('login_attempts');
     expect(fromMock.insert).toHaveBeenCalledWith(expect.objectContaining({
       email: 'success@example.com',
-      is_successful: true,
+      success: true, // Changed from is_successful to success
       ip_address: '192.168.1.1'
     }));
   });
@@ -651,8 +663,8 @@ describe('SupabaseUserRepository.recordLoginAttempt', () => {
 
     expect(fromMock.insert).toHaveBeenCalledWith(expect.objectContaining({
       email: 'failed@example.com',
-      is_successful: false,
-      error_message: 'Invalid password'
+      success: false, // Changed from is_successful to success
+      failure_reason: 'Invalid password' // Changed from error_message to failure_reason
     }));
   });
 
@@ -671,7 +683,7 @@ describe('SupabaseUserRepository.unlockAccount', () => {
   it('should unlock account successfully', async () => {
     const { repo } = makeRepo();
 
-    // Mock the chain: from().delete().eq('email', ...).eq('is_successful', false)
+    // Mock the chain: from().delete().eq('email', ...).eq('success', false)
     // First .eq() returns this, second .eq() returns promise
     fromMock.eq
       .mockReturnValueOnce(fromMock) // First .eq() returns this for chaining
