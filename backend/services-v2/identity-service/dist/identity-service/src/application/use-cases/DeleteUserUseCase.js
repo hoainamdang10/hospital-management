@@ -10,7 +10,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeleteUserUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const error_helper_1 = require("../../utils/error-helper");
 /**
  * Delete User Use Case
@@ -20,10 +19,10 @@ const error_helper_1 = require("../../utils/error-helper");
  * Hard delete: Only for admin with explicit flag
  */
 class DeleteUserUseCase {
-    constructor(userRepository, logger) {
+    constructor(userRepository, logger, circuitBreaker) {
         this.userRepository = userRepository;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('delete-user-use-case');
+        this.circuitBreaker = circuitBreaker;
     }
     async execute(request) {
         try {

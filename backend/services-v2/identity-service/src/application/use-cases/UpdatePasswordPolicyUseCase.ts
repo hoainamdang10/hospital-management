@@ -8,6 +8,8 @@
 
 import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPolicyRepository';
 import { PasswordPolicy, PasswordPolicyProps } from '../../domain/value-objects/PasswordPolicy';
+import { ILogger } from '../services/ILogger';
+import { getErrorMessage } from '../utils/error-utils';
 
 export interface UpdatePasswordPolicyRequest {
   minLength: number;
@@ -29,7 +31,7 @@ export interface UpdatePasswordPolicyResponse {
 export class UpdatePasswordPolicyUseCase {
   constructor(
     private readonly policyRepository: IPasswordPolicyRepository,
-    private readonly logger: any
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: UpdatePasswordPolicyRequest): Promise<UpdatePasswordPolicyResponse> {
@@ -62,9 +64,9 @@ export class UpdatePasswordPolicyUseCase {
         policy: updatedPolicy.toObject(),
         message: 'Chính sách mật khẩu đã được cập nhật thành công'
       };
-    } catch (error: any) {
-      this.logger.error('Error updating password policy:', error);
-      throw new Error(`Failed to update password policy: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error('Error updating password policy:', error instanceof Error ? error : new Error(String(error)));
+      throw new Error(`Failed to update password policy: ${getErrorMessage(error)}`);
     }
   }
 }

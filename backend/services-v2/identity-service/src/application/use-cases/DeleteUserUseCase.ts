@@ -10,8 +10,9 @@
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { UserId } from '../../domain/value-objects/UserId';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../services/ILogger';
 
 export interface DeleteUserRequest {
   userId: string;
@@ -35,11 +36,10 @@ export interface DeleteUserResponse {
  * Hard delete: Only for admin with explicit flag
  */
 export class DeleteUserUseCase implements IUseCase<DeleteUserRequest, DeleteUserResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('delete-user-use-case');
-
   constructor(
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: DeleteUserRequest): Promise<DeleteUserResponse> {
@@ -164,4 +164,3 @@ export class DeleteUserUseCase implements IUseCase<DeleteUserRequest, DeleteUser
     }
   }
 }
-

@@ -2,9 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegisterUserUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const Email_1 = require("../../domain/value-objects/Email");
-const DomainEventMapper_1 = require("../../infrastructure/events/DomainEventMapper");
 /**
  * Register User Use Case
  * Flow: Explicit user creation via Repository (NO trigger dependency)
@@ -14,13 +12,13 @@ const DomainEventMapper_1 = require("../../infrastructure/events/DomainEventMapp
  * and Clean Architecture compliance.
  */
 class RegisterUserUseCase {
-    constructor(userRepository, permissionRepository, logger, eventPublisher // Optional for backward compatibility
+    constructor(userRepository, permissionRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
     ) {
         this.userRepository = userRepository;
         this.permissionRepository = permissionRepository;
         this.logger = logger;
+        this.circuitBreaker = circuitBreaker;
         this.eventPublisher = eventPublisher;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('register-user-use-case');
         this.validRolesCache = null;
         this.validRolesCacheTime = 0;
         this.CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -86,8 +84,7 @@ class RegisterUserUseCase {
             if (this.eventPublisher) {
                 try {
                     const domainEvents = user.getUncommittedEvents();
-                    const rabbitMQEvents = DomainEventMapper_1.DomainEventMapper.toRabbitMQEvents(domainEvents);
-                    await this.eventPublisher.publishBatch(rabbitMQEvents);
+                    await this.eventPublisher.publishDomainEvents(domainEvents);
                     user.markEventsAsCommitted();
                     this.logger.info('Domain events published', {
                         userId: user.id,
@@ -118,7 +115,7 @@ class RegisterUserUseCase {
             });
             return {
                 success: false,
-                message: `Đăng ký thất bại: ${(0, error_helper_1.getErrorMessage)(error)}`,
+                message: 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.',
                 error: 'REGISTRATION_FAILED'
             };
         }
@@ -141,9 +138,9 @@ class RegisterUserUseCase {
             return this.validRolesCache;
         }
         catch (error) {
-            this.logger.error('Failed to get valid roles from database', error);
-            // Fallback to hardcoded roles if database query fails
-            return ['admin', 'doctor', 'nurse', 'patient', 'receptionist', 'pharmacist', 'lab_technician', 'billing_staff'];
+            this.logger.error('Failed to get valid roles from database', error instanceof Error ? error : new Error(String(error)));
+            // Fallback to hardcoded 5 core roles if database query fails
+            return ['admin', 'doctor', 'nurse', 'receptionist', 'patient'];
         }
     }
     async validateRequest(request) {

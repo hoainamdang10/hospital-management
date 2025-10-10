@@ -239,7 +239,11 @@ class SupabaseAuthClient {
             if (error || !data.user) {
                 return null;
             }
-            return data.user;
+            return {
+                id: data.user.id,
+                email: data.user.email ?? null,
+                user_metadata: data.user.user_metadata
+            };
         }
         catch (error) {
             this.logger.error('Token verification error', {

@@ -8,6 +8,11 @@
  * @compliance Clean Architecture, DDD, HIPAA
  */
 /**
+ * Logger metadata type
+ * Can contain any serializable data for logging context
+ */
+export type LogMetadata = Record<string, unknown> | Error;
+/**
  * Logger Interface
  * Abstracts logging implementation from application logic
  */
@@ -17,30 +22,30 @@ export interface ILogger {
      * @param message Log message
      * @param meta Optional metadata
      */
-    debug(message: string, meta?: any): void;
+    debug(message: string, meta?: LogMetadata): void;
     /**
      * Log info message
      * @param message Log message
      * @param meta Optional metadata
      */
-    info(message: string, meta?: any): void;
+    info(message: string, meta?: LogMetadata): void;
     /**
      * Log warning message
      * @param message Log message
      * @param meta Optional metadata
      */
-    warn(message: string, meta?: any): void;
+    warn(message: string, meta?: LogMetadata): void;
     /**
      * Log error message
      * @param message Log message
      * @param meta Optional metadata
      */
-    error(message: string, meta?: any): void;
+    error(message: string, meta?: LogMetadata): void;
     /**
      * Log fatal error message
      * @param message Log message
      * @param meta Optional metadata
      */
-    fatal(message: string, meta?: any): void;
+    fatal(message: string, meta?: LogMetadata): void;
 }
 //# sourceMappingURL=ILogger.d.ts.map

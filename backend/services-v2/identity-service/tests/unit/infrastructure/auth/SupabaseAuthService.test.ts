@@ -13,6 +13,9 @@ const mockAuth = {
   refreshSession: jest.fn(),
   getUser: jest.fn(),
   resend: jest.fn(),
+  admin: {
+    updateUserById: jest.fn(),
+  },
 };
 
 // Create chainable mock for from()
@@ -230,85 +233,30 @@ describe('SupabaseAuthService.resetPassword', () => {
 });
 
 describe('SupabaseAuthService.updatePassword', () => {
-  it('thành công: update password với current password', async () => {
+  it('thành công: update password', async () => {
     const { svc } = makeService();
 
-    // Ensure supabaseClient.from is properly mocked
-    (svc as any).supabaseClient.from = jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: { email: 'test@example.com' }, error: null }),
-    }));
-
-    mockAuth.signInWithPassword.mockResolvedValue({
-      data: {
-        user: { id: 'u1', email: 'test@example.com' },
-        session: { access_token: 'at', refresh_token: 'rt' },
-      },
+    mockAuth.admin.updateUserById.mockResolvedValue({
+      data: { user: { id: 'user-id-123' } },
       error: null,
     });
-    mockAuth.setSession.mockResolvedValue({ error: null });
-    mockAuth.updateUser.mockResolvedValue({ error: null });
 
-    await expect(svc.updatePassword('user-id-123', 'OldPass123!', 'NewPass123!')).resolves.toBeUndefined();
-    expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({ email: 'test@example.com', password: 'OldPass123!' });
-    expect(mockAuth.updateUser).toHaveBeenCalledWith({ password: 'NewPass123!' });
+    await expect(svc.updatePassword('user-id-123', 'NewPass123!')).resolves.toBeUndefined();
+    expect(mockAuth.admin.updateUserById).toHaveBeenCalledWith('user-id-123', { password: 'NewPass123!' });
   });
 
-  it('ném lỗi khi current password sai', async () => {
+  it('ném lỗi khi update password fails', async () => {
     const { svc } = makeService();
 
-    // Ensure supabaseClient.from is properly mocked
-    (svc as any).supabaseClient.from = jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: { email: 'test@example.com' }, error: null }),
-    }));
-
-    mockAuth.signInWithPassword.mockResolvedValue({
-      data: { user: null, session: null },
-      error: { message: 'Invalid credentials' },
+    mockAuth.admin.updateUserById.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Update failed' },
     });
 
-    await expect(svc.updatePassword('user-id-123', 'WrongPass', 'NewPass123!')).rejects.toThrow(/Current password is incorrect/);
+    await expect(svc.updatePassword('user-id-123', 'NewPass123!')).rejects.toThrow(/Cập nhật mật khẩu thất bại/);
   });
 
-  it('ném lỗi khi setSession thất bại', async () => {
-    const { svc } = makeService();
-
-    // Ensure supabaseClient.from is properly mocked
-    (svc as any).supabaseClient.from = jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: { email: 'test@example.com' }, error: null }),
-    }));
-
-    mockAuth.signInWithPassword.mockResolvedValue({
-      data: {
-        user: { id: 'u1', email: 'test@example.com' },
-        session: { access_token: 'at', refresh_token: 'rt' },
-      },
-      error: null,
-    });
-    mockAuth.setSession.mockResolvedValue({ error: { message: 'Session error' } });
-
-    await expect(svc.updatePassword('user-id-123', 'OldPass123!', 'NewPass123!')).rejects.toThrow(/Set session failed/);
-  });
-
-  it('ném lỗi khi updateUser thất bại', async () => {
-    const { svc } = makeService();
-    mockAuth.signInWithPassword.mockResolvedValue({
-      data: {
-        user: { id: 'u1', email: 'test@example.com' },
-        session: { access_token: 'at', refresh_token: 'rt' },
-      },
-      error: null,
-    });
-    mockAuth.setSession.mockResolvedValue({ error: null });
-    mockAuth.updateUser.mockResolvedValue({ error: { message: 'Password too weak' } });
-
-    await expect(svc.updatePassword('test@example.com', 'OldPass123!', 'NewPass123!')).rejects.toThrow();
-  });
+  // Removed obsolete tests - updatePassword now uses admin API directly
 });
 
 describe('SupabaseAuthService.verifyEmail', () => {

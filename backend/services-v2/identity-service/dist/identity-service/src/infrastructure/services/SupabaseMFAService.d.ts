@@ -8,6 +8,7 @@
  */
 import { IMFAService, MFAMethod, MFASetupResult, MFASettings } from '../../application/services/IMFAService';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { ILogger } from '../../application/services/ILogger';
 /**
  * Supabase MFA Service
  * Implements MFA operations using Supabase backend
@@ -15,7 +16,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 export declare class SupabaseMFAService implements IMFAService {
     private supabaseClient;
     private logger;
-    constructor(supabaseClient: SupabaseClient, logger: any);
+    constructor(supabaseClient: SupabaseClient, logger: ILogger);
     /**
      * Enable MFA for user
      */
@@ -62,6 +63,7 @@ export declare class SupabaseMFAService implements IMFAService {
     clearFailedAttempts(userId: string, attemptType: string): Promise<void>;
     /**
      * Generate TOTP secret (Base32 encoded)
+     * Uses crypto.randomBytes for cryptographically secure random generation
      */
     private generateSecret;
     /**
@@ -70,6 +72,7 @@ export declare class SupabaseMFAService implements IMFAService {
     private generateQRCodeURL;
     /**
      * Generate backup codes locally (fallback)
+     * Uses crypto.randomBytes for cryptographically secure random generation
      */
     private generateBackupCodesLocally;
     /**

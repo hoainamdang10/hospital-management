@@ -10,7 +10,7 @@
  * @author Hospital Management Team
  * @version 3.0.0 - Pure RBAC
  */
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from '../../../../shared/domain/base/entity';
 /**
  * Healthcare Role Types - Simplified for Graduation Project
  *
@@ -34,6 +34,20 @@ interface HealthcareRoleProps {
     description: string;
     isActive: boolean;
     hasHIPAATraining: boolean;
+}
+/**
+ * Healthcare Role Persistence Format
+ */
+export interface HealthcareRolePersistenceProps {
+    id: string;
+    type: HealthcareRoleType;
+    name: string;
+    name_vietnamese: string;
+    description: string;
+    is_active: boolean;
+    has_hipaa_training: boolean;
+    created_at: Date;
+    updated_at: Date;
 }
 export declare class HealthcareRole extends Entity<HealthcareRoleProps> {
     private constructor();
@@ -80,7 +94,7 @@ export declare class HealthcareRole extends Entity<HealthcareRoleProps> {
     /**
      * Convert entity to persistence format - required by Entity base class
      */
-    toPersistence(): any;
+    toPersistence(): HealthcareRolePersistenceProps;
 }
 export {};
 //# sourceMappingURL=HealthcareRole.d.ts.map

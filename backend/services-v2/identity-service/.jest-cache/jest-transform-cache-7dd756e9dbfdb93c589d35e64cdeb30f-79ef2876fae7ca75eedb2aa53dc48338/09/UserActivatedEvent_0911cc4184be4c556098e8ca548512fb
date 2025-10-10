@@ -1,0 +1,37 @@
+a37c7f91b8a4017defee4f95bcfae58b
+"use strict";
+/**
+ * User Activated Event
+ * Triggered when a user's email is verified and account is activated
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserActivatedEvent = void 0;
+const domain_event_1 = require("@shared/domain/base/domain-event");
+class UserActivatedEvent extends domain_event_1.DomainEvent {
+    constructor(userIdValue, // Changed from UserId to string
+    emailValue, // Changed from Email to string
+    activatedAt) {
+        super('UserActivated', userIdValue, 'User', { userIdValue, emailValue, activatedAt });
+        this.userIdValue = userIdValue;
+        this.emailValue = emailValue;
+        this.activatedAt = activatedAt;
+    }
+    getEventData() {
+        return {
+            userId: this.userIdValue,
+            email: this.emailValue,
+            activatedAt: this.activatedAt
+        };
+    }
+    containsPHI() {
+        return true; // Email is considered PII
+    }
+    getPatientId() {
+        return null; // Not necessarily a patient
+    }
+}
+exports.UserActivatedEvent = UserActivatedEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGRvbWFpblxcZXZlbnRzXFxVc2VyQWN0aXZhdGVkRXZlbnQudHMiLCJtYXBwaW5ncyI6IjtBQUFBOzs7Ozs7R0FNRzs7O0FBRUgsbUVBQStEO0FBRS9ELE1BQWEsa0JBQW1CLFNBQVEsMEJBQVc7SUFDakQsWUFDa0IsV0FBbUIsRUFBRSxnQ0FBZ0M7SUFDckQsVUFBa0IsRUFBRSwrQkFBK0I7SUFDbkQsV0FBaUI7UUFFakMsS0FBSyxDQUNILGVBQWUsRUFDZixXQUFXLEVBQ1gsTUFBTSxFQUNOLEVBQUUsV0FBVyxFQUFFLFVBQVUsRUFBRSxXQUFXLEVBQUUsQ0FDekMsQ0FBQztRQVRjLGdCQUFXLEdBQVgsV0FBVyxDQUFRO1FBQ25CLGVBQVUsR0FBVixVQUFVLENBQVE7UUFDbEIsZ0JBQVcsR0FBWCxXQUFXLENBQU07SUFRbkMsQ0FBQztJQUVELFlBQVk7UUFDVixPQUFPO1lBQ0wsTUFBTSxFQUFFLElBQUksQ0FBQyxXQUFXO1lBQ3hCLEtBQUssRUFBRSxJQUFJLENBQUMsVUFBVTtZQUN0QixXQUFXLEVBQUUsSUFBSSxDQUFDLFdBQVc7U0FDOUIsQ0FBQztJQUNKLENBQUM7SUFFRCxXQUFXO1FBQ1QsT0FBTyxJQUFJLENBQUMsQ0FBQywwQkFBMEI7SUFDekMsQ0FBQztJQUVELFlBQVk7UUFDVixPQUFPLElBQUksQ0FBQyxDQUFDLDRCQUE0QjtJQUMzQyxDQUFDO0NBQ0Y7QUE3QkQsZ0RBNkJDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxkb21haW5cXGV2ZW50c1xcVXNlckFjdGl2YXRlZEV2ZW50LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogVXNlciBBY3RpdmF0ZWQgRXZlbnRcbiAqIFRyaWdnZXJlZCB3aGVuIGEgdXNlcidzIGVtYWlsIGlzIHZlcmlmaWVkIGFuZCBhY2NvdW50IGlzIGFjdGl2YXRlZFxuICpcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICovXG5cbmltcG9ydCB7IERvbWFpbkV2ZW50IH0gZnJvbSAnQHNoYXJlZC9kb21haW4vYmFzZS9kb21haW4tZXZlbnQnO1xuXG5leHBvcnQgY2xhc3MgVXNlckFjdGl2YXRlZEV2ZW50IGV4dGVuZHMgRG9tYWluRXZlbnQge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwdWJsaWMgcmVhZG9ubHkgdXNlcklkVmFsdWU6IHN0cmluZywgLy8gQ2hhbmdlZCBmcm9tIFVzZXJJZCB0byBzdHJpbmdcbiAgICBwdWJsaWMgcmVhZG9ubHkgZW1haWxWYWx1ZTogc3RyaW5nLCAvLyBDaGFuZ2VkIGZyb20gRW1haWwgdG8gc3RyaW5nXG4gICAgcHVibGljIHJlYWRvbmx5IGFjdGl2YXRlZEF0OiBEYXRlXG4gICkge1xuICAgIHN1cGVyKFxuICAgICAgJ1VzZXJBY3RpdmF0ZWQnLFxuICAgICAgdXNlcklkVmFsdWUsXG4gICAgICAnVXNlcicsXG4gICAgICB7IHVzZXJJZFZhbHVlLCBlbWFpbFZhbHVlLCBhY3RpdmF0ZWRBdCB9XG4gICAgKTtcbiAgfVxuXG4gIGdldEV2ZW50RGF0YSgpIHtcbiAgICByZXR1cm4ge1xuICAgICAgdXNlcklkOiB0aGlzLnVzZXJJZFZhbHVlLFxuICAgICAgZW1haWw6IHRoaXMuZW1haWxWYWx1ZSxcbiAgICAgIGFjdGl2YXRlZEF0OiB0aGlzLmFjdGl2YXRlZEF0XG4gICAgfTtcbiAgfVxuXG4gIGNvbnRhaW5zUEhJKCk6IGJvb2xlYW4ge1xuICAgIHJldHVybiB0cnVlOyAvLyBFbWFpbCBpcyBjb25zaWRlcmVkIFBJSVxuICB9XG5cbiAgZ2V0UGF0aWVudElkKCk6IHN0cmluZyB8IG51bGwge1xuICAgIHJldHVybiBudWxsOyAvLyBOb3QgbmVjZXNzYXJpbHkgYSBwYXRpZW50XG4gIH1cbn1cblxuIl0sInZlcnNpb24iOjN9

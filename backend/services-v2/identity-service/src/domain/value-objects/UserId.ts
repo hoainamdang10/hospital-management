@@ -7,6 +7,7 @@
  */
 
 import { ValueObject } from '@shared/domain/base/value-object';
+import { randomBytes } from 'crypto';
 
 interface UserIdProps {
   value: string;
@@ -34,9 +35,11 @@ export class UserId extends ValueObject<UserIdProps> {
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const sequence = Math.floor(Math.random() * 999) + 1;
+    // Use crypto.randomBytes for secure random number generation
+    const randomBuffer = randomBytes(2);
+    const sequence = (randomBuffer.readUInt16BE(0) % 999) + 1;
     const sequenceStr = sequence.toString().padStart(3, '0');
-    
+
     const userId = `USR-${year}${month}-${sequenceStr}`;
     return new UserId({ value: userId });
   }

@@ -10,7 +10,9 @@
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { UserId } from '../../domain/value-objects/UserId';
+import { ILogger } from '../services/ILogger';
 
 export interface LockAccountRequest {
   userId: string; // User to lock
@@ -34,12 +36,11 @@ export interface LockAccountResponse {
 export class LockAccountUseCase
   implements IUseCase<LockAccountRequest, LockAccountResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('lock-account-use-case');
-
   constructor(
     private userRepository: IUserRepository,
     private sessionRepository: ISessionRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: LockAccountRequest): Promise<LockAccountResponse> {
@@ -74,8 +75,11 @@ export class LockAccountUseCase
         };
       }
 
-      // 2. Get user
-      const user = await this.userRepository.findById(request.userId);
+      // 2. Convert string ID to Value Object
+      const userIdVO = UserId.fromString(request.userId);
+
+      // 3. Get user
+      const user = await this.userRepository.findById(userIdVO);
       if (!user) {
         return {
           success: false,
@@ -84,7 +88,7 @@ export class LockAccountUseCase
         };
       }
 
-      // 3. Check if user is already locked
+      // 4. Check if user is already locked
       if (!user.isActive) {
         return {
           success: false,
@@ -93,7 +97,7 @@ export class LockAccountUseCase
         };
       }
 
-      // 4. Prevent locking self
+      // 5. Prevent locking self
       if (request.userId === request.lockedBy) {
         return {
           success: false,
@@ -102,14 +106,14 @@ export class LockAccountUseCase
         };
       }
 
-      // 5. Lock account
+      // 6. Lock account
       user.deactivate();
       await this.userRepository.save(user);
 
-      // 6. Terminate all sessions if requested (default: true)
+      // 7. Terminate all sessions if requested (default: true)
       const terminateSessions = request.terminateSessions !== false;
       if (terminateSessions) {
-        await this.sessionRepository.terminateAllSessions(request.userId);
+        await this.sessionRepository.deleteAllByUserId(request.userId);
         this.logger.info('All sessions terminated after account lock', {
           userId: request.userId
         });
@@ -162,4 +166,3 @@ export class LockAccountUseCase
     return null;
   }
 }
-

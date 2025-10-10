@@ -34,6 +34,35 @@ export interface CreateUserRequest {
   phoneNumber?: string;
 }
 
+// Device info interface
+export interface DeviceInfo {
+  platform?: string;
+  browser?: string;
+  os?: string;
+  deviceType?: string;
+  [key: string]: unknown; // Allow additional fields
+}
+
+// Audit details type
+export type AuditDetails = Record<string, unknown> | Error;
+
+// Invitation data interface
+export interface InvitationData {
+  invitedBy: string;
+  invitedAt: string;
+  role: string;
+  department?: string;
+  notes?: string;
+  [key: string]: unknown; // Allow additional metadata
+}
+
+// User role row interface
+export interface UserRoleRow {
+  role_name: string;
+  user_id: string;
+  assigned_at: string;
+}
+
 // Database record interfaces (internal to infrastructure layer)
 interface UserRecord {
   id: string;
@@ -58,7 +87,7 @@ interface SessionRecord {
   id: string;
   user_id: string;
   session_token: string;
-  device_info: any;
+  device_info: DeviceInfo;
   ip_address: string;
   user_agent: string;
   expires_at: string;
@@ -343,8 +372,8 @@ export class SupabaseUserRepository implements IUserRepository {
           let validRoles: string[];
           try {
             validRoles = await this.permissionRepository.getAllRoles();
-          } catch (error) {
-            this.logger.error('Failed to get valid roles from database, using fallback', error);
+          } catch (error: unknown) {
+            this.logger.error('Failed to get valid roles from database, using fallback', error instanceof Error ? error : new Error(String(error)));
             // Fallback to hardcoded roles if database query fails
             validRoles = ['admin', 'doctor', 'nurse', 'patient', 'receptionist', 'pharmacist', 'lab_technician', 'billing_staff'];
           }
@@ -568,16 +597,22 @@ export class SupabaseUserRepository implements IUserRepository {
   /**
    * Invalidate user session
    */
-  async invalidateSession(sessionId: string, sessionToken?: string): Promise<void> {
+  async invalidateSession(sessionId: string, sessionToken?: string, userId?: string): Promise<void> {
     return await this.circuitBreaker.execute(
       async () => {
-        const { error } = await this.supabaseClient
+        let query = this.supabaseClient
           .from('user_sessions')
           .update({
             is_active: false,
             updated_at: new Date().toISOString()
           })
           .eq('id', sessionId);
+
+        if (userId) {
+          query = query.eq('user_id', userId);
+        }
+
+        const { error } = await query;
 
         if (error) {
           throw new Error(`Failed to invalidate session: ${getErrorMessage(error)}`);
@@ -599,8 +634,8 @@ export class SupabaseUserRepository implements IUserRepository {
   /**
    * Deactivate session - alias for invalidateSession
    */
-  async deactivateSession(sessionId: string, sessionToken?: string): Promise<void> {
-    return this.invalidateSession(sessionId, sessionToken);
+  async deactivateSession(sessionId: string, userId: UserId, sessionToken?: string): Promise<void> {
+    return this.invalidateSession(sessionId, sessionToken, userId.value);
   }
 
   /**
@@ -633,7 +668,7 @@ export class SupabaseUserRepository implements IUserRepository {
         }
 
         // Extract role names from user_roles table
-        const roles = data?.map((row: any) => row.role_name) || [];
+        const roles = data?.map((row: { role_name: string }) => row.role_name) || [];
 
         // Cache the result
         if (this.cacheService) {
@@ -652,7 +687,7 @@ export class SupabaseUserRepository implements IUserRepository {
   /**
    * Log audit event for HIPAA compliance
    */
-  private async logAuditEvent(action: string, userId: string | null, details: any): Promise<void> {
+  private async logAuditEvent(action: string, userId: string | null, details: AuditDetails): Promise<void> {
     try {
       const auditRecord = {
         actor_id: userId,
@@ -1046,14 +1081,33 @@ export class SupabaseUserRepository implements IUserRepository {
       // Handle search_term separately with ilike
       const { search_term, ...otherFilters } = options.filters;
 
-      // Apply exact match filters
+      // SECURITY: Whitelist allowed filter keys to prevent unauthorized column access
+      const allowedFilterKeys = [
+        'role_type',
+        'is_active',
+        'is_verified',
+        'gender',
+        'id'
+      ];
+
+      // Apply exact match filters with validation
       Object.entries(otherFilters).forEach(([key, value]) => {
+        if (!allowedFilterKeys.includes(key)) {
+          throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(', ')}`);
+        }
         query = query.eq(key, value);
       });
 
       // Apply search term with ilike on full_name and email
+      // SECURITY: Escape LIKE special characters to prevent SQL injection
       if (search_term) {
-        query = query.or(`full_name.ilike.%${search_term}%,email.ilike.%${search_term}%`);
+        // Escape special characters: \, %, _
+        const escapedTerm = String(search_term)
+          .replace(/\\/g, '\\\\')  // Escape backslash first
+          .replace(/%/g, '\\%')    // Escape % wildcard
+          .replace(/_/g, '\\_');   // Escape _ wildcard
+
+        query = query.or(`full_name.ilike.%${escapedTerm}%,email.ilike.%${escapedTerm}%`);
       }
     }
 
@@ -1086,14 +1140,33 @@ export class SupabaseUserRepository implements IUserRepository {
       // Handle search_term separately with ilike
       const { search_term, ...otherFilters } = filters;
 
-      // Apply exact match filters
+      // SECURITY: Whitelist allowed filter keys to prevent unauthorized column access
+      const allowedFilterKeys = [
+        'role_type',
+        'is_active',
+        'is_verified',
+        'gender',
+        'id'
+      ];
+
+      // Apply exact match filters with validation
       Object.entries(otherFilters).forEach(([key, value]) => {
+        if (!allowedFilterKeys.includes(key)) {
+          throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(', ')}`);
+        }
         query = query.eq(key, value);
       });
 
       // Apply search term with ilike on full_name and email
+      // SECURITY: Escape LIKE special characters to prevent SQL injection
       if (search_term) {
-        query = query.or(`full_name.ilike.%${search_term}%,email.ilike.%${search_term}%`);
+        // Escape special characters: \, %, _
+        const escapedTerm = String(search_term)
+          .replace(/\\/g, '\\\\')  // Escape backslash first
+          .replace(/%/g, '\\%')    // Escape % wildcard
+          .replace(/_/g, '\\_');   // Escape _ wildcard
+
+        query = query.or(`full_name.ilike.%${escapedTerm}%,email.ilike.%${escapedTerm}%`);
       }
     }
 
@@ -1115,7 +1188,7 @@ export class SupabaseUserRepository implements IUserRepository {
     invitedBy: string;
     invitationToken: string;
     expiresAt: Date;
-    invitationData?: any;
+    invitationData?: InvitationData;
   }): Promise<void> {
     try {
       const { error } = await this.supabaseClient
@@ -1153,7 +1226,7 @@ export class SupabaseUserRepository implements IUserRepository {
     isValid: boolean;
     email?: string;
     role?: string;
-    invitationData?: any;
+    invitationData?: InvitationData;
   }> {
     try {
       const { data, error } = await this.supabaseClient

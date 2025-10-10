@@ -1,6 +1,6 @@
 /**
  * ListActiveSessionsUseCase Unit Tests
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -8,6 +8,7 @@
 import { ListActiveSessionsUseCase } from '../../../src/application/use-cases/ListActiveSessionsUseCase';
 import { ISessionRepository } from '../../../src/domain/repositories/ISessionRepository';
 import { UserSession } from '../../../src/domain/entities/UserSession';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 // Mock repository
 class MockSessionRepository implements ISessionRepository {
@@ -90,6 +91,15 @@ class MockSessionRepository implements ISessionRepository {
   }
 }
 
+// Mock logger
+const mockLogger: ILogger = {
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+  fatal: jest.fn(),
+};
+
 describe('ListActiveSessionsUseCase', () => {
   let useCase: ListActiveSessionsUseCase;
   let mockRepository: MockSessionRepository;
@@ -97,7 +107,8 @@ describe('ListActiveSessionsUseCase', () => {
 
   beforeEach(() => {
     mockRepository = new MockSessionRepository();
-    useCase = new ListActiveSessionsUseCase(mockRepository);
+    jest.clearAllMocks();
+    useCase = new ListActiveSessionsUseCase(mockRepository, mockLogger);
   });
 
   afterEach(() => {
@@ -159,7 +170,7 @@ describe('ListActiveSessionsUseCase', () => {
       const session = UserSession.create(
         testUserId,
         'token-1',
-        null, // No device info stored
+        {}, // No device info stored
         '192.168.1.1',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         new Date(Date.now() + 3600000)
@@ -185,7 +196,7 @@ describe('ListActiveSessionsUseCase', () => {
       const session = UserSession.create(
         testUserId,
         'token-1',
-        null,
+        {},
         '192.168.1.1',
         'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
         new Date(Date.now() + 3600000)

@@ -10,6 +10,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CircuitBreakerFactory } from '../resilience/CircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../../application/services/ILogger';
 
 export enum HealthStatus {
   HEALTHY = 'HEALTHY',
@@ -22,7 +23,7 @@ export interface HealthCheckResult {
   status: HealthStatus;
   timestamp: Date;
   responseTime: number;
-  details?: any;
+  details?: Record<string, unknown>;
   error?: string;
 }
 
@@ -55,7 +56,7 @@ export class IdentityServiceHealthCheck {
   constructor(
     supabaseUrl: string,
     supabaseKey: string,
-    private logger: any
+    private logger: ILogger
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       db: { schema: 'auth_schema' }
@@ -342,7 +343,7 @@ export class IdentityServiceHealthCheck {
 
       // Check if any breakers are open
       const openBreakers = Object.values(breakerStatus).filter(
-        (breaker: any) => breaker.state === 'OPEN'
+        (breaker: Record<string, unknown>) => breaker.state === 'OPEN'
       );
 
       let status = HealthStatus.HEALTHY;
@@ -381,7 +382,7 @@ export class IdentityServiceHealthCheck {
     }
   }
 
-  private createErrorResult(error: any): HealthCheckResult {
+  private createErrorResult(error: unknown): HealthCheckResult {
     return {
       status: HealthStatus.UNHEALTHY,
       timestamp: new Date(),
@@ -390,8 +391,8 @@ export class IdentityServiceHealthCheck {
     };
   }
 
-  private calculateOverallHealth(components: any): HealthStatus {
-    const statuses = Object.values(components).map((comp: any) => comp.status);
+  private calculateOverallHealth(components: Record<string, HealthCheckResult>): HealthStatus {
+    const statuses = Object.values(components).map((comp: HealthCheckResult) => comp.status);
     
     if (statuses.every(status => status === HealthStatus.HEALTHY)) {
       return HealthStatus.HEALTHY;

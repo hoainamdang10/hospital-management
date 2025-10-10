@@ -13,11 +13,13 @@
 
 import { ResetPasswordUseCase, ResetPasswordRequest } from '../../../../src/application/use-cases/ResetPasswordUseCase';
 import { IAuthenticationService } from '../../../../src/application/services/IAuthenticationService';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('ResetPasswordUseCase', () => {
   let useCase: ResetPasswordUseCase;
   let mockAuthService: jest.Mocked<IAuthenticationService>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockAuthService = {
@@ -39,7 +41,9 @@ describe('ResetPasswordUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new ResetPasswordUseCase(mockAuthService, mockLogger);
+    circuitBreaker = createCircuitBreakerStub();
+
+    useCase = new ResetPasswordUseCase(mockAuthService, mockLogger, circuitBreaker);
   });
 
   afterEach(() => {
@@ -276,4 +280,3 @@ describe('ResetPasswordUseCase', () => {
     });
   });
 });
-

@@ -33,6 +33,15 @@ export declare class PermissionService implements IPermissionService {
     checkPermission(userId: UserId, permissionOrResource: string, action?: string): Promise<boolean>;
     /**
      * Check if user has permission with ownership check
+     *
+     * This method checks if a user can access a resource owned by another user.
+     * Returns true if:
+     * - User is the resource owner, OR
+     * - User has wildcard permission (*), OR
+     * - User has ownership-based permission (own_*)
+     *
+     * Returns false if:
+     * - User is NOT the resource owner AND doesn't have wildcard permission
      */
     checkPermissionWithOwnership(userId: UserId, permission: string, resourceOwnerId: string): Promise<boolean>;
     /**

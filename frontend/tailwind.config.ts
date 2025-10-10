@@ -1,96 +1,74 @@
 import type { Config } from "tailwindcss";
 
-const config = {
-  darkMode: ["class"],
-  content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
-    "*.{js,ts,jsx,tsx,mdx}",
-  ],
-  prefix: "",
+const config: Config = {
+  darkMode: "class",
+  content: ["./app/**/*.{ts,tsx}", "./modules/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+        brand: {
+          DEFAULT: "#0E9F6E",
+          contrast: "#FFFFFF",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+        link: "#1E4DD8",
+        neutral: {
+          900: "#0E1217",
+          800: "#1F2937",
+          700: "#374151",
+          600: "#4B5563",
+          500: "#6B7280",
+          400: "#9CA3AF",
+          300: "#D1D5DB",
+          200: "#E5E7EB",
+          100: "#F3F4F6",
+          50: "#F7FAFC",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          cyan: "#06B6D4",
+          amber: "#F59E0B",
         },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        // Medical Status Colors
-        success: "hsl(var(--success))",
-        warning: "hsl(var(--warning))",
-        info: "hsl(var(--info))",
-        // Medical Specialty Colors
-        medical: {
-          cardiology: "hsl(var(--cardiology))",
-          neurology: "hsl(var(--neurology))",
-          pediatrics: "hsl(var(--pediatrics))",
-          orthopedics: "hsl(var(--orthopedics))",
-          dermatology: "hsl(var(--dermatology))",
-          emergency: "hsl(var(--emergency))",
-          pharmacy: "hsl(var(--pharmacy))",
-          radiology: "hsl(var(--radiology))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
+        success: "#10B981",
+        warning: "#F59E0B",
+        error: "#F43F5E",
+      },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["ui-monospace", "monospace"],
+      },
+      spacing: {
+        6: "6px",
+        12: "12px",
+        18: "18px",
+        24: "24px",
+        36: "36px",
+      },
+      maxWidth: {
+        content: "1200px",
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        card: "16px",
+        pill: "999px",
       },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
+      boxShadow: {
+        xs: "0 1px 2px rgba(0,0,0,0.06)",
       },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
+      transitionDuration: {
+        fast: "120ms",
+        base: "180ms",
+        slow: "260ms",
+      },
+      transitionTimingFunction: {
+        smooth: "cubic-bezier(.2,.8,.2,1)",
+      },
+      gridTemplateColumns: {
+        "12": "repeat(12, minmax(0, 1fr))",
+      },
+      gap: {
+        gutter: "24px",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+  plugins: [],
+};
 
 export default config;

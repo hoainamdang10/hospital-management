@@ -6,9 +6,11 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IMFAService } from '../services/IMFAService';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 export interface EnableMFARequest {
     userId: string;
     method: '2fa_app' | 'sms' | 'email';
@@ -33,7 +35,7 @@ export declare class EnableMFAUseCase implements IUseCase<EnableMFARequest, Enab
     private mfaService;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, mfaService: IMFAService, logger: any);
+    constructor(userRepository: IUserRepository, mfaService: IMFAService, logger: ILogger, circuitBreaker: ICircuitBreaker);
     execute(request: EnableMFARequest): Promise<EnableMFAResponse>;
     private executeImpl;
     /**

@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Production-Ready, Anti-Pattern Mitigation
  */
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from '../../../../shared/domain/base/value-object';
 interface EmailProps {
     value: string;
 }

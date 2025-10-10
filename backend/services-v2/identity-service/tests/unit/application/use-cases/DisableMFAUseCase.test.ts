@@ -16,6 +16,7 @@ import { VerifyMFAUseCase } from '../../../../src/application/use-cases/VerifyMF
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
 import { IMFAService } from '../../../../src/application/services/IMFAService';
 import { createMockUser } from '../../../helpers/user-test-helper';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('DisableMFAUseCase', () => {
   let useCase: DisableMFAUseCase;
@@ -23,6 +24,7 @@ describe('DisableMFAUseCase', () => {
   let mockMFAService: jest.Mocked<IMFAService>;
   let mockVerifyMFAUseCase: jest.Mocked<VerifyMFAUseCase>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockUserRepository = {
@@ -59,11 +61,14 @@ describe('DisableMFAUseCase', () => {
       debug: jest.fn()
     };
 
+    circuitBreaker = createCircuitBreakerStub();
+
     useCase = new DisableMFAUseCase(
       mockUserRepository,
       mockMFAService,
       mockVerifyMFAUseCase,
-      mockLogger
+      mockLogger,
+      circuitBreaker
     );
 
     // Reset mocks
@@ -419,4 +424,3 @@ describe('DisableMFAUseCase', () => {
     });
   });
 });
-

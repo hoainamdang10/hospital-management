@@ -7,9 +7,11 @@
  * @compliance Production-Ready, HIPAA-Compliant
  */
 
-import { createClient, SupabaseClient, User as SupabaseUser } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getErrorMessage } from '../../utils/error-helper';
 import { AuthResult, UserCredentials, ServiceMode } from '../../application/services/IDegradationService';
+import { ILogger } from '../../application/services/ILogger';
+import { ITokenVerifier, TokenUser } from '../../application/services/ITokenVerifier';
 
 export interface SupabaseAuthConfig {
   supabaseUrl: string;
@@ -21,12 +23,12 @@ export interface SupabaseAuthConfig {
  * Supabase Authentication Client
  * Wraps Supabase Auth API with healthcare-specific logic
  */
-export class SupabaseAuthClient {
+export class SupabaseAuthClient implements ITokenVerifier {
   private supabaseClient: SupabaseClient;
 
   constructor(
     config: SupabaseAuthConfig,
-    private logger: any
+    private logger: ILogger
   ) {
     this.supabaseClient = createClient(
       config.supabaseUrl,
@@ -270,7 +272,7 @@ export class SupabaseAuthClient {
   /**
    * Verify session token
    */
-  async verifyToken(token: string): Promise<SupabaseUser | null> {
+  async verifyToken(token: string): Promise<TokenUser | null> {
     try {
       const { data, error } = await this.supabaseClient.auth.getUser(token);
       
@@ -278,7 +280,11 @@ export class SupabaseAuthClient {
         return null;
       }
 
-      return data.user;
+      return {
+        id: data.user.id,
+        email: data.user.email ?? null,
+        user_metadata: data.user.user_metadata as Record<string, unknown> | undefined
+      };
     } catch (error) {
       this.logger.error('Token verification error', {
         error: getErrorMessage(error)
@@ -287,4 +293,3 @@ export class SupabaseAuthClient {
     }
   }
 }
-

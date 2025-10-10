@@ -43,7 +43,15 @@ class PermissionService {
                 return true;
             }
             // Check exact match
-            return permissions.includes(permission);
+            if (permissions.includes(permission)) {
+                return true;
+            }
+            // Check resource wildcard (e.g., 'patients:*' matches 'patients:read')
+            const [resource] = permission.split(':');
+            if (resource && permissions.includes(`${resource}:*`)) {
+                return true;
+            }
+            return false;
         }
         catch (error) {
             console.error('[PermissionService] Error checking permission', error);
@@ -52,20 +60,36 @@ class PermissionService {
     }
     /**
      * Check if user has permission with ownership check
+     *
+     * This method checks if a user can access a resource owned by another user.
+     * Returns true if:
+     * - User is the resource owner, OR
+     * - User has wildcard permission (*), OR
+     * - User has ownership-based permission (own_*)
+     *
+     * Returns false if:
+     * - User is NOT the resource owner AND doesn't have wildcard permission
      */
     async checkPermissionWithOwnership(userId, permission, resourceOwnerId) {
         try {
+            // Check if user is the resource owner
+            if (userId.value === resourceOwnerId) {
+                return true;
+            }
+            // User is NOT the owner - check if they have permission to access others' resources
+            const userPermissions = await this.getEffectivePermissions(userId);
+            // Check wildcard (admin bypass)
+            if (userPermissions.includes('*')) {
+                return true;
+            }
             // Check if permission is ownership-based (starts with 'own_')
             if (permission.startsWith('own_')) {
-                // Check ownership
-                if (userId.value !== resourceOwnerId) {
-                    return false;
-                }
-                // Check if user has the permission
-                return this.checkPermission(userId, permission);
+                // Ownership permission requires being the owner
+                return false;
             }
-            // Not an ownership permission, check normally
-            return this.checkPermission(userId, permission);
+            // For non-ownership permissions, deny access to others' resources
+            // (This enforces ownership check - user can only access their own resources)
+            return false;
         }
         catch (error) {
             console.error('[PermissionService] Error checking permission with ownership', error);
@@ -82,8 +106,19 @@ class PermissionService {
             if (userPermissions.includes('*')) {
                 return true;
             }
-            // Check if any permission matches
-            return permissions.some((p) => userPermissions.includes(p));
+            // Check if any permission matches (with wildcard support)
+            for (const permission of permissions) {
+                // Check exact match
+                if (userPermissions.includes(permission)) {
+                    return true;
+                }
+                // Check resource wildcard (e.g., 'patients:*' matches 'patients:read')
+                const [resource] = permission.split(':');
+                if (resource && userPermissions.includes(`${resource}:*`)) {
+                    return true;
+                }
+            }
+            return false;
         }
         catch (error) {
             console.error('[PermissionService] Error checking any permission', error);

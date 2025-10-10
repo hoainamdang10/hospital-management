@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 export declare class StaffInvitationCreatedEvent extends DomainEvent {
     readonly email: string;
     readonly role: string;
@@ -21,6 +21,6 @@ export declare class StaffInvitationCreatedEvent extends DomainEvent {
         expiresAt: Date;
     };
     containsPHI(): boolean;
-    getPatientId(): string | undefined;
+    getPatientId(): string | null;
 }
 //# sourceMappingURL=StaffInvitationCreatedEvent.d.ts.map

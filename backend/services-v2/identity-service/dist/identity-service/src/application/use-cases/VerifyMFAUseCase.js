@@ -2,17 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerifyMFAUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 /**
  * Verify MFA Use Case - Refactored
  * Verifies TOTP codes or backup codes
  * Uses IMFAService interface for infrastructure independence
  */
 class VerifyMFAUseCase {
-    constructor(mfaService, logger) {
+    constructor(mfaService, logger, circuitBreaker) {
         this.mfaService = mfaService;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('verify-mfa-use-case');
+        this.circuitBreaker = circuitBreaker;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {

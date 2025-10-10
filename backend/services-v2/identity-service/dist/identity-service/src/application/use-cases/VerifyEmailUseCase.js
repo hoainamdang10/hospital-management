@@ -2,17 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerifyEmailUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const Email_1 = require("../../domain/value-objects/Email");
 const UserActivatedEvent_1 = require("../../domain/events/UserActivatedEvent");
 class VerifyEmailUseCase {
-    constructor(authService, userRepository, logger, eventPublisher // Optional for backward compatibility
+    constructor(authService, userRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
     ) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.logger = logger;
+        this.circuitBreaker = circuitBreaker;
         this.eventPublisher = eventPublisher;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('verify-email-use-case');
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -67,17 +66,7 @@ class VerifyEmailUseCase {
                     const event = new UserActivatedEvent_1.UserActivatedEvent(user.id, // Pass string directly
                     email.value, // Pass string directly
                     new Date());
-                    await this.eventPublisher.publish({
-                        eventType: event.constructor.name,
-                        aggregateId: user.id,
-                        aggregateType: 'User',
-                        occurredAt: event.occurredAt,
-                        payload: {
-                            userId: user.id,
-                            email: email.value,
-                            activatedAt: new Date()
-                        }
-                    });
+                    await this.eventPublisher.publishDomainEvents([event]);
                     this.logger.info('UserActivated event published', {
                         userId: user.id
                     });

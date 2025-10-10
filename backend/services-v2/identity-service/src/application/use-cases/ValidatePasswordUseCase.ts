@@ -7,6 +7,8 @@
  */
 
 import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPolicyRepository';
+import { ILogger } from '../services/ILogger';
+import { getErrorMessage } from '../utils/error-utils';
 
 export interface ValidatePasswordRequest {
   password: string;
@@ -21,7 +23,7 @@ export interface ValidatePasswordResponse {
 export class ValidatePasswordUseCase {
   constructor(
     private readonly policyRepository: IPasswordPolicyRepository,
-    private readonly logger: any
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: ValidatePasswordRequest): Promise<ValidatePasswordResponse> {
@@ -48,9 +50,9 @@ export class ValidatePasswordUseCase {
         errors: validationResult.errors,
         strength
       };
-    } catch (error: any) {
-      this.logger.error('Error validating password:', error);
-      throw new Error(`Failed to validate password: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error('Error validating password:', error instanceof Error ? error : new Error(String(error)));
+      throw new Error(`Failed to validate password: ${getErrorMessage(error)}`);
     }
   }
 
@@ -69,7 +71,7 @@ export class ValidatePasswordUseCase {
     if (/[a-z]/.test(password)) score++;
     if (/[A-Z]/.test(password)) score++;
     if (/[0-9]/.test(password)) score++;
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
+    if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) score++;
 
     // Pattern detection (reduce score for common patterns)
     if (/(.)\1{2,}/.test(password)) score--; // Repeated characters

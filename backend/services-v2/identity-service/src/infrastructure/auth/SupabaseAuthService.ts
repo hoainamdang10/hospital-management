@@ -16,6 +16,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../../application/services/ILogger';
 import type {
   IAuthenticationService,
   AuthResult,
@@ -45,7 +46,7 @@ export class SupabaseAuthService implements IAuthenticationService {
   constructor(
     supabaseUrl: string,
     supabaseKey: string,
-    private logger: any,
+    private logger: ILogger,
     defaultUserRole: string = 'patient' // Configurable default role
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
@@ -312,13 +313,14 @@ export class SupabaseAuthService implements IAuthenticationService {
 
   /**
    * Reset password with token
+   * Requires both access_token and refresh_token from Supabase password reset email
    */
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  async resetPassword(accessToken: string, refreshToken: string, newPassword: string): Promise<void> {
     try {
-      // Set session with recovery token
+      // Set session with recovery tokens from email
       const { error: sessionError } = await this.supabaseClient.auth.setSession({
-        access_token: token,
-        refresh_token: token
+        access_token: accessToken,
+        refresh_token: refreshToken
       });
 
       if (sessionError) {
@@ -345,47 +347,17 @@ export class SupabaseAuthService implements IAuthenticationService {
     try {
       this.logger.info('Updating user password', { userId });
 
-      // Fetch user email from user_profiles table
-      const { data: profile, error: profileError } = await this.supabaseClient
-        .from('user_profiles')
-        .select('email')
-        .eq('id', userId)
-        .single();
-
-      if (profileError || !profile) {
-        throw new Error(`User not found: ${getErrorMessage(profileError)}`);
-      }
-
-      // First verify current password by signing in with email
-      const { data: signInData, error: signInError } = await this.supabaseClient.auth.signInWithPassword({
-        email: profile.email, // Use actual email, not userId
-        password: currentPassword
-      });
-
-      if (signInError || !signInData.session) {
-        throw new Error('Current password is incorrect');
-      }
-
-      // Set session first
-      const { error: sessionError } = await this.supabaseClient.auth.setSession({
-        access_token: signInData.session.access_token,
-        refresh_token: signInData.session.refresh_token
-      });
-
-      if (sessionError) {
-        throw new Error(`Set session failed: ${sessionError.message}`);
-      }
-
-      const { error } = await this.supabaseClient.auth.updateUser({
+      // Update password using Supabase Admin API
+      const { error } = await this.supabaseClient.auth.admin.updateUserById(userId, {
         password: newPassword
       });
 
       if (error) {
         this.logger.error('Supabase Auth updatePassword failed', { error: getErrorMessage(error) });
-        throw new Error(`Cadp nhadt madt kha9u tha5t ba1i: ${getErrorMessage(error)}`);
+        throw new Error(`Cập nhật mật khẩu thất bại: ${getErrorMessage(error)}`);
       }
 
-      this.logger.info('Password updated successfully');
+      this.logger.info('Password updated successfully', { userId });
     } catch (error) {
       this.logger.error('Update password error', { error: getErrorMessage(error) });
       throw error as any;

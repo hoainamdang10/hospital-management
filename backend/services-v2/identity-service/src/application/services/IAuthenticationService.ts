@@ -132,11 +132,12 @@ export interface IAuthenticationService {
   /**
    * Reset password with token
    * Completes password reset flow
-   * 
-   * @param token Password reset token
+   *
+   * @param accessToken Access token from password reset email
+   * @param refreshToken Refresh token from password reset email
    * @param newPassword New password
    */
-  resetPassword(token: string, newPassword: string): Promise<void>;
+  resetPassword(accessToken: string, refreshToken: string, newPassword: string): Promise<void>;
 
   /**
    * Update password

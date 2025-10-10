@@ -14,7 +14,9 @@ import { IRecoveryMethodRepository } from '../../domain/repositories/IRecoveryMe
 import { IRecoveryHistoryRepository } from '../../domain/repositories/IRecoveryHistoryRepository';
 import { RecoveryAttempt, RecoveryMethodType } from '../../domain/value-objects/RecoveryAttempt';
 import { Email } from '../../domain/value-objects/Email';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { UserId } from '../../domain/value-objects/UserId';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 
 export interface RequestPasswordResetRequest {
   email: string;
@@ -37,7 +39,6 @@ export interface RequestPasswordResetResponse {
 export class RequestPasswordResetUseCase
   implements IUseCase<RequestPasswordResetRequest, RequestPasswordResetResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('request-password-reset-use-case');
   private readonly RATE_LIMIT_WINDOW_HOURS = 1;
   private readonly MAX_ATTEMPTS_PER_WINDOW = 3;
 
@@ -46,7 +47,8 @@ export class RequestPasswordResetUseCase
     private userRepository: IUserRepository,
     private recoveryMethodRepository: IRecoveryMethodRepository,
     private recoveryHistoryRepository: IRecoveryHistoryRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: RequestPasswordResetRequest): Promise<RequestPasswordResetResponse> {
@@ -118,7 +120,8 @@ export class RequestPasswordResetUseCase
       }
 
       // Check if user is active
-      const user = await this.userRepository.findById(userId);
+      const userIdVO = UserId.fromString(userId);
+      const user = await this.userRepository.findById(userIdVO);
       if (!user || !user.isActive) {
         // Log failed attempt
         await this.logAttempt(
@@ -269,4 +272,3 @@ export class RequestPasswordResetUseCase
     }
   }
 }
-

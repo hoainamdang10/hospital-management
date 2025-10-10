@@ -246,7 +246,7 @@ class SupabaseUserRepository {
                     validRoles = await this.permissionRepository.getAllRoles();
                 }
                 catch (error) {
-                    this.logger.error('Failed to get valid roles from database, using fallback', error);
+                    this.logger.error('Failed to get valid roles from database, using fallback', error instanceof Error ? error : new Error(String(error)));
                     // Fallback to hardcoded roles if database query fails
                     validRoles = ['admin', 'doctor', 'nurse', 'patient', 'receptionist', 'pharmacist', 'lab_technician', 'billing_staff'];
                 }
@@ -435,15 +435,19 @@ class SupabaseUserRepository {
     /**
      * Invalidate user session
      */
-    async invalidateSession(sessionId, sessionToken) {
+    async invalidateSession(sessionId, sessionToken, userId) {
         return await this.circuitBreaker.execute(async () => {
-            const { error } = await this.supabaseClient
+            let query = this.supabaseClient
                 .from('user_sessions')
                 .update({
                 is_active: false,
                 updated_at: new Date().toISOString()
             })
                 .eq('id', sessionId);
+            if (userId) {
+                query = query.eq('user_id', userId);
+            }
+            const { error } = await query;
             if (error) {
                 throw new Error(`Failed to invalidate session: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
@@ -460,8 +464,8 @@ class SupabaseUserRepository {
     /**
      * Deactivate session - alias for invalidateSession
      */
-    async deactivateSession(sessionId, sessionToken) {
-        return this.invalidateSession(sessionId, sessionToken);
+    async deactivateSession(sessionId, userId, sessionToken) {
+        return this.invalidateSession(sessionId, sessionToken, userId.value);
     }
     /**
      * Get user roles with caching
@@ -691,7 +695,7 @@ class SupabaseUserRepository {
                 .from('login_attempts')
                 .delete()
                 .eq('email', email)
-                .eq('is_successful', false);
+                .eq('success', false); // Fixed: Use 'success' to match migration schema
             if (error) {
                 this.logger.error('Failed to clear failed login attempts', { email, error: (0, error_helper_1.getErrorMessage)(error) });
             }
@@ -711,7 +715,7 @@ class SupabaseUserRepository {
                 .from('login_attempts')
                 .delete()
                 .eq('email', emailValue)
-                .eq('is_successful', false);
+                .eq('success', false); // Fixed: Use 'success' to match migration schema
             if (error) {
                 throw new Error(`Failed to unlock account: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
@@ -847,9 +851,33 @@ class SupabaseUserRepository {
             .from('user_profiles')
             .select('*');
         if (options?.filters) {
-            Object.entries(options.filters).forEach(([key, value]) => {
+            // Handle search_term separately with ilike
+            const { search_term, ...otherFilters } = options.filters;
+            // SECURITY: Whitelist allowed filter keys to prevent unauthorized column access
+            const allowedFilterKeys = [
+                'role_type',
+                'is_active',
+                'is_verified',
+                'gender',
+                'id'
+            ];
+            // Apply exact match filters with validation
+            Object.entries(otherFilters).forEach(([key, value]) => {
+                if (!allowedFilterKeys.includes(key)) {
+                    throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(', ')}`);
+                }
                 query = query.eq(key, value);
             });
+            // Apply search term with ilike on full_name and email
+            // SECURITY: Escape LIKE special characters to prevent SQL injection
+            if (search_term) {
+                // Escape special characters: \, %, _
+                const escapedTerm = String(search_term)
+                    .replace(/\\/g, '\\\\') // Escape backslash first
+                    .replace(/%/g, '\\%') // Escape % wildcard
+                    .replace(/_/g, '\\_'); // Escape _ wildcard
+                query = query.or(`full_name.ilike.%${escapedTerm}%,email.ilike.%${escapedTerm}%`);
+            }
         }
         if (options?.limit) {
             query = query.limit(options.limit);
@@ -871,9 +899,33 @@ class SupabaseUserRepository {
             .from('user_profiles')
             .select('*', { count: 'exact', head: true });
         if (filters) {
-            Object.entries(filters).forEach(([key, value]) => {
+            // Handle search_term separately with ilike
+            const { search_term, ...otherFilters } = filters;
+            // SECURITY: Whitelist allowed filter keys to prevent unauthorized column access
+            const allowedFilterKeys = [
+                'role_type',
+                'is_active',
+                'is_verified',
+                'gender',
+                'id'
+            ];
+            // Apply exact match filters with validation
+            Object.entries(otherFilters).forEach(([key, value]) => {
+                if (!allowedFilterKeys.includes(key)) {
+                    throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(', ')}`);
+                }
                 query = query.eq(key, value);
             });
+            // Apply search term with ilike on full_name and email
+            // SECURITY: Escape LIKE special characters to prevent SQL injection
+            if (search_term) {
+                // Escape special characters: \, %, _
+                const escapedTerm = String(search_term)
+                    .replace(/\\/g, '\\\\') // Escape backslash first
+                    .replace(/%/g, '\\%') // Escape % wildcard
+                    .replace(/_/g, '\\_'); // Escape _ wildcard
+                query = query.or(`full_name.ilike.%${escapedTerm}%,email.ilike.%${escapedTerm}%`);
+            }
         }
         const { count, error } = await query;
         if (error) {
@@ -947,6 +999,35 @@ class SupabaseUserRepository {
                 error: (0, error_helper_1.getErrorMessage)(error)
             });
             return { isValid: false };
+        }
+    }
+    /**
+     * Mark staff invitation as used
+     */
+    async markInvitationAsUsed(token, userId) {
+        try {
+            const { error } = await this.supabaseClient
+                .from('staff_invitations')
+                .update({
+                status: 'ACCEPTED',
+                accepted_at: new Date().toISOString(),
+                accepted_by_user_id: userId
+            })
+                .eq('invitation_token', token)
+                .eq('status', 'PENDING');
+            if (error) {
+                throw new Error(`Failed to mark invitation as used: ${(0, error_helper_1.getErrorMessage)(error)}`);
+            }
+            this.logger.info('Staff invitation marked as used', {
+                token: token.substring(0, 10) + '...',
+                userId
+            });
+        }
+        catch (error) {
+            this.logger.error('Error marking invitation as used', {
+                error: (0, error_helper_1.getErrorMessage)(error)
+            });
+            throw error;
         }
     }
 }

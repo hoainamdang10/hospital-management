@@ -15,12 +15,14 @@ import { VerifyEmailUseCase, VerifyEmailRequest } from '../../../../src/applicat
 import { IAuthenticationService } from '../../../../src/application/services/IAuthenticationService';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
 import { createMockUser } from '../../../helpers/user-test-helper';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('VerifyEmailUseCase', () => {
   let useCase: VerifyEmailUseCase;
   let mockAuthService: jest.Mocked<IAuthenticationService>;
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockAuthService = {
@@ -51,7 +53,14 @@ describe('VerifyEmailUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new VerifyEmailUseCase(mockAuthService, mockUserRepository, mockLogger);
+    circuitBreaker = createCircuitBreakerStub();
+
+    useCase = new VerifyEmailUseCase(
+      mockAuthService,
+      mockUserRepository,
+      mockLogger,
+      circuitBreaker
+    );
   });
 
   afterEach(() => {
@@ -279,4 +288,3 @@ describe('VerifyEmailUseCase', () => {
     });
   });
 });
-

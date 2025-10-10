@@ -17,6 +17,7 @@ export interface AuthResult {
     success: boolean;
     userId?: string;
     email?: string;
+    accessToken?: string;
     sessionToken?: string;
     refreshToken?: string;
     roles?: string[];
@@ -24,7 +25,7 @@ export interface AuthResult {
     mode: ServiceMode;
     expiresAt?: Date;
     degradationReason?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 export interface UserCredentials {
     email: string;

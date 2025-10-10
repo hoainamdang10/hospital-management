@@ -1,0 +1,337 @@
+b03b86587fcf2b61f80bd86bd707675c
+"use strict";
+
+/**
+ * User Activated Event
+ * Triggered when a user's email is verified and account is activated
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+/* istanbul ignore next */
+function cov_jc3gzk0e1() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserActivatedEvent.ts";
+  var hash = "e1ebde7a3bd2eff9dd06b652029ea65e785e8bba";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserActivatedEvent.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 36
+        }
+      },
+      "2": {
+        start: {
+          line: 11,
+          column: 23
+        },
+        end: {
+          line: 11,
+          column: 66
+        }
+      },
+      "3": {
+        start: {
+          line: 16,
+          column: 8
+        },
+        end: {
+          line: 16,
+          column: 94
+        }
+      },
+      "4": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 17,
+          column: 39
+        }
+      },
+      "5": {
+        start: {
+          line: 18,
+          column: 8
+        },
+        end: {
+          line: 18,
+          column: 37
+        }
+      },
+      "6": {
+        start: {
+          line: 19,
+          column: 8
+        },
+        end: {
+          line: 19,
+          column: 39
+        }
+      },
+      "7": {
+        start: {
+          line: 22,
+          column: 8
+        },
+        end: {
+          line: 26,
+          column: 10
+        }
+      },
+      "8": {
+        start: {
+          line: 29,
+          column: 8
+        },
+        end: {
+          line: 29,
+          column: 20
+        }
+      },
+      "9": {
+        start: {
+          line: 32,
+          column: 8
+        },
+        end: {
+          line: 32,
+          column: 20
+        }
+      },
+      "10": {
+        start: {
+          line: 35,
+          column: 0
+        },
+        end: {
+          line: 35,
+          column: 48
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 13,
+            column: 4
+          },
+          end: {
+            line: 13,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 15,
+            column: 17
+          },
+          end: {
+            line: 20,
+            column: 5
+          }
+        },
+        line: 15
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 21,
+            column: 4
+          },
+          end: {
+            line: 21,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 21,
+            column: 19
+          },
+          end: {
+            line: 27,
+            column: 5
+          }
+        },
+        line: 21
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 28,
+            column: 4
+          },
+          end: {
+            line: 28,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 28,
+            column: 18
+          },
+          end: {
+            line: 30,
+            column: 5
+          }
+        },
+        line: 28
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 31,
+            column: 4
+          },
+          end: {
+            line: 31,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 31,
+            column: 19
+          },
+          end: {
+            line: 33,
+            column: 5
+          }
+        },
+        line: 31
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserActivatedEvent.ts",
+      mappings: ";AAAA;;;;;;GAMG;;;AAEH,mEAA+D;AAE/D,MAAa,kBAAmB,SAAQ,0BAAW;IACjD,YACkB,WAAmB,EAAE,gCAAgC;IACrD,UAAkB,EAAE,+BAA+B;IACnD,WAAiB;QAEjC,KAAK,CACH,eAAe,EACf,WAAW,EACX,MAAM,EACN,EAAE,WAAW,EAAE,UAAU,EAAE,WAAW,EAAE,CACzC,CAAC;QATc,gBAAW,GAAX,WAAW,CAAQ;QACnB,eAAU,GAAV,UAAU,CAAQ;QAClB,gBAAW,GAAX,WAAW,CAAM;IAQnC,CAAC;IAED,YAAY;QACV,OAAO;YACL,MAAM,EAAE,IAAI,CAAC,WAAW;YACxB,KAAK,EAAE,IAAI,CAAC,UAAU;YACtB,WAAW,EAAE,IAAI,CAAC,WAAW;SAC9B,CAAC;IACJ,CAAC;IAED,WAAW;QACT,OAAO,IAAI,CAAC,CAAC,0BAA0B;IACzC,CAAC;IAED,YAAY;QACV,OAAO,IAAI,CAAC,CAAC,4BAA4B;IAC3C,CAAC;CACF;AA7BD,gDA6BC",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserActivatedEvent.ts"],
+      sourcesContent: ["/**\n * User Activated Event\n * Triggered when a user's email is verified and account is activated\n *\n * @author Hospital Management Team\n * @version 2.0.0\n */\n\nimport { DomainEvent } from '@shared/domain/base/domain-event';\n\nexport class UserActivatedEvent extends DomainEvent {\n  constructor(\n    public readonly userIdValue: string, // Changed from UserId to string\n    public readonly emailValue: string, // Changed from Email to string\n    public readonly activatedAt: Date\n  ) {\n    super(\n      'UserActivated',\n      userIdValue,\n      'User',\n      { userIdValue, emailValue, activatedAt }\n    );\n  }\n\n  getEventData() {\n    return {\n      userId: this.userIdValue,\n      email: this.emailValue,\n      activatedAt: this.activatedAt\n    };\n  }\n\n  containsPHI(): boolean {\n    return true; // Email is considered PII\n  }\n\n  getPatientId(): string | null {\n    return null; // Not necessarily a patient\n  }\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "e1ebde7a3bd2eff9dd06b652029ea65e785e8bba"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_jc3gzk0e1 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_jc3gzk0e1();
+cov_jc3gzk0e1().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_jc3gzk0e1().s[1]++;
+exports.UserActivatedEvent = void 0;
+const domain_event_1 =
+/* istanbul ignore next */
+(cov_jc3gzk0e1().s[2]++, require("@shared/domain/base/domain-event"));
+class UserActivatedEvent extends
+/* istanbul ignore next */
+(domain_event_1.DomainEvent) {
+  constructor(userIdValue,
+  // Changed from UserId to string
+  emailValue,
+  // Changed from Email to string
+  activatedAt) {
+    /* istanbul ignore next */
+    cov_jc3gzk0e1().f[0]++;
+    cov_jc3gzk0e1().s[3]++;
+    super('UserActivated', userIdValue, 'User', {
+      userIdValue,
+      emailValue,
+      activatedAt
+    });
+    /* istanbul ignore next */
+    cov_jc3gzk0e1().s[4]++;
+    this.userIdValue = userIdValue;
+    /* istanbul ignore next */
+    cov_jc3gzk0e1().s[5]++;
+    this.emailValue = emailValue;
+    /* istanbul ignore next */
+    cov_jc3gzk0e1().s[6]++;
+    this.activatedAt = activatedAt;
+  }
+  getEventData() {
+    /* istanbul ignore next */
+    cov_jc3gzk0e1().f[1]++;
+    cov_jc3gzk0e1().s[7]++;
+    return {
+      userId: this.userIdValue,
+      email: this.emailValue,
+      activatedAt: this.activatedAt
+    };
+  }
+  containsPHI() {
+    /* istanbul ignore next */
+    cov_jc3gzk0e1().f[2]++;
+    cov_jc3gzk0e1().s[8]++;
+    return true; // Email is considered PII
+  }
+  getPatientId() {
+    /* istanbul ignore next */
+    cov_jc3gzk0e1().f[3]++;
+    cov_jc3gzk0e1().s[9]++;
+    return null; // Not necessarily a patient
+  }
+}
+/* istanbul ignore next */
+cov_jc3gzk0e1().s[10]++;
+exports.UserActivatedEvent = UserActivatedEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfamMzZ3prMGUxIiwicGF0aCIsImhhc2giLCJnbG9iYWwiLCJGdW5jdGlvbiIsImdjdiIsImNvdmVyYWdlRGF0YSIsInN0YXRlbWVudE1hcCIsInN0YXJ0IiwibGluZSIsImNvbHVtbiIsImVuZCIsImZuTWFwIiwibmFtZSIsImRlY2wiLCJsb2MiLCJicmFuY2hNYXAiLCJzIiwiZiIsImIiLCJpbnB1dFNvdXJjZU1hcCIsImZpbGUiLCJtYXBwaW5ncyIsIm5hbWVzIiwic291cmNlcyIsInNvdXJjZXNDb250ZW50IiwidmVyc2lvbiIsIl9jb3ZlcmFnZVNjaGVtYSIsImNvdmVyYWdlIiwiYWN0dWFsQ292ZXJhZ2UiLCJkb21haW5fZXZlbnRfMSIsInJlcXVpcmUiLCJVc2VyQWN0aXZhdGVkRXZlbnQiLCJEb21haW5FdmVudCIsImNvbnN0cnVjdG9yIiwidXNlcklkVmFsdWUiLCJlbWFpbFZhbHVlIiwiYWN0aXZhdGVkQXQiLCJnZXRFdmVudERhdGEiLCJ1c2VySWQiLCJlbWFpbCIsImNvbnRhaW5zUEhJIiwiZ2V0UGF0aWVudElkIiwiZXhwb3J0cyJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxkb21haW5cXGV2ZW50c1xcVXNlckFjdGl2YXRlZEV2ZW50LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogVXNlciBBY3RpdmF0ZWQgRXZlbnRcbiAqIFRyaWdnZXJlZCB3aGVuIGEgdXNlcidzIGVtYWlsIGlzIHZlcmlmaWVkIGFuZCBhY2NvdW50IGlzIGFjdGl2YXRlZFxuICpcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICovXG5cbmltcG9ydCB7IERvbWFpbkV2ZW50IH0gZnJvbSAnQHNoYXJlZC9kb21haW4vYmFzZS9kb21haW4tZXZlbnQnO1xuXG5leHBvcnQgY2xhc3MgVXNlckFjdGl2YXRlZEV2ZW50IGV4dGVuZHMgRG9tYWluRXZlbnQge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwdWJsaWMgcmVhZG9ubHkgdXNlcklkVmFsdWU6IHN0cmluZywgLy8gQ2hhbmdlZCBmcm9tIFVzZXJJZCB0byBzdHJpbmdcbiAgICBwdWJsaWMgcmVhZG9ubHkgZW1haWxWYWx1ZTogc3RyaW5nLCAvLyBDaGFuZ2VkIGZyb20gRW1haWwgdG8gc3RyaW5nXG4gICAgcHVibGljIHJlYWRvbmx5IGFjdGl2YXRlZEF0OiBEYXRlXG4gICkge1xuICAgIHN1cGVyKFxuICAgICAgJ1VzZXJBY3RpdmF0ZWQnLFxuICAgICAgdXNlcklkVmFsdWUsXG4gICAgICAnVXNlcicsXG4gICAgICB7IHVzZXJJZFZhbHVlLCBlbWFpbFZhbHVlLCBhY3RpdmF0ZWRBdCB9XG4gICAgKTtcbiAgfVxuXG4gIGdldEV2ZW50RGF0YSgpIHtcbiAgICByZXR1cm4ge1xuICAgICAgdXNlcklkOiB0aGlzLnVzZXJJZFZhbHVlLFxuICAgICAgZW1haWw6IHRoaXMuZW1haWxWYWx1ZSxcbiAgICAgIGFjdGl2YXRlZEF0OiB0aGlzLmFjdGl2YXRlZEF0XG4gICAgfTtcbiAgfVxuXG4gIGNvbnRhaW5zUEhJKCk6IGJvb2xlYW4ge1xuICAgIHJldHVybiB0cnVlOyAvLyBFbWFpbCBpcyBjb25zaWRlcmVkIFBJSVxuICB9XG5cbiAgZ2V0UGF0aWVudElkKCk6IHN0cmluZyB8IG51bGwge1xuICAgIHJldHVybiBudWxsOyAvLyBOb3QgbmVjZXNzYXJpbHkgYSBwYXRpZW50XG4gIH1cbn1cblxuIl0sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7O0FBQUE7QUFBQSxTQUFBQSxjQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxNQUFBLE9BQUFDLFFBQUE7RUFBQSxJQUFBQyxHQUFBO0VBQUEsSUFBQUMsWUFBQTtJQUFBTCxJQUFBO0lBQUFNLFlBQUE7TUFBQTtRQUFBQyxLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtNQUFBO1FBQUFDLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtJQUFBO0lB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

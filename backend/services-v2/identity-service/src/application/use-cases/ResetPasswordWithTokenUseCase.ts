@@ -13,7 +13,8 @@ import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPo
 import { IRecoveryHistoryRepository } from '../../domain/repositories/IRecoveryHistoryRepository';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
 import { RecoveryAttempt } from '../../domain/value-objects/RecoveryAttempt';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 
 export interface ResetPasswordWithTokenRequest {
   token: string;
@@ -36,14 +37,13 @@ export interface ResetPasswordWithTokenResponse {
 export class ResetPasswordWithTokenUseCase
   implements IUseCase<ResetPasswordWithTokenRequest, ResetPasswordWithTokenResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('reset-password-with-token-use-case');
-
   constructor(
     private authService: IAuthenticationService,
     private passwordPolicyRepository: IPasswordPolicyRepository,
     private recoveryHistoryRepository: IRecoveryHistoryRepository,
     private sessionRepository: ISessionRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(
@@ -114,11 +114,11 @@ export class ResetPasswordWithTokenUseCase
         };
       }
 
-      // Reset password via Supabase
-      await this.authService.resetPassword(request.token, request.newPassword);
+      // Update password via Supabase (using userId from verified token)
+      await this.authService.updatePassword(userId, request.newPassword);
 
       // Invalidate all existing sessions
-      await this.sessionRepository.terminateAllSessions(userId);
+      await this.sessionRepository.deleteAllByUserId(userId);
 
       // Log successful attempt
       await this.logAttempt(userId, true, null, request.ipAddress, request.userAgent);
@@ -222,4 +222,3 @@ export class ResetPasswordWithTokenUseCase
     }
   }
 }
-

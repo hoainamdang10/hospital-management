@@ -28,7 +28,7 @@ export class UserAuthenticatedEvent extends DomainEvent {
     );
   }
 
-  getEventData(): any {
+  getEventData(): Record<string, unknown> {
     return {
       userId: this.userIdVO.value,
       ipAddress: this.ipAddress,

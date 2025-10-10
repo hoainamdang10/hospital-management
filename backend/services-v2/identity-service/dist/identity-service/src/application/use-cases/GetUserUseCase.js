@@ -10,17 +10,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetUserUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const error_helper_1 = require("../../utils/error-helper");
 /**
  * Get User Use Case
  * Retrieves user information with proper authorization checks
  */
 class GetUserUseCase {
-    constructor(userRepository, logger) {
+    constructor(userRepository, logger, circuitBreaker) {
         this.userRepository = userRepository;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('get-user-use-case');
+        this.circuitBreaker = circuitBreaker;
     }
     async execute(request) {
         try {

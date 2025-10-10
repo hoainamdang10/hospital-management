@@ -1,0 +1,139 @@
+2086d5e21a61ca8b8b2d94643dfa0e96
+"use strict";
+/**
+ * Delete User Use Case
+ * Soft deletes user (deactivates) or hard deletes based on policy
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, HIPAA
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DeleteUserUseCase = void 0;
+const UserId_1 = require("../../domain/value-objects/UserId");
+const error_helper_1 = require("../../utils/error-helper");
+/**
+ * Delete User Use Case
+ * Handles user deletion with proper authorization and audit logging
+ *
+ * Default behavior: Soft delete (deactivate user)
+ * Hard delete: Only for admin with explicit flag
+ */
+class DeleteUserUseCase {
+    constructor(userRepository, logger, circuitBreaker) {
+        this.userRepository = userRepository;
+        this.logger = logger;
+        this.circuitBreaker = circuitBreaker;
+    }
+    async execute(request) {
+        try {
+            return await this.circuitBreaker.execute(async () => {
+                return await this.deleteUserInternal(request);
+            });
+        }
+        catch (error) {
+            this.logger.error('Delete user use case failed', {
+                userId: request.userId,
+                requesterId: request.requesterId,
+                error: (0, error_helper_1.getErrorMessage)(error)
+            });
+            return {
+                success: false,
+                error: 'Failed to delete user',
+                message: 'Không thể xóa người dùng'
+            };
+        }
+    }
+    async deleteUserInternal(request) {
+        const { userId, requesterId, hardDelete = false, reason } = request;
+        // Validate input
+        if (!userId || !requesterId) {
+            return {
+                success: false,
+                error: 'Missing required fields',
+                message: 'Thiếu thông tin bắt buộc'
+            };
+        }
+        // Prevent self-deletion
+        if (userId === requesterId) {
+            this.logger.warn('User attempted to delete themselves', { userId, requesterId });
+            return {
+                success: false,
+                error: 'Cannot delete yourself',
+                message: 'Không thể xóa chính mình'
+            };
+        }
+        try {
+            // Get user to delete
+            const userIdVO = UserId_1.UserId.fromString(userId);
+            const user = await this.userRepository.findById(userIdVO);
+            if (!user) {
+                this.logger.warn('User not found for deletion', { userId, requesterId });
+                return {
+                    success: false,
+                    error: 'User not found',
+                    message: 'Không tìm thấy người dùng'
+                };
+            }
+            // Check if user is already inactive (soft deleted)
+            if (!user.isActive && !hardDelete) {
+                return {
+                    success: false,
+                    error: 'User already deactivated',
+                    message: 'Người dùng đã bị vô hiệu hóa'
+                };
+            }
+            if (hardDelete) {
+                // Hard delete - permanently remove user
+                await this.userRepository.delete(userIdVO);
+                // Log hard deletion for audit (CRITICAL - HIPAA compliance)
+                this.logger.warn('User permanently deleted', {
+                    userId,
+                    requesterId,
+                    reason: reason || 'No reason provided',
+                    userEmail: user.email.value,
+                    timestamp: new Date().toISOString(),
+                    severity: 'CRITICAL'
+                });
+                return {
+                    success: true,
+                    message: 'Người dùng đã được xóa vĩnh viễn',
+                    deletionType: 'hard'
+                };
+            }
+            else {
+                // Soft delete - deactivate user
+                user.deactivate();
+                await this.userRepository.update(user);
+                // Log soft deletion for audit
+                this.logger.info('User deactivated', {
+                    userId,
+                    requesterId,
+                    reason: reason || 'No reason provided',
+                    userEmail: user.email.value,
+                    timestamp: new Date().toISOString()
+                });
+                return {
+                    success: true,
+                    message: 'Người dùng đã được vô hiệu hóa',
+                    deletionType: 'soft'
+                };
+            }
+        }
+        catch (error) {
+            this.logger.error('Failed to delete user', {
+                userId,
+                requesterId,
+                hardDelete,
+                error: (0, error_helper_1.getErrorMessage)(error)
+            });
+            return {
+                success: false,
+                error: (0, error_helper_1.getErrorMessage)(error),
+                message: 'Lỗi khi xóa người dùng'
+            };
+        }
+    }
+}
+exports.DeleteUserUseCase = DeleteUserUseCase;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFx1c2UtY2FzZXNcXERlbGV0ZVVzZXJVc2VDYXNlLnRzIiwibWFwcGluZ3MiOiI7QUFBQTs7Ozs7OztHQU9HOzs7QUFJSCw4REFBMkQ7QUFFM0QsMkRBQTJEO0FBaUIzRDs7Ozs7O0dBTUc7QUFDSCxNQUFhLGlCQUFpQjtJQUM1QixZQUNVLGNBQStCLEVBQy9CLE1BQWUsRUFDZixjQUErQjtRQUYvQixtQkFBYyxHQUFkLGNBQWMsQ0FBaUI7UUFDL0IsV0FBTSxHQUFOLE1BQU0sQ0FBUztRQUNmLG1CQUFjLEdBQWQsY0FBYyxDQUFpQjtJQUN0QyxDQUFDO0lBRUosS0FBSyxDQUFDLE9BQU8sQ0FBQyxPQUEwQjtRQUN0QyxJQUFJLENBQUM7WUFDSCxPQUFPLE1BQU0sSUFBSSxDQUFDLGNBQWMsQ0FBQyxPQUFPLENBQUMsS0FBSyxJQUFJLEVBQUU7Z0JBQ2xELE9BQU8sTUFBTSxJQUFJLENBQUMsa0JBQWtCLENBQUMsT0FBTyxDQUFDLENBQUM7WUFDaEQsQ0FBQyxDQUFDLENBQUM7UUFDTCxDQUFDO1FBQUMsT0FBTyxLQUFLLEVBQUUsQ0FBQztZQUNmLElBQUksQ0FBQyxNQUFNLENBQUMsS0FBSyxDQUFDLDZCQUE2QixFQUFFO2dCQUMvQyxNQUFNLEVBQUUsT0FBTyxDQUFDLE1BQU07Z0JBQ3RCLFdBQVcsRUFBRSxPQUFPLENBQUMsV0FBVztnQkFDaEMsS0FBSyxFQUFFLElBQUEsOEJBQWUsRUFBQyxLQUFLLENBQUM7YUFDOUIsQ0FBQyxDQUFDO1lBRUgsT0FBTztnQkFDTCxPQUFPLEVBQUUsS0FBSztnQkFDZCxLQUFLLEVBQUUsdUJBQXVCO2dCQUM5QixPQUFPLEVBQUUsMEJBQTBCO2FBQ3BDLENBQUM7UUFDSixDQUFDO0lBQ0gsQ0FBQztJQUVPLEtBQUssQ0FBQyxrQkFBa0IsQ0FBQyxPQUEwQjtRQUN6RCxNQUFNLEVBQUUsTUFBTSxF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b0JBQ2IsT0FBTyxFQUFFLGdDQUFnQztvQkFDekMsWUFBWSxFQUFFLE1BQU07aUJBQ3JCLENBQUM7WUFDSixDQUFDO1FBRUgsQ0FBQztRQUFDLE9BQU8sS0FBSyxFQUFFLENBQUM7WUFDZixJQUFJLENBQUMsTUFBTSxDQUFDLEtBQUssQ0FBQyx1QkFBdUIsRUFBRTtnQkFDekMsTUFBTTtnQkFDTixXQUFXO2dCQUNYLFVBQVU7Z0JBQ1YsS0FBSyxFQUFFLElBQUEsOEJBQWUsRUFBQyxLQUFLLENBQUM7YUFDOUIsQ0FBQyxDQUFDO1lBRUgsT0FBTztnQkFDTCxPQUFPLEVBQUUsS0FBSztnQkFDZCxLQUFLLEVBQUUsSUFBQSw4QkFBZSxFQUFDLEtBQUssQ0FBQztnQkFDN0IsT0FBTyxFQUFFLHdCQUF3QjthQUNsQyxDQUFDO1FBQ0osQ0FBQztJQUNILENBQUM7Q0FDRjtBQWhJRCw4Q0FnSUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFx1c2UtY2FzZXNcXERlbGV0ZVVzZXJVc2VDYXNlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogRGVsZXRlIFVzZXIgVXNlIENhc2VcbiAqIFNvZnQgZGVsZXRlcyB1c2VyIChkZWFjdGl2YXRlcykgb3IgaGFyZCBkZWxldGVzIGJhc2VkIG9uIHBvbGljeVxuICogXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqIEBjb21wbGlhbmNlIENsZWFuIEFyY2hpdGVjdHVyZSwgSElQQUFcbiAqL1xuXG5pbXBvcnQgeyBJVXNlQ2FzZSB9IGZyb20gJ0BzaGFyZWQvYXBwbGljYXRpb24vdXNlLWNhc2VzL2Jhc2UvdXNlLWNhc2UuaW50ZXJmYWNlJztcbmltcG9ydCB7IElVc2VyUmVwb3NpdG9yeSB9IGZyb20gJy4uL3JlcG9zaXRvcmllcy9JVXNlclJlcG9zaXRvcnknO1xuaW1wb3J0IHsgVXNlcklkIH0gZnJvbSAnLi4vLi4vZG9tYWluL3ZhbHVlLW9iamVjdHMvVXNlcklkJztcbmltcG9ydCB7IElDaXJjdWl0QnJlYWtlciB9IGZyb20gJy4uL3NlcnZpY2VzL0lDaXJjdWl0QnJlYWtlcic7XG5pbXBvcnQgeyBnZXRFcnJvck1lc3NhZ2UgfSBmcm9tICcuLi8uLi91dGlscy9lcnJvci1oZWxwZXInO1xuaW1wb3J0IHsgSUxvZ2dlciB9IGZyb20gJy4uL3NlcnZpY2VzL0lMb2dnZXInO1xuXG5leHBvcnQgaW50ZXJmYWNlIERlbGV0ZVVzZXJSZXF1ZXN0IHtcbiAgdXNlcklkOiBzdHJpbmc7XG4gIHJlcXVlc3RlcklkOiBzdHJpbmc7IC8vIFVzZXIgbWFraW5nIHRoZSByZXF1ZXN0IChtdXN0IGJlIGFkbWluKVxuICBoYXJkRGVsZXRlPzogYm9vbGVhbjsgLy8gSWYgdHJ1ZSwgcGVybWFuZW50bHkgZGVsZXRlOyBpZiBmYWxzZSwgc29mdCBkZWxldGUgKGRlYWN0aXZhdGUpXG4gIHJlYXNvbj86IHN0cmluZzsgLy8gUmVhc29uIGZvciBkZWxldGlvbiAoZm9yIGF1ZGl0KVxufVxuXG5leHBvcnQgaW50ZXJmYWNlIERlbGV0ZVVzZXJSZXNwb25zZSB7XG4gIHN1Y2Nlc3M6IGJvb2xlYW47XG4gIG1lc3NhZ2U/OiBzdHJpbmc7XG4gIGVycm9yPzogc3RyaW5nO1xuICBkZWxldGlvblR5cGU/OiAnc29mdCcgfCAnaGFyZCc7XG59XG5cbi8qKlxuICogRGVsZXRlIFVzZXIgVXNlIENhc2VcbiAqIEhhbmRsZXMgdXNlciBkZWxldGlvbiB3aXRoIHByb3BlciBhdXRob3JpemF0aW9uIGFuZCBhdWRpdCBsb2dnaW5nXG4gKiBcbiAqIERlZmF1bHQgYmVoYXZpb3I6IFNvZnQgZGVsZXRlIChkZWFjdGl2YXRlIHVzZXIpXG4gKiBIYXJkIGRlbGV0ZTogT25seSBmb3IgYWRtaW4gd2l0aCBleHBsaWNpdCBmbGFnXG4gKi9cbmV4cG9ydCBjbGFzcyBEZWxldGVVc2VyVXNlQ2FzZSBpbXBsZW1lbnRzIElVc2VDYXNlPERlbGV0ZVVzZXJSZXF1ZXN0LCBEZWxldGVVc2VyUmVzcG9uc2U+IHtcbiAgY29uc3RydWN0b3IoXG4gICAgcHJpdmF0ZSB1c2VyUmVwb3NpdG9yeTogSVVzZXJSZXBvc2l0b3J5LFxuICAgIHByaXZhdGUgbG9nZ2VyOiBJTG9nZ2VyLFxuICAgIHByaXZhdGUgY2lyY3VpdEJyZWFrZXI6IElDaXJjdWl0QnJlYWtlclxuICApIHt9XG5cbiAgYXN5bmMgZXhlY3V0ZShyZXF1ZXN0OiBEZWxldGVVc2VyUmVxdWVzdCk6IFByb21pc2U8RGVsZXRlVXNlclJlc3BvbnNlPiB7XG4gICAgdHJ5IHtcbiAgICAgIHJldHVybiBhd2FpdCB0aGlzLmNpcmN1aXRCcmVha2VyLmV4ZWN1dGUoYXN5bmMgKCkgPT4ge1xuICAgICAgICByZXR1cm4gYXdhaXQgdGhpcy5kZWxldGVVc2VySW50ZXJuYWwocmVxdWVzdCk7XG4gICAgICB9KTtcbiAgICB9IGNhdGNoIChlcnJvcikge1xuICAgICAgdGhpcy5sb2dnZXIuZXJyb3IoJ0RlbGV0ZSB1c2VyIHVzZSBjYXNlIGZhaWxlZCcsIHtcbiAgICAgICAgdXNlcklkOiByZXF1ZXN0LnVzZXJJZCxcbiAgICAgICAgcmVxdWVzdGVySWQ6IHJlcXVlc3QucmVxdWVzdGVySWQsXG4gICAgICAgIGVycm9yOiBnZXRFcnJvck1lc3NhZ2UoZXJyb3IpXG4gICAgICB9KTtcblxuICAgICAgcmV0dXJuIHtcbiAgICAgICAgc3VjY2VzczogZmFsc2UsXG4gICAgICAgIGVycm9yOiAnRmFpbGVkIHRvIGRlbGV0ZSB1c2VyJyxcbiAgICAgICAgbWVzc2FnZTogJ0tow7RuZyB0aOG7gyB4w7NhIG5nxrDhu51pIGTDuW5nJ1xuICAgICAgfTtcbiAgICB9XG4gIH1cblxuICBwcml2YXRlIGFzeW5jIGRlbGV0ZVVzZXJJbnRlcm5hbChyZXF1ZXN0OiBEZWxldGVVc2VyUmVxdWVzdCk6IFByb21pc2U8RGVsZXRlVXNlclJlc3BvbnNlPiB7XG4gICAgY29uc3QgeyB1c2VySWQsIHJlcXVlc3RlcklkLCBoYXJkRGVsZXRlID0gZmFsc2UsIHJlYXNvbiB9ID0gcmVxdWVzdDtcblxuICAgIC8vIFZhbGlkYXRlIGlucHV0XG4gICAgaWYgKCF1c2VySWQgfHwgIXJlcXVlc3RlcklkKSB7XG4gICAgICByZXR1cm4ge1xuICAgICAgICBzdWNjZXNzOiBmYWxzZSxcbiAgICAgICAgZXJyb3I6ICdNaXNzaW5nIHJlcXVpcmVkIGZpZWxkcycsXG4gICAgICAgIG1lc3NhZ2U6ICdUaGnhur91IHRow7RuZyB0aW4gYuG6r3QgYnXhu5ljJ1xuICAgICAgfTtcbiAgICB9XG5cbiAgICAvLyBQcmV2ZW50IHNlbGYtZGVsZXRpb25cbiAgICBpZiAodXNlcklkID09PSByZXF1ZXN0ZXJJZCkge1xuICAgICAgdGhpcy5sb2dnZXIud2FybignVXNlciBhdHRlbXB0ZWQgdG8gZGVsZXRlIHRoZW1zZWx2ZXMnLCB7IHVzZXJJZCwgcmVxdWVzdGVySWQgfSk7XG4gICAgICByZXR1cm4ge1xuICAgICAgICBzdWNjZXNzOiBmYWxzZSxcbiAgICAgICAgZXJyb3I6ICdDYW5ub3QgZGVsZXRlIHlvdXJzZWxmJyxcbiAgICAgICAgbWVzc2FnZTogJ0tow7RuZyB0aOG7gyB4w7NhIGNow61uaCBtw6xuaCdcbiAgICAgIH07XG4gICAgfVxuXG4gICAgdHJ5IHtcbiAgICAgIC8vIEdldCB1c2VyIHRvIGRlbGV0ZVxuICAgICAgY29uc3QgdXNlcklkVk8gPSBVc2VySWQuZnJvbVN0cmluZyh1c2VySWQpO1xuICAgICAgY29uc3QgdXNlciA9IGF3YWl0IHRoaXMudXNlclJlcG9zaXRvcnkuZmluZEJ5SWQodXNlcklkVk8pO1xuXG4gICAgICBpZiAoIXVzZXIpIHtcbiAgICAgICAgdGhpcy5sb2dnZXIud2FybignVXNlciBub3QgZm91bmQgZm9yIGRlbGV0aW9uJywgeyB1c2VySWQsIHJlcXVlc3RlcklkIH0pO1xuICAgICAgICByZXR1cm4ge1xuICAgICAgICAgIHN1Y2Nlc3M6IGZhbHNlLFxuICAgICAgICAgIGVycm9yOiAnVXNlciBub3QgZm91bmQnLFxuICAgICAgICAgIG1lc3NhZ2U6ICdLaMO0bmcgdMOsbSB0aOG6pXkgbmfGsOG7nWkgZMO5bmcnXG4gICAgICAgIH07XG4gICAgICB9XG5cbiAgICAgIC8vIENoZWNrIGlmIHVzZXIgaXMgYWxyZWFkeSBpbmFjdGl2ZSAoc29mdCBkZWxldGVkKVxuICAgICAgaWYgKCF1c2VyLmlzQWN0aXZlICYmICFoYXJkRGVsZXRlKSB7XG4gICAgICAgIHJldHVybiB7XG4gICAgICAgICAgc3VjY2VzczogZmFsc2UsXG4gICAgICAgICAgZXJyb3I6ICdVc2VyIGFscmVhZHkgZGVhY3RpdmF0ZWQnLFxuICAgICAgICAgIG1lc3NhZ2U6ICdOZ8aw4budaSBkw7luZyDEkcOjIGLhu4sgdsO0IGhp4buHdSBow7NhJ1xuICAgICAgICB9O1xuICAgICAgfVxuXG4gICAgICBpZiAoaGFyZERlbGV0ZSkge1xuICAgICAgICAvLyBIYXJkIGRlbGV0ZSAtIHBlcm1hbmVudGx5IHJlbW92ZSB1c2VyXG4gICAgICAgIGF3YWl0IHRoaXMudXNlclJlcG9zaXRvcnkuZGVsZXRlKHVzZXJJZFZPKTtcblxuICAgICAgICAvLyBMb2cgaGFyZCBkZWxldGlvbiBmb3IgYXVkaXQgKENSSVRJQ0FMIC0gSElQQUEgY29tcGxpYW5jZSlcbiAgICAgICAgdGhpcy5sb2dnZXIud2FybignVXNlciBwZXJtYW5lbnRseSBkZWxldGVkJywge1xuICAgICAgICAgIHVzZXJJZCxcbiAgICAgICAgICByZXF1ZXN0ZXJJZCxcbiAgICAgICAgICByZWFzb246IHJlYXNvbiB8fCAnTm8gcmVhc29uIHByb3ZpZGVkJyxcbiAgICAgICAgICB1c2VyRW1haWw6IHVzZXIuZW1haWwudmFsdWUsXG4gICAgICAgICAgdGltZXN0YW1wOiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCksXG4gICAgICAgICAgc2V2ZXJpdHk6ICdDUklUSUNBTCdcbiAgICAgICAgfSk7XG5cbiAgICAgICAgcmV0dXJuIHtcbiAgICAgICAgICBzdWNjZXNzOiB0cnVlLFxuICAgICAgICAgIG1lc3NhZ2U6ICdOZ8aw4budaSBkw7luZyDEkcOjIMSRxrDhu6NjIHjDs2EgdsSpbmggdmnhu4VuJyxcbiAgICAgICAgICBkZWxldGlvblR5cGU6ICdoYXJkJ1xuICAgICAgICB9O1xuXG4gICAgICB9IGVsc2Uge1xuICAgICAgICAvLyBTb2Z0IGRlbGV0ZSAtIGRlYWN0aXZhdGUgdXNlclxuICAgICAgICB1c2VyLmRlYWN0aXZhdGUoKTtcbiAgICAgICAgYXdhaXQgdGhpcy51c2VyUmVwb3NpdG9yeS51cGRhdGUodXNlcik7XG5cbiAgICAgICAgLy8gTG9nIHNvZnQgZGVsZXRpb24gZm9yIGF1ZGl0XG4gICAgICAgIHRoaXMubG9nZ2VyLmluZm8oJ1VzZXIgZGVhY3RpdmF0ZWQnLCB7XG4gICAgICAgICAgdXNlcklkLFxuICAgICAgICAgIHJlcXVlc3RlcklkLFxuICAgICAgICAgIHJlYXNvbjogcmVhc29uIHx8ICdObyByZWFzb24gcHJvdmlkZWQnLFxuICAgICAgICAgIHVzZXJFbWFpbDogdXNlci5lbWFpbC52YWx1ZSxcbiAgICAgICAgICB0aW1lc3RhbXA6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKVxuICAgICAgICB9KTtcblxuICAgICAgICByZXR1cm4ge1xuICAgICAgICAgIHN1Y2Nlc3M6IHRydWUsXG4gICAgICAgICAgbWVzc2FnZTogJ05nxrDhu51pIGTDuW5nIMSRw6MgxJHGsOG7o2MgdsO0IGhp4buHdSBow7NhJyxcbiAgICAgICAgICBkZWxldGlvblR5cGU6ICdzb2Z0J1xuICAgICAgICB9O1xuICAgICAgfVxuXG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICAgIHRoaXMubG9nZ2VyLmVycm9yKCdGYWlsZWQgdG8gZGVsZXRlIHVzZXInLCB7XG4gICAgICAgIHVzZXJJZCxcbiAgICAgICAgcmVxdWVzdGVySWQsXG4gICAgICAgIGhhcmREZWxldGUsXG4gICAgICAgIGVycm9yOiBnZXRFcnJvck1lc3NhZ2UoZXJyb3IpXG4gICAgICB9KTtcblxuICAgICAgcmV0dXJuIHtcbiAgICAgICAgc3VjY2VzczogZmFsc2UsXG4gICAgICAgIGVycm9yOiBnZXRFcnJvck1lc3NhZ2UoZXJyb3IpLFxuICAgICAgICBtZXNzYWdlOiAnTOG7l2kga2hpIHjDs2EgbmfGsOG7nWkgZMO5bmcnXG4gICAgICB9O1xuICAgIH1cbiAgfVxufVxuIl0sInZlcnNpb24iOjN9

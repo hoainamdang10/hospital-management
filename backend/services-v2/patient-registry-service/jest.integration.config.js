@@ -7,14 +7,20 @@
  * @version 2.0.0
  */
 
+const baseConfig = require('./jest.config.js');
+
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  ...baseConfig,
   
   // Test file patterns
   testMatch: [
     '**/tests/integration/**/*.test.ts',
     '**/tests/integration/**/*.integration.test.ts'
+  ],
+  
+  // Override ignore patterns for integration tests
+  testPathIgnorePatterns: [
+    '/node_modules/'
   ],
   
   // Setup files

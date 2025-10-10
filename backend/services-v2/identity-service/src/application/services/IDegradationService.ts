@@ -19,14 +19,15 @@ export interface AuthResult {
   success: boolean;
   userId?: string;
   email?: string;
-  sessionToken?: string;
+  accessToken?: string; // Supabase access token (JWT)
+  sessionToken?: string; // Deprecated - use accessToken instead
   refreshToken?: string;
   roles?: string[];
   permissions?: string[];
   mode: ServiceMode;
   expiresAt?: Date;
   degradationReason?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserCredentials {

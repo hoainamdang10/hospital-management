@@ -16,12 +16,12 @@ export interface ICircuitBreaker {
    * Execute operation with circuit breaker protection
    * 
    * @param operation Primary operation to execute
-   * @param fallback Fallback operation if primary fails
+   * @param fallback Optional fallback operation if primary fails
    * @returns Result of operation or fallback
    */
   execute<T>(
     operation: () => Promise<T>,
-    fallback: () => Promise<T>
+    fallback?: () => Promise<T>
   ): Promise<T>;
 
   /**
@@ -43,4 +43,3 @@ export enum CircuitBreakerState {
   OPEN = 'OPEN',
   HALF_OPEN = 'HALF_OPEN'
 }
-

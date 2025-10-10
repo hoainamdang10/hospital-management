@@ -199,6 +199,8 @@ export declare class PatientQueryHandlers {
         isHealthy: boolean;
         lastProcessedAt: string;
     };
+    private collectAllPatients;
+    private calculateNewRegistrations;
     private mapToSummary;
     private calculateTotalPages;
     private buildRegistrationTrend;

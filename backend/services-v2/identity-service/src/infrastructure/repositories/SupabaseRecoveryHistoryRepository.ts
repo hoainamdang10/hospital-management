@@ -14,6 +14,8 @@ import {
   RecoveryHistoryResult
 } from '../../domain/repositories/IRecoveryHistoryRepository';
 import { RecoveryAttempt, RecoveryMethodType, AttemptType } from '../../domain/value-objects/RecoveryAttempt';
+import { ILogger } from '../../application/services/ILogger';
+import { getErrorMessage } from '../../utils/error-helper';
 
 interface RecoveryHistoryRow {
   id: string;
@@ -37,7 +39,7 @@ export class SupabaseRecoveryHistoryRepository implements IRecoveryHistoryReposi
 
   constructor(
     private supabaseClient: SupabaseClient,
-    private logger: any
+    private logger: ILogger
   ) {}
 
   /**
@@ -73,10 +75,10 @@ export class SupabaseRecoveryHistoryRepository implements IRecoveryHistoryReposi
       });
 
       return this.mapToDomain(data as RecoveryHistoryRow);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to log recovery attempt', {
         userId: attempt.userId,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -155,10 +157,10 @@ export class SupabaseRecoveryHistoryRepository implements IRecoveryHistoryReposi
         pageSize,
         totalPages
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to get recovery history', {
         filter,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -194,11 +196,11 @@ export class SupabaseRecoveryHistoryRepository implements IRecoveryHistoryReposi
       }
 
       return data || 0;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to count recent attempts', {
         userId,
         attemptType,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -234,10 +236,10 @@ export class SupabaseRecoveryHistoryRepository implements IRecoveryHistoryReposi
       });
 
       return attempts;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to get recent failed attempts', {
         userId,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -275,10 +277,10 @@ export class SupabaseRecoveryHistoryRepository implements IRecoveryHistoryReposi
       });
 
       return deletedCount;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to delete old history', {
         olderThan,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }

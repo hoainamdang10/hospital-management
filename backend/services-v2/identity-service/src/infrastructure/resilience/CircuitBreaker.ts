@@ -8,6 +8,7 @@
  */
 
 import { ICircuitBreaker, CircuitBreakerState } from '../../application/services/ICircuitBreaker';
+import { getErrorMessage } from '../../utils/error-helper';
 
 // Re-export for backward compatibility
 export { CircuitBreakerState };
@@ -116,14 +117,14 @@ export class IdentityServiceCircuitBreaker implements ICircuitBreaker {
   /**
    * Handle failed operation
    */
-  private onFailure(error: any): void {
+  private onFailure(error: unknown): void {
     this.metrics.failedCalls++;
     this.metrics.lastFailureTime = new Date();
     this.failureCount++;
     this.lastFailureTime = new Date();
 
     if (this.failureCount >= this.config.failureThreshold) {
-      this.transitionTo(CircuitBreakerState.OPEN, `Failure threshold reached: ${error.message}`);
+      this.transitionTo(CircuitBreakerState.OPEN, `Failure threshold reached: ${getErrorMessage(error)}`);
     }
   }
 

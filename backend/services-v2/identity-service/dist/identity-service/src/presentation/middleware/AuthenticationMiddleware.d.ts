@@ -7,8 +7,9 @@
  * @compliance Clean Architecture, HIPAA
  */
 import { Request, Response, NextFunction } from 'express';
-import { SupabaseAuthClient } from '../../infrastructure/auth/SupabaseAuthClient';
 import { IPermissionService } from '../../domain/services/IPermissionService';
+import { ILogger } from '../../application/services/ILogger';
+import { ITokenVerifier } from '../../application/services/ITokenVerifier';
 /**
  * Extended Request with user info
  */
@@ -18,16 +19,17 @@ export interface AuthenticatedRequest extends Request {
         email: string;
         roles: string[];
         permissions: string[];
+        sessionId?: string;
     };
 }
 /**
  * Authentication Middleware
  */
 export declare class AuthenticationMiddleware {
-    private authClient;
+    private tokenVerifier;
     private permissionService;
     private logger;
-    constructor(authClient: SupabaseAuthClient, permissionService: IPermissionService, logger: any);
+    constructor(tokenVerifier: ITokenVerifier, permissionService: IPermissionService, logger: ILogger);
     /**
      * Verify JWT token and attach user to request
      */

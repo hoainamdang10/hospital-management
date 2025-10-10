@@ -22,7 +22,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PermissionCache = void 0;
 const redis_1 = require("redis");
 class PermissionCache {
-    constructor(redisUrl) {
+    constructor(redisUrl, clients) {
         // L1 Cache: In-memory
         this.memoryCache = new Map();
         // Cache configuration
@@ -37,33 +37,43 @@ class PermissionCache {
             l2Misses: 0,
             invalidations: 0,
         };
+        this.hasConnected = false;
         // Create Redis client for caching
-        this.redisClient = (0, redis_1.createClient)({ url: redisUrl });
+        this.redisClient = clients?.cacheClient ?? (0, redis_1.createClient)({ url: redisUrl });
         // Create separate Redis client for Pub/Sub
-        this.redisPubSub = (0, redis_1.createClient)({ url: redisUrl });
-        this.setupInvalidationListener();
+        this.redisPubSub = clients?.pubSubClient ?? (0, redis_1.createClient)({ url: redisUrl });
     }
     /**
      * Initialize Redis connections
      */
     async connect() {
+        if (this.hasConnected) {
+            return;
+        }
         await this.redisClient.connect();
         await this.redisPubSub.connect();
+        await this.setupInvalidationListener();
+        this.hasConnected = true;
         console.log('[PermissionCache] Connected to Redis');
     }
     /**
      * Close Redis connections
      */
     async disconnect() {
+        if (!this.hasConnected) {
+            return;
+        }
         await this.redisClient.quit();
         await this.redisPubSub.quit();
         console.log('[PermissionCache] Disconnected from Redis');
+        this.hasConnected = false;
     }
     /**
      * Setup Pub/Sub listener for cache invalidation
      */
-    setupInvalidationListener() {
-        this.redisPubSub.subscribe('permission:invalidate', (message) => {
+    async setupInvalidationListener() {
+        // Listen for user-specific invalidation
+        await this.redisPubSub.subscribe('permission:invalidate', (message) => {
             try {
                 const { userId, timestamp } = JSON.parse(message);
                 // Clear L1 cache for this user
@@ -76,6 +86,22 @@ class PermissionCache {
             }
             catch (error) {
                 console.error('[PermissionCache] Error processing invalidation message', error);
+            }
+        });
+        // Listen for role-based invalidation
+        await this.redisPubSub.subscribe('permission:invalidate:role', (message) => {
+            try {
+                const { roleType, timestamp } = JSON.parse(message);
+                // Clear entire L1 cache since we don't know which users have this role
+                this.memoryCache.clear();
+                this.stats.invalidations++;
+                console.log('[PermissionCache] L1 cache cleared for role via Pub/Sub', {
+                    roleType,
+                    timestamp,
+                });
+            }
+            catch (error) {
+                console.error('[PermissionCache] Error processing role invalidation message', error);
             }
         });
     }

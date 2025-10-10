@@ -85,7 +85,8 @@ export class SearchPatientsUseCase {
       const result = await this.patientRepository.searchPatients(
         request.searchTerm,
         {
-          isActive: request.filters?.isActive
+          isActive: request.filters?.isActive,
+          hasInsurance: request.filters?.hasInsurance
         },
         {
           page,

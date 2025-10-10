@@ -2,7 +2,7 @@ import { getErrorMessage } from '../../utils/error-helper';
 /**
  * Verify Email Use Case
  * Handles email verification with OTP
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -10,10 +10,11 @@ import { getErrorMessage } from '../../utils/error-helper';
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { Email } from '../../domain/value-objects/Email';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
+import { IEventPublisher } from '../services/IEventPublisher';
 import { UserActivatedEvent } from '../../domain/events/UserActivatedEvent';
+import { ILogger } from '../services/ILogger';
 
 export interface VerifyEmailRequest {
   email: string;
@@ -28,12 +29,11 @@ export interface VerifyEmailResponse {
 }
 
 export class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEmailResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('verify-email-use-case');
-
   constructor(
     private authService: IAuthenticationService,
     private userRepository: IUserRepository,
-    private logger: any,
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker,
     private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
@@ -107,17 +107,7 @@ export class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEm
             new Date()
           );
 
-          await this.eventPublisher.publish({
-            eventType: event.constructor.name,
-            aggregateId: user.id,
-            aggregateType: 'User',
-            occurredAt: event.occurredAt,
-            payload: {
-              userId: user.id,
-              email: email.value,
-              activatedAt: new Date()
-            }
-          });
+          await this.eventPublisher.publishDomainEvents([event]);
 
           this.logger.info('UserActivated event published', {
             userId: user.id

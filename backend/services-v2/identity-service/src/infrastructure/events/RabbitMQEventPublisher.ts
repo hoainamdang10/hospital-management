@@ -8,27 +8,13 @@
 
 import * as amqp from 'amqplib';
 import type { Connection, Channel } from 'amqplib';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { ILogger } from '../../application/services/ILogger';
-
-export interface DomainEvent {
-  eventType: string;
-  aggregateId: string;
-  aggregateType: string;
-  occurredAt: Date;
-  payload: any;
-  metadata?: {
-    userId?: string;
-    correlationId?: string;
-    causationId?: string;
-  };
-}
-
-export interface IEventPublisher {
-  initialize(): Promise<void>;
-  publish(event: DomainEvent): Promise<void>;
-  publishBatch(events: DomainEvent[]): Promise<void>;
-  close(): Promise<void>;
-}
+import {
+  IEventPublisher,
+  IntegrationEventPayload
+} from '../../application/services/IEventPublisher';
+import { DomainEventMapper } from './DomainEventMapper';
 
 export class RabbitMQEventPublisher implements IEventPublisher {
   private connection: Connection | null = null;
@@ -50,27 +36,34 @@ export class RabbitMQEventPublisher implements IEventPublisher {
         url: this.rabbitMQUrl.replace(/\/\/.*@/, '//<credentials>@')
       });
 
-      // Create connection
-      this.connection = await amqp.connect(this.rabbitMQUrl);
+      // Create connection - explicit type assertion for amqplib compatibility
+      // Note: amqplib types have issues, using unknown cast to fix
+      const connection = await amqp.connect(this.rabbitMQUrl);
+      this.connection = connection as unknown as Connection;
 
       // Handle connection errors
-      this.connection.on('error', (err) => {
-        this.logger.error('RabbitMQ connection error', { error: err.message });
-        this.isConnected = false;
-      });
+      if (this.connection) {
+        this.connection.on('error', (err) => {
+          this.logger.error('RabbitMQ connection error', { error: err.message });
+          this.isConnected = false;
+        });
 
-      this.connection.on('close', () => {
-        this.logger.warn('RabbitMQ connection closed');
-        this.isConnected = false;
-      });
+        this.connection.on('close', () => {
+          this.logger.warn('RabbitMQ connection closed');
+          this.isConnected = false;
+        });
 
-      // Create channel
-      this.channel = await this.connection.createChannel();
+        // Create channel
+        // @ts-expect-error - amqplib type definitions issue
+        this.channel = await this.connection.createChannel();
+      }
 
       // Declare exchange (topic exchange for routing by event type)
-      await this.channel.assertExchange(this.exchangeName, 'topic', {
-        durable: true
-      });
+      if (this.channel) {
+        await this.channel.assertExchange(this.exchangeName, 'topic', {
+          durable: true
+        });
+      }
 
       this.isConnected = true;
       this.logger.info('RabbitMQ connection established', {
@@ -87,7 +80,7 @@ export class RabbitMQEventPublisher implements IEventPublisher {
   /**
    * Publish a single domain event
    */
-  async publish(event: DomainEvent): Promise<void> {
+  async publishIntegrationEvent(event: IntegrationEventPayload): Promise<void> {
     if (!this.isConnected || !this.channel) {
       this.logger.warn('RabbitMQ not connected, skipping event publish', {
         eventType: event.eventType
@@ -139,9 +132,14 @@ export class RabbitMQEventPublisher implements IEventPublisher {
   /**
    * Publish multiple events in batch
    */
-  async publishBatch(events: DomainEvent[]): Promise<void> {
-    for (const event of events) {
-      await this.publish(event);
+  async publishDomainEvents(events: DomainEvent[]): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+
+    const rabbitEvents = DomainEventMapper.toRabbitMQEvents(events);
+    for (const event of rabbitEvents) {
+      await this.publishIntegrationEvent(event);
     }
   }
 
@@ -156,6 +154,7 @@ export class RabbitMQEventPublisher implements IEventPublisher {
       }
 
       if (this.connection) {
+        // @ts-expect-error - amqplib type definitions issue
         await this.connection.close();
         this.connection = null;
       }
@@ -174,7 +173,7 @@ export class RabbitMQEventPublisher implements IEventPublisher {
    * Format: {aggregateType}.{eventType}
    * Example: user.registered, user.activated, user.role_changed
    */
-  private getRoutingKey(event: DomainEvent): string {
+  private getRoutingKey(event: IntegrationEventPayload): string {
     const aggregateType = event.aggregateType.toLowerCase();
     const eventType = event.eventType
       .replace(/([A-Z])/g, '_$1')
@@ -189,7 +188,8 @@ export class RabbitMQEventPublisher implements IEventPublisher {
  * Mock Event Publisher for testing
  */
 export class MockEventPublisher implements IEventPublisher {
-  private publishedEvents: DomainEvent[] = [];
+  private integrationEvents: IntegrationEventPayload[] = [];
+  private domainEvents: DomainEvent[] = [];
 
   constructor(private readonly logger: ILogger) {}
 
@@ -197,31 +197,35 @@ export class MockEventPublisher implements IEventPublisher {
     this.logger.info('Mock Event Publisher initialized');
   }
 
-  async publish(event: DomainEvent): Promise<void> {
-    this.publishedEvents.push(event);
-    this.logger.info('Mock event published', {
+  async close(): Promise<void> {
+    this.logger.info('Mock Event Publisher closed');
+  }
+
+  async publishIntegrationEvent(event: IntegrationEventPayload): Promise<void> {
+    this.integrationEvents.push(event);
+    this.logger.info('Mock integration event published', {
       eventType: event.eventType,
       aggregateId: event.aggregateId
     });
   }
 
-  async publishBatch(events: DomainEvent[]): Promise<void> {
-    this.publishedEvents.push(...events);
-    this.logger.info('Mock events published', {
+  async publishDomainEvents(events: DomainEvent[]): Promise<void> {
+    this.domainEvents.push(...events);
+    this.logger.info('Mock domain events published', {
       count: events.length
     });
   }
 
-  async close(): Promise<void> {
-    this.logger.info('Mock Event Publisher closed');
+  getIntegrationEvents(): IntegrationEventPayload[] {
+    return [...this.integrationEvents];
   }
 
-  getPublishedEvents(): DomainEvent[] {
-    return [...this.publishedEvents];
+  getDomainEvents(): DomainEvent[] {
+    return [...this.domainEvents];
   }
 
-  clearEvents(): void {
-    this.publishedEvents = [];
+  clear(): void {
+    this.integrationEvents = [];
+    this.domainEvents = [];
   }
 }
-

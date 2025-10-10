@@ -1,0 +1,67 @@
+c94a580244de98b0d8fb0abf1d48c260
+"use strict";
+
+/**
+ * ISessionRepository Interface
+ * Repository interface for managing user sessions
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+/* istanbul ignore next */
+function cov_47vdz1z03() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\ISessionRepository.ts";
+  var hash = "fa8cb7aa24966aad69430909af42a58fafa5017c";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\ISessionRepository.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\ISessionRepository.ts",
+      mappings: ";AAAA;;;;;;GAMG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\ISessionRepository.ts"],
+      sourcesContent: ["/**\n * ISessionRepository Interface\n * Repository interface for managing user sessions\n * \n * @author Hospital Management Team\n * @version 2.0.0\n */\n\nimport { UserSession } from '../entities/UserSession';\n\nexport interface ISessionRepository {\n  /**\n   * Find session by ID\n   */\n  findById(sessionId: string): Promise<UserSession | null>;\n\n  /**\n   * Find session by token\n   */\n  findByToken(sessionToken: string): Promise<UserSession | null>;\n\n  /**\n   * Find all active sessions for a user\n   */\n  findActiveSessionsByUserId(userId: string): Promise<UserSession[]>;\n\n  /**\n   * Find all sessions for a user (active and inactive)\n   */\n  findAllSessionsByUserId(userId: string): Promise<UserSession[]>;\n\n  /**\n   * Create a new session\n   */\n  create(session: UserSession): Promise<UserSession>;\n\n  /**\n   * Update an existing session\n   */\n  update(session: UserSession): Promise<UserSession>;\n\n  /**\n   * Delete a session by ID\n   */\n  delete(sessionId: string): Promise<void>;\n\n  /**\n   * Delete all sessions for a user\n   */\n  deleteAllByUserId(userId: string): Promise<number>;\n\n  /**\n   * Deactivate a session\n   */\n  deactivate(sessionId: string): Promise<void>;\n\n  /**\n   * Deactivate all sessions for a user except the current one\n   */\n  deactivateAllExcept(userId: string, currentSessionId: string): Promise<number>;\n\n  /**\n   * Clean up expired sessions\n   */\n  cleanupExpiredSessions(): Promise<number>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "fa8cb7aa24966aad69430909af42a58fafa5017c"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_47vdz1z03 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_47vdz1z03();
+cov_47vdz1z03().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfNDd2ZHoxejAzIiwicGF0aCIsImhhc2giLCJnbG9iYWwiLCJGdW5jdGlvbiIsImdjdiIsImNvdmVyYWdlRGF0YSIsInN0YXRlbWVudE1hcCIsInN0YXJ0IiwibGluZSIsImNvbHVtbiIsImVuZCIsImZuTWFwIiwiYnJhbmNoTWFwIiwicyIsImYiLCJiIiwiaW5wdXRTb3VyY2VNYXAiLCJmaWxlIiwibWFwcGluZ3MiLCJuYW1lcyIsInNvdXJjZXMiLCJzb3VyY2VzQ29udGVudCIsInZlcnNpb24iLCJfY292ZXJhZ2VTY2hlbWEiLCJjb3ZlcmFnZSIsImFjdHVhbENvdmVyYWdlIl0sInNvdXJjZXMiOlsiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGRvbWFpblxccmVwb3NpdG9yaWVzXFxJU2Vzc2lvblJlcG9zaXRvcnkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBJU2Vzc2lvblJlcG9zaXRvcnkgSW50ZXJmYWNlXG4gKiBSZXBvc2l0b3J5IGludGVyZmFjZSBmb3IgbWFuYWdpbmcgdXNlciBzZXNzaW9uc1xuICogXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqL1xuXG5pbXBvcnQgeyBVc2VyU2Vzc2lvbiB9IGZyb20gJy4uL2VudGl0aWVzL1VzZXJTZXNzaW9uJztcblxuZXhwb3J0IGludGVyZmFjZSBJU2Vzc2lvblJlcG9zaXRvcnkge1xuICAvKipcbiAgICogRmluZCBzZXNzaW9uIGJ5IElEXG4gICAqL1xuICBmaW5kQnlJZChzZXNzaW9uSWQ6IHN0cmluZyk6IFByb21pc2U8VXNlclNlc3Npb24gfCBudWxsPjtcblxuICAvKipcbiAgICogRmluZCBzZXNzaW9uIGJ5IHRva2VuXG4gICAqL1xuICBmaW5kQnlUb2tlbihzZXNzaW9uVG9rZW46IHN0cmluZyk6IFByb21pc2U8VXNlclNlc3Npb24gfCBudWxsPjtcblxuICAvKipcbiAgICogRmluZCBhbGwgYWN0aXZlIHNlc3Npb25zIGZvciBhIHVzZXJcbiAgICovXG4gIGZpbmRBY3RpdmVTZXNzaW9uc0J5VXNlcklkKHVzZXJJZDogc3RyaW5nKTogUHJvbWlzZTxVc2VyU2Vzc2lvbltdPjtcblxuICAvKipcbiAgICogRmluZCBhbGwgc2Vzc2lvbnMgZm9yIGEgdXNlciAoYWN0aXZlIGFuZCBpbmFjdGl2ZSlcbiAgICovXG4gIGZpbmRBbGxTZXNzaW9uc0J5VXNlcklkKHVzZXJJZDogc3RyaW5nKTogUHJvbWlzZTxVc2VyU2Vzc2lvbltdPjtcblxuICAvKipcbiAgICogQ3JlYXRlIGEgbmV3IHNlc3Npb25cbiAgICovXG4gIGNyZWF0ZShzZXNzaW9uOiBVc2VyU2Vzc2lvbik6IFByb21pc2U8VXNlclNlc3Npb24+O1xuXG4gIC8qKlxuICAgKiBVcGRhdGUgYW4gZXhpc3Rpbmcgc2Vzc2lvblxuICAgKi9cbiAgdXBkYXRlKHNlc3Npb246IFVzZXJTZXNzaW9uKTogUHJvbWlzZTxVc2VyU2Vzc2lvbj47XG5cbiAgLyoqXG4gICAqIERlbGV0ZSBhIHNlc3Npb24gYnkgSURcbiAgICovXG4gIGRlbGV0ZShzZXNzaW9uSWQ6IHN0cmluZyk6IFByb21pc2U8dm9pZD47XG5cbiAgLyoqXG4gICAqIERlbGV0ZSBhbGwgc2Vzc2lvbnMgZm9yIGEgdXNlclxuICAgKi9cbiAgZGVsZXRlQWxsQnlVc2VySWQodXNlcklkOiBzdHJpbmcpOiBQcm9taXNlPG51bWJlcj47XG5cbiAgLyoqXG4gICAqIERlYWN0aXZhdGUgYSBzZXNzaW9uXG4gICAqL1xuICBkZWFjdGl2YXRlKHNlc3Npb25JZDogc3RyaW5nKTogUHJvbWlzZTx2b2lkPjtcblxuICAvKipcbiAgICogRGVhY3RpdmF0ZSBhbGwgc2Vzc2lvbnMgZm9yIGEgdXNlciBleGNlcHQgdGhlIGN1cnJlbnQgb25lXG4gICAqL1xuICBkZWFjdGl2YXRlQWxsRXhjZXB0KHVzZXJJZDogc3RyaW5nLCBjdXJyZW50U2Vzc2lvbklkOiBzdHJpbmcpOiBQcm9taXNlPG51bWJlcj47XG5cbiAgLyoqXG4gICAqIENsZWFuIHVwIGV4cGlyZWQgc2Vzc2lvbnNcbiAgICovXG4gIGNsZWFudXBFeHBpcmVkU2Vzc2lvbnMoKTogUHJvbWlzZTxudW1iZXI+O1xufVxuXG4iXSwibWFwcGluZ3MiOiI7O0FBQUE7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGNBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

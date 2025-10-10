@@ -1,0 +1,367 @@
+aa03105066682d8ea5d32dda74d77351
+"use strict";
+
+/**
+ * Staff Invitation Created Event
+ * Triggered when admin creates a staff invitation
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+/* istanbul ignore next */
+function cov_1leka7qtrc() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\StaffInvitationCreatedEvent.ts";
+  var hash = "83fd2b503ba126bdb11157ec3ecfc34371e9531c";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\StaffInvitationCreatedEvent.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 45
+        }
+      },
+      "2": {
+        start: {
+          line: 11,
+          column: 23
+        },
+        end: {
+          line: 11,
+          column: 66
+        }
+      },
+      "3": {
+        start: {
+          line: 14,
+          column: 8
+        },
+        end: {
+          line: 15,
+          column: 83
+        }
+      },
+      "4": {
+        start: {
+          line: 16,
+          column: 8
+        },
+        end: {
+          line: 16,
+          column: 27
+        }
+      },
+      "5": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 17,
+          column: 25
+        }
+      },
+      "6": {
+        start: {
+          line: 18,
+          column: 8
+        },
+        end: {
+          line: 18,
+          column: 35
+        }
+      },
+      "7": {
+        start: {
+          line: 19,
+          column: 8
+        },
+        end: {
+          line: 19,
+          column: 47
+        }
+      },
+      "8": {
+        start: {
+          line: 20,
+          column: 8
+        },
+        end: {
+          line: 20,
+          column: 35
+        }
+      },
+      "9": {
+        start: {
+          line: 23,
+          column: 8
+        },
+        end: {
+          line: 29,
+          column: 10
+        }
+      },
+      "10": {
+        start: {
+          line: 32,
+          column: 8
+        },
+        end: {
+          line: 32,
+          column: 20
+        }
+      },
+      "11": {
+        start: {
+          line: 35,
+          column: 8
+        },
+        end: {
+          line: 35,
+          column: 20
+        }
+      },
+      "12": {
+        start: {
+          line: 38,
+          column: 0
+        },
+        end: {
+          line: 38,
+          column: 66
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 13,
+            column: 4
+          },
+          end: {
+            line: 13,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 68
+          },
+          end: {
+            line: 21,
+            column: 5
+          }
+        },
+        line: 13
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 22,
+            column: 4
+          },
+          end: {
+            line: 22,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 22,
+            column: 19
+          },
+          end: {
+            line: 30,
+            column: 5
+          }
+        },
+        line: 22
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 31,
+            column: 4
+          },
+          end: {
+            line: 31,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 31,
+            column: 18
+          },
+          end: {
+            line: 33,
+            column: 5
+          }
+        },
+        line: 31
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 34,
+            column: 4
+          },
+          end: {
+            line: 34,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 34,
+            column: 19
+          },
+          end: {
+            line: 36,
+            column: 5
+          }
+        },
+        line: 34
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\StaffInvitationCreatedEvent.ts",
+      mappings: ";AAAA;;;;;;GAMG;;;AAEH,mEAA+D;AAE/D,MAAa,2BAA4B,SAAQ,0BAAW;IAC1D,YACkB,KAAa,EACb,IAAY,EACZ,SAAiB,EACjB,eAAuB,EACvB,SAAe;QAE/B,KAAK,CACH,wBAAwB,EACxB,KAAK,EAAE,4BAA4B;QACnC,iBAAiB,EACjB,EAAE,KAAK,EAAE,IAAI,EAAE,SAAS,EAAE,eAAe,EAAE,SAAS,EAAE,CACvD,CAAC;QAXc,UAAK,GAAL,KAAK,CAAQ;QACb,SAAI,GAAJ,IAAI,CAAQ;QACZ,cAAS,GAAT,SAAS,CAAQ;QACjB,oBAAe,GAAf,eAAe,CAAQ;QACvB,cAAS,GAAT,SAAS,CAAM;IAQjC,CAAC;IAED,YAAY;QACV,OAAO;YACL,KAAK,EAAE,IAAI,CAAC,KAAK;YACjB,IAAI,EAAE,IAAI,CAAC,IAAI;YACf,SAAS,EAAE,IAAI,CAAC,SAAS;YACzB,eAAe,EAAE,IAAI,CAAC,eAAe;YACrC,SAAS,EAAE,IAAI,CAAC,SAAS;SAC1B,CAAC;IACJ,CAAC;IAED,WAAW;QACT,OAAO,IAAI,CAAC,CAAC,eAAe;IAC9B,CAAC;IAED,YAAY;QACV,OAAO,IAAI,CAAC,CAAC,sBAAsB;IACrC,CAAC;CACF;AAjCD,kEAiCC",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\StaffInvitationCreatedEvent.ts"],
+      sourcesContent: ["/**\n * Staff Invitation Created Event\n * Triggered when admin creates a staff invitation\n *\n * @author Hospital Management Team\n * @version 2.0.0\n */\n\nimport { DomainEvent } from '@shared/domain/base/domain-event';\n\nexport class StaffInvitationCreatedEvent extends DomainEvent {\n  constructor(\n    public readonly email: string,\n    public readonly role: string,\n    public readonly invitedBy: string,\n    public readonly invitationToken: string,\n    public readonly expiresAt: Date\n  ) {\n    super(\n      'StaffInvitationCreated',\n      email, // Use email as aggregate ID\n      'StaffInvitation',\n      { email, role, invitedBy, invitationToken, expiresAt }\n    );\n  }\n\n  getEventData() {\n    return {\n      email: this.email,\n      role: this.role,\n      invitedBy: this.invitedBy,\n      invitationToken: this.invitationToken,\n      expiresAt: this.expiresAt\n    };\n  }\n\n  containsPHI(): boolean {\n    return true; // Email is PII\n  }\n\n  getPatientId(): string | null {\n    return null; // Not a patient event\n  }\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "83fd2b503ba126bdb11157ec3ecfc34371e9531c"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1leka7qtrc = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1leka7qtrc();
+cov_1leka7qtrc().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1leka7qtrc().s[1]++;
+exports.StaffInvitationCreatedEvent = void 0;
+const domain_event_1 =
+/* istanbul ignore next */
+(cov_1leka7qtrc().s[2]++, require("@shared/domain/base/domain-event"));
+class StaffInvitationCreatedEvent extends
+/* istanbul ignore next */
+(domain_event_1.DomainEvent) {
+  constructor(email, role, invitedBy, invitationToken, expiresAt) {
+    /* istanbul ignore next */
+    cov_1leka7qtrc().f[0]++;
+    cov_1leka7qtrc().s[3]++;
+    super('StaffInvitationCreated', email,
+    // Use email as aggregate ID
+    'StaffInvitation', {
+      email,
+      role,
+      invitedBy,
+      invitationToken,
+      expiresAt
+    });
+    /* istanbul ignore next */
+    cov_1leka7qtrc().s[4]++;
+    this.email = email;
+    /* istanbul ignore next */
+    cov_1leka7qtrc().s[5]++;
+    this.role = role;
+    /* istanbul ignore next */
+    cov_1leka7qtrc().s[6]++;
+    this.invitedBy = invitedBy;
+    /* istanbul ignore next */
+    cov_1leka7qtrc().s[7]++;
+    this.invitationToken = invitationToken;
+    /* istanbul ignore next */
+    cov_1leka7qtrc().s[8]++;
+    this.expiresAt = expiresAt;
+  }
+  getEventData() {
+    /* istanbul ignore next */
+    cov_1leka7qtrc().f[1]++;
+    cov_1leka7qtrc().s[9]++;
+    return {
+      email: this.email,
+      role: this.role,
+      invitedBy: this.invitedBy,
+      invitationToken: this.invitationToken,
+      expiresAt: this.expiresAt
+    };
+  }
+  containsPHI() {
+    /* istanbul ignore next */
+    cov_1leka7qtrc().f[2]++;
+    cov_1leka7qtrc().s[10]++;
+    return true; // Email is PII
+  }
+  getPatientId() {
+    /* istanbul ignore next */
+    cov_1leka7qtrc().f[3]++;
+    cov_1leka7qtrc().s[11]++;
+    return null; // Not a patient event
+  }
+}
+/* istanbul ignore next */
+cov_1leka7qtrc().s[12]++;
+exports.StaffInvitationCreatedEvent = StaffInvitationCreatedEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMWxla2E3cXRyYyIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsIm5hbWUiLCJkZWNsIiwibG9jIiwiYnJhbmNoTWFwIiwicyIsImYiLCJiIiwiaW5wdXRTb3VyY2VNYXAiLCJmaWxlIiwibWFwcGluZ3MiLCJuYW1lcyIsInNvdXJjZXMiLCJzb3VyY2VzQ29udGVudCIsInZlcnNpb24iLCJfY292ZXJhZ2VTY2hlbWEiLCJjb3ZlcmFnZSIsImFjdHVhbENvdmVyYWdlIiwiZG9tYWluX2V2ZW50XzEiLCJyZXF1aXJlIiwiU3RhZmZJbnZpdGF0aW9uQ3JlYXRlZEV2ZW50IiwiRG9tYWluRXZlbnQiLCJjb25zdHJ1Y3RvciIsImVtYWlsIiwicm9sZSIsImludml0ZWRCeSIsImludml0YXRpb25Ub2tlbiIsImV4cGlyZXNBdCIsImdldEV2ZW50RGF0YSIsImNvbnRhaW5zUEhJIiwiZ2V0UGF0aWVudElkIiwiZXhwb3J0cyJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxkb21haW5cXGV2ZW50c1xcU3RhZmZJbnZpdGF0aW9uQ3JlYXRlZEV2ZW50LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogU3RhZmYgSW52aXRhdGlvbiBDcmVhdGVkIEV2ZW50XG4gKiBUcmlnZ2VyZWQgd2hlbiBhZG1pbiBjcmVhdGVzIGEgc3RhZmYgaW52aXRhdGlvblxuICpcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICovXG5cbmltcG9ydCB7IERvbWFpbkV2ZW50IH0gZnJvbSAnQHNoYXJlZC9kb21haW4vYmFzZS9kb21haW4tZXZlbnQnO1xuXG5leHBvcnQgY2xhc3MgU3RhZmZJbnZpdGF0aW9uQ3JlYXRlZEV2ZW50IGV4dGVuZHMgRG9tYWluRXZlbnQge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwdWJsaWMgcmVhZG9ubHkgZW1haWw6IHN0cmluZyxcbiAgICBwdWJsaWMgcmVhZG9ubHkgcm9sZTogc3RyaW5nLFxuICAgIHB1YmxpYyByZWFkb25seSBpbnZpdGVkQnk6IHN0cmluZyxcbiAgICBwdWJsaWMgcmVhZG9ubHkgaW52aXRhdGlvblRva2VuOiBzdHJpbmcsXG4gICAgcHVibGljIHJlYWRvbmx5IGV4cGlyZXNBdDogRGF0ZVxuICApIHtcbiAgICBzdXBlcihcbiAgICAgICdTdGFmZkludml0YXRpb25DcmVhdGVkJyxcbiAgICAgIGVtYWlsLCAvLyBVc2UgZW1haWwgYXMgYWdncmVnYXRlIElEXG4gICAgICAnU3RhZmZJbnZpdGF0aW9uJyxcbiAgICAgIHsgZW1haWwsIHJvbGUsIGludml0ZWRCeSwgaW52aXRhdGlvblRva2VuLCBleHBpcmVzQXQgfVxuICAgICk7XG4gIH1cblxuICBnZXRFdmVudERhdGEoKSB7XG4gICAgcmV0dXJuIHtcbiAgICAgIGVtYWlsOiB0aGlzLmVtYWlsLFxuICAgICAgcm9sZTogdGhpcy5yb2xlLFxuICAgICAgaW52aXRlZEJ5OiB0aGlzLmludml0ZWRCeSxcbiAgICAgIGludml0YXRpb25Ub2tlbjogdGhpcy5pbnZpdGF0aW9uVG9rZW4sXG4gICAgICBleHBpcmVzQXQ6IHRoaXMuZXhwaXJlc0F0XG4gICAgfTtcbiAgfVxuXG4gIGNvbnRhaW5zUEhJKCk6IGJvb2xlYW4ge1xuICAgIHJldHVybiB0cnVlOyAvLyBFbWFpbCBpcyBQSUlcbiAgfVxuXG4gIGdldFBhdGllbnRJZCgpOiBzdHJpbmcgfCBudWxsIHtcbiAgICByZXR1cm4gbnVsbDsgLy8gTm90IGEgcGF0aWVudCBldmVudFxuICB9XG59XG5cbiJdLCJtYXBwaW5ncyI6Ijs7QUFBQTs7Ozs7OztBQUFBO0FBQUEsU0FBQUEsZUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsTUFBQSxPQUFBQyxRQUFBO0VBQUEsSUFBQUMsR0FBQTtFQUFBLElBQUFDLFlBQUE7SUFBQUwsSUFBQTtJQUFBTSxZQUFBO01BQUE7UUFBQUMsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7SUFBQTtJQUFBRSxLQUFBO01BQUE7UUFBQUMsSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO01BQUE7UUFBQUksSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO01BQUE7UUFBQUksSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFB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

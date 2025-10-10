@@ -8,7 +8,8 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserId = void 0;
-const value_object_1 = require("@shared/domain/base/value-object");
+const value_object_1 = require("../../../../shared/domain/base/value-object");
+const crypto_1 = require("crypto");
 class UserId extends value_object_1.ValueObject {
     constructor(props) {
         super(props);
@@ -28,7 +29,9 @@ class UserId extends value_object_1.ValueObject {
         const now = new Date();
         const year = now.getFullYear();
         const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        const sequence = Math.floor(Math.random() * 999) + 1;
+        // Use crypto.randomBytes for secure random number generation
+        const randomBuffer = (0, crypto_1.randomBytes)(2);
+        const sequence = (randomBuffer.readUInt16BE(0) % 999) + 1;
         const sequenceStr = sequence.toString().padStart(3, '0');
         const userId = `USR-${year}${month}-${sequenceStr}`;
         return new UserId({ value: userId });

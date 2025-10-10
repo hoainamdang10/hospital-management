@@ -42,6 +42,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MockEventPublisher = exports.RabbitMQEventPublisher = void 0;
 const amqp = __importStar(require("amqplib"));
+const DomainEventMapper_1 = require("./DomainEventMapper");
 class RabbitMQEventPublisher {
     constructor(rabbitMQUrl, logger) {
         this.rabbitMQUrl = rabbitMQUrl;
@@ -59,23 +60,30 @@ class RabbitMQEventPublisher {
             this.logger.info('Connecting to RabbitMQ', {
                 url: this.rabbitMQUrl.replace(/\/\/.*@/, '//<credentials>@')
             });
-            // Create connection
-            this.connection = await amqp.connect(this.rabbitMQUrl);
+            // Create connection - explicit type assertion for amqplib compatibility
+            // Note: amqplib types have issues, using unknown cast to fix
+            const connection = await amqp.connect(this.rabbitMQUrl);
+            this.connection = connection;
             // Handle connection errors
-            this.connection.on('error', (err) => {
-                this.logger.error('RabbitMQ connection error', { error: err.message });
-                this.isConnected = false;
-            });
-            this.connection.on('close', () => {
-                this.logger.warn('RabbitMQ connection closed');
-                this.isConnected = false;
-            });
-            // Create channel
-            this.channel = await this.connection.createChannel();
+            if (this.connection) {
+                this.connection.on('error', (err) => {
+                    this.logger.error('RabbitMQ connection error', { error: err.message });
+                    this.isConnected = false;
+                });
+                this.connection.on('close', () => {
+                    this.logger.warn('RabbitMQ connection closed');
+                    this.isConnected = false;
+                });
+                // Create channel
+                // @ts-expect-error - amqplib type definitions issue
+                this.channel = await this.connection.createChannel();
+            }
             // Declare exchange (topic exchange for routing by event type)
-            await this.channel.assertExchange(this.exchangeName, 'topic', {
-                durable: true
-            });
+            if (this.channel) {
+                await this.channel.assertExchange(this.exchangeName, 'topic', {
+                    durable: true
+                });
+            }
             this.isConnected = true;
             this.logger.info('RabbitMQ connection established', {
                 exchange: this.exchangeName
@@ -91,7 +99,7 @@ class RabbitMQEventPublisher {
     /**
      * Publish a single domain event
      */
-    async publish(event) {
+    async publishIntegrationEvent(event) {
         if (!this.isConnected || !this.channel) {
             this.logger.warn('RabbitMQ not connected, skipping event publish', {
                 eventType: event.eventType
@@ -134,9 +142,13 @@ class RabbitMQEventPublisher {
     /**
      * Publish multiple events in batch
      */
-    async publishBatch(events) {
-        for (const event of events) {
-            await this.publish(event);
+    async publishDomainEvents(events) {
+        if (events.length === 0) {
+            return;
+        }
+        const rabbitEvents = DomainEventMapper_1.DomainEventMapper.toRabbitMQEvents(events);
+        for (const event of rabbitEvents) {
+            await this.publishIntegrationEvent(event);
         }
     }
     /**
@@ -149,6 +161,7 @@ class RabbitMQEventPublisher {
                 this.channel = null;
             }
             if (this.connection) {
+                // @ts-expect-error - amqplib type definitions issue
                 await this.connection.close();
                 this.connection = null;
             }
@@ -182,32 +195,37 @@ exports.RabbitMQEventPublisher = RabbitMQEventPublisher;
 class MockEventPublisher {
     constructor(logger) {
         this.logger = logger;
-        this.publishedEvents = [];
+        this.integrationEvents = [];
+        this.domainEvents = [];
     }
     async initialize() {
         this.logger.info('Mock Event Publisher initialized');
     }
-    async publish(event) {
-        this.publishedEvents.push(event);
-        this.logger.info('Mock event published', {
+    async close() {
+        this.logger.info('Mock Event Publisher closed');
+    }
+    async publishIntegrationEvent(event) {
+        this.integrationEvents.push(event);
+        this.logger.info('Mock integration event published', {
             eventType: event.eventType,
             aggregateId: event.aggregateId
         });
     }
-    async publishBatch(events) {
-        this.publishedEvents.push(...events);
-        this.logger.info('Mock events published', {
+    async publishDomainEvents(events) {
+        this.domainEvents.push(...events);
+        this.logger.info('Mock domain events published', {
             count: events.length
         });
     }
-    async close() {
-        this.logger.info('Mock Event Publisher closed');
+    getIntegrationEvents() {
+        return [...this.integrationEvents];
     }
-    getPublishedEvents() {
-        return [...this.publishedEvents];
+    getDomainEvents() {
+        return [...this.domainEvents];
     }
-    clearEvents() {
-        this.publishedEvents = [];
+    clear() {
+        this.integrationEvents = [];
+        this.domainEvents = [];
     }
 }
 exports.MockEventPublisher = MockEventPublisher;

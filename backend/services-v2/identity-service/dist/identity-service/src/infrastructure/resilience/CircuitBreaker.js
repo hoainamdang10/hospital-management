@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CircuitBreakerFactory = exports.IdentityServiceCircuitBreaker = exports.CircuitBreakerState = void 0;
 const ICircuitBreaker_1 = require("../../application/services/ICircuitBreaker");
 Object.defineProperty(exports, "CircuitBreakerState", { enumerable: true, get: function () { return ICircuitBreaker_1.CircuitBreakerState; } });
+const error_helper_1 = require("../../utils/error-helper");
 /**
  * Circuit Breaker for Identity Service Operations
  * Implements fail-fast pattern to prevent system overload
@@ -87,7 +88,7 @@ class IdentityServiceCircuitBreaker {
         this.failureCount++;
         this.lastFailureTime = new Date();
         if (this.failureCount >= this.config.failureThreshold) {
-            this.transitionTo(ICircuitBreaker_1.CircuitBreakerState.OPEN, `Failure threshold reached: ${error.message}`);
+            this.transitionTo(ICircuitBreaker_1.CircuitBreakerState.OPEN, `Failure threshold reached: ${(0, error_helper_1.getErrorMessage)(error)}`);
         }
     }
     /**

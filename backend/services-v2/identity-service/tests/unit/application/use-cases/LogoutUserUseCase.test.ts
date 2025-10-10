@@ -13,12 +13,14 @@
 import { LogoutUserUseCase, LogoutUserRequest } from '../../../../src/application/use-cases/LogoutUserUseCase';
 import { IAuthenticationService } from '../../../../src/application/services/IAuthenticationService';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('LogoutUserUseCase', () => {
   let useCase: LogoutUserUseCase;
   let mockAuthService: jest.Mocked<IAuthenticationService>;
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockAuthService = {
@@ -40,6 +42,7 @@ describe('LogoutUserUseCase', () => {
       update: jest.fn(),
       delete: jest.fn(),
       findAll: jest.fn(),
+      invalidateSession: jest.fn(),
       deactivateSession: jest.fn()
     } as any;
 
@@ -50,7 +53,14 @@ describe('LogoutUserUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new LogoutUserUseCase(mockAuthService, mockUserRepository, mockLogger);
+    circuitBreaker = createCircuitBreakerStub();
+
+    useCase = new LogoutUserUseCase(
+      mockAuthService,
+      mockUserRepository,
+      mockLogger,
+      circuitBreaker
+    );
   });
 
   afterEach(() => {
@@ -96,7 +106,10 @@ describe('LogoutUserUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(mockUserRepository.deactivateSession).toHaveBeenCalledWith('session-456');
+      expect(mockUserRepository.deactivateSession).toHaveBeenCalledWith(
+        'session-456',
+        expect.objectContaining({ value: 'user-123' })
+      );
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Session deactivated in database',
         expect.objectContaining({
@@ -140,7 +153,7 @@ describe('LogoutUserUseCase', () => {
       expect(result.success).toBe(true);
       expect(result.message).toBe('Đăng xuất thành công');
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Logout failed',
+        'Auth service signOut failed, continuing logout',
         expect.objectContaining({
           userId: 'user-123',
           error: 'Auth service unavailable'
@@ -248,4 +261,3 @@ describe('LogoutUserUseCase', () => {
     });
   });
 });
-

@@ -13,7 +13,7 @@
  */
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ILogger } from '../services/ILogger';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface ProvisionStaffRequest {
     email: string;
     fullName: string;

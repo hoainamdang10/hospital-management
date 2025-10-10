@@ -24,6 +24,27 @@ export interface CreateUserRequest {
     gender?: string;
     phoneNumber?: string;
 }
+export interface DeviceInfo {
+    platform?: string;
+    browser?: string;
+    os?: string;
+    deviceType?: string;
+    [key: string]: unknown;
+}
+export type AuditDetails = Record<string, unknown> | Error;
+export interface InvitationData {
+    invitedBy: string;
+    invitedAt: string;
+    role: string;
+    department?: string;
+    notes?: string;
+    [key: string]: unknown;
+}
+export interface UserRoleRow {
+    role_name: string;
+    user_id: string;
+    assigned_at: string;
+}
 /**
  * Repository for User operations with Supabase auth_schema
  * Implements IUserRepository interface following Clean Architecture pattern
@@ -90,11 +111,11 @@ export declare class SupabaseUserRepository implements IUserRepository {
     /**
      * Invalidate user session
      */
-    invalidateSession(sessionId: string, sessionToken?: string): Promise<void>;
+    invalidateSession(sessionId: string, sessionToken?: string, userId?: string): Promise<void>;
     /**
      * Deactivate session - alias for invalidateSession
      */
-    deactivateSession(sessionId: string, sessionToken?: string): Promise<void>;
+    deactivateSession(sessionId: string, userId: UserId, sessionToken?: string): Promise<void>;
     /**
      * Get user roles with caching
      *
@@ -200,7 +221,7 @@ export declare class SupabaseUserRepository implements IUserRepository {
         invitedBy: string;
         invitationToken: string;
         expiresAt: Date;
-        invitationData?: any;
+        invitationData?: InvitationData;
     }): Promise<void>;
     /**
      * Verify staff invitation token
@@ -209,7 +230,11 @@ export declare class SupabaseUserRepository implements IUserRepository {
         isValid: boolean;
         email?: string;
         role?: string;
-        invitationData?: any;
+        invitationData?: InvitationData;
     }>;
+    /**
+     * Mark staff invitation as used
+     */
+    markInvitationAsUsed(token: string, userId: string): Promise<void>;
 }
 //# sourceMappingURL=SupabaseUserRepository.d.ts.map

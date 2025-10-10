@@ -6,6 +6,7 @@
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant Monitoring
  */
+import { ILogger } from '../../application/services/ILogger';
 export declare enum HealthStatus {
     HEALTHY = "HEALTHY",
     DEGRADED = "DEGRADED",
@@ -16,7 +17,7 @@ export interface HealthCheckResult {
     status: HealthStatus;
     timestamp: Date;
     responseTime: number;
-    details?: any;
+    details?: Record<string, unknown>;
     error?: string;
 }
 export interface ServiceHealth {
@@ -44,7 +45,7 @@ export declare class IdentityServiceHealthCheck {
     private logger;
     private supabaseClient;
     private startTime;
-    constructor(supabaseUrl: string, supabaseKey: string, logger: any);
+    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger);
     /**
      * Perform comprehensive health check
      */

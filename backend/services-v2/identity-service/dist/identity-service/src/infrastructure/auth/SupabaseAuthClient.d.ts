@@ -6,8 +6,9 @@
 * @version 2.0.0
 * @compliance Production-Ready, HIPAA-Compliant
 */
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { AuthResult, UserCredentials } from '../../application/services/IDegradationService';
+import { ILogger } from '../../application/services/ILogger';
+import { ITokenVerifier, TokenUser } from '../../application/services/ITokenVerifier';
 export interface SupabaseAuthConfig {
     supabaseUrl: string;
     supabaseServiceRoleKey: string;
@@ -17,10 +18,10 @@ export interface SupabaseAuthConfig {
  * Supabase Authentication Client
  * Wraps Supabase Auth API with healthcare-specific logic
  */
-export declare class SupabaseAuthClient {
+export declare class SupabaseAuthClient implements ITokenVerifier {
     private logger;
     private supabaseClient;
-    constructor(config: SupabaseAuthConfig, logger: any);
+    constructor(config: SupabaseAuthConfig, logger: ILogger);
     /**
      * Authenticate user with email and password
      */
@@ -54,6 +55,6 @@ export declare class SupabaseAuthClient {
     /**
      * Verify session token
      */
-    verifyToken(token: string): Promise<SupabaseUser | null>;
+    verifyToken(token: string): Promise<TokenUser | null>;
 }
 //# sourceMappingURL=SupabaseAuthClient.d.ts.map

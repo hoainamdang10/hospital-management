@@ -1,0 +1,335 @@
+5b430c0f5f934642adfe908cd1701bf4
+"use strict";
+
+/**
+ * User Logged Out Event
+ * Triggered when a user logs out
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+/* istanbul ignore next */
+function cov_9kmjf9jf2() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserLoggedOutEvent.ts";
+  var hash = "25c4ff90997c5e34e387a4be6bcc645794209d06";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserLoggedOutEvent.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 36
+        }
+      },
+      "2": {
+        start: {
+          line: 11,
+          column: 23
+        },
+        end: {
+          line: 11,
+          column: 66
+        }
+      },
+      "3": {
+        start: {
+          line: 15,
+          column: 8
+        },
+        end: {
+          line: 15,
+          column: 93
+        }
+      },
+      "4": {
+        start: {
+          line: 16,
+          column: 8
+        },
+        end: {
+          line: 16,
+          column: 39
+        }
+      },
+      "5": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 17,
+          column: 35
+        }
+      },
+      "6": {
+        start: {
+          line: 18,
+          column: 8
+        },
+        end: {
+          line: 18,
+          column: 39
+        }
+      },
+      "7": {
+        start: {
+          line: 21,
+          column: 8
+        },
+        end: {
+          line: 25,
+          column: 10
+        }
+      },
+      "8": {
+        start: {
+          line: 28,
+          column: 8
+        },
+        end: {
+          line: 28,
+          column: 21
+        }
+      },
+      "9": {
+        start: {
+          line: 31,
+          column: 8
+        },
+        end: {
+          line: 31,
+          column: 20
+        }
+      },
+      "10": {
+        start: {
+          line: 34,
+          column: 0
+        },
+        end: {
+          line: 34,
+          column: 48
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 13,
+            column: 4
+          },
+          end: {
+            line: 13,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 14,
+            column: 28
+          },
+          end: {
+            line: 19,
+            column: 5
+          }
+        },
+        line: 14
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 20,
+            column: 4
+          },
+          end: {
+            line: 20,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 20,
+            column: 19
+          },
+          end: {
+            line: 26,
+            column: 5
+          }
+        },
+        line: 20
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 27,
+            column: 4
+          },
+          end: {
+            line: 27,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 27,
+            column: 18
+          },
+          end: {
+            line: 29,
+            column: 5
+          }
+        },
+        line: 27
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 30,
+            column: 4
+          },
+          end: {
+            line: 30,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 30,
+            column: 19
+          },
+          end: {
+            line: 32,
+            column: 5
+          }
+        },
+        line: 30
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserLoggedOutEvent.ts",
+      mappings: ";AAAA;;;;;;GAMG;;;AAEH,mEAA+D;AAE/D,MAAa,kBAAmB,SAAQ,0BAAW;IACjD,YACkB,WAAmB,EAAE,gCAAgC;IACrD,SAAiB,EACjB,WAAiB;QAEjC,KAAK,CACH,eAAe,EACf,WAAW,EACX,MAAM,EACN,EAAE,WAAW,EAAE,SAAS,EAAE,WAAW,EAAE,CACxC,CAAC;QATc,gBAAW,GAAX,WAAW,CAAQ;QACnB,cAAS,GAAT,SAAS,CAAQ;QACjB,gBAAW,GAAX,WAAW,CAAM;IAQnC,CAAC;IAED,YAAY;QACV,OAAO;YACL,MAAM,EAAE,IAAI,CAAC,WAAW;YACxB,SAAS,EAAE,IAAI,CAAC,SAAS;YACzB,WAAW,EAAE,IAAI,CAAC,WAAW;SAC9B,CAAC;IACJ,CAAC;IAED,WAAW;QACT,OAAO,KAAK,CAAC,CAAC,yBAAyB;IACzC,CAAC;IAED,YAAY;QACV,OAAO,IAAI,CAAC,CAAC,+BAA+B;IAC9C,CAAC;CACF;AA7BD,gDA6BC",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserLoggedOutEvent.ts"],
+      sourcesContent: ["/**\n * User Logged Out Event\n * Triggered when a user logs out\n *\n * @author Hospital Management Team\n * @version 2.0.0\n */\n\nimport { DomainEvent } from '@shared/domain/base/domain-event';\n\nexport class UserLoggedOutEvent extends DomainEvent {\n  constructor(\n    public readonly userIdValue: string, // Changed from UserId to string\n    public readonly sessionId: string,\n    public readonly loggedOutAt: Date\n  ) {\n    super(\n      'UserLoggedOut',\n      userIdValue,\n      'User',\n      { userIdValue, sessionId, loggedOutAt }\n    );\n  }\n\n  getEventData() {\n    return {\n      userId: this.userIdValue,\n      sessionId: this.sessionId,\n      loggedOutAt: this.loggedOutAt\n    };\n  }\n\n  containsPHI(): boolean {\n    return false; // No PHI in logout event\n  }\n\n  getPatientId(): string | null {\n    return null; // Not a patient-specific event\n  }\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "25c4ff90997c5e34e387a4be6bcc645794209d06"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_9kmjf9jf2 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_9kmjf9jf2();
+cov_9kmjf9jf2().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_9kmjf9jf2().s[1]++;
+exports.UserLoggedOutEvent = void 0;
+const domain_event_1 =
+/* istanbul ignore next */
+(cov_9kmjf9jf2().s[2]++, require("@shared/domain/base/domain-event"));
+class UserLoggedOutEvent extends
+/* istanbul ignore next */
+(domain_event_1.DomainEvent) {
+  constructor(userIdValue,
+  // Changed from UserId to string
+  sessionId, loggedOutAt) {
+    /* istanbul ignore next */
+    cov_9kmjf9jf2().f[0]++;
+    cov_9kmjf9jf2().s[3]++;
+    super('UserLoggedOut', userIdValue, 'User', {
+      userIdValue,
+      sessionId,
+      loggedOutAt
+    });
+    /* istanbul ignore next */
+    cov_9kmjf9jf2().s[4]++;
+    this.userIdValue = userIdValue;
+    /* istanbul ignore next */
+    cov_9kmjf9jf2().s[5]++;
+    this.sessionId = sessionId;
+    /* istanbul ignore next */
+    cov_9kmjf9jf2().s[6]++;
+    this.loggedOutAt = loggedOutAt;
+  }
+  getEventData() {
+    /* istanbul ignore next */
+    cov_9kmjf9jf2().f[1]++;
+    cov_9kmjf9jf2().s[7]++;
+    return {
+      userId: this.userIdValue,
+      sessionId: this.sessionId,
+      loggedOutAt: this.loggedOutAt
+    };
+  }
+  containsPHI() {
+    /* istanbul ignore next */
+    cov_9kmjf9jf2().f[2]++;
+    cov_9kmjf9jf2().s[8]++;
+    return false; // No PHI in logout event
+  }
+  getPatientId() {
+    /* istanbul ignore next */
+    cov_9kmjf9jf2().f[3]++;
+    cov_9kmjf9jf2().s[9]++;
+    return null; // Not a patient-specific event
+  }
+}
+/* istanbul ignore next */
+cov_9kmjf9jf2().s[10]++;
+exports.UserLoggedOutEvent = UserLoggedOutEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfOWttamY5amYyIiwicGF0aCIsImhhc2giLCJnbG9iYWwiLCJGdW5jdGlvbiIsImdjdiIsImNvdmVyYWdlRGF0YSIsInN0YXRlbWVudE1hcCIsInN0YXJ0IiwibGluZSIsImNvbHVtbiIsImVuZCIsImZuTWFwIiwibmFtZSIsImRlY2wiLCJsb2MiLCJicmFuY2hNYXAiLCJzIiwiZiIsImIiLCJpbnB1dFNvdXJjZU1hcCIsImZpbGUiLCJtYXBwaW5ncyIsIm5hbWVzIiwic291cmNlcyIsInNvdXJjZXNDb250ZW50IiwidmVyc2lvbiIsIl9jb3ZlcmFnZVNjaGVtYSIsImNvdmVyYWdlIiwiYWN0dWFsQ292ZXJhZ2UiLCJkb21haW5fZXZlbnRfMSIsInJlcXVpcmUiLCJVc2VyTG9nZ2VkT3V0RXZlbnQiLCJEb21haW5FdmVudCIsImNvbnN0cnVjdG9yIiwidXNlcklkVmFsdWUiLCJzZXNzaW9uSWQiLCJsb2dnZWRPdXRBdCIsImdldEV2ZW50RGF0YSIsInVzZXJJZCIsImNvbnRhaW5zUEhJIiwiZ2V0UGF0aWVudElkIiwiZXhwb3J0cyJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxkb21haW5cXGV2ZW50c1xcVXNlckxvZ2dlZE91dEV2ZW50LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogVXNlciBMb2dnZWQgT3V0IEV2ZW50XG4gKiBUcmlnZ2VyZWQgd2hlbiBhIHVzZXIgbG9ncyBvdXRcbiAqXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqL1xuXG5pbXBvcnQgeyBEb21haW5FdmVudCB9IGZyb20gJ0BzaGFyZWQvZG9tYWluL2Jhc2UvZG9tYWluLWV2ZW50JztcblxuZXhwb3J0IGNsYXNzIFVzZXJMb2dnZWRPdXRFdmVudCBleHRlbmRzIERvbWFpbkV2ZW50IHtcbiAgY29uc3RydWN0b3IoXG4gICAgcHVibGljIHJlYWRvbmx5IHVzZXJJZFZhbHVlOiBzdHJpbmcsIC8vIENoYW5nZWQgZnJvbSBVc2VySWQgdG8gc3RyaW5nXG4gICAgcHVibGljIHJlYWRvbmx5IHNlc3Npb25JZDogc3RyaW5nLFxuICAgIHB1YmxpYyByZWFkb25seSBsb2dnZWRPdXRBdDogRGF0ZVxuICApIHtcbiAgICBzdXBlcihcbiAgICAgICdVc2VyTG9nZ2VkT3V0JyxcbiAgICAgIHVzZXJJZFZhbHVlLFxuICAgICAgJ1VzZXInLFxuICAgICAgeyB1c2VySWRWYWx1ZSwgc2Vzc2lvbklkLCBsb2dnZWRPdXRBdCB9XG4gICAgKTtcbiAgfVxuXG4gIGdldEV2ZW50RGF0YSgpIHtcbiAgICByZXR1cm4ge1xuICAgICAgdXNlcklkOiB0aGlzLnVzZXJJZFZhbHVlLFxuICAgICAgc2Vzc2lvbklkOiB0aGlzLnNlc3Npb25JZCxcbiAgICAgIGxvZ2dlZE91dEF0OiB0aGlzLmxvZ2dlZE91dEF0XG4gICAgfTtcbiAgfVxuXG4gIGNvbnRhaW5zUEhJKCk6IGJvb2xlYW4ge1xuICAgIHJldHVybiBmYWxzZTsgLy8gTm8gUEhJIGluIGxvZ291dCBldmVudFxuICB9XG5cbiAgZ2V0UGF0aWVudElkKCk6IHN0cmluZyB8IG51bGwge1xuICAgIHJldHVybiBudWxsOyAvLyBOb3QgYSBwYXRpZW50LXNwZWNpZmljIGV2ZW50XG4gIH1cbn1cblxuIl0sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7O0FBQUE7QUFBQSxTQUFBQSxjQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxNQUFBLE9BQUFDLFFBQUE7RUFBQSxJQUFBQyxHQUFBO0VBQUEsSUFBQUMsWUFBQTtJQUFBTCxJQUFBO0lBQUFNLFlBQUE7TUFBQTtRQUFBQyxLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtNQUFBO1FBQUFDLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtJQUFBO0lBQUFPLFNBQUE7SUFBQUMsQ0FBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7SUFBQTtJQUFBQyxDQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7SUFBQTtJQUFBQyxDQUFBO0lBQUFDLGNBQUE7TUFBQUMsSUFBQTtNQUFBQyxRQUFBO01BQUFDLEtBQUE7TUFBQUMsT0FBQTtNQUFBQyxjQUFBO01BQUFDLE9BQUE7SUFBQTtJQUFBQyxlQUFBO0lBQUF6QixJQUFBO0VBQUE7RUFBQSxJQUFBMEIsUUFBQSxHQUFBekIsTUFBQSxDQUFBRSxHQUFBLE1BQUFGLE1BQUEsQ0FBQUUsR0FBQTtFQUFBLEtBQUF1QixRQUFBLENBQUEzQixJQUFBLEtBQUEyQixRQUFBLENBQUEzQixJQUFBLEVBQUFDLElBQUEsS0FBQUEsSUFBQTtJQUFBMEIsUUFBQSxDQUFBM0IsSUFBQSxJQUFBSyxZQUFBO0VBQUE7RUFBQSxJQUFBdUIsY0FBQSxHQUFBRCxRQUFBLENBQUEzQixJQUFBO0VBQUE7SUFZb0I7SUFBQUQsYUFBQSxZQUFBQSxDQUFBO01BQUEsT0FBQTZCLGNBQUE7SUFBQTtFQUFBO0VBQUEsT0FBQUEsY0FBQTtBQUFBO0FBQUE3QixhQUFBO0FBQUFBLGFBQUEsR0FBQWlCLENBQUE7Ozs7Ozs7QUFKcEIsTUFBQWEsY0FBQTtBQUFBO0FBQUEsQ0FBQTlCLGFBQUEsR0FBQWlCLENBQUEsT0FBQWMsT0FBQTtBQUVBLE1BQWFDLGtCQUFtQjtBQUFBO0FBQUEsQ0FBUUYsY0FBQSxDQUFBRyxXQUFXO0VBQ2pEQyxZQUNrQkMsV0FBbUI7RUFBRTtFQUNyQkMsU0FBaUIsRUFDakJDLFdBQWlCO0lBQUE7SUFBQXJDLGFBQUEsR0FBQWtCLENBQUE7SUFBQWxCLGFBQUEsR0FBQWlCLENBQUE7SUFFakMsS0FBSyxDQUNILGVBQWUsRUFDZmtCLFdBQVcsRUFDWCxNQUFNLEVBQ047TUFBRUEsV0FBVztNQUFFQyxTQUFTO01BQUVDO0lBQVcsQ0FBRSxDQUN4QztJQUFDO0lBQUFyQyxhQUFBLEdBQUFpQixDQUFBO0lBVGMsS0FBQWtCLFdBQVcsR0FBWEEsV0FBVztJQUFRO0lBQUFuQyxhQUFBLEdBQUFpQixDQUFBO0lBQ25CLEtBQUFtQixTQUFTLEdBQVRBLFNBQVM7SUFBUTtJQUFBcEMsYUFBQSxHQUFBaUIsQ0FBQTtJQUNqQixLQUFBb0IsV0FBVyxHQUFYQSxXQUFXO0VBUTdCO0VBRUFDLFlBQVlBLENBQUE7SUFBQTtJQUFBdEMsYUFBQSxHQUFBa0IsQ0FBQTtJQUFBbEIsYUFBQSxHQUFBaUIsQ0FBQTtJQUNWLE9BQU87TUFDTHNCLE1BQU0sRUFBRSxJQUFJLENBQUNKLFdBQVc7TUFDeEJDLFNBQVMsRUFBRSxJQUFJLENBQUNBLFNBQVM7TUFDekJDLFdBQVcsRUFBRSxJQUFJLENBQUNBO0tBQ25CO0VBQ0g7RUFFQUcsV0FBV0EsQ0FBQTtJQUFBO0lBQUF4QyxhQUFBLEdBQUFrQixDQUFBO0lBQUFsQixhQUFBLEdBQUFpQixDQUFBO0lBQ1QsT0FBTyxLQUFLLENBQUMsQ0FBQztFQUNoQjtFQUVBd0IsWUFBWUEsQ0FBQTtJQUFBO0lBQUF6QyxhQUFBLEdBQUFrQixDQUFBO0lBQUFsQixhQUFBLEdBQUFpQixDQUFBO0lBQ1YsT0FBTyxJQUFJLENBQUMsQ0FBQztFQUNmOztBQUNEO0FBQUFqQixhQUFBLEdBQUFpQixDQUFBO0FBN0JEeUIsT0FBQSxDQUFBVixrQkFBQSxHQUFBQSxrQkFBQSIsImlnbm9yZUxpc3QiOltdfQ==

@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EnableMFAUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const UserId_1 = require("../../domain/value-objects/UserId");
 /**
  * Enable MFA Use Case - Refactored
@@ -10,11 +9,11 @@ const UserId_1 = require("../../domain/value-objects/UserId");
  * Uses IMFAService interface for infrastructure independence
  */
 class EnableMFAUseCase {
-    constructor(userRepository, mfaService, logger) {
+    constructor(userRepository, mfaService, logger, circuitBreaker) {
         this.userRepository = userRepository;
         this.mfaService = mfaService;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('enable-mfa-use-case');
+        this.circuitBreaker = circuitBreaker;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {

@@ -8,6 +8,8 @@
 
 import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPolicyRepository';
 import { PasswordPolicyProps } from '../../domain/value-objects/PasswordPolicy';
+import { ILogger } from '../services/ILogger';
+import { getErrorMessage } from '../utils/error-utils';
 
 export interface GetPasswordPolicyResponse {
   success: boolean;
@@ -18,7 +20,7 @@ export interface GetPasswordPolicyResponse {
 export class GetPasswordPolicyUseCase {
   constructor(
     private readonly policyRepository: IPasswordPolicyRepository,
-    private readonly logger: any
+    private readonly logger: ILogger
   ) {}
 
   async execute(): Promise<GetPasswordPolicyResponse> {
@@ -33,9 +35,9 @@ export class GetPasswordPolicyUseCase {
         policy: policy.toObject(),
         description
       };
-    } catch (error: any) {
-      this.logger.error('Error getting password policy:', error);
-      throw new Error(`Failed to get password policy: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error('Error getting password policy:', error instanceof Error ? error : new Error(String(error)));
+      throw new Error(`Failed to get password policy: ${getErrorMessage(error)}`);
     }
   }
 }

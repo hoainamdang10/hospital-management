@@ -14,11 +14,13 @@
 import { ListUsersUseCase, ListUsersRequest } from '../../../../src/application/use-cases/ListUsersUseCase';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
 import { createMockUser } from '../../../helpers/user-test-helper';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('ListUsersUseCase', () => {
   let useCase: ListUsersUseCase;
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockUserRepository = {
@@ -39,7 +41,9 @@ describe('ListUsersUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new ListUsersUseCase(mockUserRepository, mockLogger);
+    circuitBreaker = createCircuitBreakerStub();
+
+    useCase = new ListUsersUseCase(mockUserRepository, circuitBreaker, mockLogger);
   });
 
   afterEach(() => {
@@ -175,7 +179,7 @@ describe('ListUsersUseCase', () => {
   });
 
   describe('Filtering', () => {
-    it('should filter by role type', async () => {
+    it('should filter by role type (lowercase input)', async () => {
       // Arrange
       const mockUsers = [
         createMockUser({
@@ -204,7 +208,42 @@ describe('ListUsersUseCase', () => {
       expect(mockUserRepository.list).toHaveBeenCalledWith(
         expect.objectContaining({
           filters: expect.objectContaining({
-            role_type: 'doctor'
+            role_type: 'doctor' // Normalized to lowercase
+          })
+        })
+      );
+    });
+
+    it('should filter by role type (uppercase input - case insensitive)', async () => {
+      // Arrange
+      const mockUsers = [
+        createMockUser({
+          userId: 'doctor-1',
+          email: 'doctor1@hospital.vn',
+          fullName: 'Doctor One',
+          roleType: 'DOCTOR',
+          isActive: true,
+          isEmailVerified: true
+        })
+      ];
+
+      mockUserRepository.list.mockResolvedValue(mockUsers);
+      mockUserRepository.count.mockResolvedValue(1);
+
+      const request: ListUsersRequest = {
+        requesterId: 'admin-123',
+        roleType: 'DOCTOR' // Uppercase input
+      };
+
+      // Act
+      const result = await useCase.execute(request);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(mockUserRepository.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filters: expect.objectContaining({
+            role_type: 'doctor' // Should be normalized to lowercase
           })
         })
       );
@@ -391,4 +430,3 @@ describe('ListUsersUseCase', () => {
     });
   });
 });
-

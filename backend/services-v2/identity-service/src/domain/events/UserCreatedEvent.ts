@@ -29,7 +29,7 @@ export class UserCreatedEvent extends DomainEvent {
     );
   }
 
-  getEventData(): any {
+  getEventData(): Record<string, unknown> {
     return {
       userId: this.userIdVO.value,
       email: this.userEmail.value,

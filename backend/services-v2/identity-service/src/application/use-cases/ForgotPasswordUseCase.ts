@@ -2,7 +2,7 @@ import { getErrorMessage } from '../../utils/error-helper';
 /**
  * Forgot Password Use Case
  * Handles password reset request
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -10,8 +10,9 @@ import { getErrorMessage } from '../../utils/error-helper';
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { Email } from '../../domain/value-objects/Email';
+import { ILogger } from '../services/ILogger';
 
 export interface ForgotPasswordRequest {
   email: string;
@@ -24,12 +25,11 @@ export interface ForgotPasswordResponse {
 }
 
 export class ForgotPasswordUseCase implements IUseCase<ForgotPasswordRequest, ForgotPasswordResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('forgot-password-use-case');
-
   constructor(
     private authService: IAuthenticationService,
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {

@@ -7,7 +7,7 @@
  */
 
 import { DomainEvent as BaseDomainEvent } from '@shared/domain/base/domain-event';
-import { DomainEvent as RabbitMQEvent } from './RabbitMQEventPublisher';
+import { IntegrationEventPayload } from '../../application/services/IEventPublisher';
 import { UserCreatedEvent } from '../../domain/events/UserCreatedEvent';
 import { UserAuthenticatedEvent } from '../../domain/events/UserAuthenticatedEvent';
 import { UserRoleChangedEvent } from '../../domain/events/UserRoleChangedEvent';
@@ -19,7 +19,7 @@ export class DomainEventMapper {
   /**
    * Convert domain event to RabbitMQ event format
    */
-  static toRabbitMQEvent(domainEvent: BaseDomainEvent): RabbitMQEvent {
+  static toRabbitMQEvent(domainEvent: BaseDomainEvent): IntegrationEventPayload {
     const baseEvent = {
       eventType: domainEvent.constructor.name,
       aggregateId: domainEvent.aggregateId,
@@ -105,14 +105,14 @@ export class DomainEventMapper {
     // Default mapping for unknown events
     return {
       ...baseEvent,
-      payload: domainEvent
+      payload: domainEvent as unknown as Record<string, unknown>
     };
   }
 
   /**
    * Convert multiple domain events
    */
-  static toRabbitMQEvents(domainEvents: BaseDomainEvent[]): RabbitMQEvent[] {
+  static toRabbitMQEvents(domainEvents: BaseDomainEvent[]): IntegrationEventPayload[] {
     return domainEvents.map(event => this.toRabbitMQEvent(event));
   }
 }

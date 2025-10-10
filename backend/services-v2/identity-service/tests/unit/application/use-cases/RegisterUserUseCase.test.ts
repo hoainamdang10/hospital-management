@@ -20,6 +20,7 @@ describe('RegisterUserUseCase', () => {
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockPermissionRepository: jest.Mocked<IPermissionRepository>;
   let mockLogger: any;
+  let circuitBreaker = CircuitBreakerFactory.getBreaker('register-user-use-case-test');
 
   const validRequest: RegisterUserRequest = {
     email: 'test@example.com',
@@ -46,7 +47,7 @@ describe('RegisterUserUseCase', () => {
     } as unknown as jest.Mocked<IUserRepository>;
 
     mockPermissionRepository = {
-      getValidRoles: jest.fn().mockResolvedValue(['ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST', 'PATIENT'])
+      getAllRoles: jest.fn().mockResolvedValue(['admin', 'doctor', 'nurse', 'receptionist', 'patient'])
     } as unknown as jest.Mocked<IPermissionRepository>;
 
     mockLogger = {
@@ -56,12 +57,20 @@ describe('RegisterUserUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new RegisterUserUseCase(mockUserRepository, mockPermissionRepository, mockLogger);
+    circuitBreaker = CircuitBreakerFactory.getBreaker('register-user-use-case-test');
+    circuitBreaker.reset();
+
+    useCase = new RegisterUserUseCase(
+      mockUserRepository,
+      mockPermissionRepository,
+      mockLogger,
+      circuitBreaker
+    );
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    CircuitBreakerFactory.getBreaker('register-user-use-case').reset();
+    CircuitBreakerFactory.getBreaker('register-user-use-case-test').reset();
   });
 
   describe('Happy Path', () => {
@@ -151,7 +160,7 @@ describe('RegisterUserUseCase', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('REGISTRATION_FAILED');
-      expect(result.message).toContain('Database failure');
+      expect(result.message).toBe('Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.');
       expect(mockLogger.error).toHaveBeenCalledWith(
         'User registration failed',
         expect.objectContaining({ email: validRequest.email, error: 'Database failure' })

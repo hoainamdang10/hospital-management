@@ -16,13 +16,13 @@ import { IUserRepository } from '../repositories/IUserRepository';
 import { ILogger } from '../services/ILogger';
 import { Email } from '../../domain/value-objects/Email';
 import * as crypto from 'crypto';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
+import { IEventPublisher } from '../services/IEventPublisher';
 import { StaffInvitationCreatedEvent } from '../../domain/events/StaffInvitationCreatedEvent';
 
 export interface ProvisionStaffRequest {
   email: string;
   fullName: string;
-  roleType: 'ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST' | 'PHARMACIST' | 'LAB_TECHNICIAN' | 'BILLING_STAFF'; // All staff roles
+  roleType: 'ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST';
   phoneNumber?: string;
   requesterId: string; // Admin user ID
 }
@@ -129,19 +129,7 @@ export class ProvisionStaffUseCase {
             expiresAt
           );
 
-          await this.eventPublisher.publish({
-            eventType: event.constructor.name,
-            aggregateId: request.email,
-            aggregateType: 'StaffInvitation',
-            occurredAt: event.occurredAt,
-            payload: {
-              email: request.email,
-              role: request.roleType,
-              invitedBy: request.requesterId,
-              invitationToken,
-              expiresAt
-            }
-          });
+          await this.eventPublisher.publishDomainEvents([event]);
 
           this.logger.info('Staff invitation event published', {
             email: email.getMaskedEmail()
@@ -184,4 +172,3 @@ export class ProvisionStaffUseCase {
     return token;
   }
 }
-

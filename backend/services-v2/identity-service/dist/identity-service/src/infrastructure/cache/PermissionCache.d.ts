@@ -17,6 +17,7 @@
  * @author Hospital Management Team
  * @version 3.0.0 - Pure RBAC
  */
+import { RedisClientType } from 'redis';
 import { UserId } from '../../domain/value-objects/UserId';
 export declare class PermissionCache {
     private memoryCache;
@@ -26,7 +27,11 @@ export declare class PermissionCache {
     private readonly L2_TTL_SECONDS;
     private readonly MAX_L1_SIZE;
     private stats;
-    constructor(redisUrl: string);
+    constructor(redisUrl: string, clients?: {
+        cacheClient?: RedisClientType;
+        pubSubClient?: RedisClientType;
+    });
+    private hasConnected;
     /**
      * Initialize Redis connections
      */

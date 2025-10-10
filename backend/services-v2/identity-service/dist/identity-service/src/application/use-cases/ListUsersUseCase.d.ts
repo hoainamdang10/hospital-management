@@ -6,8 +6,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, HIPAA
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 export interface ListUsersRequest {
     requesterId: string;
     page?: number;
@@ -45,12 +47,12 @@ export interface ListUsersResponse {
  */
 export declare class ListUsersUseCase implements IUseCase<ListUsersRequest, ListUsersResponse> {
     private userRepository;
-    private logger;
     private circuitBreaker;
+    private logger;
     private readonly DEFAULT_PAGE;
     private readonly DEFAULT_LIMIT;
     private readonly MAX_LIMIT;
-    constructor(userRepository: IUserRepository, logger: any);
+    constructor(userRepository: IUserRepository, circuitBreaker: ICircuitBreaker, logger: ILogger);
     execute(request: ListUsersRequest): Promise<ListUsersResponse>;
     private listUsersInternal;
 }

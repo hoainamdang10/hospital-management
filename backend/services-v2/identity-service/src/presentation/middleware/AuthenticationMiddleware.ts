@@ -8,10 +8,11 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { SupabaseAuthClient } from '../../infrastructure/auth/SupabaseAuthClient';
 import { IPermissionService } from '../../domain/services/IPermissionService';
 import { UserId } from '../../domain/value-objects/UserId';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../../application/services/ILogger';
+import { ITokenVerifier } from '../../application/services/ITokenVerifier';
 
 /**
  * Extended Request with user info
@@ -22,6 +23,7 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     roles: string[];
     permissions: string[];
+    sessionId?: string;
   };
 }
 
@@ -30,9 +32,9 @@ export interface AuthenticatedRequest extends Request {
  */
 export class AuthenticationMiddleware {
   constructor(
-    private authClient: SupabaseAuthClient,
+    private tokenVerifier: ITokenVerifier,
     private permissionService: IPermissionService,
-    private logger: any
+    private logger: ILogger
   ) {}
 
   /**
@@ -55,7 +57,7 @@ export class AuthenticationMiddleware {
         const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
         // Verify token with Supabase
-        const user = await this.authClient.verifyToken(token);
+        const user = await this.tokenVerifier.verifyToken(token);
         if (!user) {
           res.status(401).json({
             success: false,
@@ -70,7 +72,9 @@ export class AuthenticationMiddleware {
         const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
 
         // Extract roles from user metadata or default
-        const roles = user.user_metadata?.roles || ['patient'];
+        const roles = Array.isArray(user.user_metadata?.roles)
+          ? (user.user_metadata?.roles as string[])
+          : ['patient'];
 
         // Attach user info to request
         req.user = {
@@ -119,12 +123,14 @@ export class AuthenticationMiddleware {
         }
 
         const token = authHeader.substring(7);
-        const user = await this.authClient.verifyToken(token);
+        const user = await this.tokenVerifier.verifyToken(token);
 
         if (user) {
           const userId = UserId.fromString(user.id);
           const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
-          const roles = user.user_metadata?.roles || ['patient'];
+          const roles = Array.isArray(user.user_metadata?.roles)
+            ? (user.user_metadata?.roles as string[])
+            : ['patient'];
 
           req.user = {
             userId: user.id,
@@ -204,4 +210,3 @@ export class AuthenticationMiddleware {
     return this.requireRole('patient');
   }
 }
-

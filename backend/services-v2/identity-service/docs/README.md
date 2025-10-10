@@ -44,7 +44,8 @@ docs/
 │   └── BOUNDED_CONTEXT.md             # DDD bounded context (TODO)
 │
 ├── database/                           # 💾 Database Documentation
-│   ├── SCHEMA.md                      # Database schema (TODO)
+│   ├── DATABASE_SCHEMA.md             # ⭐ Database schema (COMPLETE)
+│   ├── DATABASE_ERD.md                # ⭐ Entity Relationship Diagram (COMPLETE)
 │   ├── MIGRATIONS.md                  # Migration guide (TODO)
 │   └── SEED_DATA.md                   # Seed data guide (TODO)
 │
@@ -147,7 +148,8 @@ docs/
 | **Architecture** | Overview | ❌ TODO | P2 |
 | **Architecture** | Domain Model | ❌ TODO | P2 |
 | **Architecture** | Bounded Context | ❌ TODO | P2 |
-| **Database** | Schema | ❌ TODO | P2 |
+| **Database** | Schema | ✅ Complete | P0 |
+| **Database** | ERD | ✅ Complete | P0 |
 | **Database** | Migrations | ❌ TODO | P2 |
 | **Database** | Seed Data | ❌ TODO | P2 |
 | **Development** | Setup | ❌ TODO | P2 |
@@ -158,6 +160,45 @@ docs/
 - ✅ Complete
 - 📋 Draft (skeleton created, needs completion)
 - ❌ TODO (not started)
+
+---
+
+### 4. Database Schema ⭐
+**File**: [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md)
+**Status**: ✅ Complete
+**Purpose**: Detailed documentation of all database tables
+
+**Contents**:
+- All 17 core tables in auth_schema
+- Column definitions with types and constraints
+- Indexes and foreign keys
+- RLS (Row Level Security) status
+- Migration status
+
+**Why Important**:
+- Prevents "table doesn't exist" errors
+- Shows actual database state on Supabase
+- Reference for queries and migrations
+- Verified on 2025-10-07
+
+---
+
+### 5. Database ERD ⭐
+**File**: [DATABASE_ERD.md](DATABASE_ERD.md)
+**Status**: ✅ Complete
+**Purpose**: Visual representation of database relationships
+
+**Contents**:
+- Mermaid ERD diagram
+- All foreign key relationships
+- Table definitions
+- Relationship summary
+
+**Why Important**:
+- Visual understanding of data model
+- Shows RBAC structure
+- Helps plan complex queries
+- Reference for joins
 
 ---
 
@@ -188,6 +229,7 @@ docs/
 - **Setup Issues**: See [Service README](../README.md)
 - **API Questions**: See [API Contract](api/IDENTITY_API_CONTRACT.md)
 - **Event Questions**: See [Event Catalog](events/IDENTITY_EVENT_CATALOG.md)
+- **Database Questions**: See [Database Schema](DATABASE_SCHEMA.md) or [Database ERD](DATABASE_ERD.md)
 
 ### For Operations
 - **Service Issues**: See [Operations Runbook](ops/IDENTITY_RUNBOOK.md)
@@ -246,10 +288,12 @@ docs/
 | 1.0.0 | 2025-01-06 | Added API Contract skeleton | AI Agent |
 | 1.0.0 | 2025-01-06 | Added Event Catalog skeleton | AI Agent |
 | 1.0.0 | 2025-01-06 | Added Operations Runbook skeleton | AI Agent |
+| 1.1.0 | 2025-10-07 | Added Database Schema documentation | AI Agent |
+| 1.1.0 | 2025-10-07 | Added Database ERD diagram | AI Agent |
 
 ---
 
-**Maintained By**: Identity Service Team  
-**Last Review**: 2025-01-06  
+**Maintained By**: Identity Service Team
+**Last Review**: 2025-10-07
 **Next Review**: After completing P0 documents
 

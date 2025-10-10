@@ -11,7 +11,8 @@ import { IUseCase } from '@shared/application/use-cases/base/use-case.interface'
 import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IRecoveryHistoryRepository } from '../../domain/repositories/IRecoveryHistoryRepository';
 import { RecoveryAttempt } from '../../domain/value-objects/RecoveryAttempt';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 
 export interface VerifyResetTokenRequest {
   token: string;
@@ -35,12 +36,11 @@ export interface VerifyResetTokenResponse {
 export class VerifyResetTokenUseCase
   implements IUseCase<VerifyResetTokenRequest, VerifyResetTokenResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('verify-reset-token-use-case');
-
   constructor(
     private authService: IAuthenticationService,
     private recoveryHistoryRepository: IRecoveryHistoryRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: VerifyResetTokenRequest): Promise<VerifyResetTokenResponse> {
@@ -160,4 +160,3 @@ export class VerifyResetTokenUseCase
     }
   }
 }
-

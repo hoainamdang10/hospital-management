@@ -18,7 +18,6 @@ import { UserId } from '../value-objects/UserId';
 import { Email } from '../value-objects/Email';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { HealthcareRole } from '../entities/HealthcareRole';
-import { UserSession } from '../entities/UserSession';
 import { UserCreatedEvent } from '../events/UserCreatedEvent';
 import { UserAuthenticatedEvent } from '../events/UserAuthenticatedEvent';
 import { UserRoleChangedEvent } from '../events/UserRoleChangedEvent';
@@ -34,6 +33,29 @@ export interface UserProps {
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * User Persistence Format
+ * Used for database storage and retrieval
+ */
+export interface UserPersistenceProps {
+  id: string;
+  email: string;
+  full_name: string;
+  citizen_id?: string;
+  date_of_birth?: string;
+  gender?: string;
+  address?: string;
+  phone_number?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  is_active: boolean;
+  is_verified: boolean;
+  last_login_at?: string;
+  created_at: string;
+  updated_at: string;
+  roles?: string[];
 }
 
 /**
@@ -183,52 +205,52 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * Record authentication event (password verification done by Supabase Auth)
    * This method is called AFTER successful authentication via SupabaseAuthService
    */
-  public recordAuthentication(ipAddress: string, userAgent: string): UserSession {
-    try {
-      if (!this.props.isActive) {
-        throw new Error('Tài khoản đã bị vô hiệu hóa');
-      }
-
-      // Update last login
-      this.props.lastLoginAt = new Date();
-      this.props.updatedAt = new Date();
-
-      // Create user session with enhanced security
-      // Note: Session token should be provided by infrastructure layer
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-      const session = UserSession.create(
-        this.props.id.value,
-        '', // sessionToken - to be set by infrastructure
-        {}, // deviceInfo - to be set by infrastructure
-        ipAddress,
-        userAgent,
-        expiresAt
-      );
-
-      // Domain event for successful authentication
-      this.addDomainEvent(new UserAuthenticatedEvent(
-        this.props.id,
-        ipAddress,
-        userAgent,
-        new Date()
-      ));
-
-      return session;
-    } catch (error) {
-      // Log authentication failure for security monitoring
-      console.error('Authentication recording failed', {
-        userId: this.props.id.value,
-        email: this.props.email.value,
-        ipAddress,
-        error: getErrorMessage(error)
-      });
-      throw error;
+  public recordAuthentication(ipAddress: string, userAgent: string): void {
+    if (!this.props.isActive) {
+      throw new Error('Tài khoản đã bị vô hiệu hóa');
     }
+
+    // Update last login
+    this.props.lastLoginAt = new Date();
+    this.props.updatedAt = new Date();
+
+    // Domain event for successful authentication
+    this.addDomainEvent(new UserAuthenticatedEvent(
+      this.props.id,
+      ipAddress,
+      userAgent,
+      new Date()
+    ));
+  }
+
+  /**
+   * Get all role types assigned to this user (read-only)
+   * Use this for validation in use cases before calling PermissionRepository
+   *
+   * @returns Array of role type strings (e.g., ['DOCTOR', 'ADMIN'])
+   */
+  public get roleTypes(): string[] {
+    return this.props.healthcareRoles.map(r => r.type);
+  }
+
+  /**
+   * Check if user has a specific role
+   *
+   * @param roleType Role type to check (e.g., 'DOCTOR', 'ADMIN')
+   * @returns true if user has the role, false otherwise
+   */
+  public hasRole(roleType: string): boolean {
+    return this.props.healthcareRoles.some(r => r.type === roleType);
   }
 
   /**
    * Add a role to user
    * Pure RBAC: Supports multiple roles per user
+   *
+   * @deprecated Use IPermissionRepository.assignRole() instead
+   * This method will be removed in v2.2
+   * Role assignments should go through PermissionRepository to ensure
+   * proper persistence to user_roles table and cache invalidation.
    */
   public addRole(newRole: HealthcareRole, assignedBy: UserId): void {
     try {
@@ -256,6 +278,11 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   /**
    * Remove a role from user
    * Pure RBAC: User must have at least one role
+   *
+   * @deprecated Use IPermissionRepository.removeRole() instead
+   * This method will be removed in v2.2
+   * Role removals should go through PermissionRepository to ensure
+   * proper persistence to user_roles table and cache invalidation.
    */
   public removeRole(roleType: string, removedBy: UserId): void {
     try {
@@ -304,14 +331,8 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   }
 
   /**
-   * Check if user has a specific role
-   */
-  public hasRole(roleType: string): boolean {
-    return this.props.healthcareRoles.some(r => r.type === roleType.toUpperCase());
-  }
-
-  /**
    * Get role types as string array
+   * @deprecated Use roleTypes getter instead
    */
   public getRoleTypes(): string[] {
     return this.props.healthcareRoles.map(r => r.type);
@@ -330,33 +351,6 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     } catch (error) {
       throw new Error(`Failed to update personal info: ${getErrorMessage(error)}`);
     }
-  }
-
-  /**
-   * Convert to Supabase format for persistence
-   * ARCHITECTURE NOTE: This method violates Clean Architecture by knowing about Supabase column names.
-   * TODO: Move this mapping logic to SupabaseUserRepository.
-   *
-   * @deprecated Use repository mapping instead
-   */
-  public toSupabaseFormat(): any {
-    return {
-      id: this.props.id.value,
-      email: this.props.email.value,
-      full_name: this.props.personalInfo.fullName,
-      role_type: this.props.healthcareRoles[0].name, // Primary role
-      citizen_id: this.props.personalInfo.citizenId,
-      date_of_birth: this.props.personalInfo.dateOfBirth?.toISOString().split('T')[0],
-      gender: this.props.personalInfo.gender,
-      address: this.props.personalInfo.address,
-      phone_number: this.props.personalInfo.phoneNumber,
-      emergency_contact_name: this.props.personalInfo.emergencyContactName,
-      emergency_contact_phone: this.props.personalInfo.emergencyContactPhone,
-      is_active: this.props.isActive,
-      is_verified: this.props.isEmailVerified,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString()
-    };
   }
 
   /**
@@ -400,10 +394,6 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         this.props.isEmailVerified
       );
     } catch (error) {
-      console.warn('Healthcare compliance check failed', {
-        userId: this.props.id.value,
-        error: getErrorMessage(error)
-      });
       return false;
     }
   }
@@ -420,10 +410,6 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         this.props.personalInfo.isComplete()
       );
     } catch (error) {
-      console.warn('HIPAA compliance check failed', {
-        userId: this.props.id.value,
-        error: getErrorMessage(error)
-      });
       return false;
     }
   }
@@ -439,12 +425,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    *
    * This method is kept for backward compatibility but always returns false.
    */
-  public canPerformAction(action: string, resource: string): boolean {
-    console.warn('canPerformAction() called on User aggregate. Use PermissionService instead.', {
-      userId: this.props.id.value,
-      action,
-      resource
-    });
+  public canPerformAction(_action: string, _resource: string): boolean {
     return false; // Always deny - use PermissionService for actual permission checks
   }
 
@@ -545,7 +526,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   /**
    * Convert to persistence format - required by Entity base class
    */
-  toPersistence(): any {
+  toPersistence(): UserPersistenceProps {
     const props = this.getProps();
     return {
       id: this.id,
@@ -553,18 +534,17 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       full_name: props.personalInfo.fullName,
       phone_number: props.personalInfo.phoneNumber,
       address: props.personalInfo.address,
-      date_of_birth: props.personalInfo.dateOfBirth,
+      date_of_birth: props.personalInfo.dateOfBirth?.toISOString().split('T')[0],
       gender: props.personalInfo.gender,
       citizen_id: props.personalInfo.citizenId,
       emergency_contact_name: props.personalInfo.emergencyContactName,
       emergency_contact_phone: props.personalInfo.emergencyContactPhone,
-      healthcare_role_id: props.healthcareRoles[0].id, // Primary role
-      healthcare_role_type: props.healthcareRoles[0].type,
       is_active: props.isActive,
-      is_email_verified: props.isEmailVerified,
-      last_login_at: props.lastLoginAt,
-      created_at: props.createdAt,
-      updated_at: props.updatedAt
+      is_verified: props.isEmailVerified,
+      last_login_at: props.lastLoginAt?.toISOString(),
+      created_at: props.createdAt.toISOString(),
+      updated_at: props.updatedAt.toISOString(),
+      roles: props.healthcareRoles.map(r => r.name)
     };
   }
 }

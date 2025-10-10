@@ -15,8 +15,8 @@ const error_helper_1 = require("../../utils/error-helper");
  * Authentication Middleware
  */
 class AuthenticationMiddleware {
-    constructor(authClient, permissionService, logger) {
-        this.authClient = authClient;
+    constructor(tokenVerifier, permissionService, logger) {
+        this.tokenVerifier = tokenVerifier;
         this.permissionService = permissionService;
         this.logger = logger;
     }
@@ -38,7 +38,7 @@ class AuthenticationMiddleware {
                 }
                 const token = authHeader.substring(7); // Remove 'Bearer ' prefix
                 // Verify token with Supabase
-                const user = await this.authClient.verifyToken(token);
+                const user = await this.tokenVerifier.verifyToken(token);
                 if (!user) {
                     res.status(401).json({
                         success: false,
@@ -51,7 +51,9 @@ class AuthenticationMiddleware {
                 const userId = UserId_1.UserId.fromString(user.id);
                 const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
                 // Extract roles from user metadata or default
-                const roles = user.user_metadata?.roles || ['patient'];
+                const roles = Array.isArray(user.user_metadata?.roles)
+                    ? user.user_metadata?.roles
+                    : ['patient'];
                 // Attach user info to request
                 req.user = {
                     userId: user.id,
@@ -94,11 +96,13 @@ class AuthenticationMiddleware {
                     return next();
                 }
                 const token = authHeader.substring(7);
-                const user = await this.authClient.verifyToken(token);
+                const user = await this.tokenVerifier.verifyToken(token);
                 if (user) {
                     const userId = UserId_1.UserId.fromString(user.id);
                     const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
-                    const roles = user.user_metadata?.roles || ['patient'];
+                    const roles = Array.isArray(user.user_metadata?.roles)
+                        ? user.user_metadata?.roles
+                        : ['patient'];
                     req.user = {
                         userId: user.id,
                         email: user.email,

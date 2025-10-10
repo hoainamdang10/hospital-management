@@ -5,11 +5,18 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from '../../../../shared/domain/base/entity';
+export interface DeviceInfo {
+    deviceType?: string;
+    deviceName?: string;
+    os?: string;
+    browser?: string;
+    [key: string]: unknown;
+}
 interface UserSessionProps {
     userId: string;
     sessionToken: string;
-    deviceInfo: any;
+    deviceInfo: DeviceInfo;
     ipAddress: string;
     userAgent: string;
     expiresAt: Date;
@@ -19,14 +26,25 @@ interface UserSessionProps {
 }
 export declare class UserSession extends Entity<UserSessionProps> {
     private constructor();
-    static create(userId: string, sessionToken: string, deviceInfo: any, ipAddress: string, userAgent: string, expiresAt: Date): UserSession;
+    static create(userId: string, sessionToken: string, deviceInfo: DeviceInfo, ipAddress: string, userAgent: string, expiresAt: Date): UserSession;
     /**
      * Reconstitute from persistence data
      */
-    static fromPersistenceData(data: any): UserSession;
+    static fromPersistenceData(data: {
+        id: string;
+        userId: string;
+        sessionToken: string;
+        deviceInfo: DeviceInfo;
+        ipAddress: string;
+        userAgent: string;
+        expiresAt: Date;
+        isActive: boolean;
+        createdAt: Date;
+        lastAccessedAt: Date;
+    }): UserSession;
     get userId(): string;
     get sessionToken(): string;
-    get deviceInfo(): any;
+    get deviceInfo(): DeviceInfo;
     get ipAddress(): string;
     get userAgent(): string;
     get expiresAt(): Date;
@@ -52,7 +70,7 @@ export declare class UserSession extends Entity<UserSessionProps> {
     /**
      * Convert entity to persistence format - required by Entity base class
      */
-    toPersistence(): any;
+    toPersistence(): Record<string, unknown>;
 }
 export {};
 //# sourceMappingURL=UserSession.d.ts.map

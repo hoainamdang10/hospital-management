@@ -86,16 +86,23 @@ export class SupabasePermissionRepository implements IPermissionRepository {
    */
   async getRolePermissions(roleType: string): Promise<string[]> {
     try {
+      // Step 1: Get role ID with proper error handling
+      const { data: roleData, error: roleError } = await this.supabaseClient
+        .from('healthcare_roles')
+        .select('id')
+        .eq('role_name', roleType.toLowerCase())
+        .single();
+
+      if (roleError || !roleData) {
+        console.warn(`[SupabasePermissionRepository] Role not found: ${roleType}`, roleError);
+        return []; // Return empty array if role doesn't exist
+      }
+
+      // Step 2: Get permissions for the role
       const { data, error } = await this.supabaseClient
         .from('role_permissions')
         .select('permission_name')
-        .eq('role_id', (
-          await this.supabaseClient
-            .from('healthcare_roles')
-            .select('id')
-            .eq('role_name', roleType.toLowerCase())
-            .single()
-        ).data?.id)
+        .eq('role_id', roleData.id)
         .eq('is_active', true);
 
       if (error) {
@@ -425,7 +432,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Log audit event
    */
-  private async logAudit(action: string, userId: string, details: any): Promise<void> {
+  private async logAudit(action: string, userId: string, details: Record<string, unknown>): Promise<void> {
     try {
       await this.supabaseClient.from('audit_logs').insert({
         action,

@@ -215,6 +215,18 @@ class SupabasePatientRepository {
             if (filters.city) {
                 query = query.eq('contact_info->>city', filters.city);
             }
+            if (filters.hasInsurance !== undefined) {
+                const insuredPatientIds = await this.getActiveInsurancePatientIds();
+                if (filters.hasInsurance) {
+                    if (insuredPatientIds.length === 0) {
+                        return { patients: [], total: 0 };
+                    }
+                    query = query.in('patient_id', insuredPatientIds);
+                }
+                else if (insuredPatientIds.length > 0) {
+                    query = query.not('patient_id', 'in', this.buildInClause(insuredPatientIds));
+                }
+            }
             // Apply pagination
             if (pagination) {
                 const offset = (pagination.page - 1) * pagination.limit;
@@ -265,6 +277,18 @@ class SupabasePatientRepository {
             ].join(','));
             if (filters?.isActive !== undefined) {
                 query = query.eq('status', filters.isActive ? 'active' : 'inactive');
+            }
+            if (filters?.hasInsurance !== undefined) {
+                const insuredPatientIds = await this.getActiveInsurancePatientIds();
+                if (filters.hasInsurance) {
+                    if (insuredPatientIds.length === 0) {
+                        return { patients: [], total: 0 };
+                    }
+                    query = query.in('patient_id', insuredPatientIds);
+                }
+                else if (insuredPatientIds.length > 0) {
+                    query = query.not('patient_id', 'in', this.buildInClause(insuredPatientIds));
+                }
             }
             if (pagination) {
                 const offset = (pagination.page - 1) * pagination.limit;
@@ -522,6 +546,20 @@ class SupabasePatientRepository {
             linksMap.set(record.patient_id, links);
         });
         return linksMap;
+    }
+    buildInClause(ids) {
+        return '(' + ids.map(id => '"' + id + '"').join(',') + ')';
+    }
+    async getActiveInsurancePatientIds() {
+        const { data, error } = await this.supabaseClient
+            .from('insurance_info')
+            .select('patient_id')
+            .eq('is_active', true);
+        if (error) {
+            throw new Error(`Failed to fetch insured patient IDs: ${error.message}`);
+        }
+        const ids = (data || []).map((record) => record.patient_id);
+        return Array.from(new Set(ids));
     }
     /**
      * Save insurance info

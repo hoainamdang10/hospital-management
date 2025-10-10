@@ -22,7 +22,7 @@ import { IPatientRepository } from '../../domain/repositories/IPatientRepository
 import { Patient } from '../../domain/aggregates/Patient';
 import { ILogger } from '@shared/application/services/logger.interface';
 
-const STAT_SAMPLE_LIMIT = 500;
+const STAT_FETCH_BATCH_SIZE = 500;
 
 type QueryFailure = { success: false; message: string };
 
@@ -269,10 +269,6 @@ export class PatientQueryHandlers {
         };
       }
 
-      if (query.data.filters?.hasInsurance !== undefined) {
-        this.logger.warn('hasInsurance filter is not yet supported for GetPatientList queries');
-      }
-
       const page = query.data.pagination?.page ?? 1;
       const limit = query.data.pagination?.limit ?? 20;
       const filters = query.data.filters ?? {};
@@ -283,7 +279,8 @@ export class PatientQueryHandlers {
           registrationDateFrom: filters.registrationDateFrom,
           registrationDateTo: filters.registrationDateTo,
           city: filters.city,
-          province: filters.province
+          province: filters.province,
+          hasInsurance: filters.hasInsurance
         },
         {
           page,
@@ -459,39 +456,19 @@ export class PatientQueryHandlers {
         };
       }
 
-      const sampleFilters = {
+      const baseFilters = {
         registrationDateFrom: query.data.dateRange?.from,
         registrationDateTo: query.data.dateRange?.to
       };
 
-      const [overallSample, activeCountResult] = await Promise.all([
-        this.patientRepository.findWithFilters(sampleFilters, {
-          page: 1,
-          limit: STAT_SAMPLE_LIMIT,
-          sorting: { field: 'created_at', direction: 'desc' }
-        }),
-        this.patientRepository.findWithFilters(
-          { ...sampleFilters, isActive: true },
-          { page: 1, limit: 1 }
-        )
-      ]);
-
-      const samplePatients = overallSample.patients;
-      const sampleSize = samplePatients.length;
-      const totalPatients = overallSample.total;
-      const activePatients = activeCountResult.total;
-      const newRegistrations = overallSample.total;
-
-      const patientsWithInsuranceSample = samplePatients.filter(patient => patient.hasValidInsurance()).length;
-      const patientsWithInsurance = sampleSize === 0
-        ? 0
-        : sampleSize >= totalPatients
-          ? patientsWithInsuranceSample
-          : Math.round((patientsWithInsuranceSample / sampleSize) * totalPatients);
+      const { patients: allPatients, total: totalPatients } = await this.collectAllPatients(baseFilters);
+      const activePatients = allPatients.filter(patient => patient.isActive()).length;
+      const patientsWithInsurance = allPatients.filter(patient => patient.hasValidInsurance()).length;
+      const newRegistrations = this.calculateNewRegistrations(allPatients, query.data.dateRange);
 
       const groupBy: GroupByPeriod = query.data.groupBy ?? 'month';
-      const registrationTrend = this.buildRegistrationTrend(samplePatients, groupBy);
-      const demographicBreakdown = this.buildDemographicBreakdown(samplePatients);
+      const registrationTrend = this.buildRegistrationTrend(allPatients, groupBy);
+      const demographicBreakdown = this.buildDemographicBreakdown(allPatients);
 
       const result: Extract<PatientStatisticsQueryResult, { success: true }> = {
         success: true,
@@ -619,6 +596,76 @@ export class PatientQueryHandlers {
       isHealthy: true,
       lastProcessedAt: new Date().toISOString()
     };
+  }
+
+  private async collectAllPatients(filters: {
+    registrationDateFrom?: string;
+    registrationDateTo?: string;
+  }): Promise<{ patients: Patient[]; total: number }> {
+    const batchSize = STAT_FETCH_BATCH_SIZE;
+    if (batchSize <= 0) {
+      return { patients: [], total: 0 };
+    }
+
+    const collected: Patient[] = [];
+    let total = 0;
+    let page = 1;
+
+    while (true) {
+      const { patients, total: batchTotal } = await this.patientRepository.findWithFilters(filters, {
+        page,
+        limit: batchSize,
+        sorting: { field: 'created_at', direction: 'asc' }
+      });
+
+      if (page === 1) {
+        total = batchTotal;
+      }
+
+      if (patients.length === 0) {
+        break;
+      }
+
+      collected.push(...patients);
+
+      if (collected.length >= total) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    return { patients: collected, total };
+  }
+
+  private calculateNewRegistrations(
+    patients: Patient[],
+    dateRange?: { from?: string; to?: string }
+  ): number {
+    if (patients.length === 0) {
+      return 0;
+    }
+
+    if ((dateRange?.from) || (dateRange?.to)) {
+      const fromDate = dateRange?.from ? new Date(dateRange.from) : undefined;
+      const toDate = dateRange?.to ? new Date(dateRange.to) : undefined;
+
+      return patients.filter(patient => {
+        const createdAt = patient.getProps().createdAt;
+        if (fromDate && createdAt < fromDate) {
+          return false;
+        }
+        if (toDate && createdAt > toDate) {
+          return false;
+        }
+        return true;
+      }).length;
+    }
+
+    const rollingWindowStart = new Date();
+    rollingWindowStart.setDate(rollingWindowStart.getDate() - 30);
+
+    return patients.filter(patient => patient.getProps().createdAt >= rollingWindowStart).length;
   }
 
   private mapToSummary(patient: Patient): PatientSummary {

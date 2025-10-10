@@ -29,7 +29,8 @@ class SearchPatientsUseCase {
             const limit = request.pagination?.limit || 20;
             // 3. Search patients
             const result = await this.patientRepository.searchPatients(request.searchTerm, {
-                isActive: request.filters?.isActive
+                isActive: request.filters?.isActive,
+                hasInsurance: request.filters?.hasInsurance
             }, {
                 page,
                 limit

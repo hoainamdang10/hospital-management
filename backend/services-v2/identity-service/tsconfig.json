@@ -30,7 +30,8 @@
       "@presentation/*": ["src/presentation/*"],
       "@tests/*": ["tests/*"],
       "@shared/*": ["../shared/*"]
-    }
+    },
+    "ignoreDeprecations": "5.0"
   },
   "include": [
     "src/**/*",

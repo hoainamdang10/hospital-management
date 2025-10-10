@@ -2,16 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LogoutUserUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const UserLoggedOutEvent_1 = require("../../domain/events/UserLoggedOutEvent");
+const UserId_1 = require("../../domain/value-objects/UserId");
 class LogoutUserUseCase {
-    constructor(authService, userRepository, logger, eventPublisher // Optional for backward compatibility
+    constructor(authService, userRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
     ) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.logger = logger;
+        this.circuitBreaker = circuitBreaker;
         this.eventPublisher = eventPublisher;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('logout-user-use-case');
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -24,60 +24,63 @@ class LogoutUserUseCase {
         });
     }
     async executeImpl(request) {
+        this.logger.info('Processing user logout', { userId: request.userId });
+        // Graceful degradation: Try each operation independently
+        // Always return success even if some operations fail
+        // Try to sign out from auth service
         try {
-            this.logger.info('Processing user logout', { userId: request.userId });
             await this.authService.signOut(request.accessToken);
             this.logger.info('User signed out from Supabase Auth', { userId: request.userId });
-            if (request.sessionId) {
-                await this.userRepository.deactivateSession(request.sessionId);
+        }
+        catch (authError) {
+            // Log error but continue - graceful degradation
+            this.logger.error('Auth service signOut failed, continuing logout', {
+                userId: request.userId,
+                error: (0, error_helper_1.getErrorMessage)(authError)
+            });
+        }
+        // Try to deactivate session in database
+        if (request.sessionId) {
+            try {
+                const sessionOwnerId = UserId_1.UserId.fromString(request.userId);
+                await this.userRepository.deactivateSession(request.sessionId, sessionOwnerId);
                 this.logger.info('Session deactivated in database', {
                     userId: request.userId,
                     sessionId: request.sessionId
                 });
             }
-            // Publish UserLoggedOut event
-            if (this.eventPublisher) {
-                try {
-                    const event = new UserLoggedOutEvent_1.UserLoggedOutEvent(request.userId, // Pass string directly
-                    request.sessionId || 'unknown', new Date());
-                    await this.eventPublisher.publish({
-                        eventType: event.constructor.name,
-                        aggregateId: request.userId,
-                        aggregateType: 'User',
-                        occurredAt: event.occurredAt,
-                        payload: {
-                            userId: request.userId,
-                            sessionId: request.sessionId,
-                            loggedOutAt: new Date()
-                        }
-                    });
-                    this.logger.info('UserLoggedOut event published', {
-                        userId: request.userId
-                    });
-                }
-                catch (error) {
-                    this.logger.error('Failed to publish UserLoggedOut event', {
-                        userId: request.userId,
-                        error: (0, error_helper_1.getErrorMessage)(error)
-                    });
-                    // Don't fail logout if event publishing fails
-                }
+            catch (sessionError) {
+                // Log error but continue - graceful degradation
+                this.logger.error('Session deactivation failed, continuing logout', {
+                    userId: request.userId,
+                    sessionId: request.sessionId,
+                    error: (0, error_helper_1.getErrorMessage)(sessionError)
+                });
             }
-            return {
-                success: true,
-                message: 'Đăng xuất thành công'
-            };
         }
-        catch (error) {
-            this.logger.error('Logout failed', {
-                userId: request.userId,
-                error: (0, error_helper_1.getErrorMessage)(error)
-            });
-            return {
-                success: true,
-                message: 'Đăng xuất thành công'
-            };
+        // Try to publish UserLoggedOut event
+        if (this.eventPublisher) {
+            try {
+                const event = new UserLoggedOutEvent_1.UserLoggedOutEvent(request.userId, request.sessionId || 'unknown', new Date());
+                await this.eventPublisher.publishDomainEvents([event]);
+                this.logger.info('UserLoggedOut event published', {
+                    userId: request.userId
+                });
+            }
+            catch (eventError) {
+                // Log error but continue - graceful degradation
+                this.logger.error('Failed to publish UserLoggedOut event', {
+                    userId: request.userId,
+                    error: (0, error_helper_1.getErrorMessage)(eventError)
+                });
+            }
         }
+        // Always return success - graceful degradation
+        // Logout is a critical operation that should always succeed from user's perspective
+        return {
+            success: true,
+            message: 'Đăng xuất thành công'
+        };
     }
 }
 exports.LogoutUserUseCase = LogoutUserUseCase;

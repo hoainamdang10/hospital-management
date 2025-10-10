@@ -15,11 +15,13 @@
 import { UpdateUserUseCase, UpdateUserRequest } from '../../../../src/application/use-cases/UpdateUserUseCase';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
 import { createMockUser } from '../../../helpers/user-test-helper';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('UpdateUserUseCase', () => {
   let useCase: UpdateUserUseCase;
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockUserRepository = {
@@ -38,7 +40,13 @@ describe('UpdateUserUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new UpdateUserUseCase(mockUserRepository, mockLogger);
+    circuitBreaker = createCircuitBreakerStub();
+
+    useCase = new UpdateUserUseCase(
+      mockUserRepository,
+      mockLogger,
+      circuitBreaker
+    );
   });
 
   afterEach(() => {
@@ -308,4 +316,3 @@ describe('UpdateUserUseCase', () => {
     });
   });
 });
-

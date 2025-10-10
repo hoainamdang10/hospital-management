@@ -12,7 +12,9 @@ import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPolicyRepository';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { UserId } from '../../domain/value-objects/UserId';
+import { ILogger } from '../services/ILogger';
 
 export interface ChangePasswordRequest {
   userId: string;
@@ -37,14 +39,13 @@ export interface ChangePasswordResponse {
 export class ChangePasswordUseCase
   implements IUseCase<ChangePasswordRequest, ChangePasswordResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('change-password-use-case');
-
   constructor(
     private authService: IAuthenticationService,
     private userRepository: IUserRepository,
     private passwordPolicyRepository: IPasswordPolicyRepository,
     private sessionRepository: ISessionRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: ChangePasswordRequest): Promise<ChangePasswordResponse> {
@@ -78,7 +79,8 @@ export class ChangePasswordUseCase
       }
 
       // 2. Get user
-      const user = await this.userRepository.findById(request.userId);
+      const userIdVO = UserId.fromString(request.userId);
+      const user = await this.userRepository.findById(userIdVO);
       if (!user) {
         return {
           success: false,
@@ -88,7 +90,7 @@ export class ChangePasswordUseCase
       }
 
       // 3. Verify current password
-      const authResult = await this.authService.authenticate({
+      const authResult = await this.authService.signIn({
         email: user.email.value,
         password: request.currentPassword
       });
@@ -131,7 +133,7 @@ export class ChangePasswordUseCase
       // 7. Invalidate other sessions if requested (default: true)
       const invalidateOtherSessions = request.invalidateOtherSessions !== false;
       if (invalidateOtherSessions) {
-        await this.sessionRepository.terminateAllSessions(request.userId);
+        await this.sessionRepository.deleteAllByUserId(request.userId);
         this.logger.info('All sessions invalidated after password change', {
           userId: request.userId
         });
@@ -190,4 +192,3 @@ export class ChangePasswordUseCase
     return null;
   }
 }
-

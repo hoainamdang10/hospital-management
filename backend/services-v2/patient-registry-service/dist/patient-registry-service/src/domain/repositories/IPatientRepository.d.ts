@@ -38,6 +38,7 @@ export interface IPatientRepository {
         registrationDateTo?: string;
         city?: string;
         province?: string;
+        hasInsurance?: boolean;
     }, pagination?: {
         page: number;
         limit: number;
@@ -54,6 +55,7 @@ export interface IPatientRepository {
      */
     searchPatients(searchTerm: string, filters?: {
         isActive?: boolean;
+        hasInsurance?: boolean;
     }, pagination?: {
         page: number;
         limit: number;

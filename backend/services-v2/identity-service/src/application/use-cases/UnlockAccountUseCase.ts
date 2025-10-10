@@ -9,7 +9,9 @@
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { UserId } from '../../domain/value-objects/UserId';
+import { ILogger } from '../services/ILogger';
 
 export interface UnlockAccountRequest {
   userId: string; // User to unlock
@@ -31,11 +33,10 @@ export interface UnlockAccountResponse {
 export class UnlockAccountUseCase
   implements IUseCase<UnlockAccountRequest, UnlockAccountResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('unlock-account-use-case');
-
   constructor(
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: UnlockAccountRequest): Promise<UnlockAccountResponse> {
@@ -70,8 +71,11 @@ export class UnlockAccountUseCase
         };
       }
 
-      // 2. Get user
-      const user = await this.userRepository.findById(request.userId);
+      // 2. Convert string ID to Value Object
+      const userIdVO = UserId.fromString(request.userId);
+
+      // 3. Get user
+      const user = await this.userRepository.findById(userIdVO);
       if (!user) {
         return {
           success: false,
@@ -139,4 +143,3 @@ export class UnlockAccountUseCase
     return null;
   }
 }
-

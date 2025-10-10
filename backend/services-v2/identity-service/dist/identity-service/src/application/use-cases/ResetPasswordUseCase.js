@@ -2,12 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResetPasswordUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 class ResetPasswordUseCase {
-    constructor(authService, logger) {
+    constructor(authService, logger, circuitBreaker) {
         this.authService = authService;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('reset-password-use-case');
+        this.circuitBreaker = circuitBreaker;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -30,7 +29,7 @@ class ResetPasswordUseCase {
                     error: 'VALIDATION_ERROR'
                 };
             }
-            await this.authService.resetPassword(request.accessToken, request.newPassword);
+            await this.authService.resetPassword(request.accessToken, request.refreshToken, request.newPassword);
             this.logger.info('Password reset successful');
             return {
                 success: true,
@@ -41,7 +40,7 @@ class ResetPasswordUseCase {
             this.logger.error('Password reset failed', { error: (0, error_helper_1.getErrorMessage)(error) });
             return {
                 success: false,
-                message: `Đặt lại mật khẩu thất bại: ${(0, error_helper_1.getErrorMessage)(error)}`,
+                message: 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại token và thử lại.',
                 error: 'RESET_PASSWORD_FAILED'
             };
         }

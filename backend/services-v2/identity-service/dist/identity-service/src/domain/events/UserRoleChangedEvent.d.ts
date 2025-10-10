@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 import { UserId } from '../value-objects/UserId';
 import { HealthcareRole } from '../entities/HealthcareRole';
 export declare class UserRoleChangedEvent extends DomainEvent {
@@ -14,7 +14,7 @@ export declare class UserRoleChangedEvent extends DomainEvent {
     readonly newRole: HealthcareRole;
     readonly changedBy: string;
     constructor(userIdVO: UserId, oldRole: HealthcareRole, newRole: HealthcareRole, changedBy: string);
-    getEventData(): any;
+    getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;
 }

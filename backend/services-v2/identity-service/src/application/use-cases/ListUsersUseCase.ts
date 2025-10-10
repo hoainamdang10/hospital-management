@@ -9,8 +9,9 @@
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../services/ILogger';
 
 export interface ListUsersRequest {
   requesterId: string; // User making the request (must be admin)
@@ -50,14 +51,14 @@ export interface ListUsersResponse {
  * Retrieves paginated list of users with filtering and search
  */
 export class ListUsersUseCase implements IUseCase<ListUsersRequest, ListUsersResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('list-users-use-case');
   private readonly DEFAULT_PAGE = 1;
   private readonly DEFAULT_LIMIT = 20;
   private readonly MAX_LIMIT = 100;
 
   constructor(
     private userRepository: IUserRepository,
-    private logger: any
+    private circuitBreaker: ICircuitBreaker,
+    private logger: ILogger
   ) {}
 
   async execute(request: ListUsersRequest): Promise<ListUsersResponse> {
@@ -104,7 +105,9 @@ export class ListUsersUseCase implements IUseCase<ListUsersRequest, ListUsersRes
       const filters: Record<string, any> = {};
 
       if (roleType) {
-        filters.role_type = roleType; // Database column name
+        // Normalize role to lowercase to match database storage format
+        // Database stores: 'admin', 'doctor', 'patient', 'receptionist'
+        filters.role_type = roleType.toLowerCase();
       }
 
       if (isActive !== undefined) {
@@ -178,4 +181,3 @@ export class ListUsersUseCase implements IUseCase<ListUsersRequest, ListUsersRes
     }
   }
 }
-

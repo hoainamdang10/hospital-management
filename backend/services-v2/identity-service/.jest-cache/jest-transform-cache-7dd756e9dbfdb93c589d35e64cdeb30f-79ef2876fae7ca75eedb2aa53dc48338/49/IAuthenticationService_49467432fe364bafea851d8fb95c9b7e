@@ -1,0 +1,212 @@
+c68c509b74809a30df5ab905ec289f11
+"use strict";
+
+/**
+ * Authentication Service Interface
+ * Application layer defines the contract for authentication operations
+ * Infrastructure layer provides concrete implementation
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
+ */
+/* istanbul ignore next */
+function cov_5gzqai2in() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthenticationService.ts";
+  var hash = "7e2d59a83f2b066cd05d16908e5a0a75f00d0145";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthenticationService.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 12,
+          column: 0
+        },
+        end: {
+          line: 12,
+          column: 29
+        }
+      },
+      "2": {
+        start: {
+          line: 17,
+          column: 0
+        },
+        end: {
+          line: 21,
+          column: 60
+        }
+      },
+      "3": {
+        start: {
+          line: 18,
+          column: 4
+        },
+        end: {
+          line: 18,
+          column: 33
+        }
+      },
+      "4": {
+        start: {
+          line: 19,
+          column: 4
+        },
+        end: {
+          line: 19,
+          column: 41
+        }
+      },
+      "5": {
+        start: {
+          line: 20,
+          column: 4
+        },
+        end: {
+          line: 20,
+          column: 43
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 17,
+            column: 1
+          },
+          end: {
+            line: 17,
+            column: 2
+          }
+        },
+        loc: {
+          start: {
+            line: 17,
+            column: 24
+          },
+          end: {
+            line: 21,
+            column: 1
+          }
+        },
+        line: 17
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 21,
+            column: 3
+          },
+          end: {
+            line: 21,
+            column: 58
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 21,
+            column: 3
+          },
+          end: {
+            line: 21,
+            column: 14
+          }
+        }, {
+          start: {
+            line: 21,
+            column: 19
+          },
+          end: {
+            line: 21,
+            column: 57
+          }
+        }],
+        line: 21
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0
+    },
+    f: {
+      "0": 0
+    },
+    b: {
+      "0": [0, 0]
+    },
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthenticationService.ts",
+      mappings: ";AAAA;;;;;;;;GAQG;;;AAsLH;;GAEG;AACH,IAAY,WAIX;AAJD,WAAY,WAAW;IACrB,4BAAa,CAAA;IACb,oCAAqB,CAAA;IACrB,sCAAuB,CAAA,CAAE,yCAAyC;AACpE,CAAC,EAJW,WAAW,2BAAX,WAAW,QAItB",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthenticationService.ts"],
+      sourcesContent: ["/**\n * Authentication Service Interface\n * Application layer defines the contract for authentication operations\n * Infrastructure layer provides concrete implementation\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, Dependency Inversion Principle\n */\n\n/**\n * Authentication result returned by authentication operations\n */\nexport interface AuthResult {\n  success: boolean;\n  user?: {\n    id: string;\n    email: string;\n    role: string;\n    fullName?: string;\n  };\n  accessToken?: string;\n  refreshToken?: string;\n  expiresIn?: number;\n  permissions?: string[];\n  error?: string;\n  message?: string;\n}\n\n/**\n * User credentials for authentication\n */\nexport interface UserCredentials {\n  email: string;\n  password: string;\n}\n\n/**\n * Token payload structure\n */\nexport interface TokenPayload {\n  userId: string;\n  email: string;\n  role: string;\n  iat: number;\n  exp: number;\n}\n\n/**\n * User registration data\n */\nexport interface UserRegistrationData {\n  email: string;\n  password: string;\n  fullName: string;\n  roleType: string;\n  phoneNumber?: string;\n  citizenId?: string;\n  dateOfBirth?: string;\n  gender?: string;\n  address?: string;\n}\n\n/**\n * Authentication Service Interface\n * Defines contract for authentication operations\n * \n * This interface follows Clean Architecture principles:\n * - Defined in Application layer\n * - Implemented by Infrastructure layer\n * - Used by Use Cases\n * \n * Benefits:\n * - Testability: Easy to mock for unit tests\n * - Flexibility: Can switch authentication providers (Supabase, Auth0, Cognito)\n * - Dependency Inversion: Application doesn't depend on infrastructure\n */\nexport interface IAuthenticationService {\n  /**\n   * Sign up new user\n   * Creates user account in authentication system\n   * \n   * @param data User registration data\n   * @returns Authentication result with tokens\n   */\n  signUp(data: UserRegistrationData): Promise<AuthResult>;\n\n  /**\n   * Sign in existing user\n   * Authenticates user with email and password\n   * \n   * @param credentials User credentials\n   * @returns Authentication result with tokens and permissions\n   */\n  signIn(credentials: UserCredentials): Promise<AuthResult>;\n\n  /**\n   * Sign out user\n   * Invalidates user session and tokens\n   * \n   * @param accessToken User's access token\n   */\n  signOut(accessToken: string): Promise<void>;\n\n  /**\n   * Refresh session\n   * Generates new access token using refresh token\n   * \n   * @param refreshToken User's refresh token\n   * @returns New authentication result with fresh tokens\n   */\n  refreshSession(refreshToken: string): Promise<AuthResult>;\n\n  /**\n   * Verify JWT token\n   * Validates token and extracts payload\n   * \n   * @param token JWT token to verify\n   * @returns Token payload if valid\n   * @throws Error if token is invalid or expired\n   */\n  verifyToken(token: string): Promise<TokenPayload>;\n\n  /**\n   * Send password reset email\n   * Initiates password reset flow\n   * \n   * @param email User's email address\n   */\n  sendPasswordResetEmail(email: string): Promise<void>;\n\n  /**\n   * Reset password with token\n   * Completes password reset flow\n   * \n   * @param token Password reset token\n   * @param newPassword New password\n   */\n  resetPassword(token: string, newPassword: string): Promise<void>;\n\n  /**\n   * Update password\n   * Changes user's password (for authenticated users)\n   * Note: Current password verification should be done in use case\n   *\n   * @param userId User ID\n   * @param newPassword New password\n   */\n  updatePassword(userId: string, newPassword: string): Promise<void>;\n\n  /**\n   * Verify email with token\n   * Confirms user's email address\n   * \n   * @param email User's email\n   * @param token Verification token\n   */\n  verifyEmail(email: string, token: string): Promise<void>;\n\n  /**\n   * Send email verification\n   * Sends verification email to user\n   * \n   * @param email User's email address\n   */\n  sendEmailVerification(email: string): Promise<void>;\n\n  /**\n   * Check if email exists\n   * Validates email uniqueness\n   * \n   * @param email Email to check\n   * @returns True if email exists\n   */\n  emailExists(email: string): Promise<boolean>;\n\n  /**\n   * Get user by access token\n   * Retrieves user information from token\n   * \n   * @param accessToken User's access token\n   * @returns User information\n   */\n  getUserFromToken(accessToken: string): Promise<{\n    id: string;\n    email: string;\n    role: string;\n  } | null>;\n}\n\n/**\n * Service mode for graceful degradation\n */\nexport enum ServiceMode {\n  FULL = 'FULL',           // All features available\n  DEGRADED = 'DEGRADED',   // Limited features, using cache\n  EMERGENCY = 'EMERGENCY'  // Emergency mode for critical operations\n}\n\n/**\n * Authentication service configuration\n */\nexport interface AuthServiceConfig {\n  supabaseUrl: string;\n  supabaseServiceRoleKey: string;\n  jwtSecret: string;\n  enableEmergencyMode?: boolean;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "7e2d59a83f2b066cd05d16908e5a0a75f00d0145"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_5gzqai2in = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_5gzqai2in();
+cov_5gzqai2in().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_5gzqai2in().s[1]++;
+exports.ServiceMode = void 0;
+/**
+ * Service mode for graceful degradation
+ */
+var ServiceMode;
+/* istanbul ignore next */
+cov_5gzqai2in().s[2]++;
+(function (ServiceMode) {
+  /* istanbul ignore next */
+  cov_5gzqai2in().f[0]++;
+  cov_5gzqai2in().s[3]++;
+  ServiceMode["FULL"] = "FULL";
+  /* istanbul ignore next */
+  cov_5gzqai2in().s[4]++;
+  ServiceMode["DEGRADED"] = "DEGRADED";
+  /* istanbul ignore next */
+  cov_5gzqai2in().s[5]++;
+  ServiceMode["EMERGENCY"] = "EMERGENCY"; // Emergency mode for critical operations
+})(
+/* istanbul ignore next */
+(cov_5gzqai2in().b[0][0]++, ServiceMode) ||
+/* istanbul ignore next */
+(cov_5gzqai2in().b[0][1]++, exports.ServiceMode = ServiceMode = {}));
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfNWd6cWFpMmluIiwicGF0aCIsImhhc2giLCJnbG9iYWwiLCJGdW5jdGlvbiIsImdjdiIsImNvdmVyYWdlRGF0YSIsInN0YXRlbWVudE1hcCIsInN0YXJ0IiwibGluZSIsImNvbHVtbiIsImVuZCIsImZuTWFwIiwibmFtZSIsImRlY2wiLCJsb2MiLCJicmFuY2hNYXAiLCJ0eXBlIiwibG9jYXRpb25zIiwicyIsImYiLCJiIiwiaW5wdXRTb3VyY2VNYXAiLCJmaWxlIiwibWFwcGluZ3MiLCJuYW1lcyIsInNvdXJjZXMiLCJzb3VyY2VzQ29udGVudCIsInZlcnNpb24iLCJfY292ZXJhZ2VTY2hlbWEiLCJjb3ZlcmFnZSIsImFjdHVhbENvdmVyYWdlIiwiU2VydmljZU1vZGUiLCJleHBvcnRzIl0sInNvdXJjZXMiOlsiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFxzZXJ2aWNlc1xcSUF1dGhlbnRpY2F0aW9uU2VydmljZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIEF1dGhlbnRpY2F0aW9uIFNlcnZpY2UgSW50ZXJmYWNlXG4gKiBBcHBsaWNhdGlvbiBsYXllciBkZWZpbmVzIHRoZSBjb250cmFjdCBmb3IgYXV0aGVudGljYXRpb24gb3BlcmF0aW9uc1xuICogSW5mcmFzdHJ1Y3R1cmUgbGF5ZXIgcHJvdmlkZXMgY29uY3JldGUgaW1wbGVtZW50YXRpb25cbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKiBAY29tcGxpYW5jZSBDbGVhbiBBcmNoaXRlY3R1cmUsIERlcGVuZGVuY3kgSW52ZXJzaW9uIFByaW5jaXBsZVxuICovXG5cbi8qKlxuICogQXV0aGVudGljYXRpb24gcmVzdWx0IHJldHVybmVkIGJ5IGF1dGhlbnRpY2F0aW9uIG9wZXJhdGlvbnNcbiAqL1xuZXhwb3J0IGludGVyZmFjZSBBdXRoUmVzdWx0IHtcbiAgc3VjY2VzczogYm9vbGVhbjtcbiAgdXNlcj86IHtcbiAgICBpZDogc3RyaW5nO1xuICAgIGVtYWlsOiBzdHJpbmc7XG4gICAgcm9sZTogc3RyaW5nO1xuICAgIGZ1bGxOYW1lPzogc3RyaW5nO1xuICB9O1xuICBhY2Nlc3NUb2tlbj86IHN0cmluZztcbiAgcmVmcmVzaFRva2VuPzogc3RyaW5nO1xuICBleHBpcmVzSW4/OiBudW1iZXI7XG4gIHBlcm1pc3Npb25zPzogc3RyaW5nW107XG4gIGVycm9yPzogc3RyaW5nO1xuICBtZXNzYWdlPzogc3RyaW5nO1xufVxuXG4vKipcbiAqIFVzZXIgY3JlZGVudGlhbHMgZm9yIGF1dGhlbnRpY2F0aW9uXG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgVXNlckNyZWRlbnRpYWxzIHtcbiAgZW1haWw6IHN0cmluZztcbiAgcGFzc3dvcmQ6IHN0cmluZztcbn1cblxuLyoqXG4gKiBUb2tlbiBwYXlsb2FkIHN0cnVjdHVyZVxuICovXG5leHBvcnQgaW50ZXJmYWNlIFRva2VuUGF5bG9hZCB7XG4gIHVzZXJJZDogc3RyaW5nO1xuICBlbWFpbDogc3RyaW5nO1xuICByb2xlOiBzdHJpbmc7XG4gIGlhdDogbnVtYmVyO1xuICBleHA6IG51bWJlcjtcbn1cblxuLyoqXG4gKiBVc2VyIHJlZ2lzdHJhdGlvbiBkYXRhXG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgVXNlclJlZ2lzdHJhdGlvbkRhdGEge1xuICBlbWFpbDogc3RyaW5nO1xuICBwYXNzd29yZDogc3RyaW5nO1xuICBmdWxsTmFtZTogc3RyaW5nO1xuICByb2xlVHlwZTogc3RyaW5nO1xuICBwaG9uZU51bWJlcj86IHN0cmluZztcbiAgY2l0aXplbklkPzogc3RyaW5nO1xuICBkYXRlT2ZCaXJ0aD86IHN0cmluZztcbiAgZ2VuZGVyPzogc3RyaW5nO1xuICBhZGRyZXNzPzogc3RyaW5nO1xufVxuXG4vKipcbiAqIEF1dGhlbnRpY2F0aW9uIFNlcnZpY2UgSW50ZXJmYWNlXG4gKiBEZWZpbmVzIGNvbnRyYWN0IGZvciBhdXRoZW50aWNhdGlvbiBvcGVyYXRpb25zXG4gKiBcbiAqIFRoaXMgaW50ZXJmYWNlIGZvbGxvd3MgQ2xlYW4gQXJjaGl0ZWN0dXJlIHByaW5jaXBsZXM6XG4gKiAtIERlZmluZWQgaW4gQXBwbGljYXRpb24gbGF5ZXJcbiAqIC0gSW1wbGVtZW50ZWQgYnkgSW5mcmFzdHJ1Y3R1cmUgbGF5ZXJcbiAqIC0gVXNlZCBieSBVc2UgQ2FzZXNcbiAqIFxuICogQmVuZWZpdHM6XG4gKiAtIFRlc3RhYmlsaXR5OiBFYXN5IHRvIG1vY2sgZm9yIHVuaXQgdGVzdHNcbiAqIC0gRmxleGliaWxpdHk6IENhbiBzd2l0Y2ggYXV0aGVudGljYXRpb24gcHJvdmlkZXJzIChTdXBhYmFzZSwgQXV0aDAsIENvZ25pdG8pXG4gKiAtIERlcGVuZGVuY3kgSW52ZXJzaW9uOiBBcHBsaWNhdGlvbiBkb2Vzbid0IGRlcGVuZCBvbiBpbmZyYXN0cnVjdHVyZVxuICovXG5leHBvcnQgaW50ZXJmYWNlIElBdXRoZW50aWNhdGlvblNlcnZpY2Uge1xuICAvKipcbiAgICogU2lnbiB1cCBuZXcgdXNlclxuICAgKiBDcmVhdGVzIHVzZXIgYWNjb3VudCBpbiBhdXRoZW50aWNhdGlvbiBzeXN0ZW1cbiAgICogXG4gICAqIEBwYXJhbSBkYXRhIFVzZXIgcmVnaXN0cmF0aW9uIGRhdGFcbiAgICogQHJldHVybnMgQXV0aGVudGljYXRpb24gcmVzdWx0IHdpdGggdG9rZW5zXG4gICAqL1xuICBzaWduVXAoZGF0YTogVXNlclJlZ2lzdHJhdGlvbkRhdGEpOiBQcm9taXNlPEF1dGhSZXN1bHQ+O1xuXG4gIC8qKlxuICAgKiBTaWduIGluIGV4aXN0aW5nIHVzZXJcbiAgICogQXV0aGVudGljYXRlcyB1c2VyIHdpdGggZW1haWwgYW5kIHBhc3N3b3JkXG4gICAqIFxuICAgKiBAcGFyYW0gY3JlZGVudGlhbHMgVXNlciBjcmVkZW50aWFsc1xuICAgKiBAcmV0dXJucyBBdXRoZW50aWNhdGlvbiByZXN1bHQgd2l0aCB0b2tlbnMgYW5kIHBlcm1pc3Npb25zXG4gICAqL1xuICBzaWduSW4oY3JlZGVudGlhbHM6IFVzZXJDcmVkZW50aWFscyk6IFByb21pc2U8QXV0aFJlc3VsdD47XG5cbiAgLyoqXG4gICAqIFNpZ24gb3V0IHVzZXJcbiAgICogSW52YWxpZGF0ZXMgdXNlciBzZXNzaW9uIGFuZCB0b2tlbnNcbiAgICogXG4gICAqIEBwYXJhbSBhY2Nlc3NUb2tlbiBVc2VyJ3MgYWNjZXNzIHRva2VuXG4gICAqL1xuICBzaWduT3V0KGFjY2Vzc1Rva2VuOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBSZWZyZXNoIHNlc3Npb25cbiAgICogR2VuZXJhdGVzIG5ldyBhY2Nlc3MgdG9rZW4gdXNpbmcgcmVmcmVzaCB0b2tlblxuICAgKiBcbiAgICogQHBhcmFtIHJlZnJlc2hUb2tlbiBVc2VyJ3MgcmVmcmVzaCB0b2tlblxuICAgKiBAcmV0dXJucyBOZXcgYXV0aGVudGljYXRpb24gcmVzdWx0IHdpdGggZnJlc2ggdG9rZW5zXG4gICAqL1xuICByZWZyZXNoU2Vzc2lvbihyZWZyZXNoVG9rZW46IHN0cmluZyk6IFByb21pc2U8QXV0aFJlc3VsdD47XG5cbiAgLyoqXG4gICAqIFZlcmlmeSBKV1QgdG9rZW5cbiAgICogVmFsaWRhdGVzIHRva2VuIGFuZCBleHRyYWN0cyBwYXlsb2FkXG4gICAqIFxuICAgKiBAcGFyYW0gdG9rZW4gSldUIHRva2VuIHRvIHZlcmlmeVxuICAgKiBAcmV0dXJucyBUb2tlbiBwYXlsb2FkIGlmIHZhbGlkXG4gICAqIEB0aHJvd3MgRXJyb3IgaWYgdG9rZW4gaXMgaW52YWxpZCBvciBleHBpcmVkXG4gICAqL1xuICB2ZXJpZnlUb2tlbih0b2tlbjogc3RyaW5nKTogUHJvbWlzZTxUb2tlblBheWxvYWQ+O1xuXG4gIC8qKlxuICAgKiBTZW5kIHBhc3N3b3JkIHJlc2V0IGVtYWlsXG4gICAqIEluaXRpYXRlcyBwYXNzd29yZCByZXNldCBmbG93XG4gICAqIFxuICAgKiBAcGFyYW0gZW1haWwgVXNlcidzIGVtYWlsIGFkZHJlc3NcbiAgICovXG4gIHNlbmRQYXNzd29yZFJlc2V0RW1haWwoZW1haWw6IHN0cmluZyk6IFByb21pc2U8dm9pZD47XG5cbiAgLyoqXG4gICAqIFJlc2V0IHBhc3N3b3JkIHdpdGggdG9rZW5cbiAgICogQ29tcGxldGVzIHBhc3N3b3JkIHJlc2V0IGZsb3dcbiAgICogXG4gICAqIEBwYXJhbSB0b2tlbiBQYXNzd29yZCByZXNldCB0b2tlblxuICAgKiBAcGFyYW0gbmV3UGFzc3dvcmQgTmV3IHBhc3N3b3JkXG4gICAqL1xuICByZXNldFBhc3N3b3JkKHRva2VuOiBzdHJpbmcsIG5ld1Bhc3N3b3JkOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBVcGRhdGUgcGFzc3dvcmRcbiAgICogQ2hhbmdlcyB1c2VyJ3MgcGFzc3dvcmQgKGZvciBhdXRoZW50aWNhdGVkIHVzZXJzKVxuICAgKiBOb3RlOiBDdXJyZW50IHBhc3N3b3JkIHZlcmlmaWNhdGlvbiBzaG91bGQgYmUgZG9uZSBpbiB1c2UgY2FzZVxuICAgKlxuICAgKiBAcGFyYW0gdXNlcklkIFVzZXIgSURcbiAgICogQHBhcmFtIG5ld1Bhc3N3b3JkIE5ldyBwYXNzd29yZFxuICAgKi9cbiAgdXBkYXRlUGFzc3dvcmQodXNlcklkOiBzdHJpbmcsIG5ld1Bhc3N3b3JkOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBWZXJpZnkgZW1haWwgd2l0aCB0b2tlblxuICAgKiBDb25maXJtcyB1c2VyJ3MgZW1haWwgYWRkcmVzc1xuICAgKiBcbiAgICogQHBhcmFtIGVtYWlsIFVzZXIncyBlbWFpbFxuICAgKiBAcGFyYW0gdG9rZW4gVmVyaWZpY2F0aW9uIHRva2VuXG4gICAqL1xuICB2ZXJpZnlFbWFpbChlbWFpbDogc3RyaW5nLCB0b2tlbjogc3RyaW5nKTogUHJvbWlzZTx2b2lkPjtcblxuICAvKipcbiAgICogU2VuZCBlbWFpbCB2ZXJpZmljYXRpb25cbiAgICogU2VuZHMgdmVyaWZpY2F0aW9uIGVtYWlsIHRvIHVzZXJcbiAgICogXG4gICAqIEBwYXJhbSBlbWFpbCBVc2VyJ3MgZW1haWwgYWRkcmVzc1xuICAgKi9cbiAgc2VuZEVtYWlsVmVyaWZpY2F0aW9uKGVtYWlsOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBDaGVjayBpZiBlbWFpbCBleGlzdHNcbiAgICogVmFsaWRhdGVzIGVtYWlsIHVuaXF1ZW5lc3NcbiAgICogXG4gICAqIEBwYXJhbSBlbWFpbCBFbWFpbCB0byBjaGVja1xuICAgKiBAcmV0dXJucyBUcnVlIGlmIGVtYWlsIGV4aXN0c1xuICAgKi9cbiAgZW1haWxFeGlzdHMoZW1haWw6IHN0cmluZyk6IFByb21pc2U8Ym9vbGVhbj47XG5cbiAgLyoqXG4gICAqIEdldCB1c2VyIGJ5IGFjY2VzcyB0b2tlblxuICAgKiBSZXRyaWV2ZXMgdXNlciBpbmZvcm1hdGlvbiBmcm9tIHRva2VuXG4gICAqIFxuICAgKiBAcGFyYW0gYWNjZXNzVG9rZW4gVXNlcidzIGFjY2VzcyB0b2tlblxuICAgKiBAcmV0dXJucyBVc2VyIGluZm9ybWF0aW9uXG4gICAqL1xuICBnZXRVc2VyRnJvbVRva2VuKGFjY2Vzc1Rva2VuOiBzdHJpbmcpOiBQcm9taXNlPHtcbiAgICBpZDogc3RyaW5nO1xuICAgIGVtYWlsOiBzdHJpbmc7XG4gICAgcm9sZTogc3RyaW5nO1xuICB9IHwgbnVsbD47XG59XG5cbi8qKlxuICogU2VydmljZSBtb2RlIGZvciBncmFjZWZ1bCBkZWdyYWRhdGlvblxuICovXG5leHBvcnQgZW51bSBTZXJ2aWNlTW9kZSB7XG4gIEZVTEwgPSAnRlVMTCcsICAgICAgICAgICAvLyBBbGwgZmVhdHVyZXMgYXZhaWxhYmxlXG4gIERFR1JBREVEID0gJ0RFR1JBREVEJywgICAvLyBMaW1pdGVkIGZlYXR1cmVzLCB1c2luZyBjYWNoZVxuICBFTUVSR0VOQ1kgPSAnRU1FUkdFTkNZJyAgLy8gRW1lcmdlbmN5IG1vZGUgZm9yIGNyaXRpY2FsIG9wZXJhdGlvbnNcbn1cblxuLyoqXG4gKiBBdXRoZW50aWNhdGlvbiBzZXJ2aWNlIGNvbmZpZ3VyYXRpb25cbiAqL1xuZXhwb3J0IGludGVyZmFjZSBBdXRoU2VydmljZUNvbmZpZyB7XG4gIHN1cGFiYXNlVXJsOiBzdHJpbmc7XG4gIHN1cGFiYXNlU2VydmljZVJvbGVLZXk6IHN0cmluZztcbiAgand0U2VjcmV0OiBzdHJpbmc7XG4gIGVuYWJsZUVtZXJnZW5jeU1vZGU/OiBib29sZWFuO1xufVxuXG4iXSwibWFwcGluZ3MiOiI7O0FBQUE7Ozs7Ozs7OztBQUFBO0FBQUEsU0FBQUEsY0FBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsTUFBQSxPQUFBQyxRQUFBO0VBQUEsSUFBQUMsR0FBQTtFQUFBLElBQUFDLFlBQUE7SUFBQUwsSUFBQTtJQUFBTSxZQUFBO01BQUE7UUFBQUMsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtNQUFBO1FBQUFDLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtJQUFBO0lBQUFPLFNBQUE7TUFBQTtRQUFBRCxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFPLElBQUE7UUFBQUMsU0FBQTtVQUFBVixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtVQUFBRixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBRCxJQUFBO01BQUE7SUFBQTtJQUFBVSxDQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO0lBQUE7SUFBQUMsQ0FBQTtNQUFBO0lBQUE7SUFBQUMsQ0FBQTtNQUFBO0lBQUE7SUFBQUMsY0FBQTtNQUFBQyxJQUFBO01BQUFDLFFBQUE7TUFBQUMsS0FBQTtNQUFBQyxPQUFBO01BQUFDLGNBQUE7TUFBQUMsT0FBQTtJQUFBO0lBQUFDLGVBQUE7SUFBQTNCLElBQUE7RUFBQTtFQUFBLElBQUE0QixRQUFBLEdBQUEzQixNQUFBLENBQUFFLEdBQUEsTUFBQUYsTUFBQSxDQUFBRSxHQUFBO0VBQUEsS0FBQXlCLFFBQUEsQ0FBQTdCLElBQUEsS0FBQTZCLFFBQUEsQ0FBQTdCLElBQUEsRUFBQUMsSUFBQSxLQUFBQSxJQUFBO0lBQUE0QixRQUFBLENBQUE3QixJQUFBLElBQUFLLFlBQUE7RUFBQTtFQUFBLElBQUF5QixjQUFBLEdBQUFELFFBQUEsQ0FBQTdCLElBQUE7RUFBQTtJQWlNWTtJQUFBRCxhQUFBLFlBQUFBLENBQUE7TUFBQSxPQUFBK0IsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQS9CLGFBQUE7QUFBQUEsYUFBQSxHQUFBbUIsQ0FBQTs7Ozs7OztBQUhaOzs7QUFHQSxJQUFZYSxXQUlYO0FBQUE7QUFBQWhDLGFBQUEsR0FBQW1CLENBQUE7QUFKRCxXQUFZYSxXQUFXO0VBQUE7RUFBQWhDLGFBQUEsR0FBQW9CLENBQUE7RUFBQXBCLGFBQUEsR0FBQW1CLENBQUE7RUFDckJhLFdBQUEsaUJBQWE7RUFBQTtFQUFBaEMsYUFBQSxHQUFBbUIsQ0FBQTtFQUNiYSxXQUFBLHlCQUFxQjtFQUFBO0VBQUFoQyxhQUFBLEdBQUFtQixDQUFBO0VBQ3JCYSxXQUFBLDJCQUF1QixFQUFFO0FBQzNCLENBQUM7QUFKVztBQUFBLENBQUFoQyxhQUFBLEdBQUFxQixDQUFBLFVBQUFXLFdBQVc7QUFBQTtBQUFBLENBQUFoQyxhQUFBLEdBQUFxQixDQUFBLFVBQUFZLE9BQUEsQ0FBQUQsV0FBQSxHQUFYQSxXQUFXIiwiaWdub3JlTGlzdCI6W119

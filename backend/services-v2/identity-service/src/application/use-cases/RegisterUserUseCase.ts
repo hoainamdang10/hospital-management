@@ -2,7 +2,7 @@ import { getErrorMessage } from '../../utils/error-helper';
 /**
  * Register User Use Case
  * Handles user registration with Supabase Auth integration
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -10,10 +10,10 @@ import { getErrorMessage } from '../../utils/error-helper';
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { Email } from '../../domain/value-objects/Email';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
-import { DomainEventMapper } from '../../infrastructure/events/DomainEventMapper';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { ILogger } from '../services/ILogger';
 
 export interface RegisterUserRequest {
   email: string;
@@ -45,7 +45,6 @@ export interface RegisterUserResponse {
  * and Clean Architecture compliance.
  */
 export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, RegisterUserResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('register-user-use-case');
   private validRolesCache: string[] | null = null;
   private validRolesCacheTime: number = 0;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -53,7 +52,8 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
   constructor(
     private userRepository: IUserRepository,
     private permissionRepository: IPermissionRepository,
-    private logger: any,
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker,
     private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
@@ -127,8 +127,7 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
       if (this.eventPublisher) {
         try {
           const domainEvents = user.getUncommittedEvents();
-          const rabbitMQEvents = DomainEventMapper.toRabbitMQEvents(domainEvents);
-          await this.eventPublisher.publishBatch(rabbitMQEvents);
+          await this.eventPublisher.publishDomainEvents(domainEvents);
           user.markEventsAsCommitted();
 
           this.logger.info('Domain events published', {
@@ -161,7 +160,7 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
 
       return {
         success: false,
-        message: `Đăng ký thất bại: ${getErrorMessage(error)}`,
+        message: 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.',
         error: 'REGISTRATION_FAILED'
       };
     }
@@ -185,8 +184,8 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
       this.validRolesCache = roles.map(r => r.toLowerCase());
       this.validRolesCacheTime = now;
       return this.validRolesCache;
-    } catch (error) {
-      this.logger.error('Failed to get valid roles from database', error);
+    } catch (error: unknown) {
+      this.logger.error('Failed to get valid roles from database', error instanceof Error ? error : new Error(String(error)));
       // Fallback to hardcoded 5 core roles if database query fails
       return ['admin', 'doctor', 'nurse', 'receptionist', 'patient'];
     }

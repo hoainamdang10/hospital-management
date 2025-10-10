@@ -1,0 +1,355 @@
+5b52f952b6634b59afd65695456509e8
+"use strict";
+
+/**
+ * UserRoleChangedEvent Domain Event
+ * Fired when a user's role is changed
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+/* istanbul ignore next */
+function cov_cenudm4r3() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserRoleChangedEvent.ts";
+  var hash = "4225a6d3f243f36496b76df2a1a0604c5aa1f25a";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserRoleChangedEvent.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 38
+        }
+      },
+      "2": {
+        start: {
+          line: 11,
+          column: 23
+        },
+        end: {
+          line: 11,
+          column: 66
+        }
+      },
+      "3": {
+        start: {
+          line: 14,
+          column: 8
+        },
+        end: {
+          line: 18,
+          column: 10
+        }
+      },
+      "4": {
+        start: {
+          line: 19,
+          column: 8
+        },
+        end: {
+          line: 19,
+          column: 33
+        }
+      },
+      "5": {
+        start: {
+          line: 20,
+          column: 8
+        },
+        end: {
+          line: 20,
+          column: 31
+        }
+      },
+      "6": {
+        start: {
+          line: 21,
+          column: 8
+        },
+        end: {
+          line: 21,
+          column: 31
+        }
+      },
+      "7": {
+        start: {
+          line: 22,
+          column: 8
+        },
+        end: {
+          line: 22,
+          column: 35
+        }
+      },
+      "8": {
+        start: {
+          line: 25,
+          column: 8
+        },
+        end: {
+          line: 30,
+          column: 10
+        }
+      },
+      "9": {
+        start: {
+          line: 33,
+          column: 8
+        },
+        end: {
+          line: 33,
+          column: 21
+        }
+      },
+      "10": {
+        start: {
+          line: 36,
+          column: 8
+        },
+        end: {
+          line: 36,
+          column: 20
+        }
+      },
+      "11": {
+        start: {
+          line: 39,
+          column: 0
+        },
+        end: {
+          line: 39,
+          column: 52
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 13,
+            column: 4
+          },
+          end: {
+            line: 13,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 55
+          },
+          end: {
+            line: 23,
+            column: 5
+          }
+        },
+        line: 13
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 24,
+            column: 4
+          },
+          end: {
+            line: 24,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 24,
+            column: 19
+          },
+          end: {
+            line: 31,
+            column: 5
+          }
+        },
+        line: 24
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 32,
+            column: 4
+          },
+          end: {
+            line: 32,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 32,
+            column: 18
+          },
+          end: {
+            line: 34,
+            column: 5
+          }
+        },
+        line: 32
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 35,
+            column: 4
+          },
+          end: {
+            line: 35,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 35,
+            column: 19
+          },
+          end: {
+            line: 37,
+            column: 5
+          }
+        },
+        line: 35
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserRoleChangedEvent.ts",
+      mappings: ";AAAA;;;;;;GAMG;;;AAEH,mEAA+D;AAI/D,MAAa,oBAAqB,SAAQ,0BAAW;IACnD,YACkB,QAAgB,EAChB,OAAuB,EACvB,OAAuB,EACvB,SAAiB;QAEjC,KAAK,CACH,iBAAiB,EACjB,QAAQ,CAAC,KAAK,EACd,MAAM,EACN,EAAE,OAAO,EAAE,OAAO,CAAC,IAAI,EAAE,OAAO,EAAE,OAAO,CAAC,IAAI,EAAE,SAAS,EAAE,EAC3D,CAAC,EAAE,eAAe;QAClB,SAAS,EAAE,gBAAgB;QAC3B,SAAS,EAAE,cAAc;QACzB,QAAQ,CAAC,KAAK,CAAC,kCAAkC;SAClD,CAAC;QAdc,aAAQ,GAAR,QAAQ,CAAQ;QAChB,YAAO,GAAP,OAAO,CAAgB;QACvB,YAAO,GAAP,OAAO,CAAgB;QACvB,cAAS,GAAT,SAAS,CAAQ;IAYnC,CAAC;IAED,YAAY;QACV,OAAO;YACL,MAAM,EAAE,IAAI,CAAC,QAAQ,CAAC,KAAK;YAC3B,OAAO,EAAE,IAAI,CAAC,OAAO,CAAC,IAAI;YAC1B,OAAO,EAAE,IAAI,CAAC,OAAO,CAAC,IAAI;YAC1B,SAAS,EAAE,IAAI,CAAC,SAAS;SAC1B,CAAC;IACJ,CAAC;IAED,WAAW;QACT,OAAO,KAAK,CAAC;IACf,CAAC;IAED,YAAY;QACV,OAAO,IAAI,CAAC;IACd,CAAC;CACF;AAnCD,oDAmCC",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\events\\UserRoleChangedEvent.ts"],
+      sourcesContent: ["/**\n * UserRoleChangedEvent Domain Event\n * Fired when a user's role is changed\n * \n * @author Hospital Management Team\n * @version 2.0.0\n */\n\nimport { DomainEvent } from '@shared/domain/base/domain-event';\nimport { UserId } from '../value-objects/UserId';\nimport { HealthcareRole } from '../entities/HealthcareRole';\n\nexport class UserRoleChangedEvent extends DomainEvent {\n  constructor(\n    public readonly userIdVO: UserId,\n    public readonly oldRole: HealthcareRole,\n    public readonly newRole: HealthcareRole,\n    public readonly changedBy: string\n  ) {\n    super(\n      'UserRoleChanged',\n      userIdVO.value,\n      'User',\n      { oldRole: oldRole.type, newRole: newRole.type, changedBy },\n      1, // eventVersion\n      undefined, // correlationId\n      undefined, // causationId\n      userIdVO.value // userId as string for base class\n    );\n  }\n\n  getEventData(): any {\n    return {\n      userId: this.userIdVO.value,\n      oldRole: this.oldRole.type,\n      newRole: this.newRole.type,\n      changedBy: this.changedBy\n    };\n  }\n\n  containsPHI(): boolean {\n    return false;\n  }\n\n  getPatientId(): string | null {\n    return null;\n  }\n}\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "4225a6d3f243f36496b76df2a1a0604c5aa1f25a"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_cenudm4r3 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_cenudm4r3();
+cov_cenudm4r3().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_cenudm4r3().s[1]++;
+exports.UserRoleChangedEvent = void 0;
+const domain_event_1 =
+/* istanbul ignore next */
+(cov_cenudm4r3().s[2]++, require("@shared/domain/base/domain-event"));
+class UserRoleChangedEvent extends
+/* istanbul ignore next */
+(domain_event_1.DomainEvent) {
+  constructor(userIdVO, oldRole, newRole, changedBy) {
+    /* istanbul ignore next */
+    cov_cenudm4r3().f[0]++;
+    cov_cenudm4r3().s[3]++;
+    super('UserRoleChanged', userIdVO.value, 'User', {
+      oldRole: oldRole.type,
+      newRole: newRole.type,
+      changedBy
+    }, 1,
+    // eventVersion
+    undefined,
+    // correlationId
+    undefined,
+    // causationId
+    userIdVO.value // userId as string for base class
+    );
+    /* istanbul ignore next */
+    cov_cenudm4r3().s[4]++;
+    this.userIdVO = userIdVO;
+    /* istanbul ignore next */
+    cov_cenudm4r3().s[5]++;
+    this.oldRole = oldRole;
+    /* istanbul ignore next */
+    cov_cenudm4r3().s[6]++;
+    this.newRole = newRole;
+    /* istanbul ignore next */
+    cov_cenudm4r3().s[7]++;
+    this.changedBy = changedBy;
+  }
+  getEventData() {
+    /* istanbul ignore next */
+    cov_cenudm4r3().f[1]++;
+    cov_cenudm4r3().s[8]++;
+    return {
+      userId: this.userIdVO.value,
+      oldRole: this.oldRole.type,
+      newRole: this.newRole.type,
+      changedBy: this.changedBy
+    };
+  }
+  containsPHI() {
+    /* istanbul ignore next */
+    cov_cenudm4r3().f[2]++;
+    cov_cenudm4r3().s[9]++;
+    return false;
+  }
+  getPatientId() {
+    /* istanbul ignore next */
+    cov_cenudm4r3().f[3]++;
+    cov_cenudm4r3().s[10]++;
+    return null;
+  }
+}
+/* istanbul ignore next */
+cov_cenudm4r3().s[11]++;
+exports.UserRoleChangedEvent = UserRoleChangedEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfY2VudWRtNHIzIiwicGF0aCIsImhhc2giLCJnbG9iYWwiLCJGdW5jdGlvbiIsImdjdiIsImNvdmVyYWdlRGF0YSIsInN0YXRlbWVudE1hcCIsInN0YXJ0IiwibGluZSIsImNvbHVtbiIsImVuZCIsImZuTWFwIiwibmFtZSIsImRlY2wiLCJsb2MiLCJicmFuY2hNYXAiLCJzIiwiZiIsImIiLCJpbnB1dFNvdXJjZU1hcCIsImZpbGUiLCJtYXBwaW5ncyIsIm5hbWVzIiwic291cmNlcyIsInNvdXJjZXNDb250ZW50IiwidmVyc2lvbiIsIl9jb3ZlcmFnZVNjaGVtYSIsImNvdmVyYWdlIiwiYWN0dWFsQ292ZXJhZ2UiLCJkb21haW5fZXZlbnRfMSIsInJlcXVpcmUiLCJVc2VyUm9sZUNoYW5nZWRFdmVudCIsIkRvbWFpbkV2ZW50IiwiY29uc3RydWN0b3IiLCJ1c2VySWRWTyIsIm9sZFJvbGUiLCJuZXdSb2xlIiwiY2hhbmdlZEJ5IiwidmFsdWUiLCJ0eXBlIiwidW5kZWZpbmVkIiwiZ2V0RXZlbnREYXRhIiwidXNlcklkIiwiY29udGFpbnNQSEkiLCJnZXRQYXRpZW50SWQiLCJleHBvcnRzIl0sInNvdXJjZXMiOlsiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGRvbWFpblxcZXZlbnRzXFxVc2VyUm9sZUNoYW5nZWRFdmVudC50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIFVzZXJSb2xlQ2hhbmdlZEV2ZW50IERvbWFpbiBFdmVudFxuICogRmlyZWQgd2hlbiBhIHVzZXIncyByb2xlIGlzIGNoYW5nZWRcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKi9cblxuaW1wb3J0IHsgRG9tYWluRXZlbnQgfSBmcm9tICdAc2hhcmVkL2RvbWFpbi9iYXNlL2RvbWFpbi1ldmVudCc7XG5pbXBvcnQgeyBVc2VySWQgfSBmcm9tICcuLi92YWx1ZS1vYmplY3RzL1VzZXJJZCc7XG5pbXBvcnQgeyBIZWFsdGhjYXJlUm9sZSB9IGZyb20gJy4uL2VudGl0aWVzL0hlYWx0aGNhcmVSb2xlJztcblxuZXhwb3J0IGNsYXNzIFVzZXJSb2xlQ2hhbmdlZEV2ZW50IGV4dGVuZHMgRG9tYWluRXZlbnQge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwdWJsaWMgcmVhZG9ubHkgdXNlcklkVk86IFVzZXJJZCxcbiAgICBwdWJsaWMgcmVhZG9ubHkgb2xkUm9sZTogSGVhbHRoY2FyZVJvbGUsXG4gICAgcHVibGljIHJlYWRvbmx5IG5ld1JvbGU6IEhlYWx0aGNhcmVSb2xlLFxuICAgIHB1YmxpYyByZWFkb25seSBjaGFuZ2VkQnk6IHN0cmluZ1xuICApIHtcbiAgICBzdXBlcihcbiAgICAgICdVc2VyUm9sZUNoYW5nZWQnLFxuICAgICAgdXNlcklkVk8udmFsdWUsXG4gICAgICAnVXNlcicsXG4gICAgICB7IG9sZFJvbGU6IG9sZFJvbGUudHlwZSwgbmV3Um9sZTogbmV3Um9sZS50eXBlLCBjaGFuZ2VkQnkgfSxcbiAgICAgIDEsIC8vIGV2ZW50VmVyc2lvblxuICAgICAgdW5kZWZpbmVkLCAvLyBjb3JyZWxhdGlvbklkXG4gICAgICB1bmRlZmluZWQsIC8vIGNhdXNhdGlvbklkXG4gICAgICB1c2VySWRWTy52YWx1ZSAvLyB1c2VySWQgYXMgc3RyaW5nIGZvciBiYXNlIGNsYXNzXG4gICAgKTtcbiAgfVxuXG4gIGdldEV2ZW50RGF0YSgpOiBhbnkge1xuICAgIHJldHVybiB7XG4gICAgICB1c2VySWQ6IHRoaXMudXNlcklkVk8udmFsdWUsXG4gICAgICBvbGRSb2xlOiB0aGlzLm9sZFJvbGUudHlwZSxcbiAgICAgIG5ld1JvbGU6IHRoaXMubmV3Um9sZS50eXBlLFxuICAgICAgY2hhbmdlZEJ5OiB0aGlzLmNoYW5nZWRCeVxuICAgIH07XG4gIH1cblxuICBjb250YWluc1BISSgpOiBib29sZWFuIHtcbiAgICByZXR1cm4gZmFsc2U7XG4gIH1cblxuICBnZXRQYXRpZW50SWQoKTogc3RyaW5nIHwgbnVsbCB7XG4gICAgcmV0dXJuIG51bGw7XG4gIH1cbn1cbiJdLCJtYXBwaW5ncyI6Ijs7QUFBQTs7Ozs7OztBQUFBO0FBQUEsU0FBQUEsY0FBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsTUFBQSxPQUFBQyxRQUFBO0VBQUEsSUFBQUMsR0FBQTtFQUFBLElBQUFDLFlBQUE7SUFBQUwsSUFBQTtJQUFBTSxZQUFBO01BQUE7UUFBQUMsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtNQUFBO1FBQUFDLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBSyxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFJLElBQUE7UUFBQUMsSUFBQTtVQUFBTixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFB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

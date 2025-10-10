@@ -29,7 +29,7 @@ export class UserRoleChangedEvent extends DomainEvent {
     );
   }
 
-  getEventData(): any {
+  getEventData(): Record<string, unknown> {
     return {
       userId: this.userIdVO.value,
       oldRole: this.oldRole.type,

@@ -310,46 +310,143 @@ describe('PermissionService', () => {
     });
   });
 
-  // TODO: Refactor - hasPermission method does not exist, use hasAnyPermission or checkPermission
-  // describe('permission matching edge cases', () => {
-  //   it('should match write permission for create action', async () => {
-  //     const permissions: Permission[] = ['patients:write'];
-  //     mockCacheService.get.mockResolvedValue(null);
-  //     mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+  describe('checkPermission - wildcard support', () => {
+    it('should return true for resource wildcard (patients:*)', async () => {
+      const permissions: Permission[] = ['patients:*'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
 
-  //     const result = await permissionService.hasAnyPermission(testUserIdVO, ['patients:create']);
+      const result = await permissionService.checkPermission(testUserIdVO, 'patients:read');
 
-  //     expect(result).toBe(true);
-  //   });
+      expect(result).toBe(true);
+    });
 
-  //   it('should match write permission for update action', async () => {
-  //     const permissions: Permission[] = ['patients:write'];
-  //     mockCacheService.get.mockResolvedValue(null);
-  //     mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+    it('should return true for global wildcard (*)', async () => {
+      const permissions: Permission[] = ['*'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
 
-  //     const result = await permissionService.hasAnyPermission(testUserIdVO, ['patients:update']);
+      const result = await permissionService.checkPermission(testUserIdVO, 'patients:read');
 
-  //     expect(result).toBe(true);
-  //   });
+      expect(result).toBe(true);
+    });
 
-  //   it('should match manage permission for any action', async () => {
-  //     const permissions: Permission[] = ['patients:manage'];
-  //     mockCacheService.get.mockResolvedValue(null);
-  //     mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+    it('should support overloaded format (resource, action)', async () => {
+      const permissions: Permission[] = ['patients:read'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
 
-  //     const result = await permissionService.hasAnyPermission(testUserIdVO, ['patients:delete']);
+      const result = await permissionService.checkPermission(testUserIdVO, 'patients', 'read');
 
-  //     expect(result).toBe(true);
-  //   });
+      expect(result).toBe(true);
+    });
 
-  //   it('should match action wildcard', async () => {
-  //     const permissions: Permission[] = ['*:read'];
-  //     mockCacheService.get.mockResolvedValue(null);
-  //     mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+    it('should return false when no wildcard matches', async () => {
+      const permissions: Permission[] = ['appointments:read'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
 
-  //     const result = await permissionService.hasAnyPermission(testUserIdVO, ['patients:read']);
+      const result = await permissionService.checkPermission(testUserIdVO, 'patients:read');
 
-  //     expect(result).toBe(true);
-  //   });
-  // });
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('checkPermissionWithOwnership', () => {
+    it('should return true when user is resource owner', async () => {
+      const result = await permissionService.checkPermissionWithOwnership(
+        testUserIdVO,
+        'patients:read',
+        testUserId
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('should return true when user has wildcard permission', async () => {
+      const permissions: Permission[] = ['*'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+
+      const result = await permissionService.checkPermissionWithOwnership(
+        testUserIdVO,
+        'patients:read',
+        'other-user-id'
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false for ownership permission when not owner', async () => {
+      const permissions: Permission[] = ['own_patients:read'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+
+      const result = await permissionService.checkPermissionWithOwnership(
+        testUserIdVO,
+        'own_patients:read',
+        'other-user-id'
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for non-ownership permission when not owner', async () => {
+      const permissions: Permission[] = ['patients:read'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+
+      const result = await permissionService.checkPermissionWithOwnership(
+        testUserIdVO,
+        'patients:read',
+        'other-user-id'
+      );
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('hasAnyPermission - wildcard support', () => {
+    it('should return true when user has resource wildcard', async () => {
+      const permissions: Permission[] = ['patients:*'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+
+      const result = await permissionService.hasAnyPermission(testUserIdVO, ['patients:read']);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return true when any permission matches with wildcard', async () => {
+      const permissions: Permission[] = ['patients:*'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+
+      const result = await permissionService.hasAnyPermission(testUserIdVO, [
+        'appointments:read',
+        'patients:write',
+      ]);
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('isAdmin', () => {
+    it('should return true when user has wildcard permission', async () => {
+      const permissions: Permission[] = ['*'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+
+      const result = await permissionService.isAdmin(testUserIdVO);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when user does not have wildcard permission', async () => {
+      const permissions: Permission[] = ['patients:read'];
+      mockPermissionRepository.getUserPermissions.mockResolvedValue(permissions);
+
+      const result = await permissionService.isAdmin(testUserIdVO);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('invalidateCacheForRole', () => {
+    it('should invalidate cache for all users with role', async () => {
+      await permissionService.invalidateCacheForRole('doctor');
+
+      expect(mockCacheService.invalidateForRole).toHaveBeenCalledWith('doctor');
+    });
+  });
 });

@@ -67,7 +67,7 @@ export interface PermissionContext {
   userId: string;
   resourceId?: string;
   resourceOwnerId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

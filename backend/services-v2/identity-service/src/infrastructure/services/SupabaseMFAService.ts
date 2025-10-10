@@ -9,8 +9,9 @@
 
 import { IMFAService, MFAMethod, MFASetupResult, MFASettings } from '../../application/services/IMFAService';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../../application/services/ILogger';
 
 /**
  * Supabase MFA Service
@@ -19,7 +20,7 @@ import { getErrorMessage } from '../../utils/error-helper';
 export class SupabaseMFAService implements IMFAService {
   constructor(
     private supabaseClient: SupabaseClient,
-    private logger: any
+    private logger: ILogger
   ) {}
 
   /**
@@ -211,7 +212,7 @@ export class SupabaseMFAService implements IMFAService {
    */
   async updateMFASettings(userId: string, settings: Partial<MFASettings>): Promise<void> {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString()
       };
 
@@ -307,12 +308,14 @@ export class SupabaseMFAService implements IMFAService {
 
   /**
    * Generate TOTP secret (Base32 encoded)
+   * Uses crypto.randomBytes for cryptographically secure random generation
    */
   private generateSecret(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     let secret = '';
+    const randomBuffer = randomBytes(32);
     for (let i = 0; i < 32; i++) {
-      secret += chars.charAt(Math.floor(Math.random() * chars.length));
+      secret += chars.charAt(randomBuffer[i] % chars.length);
     }
     return secret;
   }
@@ -335,11 +338,14 @@ export class SupabaseMFAService implements IMFAService {
 
   /**
    * Generate backup codes locally (fallback)
+   * Uses crypto.randomBytes for cryptographically secure random generation
    */
   private generateBackupCodesLocally(): string[] {
     const codes: string[] = [];
     for (let i = 0; i < 10; i++) {
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      // Generate 8 random bytes and convert to hex string (16 chars)
+      const randomBuffer = randomBytes(8);
+      const code = randomBuffer.toString('hex').toUpperCase().substring(0, 10);
       codes.push(code);
     }
     return codes;

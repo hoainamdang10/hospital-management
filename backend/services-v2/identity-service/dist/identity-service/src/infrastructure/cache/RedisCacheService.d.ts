@@ -5,6 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
+import { ILogger } from '../../application/services/ILogger';
 export interface CacheOptions {
     ttl?: number;
     prefix?: string;
@@ -27,7 +28,7 @@ export declare class RedisCacheService {
     private isConnected;
     private readonly keyPrefix;
     private stats;
-    constructor(redisUrl: string, logger: any, keyPrefix?: string);
+    constructor(redisUrl: string, logger: ILogger, keyPrefix?: string);
     /**
      * Setup Redis event handlers
      */

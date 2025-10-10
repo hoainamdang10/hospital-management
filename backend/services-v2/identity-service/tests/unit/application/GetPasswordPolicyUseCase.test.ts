@@ -92,6 +92,7 @@ describe('GetPasswordPolicyUseCase', () => {
     });
 
     it('should throw error if repository fails', async () => {
+      expect.assertions(2);
       mockRepository.getCurrent.mockRejectedValue(new Error('Database error'));
 
       await expect(useCase.execute()).rejects.toThrow('Failed to get password policy');

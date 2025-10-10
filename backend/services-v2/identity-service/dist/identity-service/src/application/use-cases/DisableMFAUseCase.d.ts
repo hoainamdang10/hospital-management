@@ -6,10 +6,12 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IMFAService } from '../services/IMFAService';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { VerifyMFAUseCase } from './VerifyMFAUseCase';
+import { ILogger } from '../services/ILogger';
 export interface DisableMFARequest {
     userId: string;
     verificationCode: string;
@@ -32,7 +34,7 @@ export declare class DisableMFAUseCase implements IUseCase<DisableMFARequest, Di
     private verifyMFAUseCase;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, mfaService: IMFAService, verifyMFAUseCase: VerifyMFAUseCase, logger: any);
+    constructor(userRepository: IUserRepository, mfaService: IMFAService, verifyMFAUseCase: VerifyMFAUseCase, logger: ILogger, circuitBreaker: ICircuitBreaker);
     execute(request: DisableMFARequest): Promise<DisableMFAResponse>;
     private executeImpl;
     /**

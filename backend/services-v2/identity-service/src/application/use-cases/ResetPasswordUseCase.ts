@@ -2,17 +2,19 @@ import { getErrorMessage } from '../../utils/error-helper';
 /**
  * Reset Password Use Case
  * Handles password reset with token
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IAuthenticationService } from '../services/IAuthenticationService';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 
 export interface ResetPasswordRequest {
   accessToken: string;
+  refreshToken: string; // Required by Supabase for password reset
   newPassword: string;
   confirmPassword: string;
 }
@@ -24,11 +26,10 @@ export interface ResetPasswordResponse {
 }
 
 export class ResetPasswordUseCase implements IUseCase<ResetPasswordRequest, ResetPasswordResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('reset-password-use-case');
-
   constructor(
     private authService: IAuthenticationService,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: ResetPasswordRequest): Promise<ResetPasswordResponse> {
@@ -58,7 +59,7 @@ export class ResetPasswordUseCase implements IUseCase<ResetPasswordRequest, Rese
         };
       }
 
-      await this.authService.resetPassword(request.accessToken, request.newPassword);
+      await this.authService.resetPassword(request.accessToken, request.refreshToken, request.newPassword);
 
       this.logger.info('Password reset successful');
 
@@ -72,7 +73,7 @@ export class ResetPasswordUseCase implements IUseCase<ResetPasswordRequest, Rese
 
       return {
         success: false,
-        message: `Đặt lại mật khẩu thất bại: ${getErrorMessage(error)}`,
+        message: 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại token và thử lại.',
         error: 'RESET_PASSWORD_FAILED'
       };
     }

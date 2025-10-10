@@ -163,7 +163,7 @@ export class UserMapper {
   static toUpdate(user: User): Partial<UserRecord> {
     const persistence = this.toPersistence(user);
     // Remove id and created_at for updates
-    const { id, created_at, ...updateData } = persistence;
+    const { id: _id, created_at: _created_at, ...updateData } = persistence;
     return {
       ...updateData,
       updated_at: new Date().toISOString()

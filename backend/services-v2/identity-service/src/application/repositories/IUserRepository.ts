@@ -24,7 +24,7 @@ export interface CreateAuthUserData {
   gender?: string;
   address?: string;
   emailConfirm?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -96,7 +96,7 @@ export interface IUserRepository {
   /**
    * Deactivate session
    */
-  deactivateSession(sessionId: string): Promise<void>;
+  deactivateSession(sessionId: string, userId: UserId): Promise<void>;
 
   /**
    * Get healthcare role by type
@@ -109,13 +109,13 @@ export interface IUserRepository {
   list(options?: {
     limit?: number;
     offset?: number;
-    filters?: Record<string, any>;
+    filters?: Record<string, unknown>;
   }): Promise<User[]>;
 
   /**
    * Count total users
    */
-  count(filters?: Record<string, any>): Promise<number>;
+  count(filters?: Record<string, unknown>): Promise<number>;
 
   /**
    * Store staff invitation
@@ -126,7 +126,7 @@ export interface IUserRepository {
     invitedBy: string;
     invitationToken: string;
     expiresAt: Date;
-    invitationData?: any;
+    invitationData?: Record<string, unknown>;
   }): Promise<void>;
 
   /**
@@ -136,7 +136,7 @@ export interface IUserRepository {
     isValid: boolean;
     email?: string;
     role?: string;
-    invitationData?: any;
+    invitationData?: Record<string, unknown>;
   }>;
 
   /**

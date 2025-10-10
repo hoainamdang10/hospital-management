@@ -44,6 +44,21 @@ interface HealthcareRoleProps {
   hasHIPAATraining: boolean;
 }
 
+/**
+ * Healthcare Role Persistence Format
+ */
+export interface HealthcareRolePersistenceProps {
+  id: string;
+  type: HealthcareRoleType;
+  name: string;
+  name_vietnamese: string;
+  description: string;
+  is_active: boolean;
+  has_hipaa_training: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export class HealthcareRole extends Entity<HealthcareRoleProps> {
   private constructor(props: HealthcareRoleProps, id?: string) {
     super(props, id);
@@ -195,7 +210,7 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
   /**
    * Convert entity to persistence format - required by Entity base class
    */
-  toPersistence(): any {
+  toPersistence(): HealthcareRolePersistenceProps {
     return {
       id: this.id,
       type: this.props.type,

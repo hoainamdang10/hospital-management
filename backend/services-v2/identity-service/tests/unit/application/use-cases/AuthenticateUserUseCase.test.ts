@@ -17,7 +17,7 @@ import { IAuthenticationService } from '../../../../src/application/services/IAu
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
 import { IPermissionRepository } from '../../../../src/domain/repositories/IPermissionRepository';
 import { IDegradationService, ServiceMode } from '../../../../src/application/services/IDegradationService';
-import { ICircuitBreaker } from '../../../../src/application/services/ICircuitBreaker';
+import { ICircuitBreaker, CircuitBreakerState } from '../../../../src/application/services/ICircuitBreaker';
 import { createMockUser } from '../../../helpers/user-test-helper';
 
 describe('AuthenticateUserUseCase', () => {
@@ -69,9 +69,11 @@ describe('AuthenticateUserUseCase', () => {
       getState: jest.fn(),
       reset: jest.fn()
     } as any;
+    mockCircuitBreaker.execute.mockImplementation(async (operation: () => Promise<any>) => operation());
+    mockCircuitBreaker.getState.mockReturnValue(CircuitBreakerState.CLOSED);
 
     mockPermissionRepository = {
-      getValidRoles: jest.fn().mockResolvedValue(['ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST', 'PATIENT']),
+      getAllRoles: jest.fn().mockResolvedValue(['admin', 'doctor', 'nurse', 'receptionist', 'patient']),
       getUserPermissions: jest.fn().mockResolvedValue([])
     } as unknown as jest.Mocked<IPermissionRepository>;
 
@@ -133,7 +135,9 @@ describe('AuthenticateUserUseCase', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.userId).toBe('user-123');
-      expect(result.sessionToken).toBeDefined();
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.sessionToken).toBeDefined(); // Backward compatibility
       expect(result.roles).toEqual(['patient']);
       expect(result.permissions).toBeDefined();
       expect(result.mode).toBe(ServiceMode.FULL_SERVICE);
@@ -171,8 +175,9 @@ describe('AuthenticateUserUseCase', () => {
       const result = await useCase.execute(validRequest);
 
       // Assert
-      expect(result.sessionToken).toBeDefined();
-      expect(result.sessionToken).toContain('session_');
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.sessionToken).toBeDefined(); // Backward compatibility
       expect(result.expiresAt).toBeDefined();
       expect(result.expiresAt).toBeInstanceOf(Date);
     });
@@ -259,7 +264,8 @@ describe('AuthenticateUserUseCase', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('không tồn tại');
+      // Error messages are sanitized for security
+      expect(result.error).toContain('Đăng nhập thất bại');
     });
 
     it('should reject deactivated user', async () => {
@@ -287,7 +293,8 @@ describe('AuthenticateUserUseCase', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('vô hiệu hóa');
+      // Error messages are sanitized for security
+      expect(result.error).toContain('Đăng nhập thất bại');
     });
   });
 
@@ -320,8 +327,8 @@ describe('AuthenticateUserUseCase', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Mật khẩu');
+      // Error messages are sanitized for security
+      expect(result.error).toContain('Đăng nhập thất bại');
     });
   });
 });
-

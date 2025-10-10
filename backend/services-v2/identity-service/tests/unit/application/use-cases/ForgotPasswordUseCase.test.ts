@@ -15,12 +15,14 @@ import { ForgotPasswordUseCase, ForgotPasswordRequest } from '../../../../src/ap
 import { IAuthenticationService } from '../../../../src/application/services/IAuthenticationService';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
 import { createMockUser } from '../../../helpers/user-test-helper';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('ForgotPasswordUseCase', () => {
   let useCase: ForgotPasswordUseCase;
   let mockAuthService: jest.Mocked<IAuthenticationService>;
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockAuthService = {
@@ -51,7 +53,14 @@ describe('ForgotPasswordUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new ForgotPasswordUseCase(mockAuthService, mockUserRepository, mockLogger);
+    circuitBreaker = createCircuitBreakerStub();
+
+    useCase = new ForgotPasswordUseCase(
+      mockAuthService,
+      mockUserRepository,
+      mockLogger,
+      circuitBreaker
+    );
   });
 
   afterEach(() => {
@@ -278,4 +287,3 @@ describe('ForgotPasswordUseCase', () => {
     });
   });
 });
-

@@ -7,6 +7,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { ILogger } from '../../application/services/ILogger';
 
 export interface CacheOptions {
   ttl?: number; // Time to live in seconds
@@ -41,7 +42,7 @@ export class RedisCacheService {
 
   constructor(
     redisUrl: string,
-    private logger: any,
+    private logger: ILogger,
     keyPrefix: string = 'identity:'
   ) {
     this.keyPrefix = keyPrefix;

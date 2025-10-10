@@ -20,8 +20,7 @@ import { ILogger } from '../../application/services/ILogger';
 import { Email } from '../../domain/value-objects/Email';
 import { UserSession } from '../../domain/entities/UserSession';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
-import { DomainEventMapper } from '../../infrastructure/events/DomainEventMapper';
+import { IEventPublisher } from '../services/IEventPublisher';
 
 export interface AuthenticateUserRequest {
   email: string;
@@ -29,13 +28,15 @@ export interface AuthenticateUserRequest {
   mfaCode?: string;
   ipAddress: string;
   userAgent: string;
-  deviceInfo?: any;
+  deviceInfo?: Record<string, unknown>;
 }
 
 export interface AuthenticateUserResponse {
   success: boolean;
   userId?: string;
-  sessionToken?: string;
+  accessToken?: string; // Supabase JWT access token
+  refreshToken?: string; // Supabase refresh token for token renewal
+  sessionToken?: string; // Deprecated: Use accessToken instead
   roles?: string[];
   permissions?: string[];
   expiresAt?: Date;
@@ -109,8 +110,9 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
 
       return {
         success: false,
-        mode: ServiceMode.FULL_SERVICE, // Default to full service mode on error
-        error: getErrorMessage(error)
+        mode: ServiceMode.DEGRADED_SERVICE,
+        degradationReason: 'AUTHENTICATION_FAILED',
+        error: 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
       };
     }
   }
@@ -227,8 +229,7 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
       if (this.eventPublisher) {
         try {
           const domainEvents = user.getUncommittedEvents();
-          const rabbitMQEvents = DomainEventMapper.toRabbitMQEvents(domainEvents);
-          await this.eventPublisher.publishBatch(rabbitMQEvents);
+          await this.eventPublisher.publishDomainEvents(domainEvents);
           user.markEventsAsCommitted();
 
           this.logger.info('Authentication events published', {
@@ -252,6 +253,8 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
       return {
         success: true,
         userId: user.id,
+        accessToken: authResult.accessToken, // Supabase JWT access token
+        refreshToken: authResult.refreshToken, // Supabase refresh token
         roles,
         permissions,
         mode: ServiceMode.FULL_SERVICE,
@@ -326,7 +329,9 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
     return {
       success: authResult.success,
       userId: authResult.userId,
-      sessionToken: this.generateSessionToken(authResult),
+      accessToken: authResult.accessToken, // Supabase JWT access token
+      refreshToken: authResult.refreshToken, // Supabase refresh token for token renewal
+      sessionToken: authResult.accessToken, // Deprecated: kept for backward compatibility
       roles: authResult.roles,
       permissions: authResult.permissions,
       expiresAt: authResult.expiresAt,
@@ -334,20 +339,6 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
       degradationReason: authResult.degradationReason,
       requiresMFA: this.shouldRequireMFA(authResult)
     };
-  }
-
-  /**
-   * Generate session token (simplified)
-   */
-  private generateSessionToken(authResult: AuthResult): string | undefined {
-    if (!authResult.success || !authResult.userId) {
-      return undefined;
-    }
-
-    // In production, use JWT or secure session token generation
-    const timestamp = Date.now();
-    const randomPart = Math.random().toString(36).substring(2);
-    return `session_${authResult.userId}_${timestamp}_${randomPart}`;
   }
 
   /**

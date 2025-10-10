@@ -10,7 +10,8 @@ import { getErrorMessage } from '../../utils/error-helper';
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IMFAService, MFAMethod } from '../services/IMFAService';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 
 export interface VerifyMFARequest {
   userId: string;
@@ -35,11 +36,10 @@ export interface VerifyMFAResponse {
  * Uses IMFAService interface for infrastructure independence
  */
 export class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, VerifyMFAResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('verify-mfa-use-case');
-
   constructor(
     private mfaService: IMFAService,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: VerifyMFARequest): Promise<VerifyMFAResponse> {

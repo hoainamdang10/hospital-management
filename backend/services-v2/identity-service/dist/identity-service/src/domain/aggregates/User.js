@@ -14,9 +14,8 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
-const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const UserId_1 = require("../value-objects/UserId");
-const UserSession_1 = require("../entities/UserSession");
 const UserCreatedEvent_1 = require("../events/UserCreatedEvent");
 const UserAuthenticatedEvent_1 = require("../events/UserAuthenticatedEvent");
 const UserRoleChangedEvent_1 = require("../events/UserRoleChangedEvent");
@@ -136,37 +135,41 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
      * This method is called AFTER successful authentication via SupabaseAuthService
      */
     recordAuthentication(ipAddress, userAgent) {
-        try {
-            if (!this.props.isActive) {
-                throw new Error('Tài khoản đã bị vô hiệu hóa');
-            }
-            // Update last login
-            this.props.lastLoginAt = new Date();
-            this.props.updatedAt = new Date();
-            // Create user session with enhanced security
-            // Note: Session token should be provided by infrastructure layer
-            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-            const session = UserSession_1.UserSession.create(this.props.id.value, '', // sessionToken - to be set by infrastructure
-            {}, // deviceInfo - to be set by infrastructure
-            ipAddress, userAgent, expiresAt);
-            // Domain event for successful authentication
-            this.addDomainEvent(new UserAuthenticatedEvent_1.UserAuthenticatedEvent(this.props.id, ipAddress, userAgent, new Date()));
-            return session;
+        if (!this.props.isActive) {
+            throw new Error('Tài khoản đã bị vô hiệu hóa');
         }
-        catch (error) {
-            // Log authentication failure for security monitoring
-            console.error('Authentication recording failed', {
-                userId: this.props.id.value,
-                email: this.props.email.value,
-                ipAddress,
-                error: getErrorMessage(error)
-            });
-            throw error;
-        }
+        // Update last login
+        this.props.lastLoginAt = new Date();
+        this.props.updatedAt = new Date();
+        // Domain event for successful authentication
+        this.addDomainEvent(new UserAuthenticatedEvent_1.UserAuthenticatedEvent(this.props.id, ipAddress, userAgent, new Date()));
+    }
+    /**
+     * Get all role types assigned to this user (read-only)
+     * Use this for validation in use cases before calling PermissionRepository
+     *
+     * @returns Array of role type strings (e.g., ['DOCTOR', 'ADMIN'])
+     */
+    get roleTypes() {
+        return this.props.healthcareRoles.map(r => r.type);
+    }
+    /**
+     * Check if user has a specific role
+     *
+     * @param roleType Role type to check (e.g., 'DOCTOR', 'ADMIN')
+     * @returns true if user has the role, false otherwise
+     */
+    hasRole(roleType) {
+        return this.props.healthcareRoles.some(r => r.type === roleType);
     }
     /**
      * Add a role to user
      * Pure RBAC: Supports multiple roles per user
+     *
+     * @deprecated Use IPermissionRepository.assignRole() instead
+     * This method will be removed in v2.2
+     * Role assignments should go through PermissionRepository to ensure
+     * proper persistence to user_roles table and cache invalidation.
      */
     addRole(newRole, assignedBy) {
         try {
@@ -188,6 +191,11 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
     /**
      * Remove a role from user
      * Pure RBAC: User must have at least one role
+     *
+     * @deprecated Use IPermissionRepository.removeRole() instead
+     * This method will be removed in v2.2
+     * Role removals should go through PermissionRepository to ensure
+     * proper persistence to user_roles table and cache invalidation.
      */
     removeRole(roleType, removedBy) {
         try {
@@ -228,13 +236,8 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
         }
     }
     /**
-     * Check if user has a specific role
-     */
-    hasRole(roleType) {
-        return this.props.healthcareRoles.some(r => r.type === roleType.toUpperCase());
-    }
-    /**
      * Get role types as string array
+     * @deprecated Use roleTypes getter instead
      */
     getRoleTypes() {
         return this.props.healthcareRoles.map(r => r.type);
@@ -252,32 +255,6 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
         catch (error) {
             throw new Error(`Failed to update personal info: ${getErrorMessage(error)}`);
         }
-    }
-    /**
-     * Convert to Supabase format for persistence
-     * ARCHITECTURE NOTE: This method violates Clean Architecture by knowing about Supabase column names.
-     * TODO: Move this mapping logic to SupabaseUserRepository.
-     *
-     * @deprecated Use repository mapping instead
-     */
-    toSupabaseFormat() {
-        return {
-            id: this.props.id.value,
-            email: this.props.email.value,
-            full_name: this.props.personalInfo.fullName,
-            role_type: this.props.healthcareRoles[0].name, // Primary role
-            citizen_id: this.props.personalInfo.citizenId,
-            date_of_birth: this.props.personalInfo.dateOfBirth?.toISOString().split('T')[0],
-            gender: this.props.personalInfo.gender,
-            address: this.props.personalInfo.address,
-            phone_number: this.props.personalInfo.phoneNumber,
-            emergency_contact_name: this.props.personalInfo.emergencyContactName,
-            emergency_contact_phone: this.props.personalInfo.emergencyContactPhone,
-            is_active: this.props.isActive,
-            is_verified: this.props.isEmailVerified,
-            created_at: this.props.createdAt.toISOString(),
-            updated_at: this.props.updatedAt.toISOString()
-        };
     }
     /**
      * Enhanced business invariants validation
@@ -313,10 +290,6 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
                 this.props.isEmailVerified);
         }
         catch (error) {
-            console.warn('Healthcare compliance check failed', {
-                userId: this.props.id.value,
-                error: getErrorMessage(error)
-            });
             return false;
         }
     }
@@ -331,10 +304,6 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
                 this.props.personalInfo.isComplete());
         }
         catch (error) {
-            console.warn('HIPAA compliance check failed', {
-                userId: this.props.id.value,
-                error: getErrorMessage(error)
-            });
             return false;
         }
     }
@@ -349,12 +318,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
      *
      * This method is kept for backward compatibility but always returns false.
      */
-    canPerformAction(action, resource) {
-        console.warn('canPerformAction() called on User aggregate. Use PermissionService instead.', {
-            userId: this.props.id.value,
-            action,
-            resource
-        });
+    canPerformAction(_action, _resource) {
         return false; // Always deny - use PermissionService for actual permission checks
     }
     /**
@@ -456,18 +420,17 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             full_name: props.personalInfo.fullName,
             phone_number: props.personalInfo.phoneNumber,
             address: props.personalInfo.address,
-            date_of_birth: props.personalInfo.dateOfBirth,
+            date_of_birth: props.personalInfo.dateOfBirth?.toISOString().split('T')[0],
             gender: props.personalInfo.gender,
             citizen_id: props.personalInfo.citizenId,
             emergency_contact_name: props.personalInfo.emergencyContactName,
             emergency_contact_phone: props.personalInfo.emergencyContactPhone,
-            healthcare_role_id: props.healthcareRoles[0].id, // Primary role
-            healthcare_role_type: props.healthcareRoles[0].type,
             is_active: props.isActive,
-            is_email_verified: props.isEmailVerified,
-            last_login_at: props.lastLoginAt,
-            created_at: props.createdAt,
-            updated_at: props.updatedAt
+            is_verified: props.isEmailVerified,
+            last_login_at: props.lastLoginAt?.toISOString(),
+            created_at: props.createdAt.toISOString(),
+            updated_at: props.updatedAt.toISOString(),
+            roles: props.healthcareRoles.map(r => r.name)
         };
     }
 }

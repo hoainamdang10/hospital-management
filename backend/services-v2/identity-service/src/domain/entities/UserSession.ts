@@ -9,10 +9,18 @@
 import { Entity } from '@shared/domain/base/entity';
 import { v4 as uuidv4 } from 'uuid';
 
+export interface DeviceInfo {
+  deviceType?: string;
+  deviceName?: string;
+  os?: string;
+  browser?: string;
+  [key: string]: unknown;
+}
+
 interface UserSessionProps {
   userId: string;
   sessionToken: string;
-  deviceInfo: any;
+  deviceInfo: DeviceInfo;
   ipAddress: string;
   userAgent: string;
   expiresAt: Date;
@@ -29,7 +37,7 @@ export class UserSession extends Entity<UserSessionProps> {
   public static create(
     userId: string,
     sessionToken: string,
-    deviceInfo: any,
+    deviceInfo: DeviceInfo,
     ipAddress: string,
     userAgent: string,
     expiresAt: Date
@@ -51,7 +59,18 @@ export class UserSession extends Entity<UserSessionProps> {
   /**
    * Reconstitute from persistence data
    */
-  public static fromPersistenceData(data: any): UserSession {
+  public static fromPersistenceData(data: {
+    id: string;
+    userId: string;
+    sessionToken: string;
+    deviceInfo: DeviceInfo;
+    ipAddress: string;
+    userAgent: string;
+    expiresAt: Date;
+    isActive: boolean;
+    createdAt: Date;
+    lastAccessedAt: Date;
+  }): UserSession {
     return new UserSession({
       userId: data.userId,
       sessionToken: data.sessionToken,
@@ -74,7 +93,7 @@ export class UserSession extends Entity<UserSessionProps> {
     return this.props.sessionToken;
   }
 
-  public get deviceInfo(): any {
+  public get deviceInfo(): DeviceInfo {
     return this.props.deviceInfo;
   }
 
@@ -141,7 +160,7 @@ export class UserSession extends Entity<UserSessionProps> {
   /**
    * Convert entity to persistence format - required by Entity base class
    */
-  toPersistence(): any {
+  toPersistence(): Record<string, unknown> {
     return {
       id: this.id,
       user_id: this.props.userId,

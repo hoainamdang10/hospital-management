@@ -1,0 +1,68 @@
+b52b6bf55ac4d33806462c76939e53c4
+"use strict";
+
+/**
+ * User Repository Interface - Application Layer
+ * Defines contract for user persistence operations
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
+ */
+/* istanbul ignore next */
+function cov_2hyy8b88hz() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\repositories\\IUserRepository.ts";
+  var hash = "04f3a00edb9702dba989e1957744e2072bcc1c30";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\repositories\\IUserRepository.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\repositories\\IUserRepository.ts",
+      mappings: ";AAAA;;;;;;;GAOG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\repositories\\IUserRepository.ts"],
+      sourcesContent: ["/**\n * User Repository Interface - Application Layer\n * Defines contract for user persistence operations\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, Dependency Inversion Principle\n */\n\nimport { User } from '../../domain/aggregates/User';\nimport { UserId } from '../../domain/value-objects/UserId';\nimport { Email } from '../../domain/value-objects/Email';\nimport { UserSession } from '../../domain/entities/UserSession';\nimport { HealthcareRole } from '../../domain/entities/HealthcareRole';\n\nexport interface CreateAuthUserData {\n  email: string;\n  password: string;\n  fullName: string;\n  roleType: string;\n  phoneNumber?: string;\n  citizenId?: string;\n  dateOfBirth?: Date;\n  gender?: string;\n  address?: string;\n  emailConfirm?: boolean;\n  metadata?: Record<string, unknown>;\n}\n\n/**\n * User Repository Interface\n * Application layer defines the contract, infrastructure implements it\n */\nexport interface IUserRepository {\n  /**\n   * Find user by ID\n   */\n  findById(userId: UserId): Promise<User | null>;\n\n  /**\n   * Find user by email\n   */\n  findByEmail(email: Email): Promise<User | null>;\n\n  /**\n   * Save new user\n   */\n  save(user: User): Promise<void>;\n\n  /**\n   * Create user in auth system + profile (atomic operation)\n   */\n  createAuthUser(data: CreateAuthUserData): Promise<User>;\n\n  /**\n   * Update existing user\n   * Accepts full User aggregate for consistency with domain model\n   */\n  update(user: User): Promise<void>;\n\n  /**\n   * Delete user\n   */\n  delete(userId: UserId): Promise<void>;\n\n  /**\n   * Check if email exists\n   */\n  emailExists(email: Email): Promise<boolean>;\n\n  /**\n   * Get user roles\n   */\n  getUserRoles(userId: UserId): Promise<string[]>;\n\n  /**\n   * Get user permissions\n   */\n  getUserPermissions(userId: UserId): Promise<string[]>;\n\n  /**\n   * Create user session\n   */\n  createSession(session: UserSession): Promise<void>;\n\n  /**\n   * Get active sessions for user\n   */\n  getActiveSessions(userId: UserId): Promise<UserSession[]>;\n\n  /**\n   * Invalidate session\n   */\n  invalidateSession(sessionId: string): Promise<void>;\n\n  /**\n   * Deactivate session\n   */\n  deactivateSession(sessionId: string): Promise<void>;\n\n  /**\n   * Get healthcare role by type\n   */\n  getHealthcareRoleByType(roleType: string): Promise<HealthcareRole | null>;\n\n  /**\n   * List all users (with pagination)\n   */\n  list(options?: {\n    limit?: number;\n    offset?: number;\n    filters?: Record<string, unknown>;\n  }): Promise<User[]>;\n\n  /**\n   * Count total users\n   */\n  count(filters?: Record<string, unknown>): Promise<number>;\n\n  /**\n   * Store staff invitation\n   */\n  storeStaffInvitation(data: {\n    email: string;\n    role: string;\n    invitedBy: string;\n    invitationToken: string;\n    expiresAt: Date;\n    invitationData?: Record<string, unknown>;\n  }): Promise<void>;\n\n  /**\n   * Verify staff invitation token\n   */\n  verifyStaffInvitation(token: string): Promise<{\n    isValid: boolean;\n    email?: string;\n    role?: string;\n    invitationData?: Record<string, unknown>;\n  }>;\n\n  /**\n   * Mark staff invitation as used\n   */\n  markInvitationAsUsed(token: string, userId: string): Promise<void>;\n\n  /**\n   * Check if account is locked due to failed login attempts\n   */\n  checkAccountLockout(email: Email): Promise<{\n    isLocked: boolean;\n    unlockAt?: Date;\n    failedAttempts: number;\n  }>;\n\n  /**\n   * Record login attempt (success or failure)\n   */\n  recordLoginAttempt(\n    email: Email,\n    isSuccessful: boolean,\n    ipAddress?: string,\n    userAgent?: string,\n    errorMessage?: string\n  ): Promise<void>;\n}\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "04f3a00edb9702dba989e1957744e2072bcc1c30"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2hyy8b88hz = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2hyy8b88hz();
+cov_2hyy8b88hz().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmh5eThiODhoeiIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxccmVwb3NpdG9yaWVzXFxJVXNlclJlcG9zaXRvcnkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBVc2VyIFJlcG9zaXRvcnkgSW50ZXJmYWNlIC0gQXBwbGljYXRpb24gTGF5ZXJcbiAqIERlZmluZXMgY29udHJhY3QgZm9yIHVzZXIgcGVyc2lzdGVuY2Ugb3BlcmF0aW9uc1xuICogXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqIEBjb21wbGlhbmNlIENsZWFuIEFyY2hpdGVjdHVyZSwgRGVwZW5kZW5jeSBJbnZlcnNpb24gUHJpbmNpcGxlXG4gKi9cblxuaW1wb3J0IHsgVXNlciB9IGZyb20gJy4uLy4uL2RvbWFpbi9hZ2dyZWdhdGVzL1VzZXInO1xuaW1wb3J0IHsgVXNlcklkIH0gZnJvbSAnLi4vLi4vZG9tYWluL3ZhbHVlLW9iamVjdHMvVXNlcklkJztcbmltcG9ydCB7IEVtYWlsIH0gZnJvbSAnLi4vLi4vZG9tYWluL3ZhbHVlLW9iamVjdHMvRW1haWwnO1xuaW1wb3J0IHsgVXNlclNlc3Npb24gfSBmcm9tICcuLi8uLi9kb21haW4vZW50aXRpZXMvVXNlclNlc3Npb24nO1xuaW1wb3J0IHsgSGVhbHRoY2FyZVJvbGUgfSBmcm9tICcuLi8uLi9kb21haW4vZW50aXRpZXMvSGVhbHRoY2FyZVJvbGUnO1xuXG5leHBvcnQgaW50ZXJmYWNlIENyZWF0ZUF1dGhVc2VyRGF0YSB7XG4gIGVtYWlsOiBzdHJpbmc7XG4gIHBhc3N3b3JkOiBzdHJpbmc7XG4gIGZ1bGxOYW1lOiBzdHJpbmc7XG4gIHJvbGVUeXBlOiBzdHJpbmc7XG4gIHBob25lTnVtYmVyPzogc3RyaW5nO1xuICBjaXRpemVuSWQ/OiBzdHJpbmc7XG4gIGRhdGVPZkJpcnRoPzogRGF0ZTtcbiAgZ2VuZGVyPzogc3RyaW5nO1xuICBhZGRyZXNzPzogc3RyaW5nO1xuICBlbWFpbENvbmZpcm0/OiBib29sZWFuO1xuICBtZXRhZGF0YT86IFJlY29yZDxzdHJpbmcsIHVua25vd24+O1xufVxuXG4vKipcbiAqIFVzZXIgUmVwb3NpdG9yeSBJbnRlcmZhY2VcbiAqIEFwcGxpY2F0aW9uIGxheWVyIGRlZmluZXMgdGhlIGNvbnRyYWN0LCBpbmZyYXN0cnVjdHVyZSBpbXBsZW1lbnRzIGl0XG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgSVVzZXJSZXBvc2l0b3J5IHtcbiAgLyoqXG4gICAqIEZpbmQgdXNlciBieSBJRFxuICAgKi9cbiAgZmluZEJ5SWQodXNlcklkOiBVc2VySWQpOiBQcm9taXNlPFVzZXIgfCBudWxsPjtcblxuICAvKipcbiAgICogRmluZCB1c2VyIGJ5IGVtYWlsXG4gICAqL1xuICBmaW5kQnlFbWFpbChlbWFpbDogRW1haWwpOiBQcm9taXNlPFVzZXIgfCBudWxsPjtcblxuICAvKipcbiAgICogU2F2ZSBuZXcgdXNlclxuICAgKi9cbiAgc2F2ZSh1c2VyOiBVc2VyKTogUHJvbWlzZTx2b2lkPjtcblxuICAvKipcbiAgICogQ3JlYXRlIHVzZXIgaW4gYXV0aCBzeXN0ZW0gKyBwcm9maWxlIChhdG9taWMgb3BlcmF0aW9uKVxuICAgKi9cbiAgY3JlYXRlQXV0aFVzZXIoZGF0YTogQ3JlYXRlQXV0aFVzZXJEYXRhKTogUHJvbWlzZTxVc2VyPjtcblxuICAvKipcbiAgICogVXBkYXRlIGV4aXN0aW5nIHVzZXJcbiAgICogQWNjZXB0cyBmdWxsIFVzZXIgYWdncmVnYXRlIGZvciBjb25zaXN0ZW5jeSB3aXRoIGRvbWFpbiBtb2RlbFxuICAgKi9cbiAgdXBkYXRlKHVzZXI6IFVzZXIpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBEZWxldGUgdXNlclxuICAgKi9cbiAgZGVsZXRlKHVzZXJJZDogVXNlcklkKTogUHJvbWlzZTx2b2lkPjtcblxuICAvKipcbiAgICogQ2hlY2sgaWYgZW1haWwgZXhpc3RzXG4gICAqL1xuICBlbWFpbEV4aXN0cyhlbWFpbDogRW1haWwpOiBQcm9taXNlPGJvb2xlYW4+O1xuXG4gIC8qKlxuICAgKiBHZXQgdXNlciByb2xlc1xuICAgKi9cbiAgZ2V0VXNlclJvbGVzKHVzZXJJZDogVXNlcklkKTogUHJvbWlzZTxzdHJpbmdbXT47XG5cbiAgLyoqXG4gICAqIEdldCB1c2VyIHBlcm1pc3Npb25zXG4gICAqL1xuICBnZXRVc2VyUGVybWlzc2lvbnModXNlcklkOiBVc2VySWQpOiBQcm9taXNlPHN0cmluZ1tdPjtcblxuICAvKipcbiAgICogQ3JlYXRlIHVzZXIgc2Vzc2lvblxuICAgKi9cbiAgY3JlYXRlU2Vzc2lvbihzZXNzaW9uOiBVc2VyU2Vzc2lvbik6IFByb21pc2U8dm9pZD47XG5cbiAgLyoqXG4gICAqIEdldCBhY3RpdmUgc2Vzc2lvbnMgZm9yIHVzZXJcbiAgICovXG4gIGdldEFjdGl2ZVNlc3Npb25zKHVzZXJJZDogVXNlcklkKTogUHJvbWlzZTxVc2VyU2Vzc2lvbltdPjtcblxuICAvKipcbiAgICogSW52YWxpZGF0ZSBzZXNzaW9uXG4gICAqL1xuICBpbnZhbGlkYXRlU2Vzc2lvbihzZXNzaW9uSWQ6IHN0cmluZyk6IFByb21pc2U8dm9pZD47XG5cbiAgLyoqXG4gICAqIERlYWN0aXZhdGUgc2Vzc2lvblxuICAgKi9cbiAgZGVhY3RpdmF0ZVNlc3Npb24oc2Vzc2lvbklkOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBHZXQgaGVhbHRoY2FyZSByb2xlIGJ5IHR5cGVcbiAgICovXG4gIGdldEhlYWx0aGNhcmVSb2xlQnlUeXBlKHJvbGVUeXBlOiBzdHJpbmcpOiBQcm9taXNlPEhlYWx0aGNhcmVSb2xlIHwgbnVsbD47XG5cbiAgLyoqXG4gICAqIExpc3QgYWxsIHVzZXJzICh3aXRoIHBhZ2luYXRpb24pXG4gICAqL1xuICBsaXN0KG9wdGlvbnM/OiB7XG4gICAgbGltaXQ/OiBudW1iZXI7XG4gICAgb2Zmc2V0PzogbnVtYmVyO1xuICAgIGZpbHRlcnM/OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjtcbiAgfSk6IFByb21pc2U8VXNlcltdPjtcblxuICAvKipcbiAgICogQ291bnQgdG90YWwgdXNlcnNcbiAgICovXG4gIGNvdW50KGZpbHRlcnM/OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPik6IFByb21pc2U8bnVtYmVyPjtcblxuICAvKipcbiAgICogU3RvcmUgc3RhZmYgaW52aXRhdGlvblxuICAgKi9cbiAgc3RvcmVTdGFmZkludml0YXRpb24oZGF0YToge1xuICAgIGVtYWlsOiBzdHJpbmc7XG4gICAgcm9sZTogc3RyaW5nO1xuICAgIGludml0ZWRCeTogc3RyaW5nO1xuICAgIGludml0YXRpb25Ub2tlbjogc3RyaW5nO1xuICAgIGV4cGlyZXNBdDogRGF0ZTtcbiAgICBpbnZpdGF0aW9uRGF0YT86IFJlY29yZDxzdHJpbmcsIHVua25vd24+O1xuICB9KTogUHJvbWlzZTx2b2lkPjtcblxuICAvKipcbiAgICogVmVyaWZ5IHN0YWZmIGludml0YXRpb24gdG9rZW5cbiAgICovXG4gIHZlcmlmeVN0YWZmSW52aXRhdGlvbih0b2tlbjogc3RyaW5nKTogUHJvbWlzZTx7XG4gICAgaXNWYWxpZDogYm9vbGVhbjtcbiAgICBlbWFpbD86IHN0cmluZztcbiAgICByb2xlPzogc3RyaW5nO1xuICAgIGludml0YXRpb25EYXRhPzogUmVjb3JkPHN0cmluZywgdW5rbm93bj47XG4gIH0+O1xuXG4gIC8qKlxuICAgKiBNYXJrIHN0YWZmIGludml0YXRpb24gYXMgdXNlZFxuICAgKi9cbiAgbWFya0ludml0YXRpb25Bc1VzZWQodG9rZW46IHN0cmluZywgdXNlcklkOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBDaGVjayBpZiBhY2NvdW50IGlzIGxvY2tlZCBkdWUgdG8gZmFpbGVkIGxvZ2luIGF0dGVtcHRzXG4gICAqL1xuICBjaGVja0FjY291bnRMb2Nrb3V0KGVtYWlsOiBFbWFpbCk6IFByb21pc2U8e1xuICAgIGlzTG9ja2VkOiBib29sZWFuO1xuICAgIHVubG9ja0F0PzogRGF0ZTtcbiAgICBmYWlsZWRBdHRlbXB0czogbnVtYmVyO1xuICB9PjtcblxuICAvKipcbiAgICogUmVjb3JkIGxvZ2luIGF0dGVtcHQgKHN1Y2Nlc3Mgb3IgZmFpbHVyZSlcbiAgICovXG4gIHJlY29yZExvZ2luQXR0ZW1wdChcbiAgICBlbWFpbDogRW1haWwsXG4gICAgaXNTdWNjZXNzZnVsOiBib29sZWFuLFxuICAgIGlwQWRkcmVzcz86IHN0cmluZyxcbiAgICB1c2VyQWdlbnQ/OiBzdHJpbmcsXG4gICAgZXJyb3JNZXNzYWdlPzogc3RyaW5nXG4gICk6IFByb21pc2U8dm9pZD47XG59XG4iXSwibWFwcGluZ3MiOiI7O0FBQUE7Ozs7Ozs7O0FBQUE7QUFBQSxTQUFBQSxlQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxNQUFBLE9BQUFDLFFBQUE7RUFBQSxJQUFBQyxHQUFBO0VBQUEsSUFBQUMsWUFBQTtJQUFBTCxJQUFBO0lBQUFNLFlBQUE7TUFBQTtRQUFBQyxLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtJQUFBO0lBQUFFLEtBQUE7SUFBQUMsU0FBQTtJQUFBQyxDQUFBO01BQUE7SUFBQTtJQUFBQyxDQUFBO0lBQUFDLENBQUE7SUFBQUMsY0FBQTtNQUFBQyxJQUFBO01BQUFDLFFBQUE7TUFBQUMsS0FBQTtNQUFBQyxPQUFBO01BQUFDLGNBQUE7TUFBQUMsT0FBQTtJQUFBO0lBQUFDLGVBQUE7SUFBQXRCLElBQUE7RUFBQTtFQUFBLElBQUF1QixRQUFBLEdBQUF0QixNQUFBLENBQUFFLEdBQUEsTUFBQUYsTUFBQSxDQUFBRSxHQUFBO0VBQUEsS0FBQW9CLFFBQUEsQ0FBQXhCLElBQUEsS0FBQXdCLFFBQUEsQ0FBQXhCLElBQUEsRUFBQUMsSUFBQSxLQUFBQSxJQUFBO0lBQUF1QixRQUFBLENBQUF4QixJQUFBLElBQUFLLFlBQUE7RUFBQTtFQUFBLElBQUFvQixjQUFBLEdBQUFELFFBQUEsQ0FBQXhCLElBQUE7RUFBQSIsImlnbm9yZUxpc3QiOltdfQ==

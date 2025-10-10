@@ -17,8 +17,7 @@
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ILogger } from '../services/ILogger';
 import { Email } from '../../domain/value-objects/Email';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
-import { DomainEventMapper } from '../../infrastructure/events/DomainEventMapper';
+import { IEventPublisher } from '../services/IEventPublisher';
 import { getErrorMessage } from '../../utils/error-helper';
 
 export interface AcceptStaffInvitationRequest {
@@ -126,8 +125,7 @@ export class AcceptStaffInvitationUseCase {
       if (this.eventPublisher) {
         try {
           const domainEvents = user.getUncommittedEvents();
-          const rabbitMQEvents = DomainEventMapper.toRabbitMQEvents(domainEvents);
-          await this.eventPublisher.publishBatch(rabbitMQEvents);
+          await this.eventPublisher.publishDomainEvents(domainEvents);
           user.markEventsAsCommitted();
 
           this.logger.info('Domain events published for staff activation', {
@@ -188,4 +186,3 @@ export class AcceptStaffInvitationUseCase {
     return null;
   }
 }
-

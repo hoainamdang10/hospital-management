@@ -5,25 +5,9 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 import { ILogger } from '../../application/services/ILogger';
-export interface DomainEvent {
-    eventType: string;
-    aggregateId: string;
-    aggregateType: string;
-    occurredAt: Date;
-    payload: any;
-    metadata?: {
-        userId?: string;
-        correlationId?: string;
-        causationId?: string;
-    };
-}
-export interface IEventPublisher {
-    initialize(): Promise<void>;
-    publish(event: DomainEvent): Promise<void>;
-    publishBatch(events: DomainEvent[]): Promise<void>;
-    close(): Promise<void>;
-}
+import { IEventPublisher, IntegrationEventPayload } from '../../application/services/IEventPublisher';
 export declare class RabbitMQEventPublisher implements IEventPublisher {
     private readonly rabbitMQUrl;
     private readonly logger;
@@ -39,11 +23,11 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
     /**
      * Publish a single domain event
      */
-    publish(event: DomainEvent): Promise<void>;
+    publishIntegrationEvent(event: IntegrationEventPayload): Promise<void>;
     /**
      * Publish multiple events in batch
      */
-    publishBatch(events: DomainEvent[]): Promise<void>;
+    publishDomainEvents(events: DomainEvent[]): Promise<void>;
     /**
      * Close RabbitMQ connection
      */
@@ -60,13 +44,15 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
  */
 export declare class MockEventPublisher implements IEventPublisher {
     private readonly logger;
-    private publishedEvents;
+    private integrationEvents;
+    private domainEvents;
     constructor(logger: ILogger);
     initialize(): Promise<void>;
-    publish(event: DomainEvent): Promise<void>;
-    publishBatch(events: DomainEvent[]): Promise<void>;
     close(): Promise<void>;
-    getPublishedEvents(): DomainEvent[];
-    clearEvents(): void;
+    publishIntegrationEvent(event: IntegrationEventPayload): Promise<void>;
+    publishDomainEvents(events: DomainEvent[]): Promise<void>;
+    getIntegrationEvents(): IntegrationEventPayload[];
+    getDomainEvents(): DomainEvent[];
+    clear(): void;
 }
 //# sourceMappingURL=RabbitMQEventPublisher.d.ts.map

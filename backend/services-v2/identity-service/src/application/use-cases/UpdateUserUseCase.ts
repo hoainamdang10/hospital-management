@@ -11,8 +11,9 @@ import { IUseCase } from '@shared/application/use-cases/base/use-case.interface'
 import { IUserRepository } from '../repositories/IUserRepository';
 import { UserId } from '../../domain/value-objects/UserId';
 import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../services/ILogger';
 
 export interface UpdateUserRequest {
   userId: string;
@@ -47,11 +48,10 @@ export interface UpdateUserResponse {
  * Updates user information with validation and audit logging
  */
 export class UpdateUserUseCase implements IUseCase<UpdateUserRequest, UpdateUserResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('update-user-use-case');
-
   constructor(
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: UpdateUserRequest): Promise<UpdateUserResponse> {
@@ -227,4 +227,3 @@ export class UpdateUserUseCase implements IUseCase<UpdateUserRequest, UpdateUser
     }
   }
 }
-

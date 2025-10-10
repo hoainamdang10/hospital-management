@@ -10,7 +10,7 @@
 import { CircuitBreakerFactory } from './CircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
 import { SupabaseAuthClient, SupabaseAuthConfig } from '../auth/SupabaseAuthClient';
-
+import { ILogger } from '../../application/services/ILogger';
 import { ServiceMode, AuthResult, UserCredentials, IDegradationService } from '../../application/services/IDegradationService';
 
 export interface DegradationConfig {
@@ -39,7 +39,7 @@ export class IdentityServiceDegradation implements IDegradationService {
   constructor(
     private config: DegradationConfig,
     authConfig: SupabaseAuthConfig,
-    private logger: any
+    private logger: ILogger
   ) {
     this.authClient = new SupabaseAuthClient(authConfig, logger);
 

@@ -11,13 +11,12 @@
  * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, DDD, HIPAA, Anti-Pattern Mitigation
  */
-import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { HealthcareAggregateRoot } from '../../../../shared/domain/base/aggregate-root';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 import { UserId } from '../value-objects/UserId';
 import { Email } from '../value-objects/Email';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { HealthcareRole } from '../entities/HealthcareRole';
-import { UserSession } from '../entities/UserSession';
 export interface UserProps {
     id: UserId;
     email: Email;
@@ -28,6 +27,28 @@ export interface UserProps {
     lastLoginAt?: Date;
     createdAt: Date;
     updatedAt: Date;
+}
+/**
+ * User Persistence Format
+ * Used for database storage and retrieval
+ */
+export interface UserPersistenceProps {
+    id: string;
+    email: string;
+    full_name: string;
+    citizen_id?: string;
+    date_of_birth?: string;
+    gender?: string;
+    address?: string;
+    phone_number?: string;
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    is_active: boolean;
+    is_verified: boolean;
+    last_login_at?: string;
+    created_at: string;
+    updated_at: string;
+    roles?: string[];
 }
 /**
  * User Aggregate Root with Enhanced Error Handling
@@ -78,15 +99,39 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      * Record authentication event (password verification done by Supabase Auth)
      * This method is called AFTER successful authentication via SupabaseAuthService
      */
-    recordAuthentication(ipAddress: string, userAgent: string): UserSession;
+    recordAuthentication(ipAddress: string, userAgent: string): void;
+    /**
+     * Get all role types assigned to this user (read-only)
+     * Use this for validation in use cases before calling PermissionRepository
+     *
+     * @returns Array of role type strings (e.g., ['DOCTOR', 'ADMIN'])
+     */
+    get roleTypes(): string[];
+    /**
+     * Check if user has a specific role
+     *
+     * @param roleType Role type to check (e.g., 'DOCTOR', 'ADMIN')
+     * @returns true if user has the role, false otherwise
+     */
+    hasRole(roleType: string): boolean;
     /**
      * Add a role to user
      * Pure RBAC: Supports multiple roles per user
+     *
+     * @deprecated Use IPermissionRepository.assignRole() instead
+     * This method will be removed in v2.2
+     * Role assignments should go through PermissionRepository to ensure
+     * proper persistence to user_roles table and cache invalidation.
      */
     addRole(newRole: HealthcareRole, assignedBy: UserId): void;
     /**
      * Remove a role from user
      * Pure RBAC: User must have at least one role
+     *
+     * @deprecated Use IPermissionRepository.removeRole() instead
+     * This method will be removed in v2.2
+     * Role removals should go through PermissionRepository to ensure
+     * proper persistence to user_roles table and cache invalidation.
      */
     removeRole(roleType: string, removedBy: UserId): void;
     /**
@@ -97,25 +142,14 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      */
     changeRole(newRole: HealthcareRole, changedBy: UserId): void;
     /**
-     * Check if user has a specific role
-     */
-    hasRole(roleType: string): boolean;
-    /**
      * Get role types as string array
+     * @deprecated Use roleTypes getter instead
      */
     getRoleTypes(): string[];
     /**
      * Update personal info with validation
      */
     updatePersonalInfo(personalInfo: PersonalInfo): void;
-    /**
-     * Convert to Supabase format for persistence
-     * ARCHITECTURE NOTE: This method violates Clean Architecture by knowing about Supabase column names.
-     * TODO: Move this mapping logic to SupabaseUserRepository.
-     *
-     * @deprecated Use repository mapping instead
-     */
-    toSupabaseFormat(): any;
     /**
      * Enhanced business invariants validation
      */
@@ -139,7 +173,7 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      *
      * This method is kept for backward compatibility but always returns false.
      */
-    canPerformAction(action: string, resource: string): boolean;
+    canPerformAction(_action: string, _resource: string): boolean;
     /**
      * Safe audit info extraction
      */
@@ -178,6 +212,6 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
     /**
      * Convert to persistence format - required by Entity base class
      */
-    toPersistence(): any;
+    toPersistence(): UserPersistenceProps;
 }
 //# sourceMappingURL=User.d.ts.map

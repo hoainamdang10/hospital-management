@@ -11,6 +11,7 @@ import { Request, Response, NextFunction } from 'express';
 import { IPermissionService } from '../../domain/services/IPermissionService';
 import { UserId } from '../../domain/value-objects/UserId';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../../application/services/ILogger';
 
 /**
  * Permission format: "resource:action"
@@ -105,7 +106,7 @@ export interface PermissionOptions {
 export class PermissionMiddleware {
   constructor(
     private permissionService: IPermissionService,
-    private logger: any
+    private logger: ILogger
   ) {}
 
   /**

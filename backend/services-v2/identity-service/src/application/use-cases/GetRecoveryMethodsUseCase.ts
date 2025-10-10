@@ -9,7 +9,8 @@
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IRecoveryMethodRepository } from '../../domain/repositories/IRecoveryMethodRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 
 export interface GetRecoveryMethodsRequest {
   userId: string;
@@ -34,11 +35,10 @@ export interface GetRecoveryMethodsResponse {
 export class GetRecoveryMethodsUseCase
   implements IUseCase<GetRecoveryMethodsRequest, GetRecoveryMethodsResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('get-recovery-methods-use-case');
-
   constructor(
     private recoveryMethodRepository: IRecoveryMethodRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: GetRecoveryMethodsRequest): Promise<GetRecoveryMethodsResponse> {
@@ -119,4 +119,3 @@ export class GetRecoveryMethodsUseCase
     }
   }
 }
-

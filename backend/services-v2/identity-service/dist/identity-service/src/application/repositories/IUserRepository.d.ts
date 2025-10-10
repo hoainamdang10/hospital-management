@@ -22,6 +22,7 @@ export interface CreateAuthUserData {
     gender?: string;
     address?: string;
     emailConfirm?: boolean;
+    metadata?: Record<string, unknown>;
 }
 /**
  * User Repository Interface
@@ -80,7 +81,7 @@ export interface IUserRepository {
     /**
      * Deactivate session
      */
-    deactivateSession(sessionId: string): Promise<void>;
+    deactivateSession(sessionId: string, userId: UserId): Promise<void>;
     /**
      * Get healthcare role by type
      */
@@ -91,12 +92,12 @@ export interface IUserRepository {
     list(options?: {
         limit?: number;
         offset?: number;
-        filters?: Record<string, any>;
+        filters?: Record<string, unknown>;
     }): Promise<User[]>;
     /**
      * Count total users
      */
-    count(filters?: Record<string, any>): Promise<number>;
+    count(filters?: Record<string, unknown>): Promise<number>;
     /**
      * Store staff invitation
      */
@@ -106,7 +107,7 @@ export interface IUserRepository {
         invitedBy: string;
         invitationToken: string;
         expiresAt: Date;
-        invitationData?: any;
+        invitationData?: Record<string, unknown>;
     }): Promise<void>;
     /**
      * Verify staff invitation token
@@ -115,8 +116,12 @@ export interface IUserRepository {
         isValid: boolean;
         email?: string;
         role?: string;
-        invitationData?: any;
+        invitationData?: Record<string, unknown>;
     }>;
+    /**
+     * Mark staff invitation as used
+     */
+    markInvitationAsUsed(token: string, userId: string): Promise<void>;
     /**
      * Check if account is locked due to failed login attempts
      */

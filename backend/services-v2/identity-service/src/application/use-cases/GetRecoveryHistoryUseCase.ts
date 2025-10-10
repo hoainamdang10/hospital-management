@@ -9,7 +9,9 @@
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IRecoveryHistoryRepository, RecoveryHistoryFilter } from '../../domain/repositories/IRecoveryHistoryRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ILogger } from '../services/ILogger';
+import { getErrorMessage } from '../../utils/error-helper';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 
 export interface GetRecoveryHistoryRequest {
   userId: string;
@@ -51,14 +53,14 @@ export interface GetRecoveryHistoryResponse {
 export class GetRecoveryHistoryUseCase
   implements IUseCase<GetRecoveryHistoryRequest, GetRecoveryHistoryResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('get-recovery-history-use-case');
   private readonly DEFAULT_PAGE_SIZE = 20;
   private readonly MAX_PAGE_SIZE = 100;
   private readonly DEFAULT_HISTORY_DAYS = 90; // 90-day retention
 
   constructor(
     private recoveryHistoryRepository: IRecoveryHistoryRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: GetRecoveryHistoryRequest): Promise<GetRecoveryHistoryResponse> {
@@ -138,15 +140,16 @@ export class GetRecoveryHistoryUseCase
           totalPages: result.totalPages
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       this.logger.error('Failed to get recovery history', {
         userId: request.userId,
-        error: error.message
+        error: errorMessage
       });
 
       return {
         success: false,
-        message: `Không thể lấy lịch sử khôi phục: ${error.message}`,
+        message: `Không thể lấy lịch sử khôi phục: ${errorMessage}`,
         error: 'GET_RECOVERY_HISTORY_FAILED'
       };
     }
@@ -177,9 +180,10 @@ export class GetRecoveryHistoryUseCase
         if (!isNaN(date.getTime())) {
           return date;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.warn('Invalid start date provided, using default', {
-          startDate: startDateStr
+          startDate: startDateStr,
+          error: getErrorMessage(error)
         });
       }
     }
@@ -200,9 +204,10 @@ export class GetRecoveryHistoryUseCase
         if (!isNaN(date.getTime())) {
           return date;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.warn('Invalid end date provided, using default', {
-          endDate: endDateStr
+          endDate: endDateStr,
+          error: getErrorMessage(error)
         });
       }
     }
@@ -211,4 +216,3 @@ export class GetRecoveryHistoryUseCase
     return new Date();
   }
 }
-

@@ -6,8 +6,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IMFAService, MFAMethod } from '../services/IMFAService';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 export interface VerifyMFARequest {
     userId: string;
     code: string;
@@ -32,7 +34,7 @@ export declare class VerifyMFAUseCase implements IUseCase<VerifyMFARequest, Veri
     private mfaService;
     private logger;
     private circuitBreaker;
-    constructor(mfaService: IMFAService, logger: any);
+    constructor(mfaService: IMFAService, logger: ILogger, circuitBreaker: ICircuitBreaker);
     execute(request: VerifyMFARequest): Promise<VerifyMFAResponse>;
     private executeImpl;
     /**

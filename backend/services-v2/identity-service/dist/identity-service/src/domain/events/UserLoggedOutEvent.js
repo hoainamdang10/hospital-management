@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserLoggedOutEvent = void 0;
-const domain_event_1 = require("@shared/domain/base/domain-event");
+const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 class UserLoggedOutEvent extends domain_event_1.DomainEvent {
     constructor(userIdValue, // Changed from UserId to string
     sessionId, loggedOutAt) {
@@ -28,7 +28,7 @@ class UserLoggedOutEvent extends domain_event_1.DomainEvent {
         return false; // No PHI in logout event
     }
     getPatientId() {
-        return undefined; // Not a patient-specific event
+        return null; // Not a patient-specific event
     }
 }
 exports.UserLoggedOutEvent = UserLoggedOutEvent;

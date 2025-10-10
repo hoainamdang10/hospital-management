@@ -5,10 +5,12 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { ILogger } from '../services/ILogger';
 export interface RegisterUserRequest {
     email: string;
     password: string;
@@ -40,12 +42,12 @@ export declare class RegisterUserUseCase implements IUseCase<RegisterUserRequest
     private userRepository;
     private permissionRepository;
     private logger;
-    private eventPublisher?;
     private circuitBreaker;
+    private eventPublisher?;
     private validRolesCache;
     private validRolesCacheTime;
     private readonly CACHE_TTL;
-    constructor(userRepository: IUserRepository, permissionRepository: IPermissionRepository, logger: any, eventPublisher?: IEventPublisher | undefined);
+    constructor(userRepository: IUserRepository, permissionRepository: IPermissionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: RegisterUserRequest): Promise<RegisterUserResponse>;
     private executeImpl;
     /**

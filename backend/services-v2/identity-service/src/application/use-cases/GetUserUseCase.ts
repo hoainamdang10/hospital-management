@@ -10,8 +10,9 @@
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { UserId } from '../../domain/value-objects/UserId';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
+import { ILogger } from '../services/ILogger';
 
 export interface GetUserRequest {
   userId: string;
@@ -45,11 +46,10 @@ export interface GetUserResponse {
  * Retrieves user information with proper authorization checks
  */
 export class GetUserUseCase implements IUseCase<GetUserRequest, GetUserResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('get-user-use-case');
-
   constructor(
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: GetUserRequest): Promise<GetUserResponse> {
@@ -142,4 +142,3 @@ export class GetUserUseCase implements IUseCase<GetUserRequest, GetUserResponse>
     }
   }
 }
-

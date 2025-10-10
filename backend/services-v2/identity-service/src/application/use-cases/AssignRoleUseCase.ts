@@ -10,8 +10,9 @@
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { HealthcareRole } from '../../domain/entities/HealthcareRole';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { UserId } from '../../domain/value-objects/UserId';
+import { ILogger } from '../services/ILogger';
 
 export interface AssignRoleRequest {
   userId: string; // User to assign role to
@@ -36,15 +37,14 @@ export interface AssignRoleResponse {
 export class AssignRoleUseCase
   implements IUseCase<AssignRoleRequest, AssignRoleResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('assign-role-use-case');
-
   // Valid role types (5 core roles)
   private readonly VALID_ROLES = ['ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST', 'PATIENT'];
 
   constructor(
     private userRepository: IUserRepository,
     private permissionRepository: IPermissionRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: AssignRoleRequest): Promise<AssignRoleResponse> {
@@ -80,8 +80,11 @@ export class AssignRoleUseCase
         };
       }
 
-      // 2. Get user
-      const user = await this.userRepository.findById(request.userId);
+      // 2. Convert string ID to Value Object
+      const userIdVO = UserId.fromString(request.userId);
+
+      // 3. Get user to validate existence and check current roles
+      const user = await this.userRepository.findById(userIdVO);
       if (!user) {
         return {
           success: false,
@@ -90,13 +93,12 @@ export class AssignRoleUseCase
         };
       }
 
-      // 3. Get current role
-      const currentRoles = user.healthcareRoles;
-      const currentPrimaryRole = currentRoles.length > 0 ? currentRoles[0] : null;
-      const previousRoleType = currentPrimaryRole?.roleType || 'NONE';
+      // 4. Get current roles (read-only)
+      const currentRoleTypes = user.roleTypes;
+      const previousRoleType = currentRoleTypes.length > 0 ? currentRoleTypes[0] : 'NONE';
 
-      // 4. Check if role is already assigned
-      if (previousRoleType === request.roleType) {
+      // 5. Check if role is already assigned
+      if (user.hasRole(request.roleType)) {
         return {
           success: false,
           message: `Người dùng đã có vai trò ${request.roleType}`,
@@ -104,7 +106,7 @@ export class AssignRoleUseCase
         };
       }
 
-      // 5. Prevent changing own role
+      // 6. Prevent changing own role
       if (request.userId === request.assignedBy) {
         return {
           success: false,
@@ -113,9 +115,10 @@ export class AssignRoleUseCase
         };
       }
 
-      // 6. Get role definition from database
-      const roleDefinition = await this.permissionRepository.getRoleByType(request.roleType);
-      if (!roleDefinition) {
+      // 7. Validate role type exists in system
+      const validRoles = await this.permissionRepository.getAllRoles();
+      const normalizedRoles = validRoles.map(role => role.toUpperCase());
+      if (!normalizedRoles.includes(request.roleType)) {
         return {
           success: false,
           message: `Vai trò ${request.roleType} không tồn tại trong hệ thống`,
@@ -123,25 +126,15 @@ export class AssignRoleUseCase
         };
       }
 
-      // 7. Create new HealthcareRole entity
-      const newRole = HealthcareRole.create({
-        roleType: request.roleType,
-        roleName: roleDefinition.roleName,
-        description: roleDefinition.description,
-        permissions: roleDefinition.permissions,
-        isActive: true,
-        assignedAt: new Date(),
-        assignedBy: request.assignedBy
-      });
+      // 8. Assign role via PermissionRepository (source of truth for roles)
+      // This updates user_roles table and invalidates cache
+      await this.permissionRepository.assignRole(
+        userIdVO,
+        request.roleType,
+        request.assignedBy
+      );
 
-      // 8. Remove old roles and assign new role
-      currentRoles.forEach(role => user.removeRole(role));
-      user.addRole(newRole);
-
-      // 9. Save user
-      await this.userRepository.save(user);
-
-      // 10. Log audit trail
+      // 9. Log audit trail
       this.logger.info('Role assigned successfully', {
         userId: request.userId,
         previousRole: previousRoleType,
@@ -205,4 +198,3 @@ export class AssignRoleUseCase
     return null;
   }
 }
-

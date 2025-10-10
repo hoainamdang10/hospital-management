@@ -9,6 +9,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPolicyRepository';
 import { PasswordPolicy, PasswordPolicyProps } from '../../domain/value-objects/PasswordPolicy';
+import { ILogger } from '../../application/services/ILogger';
 
 interface PasswordPolicyRow {
   id: string;
@@ -31,7 +32,7 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
 
   constructor(
     private readonly supabase: SupabaseClient,
-    private readonly logger: any
+    private readonly logger: ILogger
   ) {}
 
   /**
@@ -61,8 +62,8 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
       }
 
       return this.mapRowToPolicy(data);
-    } catch (error: any) {
-      this.logger.error('Error getting current password policy:', error);
+    } catch (error: unknown) {
+      this.logger.error('Error getting current password policy:', error instanceof Error ? error : new Error(String(error)));
       // Return default policy on error to ensure system continues working
       return PasswordPolicy.createDefault();
     }
@@ -116,9 +117,9 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
 
       this.logger.info(`Password policy updated by ${updatedBy}`);
       return this.mapRowToPolicy(data);
-    } catch (error: any) {
-      this.logger.error('Error updating password policy:', error);
-      throw new Error(`Failed to update password policy: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error('Error updating password policy:', error instanceof Error ? error : new Error(String(error)));
+      throw new Error(`Failed to update password policy: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -142,9 +143,9 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
       }
 
       return data.map(row => this.mapRowToPolicy(row));
-    } catch (error: any) {
-      this.logger.error('Error getting password policy history:', error);
-      throw new Error(`Failed to get password policy history: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error('Error getting password policy history:', error instanceof Error ? error : new Error(String(error)));
+      throw new Error(`Failed to get password policy history: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

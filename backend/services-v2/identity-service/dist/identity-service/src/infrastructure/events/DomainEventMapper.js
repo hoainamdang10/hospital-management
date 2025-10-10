@@ -65,7 +65,7 @@ class DomainEventMapper {
             return {
                 ...baseEvent,
                 payload: {
-                    userId: domainEvent.userId.value,
+                    userId: domainEvent.userIdValue,
                     sessionId: domainEvent.sessionId,
                     loggedOutAt: domainEvent.loggedOutAt
                 }
@@ -75,8 +75,8 @@ class DomainEventMapper {
             return {
                 ...baseEvent,
                 payload: {
-                    userId: domainEvent.userId.value,
-                    email: domainEvent.email.value,
+                    userId: domainEvent.userIdValue,
+                    email: domainEvent.emailValue,
                     activatedAt: domainEvent.activatedAt
                 }
             };

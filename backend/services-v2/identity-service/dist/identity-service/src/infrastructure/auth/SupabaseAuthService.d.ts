@@ -13,6 +13,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
  */
+import { ILogger } from '../../application/services/ILogger';
 import type { IAuthenticationService, AuthResult, UserCredentials, UserRegistrationData, TokenPayload } from '../../application/services/IAuthenticationService';
 export { IAuthenticationService, AuthResult, UserCredentials, TokenPayload, UserRegistrationData } from '../../application/services/IAuthenticationService';
 /**
@@ -24,7 +25,7 @@ export declare class SupabaseAuthService implements IAuthenticationService {
     private logger;
     private supabaseClient;
     private defaultUserRole;
-    constructor(supabaseUrl: string, supabaseKey: string, logger: any, defaultUserRole?: string);
+    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger, defaultUserRole?: string);
     /**
      * @deprecated This method is DISABLED and will be removed in v3.0.0
      *
@@ -77,12 +78,13 @@ export declare class SupabaseAuthService implements IAuthenticationService {
     sendPasswordResetEmail(email: string): Promise<void>;
     /**
      * Reset password with token
+     * Requires both access_token and refresh_token from Supabase password reset email
      */
-    resetPassword(token: string, newPassword: string): Promise<void>;
+    resetPassword(accessToken: string, refreshToken: string, newPassword: string): Promise<void>;
     /**
      * Update user password (requires current password)
      */
-    updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
+    updatePassword(userId: string, newPassword: string): Promise<void>;
     /**
      * Verify email with token
      */

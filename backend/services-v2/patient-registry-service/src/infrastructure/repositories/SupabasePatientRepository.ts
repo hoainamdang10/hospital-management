@@ -279,6 +279,7 @@ export class SupabasePatientRepository implements IPatientRepository {
       registrationDateTo?: string;
       city?: string;
       province?: string;
+      hasInsurance?: boolean;
     },
     pagination?: {
       page: number;
@@ -308,6 +309,19 @@ export class SupabasePatientRepository implements IPatientRepository {
 
         if (filters.city) {
           query = query.eq('contact_info->>city', filters.city);
+        }
+
+        if (filters.hasInsurance !== undefined) {
+          const insuredPatientIds = await this.getActiveInsurancePatientIds();
+
+          if (filters.hasInsurance) {
+            if (insuredPatientIds.length === 0) {
+              return { patients: [], total: 0 };
+            }
+            query = query.in('patient_id', insuredPatientIds);
+          } else if (insuredPatientIds.length > 0) {
+            query = query.not('patient_id', 'in', this.buildInClause(insuredPatientIds));
+          }
         }
 
         // Apply pagination
@@ -365,7 +379,7 @@ export class SupabasePatientRepository implements IPatientRepository {
    */
   async searchPatients(
     searchTerm: string,
-    filters?: { isActive?: boolean },
+    filters?: { isActive?: boolean; hasInsurance?: boolean },
     pagination?: { page: number; limit: number }
   ): Promise<{ patients: Patient[]; total: number }> {
     return await this.circuitBreaker.execute(
@@ -382,6 +396,19 @@ export class SupabasePatientRepository implements IPatientRepository {
 
         if (filters?.isActive !== undefined) {
           query = query.eq('status', filters.isActive ? 'active' : 'inactive');
+        }
+
+        if (filters?.hasInsurance !== undefined) {
+          const insuredPatientIds = await this.getActiveInsurancePatientIds();
+
+          if (filters.hasInsurance) {
+            if (insuredPatientIds.length === 0) {
+              return { patients: [], total: 0 };
+            }
+            query = query.in('patient_id', insuredPatientIds);
+          } else if (insuredPatientIds.length > 0) {
+            query = query.not('patient_id', 'in', this.buildInClause(insuredPatientIds));
+          }
         }
 
         if (pagination) {
@@ -719,6 +746,24 @@ export class SupabasePatientRepository implements IPatientRepository {
     });
 
     return linksMap;
+  }
+
+  private buildInClause(ids: string[]): string {
+    return '(' + ids.map(id => '"' + id + '"').join(',') + ')';
+  }
+
+  private async getActiveInsurancePatientIds(): Promise<string[]> {
+    const { data, error } = await this.supabaseClient
+      .from('insurance_info')
+      .select('patient_id')
+      .eq('is_active', true);
+
+    if (error) {
+      throw new Error(`Failed to fetch insured patient IDs: ${error.message}`);
+    }
+
+    const ids = (data || []).map((record: { patient_id: string }) => record.patient_id);
+    return Array.from(new Set(ids));
   }
 
   /**

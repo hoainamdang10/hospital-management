@@ -10,6 +10,8 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { IRecoveryMethodRepository } from '../../domain/repositories/IRecoveryMethodRepository';
 import { RecoveryMethod } from '../../domain/value-objects/RecoveryMethod';
+import { ILogger } from '../../application/services/ILogger';
+import { getErrorMessage } from '../../utils/error-helper';
 
 interface RecoveryMethodRow {
   id: string;
@@ -32,7 +34,7 @@ export class SupabaseRecoveryMethodRepository implements IRecoveryMethodReposito
 
   constructor(
     private supabaseClient: SupabaseClient,
-    private logger: any
+    private logger: ILogger
   ) {}
 
   /**
@@ -62,10 +64,10 @@ export class SupabaseRecoveryMethodRepository implements IRecoveryMethodReposito
       }
 
       return this.mapToDomain(data as RecoveryMethodRow);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to get recovery methods', {
         userId,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -105,10 +107,10 @@ export class SupabaseRecoveryMethodRepository implements IRecoveryMethodReposito
       });
 
       return this.mapToDomain(data as RecoveryMethodRow);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to save recovery methods', {
         userId: recoveryMethod.userId,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -138,10 +140,10 @@ export class SupabaseRecoveryMethodRepository implements IRecoveryMethodReposito
       }
 
       return data === true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to check recovery email', {
         email,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -167,10 +169,10 @@ export class SupabaseRecoveryMethodRepository implements IRecoveryMethodReposito
       }
 
       return data || null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to find user by recovery email', {
         email,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -193,10 +195,10 @@ export class SupabaseRecoveryMethodRepository implements IRecoveryMethodReposito
       }
 
       this.logger.info('Recovery methods deleted successfully', { userId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to delete recovery methods', {
         userId,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }

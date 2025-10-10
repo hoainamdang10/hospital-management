@@ -11,17 +11,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateUserUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
 const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const error_helper_1 = require("../../utils/error-helper");
 /**
  * Update User Use Case
  * Updates user information with validation and audit logging
  */
 class UpdateUserUseCase {
-    constructor(userRepository, logger) {
+    constructor(userRepository, logger, circuitBreaker) {
         this.userRepository = userRepository;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('update-user-use-case');
+        this.circuitBreaker = circuitBreaker;
     }
     async execute(request) {
         try {

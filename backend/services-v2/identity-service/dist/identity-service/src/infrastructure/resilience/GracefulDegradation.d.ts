@@ -7,6 +7,7 @@
  * @compliance Production-Ready, HIPAA-Compliant Fallbacks
  */
 import { SupabaseAuthConfig } from '../auth/SupabaseAuthClient';
+import { ILogger } from '../../application/services/ILogger';
 import { ServiceMode, AuthResult, UserCredentials, IDegradationService } from '../../application/services/IDegradationService';
 export interface DegradationConfig {
     enableReadOnlyFallback: boolean;
@@ -27,7 +28,7 @@ export declare class IdentityServiceDegradation implements IDegradationService {
     private authClient;
     private readonly MAX_CACHE_SIZE;
     private readonly CACHE_CLEANUP_INTERVAL;
-    constructor(config: DegradationConfig, authConfig: SupabaseAuthConfig, logger: any);
+    constructor(config: DegradationConfig, authConfig: SupabaseAuthConfig, logger: ILogger);
     /**
      * Periodic cache cleanup to prevent memory leaks
      */

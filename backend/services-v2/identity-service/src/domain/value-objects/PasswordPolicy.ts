@@ -123,7 +123,7 @@ export class PasswordPolicy {
     }
 
     // Check special characters requirement
-    if (this._requireSpecialChars && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (this._requireSpecialChars && !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
       errors.push('Mật khẩu phải chứa ít nhất một ký tự đặc biệt');
     }
 

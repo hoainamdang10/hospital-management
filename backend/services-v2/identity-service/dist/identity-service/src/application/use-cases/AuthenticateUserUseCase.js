@@ -5,7 +5,6 @@ const error_helper_1 = require("../../utils/error-helper");
 const IDegradationService_1 = require("../services/IDegradationService");
 const Email_1 = require("../../domain/value-objects/Email");
 const UserSession_1 = require("../../domain/entities/UserSession");
-const DomainEventMapper_1 = require("../../infrastructure/events/DomainEventMapper");
 /**
  * Use Case for authenticating users with enhanced error handling
  * Implements circuit breaker pattern and graceful degradation
@@ -61,8 +60,9 @@ class AuthenticateUserUseCase {
             });
             return {
                 success: false,
-                mode: IDegradationService_1.ServiceMode.FULL_SERVICE, // Default to full service mode on error
-                error: (0, error_helper_1.getErrorMessage)(error)
+                mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                degradationReason: 'AUTHENTICATION_FAILED',
+                error: 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
             };
         }
     }
@@ -123,8 +123,7 @@ class AuthenticateUserUseCase {
             if (this.eventPublisher) {
                 try {
                     const domainEvents = user.getUncommittedEvents();
-                    const rabbitMQEvents = DomainEventMapper_1.DomainEventMapper.toRabbitMQEvents(domainEvents);
-                    await this.eventPublisher.publishBatch(rabbitMQEvents);
+                    await this.eventPublisher.publishDomainEvents(domainEvents);
                     user.markEventsAsCommitted();
                     this.logger.info('Authentication events published', {
                         userId: user.id,
@@ -146,6 +145,8 @@ class AuthenticateUserUseCase {
             return {
                 success: true,
                 userId: user.id,
+                accessToken: authResult.accessToken, // Supabase JWT access token
+                refreshToken: authResult.refreshToken, // Supabase refresh token
                 roles,
                 permissions,
                 mode: IDegradationService_1.ServiceMode.FULL_SERVICE,
@@ -209,7 +210,9 @@ class AuthenticateUserUseCase {
         return {
             success: authResult.success,
             userId: authResult.userId,
-            sessionToken: this.generateSessionToken(authResult),
+            accessToken: authResult.accessToken, // Supabase JWT access token
+            refreshToken: authResult.refreshToken, // Supabase refresh token for token renewal
+            sessionToken: authResult.accessToken, // Deprecated: kept for backward compatibility
             roles: authResult.roles,
             permissions: authResult.permissions,
             expiresAt: authResult.expiresAt,
@@ -217,18 +220,6 @@ class AuthenticateUserUseCase {
             degradationReason: authResult.degradationReason,
             requiresMFA: this.shouldRequireMFA(authResult)
         };
-    }
-    /**
-     * Generate session token (simplified)
-     */
-    generateSessionToken(authResult) {
-        if (!authResult.success || !authResult.userId) {
-            return undefined;
-        }
-        // In production, use JWT or secure session token generation
-        const timestamp = Date.now();
-        const randomPart = Math.random().toString(36).substring(2);
-        return `session_${authResult.userId}_${timestamp}_${randomPart}`;
     }
     /**
      * Determine if MFA is required

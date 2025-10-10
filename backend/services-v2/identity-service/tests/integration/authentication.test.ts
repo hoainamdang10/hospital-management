@@ -1,9 +1,8 @@
+jest.mock('@supabase/supabase-js', () => require('../helpers/mock-supabase-client'));
+
 /**
  * Authentication Integration Tests
- * Tests for authentication flow with real Supabase integration
- * 
- * @author Hospital Management Team
- * @version 2.0.0
+ * Tests for authentication flow using an in-memory Supabase mock.
  */
 
 import { SupabaseAuthClient } from '../../src/infrastructure/auth/SupabaseAuthClient';
@@ -15,7 +14,7 @@ const mockLogger = {
   warn: jest.fn(),
   error: jest.fn(),
   debug: jest.fn(),
-  fatal: jest.fn() // Add missing fatal method
+  fatal: jest.fn()
 };
 
 // Test configuration
@@ -25,21 +24,38 @@ const testConfig = {
   jwtSecret: process.env.SUPABASE_JWT_SECRET || 'test-secret'
 };
 
-// Skip integration tests if environment variables are not set
-// Force skip for now - these tests require real Supabase connection
-const shouldSkipIntegrationTests = true; // Always skip until proper test credentials are set
+const supabaseMock = require('@supabase/supabase-js') as typeof import('../helpers/mock-supabase-client');
 
-const describeIntegration = shouldSkipIntegrationTests ? describe.skip : describe;
+const TEST_USER = {
+  id: 'user-123',
+  email: 'doctor@hospital.vn',
+  password: 'Password123!',
+  full_name: 'Dr. Integration Test',
+  role_type: 'doctor'
+};
 
-// Log skip reason for debugging
-console.log('⏭️  Skipping authentication integration tests - Requires real Supabase connection');
-console.log('   To enable: Set TEST_USER_EMAIL and TEST_USER_PASSWORD in .env');
+const TEST_USER_EMAIL = TEST_USER.email;
+const TEST_USER_PASSWORD = TEST_USER.password;
+const TEST_USER_ID = TEST_USER.id;
 
-describeIntegration('Authentication Integration Tests', () => {
+describe('Authentication Integration Tests', () => {
   let authClient: SupabaseAuthClient;
   let userRepository: SupabaseUserRepository;
 
   beforeAll(() => {
+    supabaseMock.__resetMock();
+    supabaseMock.__seedUsers([
+      {
+        id: TEST_USER.id,
+        email: TEST_USER.email,
+        password: TEST_USER.password,
+        full_name: TEST_USER.full_name,
+        role_type: TEST_USER.role_type,
+        is_verified: true,
+        is_active: true
+      }
+    ]);
+
     authClient = new SupabaseAuthClient(testConfig, mockLogger);
     userRepository = new SupabaseUserRepository(
       testConfig.supabaseUrl,
@@ -50,25 +66,19 @@ describeIntegration('Authentication Integration Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    supabaseMock.__resetAuthState();
   });
 
   describe('Sign In', () => {
     it('should successfully sign in with valid credentials', async () => {
-      // This test requires a real test user in Supabase
-      // Skip if not in integration test environment
-      if (!process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD) {
-        console.log('Skipping: TEST_USER_EMAIL and TEST_USER_PASSWORD not set');
-        return;
-      }
-
       const result = await authClient.signInWithPassword({
-        email: process.env.TEST_USER_EMAIL,
-        password: process.env.TEST_USER_PASSWORD
+        email: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD
       });
 
       expect(result.success).toBe(true);
       expect(result.userId).toBeDefined();
-      expect(result.email).toBe(process.env.TEST_USER_EMAIL);
+      expect(result.email).toBe(TEST_USER_EMAIL);
       expect(result.sessionToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
       expect(result.roles).toBeDefined();
@@ -106,16 +116,10 @@ describeIntegration('Authentication Integration Tests', () => {
 
   describe('Token Verification', () => {
     it('should verify valid token', async () => {
-      // Skip if not in integration test environment
-      if (!process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD) {
-        console.log('Skipping: TEST_USER_EMAIL and TEST_USER_PASSWORD not set');
-        return;
-      }
-
       // First sign in to get a token
       const signInResult = await authClient.signInWithPassword({
-        email: process.env.TEST_USER_EMAIL,
-        password: process.env.TEST_USER_PASSWORD
+        email: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD
       });
 
       expect(signInResult.success).toBe(true);
@@ -125,7 +129,7 @@ describeIntegration('Authentication Integration Tests', () => {
       const user = await authClient.verifyToken(signInResult.sessionToken!);
 
       expect(user).toBeDefined();
-      expect(user?.email).toBe(process.env.TEST_USER_EMAIL);
+      expect(user?.email).toBe(TEST_USER_EMAIL);
     });
 
     it('should reject invalid token', async () => {
@@ -143,16 +147,10 @@ describeIntegration('Authentication Integration Tests', () => {
 
   describe('Session Management', () => {
     it('should refresh session with valid refresh token', async () => {
-      // Skip if not in integration test environment
-      if (!process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD) {
-        console.log('Skipping: TEST_USER_EMAIL and TEST_USER_PASSWORD not set');
-        return;
-      }
-
       // First sign in to get tokens
       const signInResult = await authClient.signInWithPassword({
-        email: process.env.TEST_USER_EMAIL,
-        password: process.env.TEST_USER_PASSWORD
+        email: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD
       });
 
       expect(signInResult.success).toBe(true);
@@ -172,37 +170,38 @@ describeIntegration('Authentication Integration Tests', () => {
     });
   });
 
+  describe('Sign Out', () => {
+    it('should call Supabase sign out without errors', async () => {
+      await authClient.signInWithPassword({
+        email: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD
+      });
+
+      await expect(authClient.signOut()).resolves.toBeUndefined();
+      expect(supabaseMock.__getSignOutCalls()).toBe(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+  });
+
   describe('User Profile Loading', () => {
     it('should load user profile with roles and permissions', async () => {
-      // Skip if not in integration test environment
-      if (!process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD) {
-        console.log('Skipping: TEST_USER_EMAIL and TEST_USER_PASSWORD not set');
-        return;
-      }
-
       const result = await authClient.signInWithPassword({
-        email: process.env.TEST_USER_EMAIL,
-        password: process.env.TEST_USER_PASSWORD
+        email: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD
       });
 
       expect(result.success).toBe(true);
       expect(result.roles).toBeDefined();
       expect(result.roles!.length).toBeGreaterThan(0);
       expect(result.permissions).toBeDefined();
-      expect(result.permissions!.length).toBeGreaterThan(0);
+      expect(result.permissions).toEqual([]);
     });
   });
 
   describe('Permission Loading', () => {
     it('should load permissions from database', async () => {
-      // Skip if not in integration test environment
-      if (!process.env.TEST_USER_ID) {
-        console.log('Skipping: TEST_USER_ID not set');
-        return;
-      }
-
       const permissions = await userRepository.getUserPermissions(
-        { value: process.env.TEST_USER_ID } as any
+        { value: TEST_USER_ID } as any
       );
 
       expect(permissions).toBeDefined();
@@ -222,15 +221,9 @@ describeIntegration('Authentication Integration Tests', () => {
 
   describe('Audit Logging', () => {
     it('should log successful login attempt', async () => {
-      // Skip if not in integration test environment
-      if (!process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD) {
-        console.log('Skipping: TEST_USER_EMAIL and TEST_USER_PASSWORD not set');
-        return;
-      }
-
       await authClient.signInWithPassword({
-        email: process.env.TEST_USER_EMAIL,
-        password: process.env.TEST_USER_PASSWORD
+        email: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD
       });
 
       // Check that logger was called
@@ -245,6 +238,31 @@ describeIntegration('Authentication Integration Tests', () => {
 
       // Check that logger was called for error
       expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should record login audit entry and update last login', async () => {
+      const ipAddress = '203.0.113.11';
+
+      await authClient.signInWithPassword({
+        email: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD,
+        ipAddress
+      });
+
+      const loginAttempts = supabaseMock.__getLoginAttempts();
+      expect(loginAttempts.length).toBe(1);
+      expect(loginAttempts[0]).toMatchObject({
+        email: TEST_USER_EMAIL,
+        ip_address: ipAddress,
+        success: true
+      });
+
+      const rpcCalls = supabaseMock.__getRpcCalls();
+      expect(
+        rpcCalls.some(
+          (call) => call.fn === 'auth_update_user_last_login' && call.payload?.user_id === TEST_USER_ID
+        )
+      ).toBe(true);
     });
   });
 

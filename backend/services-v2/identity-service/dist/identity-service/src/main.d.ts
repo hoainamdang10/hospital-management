@@ -12,7 +12,8 @@ declare global {
             user?: {
                 userId: string;
                 email: string;
-                role: string;
+                roles: string[];
+                permissions: string[];
             };
         }
     }
@@ -51,7 +52,28 @@ declare class IdentityServiceApp {
     private listUsersUseCase;
     private refreshTokenUseCase;
     private provisionStaffUseCase;
+    private acceptStaffInvitationUseCase;
     private eventPublisher;
+    private sessionRepository;
+    private listActiveSessionsUseCase;
+    private terminateSessionUseCase;
+    private terminateAllSessionsUseCase;
+    private passwordPolicyRepository;
+    private getPasswordPolicyUseCase;
+    private updatePasswordPolicyUseCase;
+    private validatePasswordUseCase;
+    private recoveryMethodRepository;
+    private recoveryHistoryRepository;
+    private getRecoveryMethodsUseCase;
+    private updateRecoveryMethodsUseCase;
+    private requestPasswordResetUseCase;
+    private verifyResetTokenUseCase;
+    private resetPasswordWithTokenUseCase;
+    private getRecoveryHistoryUseCase;
+    private changePasswordUseCase;
+    private lockAccountUseCase;
+    private unlockAccountUseCase;
+    private assignRoleUseCase;
     constructor();
     /**
      * Initialize the application (async wrapper for constructor)

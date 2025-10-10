@@ -8,6 +8,7 @@
  */
 import { Request, Response, NextFunction } from 'express';
 import { IPermissionService } from '../../domain/services/IPermissionService';
+import { ILogger } from '../../application/services/ILogger';
 /**
  * Permission format: "resource:action"
  * Examples: "patients:read", "appointments:write", "*" (admin)
@@ -88,7 +89,7 @@ export interface PermissionOptions {
 export declare class PermissionMiddleware {
     private permissionService;
     private logger;
-    constructor(permissionService: IPermissionService, logger: any);
+    constructor(permissionService: IPermissionService, logger: ILogger);
     /**
      * Create middleware to check permissions
      */

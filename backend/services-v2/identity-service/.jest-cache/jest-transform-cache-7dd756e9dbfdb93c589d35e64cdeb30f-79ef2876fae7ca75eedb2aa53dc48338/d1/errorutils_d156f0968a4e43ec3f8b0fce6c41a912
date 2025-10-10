@@ -1,0 +1,46 @@
+915efac8b7fa699943358d6d7b1d98d9
+"use strict";
+/**
+ * Error Utilities
+ * Helper functions for type-safe error handling
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isError = isError;
+exports.getErrorMessage = getErrorMessage;
+exports.getErrorStack = getErrorStack;
+/**
+ * Type guard to check if value is an Error
+ */
+function isError(error) {
+    return error instanceof Error;
+}
+/**
+ * Extract error message from unknown error
+ * @param error Unknown error value
+ * @param fallback Fallback message if error is not an Error instance
+ * @returns Error message string
+ */
+function getErrorMessage(error, fallback = 'Unknown error') {
+    if (isError(error)) {
+        return error.message;
+    }
+    if (typeof error === 'string') {
+        return error;
+    }
+    return fallback;
+}
+/**
+ * Extract error stack from unknown error
+ * @param error Unknown error value
+ * @returns Error stack string or undefined
+ */
+function getErrorStack(error) {
+    if (isError(error)) {
+        return error.stack;
+    }
+    return undefined;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFx1dGlsc1xcZXJyb3ItdXRpbHMudHMiLCJtYXBwaW5ncyI6IjtBQUFBOzs7Ozs7R0FNRzs7QUFLSCwwQkFFQztBQVFELDBDQVFDO0FBT0Qsc0NBS0M7QUFqQ0Q7O0dBRUc7QUFDSCxTQUFnQixPQUFPLENBQUMsS0FBYztJQUNwQyxPQUFPLEtBQUssWUFBWSxLQUFLLENBQUM7QUFDaEMsQ0FBQztBQUVEOzs7OztHQUtHO0FBQ0gsU0FBZ0IsZUFBZSxDQUFDLEtBQWMsRUFBRSxRQUFRLEdBQUcsZUFBZTtJQUN4RSxJQUFJLE9BQU8sQ0FBQyxLQUFLLENBQUMsRUFBRSxDQUFDO1FBQ25CLE9BQU8sS0FBSyxDQUFDLE9BQU8sQ0FBQztJQUN2QixDQUFDO0lBQ0QsSUFBSSxPQUFPLEtBQUssS0FBSyxRQUFRLEVBQUUsQ0FBQztRQUM5QixPQUFPLEtBQUssQ0FBQztJQUNmLENBQUM7SUFDRCxPQUFPLFFBQVEsQ0FBQztBQUNsQixDQUFDO0FBRUQ7Ozs7R0FJRztBQUNILFNBQWdCLGFBQWEsQ0FBQyxLQUFjO0lBQzFDLElBQUksT0FBTyxDQUFDLEtBQUssQ0FBQyxFQUFFLENBQUM7UUFDbkIsT0FBTyxLQUFLLENBQUMsS0FBSyxDQUFDO0lBQ3JCLENBQUM7SUFDRCxPQUFPLFNBQVMsQ0FBQztBQUNuQixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxcdXRpbHNcXGVycm9yLXV0aWxzLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogRXJyb3IgVXRpbGl0aWVzXG4gKiBIZWxwZXIgZnVuY3Rpb25zIGZvciB0eXBlLXNhZmUgZXJyb3IgaGFuZGxpbmdcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKi9cblxuLyoqXG4gKiBUeXBlIGd1YXJkIHRvIGNoZWNrIGlmIHZhbHVlIGlzIGFuIEVycm9yXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBpc0Vycm9yKGVycm9yOiB1bmtub3duKTogZXJyb3IgaXMgRXJyb3Ige1xuICByZXR1cm4gZXJyb3IgaW5zdGFuY2VvZiBFcnJvcjtcbn1cblxuLyoqXG4gKiBFeHRyYWN0IGVycm9yIG1lc3NhZ2UgZnJvbSB1bmtub3duIGVycm9yXG4gKiBAcGFyYW0gZXJyb3IgVW5rbm93biBlcnJvciB2YWx1ZVxuICogQHBhcmFtIGZhbGxiYWNrIEZhbGxiYWNrIG1lc3NhZ2UgaWYgZXJyb3IgaXMgbm90IGFuIEVycm9yIGluc3RhbmNlXG4gKiBAcmV0dXJucyBFcnJvciBtZXNzYWdlIHN0cmluZ1xuICovXG5leHBvcnQgZnVuY3Rpb24gZ2V0RXJyb3JNZXNzYWdlKGVycm9yOiB1bmtub3duLCBmYWxsYmFjayA9ICdVbmtub3duIGVycm9yJyk6IHN0cmluZyB7XG4gIGlmIChpc0Vycm9yKGVycm9yKSkge1xuICAgIHJldHVybiBlcnJvci5tZXNzYWdlO1xuICB9XG4gIGlmICh0eXBlb2YgZXJyb3IgPT09ICdzdHJpbmcnKSB7XG4gICAgcmV0dXJuIGVycm9yO1xuICB9XG4gIHJldHVybiBmYWxsYmFjaztcbn1cblxuLyoqXG4gKiBFeHRyYWN0IGVycm9yIHN0YWNrIGZyb20gdW5rbm93biBlcnJvclxuICogQHBhcmFtIGVycm9yIFVua25vd24gZXJyb3IgdmFsdWVcbiAqIEByZXR1cm5zIEVycm9yIHN0YWNrIHN0cmluZyBvciB1bmRlZmluZWRcbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIGdldEVycm9yU3RhY2soZXJyb3I6IHVua25vd24pOiBzdHJpbmcgfCB1bmRlZmluZWQge1xuICBpZiAoaXNFcnJvcihlcnJvcikpIHtcbiAgICByZXR1cm4gZXJyb3Iuc3RhY2s7XG4gIH1cbiAgcmV0dXJuIHVuZGVmaW5lZDtcbn1cblxuIl0sInZlcnNpb24iOjN9

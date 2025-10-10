@@ -146,6 +146,7 @@ describe('UpdatePasswordPolicyUseCase', () => {
     });
 
     it('should throw error if repository fails', async () => {
+      expect.assertions(2);
       mockRepository.update.mockRejectedValue(new Error('Database error'));
 
       await expect(useCase.execute({

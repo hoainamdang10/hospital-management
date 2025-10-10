@@ -280,12 +280,14 @@ class SupabaseMFAService {
     // Private helper methods
     /**
      * Generate TOTP secret (Base32 encoded)
+     * Uses crypto.randomBytes for cryptographically secure random generation
      */
     generateSecret() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         let secret = '';
+        const randomBuffer = (0, crypto_1.randomBytes)(32);
         for (let i = 0; i < 32; i++) {
-            secret += chars.charAt(Math.floor(Math.random() * chars.length));
+            secret += chars.charAt(randomBuffer[i] % chars.length);
         }
         return secret;
     }
@@ -305,11 +307,14 @@ class SupabaseMFAService {
     }
     /**
      * Generate backup codes locally (fallback)
+     * Uses crypto.randomBytes for cryptographically secure random generation
      */
     generateBackupCodesLocally() {
         const codes = [];
         for (let i = 0; i < 10; i++) {
-            const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+            // Generate 8 random bytes and convert to hex string (16 chars)
+            const randomBuffer = (0, crypto_1.randomBytes)(8);
+            const code = randomBuffer.toString('hex').toUpperCase().substring(0, 10);
             codes.push(code);
         }
         return codes;

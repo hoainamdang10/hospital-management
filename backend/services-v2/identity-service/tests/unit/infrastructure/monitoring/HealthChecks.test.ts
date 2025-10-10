@@ -33,6 +33,8 @@ describe('IdentityServiceHealthCheck', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Use real timers by default
+    jest.useRealTimers();
     logger = TestUtils.createMockLogger();
 
     // Get mocked CircuitBreakerFactory
@@ -75,12 +77,19 @@ describe('IdentityServiceHealthCheck', () => {
     });
 
     it('should return DEGRADED when some components are degraded', async () => {
+      // Use fake timers for this test
+      jest.useFakeTimers();
+
       // Mock slow database response (> 1000ms for database, > 500ms for others)
       let callCount = 0;
+      const startTime = Date.now();
       fromMock.then.mockImplementation(async (resolve) => {
         callCount++;
         if (callCount === 1) { // First call is database check
-          await new Promise(r => setTimeout(r, 1100));
+          // Simulate 1100ms delay
+          jest.advanceTimersByTime(1100);
+          // Mock that 1100ms has passed
+          jest.spyOn(Date, 'now').mockReturnValue(startTime + 1100);
         }
         return resolve({ error: null });
       });
@@ -89,10 +98,18 @@ describe('IdentityServiceHealthCheck', () => {
         'user-repository': { state: 'CLOSED' },
       });
 
-      const health = await healthCheck.checkHealth();
+      const healthPromise = healthCheck.checkHealth();
+
+      // Run all pending timers
+      jest.runAllTimers();
+
+      const health = await healthPromise;
 
       expect(health.overall).toBe(HealthStatus.DEGRADED);
       expect(health.components.database.status).toBe(HealthStatus.DEGRADED);
+
+      // Restore real timers
+      jest.useRealTimers();
     });
 
     it('should return UNHEALTHY when database fails', async () => {
@@ -160,29 +177,51 @@ describe('IdentityServiceHealthCheck', () => {
     });
 
     it('should return DEGRADED for slow database response (> 1s)', async () => {
+      // Use fake timers for this test
+      jest.useFakeTimers();
+
+      const startTime = Date.now();
       fromMock.then.mockImplementation(async (resolve) => {
-        await new Promise(r => setTimeout(r, 1100));
+        // Simulate 1100ms delay
+        jest.advanceTimersByTime(1100);
+        jest.spyOn(Date, 'now').mockReturnValue(startTime + 1100);
         return resolve({ error: null });
       });
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
-      const health = await healthCheck.checkHealth();
+      const healthPromise = healthCheck.checkHealth();
+      jest.runAllTimers();
+      const health = await healthPromise;
 
       expect(health.components.database.status).toBe(HealthStatus.DEGRADED);
       expect(health.components.database.responseTime).toBeGreaterThan(1000);
+
+      // Restore real timers
+      jest.useRealTimers();
     });
 
     it('should return UNHEALTHY for very slow database response (> 5s)', async () => {
+      // Use fake timers for this test
+      jest.useFakeTimers();
+
+      const startTime = Date.now();
       fromMock.then.mockImplementation(async (resolve) => {
-        await new Promise(r => setTimeout(r, 5100));
+        // Simulate 5100ms delay
+        jest.advanceTimersByTime(5100);
+        jest.spyOn(Date, 'now').mockReturnValue(startTime + 5100);
         return resolve({ error: null });
       });
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
-      const health = await healthCheck.checkHealth();
+      const healthPromise = healthCheck.checkHealth();
+      jest.runAllTimers();
+      const health = await healthPromise;
 
       expect(health.components.database.status).toBe(HealthStatus.UNHEALTHY);
       expect(health.components.database.responseTime).toBeGreaterThan(5000);
+
+      // Restore real timers
+      jest.useRealTimers();
     });
   });
 

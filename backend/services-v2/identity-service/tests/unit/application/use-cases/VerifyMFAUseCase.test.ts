@@ -13,11 +13,13 @@
 
 import { VerifyMFAUseCase, VerifyMFARequest } from '../../../../src/application/use-cases/VerifyMFAUseCase';
 import { IMFAService, MFAMethod } from '../../../../src/application/services/IMFAService';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('VerifyMFAUseCase', () => {
   let useCase: VerifyMFAUseCase;
   let mockMFAService: jest.Mocked<IMFAService>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     // Reset mocks FIRST
@@ -44,9 +46,12 @@ describe('VerifyMFAUseCase', () => {
       debug: jest.fn()
     };
 
+    circuitBreaker = createCircuitBreakerStub();
+
     useCase = new VerifyMFAUseCase(
       mockMFAService,
-      mockLogger
+      mockLogger,
+      circuitBreaker
     );
   });
 
@@ -447,4 +452,3 @@ describe('VerifyMFAUseCase', () => {
     });
   });
 });
-

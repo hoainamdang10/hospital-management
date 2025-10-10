@@ -6,8 +6,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, HIPAA
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 export interface GetUserRequest {
     userId: string;
     requesterId: string;
@@ -41,7 +43,7 @@ export declare class GetUserUseCase implements IUseCase<GetUserRequest, GetUserR
     private userRepository;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, logger: any);
+    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
     execute(request: GetUserRequest): Promise<GetUserResponse>;
     private getUserInternal;
 }

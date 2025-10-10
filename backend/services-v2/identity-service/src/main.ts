@@ -11,7 +11,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express, { Request } from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -20,6 +20,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Extend Express Request type to include user
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: {
@@ -45,11 +46,12 @@ import { PermissionCache } from './infrastructure/cache/PermissionCache';
 import { UserId } from './domain/value-objects/UserId';
 
 // Middleware imports
-import { AuthenticationMiddleware } from './presentation/middleware/AuthenticationMiddleware';
+import { AuthenticationMiddleware, AuthenticatedRequest } from './presentation/middleware/AuthenticationMiddleware';
 import { PermissionMiddleware } from './presentation/middleware/PermissionMiddleware';
 
 // Application imports
 import { IAuthenticationService } from './application/services/IAuthenticationService';
+import { ILogger, LogMetadata } from './application/services/ILogger';
 import { AuthenticateUserUseCase } from './application/use-cases/AuthenticateUserUseCase';
 import { SupabaseAuthService } from './infrastructure/auth/SupabaseAuthService';
 import { RegisterUserUseCase } from './application/use-cases/RegisterUserUseCase';
@@ -67,7 +69,8 @@ import { ListUsersUseCase } from './application/use-cases/ListUsersUseCase';
 import { RefreshTokenUseCase } from './application/use-cases/RefreshTokenUseCase';
 import { ProvisionStaffUseCase } from './application/use-cases/ProvisionStaffUseCase';
 import { AcceptStaffInvitationUseCase } from './application/use-cases/AcceptStaffInvitationUseCase';
-import { RabbitMQEventPublisher, IEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
+import { RabbitMQEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
+import { IEventPublisher } from './application/services/IEventPublisher';
 
 // Session Management imports
 import { ListActiveSessionsUseCase } from './application/use-cases/ListActiveSessionsUseCase';
@@ -91,6 +94,12 @@ import { GetRecoveryHistoryUseCase } from './application/use-cases/GetRecoveryHi
 import { SupabaseRecoveryMethodRepository } from './infrastructure/repositories/SupabaseRecoveryMethodRepository';
 import { SupabaseRecoveryHistoryRepository } from './infrastructure/repositories/SupabaseRecoveryHistoryRepository';
 
+// P1 Features - Account Management imports
+import { ChangePasswordUseCase } from './application/use-cases/ChangePasswordUseCase';
+import { LockAccountUseCase } from './application/use-cases/LockAccountUseCase';
+import { UnlockAccountUseCase } from './application/use-cases/UnlockAccountUseCase';
+import { AssignRoleUseCase } from './application/use-cases/AssignRoleUseCase';
+
 // Configuration
 const config = {
   port: process.env.PORT || 3001,
@@ -105,20 +114,20 @@ const config = {
 };
 
 // Logger setup (simplified - in production use Winston or similar)
-const logger = {
-  debug: (message: string, meta?: any) => {
+const logger: ILogger = {
+  debug: (message: string, meta?: LogMetadata) => {
     console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`, meta || '');
   },
-  info: (message: string, meta?: any) => {
+  info: (message: string, meta?: LogMetadata) => {
     console.log(`[INFO] ${new Date().toISOString()} - ${message}`, meta || '');
   },
-  warn: (message: string, meta?: any) => {
+  warn: (message: string, meta?: LogMetadata) => {
     console.warn(`[WARN] ${new Date().toISOString()} - ${message}`, meta || '');
   },
-  error: (message: string, meta?: any) => {
+  error: (message: string, meta?: LogMetadata) => {
     console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, meta || '');
   },
-  fatal: (message: string, meta?: any) => {
+  fatal: (message: string, meta?: LogMetadata) => {
     console.error(`[FATAL] ${new Date().toISOString()} - ${message}`, meta || '');
   }
 };
@@ -187,6 +196,12 @@ class IdentityServiceApp {
   private verifyResetTokenUseCase!: VerifyResetTokenUseCase;
   private resetPasswordWithTokenUseCase!: ResetPasswordWithTokenUseCase;
   private getRecoveryHistoryUseCase!: GetRecoveryHistoryUseCase;
+
+  // P1 Features - Account Management
+  private changePasswordUseCase!: ChangePasswordUseCase;
+  private lockAccountUseCase!: LockAccountUseCase;
+  private unlockAccountUseCase!: UnlockAccountUseCase;
+  private assignRoleUseCase!: AssignRoleUseCase;
 
   constructor() {
     this.app = express();
@@ -263,7 +278,7 @@ class IdentityServiceApp {
       const rabbitMQUrl = process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673';
       this.eventPublisher = new RabbitMQEventPublisher(rabbitMQUrl, logger);
       try {
-        await this.eventPublisher.initialize();
+        await this.eventPublisher.initialize?.();
         logger.info('Event Publisher initialized successfully');
       } catch (error) {
         logger.error('Failed to initialize Event Publisher', { error: getErrorMessage(error) });
@@ -358,24 +373,28 @@ class IdentityServiceApp {
         this.userRepository,
         this.permissionRepository,
         logger,
+        CircuitBreakerFactory.getBreaker('register-user-use-case'),
         this.eventPublisher // Add event publisher
       );
 
       this.forgotPasswordUseCase = new ForgotPasswordUseCase(
         this.authService,
         this.userRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('forgot-password-use-case')
       );
 
       this.resetPasswordUseCase = new ResetPasswordUseCase(
         this.authService,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('reset-password-use-case')
       );
 
       this.verifyEmailUseCase = new VerifyEmailUseCase(
         this.authService,
         this.userRepository,
         logger,
+        CircuitBreakerFactory.getBreaker('verify-email-use-case'),
         this.eventPublisher // Add event publisher
       );
 
@@ -383,45 +402,53 @@ class IdentityServiceApp {
         this.authService,
         this.userRepository,
         logger,
+        CircuitBreakerFactory.getBreaker('logout-user-use-case'),
         this.eventPublisher // Add event publisher
       );
 
       this.enableMFAUseCase = new EnableMFAUseCase(
         this.userRepository,
         this.mfaService,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('enable-mfa-use-case')
       );
 
       this.verifyMFAUseCase = new VerifyMFAUseCase(
         this.mfaService,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('verify-mfa-use-case')
       );
 
       this.disableMFAUseCase = new DisableMFAUseCase(
         this.userRepository,
         this.mfaService,
         this.verifyMFAUseCase,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('disable-mfa-use-case')
       );
 
       // Initialize user management use cases
       this.getUserUseCase = new GetUserUseCase(
         this.userRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('get-user-use-case')
       );
 
       this.updateUserUseCase = new UpdateUserUseCase(
         this.userRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('update-user-use-case')
       );
 
       this.deleteUserUseCase = new DeleteUserUseCase(
         this.userRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('delete-user-use-case')
       );
 
       this.listUsersUseCase = new ListUsersUseCase(
         this.userRepository,
+        CircuitBreakerFactory.getBreaker('list-users-use-case'),
         logger
       );
 
@@ -446,7 +473,8 @@ class IdentityServiceApp {
       this.sessionRepository = new SupabaseSessionRepository(this.supabaseClient);
 
       this.listActiveSessionsUseCase = new ListActiveSessionsUseCase(
-        this.sessionRepository
+        this.sessionRepository,
+        logger
       );
 
       this.terminateSessionUseCase = new TerminateSessionUseCase(
@@ -491,13 +519,15 @@ class IdentityServiceApp {
 
       this.getRecoveryMethodsUseCase = new GetRecoveryMethodsUseCase(
         this.recoveryMethodRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('get-recovery-methods-use-case')
       );
 
       this.updateRecoveryMethodsUseCase = new UpdateRecoveryMethodsUseCase(
         this.recoveryMethodRepository,
         this.userRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('update-recovery-methods-use-case')
       );
 
       this.requestPasswordResetUseCase = new RequestPasswordResetUseCase(
@@ -505,13 +535,15 @@ class IdentityServiceApp {
         this.userRepository,
         this.recoveryMethodRepository,
         this.recoveryHistoryRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('request-password-reset-use-case')
       );
 
       this.verifyResetTokenUseCase = new VerifyResetTokenUseCase(
         this.authService,
         this.recoveryHistoryRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('verify-reset-token-use-case')
       );
 
       this.resetPasswordWithTokenUseCase = new ResetPasswordWithTokenUseCase(
@@ -519,12 +551,44 @@ class IdentityServiceApp {
         this.passwordPolicyRepository,
         this.recoveryHistoryRepository,
         this.sessionRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('reset-password-with-token-use-case')
       );
 
       this.getRecoveryHistoryUseCase = new GetRecoveryHistoryUseCase(
         this.recoveryHistoryRepository,
-        logger
+        logger,
+        CircuitBreakerFactory.getBreaker('get-recovery-history-use-case')
+      );
+
+      // Initialize P1 Features - Account Management use cases
+      this.changePasswordUseCase = new ChangePasswordUseCase(
+        this.authService,
+        this.userRepository,
+        this.passwordPolicyRepository,
+        this.sessionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('change-password-use-case')
+      );
+
+      this.lockAccountUseCase = new LockAccountUseCase(
+        this.userRepository,
+        this.sessionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('lock-account-use-case')
+      );
+
+      this.unlockAccountUseCase = new UnlockAccountUseCase(
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('unlock-account-use-case')
+      );
+
+      this.assignRoleUseCase = new AssignRoleUseCase(
+        this.userRepository,
+        this.permissionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('assign-role-use-case')
       );
 
       logger.info('Infrastructure initialized successfully');
@@ -721,6 +785,7 @@ class IdentityServiceApp {
       try {
         const request = {
           accessToken: req.body.accessToken,
+          refreshToken: req.body.refreshToken,
           newPassword: req.body.newPassword,
           confirmPassword: req.body.confirmPassword
         };
@@ -781,13 +846,26 @@ class IdentityServiceApp {
       }
     });
 
-    // Logout endpoint
-    this.app.post('/auth/logout', async (req, res) => {
+    // Logout endpoint (authentication required)
+    this.app.post('/auth/logout',
+      this.authMiddleware.authenticate(),
+      async (req: AuthenticatedRequest, res) => {
       try {
+        if (!req.user) {
+          res.status(401).json({
+            success: false,
+            error: 'Unauthorized',
+            message: 'Authentication required'
+          });
+          return;
+        }
+
+        const accessToken = req.headers.authorization?.replace('Bearer ', '') || '';
+
         const request = {
-          userId: req.body.userId,
-          accessToken: req.headers.authorization?.replace('Bearer ', '') || '',
-          sessionId: req.body.sessionId
+          userId: req.user.userId,
+          accessToken,
+          sessionId: typeof req.body.sessionId === 'string' ? req.body.sessionId : undefined
         };
 
         const result = await this.logoutUserUseCase.execute(request);
@@ -895,7 +973,7 @@ class IdentityServiceApp {
     // Get current user profile
     this.app.get('/api/v1/users/me',
       this.authMiddleware.authenticate(),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           res.json({
             success: true,
@@ -917,13 +995,13 @@ class IdentityServiceApp {
       this.permissionMiddleware.requirePermission({
         permissions: ['users:read', '*'],
         checkOwnership: true,
-        getResourceOwnerId: (req: any) => req.params.userId
+        getResourceOwnerId: (req: AuthenticatedRequest) => req.params.userId
       }),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.getUserUseCase.execute({
             userId: req.params.userId,
-            requesterId: req.user.userId
+            requesterId: req.user!.userId
           });
 
           const statusCode = result.success ? 200 : 404;
@@ -942,10 +1020,10 @@ class IdentityServiceApp {
     this.app.get('/api/v1/users',
       this.authMiddleware.authenticate(),
       this.permissionMiddleware.requireAdmin(),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.listUsersUseCase.execute({
-            requesterId: req.user.userId,
+            requesterId: req.user!.userId,
             page: parseInt(req.query.page as string) || 1,
             limit: parseInt(req.query.limit as string) || 20,
             roleType: req.query.roleType as string,
@@ -970,13 +1048,13 @@ class IdentityServiceApp {
       this.permissionMiddleware.requirePermission({
         permissions: ['users:update', '*'],
         checkOwnership: true,
-        getResourceOwnerId: (req: any) => req.params.userId
+        getResourceOwnerId: (req: AuthenticatedRequest) => req.params.userId
       }),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.updateUserUseCase.execute({
             userId: req.params.userId,
-            requesterId: req.user.userId,
+            requesterId: req.user!.userId,
             updates: req.body
           });
 
@@ -996,11 +1074,11 @@ class IdentityServiceApp {
     this.app.delete('/api/v1/users/:userId',
       this.authMiddleware.authenticate(),
       this.permissionMiddleware.requireAdmin(),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.deleteUserUseCase.execute({
             userId: req.params.userId,
-            requesterId: req.user.userId,
+            requesterId: req.user!.userId,
             hardDelete: req.query.hard === 'true',
             reason: req.body.reason
           });
@@ -1018,6 +1096,126 @@ class IdentityServiceApp {
     );
 
     // ========================================
+    // P1 FEATURES - ACCOUNT MANAGEMENT ENDPOINTS
+    // ========================================
+
+    // Change password (authenticated user only - self)
+    this.app.post('/api/v1/users/:userId/change-password',
+      this.authMiddleware.authenticate(),
+      async (req: AuthenticatedRequest, res, next) => {
+        try {
+          if (req.user && req.user.userId === req.params.userId) {
+            return next();
+          }
+
+          const middleware = this.permissionMiddleware.requirePermission({
+            permissions: ['users:update', '*']
+          });
+          return middleware(req, res, next);
+        } catch (error) {
+          logger.error('Change password authorization error', { error: getErrorMessage(error) });
+          res.status(500).json({
+            success: false,
+            error: 'Xác thực quyền thất bại'
+          });
+        }
+      },
+      async (req: AuthenticatedRequest, res) => {
+        try {
+          const result = await this.changePasswordUseCase.execute({
+            userId: req.params.userId,
+            currentPassword: req.body.currentPassword,
+            newPassword: req.body.newPassword,
+            confirmPassword: req.body.confirmPassword
+          });
+
+          const statusCode = result.success ? 200 : 400;
+          res.status(statusCode).json(result);
+        } catch (error) {
+          logger.error('Change password error', { error: getErrorMessage(error) });
+          res.status(500).json({
+            success: false,
+            error: 'Đổi mật khẩu thất bại'
+          });
+        }
+      }
+    );
+
+    // Lock account (admin only)
+    this.app.post('/api/v1/users/:userId/lock',
+      this.authMiddleware.authenticate(),
+      this.permissionMiddleware.requireAdmin(),
+      async (req: AuthenticatedRequest, res) => {
+        try {
+          const result = await this.lockAccountUseCase.execute({
+            userId: req.params.userId,
+            lockedBy: req.user!.userId,
+            reason: req.body.reason || 'Locked by administrator',
+            terminateSessions: req.body.terminateSessions !== false // Default true
+          });
+
+          const statusCode = result.success ? 200 : 400;
+          res.status(statusCode).json(result);
+        } catch (error) {
+          logger.error('Lock account error', { error: getErrorMessage(error) });
+          res.status(500).json({
+            success: false,
+            error: 'Khóa tài khoản thất bại'
+          });
+        }
+      }
+    );
+
+    // Unlock account (admin only)
+    this.app.post('/api/v1/users/:userId/unlock',
+      this.authMiddleware.authenticate(),
+      this.permissionMiddleware.requireAdmin(),
+      async (req: AuthenticatedRequest, res) => {
+        try {
+          const result = await this.unlockAccountUseCase.execute({
+            userId: req.params.userId,
+            unlockedBy: req.user!.userId,
+            reason: req.body.reason || 'Unlocked by administrator'
+          });
+
+          const statusCode = result.success ? 200 : 400;
+          res.status(statusCode).json(result);
+        } catch (error) {
+          logger.error('Unlock account error', { error: getErrorMessage(error) });
+          res.status(500).json({
+            success: false,
+            error: 'Mở khóa tài khoản thất bại'
+          });
+        }
+      }
+    );
+
+    // Assign role (admin only)
+    this.app.post('/api/v1/users/:userId/assign-role',
+      this.authMiddleware.authenticate(),
+      this.permissionMiddleware.requireAdmin(),
+      async (req: AuthenticatedRequest, res) => {
+        try {
+          const result = await this.assignRoleUseCase.execute({
+            userId: req.params.userId,
+            roleType: req.body.roleType,
+            assignedBy: req.user!.userId,
+            reason: req.body.reason || 'Role assigned by administrator'
+          });
+
+          const statusCode = result.success ? 200 : 400;
+          res.status(statusCode).json(result);
+        } catch (error) {
+          logger.error('Assign role error', { error: getErrorMessage(error) });
+          res.status(500).json({
+            success: false,
+            error: 'Gán vai trò thất bại'
+          });
+        }
+      }
+    );
+
+    // ========================================
     // SESSION MANAGEMENT ENDPOINTS
     // ========================================
 
@@ -1027,13 +1225,13 @@ class IdentityServiceApp {
       this.permissionMiddleware.requirePermission({
         permissions: ['sessions:read', '*'],
         checkOwnership: true,
-        getResourceOwnerId: (req: any) => req.params.userId
+        getResourceOwnerId: (req: AuthenticatedRequest) => req.params.userId
       }),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.listActiveSessionsUseCase.execute({
             userId: req.params.userId,
-            currentSessionId: req.user.sessionId // If available from auth middleware
+            currentSessionId: req.user!.sessionId // If available from auth middleware
           });
 
           res.json(result);
@@ -1053,16 +1251,16 @@ class IdentityServiceApp {
       this.permissionMiddleware.requirePermission({
         permissions: ['sessions:delete', '*'],
         checkOwnership: true,
-        getResourceOwnerId: (req: any) => req.params.userId
+        getResourceOwnerId: (req: AuthenticatedRequest) => req.params.userId
       }),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.terminateSessionUseCase.execute({
             userId: req.params.userId,
             sessionId: req.params.sessionId
           });
 
-          res.json(result);
+          return res.json(result);
         } catch (error) {
           logger.error('Terminate session error', { error: getErrorMessage(error) });
 
@@ -1082,7 +1280,7 @@ class IdentityServiceApp {
             }
           }
 
-          res.status(500).json({
+          return res.status(500).json({
             success: false,
             error: 'Failed to terminate session'
           });
@@ -1096,13 +1294,13 @@ class IdentityServiceApp {
       this.permissionMiddleware.requirePermission({
         permissions: ['sessions:delete', '*'],
         checkOwnership: true,
-        getResourceOwnerId: (req: any) => req.params.userId
+        getResourceOwnerId: (req: AuthenticatedRequest) => req.params.userId
       }),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.terminateAllSessionsUseCase.execute({
             userId: req.params.userId,
-            currentSessionId: req.user.sessionId // If available from auth middleware
+            currentSessionId: req.user!.sessionId // If available from auth middleware
           });
 
           res.json(result);
@@ -1140,7 +1338,7 @@ class IdentityServiceApp {
     this.app.put('/api/v1/password-policy',
       this.authMiddleware.authenticate(),
       this.permissionMiddleware.requireAdmin(),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.updatePasswordPolicyUseCase.execute({
             minLength: req.body.minLength,
@@ -1150,7 +1348,7 @@ class IdentityServiceApp {
             requireSpecialChars: req.body.requireSpecialChars,
             expirationDays: req.body.expirationDays,
             preventReuse: req.body.preventReuse,
-            updatedBy: req.user.userId
+            updatedBy: req.user!.userId
           });
 
           res.json(result);
@@ -1190,10 +1388,10 @@ class IdentityServiceApp {
     // Get recovery methods (authenticated users can view their own)
     this.app.get('/api/v1/account-recovery/methods',
       this.authMiddleware.authenticate(),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.getRecoveryMethodsUseCase.execute({
-            userId: req.user.userId
+            userId: req.user!.userId
           });
 
           res.json(result);
@@ -1210,10 +1408,10 @@ class IdentityServiceApp {
     // Update recovery methods (authenticated users can update their own)
     this.app.put('/api/v1/account-recovery/methods',
       this.authMiddleware.authenticate(),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.updateRecoveryMethodsUseCase.execute({
-            userId: req.user.userId,
+            userId: req.user!.userId,
             recoveryEmail: req.body.recoveryEmail
           });
 
@@ -1297,10 +1495,10 @@ class IdentityServiceApp {
     // Get recovery history (authenticated users can view their own)
     this.app.get('/api/v1/account-recovery/history',
       this.authMiddleware.authenticate(),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const result = await this.getRecoveryHistoryUseCase.execute({
-            userId: req.user.userId,
+            userId: req.user!.userId,
             page: req.query.page ? parseInt(req.query.page as string) : undefined,
             pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined,
             startDate: req.query.startDate as string,
@@ -1342,9 +1540,9 @@ class IdentityServiceApp {
       this.permissionMiddleware.requirePermission({
         permissions: ['permissions:read', '*'],
         checkOwnership: true,
-        getResourceOwnerId: (req: any) => req.params.userId
+        getResourceOwnerId: (req: AuthenticatedRequest) => req.params.userId
       }),
-      async (req: any, res) => {
+      async (req: AuthenticatedRequest, res) => {
         try {
           const userIdString = req.params.userId;
           const userId = UserId.fromString(userIdString);
@@ -1456,10 +1654,10 @@ class IdentityServiceApp {
    */
   private setupErrorHandling(): void {
     // Global error handler
-    this.app.use((error: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    this.app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
       logger.error('Unhandled error', {
         error: getErrorMessage(error),
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined,
         url: req.url,
         method: req.method
       });
@@ -1535,7 +1733,7 @@ if (require.main === module) {
     try {
       // Close RabbitMQ connection
       if (app['eventPublisher']) {
-        await app['eventPublisher'].close();
+        await app['eventPublisher'].close?.();
         logger.info('Event Publisher closed');
       }
 

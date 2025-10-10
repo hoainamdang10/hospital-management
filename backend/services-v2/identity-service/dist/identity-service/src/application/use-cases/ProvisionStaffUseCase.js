@@ -125,19 +125,7 @@ class ProvisionStaffUseCase {
             if (this.eventPublisher) {
                 try {
                     const event = new StaffInvitationCreatedEvent_1.StaffInvitationCreatedEvent(request.email, request.roleType, request.requesterId, invitationToken, expiresAt);
-                    await this.eventPublisher.publish({
-                        eventType: event.constructor.name,
-                        aggregateId: request.email,
-                        aggregateType: 'StaffInvitation',
-                        occurredAt: event.occurredAt,
-                        payload: {
-                            email: request.email,
-                            role: request.roleType,
-                            invitedBy: request.requesterId,
-                            invitationToken,
-                            expiresAt
-                        }
-                    });
+                    await this.eventPublisher.publishDomainEvents([event]);
                     this.logger.info('Staff invitation event published', {
                         email: email.getMaskedEmail()
                     });

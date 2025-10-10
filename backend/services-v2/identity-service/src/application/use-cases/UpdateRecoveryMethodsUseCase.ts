@@ -12,7 +12,9 @@ import { IRecoveryMethodRepository } from '../../domain/repositories/IRecoveryMe
 import { IUserRepository } from '../repositories/IUserRepository';
 import { RecoveryMethod } from '../../domain/value-objects/RecoveryMethod';
 import { Email } from '../../domain/value-objects/Email';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { UserId } from '../../domain/value-objects/UserId';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { ILogger } from '../services/ILogger';
 
 export interface UpdateRecoveryMethodsRequest {
   userId: string;
@@ -38,12 +40,11 @@ export interface UpdateRecoveryMethodsResponse {
 export class UpdateRecoveryMethodsUseCase
   implements IUseCase<UpdateRecoveryMethodsRequest, UpdateRecoveryMethodsResponse>
 {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('update-recovery-methods-use-case');
-
   constructor(
     private recoveryMethodRepository: IRecoveryMethodRepository,
     private userRepository: IUserRepository,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: UpdateRecoveryMethodsRequest): Promise<UpdateRecoveryMethodsResponse> {
@@ -159,7 +160,8 @@ export class UpdateRecoveryMethodsUseCase
     }
 
     // Check if user exists
-    const user = await this.userRepository.findById(request.userId);
+    const userIdVO = UserId.fromString(request.userId);
+    const user = await this.userRepository.findById(userIdVO);
     if (!user) {
       return 'Người dùng không tồn tại';
     }
@@ -181,4 +183,3 @@ export class UpdateRecoveryMethodsUseCase
     return null;
   }
 }
-

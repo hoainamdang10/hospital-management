@@ -10,6 +10,20 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
 import { UserSession } from '../../domain/entities/UserSession';
 
+// Session database record interface
+interface SessionRecord {
+  id: string;
+  user_id: string;
+  session_token: string;
+  device_info: Record<string, unknown>;
+  ip_address: string;
+  user_agent: string;
+  expires_at: string;
+  is_active: boolean;
+  created_at: string;
+  last_accessed_at: string;
+}
+
 export class SupabaseSessionRepository implements ISessionRepository {
   private readonly tableName = 'user_sessions';
   private readonly schema = 'auth_schema';
@@ -175,7 +189,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
   /**
    * Map database row to domain entity
    */
-  private mapToDomain(data: any): UserSession {
+  private mapToDomain(data: SessionRecord): UserSession {
     return UserSession.fromPersistenceData({
       id: data.id,
       userId: data.user_id,

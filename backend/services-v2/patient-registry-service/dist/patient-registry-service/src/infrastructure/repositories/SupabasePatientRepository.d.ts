@@ -57,6 +57,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
         registrationDateTo?: string;
         city?: string;
         province?: string;
+        hasInsurance?: boolean;
     }, pagination?: {
         page: number;
         limit: number;
@@ -73,6 +74,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      */
     searchPatients(searchTerm: string, filters?: {
         isActive?: boolean;
+        hasInsurance?: boolean;
     }, pagination?: {
         page: number;
         limit: number;
@@ -131,6 +133,8 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      * ✅ FIX N+1 PROBLEM: Batch fetch links for multiple patients
      */
     private fetchLinksBatch;
+    private buildInClause;
+    private getActiveInsurancePatientIds;
     /**
      * Save insurance info
      */

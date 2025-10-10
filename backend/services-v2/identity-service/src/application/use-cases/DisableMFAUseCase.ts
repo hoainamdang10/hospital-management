@@ -11,9 +11,10 @@ import { getErrorMessage } from '../../utils/error-helper';
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IMFAService } from '../services/IMFAService';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { VerifyMFAUseCase } from './VerifyMFAUseCase';
 import { UserId } from '../../domain/value-objects/UserId';
+import { ILogger } from '../services/ILogger';
 
 export interface DisableMFARequest {
   userId: string;
@@ -34,13 +35,12 @@ export interface DisableMFAResponse {
  * Uses IMFAService interface for infrastructure independence
  */
 export class DisableMFAUseCase implements IUseCase<DisableMFARequest, DisableMFAResponse> {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('disable-mfa-use-case');
-
   constructor(
     private userRepository: IUserRepository,
     private mfaService: IMFAService,
     private verifyMFAUseCase: VerifyMFAUseCase,
-    private logger: any
+    private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker
   ) {}
 
   async execute(request: DisableMFARequest): Promise<DisableMFAResponse> {

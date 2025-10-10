@@ -1,12 +1,13 @@
 /**
  * ListActiveSessionsUseCase
  * Use case for listing all active sessions for a user
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface ListActiveSessionsRequest {
   userId: string;
@@ -37,7 +38,8 @@ export interface ListActiveSessionsResponse {
 
 export class ListActiveSessionsUseCase {
   constructor(
-    private readonly sessionRepository: ISessionRepository
+    private readonly sessionRepository: ISessionRepository,
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: ListActiveSessionsRequest): Promise<ListActiveSessionsResponse> {
@@ -68,9 +70,10 @@ export class ListActiveSessionsUseCase {
         totalCount: sessionInfos.length
       };
 
-    } catch (error: any) {
-      console.error('Error listing active sessions:', error);
-      throw new Error(`Failed to list active sessions: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Error listing active sessions', { error: errorMessage, userId: request.userId });
+      throw new Error(`Failed to list active sessions: ${errorMessage}`);
     }
   }
 
@@ -78,14 +81,18 @@ export class ListActiveSessionsUseCase {
    * Parse device info from stored data and user agent
    */
   private parseDeviceInfo(deviceInfo: any, userAgent: string): SessionInfo['deviceInfo'] {
-    // If deviceInfo is already parsed, return it
-    if (deviceInfo && typeof deviceInfo === 'object') {
-      return {
-        platform: deviceInfo.platform || 'Unknown',
-        browser: deviceInfo.browser || 'Unknown',
-        os: deviceInfo.os || 'Unknown',
-        deviceType: deviceInfo.deviceType || 'Unknown'
-      };
+    // If deviceInfo is already parsed and has valid data, return it
+    if (deviceInfo && typeof deviceInfo === 'object' && Object.keys(deviceInfo).length > 0) {
+      // Check if it has at least one valid property
+      const hasValidData = deviceInfo.platform || deviceInfo.browser || deviceInfo.os || deviceInfo.deviceType;
+      if (hasValidData) {
+        return {
+          platform: deviceInfo.platform || 'Unknown',
+          browser: deviceInfo.browser || 'Unknown',
+          os: deviceInfo.os || 'Unknown',
+          deviceType: deviceInfo.deviceType || 'Unknown'
+        };
+      }
     }
 
     // Otherwise, parse from user agent (basic parsing)

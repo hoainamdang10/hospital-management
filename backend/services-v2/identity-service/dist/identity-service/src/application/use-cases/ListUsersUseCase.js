@@ -9,17 +9,16 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ListUsersUseCase = void 0;
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const error_helper_1 = require("../../utils/error-helper");
 /**
  * List Users Use Case
  * Retrieves paginated list of users with filtering and search
  */
 class ListUsersUseCase {
-    constructor(userRepository, logger) {
+    constructor(userRepository, circuitBreaker, logger) {
         this.userRepository = userRepository;
+        this.circuitBreaker = circuitBreaker;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('list-users-use-case');
         this.DEFAULT_PAGE = 1;
         this.DEFAULT_LIMIT = 20;
         this.MAX_LIMIT = 100;
@@ -60,7 +59,9 @@ class ListUsersUseCase {
             // Build filter options with proper structure
             const filters = {};
             if (roleType) {
-                filters.role_type = roleType; // Database column name
+                // Normalize role to lowercase to match database storage format
+                // Database stores: 'admin', 'doctor', 'patient', 'receptionist'
+                filters.role_type = roleType.toLowerCase();
             }
             if (isActive !== undefined) {
                 filters.is_active = isActive; // Database column name
@@ -77,7 +78,8 @@ class ListUsersUseCase {
             };
             // Get users from repository
             const users = await this.userRepository.list(filterOptions);
-            const totalCount = await this.userRepository.count(filterOptions);
+            // Fix: Only pass filters to count(), not limit/offset
+            const totalCount = await this.userRepository.count(filters);
             // Log access for audit
             this.logger.info('Users list accessed', {
                 requesterId,

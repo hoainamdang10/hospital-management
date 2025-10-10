@@ -1,0 +1,50 @@
+[
+  {
+    "id": "cardiology",
+    "name": "Tim mạch",
+    "nameEn": "Cardiology",
+    "icon": "heart-pulse"
+  },
+  {
+    "id": "internal-medicine",
+    "name": "Nội khoa",
+    "nameEn": "Internal Medicine",
+    "icon": "stethoscope"
+  },
+  {
+    "id": "pediatrics",
+    "name": "Nhi khoa",
+    "nameEn": "Pediatrics",
+    "icon": "baby"
+  },
+  {
+    "id": "orthopedics",
+    "name": "Chỉnh hình",
+    "nameEn": "Orthopedics",
+    "icon": "bone"
+  },
+  {
+    "id": "dermatology",
+    "name": "Da liễu",
+    "nameEn": "Dermatology",
+    "icon": "droplet"
+  },
+  {
+    "id": "surgery",
+    "name": "Ngoại khoa",
+    "nameEn": "Surgery",
+    "icon": "scissors"
+  },
+  {
+    "id": "neurology",
+    "name": "Thần kinh",
+    "nameEn": "Neurology",
+    "icon": "brain"
+  },
+  {
+    "id": "oncology",
+    "name": "Ung bướu",
+    "nameEn": "Oncology",
+    "icon": "activity"
+  }
+]

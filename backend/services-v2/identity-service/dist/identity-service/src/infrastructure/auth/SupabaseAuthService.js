@@ -263,13 +263,14 @@ class SupabaseAuthService {
     }
     /**
      * Reset password with token
+     * Requires both access_token and refresh_token from Supabase password reset email
      */
-    async resetPassword(token, newPassword) {
+    async resetPassword(accessToken, refreshToken, newPassword) {
         try {
-            // Set session with recovery token
+            // Set session with recovery tokens from email
             const { error: sessionError } = await this.supabaseClient.auth.setSession({
-                access_token: token,
-                refresh_token: token
+                access_token: accessToken,
+                refresh_token: refreshToken
             });
             if (sessionError) {
                 throw new Error(`Failed to set session: ${(0, error_helper_1.getErrorMessage)(sessionError)}`);
@@ -289,42 +290,18 @@ class SupabaseAuthService {
     /**
      * Update user password (requires current password)
      */
-    async updatePassword(userId, currentPassword, newPassword) {
+    async updatePassword(userId, newPassword) {
         try {
             this.logger.info('Updating user password', { userId });
-            // Fetch user email from user_profiles table
-            const { data: profile, error: profileError } = await this.supabaseClient
-                .from('user_profiles')
-                .select('email')
-                .eq('id', userId)
-                .single();
-            if (profileError || !profile) {
-                throw new Error(`User not found: ${(0, error_helper_1.getErrorMessage)(profileError)}`);
-            }
-            // First verify current password by signing in with email
-            const { data: signInData, error: signInError } = await this.supabaseClient.auth.signInWithPassword({
-                email: profile.email, // Use actual email, not userId
-                password: currentPassword
-            });
-            if (signInError || !signInData.session) {
-                throw new Error('Current password is incorrect');
-            }
-            // Set session first
-            const { error: sessionError } = await this.supabaseClient.auth.setSession({
-                access_token: signInData.session.access_token,
-                refresh_token: signInData.session.refresh_token
-            });
-            if (sessionError) {
-                throw new Error(`Set session failed: ${sessionError.message}`);
-            }
-            const { error } = await this.supabaseClient.auth.updateUser({
+            // Update password using Supabase Admin API
+            const { error } = await this.supabaseClient.auth.admin.updateUserById(userId, {
                 password: newPassword
             });
             if (error) {
                 this.logger.error('Supabase Auth updatePassword failed', { error: (0, error_helper_1.getErrorMessage)(error) });
-                throw new Error(`Cadp nhadt madt kha9u tha5t ba1i: ${(0, error_helper_1.getErrorMessage)(error)}`);
+                throw new Error(`Cập nhật mật khẩu thất bại: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
-            this.logger.info('Password updated successfully');
+            this.logger.info('Password updated successfully', { userId });
         }
         catch (error) {
             this.logger.error('Update password error', { error: (0, error_helper_1.getErrorMessage)(error) });

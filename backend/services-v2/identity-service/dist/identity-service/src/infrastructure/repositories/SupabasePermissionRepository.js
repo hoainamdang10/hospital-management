@@ -76,14 +76,21 @@ class SupabasePermissionRepository {
      */
     async getRolePermissions(roleType) {
         try {
-            const { data, error } = await this.supabaseClient
-                .from('role_permissions')
-                .select('permission_name')
-                .eq('role_id', (await this.supabaseClient
+            // Step 1: Get role ID with proper error handling
+            const { data: roleData, error: roleError } = await this.supabaseClient
                 .from('healthcare_roles')
                 .select('id')
                 .eq('role_name', roleType.toLowerCase())
-                .single()).data?.id)
+                .single();
+            if (roleError || !roleData) {
+                console.warn(`[SupabasePermissionRepository] Role not found: ${roleType}`, roleError);
+                return []; // Return empty array if role doesn't exist
+            }
+            // Step 2: Get permissions for the role
+            const { data, error } = await this.supabaseClient
+                .from('role_permissions')
+                .select('permission_name')
+                .eq('role_id', roleData.id)
                 .eq('is_active', true);
             if (error) {
                 throw new Error(`Failed to get role permissions: ${error.message}`);

@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 export declare class UserActivatedEvent extends DomainEvent {
     readonly userIdValue: string;
     readonly emailValue: string;
@@ -19,6 +19,6 @@ export declare class UserActivatedEvent extends DomainEvent {
         activatedAt: Date;
     };
     containsPHI(): boolean;
-    getPatientId(): string | undefined;
+    getPatientId(): string | null;
 }
 //# sourceMappingURL=UserActivatedEvent.d.ts.map

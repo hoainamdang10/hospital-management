@@ -11,7 +11,7 @@
 
 import { ProvisionStaffUseCase, ProvisionStaffRequest } from '../../../../src/application/use-cases/ProvisionStaffUseCase';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
-import { IEventPublisher } from '../../../../src/infrastructure/events/RabbitMQEventPublisher';
+import { IEventPublisher } from '../../../../src/application/services/IEventPublisher';
 
 describe('ProvisionStaffUseCase', () => {
   let useCase: ProvisionStaffUseCase;
@@ -47,7 +47,8 @@ describe('ProvisionStaffUseCase', () => {
     };
 
     mockEventPublisher = {
-      publish: jest.fn()
+      publishDomainEvents: jest.fn(),
+      publishIntegrationEvent: jest.fn()
     } as unknown as jest.Mocked<IEventPublisher>;
 
     useCase = new ProvisionStaffUseCase(mockUserRepository, mockLogger, mockEventPublisher);
@@ -61,7 +62,7 @@ describe('ProvisionStaffUseCase', () => {
     it('should create staff invitation successfully', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.storeStaffInvitation.mockResolvedValue(undefined);
-      mockEventPublisher.publish.mockResolvedValue(undefined);
+      mockEventPublisher.publishDomainEvents.mockResolvedValue(undefined);
 
       const result = await useCase.execute(validRequest);
 
@@ -99,18 +100,13 @@ describe('ProvisionStaffUseCase', () => {
       );
 
       // Verify event was published
-      expect(mockEventPublisher.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'StaffInvitationCreatedEvent',
-          aggregateId: validRequest.email,
-          aggregateType: 'StaffInvitation',
-          payload: expect.objectContaining({
-            email: validRequest.email,
-            role: validRequest.roleType,
-            invitedBy: validRequest.requesterId
-          })
-        })
-      );
+      expect(mockEventPublisher.publishDomainEvents).toHaveBeenCalledTimes(1);
+      const publishedEvents = mockEventPublisher.publishDomainEvents.mock.calls[0][0];
+      expect(Array.isArray(publishedEvents)).toBe(true);
+      expect(publishedEvents[0]).toMatchObject({
+        eventType: 'StaffInvitationCreated',
+        aggregateId: validRequest.email
+      });
     });
 
     it('should create invitation without phone number', async () => {
@@ -139,7 +135,7 @@ describe('ProvisionStaffUseCase', () => {
       const result = await useCaseWithoutPublisher.execute(validRequest);
 
       expect(result.success).toBe(true);
-      expect(mockEventPublisher.publish).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publishDomainEvents).not.toHaveBeenCalled();
     });
   });
 
@@ -253,7 +249,7 @@ describe('ProvisionStaffUseCase', () => {
     it('should continue if event publishing fails', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.storeStaffInvitation.mockResolvedValue(undefined);
-      mockEventPublisher.publish.mockRejectedValue(new Error('RabbitMQ connection failed'));
+      mockEventPublisher.publishDomainEvents.mockRejectedValue(new Error('RabbitMQ connection failed'));
 
       const result = await useCase.execute(validRequest);
 
@@ -289,4 +285,3 @@ describe('ProvisionStaffUseCase', () => {
     });
   });
 });
-

@@ -2,14 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ForgotPasswordUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
 const Email_1 = require("../../domain/value-objects/Email");
 class ForgotPasswordUseCase {
-    constructor(authService, userRepository, logger) {
+    constructor(authService, userRepository, logger, circuitBreaker) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('forgot-password-use-case');
+        this.circuitBreaker = circuitBreaker;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {

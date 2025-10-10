@@ -8,7 +8,7 @@
  * @version 3.0.0 - Pure RBAC
  * @compliance Production-Ready, HIPAA-Compliant, Anti-Pattern Mitigation
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { ServiceMode } from '../services/IDegradationService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { IUserRepository } from '../repositories/IUserRepository';
@@ -16,18 +16,20 @@ import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IDegradationService } from '../services/IDegradationService';
 import { ILogger } from '../../application/services/ILogger';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface AuthenticateUserRequest {
     email: string;
     password: string;
     mfaCode?: string;
     ipAddress: string;
     userAgent: string;
-    deviceInfo?: any;
+    deviceInfo?: Record<string, unknown>;
 }
 export interface AuthenticateUserResponse {
     success: boolean;
     userId?: string;
+    accessToken?: string;
+    refreshToken?: string;
     sessionToken?: string;
     roles?: string[];
     permissions?: string[];
@@ -70,10 +72,6 @@ export declare class AuthenticateUserUseCase implements IUseCase<AuthenticateUse
      * Map AuthResult to response format
      */
     private mapToResponse;
-    /**
-     * Generate session token (simplified)
-     */
-    private generateSessionToken;
     /**
      * Determine if MFA is required
      */

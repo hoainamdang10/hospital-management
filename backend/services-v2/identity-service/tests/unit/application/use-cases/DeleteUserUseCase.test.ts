@@ -14,11 +14,13 @@
 import { DeleteUserUseCase, DeleteUserRequest } from '../../../../src/application/use-cases/DeleteUserUseCase';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
 import { createMockUser } from '../../../helpers/user-test-helper';
+import { createCircuitBreakerStub } from '../../../helpers/circuit-breaker-test-helper';
 
 describe('DeleteUserUseCase', () => {
   let useCase: DeleteUserUseCase;
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
+  let circuitBreaker = createCircuitBreakerStub();
 
   beforeEach(() => {
     mockUserRepository = {
@@ -37,7 +39,9 @@ describe('DeleteUserUseCase', () => {
       debug: jest.fn()
     };
 
-    useCase = new DeleteUserUseCase(mockUserRepository, mockLogger);
+    circuitBreaker = createCircuitBreakerStub();
+
+    useCase = new DeleteUserUseCase(mockUserRepository, mockLogger, circuitBreaker);
   });
 
   afterEach(() => {
@@ -327,4 +331,3 @@ describe('DeleteUserUseCase', () => {
     });
   });
 });
-

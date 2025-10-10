@@ -141,7 +141,9 @@ describe('User Aggregate Root', () => {
       expect(user.isEmailVerified).toBe(true);
     });
 
-    it('should update updatedAt timestamp', () => {
+    it('should update updatedAt timestamp', async () => {
+      jest.useFakeTimers();
+
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
@@ -150,12 +152,14 @@ describe('User Aggregate Root', () => {
 
       const originalUpdatedAt = user.toPersistence().updated_at;
 
-      // Wait a bit to ensure timestamp difference
-      setTimeout(() => {
-        user.verifyEmail();
-        const newUpdatedAt = user.toPersistence().updated_at;
-        expect(newUpdatedAt).not.toBe(originalUpdatedAt);
-      }, 10);
+      // Advance time to ensure timestamp difference
+      jest.advanceTimersByTime(10);
+
+      user.verifyEmail();
+      const newUpdatedAt = user.toPersistence().updated_at;
+      expect(newUpdatedAt).not.toBe(originalUpdatedAt);
+
+      jest.useRealTimers();
     });
   });
 
@@ -243,9 +247,8 @@ describe('User Aggregate Root', () => {
         [createValidRole()]
       );
 
-      const session = user.recordAuthentication('192.168.1.1', 'Mozilla/5.0');
+      user.recordAuthentication('192.168.1.1', 'Mozilla/5.0');
 
-      expect(session).toBeDefined();
       expect(user.lastLoginAt).toBeDefined();
     });
 
@@ -559,7 +562,7 @@ describe('User Aggregate Root', () => {
       expect(persistence).toHaveProperty('full_name');
       expect(persistence).toHaveProperty('phone_number');
       expect(persistence).toHaveProperty('is_active');
-      expect(persistence).toHaveProperty('is_email_verified');
+      expect(persistence).toHaveProperty('is_verified');
       expect(persistence).toHaveProperty('created_at');
       expect(persistence).toHaveProperty('updated_at');
     });
