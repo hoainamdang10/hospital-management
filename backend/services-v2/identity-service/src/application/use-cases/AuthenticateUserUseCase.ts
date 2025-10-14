@@ -44,6 +44,7 @@ export interface AuthenticateUserResponse {
   degradationReason?: string;
   requiresMFA?: boolean;
   error?: string;
+  message?: string; // Error message for display
 }
 
 /**
@@ -101,18 +102,23 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
       return this.mapToResponse(authResult);
     } catch (error) {
       // Log authentication failure
+      const errorMessage = getErrorMessage(error);
       this.logger.error('Authentication failed', {
         email: Email.create(request.email).getMaskedEmail(),
         ipAddress: request.ipAddress,
-        error: getErrorMessage(error),
+        error: errorMessage,
         responseTime: Date.now() - startTime
       });
+
+      // Check if error is account lockout (preserve original error message)
+      const isAccountLocked = errorMessage.includes('Tài khoản đã bị khóa');
 
       return {
         success: false,
         mode: ServiceMode.DEGRADED_SERVICE,
-        degradationReason: 'AUTHENTICATION_FAILED',
-        error: 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
+        degradationReason: isAccountLocked ? 'ACCOUNT_LOCKED' : 'AUTHENTICATION_FAILED',
+        error: isAccountLocked ? errorMessage : 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.',
+        message: isAccountLocked ? errorMessage : 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
       };
     }
   }
@@ -276,6 +282,29 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
     this.logger.warn('Using fallback authentication', {
       email: Email.create(request.email).getMaskedEmail()
     });
+
+    // IMPORTANT: Check account lockout even in fallback mode
+    // This prevents bypassing brute force protection via fallback authentication
+    const email = Email.create(request.email);
+    const lockoutStatus = await this.userRepository.checkAccountLockout(email);
+
+    if (lockoutStatus.isLocked) {
+      this.logger.warn('Account is locked (fallback authentication blocked)', {
+        email: email.getMaskedEmail(),
+        unlockAt: lockoutStatus.unlockAt
+      });
+
+      // Record failed attempt (account locked)
+      await this.userRepository.recordLoginAttempt(
+        email,
+        false,
+        request.ipAddress,
+        request.userAgent,
+        'Account is locked (fallback blocked)'
+      );
+
+      throw new Error(`Tài khoản đã bị khóa. Vui lòng thử lại sau ${lockoutStatus.unlockAt?.toLocaleString('vi-VN')}`);
+    }
 
     const credentials: UserCredentials = {
       email: request.email,
