@@ -1,0 +1,89 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "description": "API Gateway for Hospital Management System V2 - Clean Architecture",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "start": "node dist/api-gateway/src/main.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest tests/integration",
+    "test:unit": "jest --testPathIgnorePatterns=integration",
+    "test:week1": "jest --testPathPattern='(TimeoutConfig|JWT|RateLimit)' --coverage",
+    "test:week2": "jest --testPathPattern='(CircuitBreaker|ProxyError|RetryPolicy)' --coverage",
+    "test:week3": "jest --testPathPattern='(CircuitBreakerConfigValidator|SizeLimitMiddleware|ServiceRegistry)' --coverage",
+    "test:all-weeks": "jest --coverage --coverageReporters=text --coverageReporters=html",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "health-check": "curl -f http://localhost:3101/health || exit 1",
+    "docker:build": "docker build -t api-gateway:latest .",
+    "docker:run": "docker run -p 3101:3101 --env-file .env api-gateway:latest"
+  },
+  "keywords": [
+    "api-gateway",
+    "microservices",
+    "authentication",
+    "authorization",
+    "healthcare",
+    "clean-architecture",
+    "ddd",
+    "jwt",
+    "proxy"
+  ],
+  "author": "Hospital Management Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "rate-limit-redis": "^4.2.0",
+    "redis": "^4.6.0",
+    "compression": "^1.7.4",
+    "http-proxy-middleware": "^2.0.6",
+    "jsonwebtoken": "^9.0.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.0",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.3.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "@types/express": "^4.17.20",
+    "@types/cors": "^2.8.15",
+    "@types/compression": "^1.7.4",
+    "@types/uuid": "^9.0.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/jest": "^29.5.6",
+    "typescript": "^5.2.2",
+    "tsc-alias": "^1.8.8",
+    "ts-node-dev": "^2.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "eslint": "^8.51.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@typescript-eslint/parser": "^6.7.4",
+    "prettier": "^3.0.3",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^2.0.15",
+    "axios-mock-adapter": "^1.22.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hospital-management/api-gateway.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hospital-management/api-gateway/issues"
+  },
+  "homepage": "https://github.com/hospital-management/api-gateway#readme"
+}
+

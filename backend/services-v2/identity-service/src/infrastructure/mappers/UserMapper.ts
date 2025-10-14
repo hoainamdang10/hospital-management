@@ -118,7 +118,7 @@ export class UserMapper {
       id: user.id,
       email: user.email.value,
       full_name: user.personalInfo.fullName,
-      role_type: user.healthcareRole.name,
+      role_type: user.healthcareRole.type.toLowerCase(), // Use type (ADMIN, DOCTOR) and convert to lowercase for database constraint
       citizen_id: user.personalInfo.citizenId,
       date_of_birth: user.personalInfo.dateOfBirth?.toISOString().split('T')[0],
       gender: user.personalInfo.gender,

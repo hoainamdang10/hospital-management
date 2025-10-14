@@ -8,25 +8,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientMergedEvent = void 0;
 const domain_event_1 = require("@shared/domain/base/domain-event");
 class PatientMergedEvent extends domain_event_1.DomainEvent {
-    constructor(duplicatePatient, masterPatientId, reason, performedBy) {
-        const patientId = duplicatePatient.getPatientId() || '';
+    constructor(duplicatePatientId, masterPatientId, reason, performedBy, correlationId, causationId, userIdForAudit) {
         const eventData = {
-            duplicatePatientId: patientId,
-            masterPatientId: masterPatientId.value,
+            duplicatePatientId,
+            masterPatientId,
             reason,
             performedBy
         };
-        super('PatientMerged', patientId, 'Patient', eventData, 1);
-        this.duplicatePatient = duplicatePatient;
+        super('PatientMerged', duplicatePatientId, 'Patient', eventData, 1, correlationId, causationId, userIdForAudit);
+        this.duplicatePatientId = duplicatePatientId;
         this.masterPatientId = masterPatientId;
         this.reason = reason;
         this.performedBy = performedBy;
     }
     getEventData() {
-        const patientId = this.duplicatePatient.getPatientId() || '';
         return {
-            duplicatePatientId: patientId,
-            masterPatientId: this.masterPatientId.value,
+            duplicatePatientId: this.duplicatePatientId,
+            masterPatientId: this.masterPatientId,
             reason: this.reason,
             performedBy: this.performedBy,
             mergedAt: this.occurredAt
@@ -36,7 +34,7 @@ class PatientMergedEvent extends domain_event_1.DomainEvent {
         return true;
     }
     getPatientId() {
-        return this.duplicatePatient.getPatientId();
+        return this.duplicatePatientId;
     }
     getPayload() {
         return this.getEventData();

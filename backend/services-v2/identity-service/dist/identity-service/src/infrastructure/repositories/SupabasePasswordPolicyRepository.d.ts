@@ -13,7 +13,6 @@ export declare class SupabasePasswordPolicyRepository implements IPasswordPolicy
     private readonly supabase;
     private readonly logger;
     private readonly tableName;
-    private readonly schema;
     constructor(supabase: SupabaseClient, logger: ILogger);
     /**
      * Get the current active password policy

@@ -137,20 +137,24 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     private getActiveInsurancePatientIds;
     /**
      * Save insurance info
+     * @private - Reserved for future use
      */
-    private saveInsurance;
+    private _saveInsurance;
     /**
      * Save emergency contacts
+     * @private - Reserved for future use
      */
-    private saveEmergencyContacts;
+    private _saveEmergencyContacts;
     /**
      * Save consents
+     * @private - Reserved for future use
      */
-    private saveConsents;
+    private _saveConsents;
     /**
      * Save links
+     * @private - Reserved for future use
      */
-    private saveLinks;
+    private _saveLinks;
     /**
      * Publish domain events from aggregate
      */

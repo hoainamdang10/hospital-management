@@ -2,39 +2,39 @@
 
 Provider/Staff microservice for Hospital Management System.
 
-## 🏗️ Architecture
+## Architecture
 
 - **Clean Architecture** with DDD patterns
 - **Port**: 3022 (External), 3002 (Internal)
 - **Schema**: provider_schema
 - **Patterns**: Aggregate, Event Sourcing, Saga
 
-## 🚀 Features
+## Features
 
 - Doctor Management
 - Staff Management
 - Schedules
 - Departments
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install
 ```
 
-## 🔧 Development
+## Development
 
 ```bash
 npm run dev
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 npm test
 ```
 
-## 🐳 Docker
+## Docker
 
 ```bash
 docker build -t provider-staff-service .

@@ -1,0 +1,68 @@
+c3e4741b59384ca24aba8d26f2ea8156
+"use strict";
+
+/**
+ * Patient Service Interface - Application Layer
+ * Interface for fetching patient data from Patient Registry Service
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Microservices
+ */
+/* istanbul ignore next */
+function cov_13adk8zdhw() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IPatientService.ts";
+  var hash = "ff7d20aa8e5c068e753fe52c9c9c6753bed87a26";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IPatientService.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IPatientService.ts",
+      mappings: ";AAAA;;;;;;;GAOG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IPatientService.ts"],
+      sourcesContent: ["/**\n * Patient Service Interface - Application Layer\n * Interface for fetching patient data from Patient Registry Service\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, Microservices\n */\n\nexport interface PatientDTO {\n  patientId: string;\n  fullName: string;\n  phone?: string;\n  email?: string;\n  dateOfBirth?: Date;\n  gender?: string;\n  nationalId?: string;\n  insuranceNumber?: string;\n  insuranceType?: string;\n  address?: string;\n}\n\nexport interface IPatientService {\n  /**\n   * Get patient by ID from Patient Registry Service\n   */\n  getPatient(patientId: string): Promise<PatientDTO | null>;\n\n  /**\n   * Get multiple patients by IDs\n   */\n  getPatients(patientIds: string[]): Promise<PatientDTO[]>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "ff7d20aa8e5c068e753fe52c9c9c6753bed87a26"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_13adk8zdhw = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_13adk8zdhw();
+cov_13adk8zdhw().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMTNhZGs4emRodyIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12Mlxcc2NoZWR1bGluZy1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFxzZXJ2aWNlc1xcSVBhdGllbnRTZXJ2aWNlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogUGF0aWVudCBTZXJ2aWNlIEludGVyZmFjZSAtIEFwcGxpY2F0aW9uIExheWVyXG4gKiBJbnRlcmZhY2UgZm9yIGZldGNoaW5nIHBhdGllbnQgZGF0YSBmcm9tIFBhdGllbnQgUmVnaXN0cnkgU2VydmljZVxuICogXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqIEBjb21wbGlhbmNlIENsZWFuIEFyY2hpdGVjdHVyZSwgTWljcm9zZXJ2aWNlc1xuICovXG5cbmV4cG9ydCBpbnRlcmZhY2UgUGF0aWVudERUTyB7XG4gIHBhdGllbnRJZDogc3RyaW5nO1xuICBmdWxsTmFtZTogc3RyaW5nO1xuICBwaG9uZT86IHN0cmluZztcbiAgZW1haWw/OiBzdHJpbmc7XG4gIGRhdGVPZkJpcnRoPzogRGF0ZTtcbiAgZ2VuZGVyPzogc3RyaW5nO1xuICBuYXRpb25hbElkPzogc3RyaW5nO1xuICBpbnN1cmFuY2VOdW1iZXI/OiBzdHJpbmc7XG4gIGluc3VyYW5jZVR5cGU/OiBzdHJpbmc7XG4gIGFkZHJlc3M/OiBzdHJpbmc7XG59XG5cbmV4cG9ydCBpbnRlcmZhY2UgSVBhdGllbnRTZXJ2aWNlIHtcbiAgLyoqXG4gICAqIEdldCBwYXRpZW50IGJ5IElEIGZyb20gUGF0aWVudCBSZWdpc3RyeSBTZXJ2aWNlXG4gICAqL1xuICBnZXRQYXRpZW50KHBhdGllbnRJZDogc3RyaW5nKTogUHJvbWlzZTxQYXRpZW50RFRPIHwgbnVsbD47XG5cbiAgLyoqXG4gICAqIEdldCBtdWx0aXBsZSBwYXRpZW50cyBieSBJRHNcbiAgICovXG4gIGdldFBhdGllbnRzKHBhdGllbnRJZHM6IHN0cmluZ1tdKTogUHJvbWlzZTxQYXRpZW50RFRPW10+O1xufVxuXG4iXSwibWFwcGluZ3MiOiI7O0FBQUE7Ozs7Ozs7O0FBQUE7QUFBQSxTQUFBQSxlQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxNQUFBLE9BQUFDLFFBQUE7RUFBQSxJQUFBQyxHQUFBO0VBQUEsSUFBQUMsWUFBQTtJQUFBTCxJQUFBO0lBQUFNLFlBQUE7TUFBQTtRQUFBQyxLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtJQUFBO0lBQUFFLEtBQUE7SUFBQUMsU0FBQTtJQUFBQyxDQUFBO01BQUE7SUFBQTtJQUFBQyxDQUFBO0lBQUFDLENBQUE7SUFBQUMsY0FBQTtNQUFBQyxJQUFBO01BQUFDLFFBQUE7TUFBQUMsS0FBQTtNQUFBQyxPQUFBO01BQUFDLGNBQUE7TUFBQUMsT0FBQTtJQUFBO0lBQUFDLGVBQUE7SUFBQXRCLElBQUE7RUFBQTtFQUFBLElBQUF1QixRQUFBLEdBQUF0QixNQUFBLENBQUFFLEdBQUEsTUFBQUYsTUFBQSxDQUFBRSxHQUFBO0VBQUEsS0FBQW9CLFFBQUEsQ0FBQXhCLElBQUEsS0FBQXdCLFFBQUEsQ0FBQXhCLElBQUEsRUFBQUMsSUFBQSxLQUFBQSxJQUFBO0lBQUF1QixRQUFBLENBQUF4QixJQUFBLElBQUFLLFlBQUE7RUFBQTtFQUFBLElBQUFvQixjQUFBLEdBQUFELFFBQUEsQ0FBQXhCLElBQUE7RUFBQSIsImlnbm9yZUxpc3QiOltdfQ==

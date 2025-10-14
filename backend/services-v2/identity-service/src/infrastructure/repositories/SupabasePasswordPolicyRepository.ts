@@ -28,7 +28,8 @@ interface PasswordPolicyRow {
 
 export class SupabasePasswordPolicyRepository implements IPasswordPolicyRepository {
   private readonly tableName = 'password_policies';
-  private readonly schema = 'auth_schema';
+  // Note: Supabase client is already configured with db.schema = 'auth_schema'
+  // So we don't need to prefix table names with schema
 
   constructor(
     private readonly supabase: SupabaseClient,
@@ -40,8 +41,8 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
    */
   async getCurrent(): Promise<PasswordPolicy> {
     try {
-      const { data, error } = await this.supabase
-        .from(`${this.schema}.${this.tableName}`)
+      const { data, error} = await this.supabase
+        .from(this.tableName) // Supabase doesn't support schema prefix in .from()
         .select('*')
         .eq('is_active', true)
         .order('updated_at', { ascending: false })
@@ -78,7 +79,7 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
       
       // 1. Deactivate all existing policies
       const { error: deactivateError } = await this.supabase
-        .from(`${this.schema}.${this.tableName}`)
+        .from(this.tableName) // Supabase doesn't support schema prefix in .from()
         .update({ is_active: false })
         .eq('is_active', true);
 
@@ -102,7 +103,7 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
       };
 
       const { data, error: insertError } = await this.supabase
-        .from(`${this.schema}.${this.tableName}`)
+        .from(this.tableName) // Supabase doesn't support schema prefix in .from()
         .insert(newRow)
         .select()
         .single();
@@ -129,7 +130,7 @@ export class SupabasePasswordPolicyRepository implements IPasswordPolicyReposito
   async getHistory(limit: number = 10): Promise<PasswordPolicy[]> {
     try {
       const { data, error } = await this.supabase
-        .from(`${this.schema}.${this.tableName}`)
+        .from(this.tableName) // Supabase doesn't support schema prefix in .from()
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(limit);

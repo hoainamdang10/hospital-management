@@ -1,0 +1,68 @@
+d9127d81e620429c9429c0edd822ad27
+"use strict";
+
+/**
+ * Recovery Method Repository Interface
+ * Defines contract for recovery method persistence
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
+ */
+/* istanbul ignore next */
+function cov_2ah64ic9v4() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryMethodRepository.ts";
+  var hash = "d6060651c8cc5e4ca0018ac02925d7b8eeea4a1e";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryMethodRepository.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryMethodRepository.ts",
+      mappings: ";AAAA;;;;;;;GAOG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryMethodRepository.ts"],
+      sourcesContent: ["/**\n * Recovery Method Repository Interface\n * Defines contract for recovery method persistence\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, Dependency Inversion Principle\n */\n\nimport { RecoveryMethod } from '../value-objects/RecoveryMethod';\n\n/**\n * Recovery Method Repository Interface\n * Domain layer defines the contract, infrastructure layer implements it\n */\nexport interface IRecoveryMethodRepository {\n  /**\n   * Get recovery methods for a user\n   * Returns null if user has no recovery methods configured\n   * \n   * @param userId - User ID\n   * @returns RecoveryMethod or null\n   */\n  getByUserId(userId: string): Promise<RecoveryMethod | null>;\n\n  /**\n   * Create or update recovery methods for a user\n   * If recovery methods exist, updates them\n   * If not, creates new record\n   * \n   * @param recoveryMethod - Recovery method to save\n   * @returns Saved recovery method\n   */\n  save(recoveryMethod: RecoveryMethod): Promise<RecoveryMethod>;\n\n  /**\n   * Check if recovery email is already used by another user\n   * Used to prevent duplicate recovery emails\n   * \n   * @param email - Recovery email to check\n   * @param excludeUserId - User ID to exclude from check (for updates)\n   * @returns true if email is already used\n   */\n  isRecoveryEmailUsed(email: string, excludeUserId?: string): Promise<boolean>;\n\n  /**\n   * Find user by recovery email\n   * Used for password reset via recovery email\n   * \n   * @param email - Recovery email\n   * @returns User ID or null if not found\n   */\n  findUserIdByRecoveryEmail(email: string): Promise<string | null>;\n\n  /**\n   * Delete recovery methods for a user\n   * Used when user account is deleted\n   * \n   * @param userId - User ID\n   */\n  delete(userId: string): Promise<void>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "d6060651c8cc5e4ca0018ac02925d7b8eeea4a1e"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2ah64ic9v4 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2ah64ic9v4();
+cov_2ah64ic9v4().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmFoNjRpYzl2NCIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxkb21haW5cXHJlcG9zaXRvcmllc1xcSVJlY292ZXJ5TWV0aG9kUmVwb3NpdG9yeS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIFJlY292ZXJ5IE1ldGhvZCBSZXBvc2l0b3J5IEludGVyZmFjZVxuICogRGVmaW5lcyBjb250cmFjdCBmb3IgcmVjb3ZlcnkgbWV0aG9kIHBlcnNpc3RlbmNlXG4gKiBcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICogQGNvbXBsaWFuY2UgQ2xlYW4gQXJjaGl0ZWN0dXJlLCBEZXBlbmRlbmN5IEludmVyc2lvbiBQcmluY2lwbGVcbiAqL1xuXG5pbXBvcnQgeyBSZWNvdmVyeU1ldGhvZCB9IGZyb20gJy4uL3ZhbHVlLW9iamVjdHMvUmVjb3ZlcnlNZXRob2QnO1xuXG4vKipcbiAqIFJlY292ZXJ5IE1ldGhvZCBSZXBvc2l0b3J5IEludGVyZmFjZVxuICogRG9tYWluIGxheWVyIGRlZmluZXMgdGhlIGNvbnRyYWN0LCBpbmZyYXN0cnVjdHVyZSBsYXllciBpbXBsZW1lbnRzIGl0XG4gKi9cbmV4cG9ydCBpbnRlcmZhY2UgSVJlY292ZXJ5TWV0aG9kUmVwb3NpdG9yeSB7XG4gIC8qKlxuICAgKiBHZXQgcmVjb3ZlcnkgbWV0aG9kcyBmb3IgYSB1c2VyXG4gICAqIFJldHVybnMgbnVsbCBpZiB1c2VyIGhhcyBubyByZWNvdmVyeSBtZXRob2RzIGNvbmZpZ3VyZWRcbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgLSBVc2VyIElEXG4gICAqIEByZXR1cm5zIFJlY292ZXJ5TWV0aG9kIG9yIG51bGxcbiAgICovXG4gIGdldEJ5VXNlcklkKHVzZXJJZDogc3RyaW5nKTogUHJvbWlzZTxSZWNvdmVyeU1ldGhvZCB8IG51bGw+O1xuXG4gIC8qKlxuICAgKiBDcmVhdGUgb3IgdXBkYXRlIHJlY292ZXJ5IG1ldGhvZHMgZm9yIGEgdXNlclxuICAgKiBJZiByZWNvdmVyeSBtZXRob2RzIGV4aXN0LCB1cGRhdGVzIHRoZW1cbiAgICogSWYgbm90LCBjcmVhdGVzIG5ldyByZWNvcmRcbiAgICogXG4gICAqIEBwYXJhbSByZWNvdmVyeU1ldGhvZCAtIFJlY292ZXJ5IG1ldGhvZCB0byBzYXZlXG4gICAqIEByZXR1cm5zIFNhdmVkIHJlY292ZXJ5IG1ldGhvZFxuICAgKi9cbiAgc2F2ZShyZWNvdmVyeU1ldGhvZDogUmVjb3ZlcnlNZXRob2QpOiBQcm9taXNlPFJlY292ZXJ5TWV0aG9kPjtcblxuICAvKipcbiAgICogQ2hlY2sgaWYgcmVjb3ZlcnkgZW1haWwgaXMgYWxyZWFkeSB1c2VkIGJ5IGFub3RoZXIgdXNlclxuICAgKiBVc2VkIHRvIHByZXZlbnQgZHVwbGljYXRlIHJlY292ZXJ5IGVtYWlsc1xuICAgKiBcbiAgICogQHBhcmFtIGVtYWlsIC0gUmVjb3ZlcnkgZW1haWwgdG8gY2hlY2tcbiAgICogQHBhcmFtIGV4Y2x1ZGVVc2VySWQgLSBVc2VyIElEIHRvIGV4Y2x1ZGUgZnJvbSBjaGVjayAoZm9yIHVwZGF0ZXMpXG4gICAqIEByZXR1cm5zIHRydWUgaWYgZW1haWwgaXMgYWxyZWFkeSB1c2VkXG4gICAqL1xuICBpc1JlY292ZXJ5RW1haWxVc2VkKGVtYWlsOiBzdHJpbmcsIGV4Y2x1ZGVVc2VySWQ/OiBzdHJpbmcpOiBQcm9taXNlPGJvb2xlYW4+O1xuXG4gIC8qKlxuICAgKiBGaW5kIHVzZXIgYnkgcmVjb3ZlcnkgZW1haWxcbiAgICogVXNlZCBmb3IgcGFzc3dvcmQgcmVzZXQgdmlhIHJlY292ZXJ5IGVtYWlsXG4gICAqIFxuICAgKiBAcGFyYW0gZW1haWwgLSBSZWNvdmVyeSBlbWFpbFxuICAgKiBAcmV0dXJucyBVc2VyIElEIG9yIG51bGwgaWYgbm90IGZvdW5kXG4gICAqL1xuICBmaW5kVXNlcklkQnlSZWNvdmVyeUVtYWlsKGVtYWlsOiBzdHJpbmcpOiBQcm9taXNlPHN0cmluZyB8IG51bGw+O1xuXG4gIC8qKlxuICAgKiBEZWxldGUgcmVjb3ZlcnkgbWV0aG9kcyBmb3IgYSB1c2VyXG4gICAqIFVzZWQgd2hlbiB1c2VyIGFjY291bnQgaXMgZGVsZXRlZFxuICAgKiBcbiAgICogQHBhcmFtIHVzZXJJZCAtIFVzZXIgSURcbiAgICovXG4gIGRlbGV0ZSh1c2VySWQ6IHN0cmluZyk6IFByb21pc2U8dm9pZD47XG59XG5cbiJdLCJtYXBwaW5ncyI6Ijs7QUFBQTs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

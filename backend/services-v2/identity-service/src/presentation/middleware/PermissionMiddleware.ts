@@ -145,7 +145,48 @@ export class PermissionMiddleware {
           return;
         }
 
-        // Check permissions
+        // Check resource ownership FIRST (if required)
+        // This allows users to access their own resources even without explicit permissions
+        if (options.checkOwnership && options.getResourceOwnerId) {
+          const resourceOwnerId = options.getResourceOwnerId(req);
+
+          // If user is accessing their own resource, allow it
+          if (resourceOwnerId && resourceOwnerId === req.user.userId) {
+            // User is accessing their own resource - allow it
+            next();
+            return;
+          }
+
+          // User is trying to access someone else's resource
+          // Check if they have permission to do so (admin, etc.)
+          const canAccessOthers = await this.permissionService.checkPermissionWithOwnership(
+            userId,
+            permissionsToCheck[0], // Use first permission for ownership check
+            resourceOwnerId || ''
+          );
+
+          if (!canAccessOthers) {
+            this.logger.warn('Resource ownership check failed', {
+              userId: userId.value,
+              resourceOwnerId,
+              path: req.path
+            });
+
+            res.status(403).json({
+              success: false,
+              error: 'Forbidden',
+              message: 'You can only access your own resources'
+            });
+            return;
+          }
+
+          // User has permission to access others' resources (admin)
+          // Continue to next middleware
+          next();
+          return;
+        }
+
+        // No ownership check required - check permissions normally
         let hasPermission: boolean;
         if (options.requireAll) {
           hasPermission = await this.permissionService.hasAllPermissions(
@@ -175,35 +216,6 @@ export class PermissionMiddleware {
             requiredPermissions: permissionsToCheck
           });
           return;
-        }
-
-        // Check resource ownership if required
-        if (options.checkOwnership && options.getResourceOwnerId) {
-          const resourceOwnerId = options.getResourceOwnerId(req);
-
-          if (resourceOwnerId && resourceOwnerId !== req.user.userId) {
-            // Check if user has permission to access others' resources
-            const canAccessOthers = await this.permissionService.checkPermissionWithOwnership(
-              userId,
-              permissionsToCheck[0], // Use first permission for ownership check
-              resourceOwnerId
-            );
-
-            if (!canAccessOthers) {
-              this.logger.warn('Resource ownership check failed', {
-                userId: userId.value,
-                resourceOwnerId,
-                path: req.path
-              });
-
-              res.status(403).json({
-                success: false,
-                error: 'Forbidden',
-                message: 'You can only access your own resources'
-              });
-              return;
-            }
-          }
         }
 
         // Permission granted

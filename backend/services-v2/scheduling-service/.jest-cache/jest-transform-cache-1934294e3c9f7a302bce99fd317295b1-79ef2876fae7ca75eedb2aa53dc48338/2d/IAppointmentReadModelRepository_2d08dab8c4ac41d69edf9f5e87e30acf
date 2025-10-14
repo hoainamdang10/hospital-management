@@ -1,0 +1,68 @@
+f1991648b86e53131f918dcd720b7a61
+"use strict";
+
+/**
+ * Appointment Read Model Repository Interface - Domain Layer
+ * CQRS Read Model Repository for querying denormalized appointment data
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, CQRS, DDD
+ */
+/* istanbul ignore next */
+function cov_18xdwh0p4g() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\repositories\\IAppointmentReadModelRepository.ts";
+  var hash = "b8b55f5a24df5de18e04f28abc29533ffdee8948";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\repositories\\IAppointmentReadModelRepository.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\repositories\\IAppointmentReadModelRepository.ts",
+      mappings: ";AAAA;;;;;;;GAOG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\repositories\\IAppointmentReadModelRepository.ts"],
+      sourcesContent: ["/**\n * Appointment Read Model Repository Interface - Domain Layer\n * CQRS Read Model Repository for querying denormalized appointment data\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, CQRS, DDD\n */\n\nimport {\n  AppointmentReadModel,\n  CreateAppointmentReadModelData,\n  PatientData,\n  DoctorData,\n  AppointmentReadModelFilters\n} from '../read-models/AppointmentReadModel';\n\nexport interface IAppointmentReadModelRepository {\n  /**\n   * Create new read model entry\n   */\n  create(data: CreateAppointmentReadModelData): Promise<AppointmentReadModel>;\n\n  /**\n   * Update patient data for all appointments with this patientId\n   */\n  updatePatientData(patientId: string, patientData: PatientData): Promise<number>;\n\n  /**\n   * Update doctor data for all appointments with this doctorId\n   */\n  updateDoctorData(doctorId: string, doctorData: DoctorData): Promise<number>;\n\n  /**\n   * Update appointment status\n   */\n  updateStatus(appointmentId: string, status: string): Promise<void>;\n\n  /**\n   * Find by appointment ID\n   */\n  findById(appointmentId: string): Promise<AppointmentReadModel | null>;\n\n  /**\n   * Find by patient ID\n   */\n  findByPatientId(patientId: string): Promise<AppointmentReadModel[]>;\n\n  /**\n   * Find by doctor ID\n   */\n  findByDoctorId(doctorId: string): Promise<AppointmentReadModel[]>;\n\n  /**\n   * Find by date range\n   */\n  findByDateRange(startDate: Date, endDate: Date): Promise<AppointmentReadModel[]>;\n\n  /**\n   * Find with filters\n   */\n  findWithFilters(filters: AppointmentReadModelFilters): Promise<AppointmentReadModel[]>;\n\n  /**\n   * Count appointments with filters\n   */\n  countWithFilters(filters: AppointmentReadModelFilters): Promise<number>;\n\n  /**\n   * Delete read model entry\n   */\n  delete(appointmentId: string): Promise<void>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "b8b55f5a24df5de18e04f28abc29533ffdee8948"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_18xdwh0p4g = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_18xdwh0p4g();
+cov_18xdwh0p4g().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMTh4ZHdoMHA0ZyIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12Mlxcc2NoZWR1bGluZy1zZXJ2aWNlXFxzcmNcXGRvbWFpblxccmVwb3NpdG9yaWVzXFxJQXBwb2ludG1lbnRSZWFkTW9kZWxSZXBvc2l0b3J5LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogQXBwb2ludG1lbnQgUmVhZCBNb2RlbCBSZXBvc2l0b3J5IEludGVyZmFjZSAtIERvbWFpbiBMYXllclxuICogQ1FSUyBSZWFkIE1vZGVsIFJlcG9zaXRvcnkgZm9yIHF1ZXJ5aW5nIGRlbm9ybWFsaXplZCBhcHBvaW50bWVudCBkYXRhXG4gKiBcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICogQGNvbXBsaWFuY2UgQ2xlYW4gQXJjaGl0ZWN0dXJlLCBDUVJTLCBERERcbiAqL1xuXG5pbXBvcnQge1xuICBBcHBvaW50bWVudFJlYWRNb2RlbCxcbiAgQ3JlYXRlQXBwb2ludG1lbnRSZWFkTW9kZWxEYXRhLFxuICBQYXRpZW50RGF0YSxcbiAgRG9jdG9yRGF0YSxcbiAgQXBwb2ludG1lbnRSZWFkTW9kZWxGaWx0ZXJzXG59IGZyb20gJy4uL3JlYWQtbW9kZWxzL0FwcG9pbnRtZW50UmVhZE1vZGVsJztcblxuZXhwb3J0IGludGVyZmFjZSBJQXBwb2ludG1lbnRSZWFkTW9kZWxSZXBvc2l0b3J5IHtcbiAgLyoqXG4gICAqIENyZWF0ZSBuZXcgcmVhZCBtb2RlbCBlbnRyeVxuICAgKi9cbiAgY3JlYXRlKGRhdGE6IENyZWF0ZUFwcG9pbnRtZW50UmVhZE1vZGVsRGF0YSk6IFByb21pc2U8QXBwb2ludG1lbnRSZWFkTW9kZWw+O1xuXG4gIC8qKlxuICAgKiBVcGRhdGUgcGF0aWVudCBkYXRhIGZvciBhbGwgYXBwb2ludG1lbnRzIHdpdGggdGhpcyBwYXRpZW50SWRcbiAgICovXG4gIHVwZGF0ZVBhdGllbnREYXRhKHBhdGllbnRJZDogc3RyaW5nLCBwYXRpZW50RGF0YTogUGF0aWVudERhdGEpOiBQcm9taXNlPG51bWJlcj47XG5cbiAgLyoqXG4gICAqIFVwZGF0ZSBkb2N0b3IgZGF0YSBmb3IgYWxsIGFwcG9pbnRtZW50cyB3aXRoIHRoaXMgZG9jdG9ySWRcbiAgICovXG4gIHVwZGF0ZURvY3RvckRhdGEoZG9jdG9ySWQ6IHN0cmluZywgZG9jdG9yRGF0YTogRG9jdG9yRGF0YSk6IFByb21pc2U8bnVtYmVyPjtcblxuICAvKipcbiAgICogVXBkYXRlIGFwcG9pbnRtZW50IHN0YXR1c1xuICAgKi9cbiAgdXBkYXRlU3RhdHVzKGFwcG9pbnRtZW50SWQ6IHN0cmluZywgc3RhdHVzOiBzdHJpbmcpOiBQcm9taXNlPHZvaWQ+O1xuXG4gIC8qKlxuICAgKiBGaW5kIGJ5IGFwcG9pbnRtZW50IElEXG4gICAqL1xuICBmaW5kQnlJZChhcHBvaW50bWVudElkOiBzdHJpbmcpOiBQcm9taXNlPEFwcG9pbnRtZW50UmVhZE1vZGVsIHwgbnVsbD47XG5cbiAgLyoqXG4gICAqIEZpbmQgYnkgcGF0aWVudCBJRFxuICAgKi9cbiAgZmluZEJ5UGF0aWVudElkKHBhdGllbnRJZDogc3RyaW5nKTogUHJvbWlzZTxBcHBvaW50bWVudFJlYWRNb2RlbFtdPjtcblxuICAvKipcbiAgICogRmluZCBieSBkb2N0b3IgSURcbiAgICovXG4gIGZpbmRCeURvY3RvcklkKGRvY3RvcklkOiBzdHJpbmcpOiBQcm9taXNlPEFwcG9pbnRtZW50UmVhZE1vZGVsW10+O1xuXG4gIC8qKlxuICAgKiBGaW5kIGJ5IGRhdGUgcmFuZ2VcbiAgICovXG4gIGZpbmRCeURhdGVSYW5nZShzdGFydERhdGU6IERhdGUsIGVuZERhdGU6IERhdGUpOiBQcm9taXNlPEFwcG9pbnRtZW50UmVhZE1vZGVsW10+O1xuXG4gIC8qKlxuICAgKiBGaW5kIHdpdGggZmlsdGVyc1xuICAgKi9cbiAgZmluZFdpdGhGaWx0ZXJzKGZpbHRlcnM6IEFwcG9pbnRtZW50UmVhZE1vZGVsRmlsdGVycyk6IFByb21pc2U8QXBwb2ludG1lbnRSZWFkTW9kZWxbXT47XG5cbiAgLyoqXG4gICAqIENvdW50IGFwcG9pbnRtZW50cyB3aXRoIGZpbHRlcnNcbiAgICovXG4gIGNvdW50V2l0aEZpbHRlcnMoZmlsdGVyczogQXBwb2ludG1lbnRSZWFkTW9kZWxGaWx0ZXJzKTogUHJvbWlzZTxudW1iZXI+O1xuXG4gIC8qKlxuICAgKiBEZWxldGUgcmVhZCBtb2RlbCBlbnRyeVxuICAgKi9cbiAgZGVsZXRlKGFwcG9pbnRtZW50SWQ6IHN0cmluZyk6IFByb21pc2U8dm9pZD47XG59XG5cbiJdLCJtYXBwaW5ncyI6Ijs7QUFBQTs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

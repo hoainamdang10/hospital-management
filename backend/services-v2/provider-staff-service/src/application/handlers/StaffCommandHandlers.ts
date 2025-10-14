@@ -9,7 +9,7 @@
  */
 
 import { RegisterStaffUseCase, RegisterStaffRequest, RegisterStaffResponse } from '../use-cases/RegisterStaffUseCase';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
+import { ILogger } from '../interfaces/ILogger';
 import { StaffType, EmploymentType, StaffStatus } from '../../domain/aggregates/ProviderStaff';
 
 // Command interfaces

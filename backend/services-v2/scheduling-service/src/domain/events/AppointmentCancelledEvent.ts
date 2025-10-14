@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, Vietnamese Healthcare Standards
  */
 
-import { DomainEvent } from '../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 
 export interface AppointmentCancelledEventData {
   appointmentId: string;
@@ -111,21 +111,24 @@ export interface AppointmentCancelledEventData {
  * Appointment Cancelled Domain Event
  * Triggered when an appointment is cancelled
  */
-export class AppointmentCancelledEvent extends DomainEvent<AppointmentCancelledEventData> {
-  
+export class AppointmentCancelledEvent extends DomainEvent {
+
   constructor(
-    appointmentId: string,
-    patientId: string,
-    providerId: string,
-    originalStartTime: Date,
-    cancellationReason: string,
-    cancelledBy: string,
-    originalEndTime?: Date
+    public readonly appointmentId: string,
+    public readonly patientId: string,
+    public readonly providerId: string,
+    public readonly originalStartTime: Date,
+    public readonly cancellationReason: string,
+    public readonly cancelledBy: string,
+    public readonly originalEndTime?: Date,
+    correlationId?: string,
+    causationId?: string,
+    userId?: string
   ) {
     const now = new Date();
     const hoursNotice = Math.max(0, (originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
     const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
-    
+
     const eventData: AppointmentCancelledEventData = {
       appointmentId,
       patientId,
@@ -219,30 +222,59 @@ export class AppointmentCancelledEvent extends DomainEvent<AppointmentCancelledE
       }
     };
 
-    super('AppointmentCancelled', eventData, {
-      aggregateId: appointmentId,
-      aggregateType: 'Appointment',
-      version: 1,
-      correlationId: `appointment-cancelled-${appointmentId}-${Date.now()}`,
-      causationId: cancelledBy,
-      metadata: {
-        cancelledBy,
-        cancelledAt: now.toISOString(),
-        cancellationReason,
-        hoursNotice: Math.round(hoursNotice * 100) / 100,
-        penaltyApplied: cancellationPolicy.penaltyApplied,
-        refundEligible: cancellationPolicy.refundEligible,
-        rescheduleAllowed: cancellationPolicy.rescheduleAllowed,
-        isLastMinuteCancellation: hoursNotice < 2,
-        isEmergencyCancellation: cancellationReason.toLowerCase().includes('emergency') || 
-                                cancellationReason.toLowerCase().includes('cấp cứu'),
-        vietnameseMetadata: {
-          cancellationReasonVi: cancellationReason,
-          policyDescriptionVi: AppointmentCancelledEvent.getPolicyDescription(cancellationPolicy, hoursNotice),
-          hoursNoticeVi: `${Math.round(hoursNotice * 100) / 100} giờ trước`
-        }
+    super(
+      'AppointmentCancelled',
+      appointmentId,
+      'Appointment',
+      eventData,
+      1,
+      correlationId,
+      causationId,
+      userId
+    );
+  }
+
+  /**
+   * Get event data payload (required by DomainEvent base class)
+   */
+  public getEventData(): AppointmentCancelledEventData {
+    const now = new Date();
+    const hoursNotice = Math.max(0, (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+    const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
+
+    return {
+      appointmentId: this.appointmentId,
+      patientId: this.patientId,
+      providerId: this.providerId,
+      originalStartTime: this.originalStartTime,
+      originalEndTime: this.originalEndTime || new Date(this.originalStartTime.getTime() + 30 * 60 * 1000),
+      cancellationReason: this.cancellationReason,
+      cancelledBy: this.cancelledBy,
+      cancelledAt: this.occurredAt,
+      hoursNotice: Math.round(hoursNotice * 100) / 100,
+      cancellationPolicy,
+      integrationEvents: {
+        providerScheduleUpdate: this.getProviderScheduleUpdate(),
+        patientAppointmentHistory: this.getPatientAppointmentHistory(),
+        notificationRequests: this.getNotificationRequests(),
+        billingUpdate: this.getBillingUpdate(),
+        clinicalUpdate: this.getClinicalUpdate()
       }
-    });
+    };
+  }
+
+  /**
+   * Check if event contains PHI (required by DomainEvent base class)
+   */
+  public containsPHI(): boolean {
+    return true; // Appointments contain Protected Health Information
+  }
+
+  /**
+   * Get patient ID (required for healthcare events)
+   */
+  public getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -327,28 +359,139 @@ export class AppointmentCancelledEvent extends DomainEvent<AppointmentCancelledE
    * Get integration events for specific service
    */
   public getIntegrationEventsForService(serviceName: string): any {
+    const eventData = this.getEventData();
     switch (serviceName.toLowerCase()) {
       case 'provider-staff':
       case 'provider':
-        return this.data.integrationEvents.providerScheduleUpdate;
-      
+        return eventData.integrationEvents.providerScheduleUpdate;
+
       case 'patient-registry':
       case 'patient':
-        return this.data.integrationEvents.patientAppointmentHistory;
-      
+        return eventData.integrationEvents.patientAppointmentHistory;
+
       case 'notification':
       case 'notifications':
-        return this.data.integrationEvents.notificationRequests;
-      
+        return eventData.integrationEvents.notificationRequests;
+
       case 'billing':
-        return this.data.integrationEvents.billingUpdate;
-      
+        return eventData.integrationEvents.billingUpdate;
+
       case 'clinical':
       case 'emr':
-        return this.data.integrationEvents.clinicalUpdate;
-      
+        return eventData.integrationEvents.clinicalUpdate;
+
       default:
         return null;
     }
+  }
+
+  /**
+   * Helper methods to get integration event parts
+   */
+  private getProviderScheduleUpdate() {
+    const now = new Date();
+    return {
+      providerId: this.providerId,
+      timeSlotId: `${this.providerId}-${this.originalStartTime.getTime()}`,
+      startTime: this.originalStartTime,
+      endTime: this.originalEndTime || new Date(this.originalStartTime.getTime() + 30 * 60 * 1000),
+      status: 'available' as const,
+      releasedAppointmentId: this.appointmentId,
+      releasedAt: now
+    };
+  }
+
+  private getPatientAppointmentHistory() {
+    const now = new Date();
+    const hoursNotice = Math.max(0, (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+    const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
+
+    return {
+      patientId: this.patientId,
+      appointmentId: this.appointmentId,
+      status: 'cancelled' as const,
+      cancellationReason: this.cancellationReason,
+      cancelledAt: now,
+      penaltyApplied: cancellationPolicy.penaltyApplied
+    };
+  }
+
+  private getNotificationRequests() {
+    const now = new Date();
+    const hoursNotice = Math.max(0, (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+    const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
+
+    return {
+      patientNotification: {
+        patientId: this.patientId,
+        type: 'appointment_cancelled' as const,
+        channels: AppointmentCancelledEvent.getPatientNotificationChannels(hoursNotice),
+        templateData: {
+          appointmentId: this.appointmentId,
+          originalDate: this.originalStartTime.toLocaleDateString('vi-VN'),
+          originalTime: this.originalStartTime.toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          cancellationReason: this.cancellationReason,
+          penaltyInfo: cancellationPolicy.penaltyApplied ?
+            `Phí hủy lịch: ${cancellationPolicy.penaltyAmount?.toLocaleString('vi-VN')} VNĐ` : undefined,
+          rescheduleInfo: cancellationPolicy.rescheduleAllowed ?
+            'Bạn có thể đặt lịch mới miễn phí' : 'Vui lòng liên hệ để đặt lịch mới'
+        },
+        priority: hoursNotice < 2 ? 'high' as const : 'normal' as const
+      },
+      providerNotification: {
+        providerId: this.providerId,
+        type: 'appointment_cancelled' as const,
+        channels: ['email', 'push'] as ('email' | 'push')[],
+        templateData: {
+          appointmentId: this.appointmentId,
+          patientName: 'Bệnh nhân',
+          originalDate: this.originalStartTime.toLocaleDateString('vi-VN'),
+          originalTime: this.originalStartTime.toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          cancellationReason: this.cancellationReason,
+          hoursNotice: Math.round(hoursNotice * 100) / 100
+        },
+        priority: 'normal' as const
+      }
+    };
+  }
+
+  private getBillingUpdate() {
+    const now = new Date();
+    const hoursNotice = Math.max(0, (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+    const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
+
+    if (!cancellationPolicy.penaltyApplied && !cancellationPolicy.refundEligible) {
+      return undefined;
+    }
+
+    return {
+      patientId: this.patientId,
+      appointmentId: this.appointmentId,
+      action: cancellationPolicy.penaltyApplied ? 'penalty' as const :
+              cancellationPolicy.refundEligible ? 'refund' as const : 'no_action' as const,
+      amount: cancellationPolicy.penaltyApplied ? cancellationPolicy.penaltyAmount :
+              cancellationPolicy.refundEligible ? (cancellationPolicy.refundPercentage || 0) * 100000 : undefined,
+      reason: this.cancellationReason,
+      processedAt: now
+    };
+  }
+
+  private getClinicalUpdate() {
+    const now = new Date();
+    const hoursNotice = Math.max(0, (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+
+    return {
+      patientId: this.patientId,
+      providerId: this.providerId,
+      appointmentId: this.appointmentId,
+      updateMedicalRecord: true,
+      cancellationNote: `Cuộc hẹn bị hủy: ${this.cancellationReason}. Thời gian thông báo: ${Math.round(hoursNotice * 100) / 100} giờ.`
+    };
   }
 }

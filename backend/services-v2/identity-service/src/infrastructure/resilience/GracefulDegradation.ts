@@ -35,6 +35,7 @@ export class IdentityServiceDegradation implements IDegradationService {
   private authClient: SupabaseAuthClient;
   private readonly MAX_CACHE_SIZE = 1000; // Prevent unbounded growth
   private readonly CACHE_CLEANUP_INTERVAL = 300000; // 5 minutes
+  private cleanupIntervalId?: NodeJS.Timeout;
 
   constructor(
     private config: DegradationConfig,
@@ -51,7 +52,7 @@ export class IdentityServiceDegradation implements IDegradationService {
    * Periodic cache cleanup to prevent memory leaks
    */
   private startCacheCleanup(): void {
-    setInterval(() => {
+    this.cleanupIntervalId = setInterval(() => {
       const now = Date.now();
       let cleanedCount = 0;
 
@@ -367,5 +368,16 @@ export class IdentityServiceDegradation implements IDegradationService {
     this.currentMode = ServiceMode.FULL_SERVICE;
     this.degradationStartTime = undefined;
     this.logger.info('Forced recovery to full service mode');
+  }
+
+  /**
+   * Stop cleanup interval (for testing/shutdown)
+   */
+  stop(): void {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = undefined;
+      this.logger.info('Degradation service stopped');
+    }
   }
 }

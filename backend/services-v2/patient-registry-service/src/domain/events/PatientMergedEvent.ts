@@ -5,8 +5,6 @@
  */
 
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { Patient } from '../aggregates/Patient';
-import { PatientId } from '../value-objects/PatientId';
 
 export interface PatientMergedEventData {
   duplicatePatientId: string;
@@ -18,33 +16,37 @@ export interface PatientMergedEventData {
 
 export class PatientMergedEvent extends DomainEvent {
   constructor(
-    public readonly duplicatePatient: Patient,
-    public readonly masterPatientId: PatientId,
+    public readonly duplicatePatientId: string,
+    public readonly masterPatientId: string,
     public readonly reason: string,
-    public readonly performedBy: string
+    public readonly performedBy: string,
+    correlationId?: string,
+    causationId?: string,
+    userIdForAudit?: string
   ) {
-    const patientId = duplicatePatient.getPatientId() || '';
     const eventData = {
-      duplicatePatientId: patientId,
-      masterPatientId: masterPatientId.value,
+      duplicatePatientId,
+      masterPatientId,
       reason,
       performedBy
     };
 
     super(
       'PatientMerged',
-      patientId,
+      duplicatePatientId,
       'Patient',
       eventData,
-      1
+      1,
+      correlationId,
+      causationId,
+      userIdForAudit
     );
   }
 
   public getEventData(): PatientMergedEventData {
-    const patientId = this.duplicatePatient.getPatientId() || '';
     return {
-      duplicatePatientId: patientId,
-      masterPatientId: this.masterPatientId.value,
+      duplicatePatientId: this.duplicatePatientId,
+      masterPatientId: this.masterPatientId,
       reason: this.reason,
       performedBy: this.performedBy,
       mergedAt: this.occurredAt
@@ -56,7 +58,7 @@ export class PatientMergedEvent extends DomainEvent {
   }
 
   public getPatientId(): string | null {
-    return this.duplicatePatient.getPatientId();
+    return this.duplicatePatientId;
   }
 
   public getPayload(): PatientMergedEventData {

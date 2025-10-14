@@ -1,0 +1,68 @@
+0227d4ea1e25cf6df824fd113526552f
+"use strict";
+
+/**
+ * Recovery History Repository Interface
+ * Defines contract for recovery attempt history persistence
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Dependency Inversion Principle
+ */
+/* istanbul ignore next */
+function cov_2eujch95z0() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryHistoryRepository.ts";
+  var hash = "9acbdfaf8ecfa3444f41bd2dd92d40ac0cc042dd";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryHistoryRepository.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryHistoryRepository.ts",
+      mappings: ";AAAA;;;;;;;GAOG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\domain\\repositories\\IRecoveryHistoryRepository.ts"],
+      sourcesContent: ["/**\n * Recovery History Repository Interface\n * Defines contract for recovery attempt history persistence\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, Dependency Inversion Principle\n */\n\nimport { RecoveryAttempt, RecoveryMethodType, AttemptType } from '../value-objects/RecoveryAttempt';\n\nexport interface RecoveryHistoryFilter {\n  userId?: string;\n  recoveryMethod?: RecoveryMethodType;\n  attemptType?: AttemptType;\n  success?: boolean;\n  startDate?: Date;\n  endDate?: Date;\n  page?: number;\n  pageSize?: number;\n}\n\nexport interface RecoveryHistoryResult {\n  attempts: RecoveryAttempt[];\n  totalCount: number;\n  page: number;\n  pageSize: number;\n  totalPages: number;\n}\n\n/**\n * Recovery History Repository Interface\n * Domain layer defines the contract, infrastructure layer implements it\n */\nexport interface IRecoveryHistoryRepository {\n  /**\n   * Log a recovery attempt\n   * Creates audit trail record\n   * \n   * @param attempt - Recovery attempt to log\n   * @returns Logged attempt with ID\n   */\n  log(attempt: RecoveryAttempt): Promise<RecoveryAttempt>;\n\n  /**\n   * Get recovery history for a user\n   * Returns paginated results\n   * \n   * @param filter - Filter criteria\n   * @returns Paginated recovery history\n   */\n  getHistory(filter: RecoveryHistoryFilter): Promise<RecoveryHistoryResult>;\n\n  /**\n   * Count recent recovery attempts\n   * Used for rate limiting\n   * \n   * @param userId - User ID\n   * @param attemptType - Type of attempt to count\n   * @param sinceDate - Count attempts since this date\n   * @returns Number of attempts\n   */\n  countRecentAttempts(\n    userId: string,\n    attemptType: AttemptType,\n    sinceDate: Date\n  ): Promise<number>;\n\n  /**\n   * Get recent failed attempts\n   * Used for suspicious activity detection\n   * \n   * @param userId - User ID\n   * @param sinceDate - Get attempts since this date\n   * @returns Failed attempts\n   */\n  getRecentFailedAttempts(userId: string, sinceDate: Date): Promise<RecoveryAttempt[]>;\n\n  /**\n   * Delete old recovery history\n   * Used for data retention compliance\n   * \n   * @param olderThan - Delete records older than this date\n   * @returns Number of records deleted\n   */\n  deleteOldHistory(olderThan: Date): Promise<number>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "9acbdfaf8ecfa3444f41bd2dd92d40ac0cc042dd"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2eujch95z0 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2eujch95z0();
+cov_2eujch95z0().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmV1amNoOTV6MCIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxkb21haW5cXHJlcG9zaXRvcmllc1xcSVJlY292ZXJ5SGlzdG9yeVJlcG9zaXRvcnkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBSZWNvdmVyeSBIaXN0b3J5IFJlcG9zaXRvcnkgSW50ZXJmYWNlXG4gKiBEZWZpbmVzIGNvbnRyYWN0IGZvciByZWNvdmVyeSBhdHRlbXB0IGhpc3RvcnkgcGVyc2lzdGVuY2VcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKiBAY29tcGxpYW5jZSBDbGVhbiBBcmNoaXRlY3R1cmUsIERlcGVuZGVuY3kgSW52ZXJzaW9uIFByaW5jaXBsZVxuICovXG5cbmltcG9ydCB7IFJlY292ZXJ5QXR0ZW1wdCwgUmVjb3ZlcnlNZXRob2RUeXBlLCBBdHRlbXB0VHlwZSB9IGZyb20gJy4uL3ZhbHVlLW9iamVjdHMvUmVjb3ZlcnlBdHRlbXB0JztcblxuZXhwb3J0IGludGVyZmFjZSBSZWNvdmVyeUhpc3RvcnlGaWx0ZXIge1xuICB1c2VySWQ/OiBzdHJpbmc7XG4gIHJlY292ZXJ5TWV0aG9kPzogUmVjb3ZlcnlNZXRob2RUeXBlO1xuICBhdHRlbXB0VHlwZT86IEF0dGVtcHRUeXBlO1xuICBzdWNjZXNzPzogYm9vbGVhbjtcbiAgc3RhcnREYXRlPzogRGF0ZTtcbiAgZW5kRGF0ZT86IERhdGU7XG4gIHBhZ2U/OiBudW1iZXI7XG4gIHBhZ2VTaXplPzogbnVtYmVyO1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIFJlY292ZXJ5SGlzdG9yeVJlc3VsdCB7XG4gIGF0dGVtcHRzOiBSZWNvdmVyeUF0dGVtcHRbXTtcbiAgdG90YWxDb3VudDogbnVtYmVyO1xuICBwYWdlOiBudW1iZXI7XG4gIHBhZ2VTaXplOiBudW1iZXI7XG4gIHRvdGFsUGFnZXM6IG51bWJlcjtcbn1cblxuLyoqXG4gKiBSZWNvdmVyeSBIaXN0b3J5IFJlcG9zaXRvcnkgSW50ZXJmYWNlXG4gKiBEb21haW4gbGF5ZXIgZGVmaW5lcyB0aGUgY29udHJhY3QsIGluZnJhc3RydWN0dXJlIGxheWVyIGltcGxlbWVudHMgaXRcbiAqL1xuZXhwb3J0IGludGVyZmFjZSBJUmVjb3ZlcnlIaXN0b3J5UmVwb3NpdG9yeSB7XG4gIC8qKlxuICAgKiBMb2cgYSByZWNvdmVyeSBhdHRlbXB0XG4gICAqIENyZWF0ZXMgYXVkaXQgdHJhaWwgcmVjb3JkXG4gICAqIFxuICAgKiBAcGFyYW0gYXR0ZW1wdCAtIFJlY292ZXJ5IGF0dGVtcHQgdG8gbG9nXG4gICAqIEByZXR1cm5zIExvZ2dlZCBhdHRlbXB0IHdpdGggSURcbiAgICovXG4gIGxvZyhhdHRlbXB0OiBSZWNvdmVyeUF0dGVtcHQpOiBQcm9taXNlPFJlY292ZXJ5QXR0ZW1wdD47XG5cbiAgLyoqXG4gICAqIEdldCByZWNvdmVyeSBoaXN0b3J5IGZvciBhIHVzZXJcbiAgICogUmV0dXJucyBwYWdpbmF0ZWQgcmVzdWx0c1xuICAgKiBcbiAgICogQHBhcmFtIGZpbHRlciAtIEZpbHRlciBjcml0ZXJpYVxuICAgKiBAcmV0dXJucyBQYWdpbmF0ZWQgcmVjb3ZlcnkgaGlzdG9yeVxuICAgKi9cbiAgZ2V0SGlzdG9yeShmaWx0ZXI6IFJlY292ZXJ5SGlzdG9yeUZpbHRlcik6IFByb21pc2U8UmVjb3ZlcnlIaXN0b3J5UmVzdWx0PjtcblxuICAvKipcbiAgICogQ291bnQgcmVjZW50IHJlY292ZXJ5IGF0dGVtcHRzXG4gICAqIFVzZWQgZm9yIHJhdGUgbGltaXRpbmdcbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgLSBVc2VyIElEXG4gICAqIEBwYXJhbSBhdHRlbXB0VHlwZSAtIFR5cGUgb2YgYXR0ZW1wdCB0byBjb3VudFxuICAgKiBAcGFyYW0gc2luY2VEYXRlIC0gQ291bnQgYXR0ZW1wdHMgc2luY2UgdGhpcyBkYXRlXG4gICAqIEByZXR1cm5zIE51bWJlciBvZiBhdHRlbXB0c1xuICAgKi9cbiAgY291bnRSZWNlbnRBdHRlbXB0cyhcbiAgICB1c2VySWQ6IHN0cmluZyxcbiAgICBhdHRlbXB0VHlwZTogQXR0ZW1wdFR5cGUsXG4gICAgc2luY2VEYXRlOiBEYXRlXG4gICk6IFByb21pc2U8bnVtYmVyPjtcblxuICAvKipcbiAgICogR2V0IHJlY2VudCBmYWlsZWQgYXR0ZW1wdHNcbiAgICogVXNlZCBmb3Igc3VzcGljaW91cyBhY3Rpdml0eSBkZXRlY3Rpb25cbiAgICogXG4gICAqIEBwYXJhbSB1c2VySWQgLSBVc2VyIElEXG4gICAqIEBwYXJhbSBzaW5jZURhdGUgLSBHZXQgYXR0ZW1wdHMgc2luY2UgdGhpcyBkYXRlXG4gICAqIEByZXR1cm5zIEZhaWxlZCBhdHRlbXB0c1xuICAgKi9cbiAgZ2V0UmVjZW50RmFpbGVkQXR0ZW1wdHModXNlcklkOiBzdHJpbmcsIHNpbmNlRGF0ZTogRGF0ZSk6IFByb21pc2U8UmVjb3ZlcnlBdHRlbXB0W10+O1xuXG4gIC8qKlxuICAgKiBEZWxldGUgb2xkIHJlY292ZXJ5IGhpc3RvcnlcbiAgICogVXNlZCBmb3IgZGF0YSByZXRlbnRpb24gY29tcGxpYW5jZVxuICAgKiBcbiAgICogQHBhcmFtIG9sZGVyVGhhbiAtIERlbGV0ZSByZWNvcmRzIG9sZGVyIHRoYW4gdGhpcyBkYXRlXG4gICAqIEByZXR1cm5zIE51bWJlciBvZiByZWNvcmRzIGRlbGV0ZWRcbiAgICovXG4gIGRlbGV0ZU9sZEhpc3Rvcnkob2xkZXJUaGFuOiBEYXRlKTogUHJvbWlzZTxudW1iZXI+O1xufVxuXG4iXSwibWFwcGluZ3MiOiI7O0FBQUE7Ozs7Ozs7O0FBQUE7QUFBQSxTQUFBQSxlQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxNQUFBLE9BQUFDLFFBQUE7RUFBQSxJQUFBQyxHQUFBO0VBQUEsSUFBQUMsWUFBQTtJQUFBTCxJQUFBO0lBQUFNLFlBQUE7TUFBQTtRQUFBQyxLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtJQUFBO0lBQUFFLEtBQUE7SUFBQUMsU0FBQTtJQUFBQyxDQUFBO01BQUE7SUFBQTtJQUFBQyxDQUFBO0lBQUFDLENBQUE7SUFBQUMsY0FBQTtNQUFBQyxJQUFBO01BQUFDLFFBQUE7TUFBQUMsS0FBQTtNQUFBQyxPQUFBO01BQUFDLGNBQUE7TUFBQUMsT0FBQTtJQUFBO0lBQUFDLGVBQUE7SUFBQXRCLElBQUE7RUFBQTtFQUFBLElBQUF1QixRQUFBLEdBQUF0QixNQUFBLENBQUFFLEdBQUEsTUFBQUYsTUFBQSxDQUFBRSxHQUFBO0VBQUEsS0FBQW9CLFFBQUEsQ0FBQXhCLElBQUEsS0FBQXdCLFFBQUEsQ0FBQXhCLElBQUEsRUFBQUMsSUFBQSxLQUFBQSxJQUFBO0lBQUF1QixRQUFBLENBQUF4QixJQUFBLElBQUFLLFlBQUE7RUFBQTtFQUFBLElBQUFvQixjQUFBLEdBQUFELFFBQUEsQ0FBQXhCLElBQUE7RUFBQSIsImlnbm9yZUxpc3QiOltdfQ==

@@ -6,7 +6,7 @@
  */
 
 import { Express } from 'express';
-import { DIContainer } from '../../../shared/infrastructure/di/container';
+import { DIContainer } from '@shared/infrastructure/di/container';
 
 export function setupRoutes(app: Express, container: DIContainer): void {
   // Setup API routes

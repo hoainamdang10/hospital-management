@@ -204,8 +204,8 @@ describe('SupabaseAuthService.resetPassword', () => {
     mockAuth.setSession.mockResolvedValue({ error: null });
     mockAuth.updateUser.mockResolvedValue({ error: null });
 
-    await expect(svc.resetPassword('token', 'NewPass123!')).resolves.toBeUndefined();
-    expect(mockAuth.setSession).toHaveBeenCalledWith({ access_token: 'token', refresh_token: 'token' });
+    await expect(svc.resetPassword('access-token', 'refresh-token', 'NewPass123!')).resolves.toBeUndefined();
+    expect(mockAuth.setSession).toHaveBeenCalledWith({ access_token: 'access-token', refresh_token: 'refresh-token' });
     expect(mockAuth.updateUser).toHaveBeenCalledWith({ password: 'NewPass123!' });
   });
 
@@ -213,7 +213,7 @@ describe('SupabaseAuthService.resetPassword', () => {
     const { svc } = makeService();
     mockAuth.setSession.mockResolvedValue({ error: { message: 'Invalid token' } });
 
-    await expect(svc.resetPassword('token', 'NewPass123!')).rejects.toThrow(/Failed to set session/);
+    await expect(svc.resetPassword('access-token', 'refresh-token', 'NewPass123!')).rejects.toThrow(/Failed to set session/);
   });
 
   it('ném lỗi khi updateUser thất bại', async () => {
@@ -221,14 +221,14 @@ describe('SupabaseAuthService.resetPassword', () => {
     mockAuth.setSession.mockResolvedValue({ error: null });
     mockAuth.updateUser.mockResolvedValue({ error: { message: 'Password too weak' } });
 
-    await expect(svc.resetPassword('token', 'NewPass123!')).rejects.toThrow(/Failed to reset password/);
+    await expect(svc.resetPassword('access-token', 'refresh-token', 'NewPass123!')).rejects.toThrow(/Failed to reset password/);
   });
 
   it('ném lỗi khi có exception', async () => {
     const { svc } = makeService();
     mockAuth.setSession.mockRejectedValue(new Error('Network error'));
 
-    await expect(svc.resetPassword('token', 'NewPass123!')).rejects.toThrow(/Reset password failed/);
+    await expect(svc.resetPassword('access-token', 'refresh-token', 'NewPass123!')).rejects.toThrow(/Reset password failed/);
   });
 });
 

@@ -74,6 +74,10 @@ declare class IdentityServiceApp {
     private lockAccountUseCase;
     private unlockAccountUseCase;
     private assignRoleUseCase;
+    private checkPermissionUseCase;
+    private checkPermissionsUseCase;
+    private checkRoleUseCase;
+    private checkRolesUseCase;
     constructor();
     /**
      * Initialize the application (async wrapper for constructor)
@@ -89,6 +93,7 @@ declare class IdentityServiceApp {
     private setupMiddleware;
     /**
      * Setup API routes
+     * Routes are now organized in separate modules under presentation/routes/
      */
     private setupRoutes;
     /**

@@ -17,6 +17,8 @@ describe('UpdateRecoveryMethodsUseCase', () => {
   let circuitBreaker: any;
   const testUserId = 'user-123';
 
+  let mockUserRepository: any;
+
   beforeEach(() => {
     mockRepository = {
       getByUserId: jest.fn(),
@@ -26,7 +28,7 @@ describe('UpdateRecoveryMethodsUseCase', () => {
       findUserIdByRecoveryEmail: jest.fn(),
     } as any;
 
-    const mockUserRepository = {
+    mockUserRepository = {
       findById: jest.fn(),
       findByEmail: jest.fn(),
       save: jest.fn(),
@@ -56,9 +58,21 @@ describe('UpdateRecoveryMethodsUseCase', () => {
   describe('execute', () => {
     it('should update recovery email successfully', async () => {
       // Arrange
+      const mockUser = {
+        id: { value: testUserId },
+        email: { value: 'user@example.com' }
+      };
+      mockUserRepository.findById.mockResolvedValue(mockUser);
       mockRepository.getByUserId.mockResolvedValue(null);
       mockRepository.isRecoveryEmailUsed.mockResolvedValue(false);
-      mockRepository.save.mockResolvedValue({} as any);
+      mockRepository.save.mockResolvedValue({
+        toObject: () => ({
+          recoveryEmail: 'new-recovery@example.com',
+          recoveryEmailVerified: false,
+          recoveryEmailVerifiedAt: null,
+          lastUpdatedAt: new Date().toISOString()
+        })
+      } as any);
 
       // Act
       const result = await useCase.execute({
@@ -73,6 +87,12 @@ describe('UpdateRecoveryMethodsUseCase', () => {
 
     it('should update existing recovery method', async () => {
       // Arrange
+      const mockUser = {
+        id: { value: testUserId },
+        email: { value: 'user@example.com' }
+      };
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+
       const existing = RecoveryMethod.create({
         userId: testUserId,
         recoveryEmail: 'old@example.com',
@@ -83,7 +103,14 @@ describe('UpdateRecoveryMethodsUseCase', () => {
       });
       mockRepository.getByUserId.mockResolvedValue(existing);
       mockRepository.isRecoveryEmailUsed.mockResolvedValue(false);
-      mockRepository.save.mockResolvedValue({} as any);
+      mockRepository.save.mockResolvedValue({
+        toObject: () => ({
+          recoveryEmail: 'new@example.com',
+          recoveryEmailVerified: false,
+          recoveryEmailVerifiedAt: null,
+          lastUpdatedAt: new Date().toISOString()
+        })
+      } as any);
 
       // Act
       const result = await useCase.execute({
@@ -122,6 +149,12 @@ describe('UpdateRecoveryMethodsUseCase', () => {
 
     it('should handle repository errors gracefully', async () => {
       // Arrange
+      const mockUser = {
+        id: { value: testUserId },
+        email: { value: 'user@example.com' }
+      };
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockRepository.isRecoveryEmailUsed.mockResolvedValue(false);
       mockRepository.getByUserId.mockRejectedValue(new Error('Database error'));
 
       // Act

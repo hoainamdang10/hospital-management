@@ -57,6 +57,7 @@ describe('ResetPasswordUseCase', () => {
 
       const request: ResetPasswordRequest = {
         accessToken: 'valid-reset-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'NewSecure123!',
         confirmPassword: 'NewSecure123!'
       };
@@ -67,7 +68,7 @@ describe('ResetPasswordUseCase', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.message).toContain('Mật khẩu đã được đặt lại thành công');
-      expect(mockAuthService.resetPassword).toHaveBeenCalledWith('valid-reset-token', 'NewSecure123!');
+      expect(mockAuthService.resetPassword).toHaveBeenCalledWith('valid-reset-token', 'valid-refresh-token', 'NewSecure123!');
       expect(mockLogger.info).toHaveBeenCalledWith('Password reset successful');
     });
   });
@@ -77,6 +78,7 @@ describe('ResetPasswordUseCase', () => {
       // Arrange
       const request: ResetPasswordRequest = {
         accessToken: 'valid-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'Short1!',
         confirmPassword: 'Short1!'
       };
@@ -95,6 +97,7 @@ describe('ResetPasswordUseCase', () => {
       // Arrange
       const request: ResetPasswordRequest = {
         accessToken: 'valid-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'lowercase123!',
         confirmPassword: 'lowercase123!'
       };
@@ -111,6 +114,7 @@ describe('ResetPasswordUseCase', () => {
       // Arrange
       const request: ResetPasswordRequest = {
         accessToken: 'valid-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'UPPERCASE123!',
         confirmPassword: 'UPPERCASE123!'
       };
@@ -127,6 +131,7 @@ describe('ResetPasswordUseCase', () => {
       // Arrange
       const request: ResetPasswordRequest = {
         accessToken: 'valid-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'NoNumberPass!',
         confirmPassword: 'NoNumberPass!'
       };
@@ -143,6 +148,7 @@ describe('ResetPasswordUseCase', () => {
       // Arrange
       const request: ResetPasswordRequest = {
         accessToken: 'valid-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'SecurePass123!',
         confirmPassword: 'DifferentPass123!'
       };
@@ -169,7 +175,8 @@ describe('ResetPasswordUseCase', () => {
       for (const password of validPasswords) {
         const request: ResetPasswordRequest = {
           accessToken: 'valid-token',
-          newPassword: password,
+        refreshToken: 'valid-refresh-token',
+        newPassword: password,
           confirmPassword: password
         };
 
@@ -187,6 +194,7 @@ describe('ResetPasswordUseCase', () => {
       // Arrange
       const request: ResetPasswordRequest = {
         accessToken: '',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'SecurePass123!',
         confirmPassword: 'SecurePass123!'
       };
@@ -203,6 +211,7 @@ describe('ResetPasswordUseCase', () => {
       // Arrange
       const request: ResetPasswordRequest = {
         accessToken: '   ',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'SecurePass123!',
         confirmPassword: 'SecurePass123!'
       };
@@ -223,6 +232,7 @@ describe('ResetPasswordUseCase', () => {
 
       const request: ResetPasswordRequest = {
         accessToken: 'expired-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'SecurePass123!',
         confirmPassword: 'SecurePass123!'
       };
@@ -247,6 +257,7 @@ describe('ResetPasswordUseCase', () => {
 
       const request: ResetPasswordRequest = {
         accessToken: 'valid-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'SecurePass123!',
         confirmPassword: 'SecurePass123!'
       };
@@ -267,6 +278,7 @@ describe('ResetPasswordUseCase', () => {
 
       const request: ResetPasswordRequest = {
         accessToken: 'valid-token',
+        refreshToken: 'valid-refresh-token',
         newPassword: 'SecurePass123!',
         confirmPassword: 'SecurePass123!'
       };

@@ -1,0 +1,126 @@
+/**
+ * MatchPatientsUseCase Tests
+ * Patient Registry Service - Unit Tests
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+
+import { MatchPatientsUseCase } from '../../../../src/application/use-cases/MatchPatientsUseCase';
+import { IPatientRepository } from '../../../../src/domain/repositories/IPatientRepository';
+import { Patient } from '../../../../src/domain/aggregates/Patient';
+import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
+import { ContactInfo } from '../../../../src/domain/value-objects/ContactInfo';
+import { BasicMedicalInfo } from '../../../../src/domain/value-objects/BasicMedicalInfo';
+
+describe('MatchPatientsUseCase', () => {
+  let useCase: MatchPatientsUseCase;
+  let mockRepository: jest.Mocked<IPatientRepository>;
+
+  beforeEach(() => {
+    mockRepository = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      findByUserId: jest.fn(),
+      findByNationalId: jest.fn(),
+      findByBHYTNumber: jest.fn(),
+      searchPatients: jest.fn(),
+      matchPatients: jest.fn(),
+      findWithFilters: jest.fn(),
+      delete: jest.fn(),
+      getHealthStatus: jest.fn()
+    } as any;
+
+    useCase = new MatchPatientsUseCase(mockRepository);
+  });
+
+  describe('execute', () => {
+    it('should find matching patients successfully', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const patient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.matchPatients.mockResolvedValue([
+        {
+          patient: patient,
+          matchGrade: 'certain' as 'certain' | 'probable' | 'possible' | 'certainly-not',
+          score: 95
+        }
+      ]);
+
+      const request = {
+        criteria: {
+          fullName: 'Nguyễn Văn A',
+          dateOfBirth: '1990-01-01',
+          nationalId: '001234567890'
+        },
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.matches).toBeDefined();
+      expect(result.data?.matches.length).toBeGreaterThan(0);
+    });
+
+    it('should return empty matches when no duplicates found', async () => {
+      mockRepository.matchPatients.mockResolvedValue([]);
+
+      const request = {
+        criteria: {
+          fullName: 'NonExistent Patient'
+        },
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.matches).toHaveLength(0);
+    });
+
+    it('should fail when insufficient criteria provided', async () => {
+      const request = {
+        criteria: {},
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('INSUFFICIENT_CRITERIA');
+    });
+  });
+});
+

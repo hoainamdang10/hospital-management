@@ -9,21 +9,22 @@
  */
 
 import {
-  OptimizedSupabaseClient,
-  OptimizedSupabaseClientConfig,
-} from "../../../../shared/infrastructure/database/optimized-supabase-client";
-import {
   DIContainer,
   ServiceLifetime,
 } from "../../../../shared/infrastructure/di/container";
-import { ILogger } from "../../../../shared/infrastructure/logging/logger.interface";
-import { IAuditService } from "../../../../shared/application/services/audit.service.interface";
-import { ConsoleLogger } from "../../../../shared/infrastructure/logging/console-logger";
-import { AuditService } from "../../../../shared/infrastructure/services/audit.service";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { IAuditService } from "../../application/interfaces/IAuditService";
 
 // Application Layer
 import { RegisterStaffUseCase } from "../../application/use-cases/RegisterStaffUseCase";
 import { GetStaffProfileUseCase } from "../../application/use-cases/GetStaffProfileUseCase";
+import { UpdateStaffProfileUseCase } from "../../application/use-cases/UpdateStaffProfileUseCase";
+import { DeactivateStaffUseCase } from "../../application/use-cases/DeactivateStaffUseCase";
+import { SearchStaffUseCase } from "../../application/use-cases/SearchStaffUseCase";
+import { GetStaffByDepartmentUseCase } from "../../application/use-cases/GetStaffByDepartmentUseCase";
+import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateStaffScheduleUseCase";
+import { AddStaffCertificationUseCase } from "../../application/use-cases/AddStaffCertificationUseCase";
+import { UpdateStaffAvailabilityUseCase } from "../../application/use-cases/UpdateStaffAvailabilityUseCase";
 import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
 
@@ -35,7 +36,8 @@ import { StaffDomainEventHandler } from "../events/StaffDomainEventHandler";
 // Service Tokens
 export const ServiceTokens = {
   // Infrastructure
-  SUPABASE_CLIENT: "SupabaseClient",
+  SUPABASE_URL: "SupabaseUrl",
+  SUPABASE_KEY: "SupabaseKey",
   LOGGER: "Logger",
   AUDIT_SERVICE: "AuditService",
   EVENT_BUS: "EventBus",
@@ -46,6 +48,13 @@ export const ServiceTokens = {
   // Use Cases
   REGISTER_STAFF_USE_CASE: "RegisterStaffUseCase",
   GET_STAFF_PROFILE_USE_CASE: "GetStaffProfileUseCase",
+  UPDATE_STAFF_PROFILE_USE_CASE: "UpdateStaffProfileUseCase",
+  DEACTIVATE_STAFF_USE_CASE: "DeactivateStaffUseCase",
+  SEARCH_STAFF_USE_CASE: "SearchStaffUseCase",
+  GET_STAFF_BY_DEPARTMENT_USE_CASE: "GetStaffByDepartmentUseCase",
+  UPDATE_STAFF_SCHEDULE_USE_CASE: "UpdateStaffScheduleUseCase",
+  ADD_STAFF_CERTIFICATION_USE_CASE: "AddStaffCertificationUseCase",
+  UPDATE_STAFF_AVAILABILITY_USE_CASE: "UpdateStaffAvailabilityUseCase",
 
   // Handlers
   STAFF_COMMAND_HANDLERS: "StaffCommandHandlers",
@@ -55,11 +64,23 @@ export const ServiceTokens = {
   STAFF_DOMAIN_EVENT_HANDLER: "StaffDomainEventHandler",
 } as const;
 
-export function setupDependencies(container: DIContainer): void {
+export function setupDependencies(): DIContainer {
+  const container = new DIContainer({
+    enableHealthcareCompliance: true,
+    enableHealthChecks: true,
+    enableMetrics: true
+  });
+
   // Register infrastructure services
   container.register(
     ServiceTokens.LOGGER,
-    () => new ConsoleLogger('provider-staff-service'),
+    () => ({
+      debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta),
+      info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta),
+      warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta),
+      error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta),
+      fatal: (message: string, meta?: any) => console.error(`[FATAL] ${message}`, meta),
+    }),
     ServiceLifetime.SINGLETON
   );
 
@@ -67,24 +88,31 @@ export function setupDependencies(container: DIContainer): void {
     ServiceTokens.AUDIT_SERVICE,
     (container) => {
       const logger = container.resolve(ServiceTokens.LOGGER);
-      return new AuditService({ logger });
+      return {
+        logDataAccess: async (entry: any) => {
+          logger.info('AUDIT: Data Access', entry);
+        },
+        logDataModification: async (entry: any) => {
+          logger.info('AUDIT: Data Modification', entry);
+        },
+        logSecurityEvent: async (entry: any) => {
+          logger.warn('AUDIT: Security Event', entry);
+        },
+      };
     },
     ServiceLifetime.SINGLETON
   );
 
-  // Register Supabase client
+  // Register Supabase URL and Key
   container.register(
-    ServiceTokens.SUPABASE_CLIENT,
-    () => {
-      const config: OptimizedSupabaseClientConfig = {
-        supabaseUrl: process.env.SUPABASE_URL || "",
-        supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-        serviceName: "provider-staff-service",
-        schemaName: "provider_schema",
-        enableOptimizations: true,
-      };
-      return new OptimizedSupabaseClient(config);
-    },
+    ServiceTokens.SUPABASE_URL,
+    () => process.env.SUPABASE_URL || "",
+    ServiceLifetime.SINGLETON
+  );
+
+  container.register(
+    ServiceTokens.SUPABASE_KEY,
+    () => process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     ServiceLifetime.SINGLETON
   );
 
@@ -92,9 +120,16 @@ export function setupDependencies(container: DIContainer): void {
   container.register(
     ServiceTokens.EVENT_BUS,
     (container) => {
-      const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+      const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
+      const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
       const logger = container.resolve(ServiceTokens.LOGGER);
-      return new SupabaseEventBus({ supabase: supabaseClient, logger });
+
+      return new SupabaseEventBus(
+        supabaseUrl,
+        supabaseKey,
+        logger,
+        'provider_schema'
+      );
     },
     ServiceLifetime.SCOPED
   );
@@ -103,17 +138,19 @@ export function setupDependencies(container: DIContainer): void {
   container.register(
     ServiceTokens.PROVIDER_STAFF_REPOSITORY,
     (container) => {
-      const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+      const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
+      const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
-      return new SupabaseProviderStaffRepository({
-        supabase: supabaseClient,
+      return new SupabaseProviderStaffRepository(
+        supabaseUrl,
+        supabaseKey,
         logger,
         auditService,
-        schema: 'provider_schema',
-        tableName: 'staff_profiles'
-      });
+        'provider_schema',
+        'staff_profiles'
+      );
     },
     ServiceLifetime.SCOPED
   );
@@ -142,6 +179,83 @@ export function setupDependencies(container: DIContainer): void {
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new GetStaffProfileUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.UPDATE_STAFF_PROFILE_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new UpdateStaffProfileUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.DEACTIVATE_STAFF_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new DeactivateStaffUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.SEARCH_STAFF_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new SearchStaffUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.GET_STAFF_BY_DEPARTMENT_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new GetStaffByDepartmentUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new UpdateStaffScheduleUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.ADD_STAFF_CERTIFICATION_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new AddStaffCertificationUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.UPDATE_STAFF_AVAILABILITY_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new UpdateStaffAvailabilityUseCase(staffRepository, logger);
     },
     ServiceLifetime.TRANSIENT
   );
@@ -193,4 +307,6 @@ export function setupDependencies(container: DIContainer): void {
     },
     ServiceLifetime.SCOPED
   );
+
+  return container;
 }

@@ -1,0 +1,480 @@
+import express, { Express } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
+import dotenv from 'dotenv';
+
+import { WinstonLogger } from '@infrastructure/logging/WinstonLogger';
+import { SupabaseJWTTokenVerifier } from '@infrastructure/auth/SupabaseJWTTokenVerifier';
+import { IdentityServiceClient } from '@infrastructure/auth/IdentityServiceClient';
+import { ServiceRegistry } from '@infrastructure/proxy/ServiceRegistry';
+import { RedisRateLimitClient } from '@infrastructure/cache/RedisRateLimitClient';
+import { AdvancedRateLimitMiddleware } from '@presentation/middleware/AdvancedRateLimitMiddleware';
+import { loadTimeoutConfig, validateTimeoutConfig } from '../../../shared/infrastructure/config/TimeoutConfig';
+
+import { AuthenticateRequestUseCase } from '@application/use-cases/AuthenticateRequestUseCase';
+import { AuthorizeRequestUseCase } from '@application/use-cases/AuthorizeRequestUseCase';
+
+import { AuthenticationMiddleware } from '@presentation/middleware/AuthenticationMiddleware';
+import { AuthorizationMiddleware } from '@presentation/middleware/AuthorizationMiddleware';
+import { LoggingMiddleware } from '@presentation/middleware/LoggingMiddleware';
+import { ErrorHandlingMiddleware } from '@presentation/middleware/ErrorHandlingMiddleware';
+import { SizeLimitMiddleware } from '@presentation/middleware/SizeLimitMiddleware';
+
+import { createHealthRoutes } from '@presentation/routes/healthRoutes';
+import { createProxyRoute } from '@presentation/routes/proxyRoutes';
+import { createMetricsRoutes } from '@presentation/routes/metricsRoutes';
+
+import { ServiceRoute } from '@domain/value-objects/ServiceRoute';
+
+dotenv.config();
+
+const PORT = process.env.PORT || 3101;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+const logger = new WinstonLogger(
+  process.env.LOG_LEVEL || 'info',
+  process.env.LOG_FORMAT || 'json'
+);
+
+class ApiGatewayApplication {
+  private app: Express;
+  private serviceRegistry: ServiceRegistry;
+  private authenticationMiddleware: AuthenticationMiddleware;
+  private authorizationMiddleware: AuthorizationMiddleware;
+  private loggingMiddleware: LoggingMiddleware;
+  private errorHandlingMiddleware: ErrorHandlingMiddleware;
+  private redisRateLimitClient?: RedisRateLimitClient;
+  private rateLimitMiddleware?: AdvancedRateLimitMiddleware;
+  private sizeLimitMiddleware: SizeLimitMiddleware;
+
+  constructor() {
+    this.app = express();
+    this.serviceRegistry = new ServiceRegistry(logger);
+
+    // Load and validate centralized timeout configuration
+    const timeouts = loadTimeoutConfig();
+    try {
+      validateTimeoutConfig(timeouts);
+      logger.info('Timeout configuration loaded and validated', {
+        healthCheck: timeouts.healthCheck,
+        serviceFast: timeouts.serviceCall.fast,
+        proxyRequest: timeouts.proxy.request,
+        proxyUpstream: timeouts.proxy.upstream
+      });
+    } catch (error) {
+      logger.error('Invalid timeout configuration', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+
+    // Validate required environment variables for Supabase JWT verification
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const jwtSecret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
+
+    if (!supabaseUrl || !supabaseServiceRoleKey || !jwtSecret) {
+      logger.error('Missing required environment variables for JWT verification', {
+        hasSupabaseUrl: !!supabaseUrl,
+        hasSupabaseKey: !!supabaseServiceRoleKey,
+        hasJwtSecret: !!jwtSecret
+      });
+      throw new Error('SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and JWT_SECRET are required');
+    }
+
+    // Validate that JWT_SECRET matches SUPABASE_JWT_SECRET if both are set
+    if (process.env.JWT_SECRET && process.env.SUPABASE_JWT_SECRET && 
+        process.env.JWT_SECRET !== process.env.SUPABASE_JWT_SECRET) {
+      logger.warn('JWT_SECRET and SUPABASE_JWT_SECRET do not match - using SUPABASE_JWT_SECRET for consistency');
+    }
+
+    // Use Supabase JWT Token Verifier (authoritative source)
+    const tokenVerifier = new SupabaseJWTTokenVerifier(
+      {
+        supabaseUrl,
+        supabaseServiceRoleKey,
+        jwtSecret: process.env.SUPABASE_JWT_SECRET || jwtSecret
+      },
+      logger
+    );
+
+    logger.info('JWT verification configured with Supabase Auth', {
+      supabaseUrl,
+      jwtSecretSource: process.env.SUPABASE_JWT_SECRET ? 'SUPABASE_JWT_SECRET' : 'JWT_SECRET'
+    });
+
+    const permissionChecker = new IdentityServiceClient(
+      {
+        identityServiceUrl: process.env.IDENTITY_SERVICE_URL || 'http://identity-service:3001',
+        timeout: timeouts.serviceCall.fast,
+        retries: 3
+      },
+      logger
+    );
+
+    const authenticateRequestUseCase = new AuthenticateRequestUseCase(tokenVerifier, logger);
+    const authorizeRequestUseCase = new AuthorizeRequestUseCase(permissionChecker, logger);
+
+    this.authenticationMiddleware = new AuthenticationMiddleware(authenticateRequestUseCase);
+    this.authorizationMiddleware = new AuthorizationMiddleware(authorizeRequestUseCase);
+    this.loggingMiddleware = new LoggingMiddleware(logger);
+    this.errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
+
+    const endpointLimits = new Map<string, number>();
+    endpointLimits.set('/api/v1/clinical/*/attachments', 50 * 1024 * 1024);
+    endpointLimits.set('/api/v1/patients/*/documents', 50 * 1024 * 1024);
+    endpointLimits.set('/api/v1/billing/*/receipts', 10 * 1024 * 1024);
+
+    this.sizeLimitMiddleware = new SizeLimitMiddleware(
+      {
+        defaultLimit: parseInt(process.env.REQUEST_SIZE_LIMIT || String(1024 * 1024)),
+        endpointLimits,
+        enableResponseSizeMonitoring: process.env.ENABLE_RESPONSE_SIZE_MONITORING !== 'false',
+        maxResponseSize: parseInt(process.env.MAX_RESPONSE_SIZE || String(10 * 1024 * 1024))
+      },
+      logger
+    );
+
+    this.registerServiceRoutes();
+  }
+
+  async initialize(): Promise<void> {
+    logger.info('Initializing API Gateway...');
+
+    // Initialize Redis for rate limiting
+    try {
+      this.redisRateLimitClient = new RedisRateLimitClient(
+        {
+          url: process.env.REDIS_URL || 'redis://redis-v2:6379',
+          password: process.env.REDIS_PASSWORD,
+          db: parseInt(process.env.REDIS_RATE_LIMIT_DB || '1')
+        },
+        logger
+      );
+
+      await this.redisRateLimitClient.connect();
+      logger.info('Redis rate limit client connected successfully');
+
+      // Initialize advanced rate limiting
+      const rateLimitConfig = {
+        global: {
+          windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+          max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'),
+        },
+        perUser: {
+          windowMs: parseInt(process.env.RATE_LIMIT_USER_WINDOW_MS || '900000'),
+          max: parseInt(process.env.RATE_LIMIT_USER_MAX_REQUESTS || '500'),
+        },
+        perEndpoint: {
+          '/api/v1/auth/login': {
+            windowMs: 15 * 60 * 1000,
+            max: 5,
+          },
+          '/api/v1/auth/register': {
+            windowMs: 60 * 60 * 1000,
+            max: 3,
+          },
+          '/api/v1/auth/password/reset': {
+            windowMs: 60 * 60 * 1000,
+            max: 3,
+          },
+          '/api/v1/patients': {
+            windowMs: 60 * 1000,
+            max: 100,
+          },
+          '/api/v1/patients/*/medical-history': {
+            windowMs: 60 * 1000,
+            max: 50,
+          },
+          '/api/v1/providers/*/schedule': {
+            windowMs: 60 * 1000,
+            max: 100,
+          },
+          '/api/v1/appointments': {
+            windowMs: 60 * 1000,
+            max: 50,
+          },
+          '/api/v1/clinical/records': {
+            windowMs: 60 * 1000,
+            max: 50,
+          },
+          '/api/v1/billing/payments': {
+            windowMs: 60 * 1000,
+            max: 10,
+          },
+          '/api/v1/billing/invoices': {
+            windowMs: 60 * 1000,
+            max: 50,
+          },
+        },
+      };
+
+      this.rateLimitMiddleware = new AdvancedRateLimitMiddleware(
+        this.redisRateLimitClient,
+        rateLimitConfig,
+        logger
+      );
+
+      logger.info('Advanced rate limiting configured', {
+        globalMax: rateLimitConfig.global.max,
+        perUserMax: rateLimitConfig.perUser.max,
+        endpointCount: Object.keys(rateLimitConfig.perEndpoint).length
+      });
+
+    } catch (error) {
+      logger.error('Failed to initialize Redis rate limiting', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      logger.warn('Falling back to in-memory rate limiting');
+    }
+
+    this.setupMiddleware();
+    this.setupRoutes();
+    this.setupErrorHandling();
+
+    logger.info('API Gateway initialization complete');
+  }
+
+  private registerServiceRoutes(): void {
+    logger.info('Registering service routes...');
+
+    const routes = [
+      ServiceRoute.create({
+        serviceName: 'identity-service',
+        baseUrl: process.env.IDENTITY_SERVICE_URL || 'http://identity-service:3001',
+        pathPrefix: '/api/v1/auth',
+        requiresAuth: false
+      }),
+      ServiceRoute.create({
+        serviceName: 'patient-registry-service',
+        baseUrl: process.env.PATIENT_REGISTRY_SERVICE_URL || 'http://patient-registry-service:3003',
+        pathPrefix: '/api/v1/patients',
+        requiresAuth: true,
+        requiredPermissions: ['patient:read']
+      }),
+      ServiceRoute.create({
+        serviceName: 'provider-staff-service',
+        baseUrl: process.env.PROVIDER_STAFF_SERVICE_URL || 'http://provider-staff-service:3002',
+        pathPrefix: '/api/v1/providers',
+        requiresAuth: true,
+        requiredPermissions: ['provider:read']
+      }),
+      ServiceRoute.create({
+        serviceName: 'scheduling-service',
+        baseUrl: process.env.SCHEDULING_SERVICE_URL || 'http://scheduling-service:3004',
+        pathPrefix: '/api/v1/appointments',
+        requiresAuth: true,
+        requiredPermissions: ['appointment:read']
+      }),
+      ServiceRoute.create({
+        serviceName: 'clinical-emr-service',
+        baseUrl: process.env.CLINICAL_EMR_SERVICE_URL || 'http://clinical-emr-service:3007',
+        pathPrefix: '/api/v1/clinical',
+        requiresAuth: true,
+        requiredPermissions: ['clinical:read']
+      }),
+      ServiceRoute.create({
+        serviceName: 'billing-service',
+        baseUrl: process.env.BILLING_SERVICE_URL || 'http://billing-service:3009',
+        pathPrefix: '/api/v1/billing',
+        requiresAuth: true,
+        requiredPermissions: ['billing:read']
+      })
+    ];
+
+    routes.forEach(route => this.serviceRegistry.registerRoute(route));
+
+    logger.info(`Registered ${routes.length} service routes`);
+  }
+
+  private setupMiddleware(): void {
+    logger.info('Setting up middleware...');
+
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:']
+        }
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+      }
+    }));
+
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
+    this.app.use(cors({
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id']
+    }));
+
+    this.app.use(compression());
+
+    const defaultLimit = process.env.REQUEST_SIZE_LIMIT || '1mb';
+    this.app.use(express.json({ limit: defaultLimit }));
+    this.app.use(express.urlencoded({ extended: true, limit: defaultLimit }));
+
+    this.app.use(this.sizeLimitMiddleware.requestSizeLimit());
+    this.app.use(this.sizeLimitMiddleware.responseSizeMonitor());
+
+    logger.info('Size limits configured', {
+      defaultLimit,
+      ...this.sizeLimitMiddleware.getStats()
+    });
+
+    // Apply rate limiting (Redis-based if available, fallback to in-memory)
+    if (this.rateLimitMiddleware) {
+      logger.info('Applying Redis-based distributed rate limiting');
+      this.app.use('/api/', this.rateLimitMiddleware.globalLimiter());
+      this.app.use('/api/', this.rateLimitMiddleware.perUserLimiter());
+      
+      // Apply strict rate limiting to sensitive endpoints
+      this.app.use('/api/v1/auth/login', this.rateLimitMiddleware.strictLimiter());
+      this.app.use('/api/v1/auth/register', this.rateLimitMiddleware.strictLimiter());
+    } else {
+      logger.warn('Using in-memory rate limiting (not recommended for production)');
+      const globalLimiter = rateLimit({
+        windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+        max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'),
+        message: 'Too many requests from this IP, please try again later',
+        standardHeaders: true,
+        legacyHeaders: false
+      });
+      this.app.use('/api/', globalLimiter);
+    }
+
+    this.app.use(this.loggingMiddleware.logRequests());
+
+    logger.info('Middleware setup complete');
+  }
+
+  private setupRoutes(): void {
+    logger.info('Setting up routes...');
+
+    this.app.use('/health', createHealthRoutes(this.serviceRegistry, logger));
+    this.app.use('/', createHealthRoutes(this.serviceRegistry, logger));
+    this.app.use('/metrics', createMetricsRoutes(this.serviceRegistry, logger));
+
+    const routes = this.serviceRegistry.getAllRoutes();
+
+    routes.forEach(route => {
+      const middlewares: any[] = [];
+
+      if (route.requiresAuth) {
+        middlewares.push(this.authenticationMiddleware.authenticate());
+
+        if (route.requiredPermissions && route.requiredPermissions.length > 0) {
+          middlewares.push(
+            this.authorizationMiddleware.requireAnyPermission(route.requiredPermissions)
+          );
+        }
+
+        if (route.requiredRoles && route.requiredRoles.length > 0) {
+          middlewares.push(
+            this.authorizationMiddleware.requireAnyRole(route.requiredRoles)
+          );
+        }
+      } else {
+        middlewares.push(this.authenticationMiddleware.optionalAuthenticate());
+      }
+
+      middlewares.push(
+        createProxyRoute({
+          pathPrefix: route.pathPrefix,
+          target: route.baseUrl,
+          requiresAuth: route.requiresAuth
+        }, logger)
+      );
+
+      this.app.use(route.pathPrefix, ...middlewares);
+
+      logger.info('Route registered', {
+        path: route.pathPrefix,
+        service: route.serviceName,
+        requiresAuth: route.requiresAuth,
+        permissions: route.requiredPermissions,
+        roles: route.requiredRoles
+      });
+    });
+
+    logger.info('Routes setup complete');
+  }
+
+  private setupErrorHandling(): void {
+    this.app.use(this.errorHandlingMiddleware.handleNotFound());
+    this.app.use(this.errorHandlingMiddleware.handleErrors());
+  }
+
+  public async start(): Promise<void> {
+    try {
+      this.app.listen(PORT, () => {
+        logger.info(`🚀 API Gateway started successfully`, {
+          port: PORT,
+          environment: NODE_ENV,
+          timestamp: new Date().toISOString()
+        });
+
+        logger.info('📋 Registered routes:', {
+          routes: this.serviceRegistry.getAllRoutes().map(r => ({
+            service: r.serviceName,
+            path: r.pathPrefix,
+            requiresAuth: r.requiresAuth
+          }))
+        });
+      });
+
+      process.on('SIGTERM', () => this.shutdown());
+      process.on('SIGINT', () => this.shutdown());
+
+    } catch (error) {
+      logger.error('Failed to start API Gateway', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      process.exit(1);
+    }
+  }
+
+  private async shutdown(): Promise<void> {
+    logger.info('Shutting down API Gateway...');
+
+    // Disconnect Redis client
+    if (this.redisRateLimitClient) {
+      try {
+        await this.redisRateLimitClient.disconnect();
+        logger.info('Redis rate limit client disconnected');
+      } catch (error) {
+        logger.error('Error disconnecting Redis rate limit client', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    logger.info('API Gateway shutdown complete');
+    process.exit(0);
+  }
+}
+
+const application = new ApiGatewayApplication();
+
+// Initialize and start application
+(async () => {
+  try {
+    await application.initialize();
+    await application.start();
+  } catch (error) {
+    logger.error('Failed to start API Gateway', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    process.exit(1);
+  }
+})();
+

@@ -94,9 +94,9 @@
 ## RBAC Tables
 
 ### 3. healthcare_roles
-**Status**: ✅ EXISTS (8 rows)  
-**RLS**: Disabled  
-**Purpose**: Stores healthcare role definitions
+**Status**: ✅ EXISTS (5 active roles)
+**RLS**: Disabled
+**Purpose**: Stores healthcare role definitions (ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT)
 
 **Columns**:
 - `id` (uuid, PK) - Role ID

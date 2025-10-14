@@ -8,7 +8,7 @@
  */
 
 import { Entity } from '@shared/domain/base/entity';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 
 export interface EmergencyContactProps {
   id: string;
@@ -42,7 +42,7 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
     isPrimary: boolean = false
   ): EmergencyContact {
     const now = new Date();
-    const id = uuidv4();
+    const id = uuid.v4();
 
     return new EmergencyContact({
       id,

@@ -96,7 +96,7 @@ export class LinkPatientsUseCase {
       // 7. Return success response
       return {
         success: true,
-        message: 'Link bệnh nhân thành công',
+        message: 'Đã link bệnh nhân thành công',
         data: {
           patientId: request.patientId,
           otherPatientId: request.otherPatientId,

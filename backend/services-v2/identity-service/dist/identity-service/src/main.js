@@ -20,6 +20,8 @@ const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const compression_1 = __importDefault(require("compression"));
 const supabase_js_1 = require("@supabase/supabase-js");
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const yamljs_1 = __importDefault(require("yamljs"));
 // Infrastructure imports
 const HealthChecks_1 = require("./infrastructure/monitoring/HealthChecks");
 const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegradation");
@@ -31,10 +33,11 @@ const PermissionService_1 = require("./infrastructure/services/PermissionService
 const SupabaseMFAService_1 = require("./infrastructure/services/SupabaseMFAService");
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
 const PermissionCache_1 = require("./infrastructure/cache/PermissionCache");
-const UserId_1 = require("./domain/value-objects/UserId");
 // Middleware imports
 const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
 const PermissionMiddleware_1 = require("./presentation/middleware/PermissionMiddleware");
+// Routes imports
+const routes_1 = require("./presentation/routes");
 const AuthenticateUserUseCase_1 = require("./application/use-cases/AuthenticateUserUseCase");
 const SupabaseAuthService_1 = require("./infrastructure/auth/SupabaseAuthService");
 const RegisterUserUseCase_1 = require("./application/use-cases/RegisterUserUseCase");
@@ -77,6 +80,11 @@ const ChangePasswordUseCase_1 = require("./application/use-cases/ChangePasswordU
 const LockAccountUseCase_1 = require("./application/use-cases/LockAccountUseCase");
 const UnlockAccountUseCase_1 = require("./application/use-cases/UnlockAccountUseCase");
 const AssignRoleUseCase_1 = require("./application/use-cases/AssignRoleUseCase");
+// Permission Check imports (for API Gateway)
+const CheckPermissionUseCase_1 = require("./application/use-cases/CheckPermissionUseCase");
+const CheckPermissionsUseCase_1 = require("./application/use-cases/CheckPermissionsUseCase");
+const CheckRoleUseCase_1 = require("./application/use-cases/CheckRoleUseCase");
+const CheckRolesUseCase_1 = require("./application/use-cases/CheckRolesUseCase");
 // Configuration
 const config = {
     port: process.env.PORT || 3001,
@@ -263,6 +271,10 @@ class IdentityServiceApp {
             this.lockAccountUseCase = new LockAccountUseCase_1.LockAccountUseCase(this.userRepository, this.sessionRepository, logger, CircuitBreaker_1.CircuitBreakerFactory.getBreaker('lock-account-use-case'));
             this.unlockAccountUseCase = new UnlockAccountUseCase_1.UnlockAccountUseCase(this.userRepository, logger, CircuitBreaker_1.CircuitBreakerFactory.getBreaker('unlock-account-use-case'));
             this.assignRoleUseCase = new AssignRoleUseCase_1.AssignRoleUseCase(this.userRepository, this.permissionRepository, logger, CircuitBreaker_1.CircuitBreakerFactory.getBreaker('assign-role-use-case'));
+            this.checkPermissionUseCase = new CheckPermissionUseCase_1.CheckPermissionUseCase(this.permissionService, logger);
+            this.checkPermissionsUseCase = new CheckPermissionsUseCase_1.CheckPermissionsUseCase(this.permissionService, logger);
+            this.checkRoleUseCase = new CheckRoleUseCase_1.CheckRoleUseCase(this.permissionService, logger);
+            this.checkRolesUseCase = new CheckRolesUseCase_1.CheckRolesUseCase(this.permissionService, logger);
             logger.info('Infrastructure initialized successfully');
         }
         catch (error) {
@@ -327,854 +339,77 @@ class IdentityServiceApp {
     }
     /**
      * Setup API routes
+     * Routes are now organized in separate modules under presentation/routes/
      */
     setupRoutes() {
-        // Health check endpoint
-        this.app.get('/health', async (_req, res) => {
-            try {
-                const health = await this.healthCheck.checkHealth();
-                const statusCode = health.overall === 'HEALTHY' ? 200 : 503;
-                res.status(statusCode).json(health);
-            }
-            catch (error) {
-                logger.error('Health check failed', { error: getErrorMessage(error) });
-                res.status(503).json({
-                    overall: 'UNHEALTHY',
-                    error: getErrorMessage(error),
-                    timestamp: new Date()
-                });
-            }
-        });
-        // Service info endpoint
-        this.app.get('/info', (_req, res) => {
-            res.json({
-                service: config.serviceName,
-                version: config.version,
-                environment: config.nodeEnv,
-                timestamp: new Date(),
-                uptime: process.uptime(),
-                mode: this.degradationService.getStatus().mode
-            });
-        });
-        // Circuit breaker status endpoint
-        this.app.get('/circuit-breakers', (_req, res) => {
-            try {
-                const status = CircuitBreaker_1.CircuitBreakerFactory.getHealthStatus();
-                res.json(status);
-            }
-            catch (error) {
-                logger.error('Failed to get circuit breaker status', { error: getErrorMessage(error) });
-                res.status(500).json({ error: 'Failed to get circuit breaker status' });
-            }
-        });
-        // Authentication endpoint
-        this.app.post('/auth/login', async (req, res) => {
-            try {
-                const request = {
-                    email: req.body.email,
-                    password: req.body.password,
-                    mfaCode: req.body.mfaCode,
-                    ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
-                    userAgent: req.get('User-Agent') || 'unknown',
-                    deviceInfo: {
-                        platform: req.body.platform,
-                        browser: req.body.browser,
-                        version: req.body.version
-                    }
-                };
-                const result = await this.authenticateUserUseCase.execute(request);
-                const statusCode = result.success ? 200 : 401;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Authentication endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Patient Self-Registration endpoint (PUBLIC)
-        // Security: Only allows patient registration, staff accounts must be created by admin
-        this.app.post('/auth/register', async (req, res) => {
-            try {
-                const request = {
-                    email: req.body.email,
-                    password: req.body.password,
-                    fullName: req.body.fullName,
-                    roleType: 'PATIENT', // ✅ SECURITY: Force patient role, prevent privilege escalation
-                    phoneNumber: req.body.phoneNumber,
-                    citizenId: req.body.citizenId,
-                    dateOfBirth: req.body.dateOfBirth,
-                    gender: req.body.gender,
-                    address: req.body.address
-                };
-                const result = await this.registerUserUseCase.execute(request);
-                const statusCode = result.success ? 201 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Registration endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Forgot Password endpoint
-        this.app.post('/auth/forgot-password', async (req, res) => {
-            try {
-                const request = {
-                    email: req.body.email
-                };
-                const result = await this.forgotPasswordUseCase.execute(request);
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Forgot password endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Reset Password endpoint
-        this.app.post('/auth/reset-password', async (req, res) => {
-            try {
-                const request = {
-                    accessToken: req.body.accessToken,
-                    refreshToken: req.body.refreshToken,
-                    newPassword: req.body.newPassword,
-                    confirmPassword: req.body.confirmPassword
-                };
-                const result = await this.resetPasswordUseCase.execute(request);
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Reset password endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Verify Email endpoint
-        this.app.post('/auth/verify-email', async (req, res) => {
-            try {
-                const request = {
-                    email: req.body.email,
-                    token: req.body.token
-                };
-                const result = await this.verifyEmailUseCase.execute(request);
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Verify email endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Accept Staff Invitation endpoint (PUBLIC)
-        // Staff clicks link from invitation email and sets password
-        this.app.post('/auth/activate-staff', async (req, res) => {
-            try {
-                const request = {
-                    invitationToken: req.body.invitationToken,
-                    password: req.body.password,
-                    confirmPassword: req.body.confirmPassword,
-                    fullName: req.body.fullName,
-                    phoneNumber: req.body.phoneNumber
-                };
-                const result = await this.acceptStaffInvitationUseCase.execute(request);
-                const statusCode = result.success ? 201 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Accept staff invitation endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Logout endpoint (authentication required)
-        this.app.post('/auth/logout', this.authMiddleware.authenticate(), async (req, res) => {
-            try {
-                if (!req.user) {
-                    res.status(401).json({
-                        success: false,
-                        error: 'Unauthorized',
-                        message: 'Authentication required'
-                    });
-                    return;
-                }
-                const accessToken = req.headers.authorization?.replace('Bearer ', '') || '';
-                const request = {
-                    userId: req.user.userId,
-                    accessToken,
-                    sessionId: typeof req.body.sessionId === 'string' ? req.body.sessionId : undefined
-                };
-                const result = await this.logoutUserUseCase.execute(request);
-                res.status(200).json(result);
-            }
-            catch (error) {
-                logger.error('Logout endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Token Refresh endpoint
-        this.app.post('/auth/refresh', async (req, res) => {
-            try {
-                const request = {
-                    refreshToken: req.body.refreshToken,
-                    ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
-                    userAgent: req.get('User-Agent') || 'unknown'
-                };
-                const result = await this.refreshTokenUseCase.execute(request);
-                const statusCode = result.success ? 200 : 401;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Refresh token endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Enable MFA endpoint
-        this.app.post('/auth/mfa/enable', async (req, res) => {
-            try {
-                const request = {
-                    userId: req.body.userId,
-                    method: req.body.method,
-                    phoneNumber: req.body.phoneNumber,
-                    email: req.body.email
-                };
-                const result = await this.enableMFAUseCase.execute(request);
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Enable MFA endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Verify MFA endpoint
-        this.app.post('/auth/mfa/verify', async (req, res) => {
-            try {
-                const request = {
-                    userId: req.body.userId,
-                    code: req.body.code,
-                    attemptType: req.body.attemptType || 'login',
-                    method: req.body.method || '2fa_app',
-                    ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
-                    userAgent: req.get('User-Agent') || 'unknown'
-                };
-                const result = await this.verifyMFAUseCase.execute(request);
-                const statusCode = result.success ? 200 : 401;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Verify MFA endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // Disable MFA endpoint
-        this.app.post('/auth/mfa/disable', async (req, res) => {
-            try {
-                const request = {
-                    userId: req.body.userId,
-                    verificationCode: req.body.verificationCode
-                };
-                const result = await this.disableMFAUseCase.execute(request);
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Disable MFA endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // ========================================
-        // PROTECTED ENDPOINTS - Require Authentication
-        // ========================================
-        // Get current user profile
-        this.app.get('/api/v1/users/me', this.authMiddleware.authenticate(), async (req, res) => {
-            try {
-                res.json({
-                    success: true,
-                    user: req.user
-                });
-            }
-            catch (error) {
-                logger.error('Get user profile error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to get user profile'
-                });
-            }
-        });
-        // Get user by ID (admin or self only)
-        this.app.get('/api/v1/users/:userId', this.authMiddleware.authenticate(), this.permissionMiddleware.requirePermission({
-            permissions: ['users:read', '*'],
-            checkOwnership: true,
-            getResourceOwnerId: (req) => req.params.userId
-        }), async (req, res) => {
-            try {
-                const result = await this.getUserUseCase.execute({
-                    userId: req.params.userId,
-                    requesterId: req.user.userId
-                });
-                const statusCode = result.success ? 200 : 404;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Get user error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to get user'
-                });
-            }
-        });
-        // List all users (admin only)
-        this.app.get('/api/v1/users', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const result = await this.listUsersUseCase.execute({
-                    requesterId: req.user.userId,
-                    page: parseInt(req.query.page) || 1,
-                    limit: parseInt(req.query.limit) || 20,
-                    roleType: req.query.roleType,
-                    isActive: req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined,
-                    searchTerm: req.query.search
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('List users error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to list users'
-                });
-            }
-        });
-        // Update user (admin or self only)
-        this.app.patch('/api/v1/users/:userId', this.authMiddleware.authenticate(), this.permissionMiddleware.requirePermission({
-            permissions: ['users:update', '*'],
-            checkOwnership: true,
-            getResourceOwnerId: (req) => req.params.userId
-        }), async (req, res) => {
-            try {
-                const result = await this.updateUserUseCase.execute({
-                    userId: req.params.userId,
-                    requesterId: req.user.userId,
-                    updates: req.body
-                });
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Update user error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to update user'
-                });
-            }
-        });
-        // Delete user (admin only)
-        this.app.delete('/api/v1/users/:userId', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const result = await this.deleteUserUseCase.execute({
-                    userId: req.params.userId,
-                    requesterId: req.user.userId,
-                    hardDelete: req.query.hard === 'true',
-                    reason: req.body.reason
-                });
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Delete user error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to delete user'
-                });
-            }
-        });
-        // ========================================
-        // P1 FEATURES - ACCOUNT MANAGEMENT ENDPOINTS
-        // ========================================
-        // Change password (authenticated user only - self)
-        this.app.post('/api/v1/users/:userId/change-password', this.authMiddleware.authenticate(), async (req, res, next) => {
-            try {
-                if (req.user && req.user.userId === req.params.userId) {
-                    return next();
-                }
-                const middleware = this.permissionMiddleware.requirePermission({
-                    permissions: ['users:update', '*']
-                });
-                return middleware(req, res, next);
-            }
-            catch (error) {
-                logger.error('Change password authorization error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Xác thực quyền thất bại'
-                });
-            }
-        }, async (req, res) => {
-            try {
-                const result = await this.changePasswordUseCase.execute({
-                    userId: req.params.userId,
-                    currentPassword: req.body.currentPassword,
-                    newPassword: req.body.newPassword,
-                    confirmPassword: req.body.confirmPassword
-                });
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Change password error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Đổi mật khẩu thất bại'
-                });
-            }
-        });
-        // Lock account (admin only)
-        this.app.post('/api/v1/users/:userId/lock', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const result = await this.lockAccountUseCase.execute({
-                    userId: req.params.userId,
-                    lockedBy: req.user.userId,
-                    reason: req.body.reason || 'Locked by administrator',
-                    terminateSessions: req.body.terminateSessions !== false // Default true
-                });
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Lock account error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Khóa tài khoản thất bại'
-                });
-            }
-        });
-        // Unlock account (admin only)
-        this.app.post('/api/v1/users/:userId/unlock', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const result = await this.unlockAccountUseCase.execute({
-                    userId: req.params.userId,
-                    unlockedBy: req.user.userId,
-                    reason: req.body.reason || 'Unlocked by administrator'
-                });
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Unlock account error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Mở khóa tài khoản thất bại'
-                });
-            }
-        });
-        // Assign role (admin only)
-        this.app.post('/api/v1/users/:userId/assign-role', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const result = await this.assignRoleUseCase.execute({
-                    userId: req.params.userId,
-                    roleType: req.body.roleType,
-                    assignedBy: req.user.userId,
-                    reason: req.body.reason || 'Role assigned by administrator'
-                });
-                const statusCode = result.success ? 200 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Assign role error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Gán vai trò thất bại'
-                });
-            }
-        });
-        // ========================================
-        // SESSION MANAGEMENT ENDPOINTS
-        // ========================================
-        // List active sessions for current user
-        this.app.get('/api/v1/users/:userId/sessions', this.authMiddleware.authenticate(), this.permissionMiddleware.requirePermission({
-            permissions: ['sessions:read', '*'],
-            checkOwnership: true,
-            getResourceOwnerId: (req) => req.params.userId
-        }), async (req, res) => {
-            try {
-                const result = await this.listActiveSessionsUseCase.execute({
-                    userId: req.params.userId,
-                    currentSessionId: req.user.sessionId // If available from auth middleware
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('List active sessions error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to list active sessions'
-                });
-            }
-        });
-        // Terminate a specific session
-        this.app.delete('/api/v1/users/:userId/sessions/:sessionId', this.authMiddleware.authenticate(), this.permissionMiddleware.requirePermission({
-            permissions: ['sessions:delete', '*'],
-            checkOwnership: true,
-            getResourceOwnerId: (req) => req.params.userId
-        }), async (req, res) => {
-            try {
-                const result = await this.terminateSessionUseCase.execute({
-                    userId: req.params.userId,
-                    sessionId: req.params.sessionId
-                });
-                return res.json(result);
-            }
-            catch (error) {
-                logger.error('Terminate session error', { error: getErrorMessage(error) });
-                // Handle specific errors
-                if (error instanceof Error) {
-                    if (error.message.includes('not found')) {
-                        return res.status(404).json({
-                            success: false,
-                            error: 'Session not found'
-                        });
-                    }
-                    if (error.message.includes('Unauthorized')) {
-                        return res.status(403).json({
-                            success: false,
-                            error: 'Unauthorized to terminate this session'
-                        });
-                    }
-                }
-                return res.status(500).json({
-                    success: false,
-                    error: 'Failed to terminate session'
-                });
-            }
-        });
-        // Terminate all sessions except current
-        this.app.delete('/api/v1/users/:userId/sessions', this.authMiddleware.authenticate(), this.permissionMiddleware.requirePermission({
-            permissions: ['sessions:delete', '*'],
-            checkOwnership: true,
-            getResourceOwnerId: (req) => req.params.userId
-        }), async (req, res) => {
-            try {
-                const result = await this.terminateAllSessionsUseCase.execute({
-                    userId: req.params.userId,
-                    currentSessionId: req.user.sessionId // If available from auth middleware
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Terminate all sessions error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to terminate all sessions'
-                });
-            }
-        });
-        // ========================================
-        // PASSWORD POLICY ENDPOINTS
-        // ========================================
-        // Get current password policy (public - no auth required)
-        this.app.get('/api/v1/password-policy', async (_req, res) => {
-            try {
-                const result = await this.getPasswordPolicyUseCase.execute();
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Get password policy error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to get password policy'
-                });
-            }
-        });
-        // Update password policy (admin only)
-        this.app.put('/api/v1/password-policy', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const result = await this.updatePasswordPolicyUseCase.execute({
-                    minLength: req.body.minLength,
-                    requireUppercase: req.body.requireUppercase,
-                    requireLowercase: req.body.requireLowercase,
-                    requireNumbers: req.body.requireNumbers,
-                    requireSpecialChars: req.body.requireSpecialChars,
-                    expirationDays: req.body.expirationDays,
-                    preventReuse: req.body.preventReuse,
-                    updatedBy: req.user.userId
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Update password policy error', { error: getErrorMessage(error) });
-                res.status(400).json({
-                    success: false,
-                    error: error instanceof Error ? error.message : 'Failed to update password policy'
-                });
-            }
-        });
-        // Validate password against current policy (public - no auth required)
-        this.app.post('/api/v1/password-policy/validate', async (req, res) => {
-            try {
-                const result = await this.validatePasswordUseCase.execute({
-                    password: req.body.password
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Validate password error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to validate password'
-                });
-            }
-        });
-        // ========================================
-        // ACCOUNT RECOVERY ENDPOINTS
-        // ========================================
-        // Get recovery methods (authenticated users can view their own)
-        this.app.get('/api/v1/account-recovery/methods', this.authMiddleware.authenticate(), async (req, res) => {
-            try {
-                const result = await this.getRecoveryMethodsUseCase.execute({
-                    userId: req.user.userId
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Get recovery methods error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to get recovery methods'
-                });
-            }
-        });
-        // Update recovery methods (authenticated users can update their own)
-        this.app.put('/api/v1/account-recovery/methods', this.authMiddleware.authenticate(), async (req, res) => {
-            try {
-                const result = await this.updateRecoveryMethodsUseCase.execute({
-                    userId: req.user.userId,
-                    recoveryEmail: req.body.recoveryEmail
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Update recovery methods error', { error: getErrorMessage(error) });
-                res.status(400).json({
-                    success: false,
-                    error: error instanceof Error ? error.message : 'Failed to update recovery methods'
-                });
-            }
-        });
-        // Request password reset (public - no auth required)
-        this.app.post('/api/v1/account-recovery/request-reset', async (req, res) => {
-            try {
-                const result = await this.requestPasswordResetUseCase.execute({
-                    email: req.body.email,
-                    method: req.body.method,
-                    ipAddress: req.ip,
-                    userAgent: req.get('user-agent')
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Request password reset error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to request password reset'
-                });
-            }
-        });
-        // Verify reset token (public - no auth required)
-        this.app.post('/api/v1/account-recovery/verify-token', async (req, res) => {
-            try {
-                const result = await this.verifyResetTokenUseCase.execute({
-                    token: req.body.token,
-                    ipAddress: req.ip,
-                    userAgent: req.get('user-agent')
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Verify reset token error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to verify reset token'
-                });
-            }
-        });
-        // Reset password with token (public - no auth required)
-        this.app.post('/api/v1/account-recovery/reset-password', async (req, res) => {
-            try {
-                const result = await this.resetPasswordWithTokenUseCase.execute({
-                    token: req.body.token,
-                    newPassword: req.body.newPassword,
-                    confirmPassword: req.body.confirmPassword,
-                    ipAddress: req.ip,
-                    userAgent: req.get('user-agent')
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Reset password with token error', { error: getErrorMessage(error) });
-                res.status(400).json({
-                    success: false,
-                    error: error instanceof Error ? error.message : 'Failed to reset password'
-                });
-            }
-        });
-        // Get recovery history (authenticated users can view their own)
-        this.app.get('/api/v1/account-recovery/history', this.authMiddleware.authenticate(), async (req, res) => {
-            try {
-                const result = await this.getRecoveryHistoryUseCase.execute({
-                    userId: req.user.userId,
-                    page: req.query.page ? parseInt(req.query.page) : undefined,
-                    pageSize: req.query.pageSize ? parseInt(req.query.pageSize) : undefined,
-                    startDate: req.query.startDate,
-                    endDate: req.query.endDate
-                });
-                res.json(result);
-            }
-            catch (error) {
-                logger.error('Get recovery history error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to get recovery history'
-                });
-            }
-        });
-        // ========================================
-        // ADMIN ENDPOINTS
-        // ========================================
-        // Graceful degradation control (admin only)
-        this.app.post('/admin/recovery', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), (_req, res) => {
-            try {
-                this.degradationService.forceRecovery();
-                res.json({ success: true, message: 'Service recovery initiated' });
-            }
-            catch (error) {
-                res.status(500).json({ error: getErrorMessage(error) });
-            }
-        });
-        // Get user permissions (authenticated users can check their own, admins can check anyone)
-        this.app.get('/api/v1/permissions/:userId', this.authMiddleware.authenticate(), this.permissionMiddleware.requirePermission({
-            permissions: ['permissions:read', '*'],
-            checkOwnership: true,
-            getResourceOwnerId: (req) => req.params.userId
-        }), async (req, res) => {
-            try {
-                const userIdString = req.params.userId;
-                const userId = UserId_1.UserId.fromString(userIdString);
-                const permissions = await this.permissionService.getEffectivePermissions(userId);
-                res.json({
-                    success: true,
-                    data: {
-                        userId: userIdString,
-                        permissions,
-                        cached: true,
-                        cacheTTL: '5 minutes'
-                    }
-                });
-            }
-            catch (error) {
-                logger.error('Get permissions error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to get permissions'
-                });
-            }
-        });
-        // Invalidate user permission cache (admin only)
-        this.app.post('/admin/permissions/invalidate/:userId', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const userIdString = req.params.userId;
-                const userId = UserId_1.UserId.fromString(userIdString);
-                await this.permissionService.invalidateCache(userId);
-                res.json({
-                    success: true,
-                    message: `Permission cache invalidated for user ${userIdString}`
-                });
-            }
-            catch (error) {
-                logger.error('Invalidate cache error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to invalidate cache'
-                });
-            }
-        });
-        // Invalidate permission cache for all users with a role (admin only)
-        this.app.post('/admin/permissions/invalidate-role/:roleType', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const roleType = req.params.roleType;
-                await this.permissionService.invalidateCacheForRole(roleType);
-                res.json({
-                    success: true,
-                    message: `Permission cache invalidated for all users with role ${roleType}`
-                });
-            }
-            catch (error) {
-                logger.error('Invalidate role cache error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Failed to invalidate role cache'
-                });
-            }
-        });
-        // Provision staff account (admin only)
-        this.app.post('/admin/staff/register', this.authMiddleware.authenticate(), this.permissionMiddleware.requireAdmin(), async (req, res) => {
-            try {
-                const request = {
-                    email: req.body.email,
-                    fullName: req.body.fullName,
-                    roleType: req.body.roleType,
-                    phoneNumber: req.body.phoneNumber,
-                    requesterId: req.user?.userId || '' // Admin user ID from auth middleware
-                };
-                const result = await this.provisionStaffUseCase.execute(request);
-                const statusCode = result.success ? 201 : 400;
-                res.status(statusCode).json(result);
-            }
-            catch (error) {
-                logger.error('Provision staff endpoint error', { error: getErrorMessage(error) });
-                res.status(500).json({
-                    success: false,
-                    error: 'Lỗi hệ thống, vui lòng thử lại sau'
-                });
-            }
-        });
-        // 404 handler
-        this.app.use('*', (req, res) => {
-            res.status(404).json({
-                error: 'Endpoint không tồn tại',
-                path: req.originalUrl,
-                method: req.method
-            });
-        });
+        // Swagger UI Documentation
+        try {
+            const swaggerDocument = yamljs_1.default.load('./openapi.yaml');
+            this.app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument, {
+                customCss: '.swagger-ui .topbar { display: none }',
+                customSiteTitle: 'Identity Service API Documentation'
+            }));
+            logger.info('Swagger UI available at /api-docs');
+        }
+        catch (error) {
+            logger.warn('Failed to load OpenAPI spec', { error: getErrorMessage(error) });
+        }
+        // Prepare dependencies for routes
+        const routeDeps = {
+            // Middleware
+            authMiddleware: this.authMiddleware,
+            permissionMiddleware: this.permissionMiddleware,
+            // Auth Use Cases
+            authenticateUserUseCase: this.authenticateUserUseCase,
+            registerUserUseCase: this.registerUserUseCase,
+            forgotPasswordUseCase: this.forgotPasswordUseCase,
+            resetPasswordUseCase: this.resetPasswordUseCase,
+            verifyEmailUseCase: this.verifyEmailUseCase,
+            logoutUserUseCase: this.logoutUserUseCase,
+            refreshTokenUseCase: this.refreshTokenUseCase,
+            // MFA Use Cases
+            enableMFAUseCase: this.enableMFAUseCase,
+            verifyMFAUseCase: this.verifyMFAUseCase,
+            disableMFAUseCase: this.disableMFAUseCase,
+            // User Management Use Cases
+            getUserUseCase: this.getUserUseCase,
+            updateUserUseCase: this.updateUserUseCase,
+            deleteUserUseCase: this.deleteUserUseCase,
+            listUsersUseCase: this.listUsersUseCase,
+            changePasswordUseCase: this.changePasswordUseCase,
+            lockAccountUseCase: this.lockAccountUseCase,
+            unlockAccountUseCase: this.unlockAccountUseCase,
+            assignRoleUseCase: this.assignRoleUseCase,
+            // Staff Management Use Cases
+            provisionStaffUseCase: this.provisionStaffUseCase,
+            acceptStaffInvitationUseCase: this.acceptStaffInvitationUseCase,
+            // Session Management Use Cases
+            listActiveSessionsUseCase: this.listActiveSessionsUseCase,
+            terminateSessionUseCase: this.terminateSessionUseCase,
+            terminateAllSessionsUseCase: this.terminateAllSessionsUseCase,
+            // Password Policy Use Cases
+            getPasswordPolicyUseCase: this.getPasswordPolicyUseCase,
+            updatePasswordPolicyUseCase: this.updatePasswordPolicyUseCase,
+            validatePasswordUseCase: this.validatePasswordUseCase,
+            // Account Recovery Use Cases
+            getRecoveryMethodsUseCase: this.getRecoveryMethodsUseCase,
+            updateRecoveryMethodsUseCase: this.updateRecoveryMethodsUseCase,
+            requestPasswordResetUseCase: this.requestPasswordResetUseCase,
+            verifyResetTokenUseCase: this.verifyResetTokenUseCase,
+            resetPasswordWithTokenUseCase: this.resetPasswordWithTokenUseCase,
+            getRecoveryHistoryUseCase: this.getRecoveryHistoryUseCase,
+            // Permission Check Use Cases
+            checkPermissionUseCase: this.checkPermissionUseCase,
+            checkPermissionsUseCase: this.checkPermissionsUseCase,
+            checkRoleUseCase: this.checkRoleUseCase,
+            checkRolesUseCase: this.checkRolesUseCase,
+            // Services
+            healthCheck: this.healthCheck,
+            degradationService: this.degradationService,
+            permissionService: this.permissionService
+        };
+        // Register all routes
+        (0, routes_1.registerRoutes)(this.app, routeDeps);
     }
     /**
      * Setup error handling middleware

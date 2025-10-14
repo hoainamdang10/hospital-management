@@ -50,7 +50,13 @@ describe('GetRecoveryHistoryUseCase', () => {
         'primary_email',
         'request_reset'
       );
-      mockRepository.getHistory.mockResolvedValue([attempt]);
+      mockRepository.getHistory.mockResolvedValue({
+        attempts: [attempt],
+        totalCount: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1
+      });
 
       // Act
       const result = await useCase.execute({ userId: testUserId });
@@ -63,7 +69,13 @@ describe('GetRecoveryHistoryUseCase', () => {
 
     it('should return empty history when no attempts', async () => {
       // Arrange
-      mockRepository.getHistory.mockResolvedValue([]);
+      mockRepository.getHistory.mockResolvedValue({
+        attempts: [],
+        totalCount: 0,
+        page: 1,
+        pageSize: 10,
+        totalPages: 0
+      });
 
       // Act
       const result = await useCase.execute({ userId: testUserId });

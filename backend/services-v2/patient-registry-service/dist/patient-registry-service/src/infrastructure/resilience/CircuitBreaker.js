@@ -183,10 +183,18 @@ class CircuitBreakerFactory {
     }
     static getHealthStatus() {
         const status = {};
+        let openBreakers = 0;
         for (const [name, breaker] of this.breakers) {
             status[name] = breaker.getStatus();
+            if (breaker.getState() === CircuitBreakerState.OPEN) {
+                openBreakers++;
+            }
         }
-        return status;
+        return {
+            totalBreakers: this.breakers.size,
+            openBreakers,
+            breakers: status
+        };
     }
     static resetAll() {
         for (const breaker of this.breakers.values()) {

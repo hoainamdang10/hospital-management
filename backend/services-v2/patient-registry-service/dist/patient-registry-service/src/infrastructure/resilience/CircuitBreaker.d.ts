@@ -94,13 +94,17 @@ export declare class CircuitBreakerFactory {
     private static breakers;
     static getBreaker(serviceName: string, config?: Partial<CircuitBreakerConfig>): PatientRegistryCircuitBreaker;
     static getAllBreakers(): Map<string, PatientRegistryCircuitBreaker>;
-    static getHealthStatus(): Record<string, {
-        serviceName: string;
-        state: CircuitBreakerState;
-        failureCount: number;
-        metrics: CircuitBreakerMetrics;
-        config: CircuitBreakerConfig;
-    }>;
+    static getHealthStatus(): {
+        totalBreakers: number;
+        openBreakers: number;
+        breakers: Record<string, {
+            serviceName: string;
+            state: CircuitBreakerState;
+            failureCount: number;
+            metrics: CircuitBreakerMetrics;
+            config: CircuitBreakerConfig;
+        }>;
+    };
     static resetAll(): void;
 }
 export { PatientRegistryCircuitBreaker as CircuitBreaker };

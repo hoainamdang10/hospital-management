@@ -11,34 +11,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientConsentGrantedEvent = void 0;
 const domain_event_1 = require("@shared/domain/base/domain-event");
 class PatientConsentGrantedEvent extends domain_event_1.DomainEvent {
-    constructor(patient, consent, grantedBy) {
-        const patientId = patient.getPatientId() || '';
+    constructor(patientId, consentId, consentType, grantedBy, correlationId, causationId, userIdForAudit) {
         const eventData = {
             patientId,
-            consentId: consent.getId(),
-            consentType: consent.consentType,
+            consentId,
+            consentType,
             grantedBy
         };
-        super('PatientConsentGranted', patientId, 'Patient', eventData, 1);
-        this.patient = patient;
-        this.consent = consent;
+        super('PatientConsentGranted', patientId, 'Patient', eventData, 1, correlationId, causationId, userIdForAudit);
+        this.patientId = patientId;
+        this.consentId = consentId;
+        this.consentType = consentType;
         this.grantedBy = grantedBy;
     }
     getEventData() {
-        const patientId = this.patient.getPatientId() || '';
         return {
-            patientId,
-            consentId: this.consent.getId(),
-            consentType: this.consent.consentType,
+            patientId: this.patientId,
+            consentId: this.consentId,
+            consentType: this.consentType,
             grantedBy: this.grantedBy,
             grantedAt: this.occurredAt
         };
     }
     containsPHI() {
-        return true; // Contains patient consent information
+        return true;
     }
     getPatientId() {
-        return this.patient.getPatientId();
+        return this.patientId;
     }
     getPayload() {
         return this.getEventData();

@@ -37,11 +37,12 @@ export declare class PermissionService implements IPermissionService {
      * This method checks if a user can access a resource owned by another user.
      * Returns true if:
      * - User is the resource owner, OR
-     * - User has wildcard permission (*), OR
+     * - User has system:admin permission, OR
+     * - User has wildcard permission (*) [deprecated], OR
      * - User has ownership-based permission (own_*)
      *
      * Returns false if:
-     * - User is NOT the resource owner AND doesn't have wildcard permission
+     * - User is NOT the resource owner AND doesn't have admin/wildcard permission
      */
     checkPermissionWithOwnership(userId: UserId, permission: string, resourceOwnerId: string): Promise<boolean>;
     /**
@@ -73,7 +74,7 @@ export declare class PermissionService implements IPermissionService {
      */
     expandPermissions(permissions: string[]): Promise<string[]>;
     /**
-     * Check if user is admin (has wildcard permission)
+     * Check if user is admin (has system:admin or wildcard permission)
      */
     isAdmin(userId: UserId): Promise<boolean>;
     /**
@@ -94,5 +95,17 @@ export declare class PermissionService implements IPermissionService {
         l1Size: number;
         l2Size: number;
     }>;
+    /**
+     * Check if user has a specific role
+     */
+    hasRole(userId: UserId, role: string): Promise<boolean>;
+    /**
+     * Check if user has ANY of the specified roles
+     */
+    hasAnyRole(userId: UserId, roles: string[]): Promise<boolean>;
+    /**
+     * Check if user has ALL of the specified roles
+     */
+    hasAllRoles(userId: UserId, roles: string[]): Promise<boolean>;
 }
 //# sourceMappingURL=PermissionService.d.ts.map

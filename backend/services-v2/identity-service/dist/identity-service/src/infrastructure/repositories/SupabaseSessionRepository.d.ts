@@ -11,7 +11,6 @@ import { UserSession } from '../../domain/entities/UserSession';
 export declare class SupabaseSessionRepository implements ISessionRepository {
     private readonly supabase;
     private readonly tableName;
-    private readonly schema;
     constructor(supabase: SupabaseClient);
     findById(sessionId: string): Promise<UserSession | null>;
     findByToken(sessionToken: string): Promise<UserSession | null>;

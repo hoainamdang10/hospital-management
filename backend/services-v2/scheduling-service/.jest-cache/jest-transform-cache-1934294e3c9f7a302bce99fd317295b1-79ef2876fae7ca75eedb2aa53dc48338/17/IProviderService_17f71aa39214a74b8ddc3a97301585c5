@@ -1,0 +1,68 @@
+e5bdc680bc34544de22a720017129389
+"use strict";
+
+/**
+ * Provider Service Interface - Application Layer
+ * Interface for fetching provider/doctor data from Provider Staff Service
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Microservices
+ */
+/* istanbul ignore next */
+function cov_ut92v26dl() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IProviderService.ts";
+  var hash = "05da811f9b114427238c49437ed13b53c83a3183";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IProviderService.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IProviderService.ts",
+      mappings: ";AAAA;;;;;;;GAOG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\services\\IProviderService.ts"],
+      sourcesContent: ["/**\n * Provider Service Interface - Application Layer\n * Interface for fetching provider/doctor data from Provider Staff Service\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, Microservices\n */\n\nexport interface ProviderDTO {\n  providerId: string;\n  fullName: string;\n  specialization?: string;\n  department?: string;\n  licenseNumber?: string;\n  phone?: string;\n  email?: string;\n}\n\nexport interface IProviderService {\n  /**\n   * Get provider by ID from Provider Staff Service\n   */\n  getProvider(providerId: string): Promise<ProviderDTO | null>;\n\n  /**\n   * Get multiple providers by IDs\n   */\n  getProviders(providerIds: string[]): Promise<ProviderDTO[]>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "05da811f9b114427238c49437ed13b53c83a3183"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_ut92v26dl = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_ut92v26dl();
+cov_ut92v26dl().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfdXQ5MnYyNmRsIiwicGF0aCIsImhhc2giLCJnbG9iYWwiLCJGdW5jdGlvbiIsImdjdiIsImNvdmVyYWdlRGF0YSIsInN0YXRlbWVudE1hcCIsInN0YXJ0IiwibGluZSIsImNvbHVtbiIsImVuZCIsImZuTWFwIiwiYnJhbmNoTWFwIiwicyIsImYiLCJiIiwiaW5wdXRTb3VyY2VNYXAiLCJmaWxlIiwibWFwcGluZ3MiLCJuYW1lcyIsInNvdXJjZXMiLCJzb3VyY2VzQ29udGVudCIsInZlcnNpb24iLCJfY292ZXJhZ2VTY2hlbWEiLCJjb3ZlcmFnZSIsImFjdHVhbENvdmVyYWdlIl0sInNvdXJjZXMiOlsiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxzY2hlZHVsaW5nLXNlcnZpY2VcXHNyY1xcYXBwbGljYXRpb25cXHNlcnZpY2VzXFxJUHJvdmlkZXJTZXJ2aWNlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogUHJvdmlkZXIgU2VydmljZSBJbnRlcmZhY2UgLSBBcHBsaWNhdGlvbiBMYXllclxuICogSW50ZXJmYWNlIGZvciBmZXRjaGluZyBwcm92aWRlci9kb2N0b3IgZGF0YSBmcm9tIFByb3ZpZGVyIFN0YWZmIFNlcnZpY2VcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKiBAY29tcGxpYW5jZSBDbGVhbiBBcmNoaXRlY3R1cmUsIE1pY3Jvc2VydmljZXNcbiAqL1xuXG5leHBvcnQgaW50ZXJmYWNlIFByb3ZpZGVyRFRPIHtcbiAgcHJvdmlkZXJJZDogc3RyaW5nO1xuICBmdWxsTmFtZTogc3RyaW5nO1xuICBzcGVjaWFsaXphdGlvbj86IHN0cmluZztcbiAgZGVwYXJ0bWVudD86IHN0cmluZztcbiAgbGljZW5zZU51bWJlcj86IHN0cmluZztcbiAgcGhvbmU/OiBzdHJpbmc7XG4gIGVtYWlsPzogc3RyaW5nO1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIElQcm92aWRlclNlcnZpY2Uge1xuICAvKipcbiAgICogR2V0IHByb3ZpZGVyIGJ5IElEIGZyb20gUHJvdmlkZXIgU3RhZmYgU2VydmljZVxuICAgKi9cbiAgZ2V0UHJvdmlkZXIocHJvdmlkZXJJZDogc3RyaW5nKTogUHJvbWlzZTxQcm92aWRlckRUTyB8IG51bGw+O1xuXG4gIC8qKlxuICAgKiBHZXQgbXVsdGlwbGUgcHJvdmlkZXJzIGJ5IElEc1xuICAgKi9cbiAgZ2V0UHJvdmlkZXJzKHByb3ZpZGVySWRzOiBzdHJpbmdbXSk6IFByb21pc2U8UHJvdmlkZXJEVE9bXT47XG59XG5cbiJdLCJtYXBwaW5ncyI6Ijs7QUFBQTs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGNBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

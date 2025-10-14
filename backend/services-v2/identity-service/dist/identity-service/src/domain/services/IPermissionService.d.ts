@@ -279,5 +279,29 @@ export interface IPermissionService {
         l1Size: number;
         l2Size: number;
     }>;
+    /**
+     * Check if user has a specific role
+     *
+     * @param userId - User ID
+     * @param role - Role type (e.g., 'doctor', 'admin')
+     * @returns true if user has the role, false otherwise
+     */
+    hasRole(userId: UserId, role: string): Promise<boolean>;
+    /**
+     * Check if user has ANY of the specified roles
+     *
+     * @param userId - User ID
+     * @param roles - Array of role types
+     * @returns true if user has at least one role, false otherwise
+     */
+    hasAnyRole(userId: UserId, roles: string[]): Promise<boolean>;
+    /**
+     * Check if user has ALL of the specified roles
+     *
+     * @param userId - User ID
+     * @param roles - Array of role types
+     * @returns true if user has all roles, false otherwise
+     */
+    hasAllRoles(userId: UserId, roles: string[]): Promise<boolean>;
 }
 //# sourceMappingURL=IPermissionService.d.ts.map

@@ -75,7 +75,7 @@ class MergePatientsUseCase {
             // 8. Return success response
             return {
                 success: true,
-                message: 'Merge bệnh nhân thành công',
+                message: 'Đã merge bệnh nhân thành công',
                 data: {
                     duplicatePatientId: request.duplicatePatientId,
                     masterPatientId: request.masterPatientId,

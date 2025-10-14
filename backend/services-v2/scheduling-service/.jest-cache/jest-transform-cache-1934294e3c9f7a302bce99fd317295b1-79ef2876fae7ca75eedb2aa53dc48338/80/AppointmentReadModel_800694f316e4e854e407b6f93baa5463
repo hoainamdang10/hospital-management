@@ -1,0 +1,68 @@
+deae5477f1ac242da8332febc90cfee3
+"use strict";
+
+/**
+ * Appointment Read Model - Domain Layer
+ * CQRS Read Model for denormalized appointment data
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, CQRS, DDD
+ */
+/* istanbul ignore next */
+function cov_20zslnp6n9() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\read-models\\AppointmentReadModel.ts";
+  var hash = "5bf27d184744f7e4b4b1bfdac2d018fc29bbfa20";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\read-models\\AppointmentReadModel.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\read-models\\AppointmentReadModel.ts",
+      mappings: ";AAAA;;;;;;;GAOG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\domain\\read-models\\AppointmentReadModel.ts"],
+      sourcesContent: ["/**\n * Appointment Read Model - Domain Layer\n * CQRS Read Model for denormalized appointment data\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, CQRS, DDD\n */\n\nexport interface AppointmentReadModel {\n  // Primary Keys\n  id: string;\n  appointmentId: string;\n  \n  // Appointment Core Data\n  patientId: string;\n  doctorId: string;\n  appointmentDate: Date;\n  appointmentTime: string;\n  durationMinutes: number;\n  type: string;\n  priority: string;\n  status: string;\n  roomId?: string;\n  departmentId?: string;\n  consultationFee: number;\n  additionalFees?: number;\n  paymentStatus: string;\n  \n  // Denormalized Patient Data\n  patientFullName?: string;\n  patientPhone?: string;\n  patientEmail?: string;\n  patientDateOfBirth?: Date;\n  patientGender?: string;\n  patientNationalId?: string;\n  patientInsuranceNumber?: string;\n  patientInsuranceType?: string;\n  patientAddress?: string;\n  \n  // Denormalized Doctor Data\n  doctorFullName?: string;\n  doctorSpecialization?: string;\n  doctorDepartment?: string;\n  doctorLicenseNumber?: string;\n  doctorPhone?: string;\n  doctorEmail?: string;\n  \n  // Appointment Details\n  reason?: string;\n  chiefComplaint?: string;\n  symptoms?: string[];\n  notes?: string;\n  specialInstructions?: string;\n  requiredEquipment?: string[];\n  \n  // Timestamps\n  checkedInAt?: Date;\n  startedAt?: Date;\n  completedAt?: Date;\n  cancelledAt?: Date;\n  cancellationReason?: string;\n  \n  // Metadata\n  createdAt: Date;\n  updatedAt: Date;\n  syncedAt: Date;\n}\n\nexport interface PatientData {\n  patientFullName: string;\n  patientPhone?: string;\n  patientEmail?: string;\n  patientDateOfBirth?: Date;\n  patientGender?: string;\n  patientNationalId?: string;\n  patientInsuranceNumber?: string;\n  patientInsuranceType?: string;\n  patientAddress?: string;\n}\n\nexport interface DoctorData {\n  doctorFullName: string;\n  doctorSpecialization?: string;\n  doctorDepartment?: string;\n  doctorLicenseNumber?: string;\n  doctorPhone?: string;\n  doctorEmail?: string;\n}\n\nexport interface CreateAppointmentReadModelData {\n  appointmentId: string;\n  patientId: string;\n  doctorId: string;\n  appointmentDate: Date;\n  appointmentTime: string;\n  durationMinutes: number;\n  type: string;\n  priority: string;\n  status: string;\n  roomId?: string;\n  departmentId?: string;\n  consultationFee: number;\n  additionalFees?: number;\n  paymentStatus: string;\n  \n  // Patient data (fetched from Patient Service)\n  patientData?: PatientData;\n  \n  // Doctor data (fetched from Provider Service)\n  doctorData?: DoctorData;\n  \n  // Appointment details\n  reason?: string;\n  chiefComplaint?: string;\n  symptoms?: string[];\n  notes?: string;\n  specialInstructions?: string;\n  requiredEquipment?: string[];\n}\n\nexport interface AppointmentReadModelFilters {\n  patientId?: string;\n  doctorId?: string;\n  startDate?: Date;\n  endDate?: Date;\n  status?: string;\n  type?: string;\n  priority?: string;\n  departmentId?: string;\n  limit?: number;\n  offset?: number;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "5bf27d184744f7e4b4b1bfdac2d018fc29bbfa20"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_20zslnp6n9 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_20zslnp6n9();
+cov_20zslnp6n9().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMjB6c2xucDZuOSIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12Mlxcc2NoZWR1bGluZy1zZXJ2aWNlXFxzcmNcXGRvbWFpblxccmVhZC1tb2RlbHNcXEFwcG9pbnRtZW50UmVhZE1vZGVsLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogQXBwb2ludG1lbnQgUmVhZCBNb2RlbCAtIERvbWFpbiBMYXllclxuICogQ1FSUyBSZWFkIE1vZGVsIGZvciBkZW5vcm1hbGl6ZWQgYXBwb2ludG1lbnQgZGF0YVxuICogXG4gKiBAYXV0aG9yIEhvc3BpdGFsIE1hbmFnZW1lbnQgVGVhbVxuICogQHZlcnNpb24gMi4wLjBcbiAqIEBjb21wbGlhbmNlIENsZWFuIEFyY2hpdGVjdHVyZSwgQ1FSUywgREREXG4gKi9cblxuZXhwb3J0IGludGVyZmFjZSBBcHBvaW50bWVudFJlYWRNb2RlbCB7XG4gIC8vIFByaW1hcnkgS2V5c1xuICBpZDogc3RyaW5nO1xuICBhcHBvaW50bWVudElkOiBzdHJpbmc7XG4gIFxuICAvLyBBcHBvaW50bWVudCBDb3JlIERhdGFcbiAgcGF0aWVudElkOiBzdHJpbmc7XG4gIGRvY3RvcklkOiBzdHJpbmc7XG4gIGFwcG9pbnRtZW50RGF0ZTogRGF0ZTtcbiAgYXBwb2ludG1lbnRUaW1lOiBzdHJpbmc7XG4gIGR1cmF0aW9uTWludXRlczogbnVtYmVyO1xuICB0eXBlOiBzdHJpbmc7XG4gIHByaW9yaXR5OiBzdHJpbmc7XG4gIHN0YXR1czogc3RyaW5nO1xuICByb29tSWQ/OiBzdHJpbmc7XG4gIGRlcGFydG1lbnRJZD86IHN0cmluZztcbiAgY29uc3VsdGF0aW9uRmVlOiBudW1iZXI7XG4gIGFkZGl0aW9uYWxGZWVzPzogbnVtYmVyO1xuICBwYXltZW50U3RhdHVzOiBzdHJpbmc7XG4gIFxuICAvLyBEZW5vcm1hbGl6ZWQgUGF0aWVudCBEYXRhXG4gIHBhdGllbnRGdWxsTmFtZT86IHN0cmluZztcbiAgcGF0aWVudFBob25lPzogc3RyaW5nO1xuICBwYXRpZW50RW1haWw/OiBzdHJpbmc7XG4gIHBhdGllbnREYXRlT2ZCaXJ0aD86IERhdGU7XG4gIHBhdGllbnRHZW5kZXI/OiBzdHJpbmc7XG4gIHBhdGllbnROYXRpb25hbElkPzogc3RyaW5nO1xuICBwYXRpZW50SW5zdXJhbmNlTnVtYmVyPzogc3RyaW5nO1xuICBwYXRpZW50SW5zdXJhbmNlVHlwZT86IHN0cmluZztcbiAgcGF0aWVudEFkZHJlc3M/OiBzdHJpbmc7XG4gIFxuICAvLyBEZW5vcm1hbGl6ZWQgRG9jdG9yIERhdGFcbiAgZG9jdG9yRnVsbE5hbWU/OiBzdHJpbmc7XG4gIGRvY3RvclNwZWNpYWxpemF0aW9uPzogc3RyaW5nO1xuICBkb2N0b3JEZXBhcnRtZW50Pzogc3RyaW5nO1xuICBkb2N0b3JMaWNlbnNlTnVtYmVyPzogc3RyaW5nO1xuICBkb2N0b3JQaG9uZT86IHN0cmluZztcbiAgZG9jdG9yRW1haWw/OiBzdHJpbmc7XG4gIFxuICAvLyBBcHBvaW50bWVudCBEZXRhaWxzXG4gIHJlYXNvbj86IHN0cmluZztcbiAgY2hpZWZDb21wbGFpbnQ/OiBzdHJpbmc7XG4gIHN5bXB0b21zPzogc3RyaW5nW107XG4gIG5vdGVzPzogc3RyaW5nO1xuICBzcGVjaWFsSW5zdHJ1Y3Rpb25zPzogc3RyaW5nO1xuICByZXF1aXJlZEVxdWlwbWVudD86IHN0cmluZ1tdO1xuICBcbiAgLy8gVGltZXN0YW1wc1xuICBjaGVja2VkSW5BdD86IERhdGU7XG4gIHN0YXJ0ZWRBdD86IERhdGU7XG4gIGNvbXBsZXRlZEF0PzogRGF0ZTtcbiAgY2FuY2VsbGVkQXQ/OiBEYXRlO1xuICBjYW5jZWxsYXRpb25SZWFzb24/OiBzdHJpbmc7XG4gIFxuICAvLyBNZXRhZGF0YVxuICBjcmVhdGVkQXQ6IERhdGU7XG4gIHVwZGF0ZWRBdDogRGF0ZTtcbiAgc3luY2VkQXQ6IERhdGU7XG59XG5cbmV4cG9ydCBpbnRlcmZhY2UgUGF0aWVudERhdGEge1xuICBwYXRpZW50RnVsbE5hbWU6IHN0cmluZztcbiAgcGF0aWVudFBob25lPzogc3RyaW5nO1xuICBwYXRpZW50RW1haWw/OiBzdHJpbmc7XG4gIHBhdGllbnREYXRlT2ZCaXJ0aD86IERhdGU7XG4gIHBhdGllbnRHZW5kZXI/OiBzdHJpbmc7XG4gIHBhdGllbnROYXRpb25hbElkPzogc3RyaW5nO1xuICBwYXRpZW50SW5zdXJhbmNlTnVtYmVyPzogc3RyaW5nO1xuICBwYXRpZW50SW5zdXJhbmNlVHlwZT86IHN0cmluZztcbiAgcGF0aWVudEFkZHJlc3M/OiBzdHJpbmc7XG59XG5cbmV4cG9ydCBpbnRlcmZhY2UgRG9jdG9yRGF0YSB7XG4gIGRvY3RvckZ1bGxOYW1lOiBzdHJpbmc7XG4gIGRvY3RvclNwZWNpYWxpemF0aW9uPzogc3RyaW5nO1xuICBkb2N0b3JEZXBhcnRtZW50Pzogc3RyaW5nO1xuICBkb2N0b3JMaWNlbnNlTnVtYmVyPzogc3RyaW5nO1xuICBkb2N0b3JQaG9uZT86IHN0cmluZztcbiAgZG9jdG9yRW1haWw/OiBzdHJpbmc7XG59XG5cbmV4cG9ydCBpbnRlcmZhY2UgQ3JlYXRlQXBwb2ludG1lbnRSZWFkTW9kZWxEYXRhIHtcbiAgYXBwb2ludG1lbnRJZDogc3RyaW5nO1xuICBwYXRpZW50SWQ6IHN0cmluZztcbiAgZG9jdG9ySWQ6IHN0cmluZztcbiAgYXBwb2ludG1lbnREYXRlOiBEYXRlO1xuICBhcHBvaW50bWVudFRpbWU6IHN0cmluZztcbiAgZHVyYXRpb25NaW51dGVzOiBudW1iZXI7XG4gIHR5cGU6IHN0cmluZztcbiAgcHJpb3JpdHk6IHN0cmluZztcbiAgc3RhdHVzOiBzdHJpbmc7XG4gIHJvb21JZD86IHN0cmluZztcbiAgZGVwYXJ0bWVudElkPzogc3RyaW5nO1xuICBjb25zdWx0YXRpb25GZWU6IG51bWJlcjtcbiAgYWRkaXRpb25hbEZlZXM/OiBudW1iZXI7XG4gIHBheW1lbnRTdGF0dXM6IHN0cmluZztcbiAgXG4gIC8vIFBhdGllbnQgZGF0YSAoZmV0Y2hlZCBmcm9tIFBhdGllbnQgU2VydmljZSlcbiAgcGF0aWVudERhdGE/OiBQYXRpZW50RGF0YTtcbiAgXG4gIC8vIERvY3RvciBkYXRhIChmZXRjaGVkIGZyb20gUHJvdmlkZXIgU2VydmljZSlcbiAgZG9jdG9yRGF0YT86IERvY3RvckRhdGE7XG4gIFxuICAvLyBBcHBvaW50bWVudCBkZXRhaWxzXG4gIHJlYXNvbj86IHN0cmluZztcbiAgY2hpZWZDb21wbGFpbnQ/OiBzdHJpbmc7XG4gIHN5bXB0b21zPzogc3RyaW5nW107XG4gIG5vdGVzPzogc3RyaW5nO1xuICBzcGVjaWFsSW5zdHJ1Y3Rpb25zPzogc3RyaW5nO1xuICByZXF1aXJlZEVxdWlwbWVudD86IHN0cmluZ1tdO1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIEFwcG9pbnRtZW50UmVhZE1vZGVsRmlsdGVycyB7XG4gIHBhdGllbnRJZD86IHN0cmluZztcbiAgZG9jdG9ySWQ/OiBzdHJpbmc7XG4gIHN0YXJ0RGF0ZT86IERhdGU7XG4gIGVuZERhdGU/OiBEYXRlO1xuICBzdGF0dXM/OiBzdHJpbmc7XG4gIHR5cGU/OiBzdHJpbmc7XG4gIHByaW9yaXR5Pzogc3RyaW5nO1xuICBkZXBhcnRtZW50SWQ/OiBzdHJpbmc7XG4gIGxpbWl0PzogbnVtYmVyO1xuICBvZmZzZXQ/OiBudW1iZXI7XG59XG5cbiJdLCJtYXBwaW5ncyI6Ijs7QUFBQTs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

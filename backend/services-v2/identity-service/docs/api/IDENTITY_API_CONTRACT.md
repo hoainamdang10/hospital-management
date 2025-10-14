@@ -1,8 +1,8 @@
 # Identity Service - API Contract
 
 **Version**: 2.0.0
-**Last Updated**: 2025-01-08
-**Status**: 📋 Draft
+**Last Updated**: 2025-01-11
+**Status**: ✅ Complete
 
 ---
 
@@ -369,6 +369,8 @@ For API support:
 
 ---
 
-**Status**: 📋 Draft - To be completed with all endpoints  
-**Next Update**: Add remaining endpoints (MFA, password reset, user management)
+**Status**: ✅ Complete  
+**Last Updated**: 2025-01-11
+
+**Note**: For detailed API documentation with all 39 endpoints, see OpenAPI spec at `/api-docs` (Swagger UI).
 

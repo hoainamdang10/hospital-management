@@ -11,28 +11,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientRegisteredEvent = void 0;
 const domain_event_1 = require("@shared/domain/base/domain-event");
 class PatientRegisteredEvent extends domain_event_1.DomainEvent {
-    constructor(patient) {
-        const patientId = patient.getPatientId() || '';
-        const personalInfo = patient.getPersonalInfo();
+    constructor(patientId, patientUserId, fullName, dateOfBirth, gender, nationalId, correlationId, causationId, userIdForAudit) {
         const eventData = {
             patientId,
-            userId: patient.getUserId(),
-            fullName: personalInfo.fullName
+            userId: patientUserId,
+            personalInfo: {
+                fullName,
+                dateOfBirth,
+                gender,
+                nationalId
+            },
+            registeredAt: new Date()
         };
-        super('PatientRegistered', patientId, 'Patient', eventData, 1);
-        this.patient = patient;
+        super('PatientRegistered', patientId, 'Patient', eventData, 1, correlationId, causationId, userIdForAudit);
+        this.patientId = patientId;
+        this.fullName = fullName;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+        this.nationalId = nationalId;
+        this.patientUserId = patientUserId;
     }
     getEventData() {
-        const personalInfo = this.patient.getPersonalInfo();
-        const patientId = this.patient.getPatientId() || '';
         return {
-            patientId,
-            userId: this.patient.getUserId(),
+            patientId: this.patientId,
+            userId: this.patientUserId,
             personalInfo: {
-                fullName: personalInfo.fullName,
-                dateOfBirth: personalInfo.dateOfBirth,
-                gender: personalInfo.gender,
-                nationalId: personalInfo.nationalId
+                fullName: this.fullName,
+                dateOfBirth: this.dateOfBirth,
+                gender: this.gender,
+                nationalId: this.nationalId
             },
             registeredAt: this.occurredAt
         };
@@ -41,7 +48,7 @@ class PatientRegisteredEvent extends domain_event_1.DomainEvent {
         return true;
     }
     getPatientId() {
-        return this.patient.getPatientId();
+        return this.patientId;
     }
     getPayload() {
         return this.getEventData();

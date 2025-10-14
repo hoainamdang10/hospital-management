@@ -162,8 +162,8 @@ expect.extend({
 // Mock external dependencies
 jest.mock('../../shared/infrastructure/database/optimized-supabase-client', () => {
   return {
-    OptimizedSupabaseClient: jest.fn().mockImplementation(() => ({
-      query: jest.fn().mockReturnValue({
+    OptimizedSupabaseClient: jest.fn().mockImplementation(() => {
+      const queryBuilder = {
         from: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         insert: jest.fn().mockReturnThis(),
@@ -182,10 +182,14 @@ jest.mock('../../shared/infrastructure/database/optimized-supabase-client', () =
         limit: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({ data: null, error: null }),
         then: jest.fn().mockResolvedValue({ data: [], error: null })
-      })),
-      getConnectionStatus: jest.fn().mockResolvedValue({ connected: true }),
-      close: jest.fn().mockResolvedValue(undefined)
-    }))
+      };
+
+      return {
+        query: jest.fn().mockReturnValue(queryBuilder),
+        getConnectionStatus: jest.fn().mockResolvedValue({ connected: true }),
+        close: jest.fn().mockResolvedValue(undefined)
+      };
+    })
   };
 });
 

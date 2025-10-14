@@ -1,0 +1,708 @@
+openapi: 3.1.0
+info:
+  title: Identity Service API
+  version: 2.0.0
+  description: Authentication and authorization service for Hospital Management System V2
+  contact:
+    name: Hospital Management Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3021
+    description: Development server
+
+tags:
+  - name: Authentication
+  - name: User Management
+  - name: MFA
+  - name: Session Management
+  - name: Password Policy
+  - name: Account Recovery
+  - name: Permission Check
+  - name: Staff Management
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Health Check
+  /health:
+    get:
+      tags: [Health Check]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
+
+  # Authentication
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register patient
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, fullName]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string, minLength: 8}
+                fullName: {type: string}
+                phoneNumber: {type: string}
+                citizenId: {type: string}
+                dateOfBirth: {type: string, format: date}
+                gender: {type: string, enum: [male, female, other]}
+                address: {type: string}
+      responses:
+        '201':
+          description: Created
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string}
+                password: {type: string}
+                mfaCode: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout
+      responses:
+        '200':
+          description: OK
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Forgot password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accessToken, refreshToken, newPassword]
+              properties:
+                accessToken: {type: string}
+                refreshToken: {type: string}
+                newPassword: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /auth/verify-email:
+    post:
+      tags: [Authentication]
+      summary: Verify email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  # User Management
+  /api/v1/users/me:
+    get:
+      tags: [User Management]
+      summary: Get current user
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/users/{userId}:
+    get:
+      tags: [User Management]
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: OK
+    patch:
+      tags: [User Management]
+      summary: Update user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName: {type: string}
+                phoneNumber: {type: string}
+                address: {type: string}
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [User Management]
+      summary: Delete user (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/users:
+    get:
+      tags: [User Management]
+      summary: List users (admin only)
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, default: 1}
+        - name: limit
+          in: query
+          schema: {type: integer, default: 20}
+        - name: roleType
+          in: query
+          schema: {type: string}
+        - name: isActive
+          in: query
+          schema: {type: boolean}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/users/{userId}/change-password:
+    post:
+      tags: [User Management]
+      summary: Change password
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: {type: string}
+                newPassword: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/users/{userId}/lock:
+    post:
+      tags: [User Management]
+      summary: Lock account (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: {type: string}
+                terminateSessions: {type: boolean, default: true}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/users/{userId}/unlock:
+    post:
+      tags: [User Management]
+      summary: Unlock account (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/users/{userId}/assign-role:
+    post:
+      tags: [User Management]
+      summary: Assign role (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleType]
+              properties:
+                roleType: {type: string, enum: [admin, doctor, nurse, receptionist, patient]}
+                reason: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  # MFA
+  /auth/mfa/enable:
+    post:
+      tags: [MFA]
+      summary: Enable MFA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method: {type: string, enum: [totp, sms, email]}
+      responses:
+        '200':
+          description: OK
+
+  /auth/mfa/verify:
+    post:
+      tags: [MFA]
+      summary: Verify MFA code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /auth/mfa/disable:
+    post:
+      tags: [MFA]
+      summary: Disable MFA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  # Session Management
+  /api/v1/users/{userId}/sessions:
+    get:
+      tags: [Session Management]
+      summary: List active sessions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Session Management]
+      summary: Terminate all sessions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exceptCurrent: {type: boolean, default: true}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/users/{userId}/sessions/{sessionId}:
+    delete:
+      tags: [Session Management]
+      summary: Terminate session
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+        - name: sessionId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  # Password Policy
+  /api/v1/password-policy:
+    get:
+      tags: [Password Policy]
+      summary: Get password policy
+      security: []
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Password Policy]
+      summary: Update password policy (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                minLength: {type: integer}
+                requireUppercase: {type: boolean}
+                requireLowercase: {type: boolean}
+                requireNumbers: {type: boolean}
+                requireSpecialChars: {type: boolean}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/password-policy/validate:
+    post:
+      tags: [Password Policy]
+      summary: Validate password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  # Account Recovery
+  /api/v1/account-recovery/methods:
+    get:
+      tags: [Account Recovery]
+      summary: Get recovery methods
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Account Recovery]
+      summary: Update recovery methods
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recoveryEmail: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/account-recovery/request-reset:
+    post:
+      tags: [Account Recovery]
+      summary: Request password reset
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: {type: string}
+                method: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/account-recovery/verify-token:
+    post:
+      tags: [Account Recovery]
+      summary: Verify reset token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/account-recovery/reset-password:
+    post:
+      tags: [Account Recovery]
+      summary: Reset password with token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword, confirmPassword]
+              properties:
+                token: {type: string}
+                newPassword: {type: string}
+                confirmPassword: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/account-recovery/history:
+    get:
+      tags: [Account Recovery]
+      summary: Get recovery history
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer}
+        - name: pageSize
+          in: query
+          schema: {type: integer}
+      responses:
+        '200':
+          description: OK
+
+  # Permission Check
+  /api/v1/permissions/{userId}:
+    get:
+      tags: [Permission Check]
+      summary: Get user permissions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/auth/check-permission:
+    post:
+      tags: [Permission Check]
+      summary: Check permission
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, permission]
+              properties:
+                userId: {type: string}
+                permission: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/auth/check-permissions:
+    post:
+      tags: [Permission Check]
+      summary: Check multiple permissions
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, permissions]
+              properties:
+                userId: {type: string}
+                permissions: {type: array, items: {type: string}}
+                requireAll: {type: boolean, default: true}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/auth/check-role:
+    post:
+      tags: [Permission Check]
+      summary: Check role
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, role]
+              properties:
+                userId: {type: string}
+                role: {type: string}
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/auth/check-roles:
+    post:
+      tags: [Permission Check]
+      summary: Check multiple roles
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, roles]
+              properties:
+                userId: {type: string}
+                roles: {type: array, items: {type: string}}
+                requireAll: {type: boolean, default: false}
+      responses:
+        '200':
+          description: OK
+
+  # Staff Management
+  /admin/staff/register:
+    post:
+      tags: [Staff Management]
+      summary: Provision staff account (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, fullName, roleType]
+              properties:
+                email: {type: string}
+                fullName: {type: string}
+                roleType: {type: string, enum: [admin, doctor, nurse, receptionist]}
+                phoneNumber: {type: string}
+      responses:
+        '201':
+          description: Created
+
+  /auth/staff/accept-invitation:
+    post:
+      tags: [Staff Management]
+      summary: Accept staff invitation
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: {type: string}
+                password: {type: string}
+      responses:
+        '200':
+          description: OK
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

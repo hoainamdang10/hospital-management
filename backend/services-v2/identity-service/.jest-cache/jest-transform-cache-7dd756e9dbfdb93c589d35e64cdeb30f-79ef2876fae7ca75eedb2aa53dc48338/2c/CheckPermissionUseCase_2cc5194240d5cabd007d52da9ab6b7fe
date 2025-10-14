@@ -1,0 +1,410 @@
+020ff8a0fbf62a658fd34d8fb399e318
+"use strict";
+
+/**
+ * CheckPermissionUseCase
+ *
+ * Use case để check permission của user
+ * Được gọi bởi API Gateway để verify permissions
+ *
+ * @author Hospital Management Team
+ * @version 1.0.0
+ */
+/* istanbul ignore next */
+function cov_1ux4xb3bxd() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\use-cases\\CheckPermissionUseCase.ts";
+  var hash = "694e4c352b8a883eb3e267610c95ff0ce53098f0";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\use-cases\\CheckPermissionUseCase.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 12,
+          column: 0
+        },
+        end: {
+          line: 12,
+          column: 40
+        }
+      },
+      "2": {
+        start: {
+          line: 13,
+          column: 17
+        },
+        end: {
+          line: 13,
+          column: 61
+        }
+      },
+      "3": {
+        start: {
+          line: 16,
+          column: 8
+        },
+        end: {
+          line: 16,
+          column: 51
+        }
+      },
+      "4": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 17,
+          column: 29
+        }
+      },
+      "5": {
+        start: {
+          line: 20,
+          column: 8
+        },
+        end: {
+          line: 49,
+          column: 9
+        }
+      },
+      "6": {
+        start: {
+          line: 21,
+          column: 12
+        },
+        end: {
+          line: 24,
+          column: 15
+        }
+      },
+      "7": {
+        start: {
+          line: 25,
+          column: 27
+        },
+        end: {
+          line: 25,
+          column: 69
+        }
+      },
+      "8": {
+        start: {
+          line: 26,
+          column: 28
+        },
+        end: {
+          line: 26,
+          column: 100
+        }
+      },
+      "9": {
+        start: {
+          line: 27,
+          column: 12
+        },
+        end: {
+          line: 31,
+          column: 15
+        }
+      },
+      "10": {
+        start: {
+          line: 32,
+          column: 12
+        },
+        end: {
+          line: 36,
+          column: 14
+        }
+      },
+      "11": {
+        start: {
+          line: 39,
+          column: 12
+        },
+        end: {
+          line: 43,
+          column: 15
+        }
+      },
+      "12": {
+        start: {
+          line: 44,
+          column: 12
+        },
+        end: {
+          line: 48,
+          column: 14
+        }
+      },
+      "13": {
+        start: {
+          line: 52,
+          column: 0
+        },
+        end: {
+          line: 52,
+          column: 56
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 15,
+            column: 4
+          },
+          end: {
+            line: 15,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 15,
+            column: 43
+          },
+          end: {
+            line: 18,
+            column: 5
+          }
+        },
+        line: 15
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 19,
+            column: 4
+          },
+          end: {
+            line: 19,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 19,
+            column: 27
+          },
+          end: {
+            line: 50,
+            column: 5
+          }
+        },
+        line: 19
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 35,
+            column: 24
+          },
+          end: {
+            line: 35,
+            column: 89
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 35,
+            column: 34
+          },
+          end: {
+            line: 35,
+            column: 43
+          }
+        }, {
+          start: {
+            line: 35,
+            column: 46
+          },
+          end: {
+            line: 35,
+            column: 89
+          }
+        }],
+        line: 35
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 42,
+            column: 23
+          },
+          end: {
+            line: 42,
+            column: 79
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 42,
+            column: 48
+          },
+          end: {
+            line: 42,
+            column: 61
+          }
+        }, {
+          start: {
+            line: 42,
+            column: 64
+          },
+          end: {
+            line: 42,
+            column: 79
+          }
+        }],
+        line: 42
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0]
+    },
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\use-cases\\CheckPermissionUseCase.ts",
+      mappings: ";AAAA;;;;;;;;GAQG;;;AAGH,8DAA2D;AAc3D,MAAa,sBAAsB;IACjC,YACU,iBAAqC,EACrC,MAAe;QADf,sBAAiB,GAAjB,iBAAiB,CAAoB;QACrC,WAAM,GAAN,MAAM,CAAS;IACtB,CAAC;IAEJ,KAAK,CAAC,OAAO,CAAC,OAA+B;QAC3C,IAAI,CAAC;YACH,IAAI,CAAC,MAAM,CAAC,KAAK,CAAC,qBAAqB,EAAE;gBACvC,MAAM,EAAE,OAAO,CAAC,MAAM;gBACtB,UAAU,EAAE,OAAO,CAAC,UAAU;aAC/B,CAAC,CAAC;YAEH,MAAM,MAAM,GAAG,eAAM,CAAC,UAAU,CAAC,OAAO,CAAC,MAAM,CAAC,CAAC;YACjD,MAAM,OAAO,GAAG,MAAM,IAAI,CAAC,iBAAiB,CAAC,eAAe,CAAC,MAAM,EAAE,OAAO,CAAC,UAAU,CAAC,CAAC;YAEzF,IAAI,CAAC,MAAM,CAAC,KAAK,CAAC,yBAAyB,EAAE;gBAC3C,MAAM,EAAE,OAAO,CAAC,MAAM;gBACtB,UAAU,EAAE,OAAO,CAAC,UAAU;gBAC9B,OAAO;aACR,CAAC,CAAC;YAEH,OAAO;gBACL,OAAO,EAAE,IAAI;gBACb,OAAO;gBACP,MAAM,EAAE,OAAO,CAAC,CAAC,CAAC,SAAS,CAAC,CAAC,CAAC,uBAAuB,OAAO,CAAC,UAAU,EAAE;aAC1E,CAAC;QAEJ,CAAC;QAAC,OAAO,KAAK,EAAE,CAAC;YACf,IAAI,CAAC,MAAM,CAAC,KAAK,CAAC,wBAAwB,EAAE;gBAC1C,MAAM,EAAE,OAAO,CAAC,MAAM;gBACtB,UAAU,EAAE,OAAO,CAAC,UAAU;gBAC9B,KAAK,EAAE,KAAK,YAAY,KAAK,CAAC,CAAC,CAAC,KAAK,CAAC,OAAO,CAAC,CAAC,CAAC,eAAe;aAChE,CAAC,CAAC;YAEH,OAAO;gBACL,OAAO,EAAE,KAAK;gBACd,OAAO,EAAE,KAAK;gBACd,MAAM,EAAE,yBAAyB;aAClC,CAAC;QACJ,CAAC;IACH,CAAC;CACF;AA1CD,wDA0CC",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\use-cases\\CheckPermissionUseCase.ts"],
+      sourcesContent: ["/**\n * CheckPermissionUseCase\n *\n * Use case \u0111\u1EC3 check permission c\u1EE7a user\n * \u0110\u01B0\u1EE3c g\u1ECDi b\u1EDFi API Gateway \u0111\u1EC3 verify permissions\n *\n * @author Hospital Management Team\n * @version 1.0.0\n */\n\nimport { IPermissionService } from '../../domain/services/IPermissionService';\nimport { UserId } from '../../domain/value-objects/UserId';\nimport { ILogger } from '../services/ILogger';\n\nexport interface CheckPermissionRequest {\n  userId: string;\n  permission: string;\n}\n\nexport interface CheckPermissionResponse {\n  success: boolean;\n  allowed: boolean;\n  reason?: string;\n}\n\nexport class CheckPermissionUseCase {\n  constructor(\n    private permissionService: IPermissionService,\n    private logger: ILogger\n  ) {}\n\n  async execute(request: CheckPermissionRequest): Promise<CheckPermissionResponse> {\n    try {\n      this.logger.debug('Checking permission', {\n        userId: request.userId,\n        permission: request.permission\n      });\n\n      const userId = UserId.fromString(request.userId);\n      const allowed = await this.permissionService.checkPermission(userId, request.permission);\n\n      this.logger.debug('Permission check result', {\n        userId: request.userId,\n        permission: request.permission,\n        allowed\n      });\n\n      return {\n        success: true,\n        allowed,\n        reason: allowed ? undefined : `Missing permission: ${request.permission}`\n      };\n\n    } catch (error) {\n      this.logger.error('Permission check error', {\n        userId: request.userId,\n        permission: request.permission,\n        error: error instanceof Error ? error.message : 'Unknown error'\n      });\n\n      return {\n        success: false,\n        allowed: false,\n        reason: 'Permission check failed'\n      };\n    }\n  }\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "694e4c352b8a883eb3e267610c95ff0ce53098f0"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1ux4xb3bxd = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1ux4xb3bxd();
+cov_1ux4xb3bxd().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1ux4xb3bxd().s[1]++;
+exports.CheckPermissionUseCase = void 0;
+const UserId_1 =
+/* istanbul ignore next */
+(cov_1ux4xb3bxd().s[2]++, require("../../domain/value-objects/UserId"));
+class CheckPermissionUseCase {
+  constructor(permissionService, logger) {
+    /* istanbul ignore next */
+    cov_1ux4xb3bxd().f[0]++;
+    cov_1ux4xb3bxd().s[3]++;
+    this.permissionService = permissionService;
+    /* istanbul ignore next */
+    cov_1ux4xb3bxd().s[4]++;
+    this.logger = logger;
+  }
+  async execute(request) {
+    /* istanbul ignore next */
+    cov_1ux4xb3bxd().f[1]++;
+    cov_1ux4xb3bxd().s[5]++;
+    try {
+      /* istanbul ignore next */
+      cov_1ux4xb3bxd().s[6]++;
+      this.logger.debug('Checking permission', {
+        userId: request.userId,
+        permission: request.permission
+      });
+      const userId =
+      /* istanbul ignore next */
+      (cov_1ux4xb3bxd().s[7]++, UserId_1.UserId.fromString(request.userId));
+      const allowed =
+      /* istanbul ignore next */
+      (cov_1ux4xb3bxd().s[8]++, await this.permissionService.checkPermission(userId, request.permission));
+      /* istanbul ignore next */
+      cov_1ux4xb3bxd().s[9]++;
+      this.logger.debug('Permission check result', {
+        userId: request.userId,
+        permission: request.permission,
+        allowed
+      });
+      /* istanbul ignore next */
+      cov_1ux4xb3bxd().s[10]++;
+      return {
+        success: true,
+        allowed,
+        reason: allowed ?
+        /* istanbul ignore next */
+        (cov_1ux4xb3bxd().b[0][0]++, undefined) :
+        /* istanbul ignore next */
+        (cov_1ux4xb3bxd().b[0][1]++, `Missing permission: ${request.permission}`)
+      };
+    } catch (error) {
+      /* istanbul ignore next */
+      cov_1ux4xb3bxd().s[11]++;
+      this.logger.error('Permission check error', {
+        userId: request.userId,
+        permission: request.permission,
+        error: error instanceof Error ?
+        /* istanbul ignore next */
+        (cov_1ux4xb3bxd().b[1][0]++, error.message) :
+        /* istanbul ignore next */
+        (cov_1ux4xb3bxd().b[1][1]++, 'Unknown error')
+      });
+      /* istanbul ignore next */
+      cov_1ux4xb3bxd().s[12]++;
+      return {
+        success: false,
+        allowed: false,
+        reason: 'Permission check failed'
+      };
+    }
+  }
+}
+/* istanbul ignore next */
+cov_1ux4xb3bxd().s[13]++;
+exports.CheckPermissionUseCase = CheckPermissionUseCase;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMXV4NHhiM2J4ZCIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsIm5hbWUiLCJkZWNsIiwibG9jIiwiYnJhbmNoTWFwIiwidHlwZSIsImxvY2F0aW9ucyIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSIsIlVzZXJJZF8xIiwicmVxdWlyZSIsIkNoZWNrUGVybWlzc2lvblVzZUNhc2UiLCJjb25zdHJ1Y3RvciIsInBlcm1pc3Npb25TZXJ2aWNlIiwibG9nZ2VyIiwiZXhlY3V0ZSIsInJlcXVlc3QiLCJkZWJ1ZyIsInVzZXJJZCIsInBlcm1pc3Npb24iLCJVc2VySWQiLCJmcm9tU3RyaW5nIiwiYWxsb3dlZCIsImNoZWNrUGVybWlzc2lvbiIsInN1Y2Nlc3MiLCJyZWFzb24iLCJ1bmRlZmluZWQiLCJlcnJvciIsIkVycm9yIiwibWVzc2FnZSIsImV4cG9ydHMiXSwic291cmNlcyI6WyJEOlxcaG9zcGl0YWwtbWFuYWdlbWVudC1WMlxcYmFja2VuZFxcc2VydmljZXMtdjJcXGlkZW50aXR5LXNlcnZpY2VcXHNyY1xcYXBwbGljYXRpb25cXHVzZS1jYXNlc1xcQ2hlY2tQZXJtaXNzaW9uVXNlQ2FzZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIENoZWNrUGVybWlzc2lvblVzZUNhc2VcbiAqXG4gKiBVc2UgY2FzZSDEkeG7gyBjaGVjayBwZXJtaXNzaW9uIGPhu6dhIHVzZXJcbiAqIMSQxrDhu6NjIGfhu41pIGLhu59pIEFQSSBHYXRld2F5IMSR4buDIHZlcmlmeSBwZXJtaXNzaW9uc1xuICpcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAxLjAuMFxuICovXG5cbmltcG9ydCB7IElQZXJtaXNzaW9uU2VydmljZSB9IGZyb20gJy4uLy4uL2RvbWFpbi9zZXJ2aWNlcy9JUGVybWlzc2lvblNlcnZpY2UnO1xuaW1wb3J0IHsgVXNlcklkIH0gZnJvbSAnLi4vLi4vZG9tYWluL3ZhbHVlLW9iamVjdHMvVXNlcklkJztcbmltcG9ydCB7IElMb2dnZXIgfSBmcm9tICcuLi9zZXJ2aWNlcy9JTG9nZ2VyJztcblxuZXhwb3J0IGludGVyZmFjZSBDaGVja1Blcm1pc3Npb25SZXF1ZXN0IHtcbiAgdXNlcklkOiBzdHJpbmc7XG4gIHBlcm1pc3Npb246IHN0cmluZztcbn1cblxuZXhwb3J0IGludGVyZmFjZSBDaGVja1Blcm1pc3Npb25SZXNwb25zZSB7XG4gIHN1Y2Nlc3M6IGJvb2xlYW47XG4gIGFsbG93ZWQ6IGJvb2xlYW47XG4gIHJlYXNvbj86IHN0cmluZztcbn1cblxuZXhwb3J0IGNsYXNzIENoZWNrUGVybWlzc2lvblVzZUNhc2Uge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwcml2YXRlIHBlcm1pc3Npb25TZXJ2aWNlOiBJUGVybWlzc2lvblNlcnZpY2UsXG4gICAgcHJpdmF0ZSBsb2dnZXI6IElMb2dnZXJcbiAgKSB7fVxuXG4gIGFzeW5jIGV4ZWN1dGUocmVxdWVzdDogQ2hlY2tQZXJtaXNzaW9uUmVxdWVzdCk6IFByb21pc2U8Q2hlY2tQZXJtaXNzaW9uUmVzcG9uc2U+IHtcbiAgICB0cnkge1xuICAgICAgdGhpcy5sb2dnZXIuZGVidWcoJ0NoZWNraW5nIHBlcm1pc3Npb24nLCB7XG4gICAgICAgIHVzZXJJZDogcmVxdWVzdC51c2VySWQsXG4gICAgICAgIHBlcm1pc3Npb246IHJlcXVlc3QucGVybWlzc2lvblxuICAgICAgfSk7XG5cbiAgICAgIGNvbnN0IHVzZXJJZCA9IFVzZXJJZC5mcm9tU3RyaW5nKHJlcXVlc3QudXNlcklkKTtcbiAgICAgIGNvbnN0IGFsbG93ZWQgPSBhd2FpdCB0aGlzLnBlcm1pc3Npb25TZXJ2aWNlLmNoZWNrUGVybWlzc2lvbih1c2VySWQsIHJlcXVlc3QucGVybWlzc2lvbik7XG5cbiAgICAgIHRoaXMubG9nZ2VyLmRlYnVnKCdQZXJtaXNzaW9uIGNoZWNrIHJlc3VsdCcsIHtcbiAgICAgICAgdXNlcklkOiByZXF1ZXN0LnVzZXJJZCxcbiAgICAgICAgcGVybWlzc2lvbjogcmVxdWVzdC5wZXJtaXNzaW9uLFxuICAgICAgICBhbGxvd2VkXG4gICAgICB9KTtcblxuICAgICAgcmV0dXJuIHtcbiAgICAgICAgc3VjY2VzczogdHJ1ZSxcbiAgICAgICAgYWxsb3dlZCxcbiAgICAgICAgcmVhc29uOiBhbGxvd2VkID8gdW5kZWZpbmVkIDogYE1pc3NpbmcgcGVybWlzc2lvbjogJHtyZXF1ZXN0LnBlcm1pc3Npb259YFxuICAgICAgfTtcblxuICAgIH0gY2F0Y2ggKGVycm9yKSB7XG4gICAgICB0aGlzLmxvZ2dlci5lcnJvcignUGVybWlzc2lvbiBjaGVjayBlcnJvcicsIHtcbiAgICAgICAgdXNlcklkOiByZXF1ZXN0LnVzZXJJZCxcbiAgICAgICAgcGVybWlzc2lvbjogcmVxdWVzdC5wZXJtaXNzaW9uLFxuICAgICAgICBlcnJvcjogZXJyb3IgaW5zdGFuY2VvZiBFcnJvciA/IGVycm9yLm1lc3NhZ2UgOiAnVW5rbm93biBlcnJvcidcbiAgICAgIH0pO1xuXG4gICAgICByZXR1cm4ge1xuICAgICAgICBzdWNjZXNzOiBmYWxzZSxcbiAgICAgICAgYWxsb3dlZDogZmFsc2UsXG4gICAgICAgIHJlYXNvbjogJ1Blcm1pc3Npb24gY2hlY2sgZmFpbGVkJ1xuICAgICAgfTtcbiAgICB9XG4gIH1cbn1cblxuIl0sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7SUFBQTtJQUFBRSxLQUFBO01BQUE7UUFBQUMsSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO01BQUE7UUFBQUksSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO0lBQUE7SUFBQU8sU0FBQTtNQUFBO1FBQUFELEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQU8sSUFBQTtRQUFBQyxTQUFBO1VBQUFWLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1VBQUFGLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtNQUFBO1FBQUFNLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQU8sSUFBQTtRQUFBQyxTQUFBO1VBQUFWLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1VBQUFGLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFELElBQUE7TUFBQTtJQUFBO0lBQUFVLENBQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO0lBQUE7SUFBQUMsQ0FBQTtNQUFBO01BQUE7SUFBQTtJQUFBQyxDQUFBO01BQUE7TUFBQTtJQUFBO0lBQUFDLGNBQUE7TUFBQUMsSUFBQTtNQUFBQyxRQUFBO01BQUFDLEtBQUE7TUFBQUMsT0FBQTtNQUFBQyxjQUFBO01BQUFDLE9BQUE7SUFBQTtJQUFBQyxlQUFBO0lBQUEzQixJQUFBO0VBQUE7RUFBQSxJQUFBNEIsUUFBQSxHQUFBM0IsTUFBQSxDQUFBRSxHQUFBLE1BQUFGLE1BQUEsQ0FBQUUsR0FBQTtFQUFBLEtBQUF5QixRQUFBLENBQUE3QixJQUFBLEtBQUE2QixRQUFBLENBQUE3QixJQUFBLEVBQUFDLElBQUEsS0FBQUEsSUFBQTtJQUFBNEIsUUFBQSxD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

@@ -87,5 +87,7 @@ export declare class CircuitBreakerFactory {
     static getBreaker(serviceName: string, config?: Partial<CircuitBreakerConfig>): IdentityServiceCircuitBreaker;
     static getAllBreakers(): Map<string, IdentityServiceCircuitBreaker>;
     static getHealthStatus(): Record<string, any>;
+    static resetAll(): void;
+    static clearAll(): void;
 }
 //# sourceMappingURL=CircuitBreaker.d.ts.map

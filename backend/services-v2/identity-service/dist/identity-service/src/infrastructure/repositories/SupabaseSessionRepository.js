@@ -10,14 +10,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseSessionRepository = void 0;
 const UserSession_1 = require("../../domain/entities/UserSession");
 class SupabaseSessionRepository {
+    // Note: Supabase client is already configured with db.schema = 'auth_schema'
+    // So we don't need to prefix table names with schema
     constructor(supabase) {
         this.supabase = supabase;
         this.tableName = 'user_sessions';
-        this.schema = 'auth_schema';
     }
     async findById(sessionId) {
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .select('*')
             .eq('id', sessionId)
             .single();
@@ -28,7 +29,7 @@ class SupabaseSessionRepository {
     }
     async findByToken(sessionToken) {
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .select('*')
             .eq('session_token', sessionToken)
             .single();
@@ -39,7 +40,7 @@ class SupabaseSessionRepository {
     }
     async findActiveSessionsByUserId(userId) {
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .select('*')
             .eq('user_id', userId)
             .eq('is_active', true)
@@ -52,7 +53,7 @@ class SupabaseSessionRepository {
     }
     async findAllSessionsByUserId(userId) {
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .select('*')
             .eq('user_id', userId)
             .order('last_accessed_at', { ascending: false });
@@ -64,7 +65,7 @@ class SupabaseSessionRepository {
     async create(session) {
         const persistenceData = session.toPersistence();
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .insert(persistenceData)
             .select()
             .single();
@@ -76,7 +77,7 @@ class SupabaseSessionRepository {
     async update(session) {
         const persistenceData = session.toPersistence();
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .update(persistenceData)
             .eq('id', session.id)
             .select()
@@ -88,7 +89,7 @@ class SupabaseSessionRepository {
     }
     async delete(sessionId) {
         const { error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .delete()
             .eq('id', sessionId);
         if (error) {
@@ -97,7 +98,7 @@ class SupabaseSessionRepository {
     }
     async deleteAllByUserId(userId) {
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .delete()
             .eq('user_id', userId)
             .select();
@@ -108,7 +109,7 @@ class SupabaseSessionRepository {
     }
     async deactivate(sessionId) {
         const { error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .update({ is_active: false })
             .eq('id', sessionId);
         if (error) {
@@ -117,7 +118,7 @@ class SupabaseSessionRepository {
     }
     async deactivateAllExcept(userId, currentSessionId) {
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .update({ is_active: false })
             .eq('user_id', userId)
             .neq('id', currentSessionId)
@@ -129,7 +130,7 @@ class SupabaseSessionRepository {
     }
     async cleanupExpiredSessions() {
         const { data, error } = await this.supabase
-            .from(`${this.schema}.${this.tableName}`)
+            .from(this.tableName) // Supabase client already configured with schema
             .delete()
             .lt('expires_at', new Date().toISOString())
             .select();

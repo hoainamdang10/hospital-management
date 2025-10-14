@@ -218,12 +218,38 @@ class SupabaseUserRepository {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
-            const { data: profile, error: profileError } = await this.supabaseClient
+            let profile = null;
+            let profileError = null;
+            // Try to insert profile
+            const insertResult = await this.supabaseClient
                 .from('user_profiles')
                 .insert(profileRecord)
                 .select()
                 .single();
-            if (profileError) {
+            profile = insertResult.data;
+            profileError = insertResult.error;
+            // Handle duplicate key error (orphaned profile from previous failed operation)
+            if (profileError && profileError.code === '23505') {
+                this.logger.warn('Found orphaned profile, cleaning up and retrying', {
+                    userId: authUser.user.id,
+                    email: userData.email
+                });
+                // Delete orphaned profile
+                await this.supabaseClient
+                    .from('user_profiles')
+                    .delete()
+                    .eq('id', authUser.user.id);
+                // Retry insert
+                const retryResult = await this.supabaseClient
+                    .from('user_profiles')
+                    .insert(profileRecord)
+                    .select()
+                    .single();
+                profile = retryResult.data;
+                profileError = retryResult.error;
+            }
+            // Check final result
+            if (profileError || !profile) {
                 // Rollback: Delete auth user if profile creation fails
                 this.logger.error('Failed to create user profile, rolling back auth user', {
                     userId: authUser.user.id,

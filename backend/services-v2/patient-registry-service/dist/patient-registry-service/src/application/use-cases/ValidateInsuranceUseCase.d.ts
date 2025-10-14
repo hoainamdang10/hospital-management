@@ -9,6 +9,7 @@
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { IInsuranceValidationService } from '../services/IInsuranceValidationService';
+import { ILogger } from '@shared/application/services/logger.interface';
 export interface ValidateInsuranceRequest {
     patientId: string;
     requestedBy: string;
@@ -41,7 +42,12 @@ export interface ValidateInsuranceResponse {
 export declare class ValidateInsuranceUseCase {
     private readonly patientRepository;
     private readonly insuranceValidationService;
-    constructor(patientRepository: IPatientRepository, insuranceValidationService: IInsuranceValidationService);
+    private readonly logger;
+    constructor(patientRepository: IPatientRepository, insuranceValidationService: IInsuranceValidationService, logger: ILogger);
     execute(request: ValidateInsuranceRequest): Promise<ValidateInsuranceResponse>;
+    /**
+     * HIPAA audit logging for insurance validation
+     */
+    private auditInsuranceValidation;
 }
 //# sourceMappingURL=ValidateInsuranceUseCase.d.ts.map

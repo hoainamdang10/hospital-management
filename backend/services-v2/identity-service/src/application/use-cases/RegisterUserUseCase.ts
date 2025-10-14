@@ -108,7 +108,7 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
         email: request.email,
         password: request.password,
         fullName: request.fullName,
-        roleType: request.roleType,
+        roleType: request.roleType.toLowerCase(), // Normalize to lowercase for database constraint
         phoneNumber: request.phoneNumber,
         citizenId: request.citizenId,
         dateOfBirth: request.dateOfBirth ? new Date(request.dateOfBirth) : undefined,

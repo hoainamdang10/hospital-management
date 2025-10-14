@@ -7,7 +7,6 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { Patient } from '../aggregates/Patient';
 export interface PatientUpdatedEventData {
     patientId: string;
     updateType: string;
@@ -15,10 +14,10 @@ export interface PatientUpdatedEventData {
     updatedAt: Date;
 }
 export declare class PatientUpdatedEvent extends DomainEvent {
-    readonly patient: Patient;
+    readonly patientId: string;
     readonly updateType: string;
     readonly updatedBy: string;
-    constructor(patient: Patient, updateType: string, updatedBy: string);
+    constructor(patientId: string, updateType: string, updatedBy: string, correlationId?: string, causationId?: string, userIdForAudit?: string);
     getEventData(): PatientUpdatedEventData;
     containsPHI(): boolean;
     getPatientId(): string | null;

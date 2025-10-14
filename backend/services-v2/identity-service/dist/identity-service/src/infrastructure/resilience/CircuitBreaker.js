@@ -171,6 +171,14 @@ class CircuitBreakerFactory {
         }
         return status;
     }
+    static resetAll() {
+        for (const breaker of this.breakers.values()) {
+            breaker.reset();
+        }
+    }
+    static clearAll() {
+        this.breakers.clear();
+    }
 }
 exports.CircuitBreakerFactory = CircuitBreakerFactory;
 CircuitBreakerFactory.breakers = new Map();

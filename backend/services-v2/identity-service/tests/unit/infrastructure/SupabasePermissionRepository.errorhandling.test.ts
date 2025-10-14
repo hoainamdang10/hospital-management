@@ -1,12 +1,13 @@
 /**
  * Error Handling Tests for SupabasePermissionRepository
  * Tests proper error handling in nested queries
- * 
+ *
  * @author Hospital Management Team
  * @version 1.0.0
  */
 
 import { SupabasePermissionRepository } from '../../../src/infrastructure/repositories/SupabasePermissionRepository';
+import { createThenableQueryMock } from '../../helpers/mock-factory';
 
 describe('SupabasePermissionRepository - Error Handling Tests', () => {
   let repository: SupabasePermissionRepository;
@@ -94,7 +95,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
           return {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
-            then: jest.fn().mockResolvedValue({
+            then: createThenableQueryMock({
               data: mockPermissions,
               error: null
             })
@@ -105,7 +106,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
         return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({ data: null, error: null })
+          then: createThenableQueryMock({ data: null, error: null })
         };
       });
 
@@ -141,7 +142,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
           return {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
-            then: jest.fn().mockResolvedValue({
+            then: createThenableQueryMock({
               data: null,
               error: { code: 'PGRST000', message: 'Database error' }
             })
@@ -152,7 +153,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
         return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({ data: null, error: null })
+          then: createThenableQueryMock({ data: null, error: null })
         };
       });
 
@@ -181,7 +182,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
           return {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
-            then: jest.fn().mockResolvedValue({
+            then: createThenableQueryMock({
               data: [],
               error: null
             })
@@ -192,7 +193,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
         return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({ data: null, error: null })
+          then: createThenableQueryMock({ data: null, error: null })
         };
       });
 
@@ -224,7 +225,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
           return {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
-            then: jest.fn().mockResolvedValue({
+            then: createThenableQueryMock({
               data: null,
               error: null
             })
@@ -235,7 +236,7 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
         return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          then: jest.fn().mockResolvedValue({ data: null, error: null })
+          then: createThenableQueryMock({ data: null, error: null })
         };
       });
 
@@ -273,11 +274,8 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
         throw new Error('Network error');
       });
 
-      // Act
-      const result = await repository.getRolePermissions('ADMIN');
-
-      // Assert
-      expect(result).toEqual([]);
+      // Act & Assert
+      await expect(repository.getRolePermissions('ADMIN')).rejects.toThrow('Network error');
     });
   });
 

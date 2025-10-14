@@ -26,13 +26,14 @@ interface SessionRecord {
 
 export class SupabaseSessionRepository implements ISessionRepository {
   private readonly tableName = 'user_sessions';
-  private readonly schema = 'auth_schema';
+  // Note: Supabase client is already configured with db.schema = 'auth_schema'
+  // So we don't need to prefix table names with schema
 
   constructor(private readonly supabase: SupabaseClient) {}
 
   async findById(sessionId: string): Promise<UserSession | null> {
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .select('*')
       .eq('id', sessionId)
       .single();
@@ -46,7 +47,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async findByToken(sessionToken: string): Promise<UserSession | null> {
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .select('*')
       .eq('session_token', sessionToken)
       .single();
@@ -60,7 +61,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async findActiveSessionsByUserId(userId: string): Promise<UserSession[]> {
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .select('*')
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -76,7 +77,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async findAllSessionsByUserId(userId: string): Promise<UserSession[]> {
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .select('*')
       .eq('user_id', userId)
       .order('last_accessed_at', { ascending: false });
@@ -92,7 +93,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
     const persistenceData = session.toPersistence();
 
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .insert(persistenceData)
       .select()
       .single();
@@ -108,7 +109,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
     const persistenceData = session.toPersistence();
 
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .update(persistenceData)
       .eq('id', session.id)
       .select()
@@ -123,7 +124,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async delete(sessionId: string): Promise<void> {
     const { error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .delete()
       .eq('id', sessionId);
 
@@ -134,7 +135,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async deleteAllByUserId(userId: string): Promise<number> {
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .delete()
       .eq('user_id', userId)
       .select();
@@ -148,7 +149,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async deactivate(sessionId: string): Promise<void> {
     const { error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .update({ is_active: false })
       .eq('id', sessionId);
 
@@ -159,7 +160,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async deactivateAllExcept(userId: string, currentSessionId: string): Promise<number> {
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .update({ is_active: false })
       .eq('user_id', userId)
       .neq('id', currentSessionId)
@@ -174,7 +175,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async cleanupExpiredSessions(): Promise<number> {
     const { data, error } = await this.supabase
-      .from(`${this.schema}.${this.tableName}`)
+      .from(this.tableName) // Supabase client already configured with schema
       .delete()
       .lt('expires_at', new Date().toISOString())
       .select();

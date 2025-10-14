@@ -9,7 +9,7 @@
 
 import { Entity } from '@shared/domain/base/entity';
 import { PatientId } from '../value-objects/PatientId';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 
 export interface PatientConsentProps {
   id: string;
@@ -41,7 +41,7 @@ export class PatientConsent extends Entity<PatientConsentProps> {
     notes?: string
   ): PatientConsent {
     const now = new Date();
-    const id = uuidv4();
+    const id = uuid.v4();
 
     return new PatientConsent({
       id,

@@ -1,0 +1,660 @@
+7a39ef656ce207b9c8762d151db3c177
+"use strict";
+
+/**
+ * Health & Monitoring Routes
+ * Handles health checks, service info, and circuit breaker status
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+/* istanbul ignore next */
+function cov_2gjt8jbqzm() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\presentation\\routes\\health.routes.ts";
+  var hash = "3b075b416c2302687c74ca041fec5d5f4de1aa9c";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\presentation\\routes\\health.routes.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 48
+        }
+      },
+      "2": {
+        start: {
+          line: 11,
+          column: 18
+        },
+        end: {
+          line: 11,
+          column: 36
+        }
+      },
+      "3": {
+        start: {
+          line: 12,
+          column: 25
+        },
+        end: {
+          line: 12,
+          column: 82
+        }
+      },
+      "4": {
+        start: {
+          line: 13,
+          column: 17
+        },
+        end: {
+          line: 13,
+          column: 63
+        }
+      },
+      "5": {
+        start: {
+          line: 14,
+          column: 17
+        },
+        end: {
+          line: 14,
+          column: 55
+        }
+      },
+      "6": {
+        start: {
+          line: 16,
+          column: 4
+        },
+        end: {
+          line: 17,
+          column: 29
+        }
+      },
+      "7": {
+        start: {
+          line: 17,
+          column: 8
+        },
+        end: {
+          line: 17,
+          column: 29
+        }
+      },
+      "8": {
+        start: {
+          line: 18,
+          column: 4
+        },
+        end: {
+          line: 18,
+          column: 25
+        }
+      },
+      "9": {
+        start: {
+          line: 21,
+          column: 19
+        },
+        end: {
+          line: 21,
+          column: 42
+        }
+      },
+      "10": {
+        start: {
+          line: 23,
+          column: 4
+        },
+        end: {
+          line: 37,
+          column: 7
+        }
+      },
+      "11": {
+        start: {
+          line: 24,
+          column: 8
+        },
+        end: {
+          line: 36,
+          column: 9
+        }
+      },
+      "12": {
+        start: {
+          line: 25,
+          column: 27
+        },
+        end: {
+          line: 25,
+          column: 63
+        }
+      },
+      "13": {
+        start: {
+          line: 26,
+          column: 31
+        },
+        end: {
+          line: 26,
+          column: 71
+        }
+      },
+      "14": {
+        start: {
+          line: 27,
+          column: 12
+        },
+        end: {
+          line: 27,
+          column: 48
+        }
+      },
+      "15": {
+        start: {
+          line: 30,
+          column: 12
+        },
+        end: {
+          line: 30,
+          column: 92
+        }
+      },
+      "16": {
+        start: {
+          line: 31,
+          column: 12
+        },
+        end: {
+          line: 35,
+          column: 15
+        }
+      },
+      "17": {
+        start: {
+          line: 39,
+          column: 4
+        },
+        end: {
+          line: 48,
+          column: 7
+        }
+      },
+      "18": {
+        start: {
+          line: 40,
+          column: 8
+        },
+        end: {
+          line: 47,
+          column: 11
+        }
+      },
+      "19": {
+        start: {
+          line: 50,
+          column: 4
+        },
+        end: {
+          line: 59,
+          column: 7
+        }
+      },
+      "20": {
+        start: {
+          line: 51,
+          column: 8
+        },
+        end: {
+          line: 58,
+          column: 9
+        }
+      },
+      "21": {
+        start: {
+          line: 52,
+          column: 27
+        },
+        end: {
+          line: 52,
+          column: 83
+        }
+      },
+      "22": {
+        start: {
+          line: 53,
+          column: 12
+        },
+        end: {
+          line: 53,
+          column: 29
+        }
+      },
+      "23": {
+        start: {
+          line: 56,
+          column: 12
+        },
+        end: {
+          line: 56,
+          column: 109
+        }
+      },
+      "24": {
+        start: {
+          line: 57,
+          column: 12
+        },
+        end: {
+          line: 57,
+          column: 84
+        }
+      },
+      "25": {
+        start: {
+          line: 60,
+          column: 4
+        },
+        end: {
+          line: 60,
+          column: 18
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "getErrorMessage",
+        decl: {
+          start: {
+            line: 15,
+            column: 9
+          },
+          end: {
+            line: 15,
+            column: 24
+          }
+        },
+        loc: {
+          start: {
+            line: 15,
+            column: 32
+          },
+          end: {
+            line: 19,
+            column: 1
+          }
+        },
+        line: 15
+      },
+      "1": {
+        name: "createHealthRoutes",
+        decl: {
+          start: {
+            line: 20,
+            column: 9
+          },
+          end: {
+            line: 20,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 20,
+            column: 34
+          },
+          end: {
+            line: 61,
+            column: 1
+          }
+        },
+        line: 20
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 23,
+            column: 26
+          },
+          end: {
+            line: 23,
+            column: 27
+          }
+        },
+        loc: {
+          start: {
+            line: 23,
+            column: 47
+          },
+          end: {
+            line: 37,
+            column: 5
+          }
+        },
+        line: 23
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 39,
+            column: 24
+          },
+          end: {
+            line: 39,
+            column: 25
+          }
+        },
+        loc: {
+          start: {
+            line: 39,
+            column: 39
+          },
+          end: {
+            line: 48,
+            column: 5
+          }
+        },
+        line: 39
+      },
+      "4": {
+        name: "(anonymous_4)",
+        decl: {
+          start: {
+            line: 50,
+            column: 36
+          },
+          end: {
+            line: 50,
+            column: 37
+          }
+        },
+        loc: {
+          start: {
+            line: 50,
+            column: 51
+          },
+          end: {
+            line: 59,
+            column: 5
+          }
+        },
+        line: 50
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 16,
+            column: 4
+          },
+          end: {
+            line: 17,
+            column: 29
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 16,
+            column: 4
+          },
+          end: {
+            line: 17,
+            column: 29
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 16
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 26,
+            column: 31
+          },
+          end: {
+            line: 26,
+            column: 71
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 26,
+            column: 62
+          },
+          end: {
+            line: 26,
+            column: 65
+          }
+        }, {
+          start: {
+            line: 26,
+            column: 68
+          },
+          end: {
+            line: 26,
+            column: 71
+          }
+        }],
+        line: 26
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0,
+      "16": 0,
+      "17": 0,
+      "18": 0,
+      "19": 0,
+      "20": 0,
+      "21": 0,
+      "22": 0,
+      "23": 0,
+      "24": 0,
+      "25": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0]
+    },
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\presentation\\routes\\health.routes.ts",
+      mappings: ";AAAA;;;;;;GAMG;;AAaH,gDA2CC;AAtDD,qCAAiC;AAEjC,mFAAuF;AACvF,gEAA6D;AAC7D,wDAAqD;AAErD,SAAS,eAAe,CAAC,KAAc;IACrC,IAAI,KAAK,YAAY,KAAK;QAAE,OAAO,KAAK,CAAC,OAAO,CAAC;IACjD,OAAO,MAAM,CAAC,KAAK,CAAC,CAAC;AACvB,CAAC;AAED,SAAgB,kBAAkB,CAAC,IAAuB;IACxD,MAAM,MAAM,GAAG,IAAA,gBAAM,GAAE,CAAC;IAExB,wBAAwB;IACxB,MAAM,CAAC,GAAG,CAAC,SAAS,EAAE,KAAK,EAAE,IAAI,EAAE,GAAG,EAAE,EAAE;QACxC,IAAI,CAAC;YACH,MAAM,MAAM,GAAG,MAAM,IAAI,CAAC,WAAW,CAAC,WAAW,EAAE,CAAC;YACpD,MAAM,UAAU,GAAG,MAAM,CAAC,OAAO,KAAK,SAAS,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,CAAC,GAAG,CAAC;YAC5D,GAAG,CAAC,MAAM,CAAC,UAAU,CAAC,CAAC,IAAI,CAAC,MAAM,CAAC,CAAC;QACtC,CAAC;QAAC,OAAO,KAAK,EAAE,CAAC;YACf,eAAM,CAAC,KAAK,CAAC,qBAAqB,EAAE,EAAE,KAAK,EAAE,eAAe,CAAC,KAAK,CAAC,EAAE,CAAC,CAAC;YACvE,GAAG,CAAC,MAAM,CAAC,GAAG,CAAC,CAAC,IAAI,CAAC;gBACnB,OAAO,EAAE,WAAW;gBACpB,KAAK,EAAE,eAAe,CAAC,KAAK,CAAC;gBAC7B,SAAS,EAAE,IAAI,IAAI,EAAE;aACtB,CAAC,CAAC;QACL,CAAC;IACH,CAAC,CAAC,CAAC;IAEH,wBAAwB;IACxB,MAAM,CAAC,GAAG,CAAC,OAAO,EAAE,CAAC,IAAI,EAAE,GAAG,EAAE,EAAE;QAChC,GAAG,CAAC,IAAI,CAAC;YACP,OAAO,EAAE,eAAM,CAAC,WAAW;YAC3B,OAAO,EAAE,eAAM,CAAC,OAAO;YACvB,WAAW,EAAE,eAAM,CAAC,OAAO;YAC3B,SAAS,EAAE,IAAI,IAAI,EAAE;YACrB,MAAM,EAAE,OAAO,CAAC,MAAM,EAAE;YACxB,IAAI,EAAE,IAAI,CAAC,kBAAkB,CAAC,SAAS,EAAE,CAAC,IAAI;SAC/C,CAAC,CAAC;IACL,CAAC,CAAC,CAAC;IAEH,kCAAkC;IAClC,MAAM,CAAC,GAAG,CAAC,mBAAmB,EAAE,CAAC,IAAI,EAAE,GAAG,EAAE,EAAE;QAC5C,IAAI,CAAC;YACH,MAAM,MAAM,GAAG,sCAAqB,CAAC,eAAe,EAAE,CAAC;YACvD,GAAG,CAAC,IAAI,CAAC,MAAM,CAAC,CAAC;QACnB,CAAC;QAAC,OAAO,KAAK,EAAE,CAAC;YACf,eAAM,CAAC,KAAK,CAAC,sCAAsC,EAAE,EAAE,KAAK,EAAE,eAAe,CAAC,KAAK,CAAC,EAAE,CAAC,CAAC;YACxF,GAAG,CAAC,MAAM,CAAC,GAAG,CAAC,CAAC,IAAI,CAAC,EAAE,KAAK,EAAE,sCAAsC,EAAE,CAAC,CAAC;QAC1E,CAAC;IACH,CAAC,CAAC,CAAC;IAEH,OAAO,MAAM,CAAC;AAChB,CAAC",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\presentation\\routes\\health.routes.ts"],
+      sourcesContent: ["/**\n * Health & Monitoring Routes\n * Handles health checks, service info, and circuit breaker status\n * \n * @author Hospital Management Team\n * @version 2.0.0\n */\n\nimport { Router } from 'express';\nimport { RouteDependencies } from './types';\nimport { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';\nimport { logger } from '../../infrastructure/logging/Logger';\nimport { config } from '../../infrastructure/config';\n\nfunction getErrorMessage(error: unknown): string {\n  if (error instanceof Error) return error.message;\n  return String(error);\n}\n\nexport function createHealthRoutes(deps: RouteDependencies): Router {\n  const router = Router();\n\n  // Health check endpoint\n  router.get('/health', async (_req, res) => {\n    try {\n      const health = await deps.healthCheck.checkHealth();\n      const statusCode = health.overall === 'HEALTHY' ? 200 : 503;\n      res.status(statusCode).json(health);\n    } catch (error) {\n      logger.error('Health check failed', { error: getErrorMessage(error) });\n      res.status(503).json({\n        overall: 'UNHEALTHY',\n        error: getErrorMessage(error),\n        timestamp: new Date()\n      });\n    }\n  });\n\n  // Service info endpoint\n  router.get('/info', (_req, res) => {\n    res.json({\n      service: config.serviceName,\n      version: config.version,\n      environment: config.nodeEnv,\n      timestamp: new Date(),\n      uptime: process.uptime(),\n      mode: deps.degradationService.getStatus().mode\n    });\n  });\n\n  // Circuit breaker status endpoint\n  router.get('/circuit-breakers', (_req, res) => {\n    try {\n      const status = CircuitBreakerFactory.getHealthStatus();\n      res.json(status);\n    } catch (error) {\n      logger.error('Failed to get circuit breaker status', { error: getErrorMessage(error) });\n      res.status(500).json({ error: 'Failed to get circuit breaker status' });\n    }\n  });\n\n  return router;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "3b075b416c2302687c74ca041fec5d5f4de1aa9c"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2gjt8jbqzm = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2gjt8jbqzm();
+cov_2gjt8jbqzm().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_2gjt8jbqzm().s[1]++;
+exports.createHealthRoutes = createHealthRoutes;
+const express_1 =
+/* istanbul ignore next */
+(cov_2gjt8jbqzm().s[2]++, require("express"));
+const CircuitBreaker_1 =
+/* istanbul ignore next */
+(cov_2gjt8jbqzm().s[3]++, require("../../infrastructure/resilience/CircuitBreaker"));
+const Logger_1 =
+/* istanbul ignore next */
+(cov_2gjt8jbqzm().s[4]++, require("../../infrastructure/logging/Logger"));
+const config_1 =
+/* istanbul ignore next */
+(cov_2gjt8jbqzm().s[5]++, require("../../infrastructure/config"));
+function getErrorMessage(error) {
+  /* istanbul ignore next */
+  cov_2gjt8jbqzm().f[0]++;
+  cov_2gjt8jbqzm().s[6]++;
+  if (error instanceof Error) {
+    /* istanbul ignore next */
+    cov_2gjt8jbqzm().b[0][0]++;
+    cov_2gjt8jbqzm().s[7]++;
+    return error.message;
+  } else
+  /* istanbul ignore next */
+  {
+    cov_2gjt8jbqzm().b[0][1]++;
+  }
+  cov_2gjt8jbqzm().s[8]++;
+  return String(error);
+}
+function createHealthRoutes(deps) {
+  /* istanbul ignore next */
+  cov_2gjt8jbqzm().f[1]++;
+  const router =
+  /* istanbul ignore next */
+  (cov_2gjt8jbqzm().s[9]++, (0, express_1.Router)());
+  // Health check endpoint
+  /* istanbul ignore next */
+  cov_2gjt8jbqzm().s[10]++;
+  router.get('/health', async (_req, res) => {
+    /* istanbul ignore next */
+    cov_2gjt8jbqzm().f[2]++;
+    cov_2gjt8jbqzm().s[11]++;
+    try {
+      const health =
+      /* istanbul ignore next */
+      (cov_2gjt8jbqzm().s[12]++, await deps.healthCheck.checkHealth());
+      const statusCode =
+      /* istanbul ignore next */
+      (cov_2gjt8jbqzm().s[13]++, health.overall === 'HEALTHY' ?
+      /* istanbul ignore next */
+      (cov_2gjt8jbqzm().b[1][0]++, 200) :
+      /* istanbul ignore next */
+      (cov_2gjt8jbqzm().b[1][1]++, 503));
+      /* istanbul ignore next */
+      cov_2gjt8jbqzm().s[14]++;
+      res.status(statusCode).json(health);
+    } catch (error) {
+      /* istanbul ignore next */
+      cov_2gjt8jbqzm().s[15]++;
+      Logger_1.logger.error('Health check failed', {
+        error: getErrorMessage(error)
+      });
+      /* istanbul ignore next */
+      cov_2gjt8jbqzm().s[16]++;
+      res.status(503).json({
+        overall: 'UNHEALTHY',
+        error: getErrorMessage(error),
+        timestamp: new Date()
+      });
+    }
+  });
+  // Service info endpoint
+  /* istanbul ignore next */
+  cov_2gjt8jbqzm().s[17]++;
+  router.get('/info', (_req, res) => {
+    /* istanbul ignore next */
+    cov_2gjt8jbqzm().f[3]++;
+    cov_2gjt8jbqzm().s[18]++;
+    res.json({
+      service: config_1.config.serviceName,
+      version: config_1.config.version,
+      environment: config_1.config.nodeEnv,
+      timestamp: new Date(),
+      uptime: process.uptime(),
+      mode: deps.degradationService.getStatus().mode
+    });
+  });
+  // Circuit breaker status endpoint
+  /* istanbul ignore next */
+  cov_2gjt8jbqzm().s[19]++;
+  router.get('/circuit-breakers', (_req, res) => {
+    /* istanbul ignore next */
+    cov_2gjt8jbqzm().f[4]++;
+    cov_2gjt8jbqzm().s[20]++;
+    try {
+      const status =
+      /* istanbul ignore next */
+      (cov_2gjt8jbqzm().s[21]++, CircuitBreaker_1.CircuitBreakerFactory.getHealthStatus());
+      /* istanbul ignore next */
+      cov_2gjt8jbqzm().s[22]++;
+      res.json(status);
+    } catch (error) {
+      /* istanbul ignore next */
+      cov_2gjt8jbqzm().s[23]++;
+      Logger_1.logger.error('Failed to get circuit breaker status', {
+        error: getErrorMessage(error)
+      });
+      /* istanbul ignore next */
+      cov_2gjt8jbqzm().s[24]++;
+      res.status(500).json({
+        error: 'Failed to get circuit breaker status'
+      });
+    }
+  });
+  /* istanbul ignore next */
+  cov_2gjt8jbqzm().s[25]++;
+  return router;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmdqdDhqYnF6bSIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsIm5hbWUiLCJkZWNsIiwibG9jIiwiYnJhbmNoTWFwIiwidHlwZSIsImxvY2F0aW9ucyIsInVuZGVmaW5lZCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSIsImV4cG9ydHMiLCJjcmVhdGVIZWFsdGhSb3V0ZXMiLCJleHByZXNzXzEiLCJyZXF1aXJlIiwiQ2lyY3VpdEJyZWFrZXJfMSIsIkxvZ2dlcl8xIiwiY29uZmlnXzEiLCJnZXRFcnJvck1lc3NhZ2UiLCJlcnJvciIsIkVycm9yIiwibWVzc2FnZSIsIlN0cmluZyIsImRlcHMiLCJyb3V0ZXIiLCJSb3V0ZXIiLCJnZXQiLCJfcmVxIiwicmVzIiwiaGVhbHRoIiwiaGVhbHRoQ2hlY2siLCJjaGVja0hlYWx0aCIsInN0YXR1c0NvZGUiLCJvdmVyYWxsIiwic3RhdHVzIiwianNvbiIsImxvZ2dlciIsInRpbWVzdGFtcCIsIkRhdGUiLCJzZXJ2aWNlIiwiY29uZmlnIiwic2VydmljZU5hbWUiLCJlbnZpcm9ubWVudCIsIm5vZGVFbnYiLCJ1cHRpbWUiLCJwcm9jZXNzIiwibW9kZSIsImRlZ3JhZGF0aW9uU2VydmljZSIsImdldFN0YXR1cyIsIkNpcmN1aXRCcmVha2VyRmFjdG9yeSIsImdldEhlYWx0aFN0YXR1cyJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxwcmVzZW50YXRpb25cXHJvdXRlc1xcaGVhbHRoLnJvdXRlcy50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIEhlYWx0aCAmIE1vbml0b3JpbmcgUm91dGVzXG4gKiBIYW5kbGVzIGhlYWx0aCBjaGVja3MsIHNlcnZpY2UgaW5mbywgYW5kIGNpcmN1aXQgYnJlYWtlciBzdGF0dXNcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKi9cblxuaW1wb3J0IHsgUm91dGVyIH0gZnJvbSAnZXhwcmVzcyc7XG5pbXBvcnQgeyBSb3V0ZURlcGVuZGVuY2llcyB9IGZyb20gJy4vdHlwZXMnO1xuaW1wb3J0IHsgQ2lyY3VpdEJyZWFrZXJGYWN0b3J5IH0gZnJvbSAnLi4vLi4vaW5mcmFzdHJ1Y3R1cmUvcmVzaWxpZW5jZS9DaXJjdWl0QnJlYWtlcic7XG5pbXBvcnQgeyBsb2dnZXIgfSBmcm9tICcuLi8uLi9pbmZyYXN0cnVjdHVyZS9sb2dnaW5nL0xvZ2dlcic7XG5pbXBvcnQgeyBjb25maWcgfSBmcm9tICcuLi8uLi9pbmZyYXN0cnVjdHVyZS9jb25maWcnO1xuXG5mdW5jdGlvbiBnZXRFcnJvck1lc3NhZ2UoZXJyb3I6IHVua25vd24pOiBzdHJpbmcge1xuICBpZiAoZXJyb3IgaW5zdGFuY2VvZiBFcnJvcikgcmV0dXJuIGVycm9yLm1lc3NhZ2U7XG4gIHJldHVybiBTdHJpbmcoZXJyb3IpO1xufVxuXG5leHBvcnQgZnVuY3Rpb24gY3JlYXRlSGVhbHRoUm91dGVzKGRlcHM6IFJvdXRlRGVwZW5kZW5jaWVzKTogUm91dGVyIHtcbiAgY29uc3Qgcm91dGVyID0gUm91dGVyKCk7XG5cbiAgLy8gSGVhbHRoIGNoZWNrIGVuZHBvaW50XG4gIHJvdXRlci5nZXQoJy9oZWFsdGgnLCBhc3luYyAoX3JlcSwgcmVzKSA9PiB7XG4gICAgdHJ5IHtcbiAgICAgIGNvbnN0IGhlYWx0aCA9IGF3YWl0IGRlcHMuaGVhbHRoQ2hlY2suY2hlY2tIZWFsdGgoKTtcbiAgICAgIGNvbnN0IHN0YXR1c0NvZGUgPSBoZWFsdGgub3ZlcmFsbCA9PT0gJ0hFQUxUSFknID8gMjAwIDogNTAzO1xuICAgICAgcmVzLnN0YXR1cyhzdGF0dXNDb2RlKS5qc29uKGhlYWx0aCk7XG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICAgIGxvZ2dlci5lcnJvcignSGVhbHRoIGNoZWNrIGZhaWxlZCcsIHsgZXJyb3I6IGdldEVycm9yTWVzc2FnZShlcnJvcikgfSk7XG4gICAgICByZXMuc3RhdHVzKDUwMykuanNvbih7XG4gICAgICAgIG92ZXJhbGw6ICdVTkhFQUxUSFknLFxuICAgICAgICBlcnJvcjogZ2V0RXJyb3JNZXNzYWdlKGVycm9yKSxcbiAgICAgICAgdGltZXN0YW1wOiBuZXcgRGF0ZSgpXG4gICAgICB9KTtcbiAgICB9XG4gIH0pO1xuXG4gIC8vIFNlcnZpY2UgaW5mbyBlbmRwb2ludFxuICByb3V0ZXIuZ2V0KCcvaW5mbycsIChfcmVxLCByZXMpID0+IHtcbiAgICByZXMuanNvbih7XG4gICAgICBzZXJ2aWNlOiBjb25maWcuc2VydmljZU5hbWUsXG4gICAgICB2ZXJzaW9uOiBjb25maWcudmVyc2lvbixcbiAgICAgIGVudmlyb25tZW50OiBjb25maWcubm9kZUVudixcbiAgICAgIHRpbWVzdGFtcDogbmV3IERhdGUoKSxcbiAgICAgIHVwdGltZTogcHJvY2Vzcy51cHRpbWUoKSxcbiAgICAgIG1vZGU6IGRlcHMuZGVncmFkYXRpb25TZXJ2aWNlLmdldFN0YXR1cygpLm1vZGVcbiAgICB9KTtcbiAgfSk7XG5cbiAgLy8gQ2lyY3VpdCBicmVha2VyIHN0YXR1cyBlbmRwb2ludFxuICByb3V0ZXIuZ2V0KCcvY2lyY3VpdC1icmVha2VycycsIChfcmVxLCByZXMpID0+IHtcbiAgICB0cnkge1xuICAgICAgY29uc3Qgc3RhdHVzID0gQ2lyY3VpdEJyZWFrZXJGYWN0b3J5LmdldEhlYWx0aFN0YXR1cygpO1xuICAgICAgcmVzLmpzb24oc3RhdHVzKTtcbiAgICB9IGNhdGNoIChlcnJvcikge1xuICAgICAgbG9nZ2VyLmVycm9yKCdGYWlsZWQgdG8gZ2V0IGNpcmN1aXQgYnJlYWtlciBzdGF0dXMnLCB7IGVycm9yOiBnZXRFcnJvck1lc3NhZ2UoZXJyb3IpIH0pO1xuICAgICAgcmVzLnN0YXR1cyg1MDApLmpzb24oeyBlcnJvcjogJ0ZhaWxlZCB0byBnZXQgY2lyY3VpdCBicmVha2VyIHN0YXR1cycgfSk7XG4gICAgfVxuICB9KTtcblxuICByZXR1cm4gcm91dGVyO1xufVxuXG4iXSwibWFwcGluZ3MiOiI7O0FBQUE7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7SUFBQTtJQUFBRSxLQUFBO01BQUE7UUFBQUMsSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO01BQUE7UUFBQUksSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO01BQUE7UUFBQUksSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO01BQUE7UUFBQUksSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO01BQUE7UUFBQUksSUFBQTtRQUFBQyxJQUFBO1VBQUFOLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFLLEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUQsSUFBQTtNQUFBO0lBQUE7SUFBQU8sU0FBQTtNQUFBO1FBQUFELEdBQUE7VUFBQVAsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQU8sSUFBQTtRQUFBQyxTQUFBO1VBQUFWLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1VBQUFGLEtBQUE7WUFBQUMsSUFBQSxFQUFBVSxTQUFBO1lBQUFULE1BQUEsRUFBQVM7VUFBQTtVQUFBUixHQUFBO1lBQUFGLElBQUEsRUFBQVUsU0FBQTtZQUFBVCxNQUFBLEVBQUFTO1VBQUE7UUFBQTtRQUFBVixJQUFBO01BQUE7TUFBQTtRQUFBTSxHQUFBO1VBQUFQLEtBQUE7WUFBQUMsSUFBQTtZQUFBQyxNQUFBO1VBQUE7VUFBQUMsR0FBQTtZQUFBRixJQUFBO1lBQUFDLE1BQUE7VUFBQTtRQUFBO1FBQUFPLElBQUE7UUFBQUMsU0FBQTtVQUFBVixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtVQUFBRixLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBRCxJQUFBO01BQUE7SUFBQTtJQUFBVyxDQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtNQUFBO01BQUE7TUFBQTtJ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

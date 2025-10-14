@@ -15,11 +15,11 @@ module.exports = {
   // Root directory
   rootDir: '.',
   
-  // Test directories
-  testMatch: [
-    '<rootDir>/tests/**/*.test.ts',
-    '<rootDir>/tests/**/*.spec.ts'
-  ],
+  // Test directories (disabled when using projects config)
+  // testMatch: [
+  //   '<rootDir>/tests/**/*.test.ts',
+  //   '<rootDir>/tests/**/*.spec.ts'
+  // ],
   
   // Setup files
   setupFilesAfterEnv: [
@@ -116,11 +116,11 @@ module.exports = {
   restoreMocks: true,
   resetMocks: true,
   
-  // Verbose output
-  verbose: true,
-  
-  // Test timeout (30 seconds)
-  testTimeout: 30000,
+  // Verbose output (disabled for faster testing)
+  verbose: false,
+
+  // Test timeout (default for unit tests)
+  // testTimeout: 5000, // Moved to projects config
   
   // Test environment options
   testEnvironmentOptions: {
@@ -144,21 +144,57 @@ module.exports = {
     '<rootDir>/coverage/'
   ],
   
-  // Test categories (disabled for now to avoid config conflicts)
-  // projects: [
-  //   {
-  //     displayName: 'Unit Tests',
-  //     testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
-  //     testEnvironment: 'node',
-  //     testTimeout: 10000
-  //   },
-  //   {
-  //     displayName: 'Integration Tests',
-  //     testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
-  //     testEnvironment: 'node',
-  //     testTimeout: 60000 // Longer timeout for integration tests
-  //   }
-  // ],
+  // Test categories - separate configuration for unit and integration tests
+  projects: [
+    {
+      displayName: 'Unit Tests',
+      testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
+      timeout: 5000,
+      maxWorkers: '100%',
+      preset: 'ts-jest',
+      testEnvironment: 'node',
+      setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+        '^@domain/(.*)$': '<rootDir>/src/domain/$1',
+        '^@application/(.*)$': '<rootDir>/src/application/$1',
+        '^@infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1',
+        '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
+        '^@tests/(.*)$': '<rootDir>/tests/$1',
+        '^@shared/(.*)$': '<rootDir>/../shared/$1',
+        '^uuid$': require.resolve('uuid')
+      },
+      transform: {
+        '^.+\\.ts$': ['ts-jest', {
+          tsconfig: '<rootDir>/tsconfig.json'
+        }]
+      }
+    },
+    {
+      displayName: 'Integration Tests',
+      testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
+      timeout: 30000,
+      maxWorkers: 1, // Run integration tests serially to avoid race conditions
+      preset: 'ts-jest',
+      testEnvironment: 'node',
+      setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+        '^@domain/(.*)$': '<rootDir>/src/domain/$1',
+        '^@application/(.*)$': '<rootDir>/src/application/$1',
+        '^@infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1',
+        '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
+        '^@tests/(.*)$': '<rootDir>/tests/$1',
+        '^@shared/(.*)$': '<rootDir>/../shared/$1',
+        '^uuid$': require.resolve('uuid')
+      },
+      transform: {
+        '^.+\\.ts$': ['ts-jest', {
+          tsconfig: '<rootDir>/tsconfig.json'
+        }]
+      }
+    }
+  ],
   
   // Mock configuration
   automock: false,
@@ -166,23 +202,26 @@ module.exports = {
     '<rootDir>/node_modules/'
   ],
   
-  // Performance monitoring
-  detectOpenHandles: false,
+  // Performance monitoring (enabled to detect resource leaks)
+  detectOpenHandles: true,
   detectLeaks: false,
-  forceExit: true,
+  forceExit: false,
   
   // Bail configuration
   bail: 0, // Don't bail on first failure
+
+  // Run tests in parallel (not in band)
+  // runInBand: false, // Moved to projects config
   
-  // Cache configuration
+  // Cache configuration (enabled for faster subsequent runs)
   cache: true,
-  cacheDirectory: '<rootDir>/.jest-cache',
+  cacheDirectory: '<rootDir>/node_modules/.cache/jest',
   
   // Silent mode
   silent: false,
   
-  // Max workers
-  maxWorkers: '50%',
+  // Max workers (optimized at 75% for best performance)
+  maxWorkers: '75%',
   
   // Transform ignore patterns
   transformIgnorePatterns: [

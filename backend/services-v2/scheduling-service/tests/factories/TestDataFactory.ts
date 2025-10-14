@@ -7,12 +7,10 @@
  * @version 2.0.0
  */
 
-import { Appointment, AppointmentStatus } from '../../src/domain/aggregates/scheduling.aggregate';
-import { AppointmentId, AppointmentType, AppointmentPriority } from '../../src/domain/value-objects/AppointmentId';
-import { PatientInfo } from '../../src/domain/value-objects/PatientInfo';
-import { ProviderInfo, ProviderType, ProviderStatus } from '../../src/domain/value-objects/ProviderInfo';
-import { TimeSlot, TimeSlotStatus } from '../../src/domain/value-objects/TimeSlot';
-import { AppointmentDetails, AppointmentReason } from '../../src/domain/value-objects/AppointmentDetails';
+import { Appointment, AppointmentStatus, AppointmentType, AppointmentPriority } from '../../src/domain/aggregates/Appointment.aggregate';
+import { AppointmentId } from '../../src/domain/value-objects/AppointmentId.vo';
+import { TimeSlot, TimeSlotStatus } from '../../src/domain/value-objects/TimeSlot.vo';
+import { AppointmentDetails, AppointmentReason } from '../../src/domain/value-objects/AppointmentDetails.vo';
 import { ScheduleAppointmentCommand } from '../../src/application/commands/ScheduleAppointmentCommand';
 import { TEST_CONSTANTS } from '../setup';
 
@@ -38,59 +36,21 @@ export class TestDataFactory {
   }
 
   /**
-   * Create test PatientInfo
+   * Create test patient ID
    */
-  static createPatientInfo(overrides: Partial<{
+  static createPatientId(overrides: Partial<{
     patientId: string;
-    fullName: string;
-    phone: string;
-    dateOfBirth: string;
-    nationalId: string;
-    email?: string;
-    address?: string;
-    emergencyContact?: string;
-    insuranceNumber?: string;
-    insuranceType?: string;
-  }> = {}): PatientInfo {
-    return PatientInfo.create(
-      overrides.patientId || TEST_CONSTANTS.PATIENT.ID,
-      overrides.fullName || TEST_CONSTANTS.PATIENT.NAME,
-      overrides.phone || TEST_CONSTANTS.PATIENT.PHONE,
-      overrides.dateOfBirth || TEST_CONSTANTS.PATIENT.DATE_OF_BIRTH,
-      overrides.nationalId || TEST_CONSTANTS.PATIENT.NATIONAL_ID,
-      overrides.email || TEST_CONSTANTS.PATIENT.EMAIL,
-      overrides.address || '123 Đường ABC, Quận 1, TP.HCM',
-      overrides.emergencyContact || '0987654321',
-      overrides.insuranceNumber || 'VN1234567890123',
-      overrides.insuranceType || 'BHYT'
-    );
+  }> = {}): string {
+    return overrides.patientId || TEST_CONSTANTS.PATIENT.ID;
   }
 
   /**
-   * Create test ProviderInfo
+   * Create test doctor ID
    */
-  static createProviderInfo(overrides: Partial<{
-    providerId: string;
-    fullName: string;
-    specialization: string;
-    department: string;
-    licenseNumber: string;
-    type: ProviderType;
-    status: ProviderStatus;
-    phone?: string;
-    email?: string;
-  }> = {}): ProviderInfo {
-    return ProviderInfo.create(
-      overrides.providerId || TEST_CONSTANTS.PROVIDER.ID,
-      overrides.fullName || TEST_CONSTANTS.PROVIDER.NAME,
-      overrides.specialization || TEST_CONSTANTS.PROVIDER.SPECIALIZATION,
-      overrides.department || TEST_CONSTANTS.PROVIDER.DEPARTMENT,
-      overrides.licenseNumber || TEST_CONSTANTS.PROVIDER.LICENSE,
-      overrides.type || ProviderType.DOCTOR,
-      overrides.status || ProviderStatus.ACTIVE,
-      overrides.phone || '0123456788',
-      overrides.email || 'doctor@test.com'
-    );
+  static createDoctorId(overrides: Partial<{
+    doctorId: string;
+  }> = {}): string {
+    return overrides.doctorId || TEST_CONSTANTS.PROVIDER.ID;
   }
 
   /**
@@ -153,30 +113,48 @@ export class TestDataFactory {
    */
   static createAppointment(overrides: Partial<{
     appointmentId?: AppointmentId;
-    patient?: PatientInfo;
-    provider?: ProviderInfo;
+    patientId?: string;
+    doctorId?: string;
     timeSlot?: TimeSlot;
     details?: AppointmentDetails;
+    durationMinutes?: number;
+    type?: AppointmentType;
+    priority?: AppointmentPriority;
+    consultationFee?: number;
     roomId?: string;
+    departmentId?: string;
+    requiredEquipment?: string[];
     createdBy?: string;
     status?: AppointmentStatus;
   }> = {}): Appointment {
     const appointmentId = overrides.appointmentId || this.createAppointmentId();
-    const patient = overrides.patient || this.createPatientInfo();
-    const provider = overrides.provider || this.createProviderInfo();
+    const patientId = overrides.patientId || this.createPatientId();
+    const doctorId = overrides.doctorId || this.createDoctorId();
     const timeSlot = overrides.timeSlot || this.createTimeSlot();
     const details = overrides.details || this.createAppointmentDetails();
+    const durationMinutes = overrides.durationMinutes || 30;
+    const type = overrides.type || AppointmentType.CONSULTATION;
+    const priority = overrides.priority || AppointmentPriority.ROUTINE;
+    const consultationFee = overrides.consultationFee || 200000;
     const roomId = overrides.roomId || TEST_CONSTANTS.APPOINTMENT.ROOM_ID;
+    const departmentId = overrides.departmentId;
+    const requiredEquipment = overrides.requiredEquipment;
     const createdBy = overrides.createdBy || 'test-user';
 
     const appointment = Appointment.create(
       appointmentId,
-      patient,
-      provider,
+      patientId,
+      doctorId,
       timeSlot,
+      durationMinutes,
+      type,
+      priority,
       details,
+      consultationFee,
+      createdBy,
       roomId,
-      createdBy
+      departmentId,
+      requiredEquipment
     );
 
     // Set status if provided
@@ -208,51 +186,24 @@ export class TestDataFactory {
   }
 
   /**
-   * Create test ScheduleAppointmentCommand
-   */
-  static createScheduleAppointmentCommand(overrides: Partial<{
-    appointmentId?: AppointmentId;
-    patient?: PatientInfo;
-    provider?: ProviderInfo;
-    timeSlot?: TimeSlot;
-    details?: AppointmentDetails;
-    roomId?: string;
-    createdBy?: string;
-  }> = {}): ScheduleAppointmentCommand {
-    return new ScheduleAppointmentCommand(
-      overrides.appointmentId || this.createAppointmentId(),
-      overrides.patient || this.createPatientInfo(),
-      overrides.provider || this.createProviderInfo(),
-      overrides.timeSlot || this.createTimeSlot(),
-      overrides.details || this.createAppointmentDetails(),
-      overrides.roomId || TEST_CONSTANTS.APPOINTMENT.ROOM_ID,
-      overrides.createdBy || 'test-user'
-    );
-  }
-
-  /**
    * Create multiple test appointments
    */
   static createMultipleAppointments(count: number, baseOverrides: any = {}): Appointment[] {
     const appointments: Appointment[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const overrides = {
         ...baseOverrides,
-        patient: this.createPatientInfo({
-          patientId: `PAT-202412-${String(i + 1).padStart(3, '0')}`,
-          fullName: `Bệnh nhân ${i + 1}`,
-          phone: `012345${String(i).padStart(4, '0')}`
-        }),
+        patientId: `PAT-202412-${String(i + 1).padStart(3, '0')}`,
         timeSlot: this.createTimeSlot({
-          startTime: new Date(TEST_CONSTANTS.DATES.TOMORROW.getTime() + i * 60 * 60 * 1000), // Each appointment 1 hour apart
-          endTime: new Date(TEST_CONSTANTS.DATES.TOMORROW.getTime() + i * 60 * 60 * 1000 + 30 * 60 * 1000) // 30 minutes duration
+          startTime: new Date(TEST_CONSTANTS.DATES.TOMORROW.getTime() + i * 60 * 60 * 1000),
+          endTime: new Date(TEST_CONSTANTS.DATES.TOMORROW.getTime() + i * 60 * 60 * 1000 + 30 * 60 * 1000)
         })
       };
-      
+
       appointments.push(this.createAppointment(overrides));
     }
-    
+
     return appointments;
   }
 
@@ -261,17 +212,16 @@ export class TestDataFactory {
    */
   static createConflictingAppointments(): { appointment1: Appointment; appointment2: Appointment } {
     const baseTimeSlot = this.createTimeSlot();
-    
-    // Second appointment starts 15 minutes after first but before first ends
+
     const conflictingTimeSlot = this.createTimeSlot({
-      startTime: new Date(baseTimeSlot.startTime.getTime() + 15 * 60 * 1000),
-      endTime: new Date(baseTimeSlot.startTime.getTime() + 45 * 60 * 1000)
+      startTime: new Date(baseTimeSlot.appointmentDate.getTime() + 15 * 60 * 1000),
+      endTime: new Date(baseTimeSlot.appointmentDate.getTime() + 45 * 60 * 1000)
     });
 
     const appointment1 = this.createAppointment({ timeSlot: baseTimeSlot });
-    const appointment2 = this.createAppointment({ 
+    const appointment2 = this.createAppointment({
       timeSlot: conflictingTimeSlot,
-      patient: this.createPatientInfo({ patientId: 'PAT-202412-002' })
+      patientId: 'PAT-202412-002'
     });
 
     return { appointment1, appointment2 };
@@ -282,19 +232,8 @@ export class TestDataFactory {
    */
   static createVietnameseHealthcareAppointment(): Appointment {
     return this.createAppointment({
-      patient: this.createPatientInfo({
-        fullName: 'Nguyễn Thị Hồng Nhung',
-        phone: '0987654321',
-        nationalId: '123456789012',
-        insuranceNumber: 'VN1234567890123',
-        insuranceType: 'BHYT',
-        address: '123 Đường Lê Lợi, Phường Bến Nghé, Quận 1, TP.HCM'
-      }),
-      provider: this.createProviderInfo({
-        fullName: 'Bác sĩ Chuyên khoa I Trần Văn Minh',
-        specialization: 'Tim mạch can thiệp',
-        licenseNumber: 'VN-TM-5678'
-      }),
+      patientId: 'PAT-202412-001',
+      doctorId: 'CARD-DOC-202412-001',
       details: this.createAppointmentDetails({
         reason: 'Khám sức khỏe định kỳ theo chương trình BHYT',
         symptoms: 'Đau ngực trái, khó thở khi gắng sức',
@@ -313,9 +252,11 @@ export class TestDataFactory {
         type: AppointmentType.EMERGENCY,
         priority: AppointmentPriority.EMERGENCY
       }),
+      type: AppointmentType.EMERGENCY,
+      priority: AppointmentPriority.EMERGENCY,
       timeSlot: this.createTimeSlot({
-        startTime: new Date(), // Now
-        endTime: new Date(Date.now() + 60 * 60 * 1000) // 1 hour from now
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 60 * 60 * 1000)
       }),
       details: this.createAppointmentDetails({
         reason: 'Cấp cứu tim mạch',

@@ -21,10 +21,15 @@ const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const compression_1 = __importDefault(require("compression"));
 // Infrastructure imports
 const SupabasePatientRepository_1 = require("./infrastructure/repositories/SupabasePatientRepository");
+const HealthChecks_1 = require("./infrastructure/monitoring/HealthChecks");
+const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
+const PatientCache_1 = require("./infrastructure/cache/PatientCache");
+const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegradation");
 // Application Services imports
 const PatientMatchingService_1 = require("./application/services/PatientMatchingService");
 const InsuranceValidationService_1 = require("./application/services/InsuranceValidationService");
 const RabbitMQEventPublisher_1 = require("./infrastructure/events/RabbitMQEventPublisher");
+const EventBus_1 = require("@shared/infrastructure/event-bus/EventBus");
 // Application imports
 const RegisterPatientUseCase_1 = require("./application/use-cases/RegisterPatientUseCase");
 const UpdatePatientInfoUseCase_1 = require("./application/use-cases/UpdatePatientInfoUseCase");
@@ -53,6 +58,7 @@ const config = {
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5672',
+    redisUrl: process.env.REDIS_URL || 'redis://localhost:6380',
     nodeEnv: process.env.NODE_ENV || 'development',
     serviceName: 'patient-registry-service',
     version: '2.0.0',
@@ -108,25 +114,60 @@ class PatientRegistryServiceApp {
             }, logger);
             // Connect to RabbitMQ
             await this.eventPublisher.connect();
+            // Initialize EventBus (InMemoryEventBus for development)
+            this.eventBus = new EventBus_1.InMemoryEventBus();
+            await this.eventBus.connect();
+            logger.info('EventBus initialized (InMemoryEventBus)', {});
+            // Initialize Redis Cache Service (optional)
+            try {
+                this.cacheService = new RedisCacheService_1.RedisCacheService(config.redisUrl, logger);
+                await this.cacheService.connect();
+                logger.info('Redis cache service initialized and connected', {});
+            }
+            catch (error) {
+                logger.warn('Redis cache not available, running without cache', { error });
+                this.cacheService = null;
+            }
+            // Initialize Patient Cache (L1/L2)
+            this.patientCache = new PatientCache_1.PatientCache(config.redisUrl);
+            try {
+                await this.patientCache.connect();
+                logger.info('Patient cache connected successfully', {});
+            }
+            catch (error) {
+                logger.error('Failed to connect Patient Cache', { error: error instanceof Error ? error.message : 'Unknown error' });
+                logger.warn('Continuing without patient caching - patients will be fetched from database', {});
+            }
             // Initialize Application Services (Domain Services)
             this.matchingService = new PatientMatchingService_1.PatientMatchingService(logger);
             this.insuranceValidationService = new InsuranceValidationService_1.InsuranceValidationService(logger);
+            // Initialize Graceful Degradation Service
+            this.degradationService = new GracefulDegradation_1.PatientRegistryDegradation({
+                enableReadOnlyFallback: true,
+                enableCacheFallback: true,
+                enableEmergencyMode: true,
+                maxDegradationTime: 300000 // 5 minutes
+            }, {
+                supabaseUrl: config.supabaseUrl,
+                supabaseServiceRoleKey: config.supabaseKey
+            }, logger);
+            // Initialize Health Check Service (with degradation service)
+            this.healthCheck = new HealthChecks_1.PatientRegistryHealthCheck(config.supabaseUrl, config.supabaseKey, this.degradationService);
             // Initialize Infrastructure Layer (inject services + event publisher)
             this.patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(config.supabaseUrl, config.supabaseKey, logger, this.matchingService, // ✅ Inject matching service
             this.eventPublisher // ✅ Inject event publisher
             );
             // Initialize Application Layer (Use Cases)
-            this.registerPatientUseCase = new RegisterPatientUseCase_1.RegisterPatientUseCase(this.patientRepository);
-            this.updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(this.patientRepository);
-            this.getPatientProfileUseCase = new GetPatientProfileUseCase_1.GetPatientProfileUseCase(this.patientRepository);
+            this.registerPatientUseCase = new RegisterPatientUseCase_1.RegisterPatientUseCase(this.patientRepository, this.eventBus, logger);
+            this.updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(this.patientRepository, this.eventBus, logger);
+            this.getPatientProfileUseCase = new GetPatientProfileUseCase_1.GetPatientProfileUseCase(this.patientRepository, logger);
             this.searchPatientsUseCase = new SearchPatientsUseCase_1.SearchPatientsUseCase(this.patientRepository);
             this.matchPatientsUseCase = new MatchPatientsUseCase_1.MatchPatientsUseCase(this.patientRepository);
             this.mergePatientsUseCase = new MergePatientsUseCase_1.MergePatientsUseCase(this.patientRepository);
             this.linkPatientsUseCase = new LinkPatientsUseCase_1.LinkPatientsUseCase(this.patientRepository);
-            this.deactivatePatientUseCase = new DeactivatePatientUseCase_1.DeactivatePatientUseCase(this.patientRepository);
-            this.validateInsuranceUseCase = new ValidateInsuranceUseCase_1.ValidateInsuranceUseCase(this.patientRepository, this.insuranceValidationService // ✅ Inject insurance validation service
-            );
-            this.addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(this.patientRepository);
+            this.deactivatePatientUseCase = new DeactivatePatientUseCase_1.DeactivatePatientUseCase(this.patientRepository, this.eventBus, logger);
+            this.validateInsuranceUseCase = new ValidateInsuranceUseCase_1.ValidateInsuranceUseCase(this.patientRepository, this.insuranceValidationService, logger);
+            this.addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(this.patientRepository, this.eventBus, logger);
             this.grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(this.patientRepository);
             this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(this.patientRepository);
             this.reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(this.patientRepository);
@@ -219,13 +260,37 @@ class PatientRegistryServiceApp {
     setupRoutes() {
         logger.info('Setting up routes...');
         // Health check
-        this.app.get('/health', (_req, res) => {
-            res.status(200).json({
-                status: 'healthy',
-                service: config.serviceName,
-                version: config.version,
-                timestamp: new Date().toISOString()
-            });
+        this.app.get('/health', async (_req, res) => {
+            try {
+                const health = await this.healthCheck.checkHealth();
+                const statusCode = health.overall === 'HEALTHY' ? 200 : 503;
+                res.status(statusCode).json(health);
+            }
+            catch (error) {
+                logger.error('Health check failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+                res.status(503).json({
+                    overall: 'UNHEALTHY',
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    timestamp: new Date()
+                });
+            }
+        });
+        // Degradation status endpoint
+        this.app.get('/degradation', (_req, res) => {
+            try {
+                const status = this.degradationService.getStatus();
+                res.status(200).json({
+                    ...status,
+                    timestamp: new Date()
+                });
+            }
+            catch (error) {
+                logger.error('Degradation status check failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+                res.status(500).json({
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    timestamp: new Date()
+                });
+            }
         });
         // API routes
         const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(this.patientController);
@@ -272,14 +337,30 @@ class PatientRegistryServiceApp {
      */
     async shutdown() {
         logger.info('Shutting down gracefully...');
-        // Close RabbitMQ connection
-        if (this.eventPublisher) {
-            await this.eventPublisher.close();
+        try {
+            // Close RabbitMQ connection
+            if (this.eventPublisher) {
+                await this.eventPublisher.close();
+                logger.info('Event Publisher closed');
+            }
+            // Close Redis connections
+            if (this.cacheService) {
+                await this.cacheService.disconnect();
+                logger.info('Redis Cache Service disconnected');
+            }
+            if (this.patientCache) {
+                await this.patientCache.disconnect();
+                logger.info('Patient Cache disconnected');
+            }
+            logger.info('Graceful shutdown complete');
+            process.exit(0);
         }
-        // Close database connections, etc.
-        // await this.patientRepository.close();
-        logger.info('Shutdown complete');
-        process.exit(0);
+        catch (error) {
+            logger.error('Error during shutdown', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            process.exit(1);
+        }
     }
 }
 // Create and start the application

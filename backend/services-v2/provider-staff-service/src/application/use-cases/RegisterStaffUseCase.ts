@@ -16,7 +16,7 @@ import { ProfessionalInfo } from '../../domain/value-objects/ProfessionalInfo';
 import { WorkSchedule } from '../../domain/value-objects/WorkSchedule';
 import { Specialization } from '../../domain/entities/Specialization';
 import { IEventBus } from '../../../../shared/events/event-bus.interface';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
+import { ILogger } from '../interfaces/ILogger';
 
 export interface RegisterStaffRequest {
   userId: string;

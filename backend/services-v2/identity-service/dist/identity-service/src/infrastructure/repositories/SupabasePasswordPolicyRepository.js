@@ -10,11 +10,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabasePasswordPolicyRepository = void 0;
 const PasswordPolicy_1 = require("../../domain/value-objects/PasswordPolicy");
 class SupabasePasswordPolicyRepository {
+    // Note: Supabase client is already configured with db.schema = 'auth_schema'
+    // So we don't need to prefix table names with schema
     constructor(supabase, logger) {
         this.supabase = supabase;
         this.logger = logger;
         this.tableName = 'password_policies';
-        this.schema = 'auth_schema';
     }
     /**
      * Get the current active password policy
@@ -22,7 +23,7 @@ class SupabasePasswordPolicyRepository {
     async getCurrent() {
         try {
             const { data, error } = await this.supabase
-                .from(`${this.schema}.${this.tableName}`)
+                .from(this.tableName) // Supabase doesn't support schema prefix in .from()
                 .select('*')
                 .eq('is_active', true)
                 .order('updated_at', { ascending: false })
@@ -55,7 +56,7 @@ class SupabasePasswordPolicyRepository {
             // Start a transaction: deactivate old policies and insert new one
             // 1. Deactivate all existing policies
             const { error: deactivateError } = await this.supabase
-                .from(`${this.schema}.${this.tableName}`)
+                .from(this.tableName) // Supabase doesn't support schema prefix in .from()
                 .update({ is_active: false })
                 .eq('is_active', true);
             if (deactivateError) {
@@ -76,7 +77,7 @@ class SupabasePasswordPolicyRepository {
                 updated_at: new Date().toISOString()
             };
             const { data, error: insertError } = await this.supabase
-                .from(`${this.schema}.${this.tableName}`)
+                .from(this.tableName) // Supabase doesn't support schema prefix in .from()
                 .insert(newRow)
                 .select()
                 .single();
@@ -100,7 +101,7 @@ class SupabasePasswordPolicyRepository {
     async getHistory(limit = 10) {
         try {
             const { data, error } = await this.supabase
-                .from(`${this.schema}.${this.tableName}`)
+                .from(this.tableName) // Supabase doesn't support schema prefix in .from()
                 .select('*')
                 .order('updated_at', { ascending: false })
                 .limit(limit);

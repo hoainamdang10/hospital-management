@@ -9,6 +9,8 @@
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { BloodType } from '../../domain/value-objects/BasicMedicalInfo';
+import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
+import { ILogger } from '@shared/application/services/logger.interface';
 export interface RegisterPatientRequest {
     userId: string;
     personalInfo: {
@@ -70,7 +72,17 @@ export interface RegisterPatientResponse {
 }
 export declare class RegisterPatientUseCase {
     private readonly patientRepository;
-    constructor(patientRepository: IPatientRepository);
+    private readonly eventBus;
+    private readonly logger;
+    constructor(patientRepository: IPatientRepository, eventBus: IEventBus, logger: ILogger);
     execute(request: RegisterPatientRequest): Promise<RegisterPatientResponse>;
+    /**
+     * Publish domain events
+     */
+    private publishDomainEvents;
+    /**
+     * HIPAA audit logging for patient registration
+     */
+    private auditPatientRegistration;
 }
 //# sourceMappingURL=RegisterPatientUseCase.d.ts.map

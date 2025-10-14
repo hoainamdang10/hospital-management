@@ -8,6 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { ILogger } from '@shared/application/services/logger.interface';
 export interface GetPatientProfileRequest {
     patientId?: string;
     userId?: string;
@@ -95,7 +96,12 @@ export interface GetPatientProfileResponse {
 }
 export declare class GetPatientProfileUseCase {
     private readonly patientRepository;
-    constructor(patientRepository: IPatientRepository);
+    private readonly logger;
+    constructor(patientRepository: IPatientRepository, logger: ILogger);
     execute(request: GetPatientProfileRequest): Promise<GetPatientProfileResponse>;
+    /**
+     * HIPAA audit logging for patient profile access
+     */
+    private auditPatientProfileAccess;
 }
 //# sourceMappingURL=GetPatientProfileUseCase.d.ts.map

@@ -11,8 +11,8 @@
 import { IDomainEventHandler } from '../../../../shared/events/domain-event-handler.interface';
 import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 import { IEventBus } from '../../../../shared/events/event-bus.interface';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
-import { IAuditService } from '../../../../shared/application/services/audit.service.interface';
+import { ILogger } from '../../application/interfaces/ILogger';
+import { IAuditService } from '../../application/interfaces/IAuditService';
 
 // Domain Events
 import { StaffRegisteredEvent } from '../../domain/events/StaffRegisteredEvent';

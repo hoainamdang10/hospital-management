@@ -25,15 +25,35 @@ export class UserCreatedEvent extends DomainEvent {
     public readonly citizenId?: string,
     public readonly phoneNumber?: string
   ) {
-    super();
+    super(
+      'UserCreated',
+      userId,
+      'User',
+      { email, fullName, roleType, citizenId, phoneNumber },
+      1,
+      undefined,
+      undefined,
+      userId
+    );
   }
 
-  get eventType(): string {
-    return 'UserCreated';
+  getEventData(): Record<string, unknown> {
+    return {
+      userId: this.userId,
+      email: this.email,
+      fullName: this.fullName,
+      roleType: this.roleType,
+      citizenId: this.citizenId,
+      phoneNumber: this.phoneNumber
+    };
   }
 
-  get aggregateId(): string {
-    return this.userId;
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.roleType === 'patient' ? this.userId : null;
   }
 }
 
@@ -50,15 +70,35 @@ export class UserAuthenticatedEvent extends DomainEvent {
     public readonly userAgent: string,
     public readonly timestamp: Date
   ) {
-    super();
+    super(
+      'UserAuthenticated',
+      userId,
+      'User',
+      { email, sessionId, ipAddress, userAgent, timestamp },
+      1,
+      undefined,
+      undefined,
+      userId
+    );
   }
 
-  get eventType(): string {
-    return 'UserAuthenticated';
+  getEventData(): Record<string, unknown> {
+    return {
+      userId: this.userId,
+      email: this.email,
+      sessionId: this.sessionId,
+      ipAddress: this.ipAddress,
+      userAgent: this.userAgent,
+      timestamp: this.timestamp.toISOString()
+    };
   }
 
-  get aggregateId(): string {
-    return this.userId;
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return null;
   }
 }
 
@@ -74,15 +114,34 @@ export class UserRoleChangedEvent extends DomainEvent {
     public readonly changedBy: string,
     public readonly reason?: string
   ) {
-    super();
+    super(
+      'UserRoleChanged',
+      userId,
+      'User',
+      { oldRole, newRole, changedBy, reason },
+      1,
+      undefined,
+      undefined,
+      changedBy
+    );
   }
 
-  get eventType(): string {
-    return 'UserRoleChanged';
+  getEventData(): Record<string, unknown> {
+    return {
+      userId: this.userId,
+      oldRole: this.oldRole,
+      newRole: this.newRole,
+      changedBy: this.changedBy,
+      reason: this.reason
+    };
   }
 
-  get aggregateId(): string {
-    return this.userId;
+  containsPHI(): boolean {
+    return false;
+  }
+
+  getPatientId(): string | null {
+    return null;
   }
 }
 
@@ -97,15 +156,33 @@ export class UserDeactivatedEvent extends DomainEvent {
     public readonly reason: string,
     public readonly deactivatedBy: string
   ) {
-    super();
+    super(
+      'UserDeactivated',
+      userId,
+      'User',
+      { email, reason, deactivatedBy },
+      1,
+      undefined,
+      undefined,
+      deactivatedBy
+    );
   }
 
-  get eventType(): string {
-    return 'UserDeactivated';
+  getEventData(): Record<string, unknown> {
+    return {
+      userId: this.userId,
+      email: this.email,
+      reason: this.reason,
+      deactivatedBy: this.deactivatedBy
+    };
   }
 
-  get aggregateId(): string {
-    return this.userId;
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return null;
   }
 }
 
@@ -128,14 +205,36 @@ export class PatientRegisteredEvent extends DomainEvent {
     public readonly email?: string,
     public readonly insuranceType?: string
   ) {
-    super();
+    super(
+      'PatientRegistered',
+      patientId,
+      'Patient',
+      { userId, patientIdCode, fullName, dateOfBirth, phoneNumber, email, insuranceType },
+      1,
+      undefined,
+      undefined,
+      userId
+    );
   }
 
-  get eventType(): string {
-    return 'PatientRegistered';
+  getEventData(): Record<string, unknown> {
+    return {
+      patientId: this.patientId,
+      userId: this.userId,
+      patientIdCode: this.patientIdCode,
+      fullName: this.fullName,
+      dateOfBirth: this.dateOfBirth.toISOString(),
+      phoneNumber: this.phoneNumber,
+      email: this.email,
+      insuranceType: this.insuranceType
+    };
   }
 
-  get aggregateId(): string {
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
     return this.patientId;
   }
 }
@@ -151,14 +250,32 @@ export class PatientUpdatedEvent extends DomainEvent {
     public readonly updatedFields: string[],
     public readonly updatedBy: string
   ) {
-    super();
+    super(
+      'PatientUpdated',
+      patientId,
+      'Patient',
+      { userId, updatedFields, updatedBy },
+      1,
+      undefined,
+      undefined,
+      updatedBy
+    );
   }
 
-  get eventType(): string {
-    return 'PatientUpdated';
+  getEventData(): Record<string, unknown> {
+    return {
+      patientId: this.patientId,
+      userId: this.userId,
+      updatedFields: this.updatedFields,
+      updatedBy: this.updatedBy
+    };
   }
 
-  get aggregateId(): string {
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
     return this.patientId;
   }
 }
@@ -174,14 +291,29 @@ export class PatientInsuranceUpdatedEvent extends DomainEvent {
     public readonly insuranceNumber: string,
     public readonly expiryDate?: Date
   ) {
-    super();
+    super(
+      'PatientInsuranceUpdated',
+      patientId,
+      'Patient',
+      { insuranceType, insuranceNumber, expiryDate },
+      1
+    );
   }
 
-  get eventType(): string {
-    return 'PatientInsuranceUpdated';
+  getEventData(): Record<string, unknown> {
+    return {
+      patientId: this.patientId,
+      insuranceType: this.insuranceType,
+      insuranceNumber: this.insuranceNumber,
+      expiryDate: this.expiryDate?.toISOString()
+    };
   }
 
-  get aggregateId(): string {
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
     return this.patientId;
   }
 }
@@ -205,15 +337,37 @@ export class DoctorRegisteredEvent extends DomainEvent {
     public readonly licenseNumber: string,
     public readonly isAcceptingPatients: boolean
   ) {
-    super();
+    super(
+      'DoctorRegistered',
+      doctorId,
+      'Doctor',
+      { userId, doctorIdCode, fullName, specialty, departmentCode, licenseNumber, isAcceptingPatients },
+      1,
+      undefined,
+      undefined,
+      userId
+    );
   }
 
-  get eventType(): string {
-    return 'DoctorRegistered';
+  getEventData(): Record<string, unknown> {
+    return {
+      doctorId: this.doctorId,
+      userId: this.userId,
+      doctorIdCode: this.doctorIdCode,
+      fullName: this.fullName,
+      specialty: this.specialty,
+      departmentCode: this.departmentCode,
+      licenseNumber: this.licenseNumber,
+      isAcceptingPatients: this.isAcceptingPatients
+    };
   }
 
-  get aggregateId(): string {
-    return this.doctorId;
+  containsPHI(): boolean {
+    return false;
+  }
+
+  getPatientId(): string | null {
+    return null;
   }
 }
 
@@ -228,15 +382,33 @@ export class DoctorScheduleUpdatedEvent extends DomainEvent {
     public readonly effectiveDate: Date,
     public readonly updatedBy: string
   ) {
-    super();
+    super(
+      'DoctorScheduleUpdated',
+      doctorId,
+      'Doctor',
+      { scheduleId, effectiveDate, updatedBy },
+      1,
+      undefined,
+      undefined,
+      updatedBy
+    );
   }
 
-  get eventType(): string {
-    return 'DoctorScheduleUpdated';
+  getEventData(): Record<string, unknown> {
+    return {
+      doctorId: this.doctorId,
+      scheduleId: this.scheduleId,
+      effectiveDate: this.effectiveDate.toISOString(),
+      updatedBy: this.updatedBy
+    };
   }
 
-  get aggregateId(): string {
-    return this.doctorId;
+  containsPHI(): boolean {
+    return false;
+  }
+
+  getPatientId(): string | null {
+    return null;
   }
 }
 
@@ -251,15 +423,30 @@ export class DoctorAvailabilityChangedEvent extends DomainEvent {
     public readonly isAvailable: boolean,
     public readonly reason?: string
   ) {
-    super();
+    super(
+      'DoctorAvailabilityChanged',
+      doctorId,
+      'Doctor',
+      { date, isAvailable, reason },
+      1
+    );
   }
 
-  get eventType(): string {
-    return 'DoctorAvailabilityChanged';
+  getEventData(): Record<string, unknown> {
+    return {
+      doctorId: this.doctorId,
+      date: this.date.toISOString(),
+      isAvailable: this.isAvailable,
+      reason: this.reason
+    };
   }
 
-  get aggregateId(): string {
-    return this.doctorId;
+  containsPHI(): boolean {
+    return false;
+  }
+
+  getPatientId(): string | null {
+    return null;
   }
 }
 
@@ -284,15 +471,36 @@ export class AppointmentScheduledEvent extends DomainEvent {
     public readonly reason: string,
     public readonly priority: string
   ) {
-    super();
+    super(
+      'AppointmentScheduled',
+      appointmentId,
+      'Appointment',
+      { appointmentIdCode, patientId, doctorId, appointmentDate, startTime, endTime, appointmentType, reason, priority },
+      1
+    );
   }
 
-  get eventType(): string {
-    return 'AppointmentScheduled';
+  getEventData(): Record<string, unknown> {
+    return {
+      appointmentId: this.appointmentId,
+      appointmentIdCode: this.appointmentIdCode,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      appointmentDate: this.appointmentDate.toISOString(),
+      startTime: this.startTime,
+      endTime: this.endTime,
+      appointmentType: this.appointmentType,
+      reason: this.reason,
+      priority: this.priority
+    };
   }
 
-  get aggregateId(): string {
-    return this.appointmentId;
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 }
 

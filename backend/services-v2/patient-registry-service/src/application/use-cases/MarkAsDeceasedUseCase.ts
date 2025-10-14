@@ -52,7 +52,7 @@ export class MarkAsDeceasedUseCase {
 
     return {
       success: true,
-      message: 'Đã đánh dấu bệnh nhân qua đời'
+      message: 'Đã đánh dấu bệnh nhân đã qua đời thành công'
     };
   }
 }

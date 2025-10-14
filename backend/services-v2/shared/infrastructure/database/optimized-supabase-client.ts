@@ -268,6 +268,34 @@ export class OptimizedSupabaseClient {
   }
 
   /**
+   * Proxy method for table access (for convenience)
+   */
+  from(table: string) {
+    return this.client.from(table);
+  }
+
+  /**
+   * Proxy method for RPC calls
+   */
+  rpc(fn: string, params?: any) {
+    return this.client.rpc(fn, params);
+  }
+
+  /**
+   * Proxy method for storage access
+   */
+  get storage() {
+    return this.client.storage;
+  }
+
+  /**
+   * Proxy method for auth access
+   */
+  get auth() {
+    return this.client.auth;
+  }
+
+  /**
    * Close client and cleanup
    */
   async close(): Promise<void> {

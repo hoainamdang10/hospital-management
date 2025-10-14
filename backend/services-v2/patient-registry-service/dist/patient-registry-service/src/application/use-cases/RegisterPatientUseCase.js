@@ -17,15 +17,24 @@ const BasicMedicalInfo_1 = require("../../domain/value-objects/BasicMedicalInfo"
 const InsuranceInfo_1 = require("../../domain/entities/InsuranceInfo");
 const EmergencyContact_1 = require("../../domain/entities/EmergencyContact");
 class RegisterPatientUseCase {
-    constructor(patientRepository) {
+    constructor(patientRepository, eventBus, logger) {
         this.patientRepository = patientRepository;
+        this.eventBus = eventBus;
+        this.logger = logger;
     }
     async execute(request) {
         try {
+            this.logger.info('Starting patient registration', {
+                userId: request.userId,
+                requestedBy: request.requestedBy
+            });
             // 1. Validate user exists (should be done by caller or Identity Service)
             // 2. Check if patient already exists
             const existingPatient = await this.patientRepository.findByUserId(request.userId);
             if (existingPatient) {
+                this.logger.warn('Patient registration failed: user already has profile', {
+                    userId: request.userId
+                });
                 return {
                     success: false,
                     message: 'Người dùng đã có hồ sơ bệnh nhân',
@@ -99,7 +108,16 @@ class RegisterPatientUseCase {
             const patient = Patient_1.Patient.register(request.userId, personalInfo, contactInfo, basicMedicalInfo, insuranceInfo, emergencyContacts, request.requestedBy);
             // 9. Save to repository
             await this.patientRepository.save(patient);
-            // 10. Return success response
+            // 10. Publish domain events
+            await this.publishDomainEvents(patient);
+            // 11. HIPAA audit logging
+            await this.auditPatientRegistration(patient, request);
+            this.logger.info('Patient registration completed successfully', {
+                patientId: patient.getPatientId(),
+                userId: request.userId,
+                requestedBy: request.requestedBy
+            });
+            // 12. Return success response
             return {
                 success: true,
                 patientId: patient.getPatientId() || '',
@@ -109,6 +127,11 @@ class RegisterPatientUseCase {
         catch (error) {
             // Handle validation errors
             if (error instanceof Error) {
+                this.logger.error('Patient registration failed', {
+                    userId: request.userId,
+                    error: error.message,
+                    stack: error.stack
+                });
                 return {
                     success: false,
                     message: 'Đăng ký bệnh nhân thất bại',
@@ -116,12 +139,48 @@ class RegisterPatientUseCase {
                 };
             }
             // Handle unexpected errors
+            this.logger.error('Unexpected error during patient registration', {
+                userId: request.userId,
+                error: 'UNEXPECTED_ERROR'
+            });
             return {
                 success: false,
                 message: 'Đã xảy ra lỗi không mong muốn',
                 errors: ['UNEXPECTED_ERROR']
             };
         }
+    }
+    /**
+     * Publish domain events
+     */
+    async publishDomainEvents(patient) {
+        try {
+            const events = patient.getUncommittedEvents();
+            for (const event of events) {
+                await this.eventBus.publish(event);
+            }
+            patient.markEventsAsCommitted();
+        }
+        catch (error) {
+            this.logger.warn('Event publishing failed, but patient was saved', {
+                patientId: patient.getPatientId(),
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    }
+    /**
+     * HIPAA audit logging for patient registration
+     */
+    async auditPatientRegistration(patient, request) {
+        this.logger.info('HIPAA Audit: Patient registration', {
+            action: 'PATIENT_REGISTRATION',
+            patientId: patient.getPatientId(),
+            userId: request.userId,
+            requestedBy: request.requestedBy,
+            timestamp: new Date().toISOString(),
+            dataAccessed: 'patient_personal_info,patient_contact_info,patient_medical_info,insurance_info',
+            complianceLevel: 'hipaa'
+        });
     }
 }
 exports.RegisterPatientUseCase = RegisterPatientUseCase;

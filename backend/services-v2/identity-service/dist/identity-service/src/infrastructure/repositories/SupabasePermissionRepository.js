@@ -132,22 +132,23 @@ class SupabasePermissionRepository {
      */
     async assignRole(userId, roleType, assignedBy) {
         try {
-            // Get role ID
+            // Verify role exists in healthcare_roles table
             const { data: roleData, error: roleError } = await this.supabaseClient
                 .from('healthcare_roles')
-                .select('id')
+                .select('id, role_name')
                 .eq('role_name', roleType.toLowerCase())
                 .single();
             if (roleError || !roleData) {
                 throw new Error(`Role not found: ${roleType}`);
             }
-            // Insert user_role with both role_id and role_name for compatibility
+            // Insert user_role with role_name only
+            // Note: user_roles table schema has: id, user_id, role_name, assigned_at, assigned_by
+            // It does NOT have role_id column
             const { error } = await this.supabaseClient
                 .from('user_roles')
                 .insert({
                 user_id: userId.value,
-                role_id: roleData.id, // CRITICAL: role_permissions uses role_id
-                role_name: roleType.toLowerCase(), // Keep for backward compatibility
+                role_name: roleType.toLowerCase(),
                 assigned_by: assignedBy,
                 assigned_at: new Date().toISOString(),
             });
@@ -339,7 +340,10 @@ class SupabasePermissionRepository {
      * 1. User-specific permissions (user_permissions table)
      * 2. Role-based permissions (role_permissions via user_roles)
      *
-     * IMPORTANT: role_permissions table uses role_id, not role_name
+     * IMPORTANT:
+     * - user_roles table has: user_id, role_name (NOT role_id)
+     * - role_permissions table has: role_id, permission_name
+     * - Need to join via healthcare_roles to get role_id from role_name
      */
     async queryUserPermissions(userId) {
         const permissions = new Set();
@@ -356,26 +360,37 @@ class SupabasePermissionRepository {
                 userPerms.forEach(p => permissions.add(p.permission_name));
             }
             // Step 2: Get role-based permissions
-            // First get user's role IDs (not role names)
+            // First get user's role names from user_roles table
             const { data: userRoles, error: rolesError } = await this.supabaseClient
                 .from('user_roles')
-                .select('role_id')
+                .select('role_name')
                 .eq('user_id', userId.value);
             if (rolesError) {
                 console.warn('[SupabasePermissionRepository] Failed to query user_roles', rolesError);
             }
             else if (userRoles && userRoles.length > 0) {
-                // Then get permissions for those role IDs
-                const roleIds = userRoles.map(r => r.role_id);
-                const { data: rolePerms, error: rolePermsError } = await this.supabaseClient
-                    .from('role_permissions')
-                    .select('permission_name')
-                    .in('role_id', roleIds);
-                if (rolePermsError) {
-                    console.warn('[SupabasePermissionRepository] Failed to query role_permissions', rolePermsError);
+                // Get role IDs from healthcare_roles table
+                const roleNames = userRoles.map(r => r.role_name);
+                const { data: roles, error: rolesLookupError } = await this.supabaseClient
+                    .from('healthcare_roles')
+                    .select('id')
+                    .in('role_name', roleNames);
+                if (rolesLookupError) {
+                    console.warn('[SupabasePermissionRepository] Failed to lookup role IDs', rolesLookupError);
                 }
-                else if (rolePerms) {
-                    rolePerms.forEach(p => permissions.add(p.permission_name));
+                else if (roles && roles.length > 0) {
+                    // Then get permissions for those role IDs
+                    const roleIds = roles.map(r => r.id);
+                    const { data: rolePerms, error: rolePermsError } = await this.supabaseClient
+                        .from('role_permissions')
+                        .select('permission_name')
+                        .in('role_id', roleIds);
+                    if (rolePermsError) {
+                        console.warn('[SupabasePermissionRepository] Failed to query role_permissions', rolePermsError);
+                    }
+                    else if (rolePerms) {
+                        rolePerms.forEach(p => permissions.add(p.permission_name));
+                    }
                 }
             }
             return Array.from(permissions);

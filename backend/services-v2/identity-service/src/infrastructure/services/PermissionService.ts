@@ -48,7 +48,15 @@ export class PermissionService implements IPermissionService {
       // Get effective permissions (cached)
       const permissions = await this.getEffectivePermissions(userId);
 
-      // Check wildcard (admin bypass)
+      // Check explicit admin permission (recommended approach)
+      // Following Microsoft Azure RBAC best practices:
+      // "It's recommended that you specify Actions explicitly instead of using the wildcard (*) character"
+      if (permissions.includes('system:admin')) {
+        return true;
+      }
+
+      // Check wildcard (legacy support, deprecated)
+      // Kept for backward compatibility but should be avoided
       if (permissions.includes('*')) {
         return true;
       }
@@ -77,11 +85,12 @@ export class PermissionService implements IPermissionService {
    * This method checks if a user can access a resource owned by another user.
    * Returns true if:
    * - User is the resource owner, OR
-   * - User has wildcard permission (*), OR
+   * - User has system:admin permission, OR
+   * - User has wildcard permission (*) [deprecated], OR
    * - User has ownership-based permission (own_*)
    *
    * Returns false if:
-   * - User is NOT the resource owner AND doesn't have wildcard permission
+   * - User is NOT the resource owner AND doesn't have admin/wildcard permission
    */
   async checkPermissionWithOwnership(
     userId: UserId,
@@ -97,7 +106,12 @@ export class PermissionService implements IPermissionService {
       // User is NOT the owner - check if they have permission to access others' resources
       const userPermissions = await this.getEffectivePermissions(userId);
 
-      // Check wildcard (admin bypass)
+      // Check explicit admin permission (recommended approach)
+      if (userPermissions.includes('system:admin')) {
+        return true;
+      }
+
+      // Check wildcard (legacy support, deprecated)
       if (userPermissions.includes('*')) {
         return true;
       }
@@ -124,7 +138,12 @@ export class PermissionService implements IPermissionService {
     try {
       const userPermissions = await this.getEffectivePermissions(userId);
 
-      // Check wildcard
+      // Check explicit admin permission (recommended approach)
+      if (userPermissions.includes('system:admin')) {
+        return true;
+      }
+
+      // Check wildcard (legacy support, deprecated)
       if (userPermissions.includes('*')) {
         return true;
       }
@@ -157,7 +176,12 @@ export class PermissionService implements IPermissionService {
     try {
       const userPermissions = await this.getEffectivePermissions(userId);
 
-      // Check wildcard
+      // Check explicit admin permission (recommended approach)
+      if (userPermissions.includes('system:admin')) {
+        return true;
+      }
+
+      // Check wildcard (legacy support, deprecated)
       if (userPermissions.includes('*')) {
         return true;
       }
@@ -218,11 +242,16 @@ export class PermissionService implements IPermissionService {
   }
 
   /**
-   * Check if user is admin (has wildcard permission)
+   * Check if user is admin (has system:admin or wildcard permission)
    */
   async isAdmin(userId: UserId): Promise<boolean> {
     try {
       const permissions = await this.getEffectivePermissions(userId);
+      // Check explicit admin permission first (recommended)
+      if (permissions.includes('system:admin')) {
+        return true;
+      }
+      // Check wildcard (legacy support, deprecated)
       return permissions.includes('*');
     } catch (error) {
       console.error('[PermissionService] Error checking admin status', error);
@@ -292,5 +321,44 @@ export class PermissionService implements IPermissionService {
       l1Size: stats.l1Size,
       l2Size: 0, // Redis size not tracked
     };
+  }
+
+  /**
+   * Check if user has a specific role
+   */
+  async hasRole(userId: UserId, role: string): Promise<boolean> {
+    try {
+      const userRoles = await this.permissionRepository.getUserRoles(userId);
+      return userRoles.includes(role);
+    } catch (error) {
+      console.error('[PermissionService] Error checking role', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user has ANY of the specified roles
+   */
+  async hasAnyRole(userId: UserId, roles: string[]): Promise<boolean> {
+    try {
+      const userRoles = await this.permissionRepository.getUserRoles(userId);
+      return roles.some(role => userRoles.includes(role));
+    } catch (error) {
+      console.error('[PermissionService] Error checking any role', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user has ALL of the specified roles
+   */
+  async hasAllRoles(userId: UserId, roles: string[]): Promise<boolean> {
+    try {
+      const userRoles = await this.permissionRepository.getUserRoles(userId);
+      return roles.every(role => userRoles.includes(role));
+    } catch (error) {
+      console.error('[PermissionService] Error checking all roles', error);
+      return false;
+    }
   }
 }

@@ -41,30 +41,30 @@ export interface ProviderStaffProps {
   credentials: StaffCredential[];
   certifications: StaffCertification[];
   availability: StaffAvailability[];
-  reviews: StaffReview[];
+  // REMOVED: reviews - Belongs to Review/Rating Service (bounded context violation)
   departmentAssignments: DepartmentAssignment[];
-  
+
   // Professional details
   licenseNumber: string;
   employmentType: EmploymentType;
   hireDate: Date;
   contractEndDate?: Date;
-  consultationFee?: number; // For doctors
+  consultationFee?: number; // For doctors - TODO: Consider moving to Billing Service
   yearsOfExperience: number;
-  rating: number;
-  totalPatients?: number; // For doctors/nurses
-  isAcceptingNewPatients: boolean;
-  
+  // REMOVED: rating - Belongs to Review/Rating Service (bounded context violation)
+  // REMOVED: totalPatients - Belongs to Scheduling/Appointment Service (bounded context violation)
+  // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service (bounded context violation)
+
   // Status and activity
   status: StaffStatus;
   isActive: boolean;
   registrationDate: Date;
   lastActiveDate?: Date;
-  
+
   // Vietnamese healthcare specific
   vietnameseHealthcareLicense?: string;
   mohRegistrationNumber?: string; // Ministry of Health registration
-  
+
   // Audit fields
   createdAt: Date;
   updatedAt: Date;
@@ -115,15 +115,15 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       credentials: [],
       certifications: [],
       availability: [],
-      reviews: [],
+      // REMOVED: reviews - Belongs to Review/Rating Service
       departmentAssignments: [],
       licenseNumber,
       employmentType,
       hireDate,
       yearsOfExperience,
-      rating: 0,
-      totalPatients: staffType === 'doctor' || staffType === 'nurse' ? 0 : undefined,
-      isAcceptingNewPatients: staffType === 'doctor',
+      // REMOVED: rating - Belongs to Review/Rating Service
+      // REMOVED: totalPatients - Belongs to Scheduling/Appointment Service
+      // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service
       status: 'active',
       isActive: true,
       registrationDate: now,
@@ -193,9 +193,7 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     return this.props.yearsOfExperience;
   }
 
-  public get rating(): number {
-    return this.props.rating;
-  }
+  // REMOVED: rating getter - Belongs to Review/Rating Service
 
   public get status(): StaffStatus {
     return this.props.status;
@@ -291,14 +289,7 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     this.props.updatedAt = new Date();
   }
 
-  public setAcceptingNewPatients(accepting: boolean): void {
-    if (this.props.staffType !== 'doctor') {
-      throw new Error('Chỉ bác sĩ mới có thể nhận bệnh nhân mới');
-    }
-
-    this.props.isAcceptingNewPatients = accepting;
-    this.props.updatedAt = new Date();
-  }
+  // REMOVED: setAcceptingNewPatients - Belongs to Scheduling/Appointment Service
 
   public updateStatus(newStatus: StaffStatus, reason?: string): void {
     const oldStatus = this.props.status;
@@ -306,9 +297,7 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     this.props.isActive = newStatus === 'active';
     this.props.updatedAt = new Date();
 
-    if (newStatus !== 'active') {
-      this.props.isAcceptingNewPatients = false;
-    }
+    // REMOVED: isAcceptingNewPatients update - Belongs to Scheduling/Appointment Service
   }
 
   public assignToDepartment(assignment: DepartmentAssignment): void {
@@ -494,7 +483,7 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       credentials: this.props.credentials.map(c => c.toPersistence()),
       certifications: this.props.certifications.map(c => c.toPersistence()),
       availability: this.props.availability.map(a => a.toPersistence()),
-      reviews: this.props.reviews.map(r => r.toPersistence()),
+      // REMOVED: reviews - Belongs to Review/Rating Service
       department_assignments: this.props.departmentAssignments.map(d => d.toPersistence()),
       license_number: this.props.licenseNumber,
       employment_type: this.props.employmentType,
@@ -502,9 +491,9 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       contract_end_date: this.props.contractEndDate?.toISOString(),
       consultation_fee: this.props.consultationFee,
       years_of_experience: this.props.yearsOfExperience,
-      rating: this.props.rating,
-      total_patients: this.props.totalPatients,
-      is_accepting_new_patients: this.props.isAcceptingNewPatients,
+      // REMOVED: rating - Belongs to Review/Rating Service
+      // REMOVED: total_patients - Belongs to Scheduling/Appointment Service
+      // REMOVED: is_accepting_new_patients - Belongs to Scheduling/Appointment Service
       status: this.props.status,
       is_active: this.props.isActive,
       registration_date: this.props.registrationDate.toISOString(),
@@ -531,7 +520,7 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       credentials: (data.credentials || []).map((c: any) => StaffCredential.fromPersistence(c)),
       certifications: (data.certifications || []).map((c: any) => StaffCertification.fromPersistence(c)),
       availability: (data.availability || []).map((a: any) => StaffAvailability.fromPersistence(a)),
-      reviews: (data.reviews || []).map((r: any) => StaffReview.fromPersistence(r)),
+      // REMOVED: reviews - Belongs to Review/Rating Service
       departmentAssignments: (data.department_assignments || []).map((d: any) => DepartmentAssignment.fromPersistence(d)),
       licenseNumber: data.license_number,
       employmentType: data.employment_type,
@@ -539,9 +528,9 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       contractEndDate: data.contract_end_date ? new Date(data.contract_end_date) : undefined,
       consultationFee: data.consultation_fee,
       yearsOfExperience: data.years_of_experience,
-      rating: data.rating,
-      totalPatients: data.total_patients,
-      isAcceptingNewPatients: data.is_accepting_new_patients,
+      // REMOVED: rating - Belongs to Review/Rating Service (ignore from DB)
+      // REMOVED: totalPatients - Belongs to Scheduling/Appointment Service (ignore from DB)
+      // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service (ignore from DB)
       status: data.status,
       isActive: data.is_active,
       registrationDate: new Date(data.registration_date),
@@ -592,9 +581,9 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       status: this.props.status,
       isActive: this.props.isActive,
       yearsOfExperience: this.props.yearsOfExperience,
-      rating: this.props.rating,
-      totalPatients: this.props.totalPatients,
-      isAcceptingNewPatients: this.props.isAcceptingNewPatients,
+      // REMOVED: rating - Belongs to Review/Rating Service
+      // REMOVED: totalPatients - Belongs to Scheduling/Appointment Service
+      // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service
       specializationsCount: this.props.specializations.length,
       credentialsCount: this.props.credentials.length,
       certificationsCount: this.props.certifications.length,

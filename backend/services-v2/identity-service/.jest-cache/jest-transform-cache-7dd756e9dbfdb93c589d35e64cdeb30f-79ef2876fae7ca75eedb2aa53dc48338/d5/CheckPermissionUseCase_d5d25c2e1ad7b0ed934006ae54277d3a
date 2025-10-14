@@ -1,0 +1,54 @@
+2e12fb80dd0832eb83cb3812c25a492f
+"use strict";
+/**
+ * CheckPermissionUseCase
+ *
+ * Use case để check permission của user
+ * Được gọi bởi API Gateway để verify permissions
+ *
+ * @author Hospital Management Team
+ * @version 1.0.0
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CheckPermissionUseCase = void 0;
+const UserId_1 = require("../../domain/value-objects/UserId");
+class CheckPermissionUseCase {
+    constructor(permissionService, logger) {
+        this.permissionService = permissionService;
+        this.logger = logger;
+    }
+    async execute(request) {
+        try {
+            this.logger.debug('Checking permission', {
+                userId: request.userId,
+                permission: request.permission
+            });
+            const userId = UserId_1.UserId.fromString(request.userId);
+            const allowed = await this.permissionService.checkPermission(userId, request.permission);
+            this.logger.debug('Permission check result', {
+                userId: request.userId,
+                permission: request.permission,
+                allowed
+            });
+            return {
+                success: true,
+                allowed,
+                reason: allowed ? undefined : `Missing permission: ${request.permission}`
+            };
+        }
+        catch (error) {
+            this.logger.error('Permission check error', {
+                userId: request.userId,
+                permission: request.permission,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            return {
+                success: false,
+                allowed: false,
+                reason: 'Permission check failed'
+            };
+        }
+    }
+}
+exports.CheckPermissionUseCase = CheckPermissionUseCase;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFx1c2UtY2FzZXNcXENoZWNrUGVybWlzc2lvblVzZUNhc2UudHMiLCJtYXBwaW5ncyI6IjtBQUFBOzs7Ozs7OztHQVFHOzs7QUFHSCw4REFBMkQ7QUFjM0QsTUFBYSxzQkFBc0I7SUFDakMsWUFDVSxpQkFBcUMsRUFDckMsTUFBZTtRQURmLHNCQUFpQixHQUFqQixpQkFBaUIsQ0FBb0I7UUFDckMsV0FBTSxHQUFOLE1BQU0sQ0FBUztJQUN0QixDQUFDO0lBRUosS0FBSyxDQUFDLE9BQU8sQ0FBQyxPQUErQjtRQUMzQyxJQUFJLENBQUM7WUFDSCxJQUFJLENBQUMsTUFBTSxDQUFDLEtBQUssQ0FBQyxxQkFBcUIsRUFBRTtnQkFDdkMsTUFBTSxFQUFFLE9BQU8sQ0FBQyxNQUFNO2dCQUN0QixVQUFVLEVBQUUsT0FBTyxDQUFDLFVBQVU7YUFDL0IsQ0FBQyxDQUFDO1lBRUgsTUFBTSxNQUFNLEdBQUcsZUFBTSxDQUFDLFVBQVUsQ0FBQyxPQUFPLENBQUMsTUFBTSxDQUFDLENBQUM7WUFDakQsTUFBTSxPQUFPLEdBQUcsTUFBTSxJQUFJLENBQUMsaUJBQWlCLENBQUMsZUFBZSxDQUFDLE1BQU0sRUFBRSxPQUFPLENBQUMsVUFBVSxDQUFDLENBQUM7WUFFekYsSUFBSSxDQUFDLE1BQU0sQ0FBQyxLQUFLLENBQUMseUJBQXlCLEVBQUU7Z0JBQzNDLE1BQU0sRUFBRSxPQUFPLENBQUMsTUFBTTtnQkFDdEIsVUFBVSxFQUFFLE9BQU8sQ0FBQyxVQUFVO2dCQUM5QixPQUFPO2FBQ1IsQ0FBQyxDQUFDO1lBRUgsT0FBTztnQkFDTCxPQUFPLEVBQUUsSUFBSTtnQkFDYixPQUFPO2dCQUNQLE1BQU0sRUFBRSxPQUFPLENBQUMsQ0FBQyxDQUFDLFNBQVMsQ0FBQyxDQUFDLENBQUMsdUJBQXVCLE9BQU8sQ0FBQyxVQUFVLEVBQUU7YUFDMUUsQ0FBQztRQUVKLENBQUM7UUFBQyxPQUFPLEtBQUssRUFBRSxDQUFDO1lBQ2YsSUFBSSxDQUFDLE1BQU0sQ0FBQyxLQUFLLENBQUMsd0JBQXdCLEVBQUU7Z0JBQzFDLE1BQU0sRUFBRSxPQUFPLENBQUMsTUFBTTtnQkFDdEIsVUFBVSxFQUFFLE9BQU8sQ0FBQyxVQUFVO2dCQUM5QixLQUFLLEVBQUUsS0FBSyxZQUFZLEtBQUssQ0FBQyxDQUFDLENBQUMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxDQUFDLENBQUMsZUFBZTthQUNoRSxDQUFDLENBQUM7WUFFSCxPQUFPO2dCQUNMLE9BQU8sRUFBRSxLQUFLO2dCQUNkLE9BQU8sRUFBRSxLQUFLO2dCQUNkLE1BQU0sRUFBRSx5QkFBeUI7YUFDbEMsQ0FBQztRQUNKLENBQUM7SUFDSCxDQUFDO0NBQ0Y7QUExQ0Qsd0RBMENDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxcdXNlLWNhc2VzXFxDaGVja1Blcm1pc3Npb25Vc2VDYXNlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogQ2hlY2tQZXJtaXNzaW9uVXNlQ2FzZVxuICpcbiAqIFVzZSBjYXNlIMSR4buDIGNoZWNrIHBlcm1pc3Npb24gY+G7p2EgdXNlclxuICogxJDGsOG7o2MgZ+G7jWkgYuG7n2kgQVBJIEdhdGV3YXkgxJHhu4MgdmVyaWZ5IHBlcm1pc3Npb25zXG4gKlxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDEuMC4wXG4gKi9cblxuaW1wb3J0IHsgSVBlcm1pc3Npb25TZXJ2aWNlIH0gZnJvbSAnLi4vLi4vZG9tYWluL3NlcnZpY2VzL0lQZXJtaXNzaW9uU2VydmljZSc7XG5pbXBvcnQgeyBVc2VySWQgfSBmcm9tICcuLi8uLi9kb21haW4vdmFsdWUtb2JqZWN0cy9Vc2VySWQnO1xuaW1wb3J0IHsgSUxvZ2dlciB9IGZyb20gJy4uL3NlcnZpY2VzL0lMb2dnZXInO1xuXG5leHBvcnQgaW50ZXJmYWNlIENoZWNrUGVybWlzc2lvblJlcXVlc3Qge1xuICB1c2VySWQ6IHN0cmluZztcbiAgcGVybWlzc2lvbjogc3RyaW5nO1xufVxuXG5leHBvcnQgaW50ZXJmYWNlIENoZWNrUGVybWlzc2lvblJlc3BvbnNlIHtcbiAgc3VjY2VzczogYm9vbGVhbjtcbiAgYWxsb3dlZDogYm9vbGVhbjtcbiAgcmVhc29uPzogc3RyaW5nO1xufVxuXG5leHBvcnQgY2xhc3MgQ2hlY2tQZXJtaXNzaW9uVXNlQ2FzZSB7XG4gIGNvbnN0cnVjdG9yKFxuICAgIHByaXZhdGUgcGVybWlzc2lvblNlcnZpY2U6IElQZXJtaXNzaW9uU2VydmljZSxcbiAgICBwcml2YXRlIGxvZ2dlcjogSUxvZ2dlclxuICApIHt9XG5cbiAgYXN5bmMgZXhlY3V0ZShyZXF1ZXN0OiBDaGVja1Blcm1pc3Npb25SZXF1ZXN0KTogUHJvbWlzZTxDaGVja1Blcm1pc3Npb25SZXNwb25zZT4ge1xuICAgIHRyeSB7XG4gICAgICB0aGlzLmxvZ2dlci5kZWJ1ZygnQ2hlY2tpbmcgcGVybWlzc2lvbicsIHtcbiAgICAgICAgdXNlcklkOiByZXF1ZXN0LnVzZXJJZCxcbiAgICAgICAgcGVybWlzc2lvbjogcmVxdWVzdC5wZXJtaXNzaW9uXG4gICAgICB9KTtcblxuICAgICAgY29uc3QgdXNlcklkID0gVXNlcklkLmZyb21TdHJpbmcocmVxdWVzdC51c2VySWQpO1xuICAgICAgY29uc3QgYWxsb3dlZCA9IGF3YWl0IHRoaXMucGVybWlzc2lvblNlcnZpY2UuY2hlY2tQZXJtaXNzaW9uKHVzZXJJZCwgcmVxdWVzdC5wZXJtaXNzaW9uKTtcblxuICAgICAgdGhpcy5sb2dnZXIuZGVidWcoJ1Blcm1pc3Npb24gY2hlY2sgcmVzdWx0Jywge1xuICAgICAgICB1c2VySWQ6IHJlcXVlc3QudXNlcklkLFxuICAgICAgICBwZXJtaXNzaW9uOiByZXF1ZXN0LnBlcm1pc3Npb24sXG4gICAgICAgIGFsbG93ZWRcbiAgICAgIH0pO1xuXG4gICAgICByZXR1cm4ge1xuICAgICAgICBzdWNjZXNzOiB0cnVlLFxuICAgICAgICBhbGxvd2VkLFxuICAgICAgICByZWFzb246IGFsbG93ZWQgPyB1bmRlZmluZWQgOiBgTWlzc2luZyBwZXJtaXNzaW9uOiAke3JlcXVlc3QucGVybWlzc2lvbn1gXG4gICAgICB9O1xuXG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICAgIHRoaXMubG9nZ2VyLmVycm9yKCdQZXJtaXNzaW9uIGNoZWNrIGVycm9yJywge1xuICAgICAgICB1c2VySWQ6IHJlcXVlc3QudXNlcklkLFxuICAgICAgICBwZXJtaXNzaW9uOiByZXF1ZXN0LnBlcm1pc3Npb24sXG4gICAgICAgIGVycm9yOiBlcnJvciBpbnN0YW5jZW9mIEVycm9yID8gZXJyb3IubWVzc2FnZSA6ICdVbmtub3duIGVycm9yJ1xuICAgICAgfSk7XG5cbiAgICAgIHJldHVybiB7XG4gICAgICAgIHN1Y2Nlc3M6IGZhbHNlLFxuICAgICAgICBhbGxvd2VkOiBmYWxzZSxcbiAgICAgICAgcmVhc29uOiAnUGVybWlzc2lvbiBjaGVjayBmYWlsZWQnXG4gICAgICB9O1xuICAgIH1cbiAgfVxufVxuXG4iXSwidmVyc2lvbiI6M30=

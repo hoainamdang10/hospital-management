@@ -10,6 +10,9 @@
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { EmergencyContact } from '../../domain/entities/EmergencyContact';
 import { PatientId } from '../../domain/value-objects/PatientId';
+import { Patient } from '../../domain/aggregates/Patient';
+import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface AddEmergencyContactCommand {
   patientId: string;
@@ -33,9 +36,18 @@ export interface AddEmergencyContactResult {
  * Use Case: Add Emergency Contact
  */
 export class AddEmergencyContactUseCase {
-  constructor(private patientRepository: IPatientRepository) {}
+  constructor(
+    private patientRepository: IPatientRepository,
+    private eventBus: IEventBus,
+    private logger: ILogger
+  ) {}
 
   async execute(command: AddEmergencyContactCommand): Promise<AddEmergencyContactResult> {
+    this.logger.info('Starting add emergency contact', {
+      patientId: command.patientId,
+      performedBy: command.performedBy
+    });
+
     // 1. Validate input
     if (!command.patientId || command.patientId.trim().length === 0) {
       throw new Error('Patient ID không được để trống');
@@ -82,11 +94,62 @@ export class AddEmergencyContactUseCase {
     // 5. Save patient
     await this.patientRepository.save(patient);
 
+    // 6. Publish domain events
+    await this.publishDomainEvents(patient);
+
+    // 7. HIPAA audit logging
+    await this.auditEmergencyContactAdded(patient, command, contact);
+
+    this.logger.info('Emergency contact added successfully', {
+      patientId: command.patientId,
+      contactId: contact.getId(),
+      performedBy: command.performedBy
+    });
+
     return {
       success: true,
       contactId: contact.getId(),
       message: 'Đã thêm người liên hệ khẩn cấp thành công'
     };
+  }
+
+  /**
+   * Publish domain events
+   */
+  private async publishDomainEvents(patient: Patient): Promise<void> {
+    try {
+      const events = patient.getUncommittedEvents();
+
+      for (const event of events) {
+        await this.eventBus.publish(event);
+      }
+
+      patient.markEventsAsCommitted();
+    } catch (error) {
+      this.logger.warn('Event publishing failed, but emergency contact was added', {
+        patientId: patient.getPatientId(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * HIPAA audit logging for emergency contact addition
+   */
+  private async auditEmergencyContactAdded(
+    patient: Patient,
+    command: AddEmergencyContactCommand,
+    contact: EmergencyContact
+  ): Promise<void> {
+    this.logger.info('HIPAA Audit: Emergency contact added', {
+      action: 'EMERGENCY_CONTACT_ADDED',
+      patientId: patient.getPatientId(),
+      contactId: contact.getId(),
+      performedBy: command.performedBy,
+      timestamp: new Date().toISOString(),
+      dataAccessed: 'patient_emergency_contacts',
+      complianceLevel: 'hipaa'
+    });
   }
 }
 

@@ -10,6 +10,9 @@
 
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { PatientId } from '../../domain/value-objects/PatientId';
+import { Patient } from '../../domain/aggregates/Patient';
+import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface DeactivatePatientRequest {
   patientId: string;
@@ -29,16 +32,27 @@ export interface DeactivatePatientResponse {
 
 export class DeactivatePatientUseCase {
   constructor(
-    private readonly patientRepository: IPatientRepository
+    private readonly patientRepository: IPatientRepository,
+    private readonly eventBus: IEventBus,
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: DeactivatePatientRequest): Promise<DeactivatePatientResponse> {
     try {
+      this.logger.info('Starting patient deactivation', {
+        patientId: request.patientId,
+        performedBy: request.performedBy,
+        reason: request.reason
+      });
+
       // 1. Find patient
       const patientId = PatientId.create(request.patientId);
       const patient = await this.patientRepository.findById(patientId);
 
       if (!patient) {
+        this.logger.warn('Patient deactivation failed: patient not found', {
+          patientId: request.patientId
+        });
         return {
           success: false,
           message: 'Không tìm thấy bệnh nhân',
@@ -79,7 +93,18 @@ export class DeactivatePatientUseCase {
       // 6. Save patient
       await this.patientRepository.save(patient);
 
-      // 7. Return success response
+      // 7. Publish domain events
+      await this.publishDomainEvents(patient);
+
+      // 8. HIPAA audit logging
+      await this.auditPatientDeactivation(patient, request);
+
+      this.logger.info('Patient deactivation completed successfully', {
+        patientId: request.patientId,
+        performedBy: request.performedBy
+      });
+
+      // 9. Return success response
       return {
         success: true,
         message: 'Vô hiệu hóa bệnh nhân thành công',
@@ -92,6 +117,11 @@ export class DeactivatePatientUseCase {
     } catch (error) {
       // Handle validation errors
       if (error instanceof Error) {
+        this.logger.error('Patient deactivation failed', {
+          patientId: request.patientId,
+          error: error.message,
+          stack: error.stack
+        });
         return {
           success: false,
           message: 'Vô hiệu hóa bệnh nhân thất bại',
@@ -100,12 +130,54 @@ export class DeactivatePatientUseCase {
       }
 
       // Handle unexpected errors
+      this.logger.error('Unexpected error during patient deactivation', {
+        patientId: request.patientId,
+        error: 'UNEXPECTED_ERROR'
+      });
       return {
         success: false,
         message: 'Đã xảy ra lỗi không mong muốn',
         errors: ['UNEXPECTED_ERROR']
       };
     }
+  }
+
+  /**
+   * Publish domain events
+   */
+  private async publishDomainEvents(patient: Patient): Promise<void> {
+    try {
+      const events = patient.getUncommittedEvents();
+
+      for (const event of events) {
+        await this.eventBus.publish(event);
+      }
+
+      patient.markEventsAsCommitted();
+    } catch (error) {
+      this.logger.warn('Event publishing failed, but patient was deactivated', {
+        patientId: patient.getPatientId(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * HIPAA audit logging for patient deactivation
+   */
+  private async auditPatientDeactivation(
+    patient: Patient,
+    request: DeactivatePatientRequest
+  ): Promise<void> {
+    this.logger.info('HIPAA Audit: Patient deactivation', {
+      action: 'PATIENT_DEACTIVATION',
+      patientId: patient.getPatientId(),
+      performedBy: request.performedBy,
+      reason: request.reason,
+      timestamp: new Date().toISOString(),
+      dataAccessed: 'patient_status',
+      complianceLevel: 'hipaa'
+    });
   }
 }
 

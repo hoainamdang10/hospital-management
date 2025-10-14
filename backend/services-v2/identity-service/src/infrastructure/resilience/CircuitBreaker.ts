@@ -219,11 +219,21 @@ export class CircuitBreakerFactory {
 
   static getHealthStatus() {
     const status: Record<string, any> = {};
-    
+
     for (const [name, breaker] of this.breakers) {
       status[name] = breaker.getStatus();
     }
-    
+
     return status;
+  }
+
+  static resetAll(): void {
+    for (const breaker of this.breakers.values()) {
+      breaker.reset();
+    }
+  }
+
+  static clearAll(): void {
+    this.breakers.clear();
   }
 }

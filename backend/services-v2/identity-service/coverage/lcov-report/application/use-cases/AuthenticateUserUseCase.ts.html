@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.11% </span>
+                <span class="strong">81.92% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>73/90</span>
+                <span class='fraction'>68/83</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75.75% </span>
+                <span class="strong">76.66% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>25/33</span>
+                <span class='fraction'>23/30</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80% </span>
+                <span class="strong">77.77% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>8/10</span>
+                <span class='fraction'>7/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80.89% </span>
+                <span class="strong">81.7% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>72/89</span>
+                <span class='fraction'>67/82</span>
             </div>
         
             
@@ -416,16 +416,7 @@
 <a name='L351'></a><a href='#L351'>351</a>
 <a name='L352'></a><a href='#L352'>352</a>
 <a name='L353'></a><a href='#L353'>353</a>
-<a name='L354'></a><a href='#L354'>354</a>
-<a name='L355'></a><a href='#L355'>355</a>
-<a name='L356'></a><a href='#L356'>356</a>
-<a name='L357'></a><a href='#L357'>357</a>
-<a name='L358'></a><a href='#L358'>358</a>
-<a name='L359'></a><a href='#L359'>359</a>
-<a name='L360'></a><a href='#L360'>360</a>
-<a name='L361'></a><a href='#L361'>361</a>
-<a name='L362'></a><a href='#L362'>362</a>
-<a name='L363'></a><a href='#L363'>363</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L354'></a><a href='#L354'>354</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -448,7 +439,8 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -535,6 +527,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -656,7 +649,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -677,6 +669,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -767,18 +761,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -809,8 +791,7 @@ import { ILogger } from '../../application/services/ILogger';
 import { Email } from '../../domain/value-objects/Email';
 import { UserSession } from '../../domain/entities/UserSession';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
-import { DomainEventMapper } from '../../infrastructure/events/DomainEventMapper';
+import { IEventPublisher } from '../services/IEventPublisher';
 &nbsp;
 export interface AuthenticateUserRequest {
   email: string;
@@ -824,7 +805,9 @@ export interface AuthenticateUserRequest {
 export interface AuthenticateUserResponse {
   success: boolean;
   userId?: string;
-  sessionToken?: string;
+  accessToken?: string; // Supabase JWT access token
+  refreshToken?: string; // Supabase refresh token for token renewal
+  sessionToken?: string; // Deprecated: Use accessToken instead
   roles?: string[];
   permissions?: string[];
   expiresAt?: Date;
@@ -898,8 +881,9 @@ export class AuthenticateUserUseCase implements IUseCase&lt;AuthenticateUserRequ
 &nbsp;
       return {
         success: false,
-        mode: ServiceMode.FULL_SERVICE, // Default to full service mode on error
-        error: getErrorMessage(error)
+        mode: ServiceMode.DEGRADED_SERVICE,
+        degradationReason: 'AUTHENTICATION_FAILED',
+        error: 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
       };
     }
   }
@@ -1016,8 +1000,7 @@ export class AuthenticateUserUseCase implements IUseCase&lt;AuthenticateUserRequ
       <span class="missing-if-branch" title="if path not taken" >I</span>if (this.eventPublisher) {
 <span class="cstat-no" title="statement not covered" >        try {</span>
           const domainEvents = <span class="cstat-no" title="statement not covered" >user.getUncommittedEvents();</span>
-          const rabbitMQEvents = <span class="cstat-no" title="statement not covered" >DomainEventMapper.toRabbitMQEvents(domainEvents);</span>
-<span class="cstat-no" title="statement not covered" >          await this.eventPublisher.publishBatch(rabbitMQEvents);</span>
+<span class="cstat-no" title="statement not covered" >          await this.eventPublisher.publishDomainEvents(domainEvents);</span>
 <span class="cstat-no" title="statement not covered" >          user.markEventsAsCommitted();</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >          this.logger.info('Authentication events published', {</span>
@@ -1041,6 +1024,8 @@ export class AuthenticateUserUseCase implements IUseCase&lt;AuthenticateUserRequ
       return {
         success: true,
         userId: user.id,
+        accessToken: authResult.accessToken, // Supabase JWT access token
+        refreshToken: authResult.refreshToken, // Supabase refresh token
         roles,
         permissions,
         mode: ServiceMode.FULL_SERVICE,
@@ -1115,7 +1100,9 @@ export class AuthenticateUserUseCase implements IUseCase&lt;AuthenticateUserRequ
     return {
       success: authResult.success,
       userId: authResult.userId,
-      sessionToken: this.generateSessionToken(authResult),
+      accessToken: authResult.accessToken, // Supabase JWT access token
+      refreshToken: authResult.refreshToken, // Supabase refresh token for token renewal
+      sessionToken: authResult.accessToken, // Deprecated: kept for backward compatibility
       roles: authResult.roles,
       permissions: authResult.permissions,
       expiresAt: authResult.expiresAt,
@@ -1123,20 +1110,6 @@ export class AuthenticateUserUseCase implements IUseCase&lt;AuthenticateUserRequ
       degradationReason: authResult.degradationReason,
       requiresMFA: this.shouldRequireMFA(authResult)
     };
-  }
-&nbsp;
-  /**
-   * Generate session token (simplified)
-   */
-  private generateSessionToken(authResult: AuthResult): string | undefined {
-    <span class="missing-if-branch" title="if path not taken" >I</span>if (!authResult.success || !authResult.userId) {
-<span class="cstat-no" title="statement not covered" >      return undefined;</span>
-    }
-&nbsp;
-    // In production, use JWT or secure session token generation
-    const timestamp = Date.now();
-    const randomPart = Math.random().toString(36).substring(2);
-    return `session_${authResult.userId}_${timestamp}_${randomPart}`;
   }
 &nbsp;
   /**
@@ -1156,7 +1129,7 @@ export class AuthenticateUserUseCase implements IUseCase&lt;AuthenticateUserRequ
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-07T11:54:24.152Z
+                at 2025-10-13T08:14:22.367Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

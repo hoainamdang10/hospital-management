@@ -12,15 +12,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeactivatePatientUseCase = void 0;
 const PatientId_1 = require("../../domain/value-objects/PatientId");
 class DeactivatePatientUseCase {
-    constructor(patientRepository) {
+    constructor(patientRepository, eventBus, logger) {
         this.patientRepository = patientRepository;
+        this.eventBus = eventBus;
+        this.logger = logger;
     }
     async execute(request) {
         try {
+            this.logger.info('Starting patient deactivation', {
+                patientId: request.patientId,
+                performedBy: request.performedBy,
+                reason: request.reason
+            });
             // 1. Find patient
             const patientId = PatientId_1.PatientId.create(request.patientId);
             const patient = await this.patientRepository.findById(patientId);
             if (!patient) {
+                this.logger.warn('Patient deactivation failed: patient not found', {
+                    patientId: request.patientId
+                });
                 return {
                     success: false,
                     message: 'Không tìm thấy bệnh nhân',
@@ -55,7 +65,15 @@ class DeactivatePatientUseCase {
             patient.deactivate(request.reason, request.performedBy);
             // 6. Save patient
             await this.patientRepository.save(patient);
-            // 7. Return success response
+            // 7. Publish domain events
+            await this.publishDomainEvents(patient);
+            // 8. HIPAA audit logging
+            await this.auditPatientDeactivation(patient, request);
+            this.logger.info('Patient deactivation completed successfully', {
+                patientId: request.patientId,
+                performedBy: request.performedBy
+            });
+            // 9. Return success response
             return {
                 success: true,
                 message: 'Vô hiệu hóa bệnh nhân thành công',
@@ -68,6 +86,11 @@ class DeactivatePatientUseCase {
         catch (error) {
             // Handle validation errors
             if (error instanceof Error) {
+                this.logger.error('Patient deactivation failed', {
+                    patientId: request.patientId,
+                    error: error.message,
+                    stack: error.stack
+                });
                 return {
                     success: false,
                     message: 'Vô hiệu hóa bệnh nhân thất bại',
@@ -75,12 +98,48 @@ class DeactivatePatientUseCase {
                 };
             }
             // Handle unexpected errors
+            this.logger.error('Unexpected error during patient deactivation', {
+                patientId: request.patientId,
+                error: 'UNEXPECTED_ERROR'
+            });
             return {
                 success: false,
                 message: 'Đã xảy ra lỗi không mong muốn',
                 errors: ['UNEXPECTED_ERROR']
             };
         }
+    }
+    /**
+     * Publish domain events
+     */
+    async publishDomainEvents(patient) {
+        try {
+            const events = patient.getUncommittedEvents();
+            for (const event of events) {
+                await this.eventBus.publish(event);
+            }
+            patient.markEventsAsCommitted();
+        }
+        catch (error) {
+            this.logger.warn('Event publishing failed, but patient was deactivated', {
+                patientId: patient.getPatientId(),
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    }
+    /**
+     * HIPAA audit logging for patient deactivation
+     */
+    async auditPatientDeactivation(patient, request) {
+        this.logger.info('HIPAA Audit: Patient deactivation', {
+            action: 'PATIENT_DEACTIVATION',
+            patientId: patient.getPatientId(),
+            performedBy: request.performedBy,
+            reason: request.reason,
+            timestamp: new Date().toISOString(),
+            dataAccessed: 'patient_status',
+            complianceLevel: 'hipaa'
+        });
     }
 }
 exports.DeactivatePatientUseCase = DeactivatePatientUseCase;

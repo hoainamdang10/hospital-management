@@ -33,7 +33,7 @@ class IdentityServiceDegradation {
      * Periodic cache cleanup to prevent memory leaks
      */
     startCacheCleanup() {
-        setInterval(() => {
+        this.cleanupIntervalId = setInterval(() => {
             const now = Date.now();
             let cleanedCount = 0;
             for (const [key, value] of this.cache.entries()) {
@@ -303,6 +303,16 @@ class IdentityServiceDegradation {
         this.currentMode = IDegradationService_1.ServiceMode.FULL_SERVICE;
         this.degradationStartTime = undefined;
         this.logger.info('Forced recovery to full service mode');
+    }
+    /**
+     * Stop cleanup interval (for testing/shutdown)
+     */
+    stop() {
+        if (this.cleanupIntervalId) {
+            clearInterval(this.cleanupIntervalId);
+            this.cleanupIntervalId = undefined;
+            this.logger.info('Degradation service stopped');
+        }
     }
 }
 exports.IdentityServiceDegradation = IdentityServiceDegradation;

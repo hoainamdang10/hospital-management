@@ -7,6 +7,8 @@
  * @compliance Clean Architecture, DDD, CQRS
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
+import { ILogger } from '@shared/application/services/logger.interface';
 export interface AddEmergencyContactCommand {
     patientId: string;
     name: string;
@@ -28,7 +30,17 @@ export interface AddEmergencyContactResult {
  */
 export declare class AddEmergencyContactUseCase {
     private patientRepository;
-    constructor(patientRepository: IPatientRepository);
+    private eventBus;
+    private logger;
+    constructor(patientRepository: IPatientRepository, eventBus: IEventBus, logger: ILogger);
     execute(command: AddEmergencyContactCommand): Promise<AddEmergencyContactResult>;
+    /**
+     * Publish domain events
+     */
+    private publishDomainEvents;
+    /**
+     * HIPAA audit logging for emergency contact addition
+     */
+    private auditEmergencyContactAdded;
 }
 //# sourceMappingURL=AddEmergencyContactUseCase.d.ts.map

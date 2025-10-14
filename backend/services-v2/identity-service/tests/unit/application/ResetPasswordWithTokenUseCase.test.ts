@@ -100,7 +100,8 @@ describe('ResetPasswordWithTokenUseCase', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toBe('PASSWORDS_DO_NOT_MATCH');
+      expect(result.error).toBe('VALIDATION_ERROR');
+      expect(result.message).toContain('không khớp');
     });
 
     it('should handle circuit breaker open state', async () => {

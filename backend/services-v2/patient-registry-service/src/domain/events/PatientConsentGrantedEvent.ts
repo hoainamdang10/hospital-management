@@ -8,8 +8,6 @@
  */
 
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { Patient } from '../aggregates/Patient';
-import { PatientConsent } from '../entities/PatientConsent';
 
 export interface PatientConsentGrantedEventData {
   patientId: string;
@@ -21,15 +19,18 @@ export interface PatientConsentGrantedEventData {
 
 export class PatientConsentGrantedEvent extends DomainEvent {
   constructor(
-    public readonly patient: Patient,
-    public readonly consent: PatientConsent,
-    public readonly grantedBy: string
+    public readonly patientId: string,
+    public readonly consentId: string,
+    public readonly consentType: string,
+    public readonly grantedBy: string,
+    correlationId?: string,
+    causationId?: string,
+    userIdForAudit?: string
   ) {
-    const patientId = patient.getPatientId() || '';
     const eventData = {
       patientId,
-      consentId: consent.getId(),
-      consentType: consent.consentType,
+      consentId,
+      consentType,
       grantedBy
     };
 
@@ -38,27 +39,29 @@ export class PatientConsentGrantedEvent extends DomainEvent {
       patientId,
       'Patient',
       eventData,
-      1
+      1,
+      correlationId,
+      causationId,
+      userIdForAudit
     );
   }
 
   public getEventData(): PatientConsentGrantedEventData {
-    const patientId = this.patient.getPatientId() || '';
     return {
-      patientId,
-      consentId: this.consent.getId(),
-      consentType: this.consent.consentType,
+      patientId: this.patientId,
+      consentId: this.consentId,
+      consentType: this.consentType,
       grantedBy: this.grantedBy,
       grantedAt: this.occurredAt
     };
   }
 
   public containsPHI(): boolean {
-    return true; // Contains patient consent information
+    return true;
   }
 
   public getPatientId(): string | null {
-    return this.patient.getPatientId();
+    return this.patientId;
   }
 
   public getPayload(): PatientConsentGrantedEventData {

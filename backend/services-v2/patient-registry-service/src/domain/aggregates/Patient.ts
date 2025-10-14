@@ -100,7 +100,14 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     });
 
     // Publish domain event
-    patient.addDomainEvent(new PatientRegisteredEvent(patient));
+    patient.addDomainEvent(new PatientRegisteredEvent(
+      patientId.value,
+      userId,
+      personalInfo.fullName,
+      personalInfo.dateOfBirth,
+      personalInfo.gender,
+      personalInfo.nationalId
+    ));
 
     return patient;
   }
@@ -124,7 +131,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'personal_info', updatedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'personal_info', updatedBy));
   }
 
   /**
@@ -137,7 +145,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'contact_info', updatedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'contact_info', updatedBy));
   }
 
   /**
@@ -150,7 +159,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'basic_medical_info', updatedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'basic_medical_info', updatedBy));
   }
 
   /**
@@ -163,7 +173,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'insurance_info', updatedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'insurance_info', updatedBy));
   }
 
   /**
@@ -176,7 +187,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'emergency_contact', updatedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'emergency_contact', updatedBy));
   }
 
   /**
@@ -191,7 +203,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'emergency_contact', updatedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'emergency_contact', updatedBy));
   }
 
   /**
@@ -204,7 +217,13 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    this.addDomainEvent(new PatientConsentGrantedEvent(this, consent, updatedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientConsentGrantedEvent(
+      patientId,
+      consent.getId(),
+      consent.consentType,
+      updatedBy
+    ));
   }
 
   /**
@@ -232,7 +251,13 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const link = PatientLink.createReplacedBy(masterPatientId, performedBy);
     this.props.links.push(link);
 
-    this.addDomainEvent(new PatientMergedEvent(this, masterPatientId, reason, performedBy));
+    const duplicatePatientId = this.props.id.value;
+    this.addDomainEvent(new PatientMergedEvent(
+      duplicatePatientId,
+      masterPatientId.value,
+      reason,
+      performedBy
+    ));
   }
 
   /**
@@ -257,7 +282,13 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = performedBy;
 
-    this.addDomainEvent(new PatientLinkedEvent(this, otherPatientId, linkType, performedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientLinkedEvent(
+      patientId,
+      otherPatientId.value,
+      linkType,
+      performedBy
+    ));
   }
 
   /**
@@ -280,7 +311,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = performedBy;
 
-    this.addDomainEvent(new PatientDeactivatedEvent(this, reason, performedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientDeactivatedEvent(patientId, reason, performedBy));
   }
 
   /**
@@ -295,7 +327,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = performedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'status', performedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'status', performedBy));
   }
 
   /**
@@ -310,7 +343,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = performedBy;
 
-    this.addDomainEvent(new PatientUpdatedEvent(this, 'status', performedBy));
+    const patientId = this.props.id.value;
+    this.addDomainEvent(new PatientUpdatedEvent(patientId, 'status', performedBy));
   }
 
   // ==================== Getters ====================

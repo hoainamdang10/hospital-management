@@ -1,0 +1,69 @@
+1bda4db98fb1937189b61056c995f6da
+"use strict";
+
+/**
+ * IAuthService - Application Service Interface
+ * V2 Clean Architecture + DDD Implementation
+ * Defines contract for authentication operations
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, DDD, HIPAA
+ */
+/* istanbul ignore next */
+function cov_143i4b4c1m() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthService.ts";
+  var hash = "86c4e16286ab1c4306020783b682e87c268b979e";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthService.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthService.ts",
+      mappings: ";AAAA;;;;;;;;GAQG",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\IAuthService.ts"],
+      sourcesContent: ["/**\n * IAuthService - Application Service Interface\n * V2 Clean Architecture + DDD Implementation\n * Defines contract for authentication operations\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, DDD, HIPAA\n */\n\nimport { User } from '../../domain/aggregates/User';\nimport { Email } from '../../domain/value-objects/Email';\n\nexport interface AuthenticationResult {\n  success: boolean;\n  user?: User;\n  sessionToken?: string;\n  expiresAt?: Date;\n  requiresMFA?: boolean;\n  error?: string;\n}\n\nexport interface PasswordValidationResult {\n  isValid: boolean;\n  errors: string[];\n}\n\n/**\n * Authentication Service Interface\n * Handles authentication operations with Supabase Auth\n */\nexport interface IAuthService {\n  /**\n   * Authenticate user with email and password\n   * @param email User email\n   * @param password User password\n   * @param ipAddress IP address of request\n   * @param userAgent User agent string\n   * @returns Authentication result\n   */\n  authenticate(\n    email: Email,\n    password: string,\n    ipAddress: string,\n    userAgent: string\n  ): Promise<AuthenticationResult>;\n\n  /**\n   * Verify MFA code\n   * @param userId User ID\n   * @param mfaCode MFA code to verify\n   * @returns Whether code is valid\n   */\n  verifyMFA(userId: string, mfaCode: string): Promise<boolean>;\n\n  /**\n   * Validate password strength\n   * @param password Password to validate\n   * @returns Validation result\n   */\n  validatePassword(password: string): PasswordValidationResult;\n\n  /**\n   * Hash password\n   * @param password Plain text password\n   * @returns Hashed password\n   */\n  hashPassword(password: string): Promise<string>;\n\n  /**\n   * Verify password against hash\n   * @param password Plain text password\n   * @param hash Hashed password\n   * @returns Whether password matches\n   */\n  verifyPassword(password: string, hash: string): Promise<boolean>;\n\n  /**\n   * Generate session token\n   * @param userId User ID\n   * @returns Session token\n   */\n  generateSessionToken(userId: string): string;\n\n  /**\n   * Verify session token\n   * @param token Session token\n   * @returns User ID if valid, null otherwise\n   */\n  verifySessionToken(token: string): Promise<string | null>;\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "86c4e16286ab1c4306020783b682e87c268b979e"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_143i4b4c1m = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_143i4b4c1m();
+cov_143i4b4c1m().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMTQzaTRiNGMxbSIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcaWRlbnRpdHktc2VydmljZVxcc3JjXFxhcHBsaWNhdGlvblxcc2VydmljZXNcXElBdXRoU2VydmljZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIElBdXRoU2VydmljZSAtIEFwcGxpY2F0aW9uIFNlcnZpY2UgSW50ZXJmYWNlXG4gKiBWMiBDbGVhbiBBcmNoaXRlY3R1cmUgKyBEREQgSW1wbGVtZW50YXRpb25cbiAqIERlZmluZXMgY29udHJhY3QgZm9yIGF1dGhlbnRpY2F0aW9uIG9wZXJhdGlvbnNcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKiBAY29tcGxpYW5jZSBDbGVhbiBBcmNoaXRlY3R1cmUsIERERCwgSElQQUFcbiAqL1xuXG5pbXBvcnQgeyBVc2VyIH0gZnJvbSAnLi4vLi4vZG9tYWluL2FnZ3JlZ2F0ZXMvVXNlcic7XG5pbXBvcnQgeyBFbWFpbCB9IGZyb20gJy4uLy4uL2RvbWFpbi92YWx1ZS1vYmplY3RzL0VtYWlsJztcblxuZXhwb3J0IGludGVyZmFjZSBBdXRoZW50aWNhdGlvblJlc3VsdCB7XG4gIHN1Y2Nlc3M6IGJvb2xlYW47XG4gIHVzZXI/OiBVc2VyO1xuICBzZXNzaW9uVG9rZW4/OiBzdHJpbmc7XG4gIGV4cGlyZXNBdD86IERhdGU7XG4gIHJlcXVpcmVzTUZBPzogYm9vbGVhbjtcbiAgZXJyb3I/OiBzdHJpbmc7XG59XG5cbmV4cG9ydCBpbnRlcmZhY2UgUGFzc3dvcmRWYWxpZGF0aW9uUmVzdWx0IHtcbiAgaXNWYWxpZDogYm9vbGVhbjtcbiAgZXJyb3JzOiBzdHJpbmdbXTtcbn1cblxuLyoqXG4gKiBBdXRoZW50aWNhdGlvbiBTZXJ2aWNlIEludGVyZmFjZVxuICogSGFuZGxlcyBhdXRoZW50aWNhdGlvbiBvcGVyYXRpb25zIHdpdGggU3VwYWJhc2UgQXV0aFxuICovXG5leHBvcnQgaW50ZXJmYWNlIElBdXRoU2VydmljZSB7XG4gIC8qKlxuICAgKiBBdXRoZW50aWNhdGUgdXNlciB3aXRoIGVtYWlsIGFuZCBwYXNzd29yZFxuICAgKiBAcGFyYW0gZW1haWwgVXNlciBlbWFpbFxuICAgKiBAcGFyYW0gcGFzc3dvcmQgVXNlciBwYXNzd29yZFxuICAgKiBAcGFyYW0gaXBBZGRyZXNzIElQIGFkZHJlc3Mgb2YgcmVxdWVzdFxuICAgKiBAcGFyYW0gdXNlckFnZW50IFVzZXIgYWdlbnQgc3RyaW5nXG4gICAqIEByZXR1cm5zIEF1dGhlbnRpY2F0aW9uIHJlc3VsdFxuICAgKi9cbiAgYXV0aGVudGljYXRlKFxuICAgIGVtYWlsOiBFbWFpbCxcbiAgICBwYXNzd29yZDogc3RyaW5nLFxuICAgIGlwQWRkcmVzczogc3RyaW5nLFxuICAgIHVzZXJBZ2VudDogc3RyaW5nXG4gICk6IFByb21pc2U8QXV0aGVudGljYXRpb25SZXN1bHQ+O1xuXG4gIC8qKlxuICAgKiBWZXJpZnkgTUZBIGNvZGVcbiAgICogQHBhcmFtIHVzZXJJZCBVc2VyIElEXG4gICAqIEBwYXJhbSBtZmFDb2RlIE1GQSBjb2RlIHRvIHZlcmlmeVxuICAgKiBAcmV0dXJucyBXaGV0aGVyIGNvZGUgaXMgdmFsaWRcbiAgICovXG4gIHZlcmlmeU1GQSh1c2VySWQ6IHN0cmluZywgbWZhQ29kZTogc3RyaW5nKTogUHJvbWlzZTxib29sZWFuPjtcblxuICAvKipcbiAgICogVmFsaWRhdGUgcGFzc3dvcmQgc3RyZW5ndGhcbiAgICogQHBhcmFtIHBhc3N3b3JkIFBhc3N3b3JkIHRvIHZhbGlkYXRlXG4gICAqIEByZXR1cm5zIFZhbGlkYXRpb24gcmVzdWx0XG4gICAqL1xuICB2YWxpZGF0ZVBhc3N3b3JkKHBhc3N3b3JkOiBzdHJpbmcpOiBQYXNzd29yZFZhbGlkYXRpb25SZXN1bHQ7XG5cbiAgLyoqXG4gICAqIEhhc2ggcGFzc3dvcmRcbiAgICogQHBhcmFtIHBhc3N3b3JkIFBsYWluIHRleHQgcGFzc3dvcmRcbiAgICogQHJldHVybnMgSGFzaGVkIHBhc3N3b3JkXG4gICAqL1xuICBoYXNoUGFzc3dvcmQocGFzc3dvcmQ6IHN0cmluZyk6IFByb21pc2U8c3RyaW5nPjtcblxuICAvKipcbiAgICogVmVyaWZ5IHBhc3N3b3JkIGFnYWluc3QgaGFzaFxuICAgKiBAcGFyYW0gcGFzc3dvcmQgUGxhaW4gdGV4dCBwYXNzd29yZFxuICAgKiBAcGFyYW0gaGFzaCBIYXNoZWQgcGFzc3dvcmRcbiAgICogQHJldHVybnMgV2hldGhlciBwYXNzd29yZCBtYXRjaGVzXG4gICAqL1xuICB2ZXJpZnlQYXNzd29yZChwYXNzd29yZDogc3RyaW5nLCBoYXNoOiBzdHJpbmcpOiBQcm9taXNlPGJvb2xlYW4+O1xuXG4gIC8qKlxuICAgKiBHZW5lcmF0ZSBzZXNzaW9uIHRva2VuXG4gICAqIEBwYXJhbSB1c2VySWQgVXNlciBJRFxuICAgKiBAcmV0dXJucyBTZXNzaW9uIHRva2VuXG4gICAqL1xuICBnZW5lcmF0ZVNlc3Npb25Ub2tlbih1c2VySWQ6IHN0cmluZyk6IHN0cmluZztcblxuICAvKipcbiAgICogVmVyaWZ5IHNlc3Npb24gdG9rZW5cbiAgICogQHBhcmFtIHRva2VuIFNlc3Npb24gdG9rZW5cbiAgICogQHJldHVybnMgVXNlciBJRCBpZiB2YWxpZCwgbnVsbCBvdGhlcndpc2VcbiAgICovXG4gIHZlcmlmeVNlc3Npb25Ub2tlbih0b2tlbjogc3RyaW5nKTogUHJvbWlzZTxzdHJpbmcgfCBudWxsPjtcbn1cblxuIl0sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7Ozs7QUFBQTtBQUFBLFNBQUFBLGVBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsSUFBQTtFQUFBLElBQUFDLE1BQUEsT0FBQUMsUUFBQTtFQUFBLElBQUFDLEdBQUE7RUFBQSxJQUFBQyxZQUFBO0lBQUFMLElBQUE7SUFBQU0sWUFBQTtNQUFBO1FBQUFDLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO0lBQUE7SUFBQUUsS0FBQTtJQUFBQyxTQUFBO0lBQUFDLENBQUE7TUFBQTtJQUFBO0lBQUFDLENBQUE7SUFBQUMsQ0FBQTtJQUFBQyxjQUFBO01BQUFDLElBQUE7TUFBQUMsUUFBQTtNQUFBQyxLQUFBO01BQUFDLE9BQUE7TUFBQUMsY0FBQTtNQUFBQyxPQUFBO0lBQUE7SUFBQUMsZUFBQTtJQUFBdEIsSUFBQTtFQUFBO0VBQUEsSUFBQXVCLFFBQUEsR0FBQXRCLE1BQUEsQ0FBQUUsR0FBQSxNQUFBRixNQUFBLENBQUFFLEdBQUE7RUFBQSxLQUFBb0IsUUFBQSxDQUFBeEIsSUFBQSxLQUFBd0IsUUFBQSxDQUFBeEIsSUFBQSxFQUFBQyxJQUFBLEtBQUFBLElBQUE7SUFBQXVCLFFBQUEsQ0FBQXhCLElBQUEsSUFBQUssWUFBQTtFQUFBO0VBQUEsSUFBQW9CLGNBQUEsR0FBQUQsUUFBQSxDQUFBeEIsSUFBQTtFQUFBIiwiaWdub3JlTGlzdCI6W119

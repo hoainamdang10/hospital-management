@@ -136,7 +136,7 @@ describe('IdentityServiceHealthCheck', () => {
 
       expect(health.overall).toBe(HealthStatus.DEGRADED);
       expect(health.components.circuitBreakers.status).toBe(HealthStatus.DEGRADED);
-      expect(health.components.circuitBreakers.details.openBreakers).toBe(1);
+      expect(health.components.circuitBreakers.details?.openBreakers).toBe(1);
     });
 
     it('should include metadata in health response', async () => {
@@ -173,7 +173,7 @@ describe('IdentityServiceHealthCheck', () => {
 
       expect(health.components.database.status).toBe(HealthStatus.HEALTHY);
       expect(health.components.database.responseTime).toBeLessThan(1000);
-      expect(health.components.database.details.tablesAccessible).toBe(true);
+      expect(health.components.database.details?.tablesAccessible).toBe(true);
     });
 
     it('should return DEGRADED for slow database response (> 1s)', async () => {
@@ -234,7 +234,7 @@ describe('IdentityServiceHealthCheck', () => {
       const health = await healthCheck.checkHealth();
 
       expect(health.components.authentication.status).toBe(HealthStatus.HEALTHY);
-      expect(health.components.authentication.details.rolesAccessible).toBe(true);
+      expect(health.components.authentication.details?.rolesAccessible).toBe(true);
     });
 
     it('should return UNHEALTHY when authentication fails', async () => {
@@ -267,8 +267,8 @@ describe('IdentityServiceHealthCheck', () => {
       const health = await healthCheck.checkHealth();
 
       expect(health.components.circuitBreakers.status).toBe(HealthStatus.HEALTHY);
-      expect(health.components.circuitBreakers.details.totalBreakers).toBe(2);
-      expect(health.components.circuitBreakers.details.openBreakers).toBe(0);
+      expect(health.components.circuitBreakers.details?.totalBreakers).toBe(2);
+      expect(health.components.circuitBreakers.details?.openBreakers).toBe(0);
     });
 
     it('should return DEGRADED when some breakers are open', async () => {
@@ -283,7 +283,7 @@ describe('IdentityServiceHealthCheck', () => {
       const health = await healthCheck.checkHealth();
 
       expect(health.components.circuitBreakers.status).toBe(HealthStatus.DEGRADED);
-      expect(health.components.circuitBreakers.details.openBreakers).toBe(1);
+      expect(health.components.circuitBreakers.details?.openBreakers).toBe(1);
     });
 
     it('should handle circuit breaker check errors', async () => {

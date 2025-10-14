@@ -7,8 +7,6 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, HIPAA
  */
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { Patient } from '../aggregates/Patient';
-import { PatientConsent } from '../entities/PatientConsent';
 export interface PatientConsentGrantedEventData {
     patientId: string;
     consentId: string;
@@ -17,10 +15,11 @@ export interface PatientConsentGrantedEventData {
     grantedAt: Date;
 }
 export declare class PatientConsentGrantedEvent extends DomainEvent {
-    readonly patient: Patient;
-    readonly consent: PatientConsent;
+    readonly patientId: string;
+    readonly consentId: string;
+    readonly consentType: string;
     readonly grantedBy: string;
-    constructor(patient: Patient, consent: PatientConsent, grantedBy: string);
+    constructor(patientId: string, consentId: string, consentType: string, grantedBy: string, correlationId?: string, causationId?: string, userIdForAudit?: string);
     getEventData(): PatientConsentGrantedEventData;
     containsPHI(): boolean;
     getPatientId(): string | null;

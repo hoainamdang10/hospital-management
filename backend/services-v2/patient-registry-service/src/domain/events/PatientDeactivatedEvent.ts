@@ -5,7 +5,6 @@
  */
 
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { Patient } from '../aggregates/Patient';
 
 export interface PatientDeactivatedEventData {
   patientId: string;
@@ -16,11 +15,13 @@ export interface PatientDeactivatedEventData {
 
 export class PatientDeactivatedEvent extends DomainEvent {
   constructor(
-    public readonly patient: Patient,
+    public readonly patientId: string,
     public readonly reason: string,
-    public readonly performedBy: string
+    public readonly performedBy: string,
+    correlationId?: string,
+    causationId?: string,
+    userIdForAudit?: string
   ) {
-    const patientId = patient.getPatientId() || '';
     const eventData = {
       patientId,
       reason,
@@ -32,14 +33,16 @@ export class PatientDeactivatedEvent extends DomainEvent {
       patientId,
       'Patient',
       eventData,
-      1
+      1,
+      correlationId,
+      causationId,
+      userIdForAudit
     );
   }
 
   public getEventData(): PatientDeactivatedEventData {
-    const patientId = this.patient.getPatientId() || '';
     return {
-      patientId,
+      patientId: this.patientId,
       reason: this.reason,
       performedBy: this.performedBy,
       deactivatedAt: this.occurredAt
@@ -47,11 +50,11 @@ export class PatientDeactivatedEvent extends DomainEvent {
   }
 
   public containsPHI(): boolean {
-    return true; // Contains patient information
+    return true;
   }
 
   public getPatientId(): string | null {
-    return this.patient.getPatientId();
+    return this.patientId;
   }
 
   public getPayload(): PatientDeactivatedEventData {

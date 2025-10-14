@@ -88,7 +88,10 @@ export declare class SupabasePermissionRepository implements IPermissionReposito
      * 1. User-specific permissions (user_permissions table)
      * 2. Role-based permissions (role_permissions via user_roles)
      *
-     * IMPORTANT: role_permissions table uses role_id, not role_name
+     * IMPORTANT:
+     * - user_roles table has: user_id, role_name (NOT role_id)
+     * - role_permissions table has: role_id, permission_name
+     * - Need to join via healthcare_roles to get role_id from role_name
      */
     private queryUserPermissions;
     /**

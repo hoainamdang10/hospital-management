@@ -238,7 +238,7 @@ export function rateLimitMiddleware(
       'X-RateLimit-Reset': new Date(clientData.resetTime).toISOString()
     });
 
-    next();
+    return next();
   };
 }
 
@@ -263,7 +263,7 @@ export function requestSizeLimitMiddleware(maxSize: number = 1024 * 1024) { // 1
       });
     }
 
-    next();
+    return next();
   };
 }
 

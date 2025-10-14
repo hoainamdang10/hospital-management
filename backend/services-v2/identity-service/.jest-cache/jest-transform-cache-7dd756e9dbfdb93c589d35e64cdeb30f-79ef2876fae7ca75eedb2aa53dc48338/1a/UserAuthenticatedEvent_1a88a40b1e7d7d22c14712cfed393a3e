@@ -1,0 +1,41 @@
+a1cc68d74f1be131c62bc27565cdc9f5
+"use strict";
+/**
+ * UserAuthenticatedEvent Domain Event
+ * Fired when a user successfully authenticates
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserAuthenticatedEvent = void 0;
+const domain_event_1 = require("@shared/domain/base/domain-event");
+class UserAuthenticatedEvent extends domain_event_1.DomainEvent {
+    constructor(userIdVO, ipAddress, userAgent, timestamp) {
+        super('UserAuthenticated', userIdVO.value, 'User', { ipAddress, userAgent, timestamp }, 1, // eventVersion
+        undefined, // correlationId
+        undefined, // causationId
+        userIdVO.value // userId as string for base class
+        );
+        this.userIdVO = userIdVO;
+        this.ipAddress = ipAddress;
+        this.userAgent = userAgent;
+        this.timestamp = timestamp;
+    }
+    getEventData() {
+        return {
+            userId: this.userIdVO.value,
+            ipAddress: this.ipAddress,
+            userAgent: this.userAgent,
+            timestamp: this.timestamp
+        };
+    }
+    containsPHI() {
+        return false; // IP and user agent are not PHI
+    }
+    getPatientId() {
+        return null;
+    }
+}
+exports.UserAuthenticatedEvent = UserAuthenticatedEvent;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGRvbWFpblxcZXZlbnRzXFxVc2VyQXV0aGVudGljYXRlZEV2ZW50LnRzIiwibWFwcGluZ3MiOiI7QUFBQTs7Ozs7O0dBTUc7OztBQUVILG1FQUErRDtBQUcvRCxNQUFhLHNCQUF1QixTQUFRLDBCQUFXO0lBQ3JELFlBQ2tCLFFBQWdCLEVBQ2hCLFNBQWlCLEVBQ2pCLFNBQWlCLEVBQ2pCLFNBQWU7UUFFL0IsS0FBSyxDQUNILG1CQUFtQixFQUNuQixRQUFRLENBQUMsS0FBSyxFQUNkLE1BQU0sRUFDTixFQUFFLFNBQVMsRUFBRSxTQUFTLEVBQUUsU0FBUyxFQUFFLEVBQ25DLENBQUMsRUFBRSxlQUFlO1FBQ2xCLFNBQVMsRUFBRSxnQkFBZ0I7UUFDM0IsU0FBUyxFQUFFLGNBQWM7UUFDekIsUUFBUSxDQUFDLEtBQUssQ0FBQyxrQ0FBa0M7U0FDbEQsQ0FBQztRQWRjLGFBQVEsR0FBUixRQUFRLENBQVE7UUFDaEIsY0FBUyxHQUFULFNBQVMsQ0FBUTtRQUNqQixjQUFTLEdBQVQsU0FBUyxDQUFRO1FBQ2pCLGNBQVMsR0FBVCxTQUFTLENBQU07SUFZakMsQ0FBQztJQUVELFlBQVk7UUFDVixPQUFPO1lBQ0wsTUFBTSxFQUFFLElBQUksQ0FBQyxRQUFRLENBQUMsS0FBSztZQUMzQixTQUFTLEVBQUUsSUFBSSxDQUFDLFNBQVM7WUFDekIsU0FBUyxFQUFFLElBQUksQ0FBQyxTQUFTO1lBQ3pCLFNBQVMsRUFBRSxJQUFJLENBQUMsU0FBUztTQUMxQixDQUFDO0lBQ0osQ0FBQztJQUVELFdBQVc7UUFDVCxPQUFPLEtBQUssQ0FBQyxDQUFDLGdDQUFnQztJQUNoRCxDQUFDO0lBRUQsWUFBWTtRQUNWLE9BQU8sSUFBSSxDQUFDO0lBQ2QsQ0FBQztDQUNGO0FBbkNELHdEQW1DQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcaG9zcGl0YWwtbWFuYWdlbWVudC1WMlxcYmFja2VuZFxcc2VydmljZXMtdjJcXGlkZW50aXR5LXNlcnZpY2VcXHNyY1xcZG9tYWluXFxldmVudHNcXFVzZXJBdXRoZW50aWNhdGVkRXZlbnQudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBVc2VyQXV0aGVudGljYXRlZEV2ZW50IERvbWFpbiBFdmVudFxuICogRmlyZWQgd2hlbiBhIHVzZXIgc3VjY2Vzc2Z1bGx5IGF1dGhlbnRpY2F0ZXNcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKi9cblxuaW1wb3J0IHsgRG9tYWluRXZlbnQgfSBmcm9tICdAc2hhcmVkL2RvbWFpbi9iYXNlL2RvbWFpbi1ldmVudCc7XG5pbXBvcnQgeyBVc2VySWQgfSBmcm9tICcuLi92YWx1ZS1vYmplY3RzL1VzZXJJZCc7XG5cbmV4cG9ydCBjbGFzcyBVc2VyQXV0aGVudGljYXRlZEV2ZW50IGV4dGVuZHMgRG9tYWluRXZlbnQge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwdWJsaWMgcmVhZG9ubHkgdXNlcklkVk86IFVzZXJJZCxcbiAgICBwdWJsaWMgcmVhZG9ubHkgaXBBZGRyZXNzOiBzdHJpbmcsXG4gICAgcHVibGljIHJlYWRvbmx5IHVzZXJBZ2VudDogc3RyaW5nLFxuICAgIHB1YmxpYyByZWFkb25seSB0aW1lc3RhbXA6IERhdGVcbiAgKSB7XG4gICAgc3VwZXIoXG4gICAgICAnVXNlckF1dGhlbnRpY2F0ZWQnLFxuICAgICAgdXNlcklkVk8udmFsdWUsXG4gICAgICAnVXNlcicsXG4gICAgICB7IGlwQWRkcmVzcywgdXNlckFnZW50LCB0aW1lc3RhbXAgfSxcbiAgICAgIDEsIC8vIGV2ZW50VmVyc2lvblxuICAgICAgdW5kZWZpbmVkLCAvLyBjb3JyZWxhdGlvbklkXG4gICAgICB1bmRlZmluZWQsIC8vIGNhdXNhdGlvbklkXG4gICAgICB1c2VySWRWTy52YWx1ZSAvLyB1c2VySWQgYXMgc3RyaW5nIGZvciBiYXNlIGNsYXNzXG4gICAgKTtcbiAgfVxuXG4gIGdldEV2ZW50RGF0YSgpOiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiB7XG4gICAgcmV0dXJuIHtcbiAgICAgIHVzZXJJZDogdGhpcy51c2VySWRWTy52YWx1ZSxcbiAgICAgIGlwQWRkcmVzczogdGhpcy5pcEFkZHJlc3MsXG4gICAgICB1c2VyQWdlbnQ6IHRoaXMudXNlckFnZW50LFxuICAgICAgdGltZXN0YW1wOiB0aGlzLnRpbWVzdGFtcFxuICAgIH07XG4gIH1cblxuICBjb250YWluc1BISSgpOiBib29sZWFuIHtcbiAgICByZXR1cm4gZmFsc2U7IC8vIElQIGFuZCB1c2VyIGFnZW50IGFyZSBub3QgUEhJXG4gIH1cblxuICBnZXRQYXRpZW50SWQoKTogc3RyaW5nIHwgbnVsbCB7XG4gICAgcmV0dXJuIG51bGw7XG4gIH1cbn1cbiJdLCJ2ZXJzaW9uIjozfQ==

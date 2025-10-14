@@ -8,7 +8,6 @@
  */
 
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { Patient } from '../aggregates/Patient';
 
 export interface PatientUpdatedEventData {
   patientId: string;
@@ -19,11 +18,13 @@ export interface PatientUpdatedEventData {
 
 export class PatientUpdatedEvent extends DomainEvent {
   constructor(
-    public readonly patient: Patient,
+    public readonly patientId: string,
     public readonly updateType: string,
-    public readonly updatedBy: string
+    public readonly updatedBy: string,
+    correlationId?: string,
+    causationId?: string,
+    userIdForAudit?: string
   ) {
-    const patientId = patient.getPatientId() || '';
     const eventData = {
       patientId,
       updateType,
@@ -35,14 +36,16 @@ export class PatientUpdatedEvent extends DomainEvent {
       patientId,
       'Patient',
       eventData,
-      1
+      1,
+      correlationId,
+      causationId,
+      userIdForAudit
     );
   }
 
   public getEventData(): PatientUpdatedEventData {
-    const patientId = this.patient.getPatientId() || '';
     return {
-      patientId,
+      patientId: this.patientId,
       updateType: this.updateType,
       updatedBy: this.updatedBy,
       updatedAt: this.occurredAt
@@ -54,7 +57,7 @@ export class PatientUpdatedEvent extends DomainEvent {
   }
 
   public getPatientId(): string | null {
-    return this.patient.getPatientId();
+    return this.patientId;
   }
 
   public getPayload(): PatientUpdatedEventData {

@@ -28,6 +28,7 @@ export declare class IdentityServiceDegradation implements IDegradationService {
     private authClient;
     private readonly MAX_CACHE_SIZE;
     private readonly CACHE_CLEANUP_INTERVAL;
+    private cleanupIntervalId?;
     constructor(config: DegradationConfig, authConfig: SupabaseAuthConfig, logger: ILogger);
     /**
      * Periodic cache cleanup to prevent memory leaks
@@ -97,5 +98,9 @@ export declare class IdentityServiceDegradation implements IDegradationService {
      * Force recovery to full service
      */
     forceRecovery(): void;
+    /**
+     * Stop cleanup interval (for testing/shutdown)
+     */
+    stop(): void;
 }
 //# sourceMappingURL=GracefulDegradation.d.ts.map

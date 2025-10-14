@@ -33,7 +33,7 @@ export interface GetStaffListQuery {
       status?: StaffStatus;
       departmentId?: string;
       isActive?: boolean;
-      isAcceptingNewPatients?: boolean;
+      // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service
     };
     pagination?: {
       page: number;

@@ -4,7 +4,6 @@
  * Published when a patient is deactivated
  */
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { Patient } from '../aggregates/Patient';
 export interface PatientDeactivatedEventData {
     patientId: string;
     reason: string;
@@ -12,10 +11,10 @@ export interface PatientDeactivatedEventData {
     deactivatedAt: Date;
 }
 export declare class PatientDeactivatedEvent extends DomainEvent {
-    readonly patient: Patient;
+    readonly patientId: string;
     readonly reason: string;
     readonly performedBy: string;
-    constructor(patient: Patient, reason: string, performedBy: string);
+    constructor(patientId: string, reason: string, performedBy: string, correlationId?: string, causationId?: string, userIdForAudit?: string);
     getEventData(): PatientDeactivatedEventData;
     containsPHI(): boolean;
     getPatientId(): string | null;

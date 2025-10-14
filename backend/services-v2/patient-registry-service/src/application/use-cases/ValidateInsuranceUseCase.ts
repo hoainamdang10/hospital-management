@@ -11,6 +11,7 @@
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { PatientId } from '../../domain/value-objects/PatientId';
 import { IInsuranceValidationService } from '../services/IInsuranceValidationService';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface ValidateInsuranceRequest {
   patientId: string;
@@ -46,16 +47,25 @@ export interface ValidateInsuranceResponse {
 export class ValidateInsuranceUseCase {
   constructor(
     private readonly patientRepository: IPatientRepository,
-    private readonly insuranceValidationService: IInsuranceValidationService
+    private readonly insuranceValidationService: IInsuranceValidationService,
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: ValidateInsuranceRequest): Promise<ValidateInsuranceResponse> {
     try {
+      this.logger.info('Starting insurance validation', {
+        patientId: request.patientId,
+        requestedBy: request.requestedBy
+      });
+
       // 1. Find patient
       const patientId = PatientId.create(request.patientId);
       const patient = await this.patientRepository.findById(patientId);
 
       if (!patient) {
+        this.logger.warn('Insurance validation failed: patient not found', {
+          patientId: request.patientId
+        });
         return {
           success: false,
           message: 'Không tìm thấy bệnh nhân',
@@ -127,7 +137,16 @@ export class ValidateInsuranceUseCase {
         reasons.push('VALID');
       }
 
-      // 4. Return validation result
+      // 4. HIPAA audit logging
+      this.auditInsuranceValidation(patient, request, isValid);
+
+      this.logger.info('Insurance validation completed', {
+        patientId: request.patientId,
+        isValid,
+        reasons: reasons.join(',')
+      });
+
+      // 5. Return validation result
       return {
         success: true,
         message: isValid ? 'Bảo hiểm hợp lệ' : 'Bảo hiểm không hợp lệ',
@@ -156,6 +175,11 @@ export class ValidateInsuranceUseCase {
     } catch (error) {
       // Handle validation errors
       if (error instanceof Error) {
+        this.logger.error('Insurance validation failed', {
+          patientId: request.patientId,
+          error: error.message,
+          stack: error.stack
+        });
         return {
           success: false,
           message: 'Xác thực bảo hiểm thất bại',
@@ -164,12 +188,35 @@ export class ValidateInsuranceUseCase {
       }
 
       // Handle unexpected errors
+      this.logger.error('Unexpected error during insurance validation', {
+        patientId: request.patientId,
+        error: 'UNEXPECTED_ERROR'
+      });
       return {
         success: false,
         message: 'Đã xảy ra lỗi không mong muốn',
         errors: ['UNEXPECTED_ERROR']
       };
     }
+  }
+
+  /**
+   * HIPAA audit logging for insurance validation
+   */
+  private auditInsuranceValidation(
+    patient: any,
+    request: ValidateInsuranceRequest,
+    isValid: boolean
+  ): void {
+    this.logger.info('HIPAA Audit: Insurance validation', {
+      action: 'INSURANCE_VALIDATION',
+      patientId: patient.getPatientId(),
+      requestedBy: request.requestedBy,
+      validationResult: isValid ? 'VALID' : 'INVALID',
+      timestamp: new Date().toISOString(),
+      dataAccessed: 'patient_insurance_info',
+      complianceLevel: 'hipaa'
+    });
   }
 }
 

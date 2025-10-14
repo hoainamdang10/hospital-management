@@ -1,0 +1,326 @@
+68f1a2fc53be8f51545852d6d74e8c8c
+"use strict";
+
+/**
+ * Get Appointment Details Query - Application Layer
+ * CQRS Query to get appointment details with patient/doctor info
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, CQRS
+ */
+/* istanbul ignore next */
+function cov_1d62oy7pbr() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\queries\\GetAppointmentDetailsQuery.ts";
+  var hash = "ec33bba079b74a8fb0e539265631b24878f29a13";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\queries\\GetAppointmentDetailsQuery.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 11,
+          column: 0
+        },
+        end: {
+          line: 11,
+          column: 44
+        }
+      },
+      "2": {
+        start: {
+          line: 14,
+          column: 8
+        },
+        end: {
+          line: 14,
+          column: 43
+        }
+      },
+      "3": {
+        start: {
+          line: 21,
+          column: 26
+        },
+        end: {
+          line: 21,
+          column: 74
+        }
+      },
+      "4": {
+        start: {
+          line: 22,
+          column: 8
+        },
+        end: {
+          line: 24,
+          column: 9
+        }
+      },
+      "5": {
+        start: {
+          line: 23,
+          column: 12
+        },
+        end: {
+          line: 23,
+          column: 71
+        }
+      },
+      "6": {
+        start: {
+          line: 26,
+          column: 8
+        },
+        end: {
+          line: 79,
+          column: 10
+        }
+      },
+      "7": {
+        start: {
+          line: 82,
+          column: 0
+        },
+        end: {
+          line: 82,
+          column: 64
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 13,
+            column: 4
+          },
+          end: {
+            line: 13,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 31
+          },
+          end: {
+            line: 15,
+            column: 5
+          }
+        },
+        line: 13
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 19,
+            column: 4
+          },
+          end: {
+            line: 19,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 19,
+            column: 33
+          },
+          end: {
+            line: 80,
+            column: 5
+          }
+        },
+        line: 19
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 22,
+            column: 8
+          },
+          end: {
+            line: 24,
+            column: 9
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 22,
+            column: 8
+          },
+          end: {
+            line: 24,
+            column: 9
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 22
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {
+      "0": [0, 0]
+    },
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\queries\\GetAppointmentDetailsQuery.ts",
+      mappings: "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",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\scheduling-service\\src\\application\\queries\\GetAppointmentDetailsQuery.ts"],
+      sourcesContent: ["/**\n * Get Appointment Details Query - Application Layer\n * CQRS Query to get appointment details with patient/doctor info\n * \n * @author Hospital Management Team\n * @version 2.0.0\n * @compliance Clean Architecture, CQRS\n */\n\nimport { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';\nimport { AppointmentDetailsDTO } from '../dto/AppointmentDetailsDTO';\n\nexport class GetAppointmentDetailsQuery {\n  constructor(\n    private readModelRepo: IAppointmentReadModelRepository\n  ) {}\n\n  /**\n   * Execute query to get appointment details\n   */\n  async execute(appointmentId: string): Promise<AppointmentDetailsDTO> {\n    // Query read model\n    const readModel = await this.readModelRepo.findById(appointmentId);\n\n    if (!readModel) {\n      throw new Error(`Appointment not found: ${appointmentId}`);\n    }\n\n    // Map to DTO\n    return {\n      // Appointment Core\n      appointmentId: readModel.appointmentId,\n      appointmentDate: readModel.appointmentDate.toISOString().split('T')[0],\n      appointmentTime: readModel.appointmentTime,\n      durationMinutes: readModel.durationMinutes,\n      type: readModel.type,\n      priority: readModel.priority,\n      status: readModel.status,\n      roomId: readModel.roomId,\n      departmentId: readModel.departmentId,\n\n      // Patient Information\n      patient: {\n        patientId: readModel.patientId,\n        fullName: readModel.patientFullName,\n        phone: readModel.patientPhone,\n        email: readModel.patientEmail,\n        dateOfBirth: readModel.patientDateOfBirth?.toISOString().split('T')[0],\n        gender: readModel.patientGender,\n        nationalId: readModel.patientNationalId,\n        insuranceNumber: readModel.patientInsuranceNumber,\n        insuranceType: readModel.patientInsuranceType,\n        address: readModel.patientAddress\n      },\n\n      // Doctor Information\n      doctor: {\n        doctorId: readModel.doctorId,\n        fullName: readModel.doctorFullName,\n        specialization: readModel.doctorSpecialization,\n        department: readModel.doctorDepartment,\n        licenseNumber: readModel.doctorLicenseNumber,\n        phone: readModel.doctorPhone,\n        email: readModel.doctorEmail\n      },\n\n      // Appointment Details\n      reason: readModel.reason,\n      chiefComplaint: readModel.chiefComplaint,\n      symptoms: readModel.symptoms,\n      notes: readModel.notes,\n      specialInstructions: readModel.specialInstructions,\n      requiredEquipment: readModel.requiredEquipment,\n\n      // Financial\n      consultationFee: readModel.consultationFee,\n      additionalFees: readModel.additionalFees,\n      paymentStatus: readModel.paymentStatus,\n\n      // Timestamps\n      checkedInAt: readModel.checkedInAt?.toISOString(),\n      startedAt: readModel.startedAt?.toISOString(),\n      completedAt: readModel.completedAt?.toISOString(),\n      cancelledAt: readModel.cancelledAt?.toISOString(),\n      cancellationReason: readModel.cancellationReason,\n      createdAt: readModel.createdAt.toISOString(),\n      updatedAt: readModel.updatedAt.toISOString()\n    };\n  }\n}\n\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "ec33bba079b74a8fb0e539265631b24878f29a13"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1d62oy7pbr = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1d62oy7pbr();
+cov_1d62oy7pbr().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1d62oy7pbr().s[1]++;
+exports.GetAppointmentDetailsQuery = void 0;
+class GetAppointmentDetailsQuery {
+  constructor(readModelRepo) {
+    /* istanbul ignore next */
+    cov_1d62oy7pbr().f[0]++;
+    cov_1d62oy7pbr().s[2]++;
+    this.readModelRepo = readModelRepo;
+  }
+  /**
+   * Execute query to get appointment details
+   */
+  async execute(appointmentId) {
+    /* istanbul ignore next */
+    cov_1d62oy7pbr().f[1]++;
+    // Query read model
+    const readModel =
+    /* istanbul ignore next */
+    (cov_1d62oy7pbr().s[3]++, await this.readModelRepo.findById(appointmentId));
+    /* istanbul ignore next */
+    cov_1d62oy7pbr().s[4]++;
+    if (!readModel) {
+      /* istanbul ignore next */
+      cov_1d62oy7pbr().b[0][0]++;
+      cov_1d62oy7pbr().s[5]++;
+      throw new Error(`Appointment not found: ${appointmentId}`);
+    } else
+    /* istanbul ignore next */
+    {
+      cov_1d62oy7pbr().b[0][1]++;
+    }
+    // Map to DTO
+    cov_1d62oy7pbr().s[6]++;
+    return {
+      // Appointment Core
+      appointmentId: readModel.appointmentId,
+      appointmentDate: readModel.appointmentDate.toISOString().split('T')[0],
+      appointmentTime: readModel.appointmentTime,
+      durationMinutes: readModel.durationMinutes,
+      type: readModel.type,
+      priority: readModel.priority,
+      status: readModel.status,
+      roomId: readModel.roomId,
+      departmentId: readModel.departmentId,
+      // Patient Information
+      patient: {
+        patientId: readModel.patientId,
+        fullName: readModel.patientFullName,
+        phone: readModel.patientPhone,
+        email: readModel.patientEmail,
+        dateOfBirth: readModel.patientDateOfBirth?.toISOString().split('T')[0],
+        gender: readModel.patientGender,
+        nationalId: readModel.patientNationalId,
+        insuranceNumber: readModel.patientInsuranceNumber,
+        insuranceType: readModel.patientInsuranceType,
+        address: readModel.patientAddress
+      },
+      // Doctor Information
+      doctor: {
+        doctorId: readModel.doctorId,
+        fullName: readModel.doctorFullName,
+        specialization: readModel.doctorSpecialization,
+        department: readModel.doctorDepartment,
+        licenseNumber: readModel.doctorLicenseNumber,
+        phone: readModel.doctorPhone,
+        email: readModel.doctorEmail
+      },
+      // Appointment Details
+      reason: readModel.reason,
+      chiefComplaint: readModel.chiefComplaint,
+      symptoms: readModel.symptoms,
+      notes: readModel.notes,
+      specialInstructions: readModel.specialInstructions,
+      requiredEquipment: readModel.requiredEquipment,
+      // Financial
+      consultationFee: readModel.consultationFee,
+      additionalFees: readModel.additionalFees,
+      paymentStatus: readModel.paymentStatus,
+      // Timestamps
+      checkedInAt: readModel.checkedInAt?.toISOString(),
+      startedAt: readModel.startedAt?.toISOString(),
+      completedAt: readModel.completedAt?.toISOString(),
+      cancelledAt: readModel.cancelledAt?.toISOString(),
+      cancellationReason: readModel.cancellationReason,
+      createdAt: readModel.createdAt.toISOString(),
+      updatedAt: readModel.updatedAt.toISOString()
+    };
+  }
+}
+/* istanbul ignore next */
+cov_1d62oy7pbr().s[7]++;
+exports.GetAppointmentDetailsQuery = GetAppointmentDetailsQuery;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMWQ2Mm95N3BiciIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJzdGFydCIsImxpbmUiLCJjb2x1bW4iLCJlbmQiLCJmbk1hcCIsIm5hbWUiLCJkZWNsIiwibG9jIiwiYnJhbmNoTWFwIiwidHlwZSIsImxvY2F0aW9ucyIsInVuZGVmaW5lZCIsInMiLCJmIiwiYiIsImlucHV0U291cmNlTWFwIiwiZmlsZSIsIm1hcHBpbmdzIiwibmFtZXMiLCJzb3VyY2VzIiwic291cmNlc0NvbnRlbnQiLCJ2ZXJzaW9uIiwiX2NvdmVyYWdlU2NoZW1hIiwiY292ZXJhZ2UiLCJhY3R1YWxDb3ZlcmFnZSIsIkdldEFwcG9pbnRtZW50RGV0YWlsc1F1ZXJ5IiwiY29uc3RydWN0b3IiLCJyZWFkTW9kZWxSZXBvIiwiZXhlY3V0ZSIsImFwcG9pbnRtZW50SWQiLCJyZWFkTW9kZWwiLCJmaW5kQnlJZCIsIkVycm9yIiwiYXBwb2ludG1lbnREYXRlIiwidG9JU09TdHJpbmciLCJzcGxpdCIsImFwcG9pbnRtZW50VGltZSIsImR1cmF0aW9uTWludXRlcyIsInByaW9yaXR5Iiwic3RhdHVzIiwicm9vbUlkIiwiZGVwYXJ0bWVudElkIiwicGF0aWVudCIsInBhdGllbnRJZCIsImZ1bGxOYW1lIiwicGF0aWVudEZ1bGxOYW1lIiwicGhvbmUiLCJwYXRpZW50UGhvbmUiLCJlbWFpbCIsInBhdGllbnRFbWFpbCIsImRhdGVPZkJpcnRoIiwicGF0aWVudERhdGVPZkJpcnRoIiwiZ2VuZGVyIiwicGF0aWVudEdlbmRlciIsIm5hdGlvbmFsSWQiLCJwYXRpZW50TmF0aW9uYWxJZCIsImluc3VyYW5jZU51bWJlciIsInBhdGllbnRJbnN1cmFuY2VOdW1iZXIiLCJpbnN1cmFuY2VUeXBlIiwicGF0aWVudEluc3VyYW5jZVR5cGUiLCJhZGRyZXNzIiwicGF0aWVudEFkZHJlc3MiLCJkb2N0b3IiLCJkb2N0b3JJZCIsImRvY3RvckZ1bGxOYW1lIiwic3BlY2lhbGl6YXRpb24iLCJkb2N0b3JTcGVjaWFsaXphdGlvbiIsImRlcGFydG1lbnQiLCJkb2N0b3JEZXBhcnRtZW50IiwibGljZW5zZU51bWJlciIsImRvY3RvckxpY2Vuc2VOdW1iZXIiLCJkb2N0b3JQaG9uZSIsImRvY3RvckVtYWlsIiwicmVhc29uIiwiY2hpZWZDb21wbGFpbnQiLCJzeW1wdG9tcyIsIm5vdGVzIiwic3BlY2lhbEluc3RydWN0aW9ucyIsInJlcXVpcmVkRXF1aXBtZW50IiwiY29uc3VsdGF0aW9uRmVlIiwiYWRkaXRpb25hbEZlZXMiLCJwYXltZW50U3RhdHVzIiwiY2hlY2tlZEluQXQiLCJzdGFydGVkQXQiLCJjb21wbGV0ZWRBdCIsImNhbmNlbGxlZEF0IiwiY2FuY2VsbGF0aW9uUmVhc29uIiwiY3JlYXRlZEF0IiwidXBkYXRlZEF0IiwiZXhwb3J0cyJdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12Mlxcc2NoZWR1bGluZy1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFxxdWVyaWVzXFxHZXRBcHBvaW50bWVudERldGFpbHNRdWVyeS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIEdldCBBcHBvaW50bWVudCBEZXRhaWxzIFF1ZXJ5IC0gQXBwbGljYXRpb24gTGF5ZXJcbiAqIENRUlMgUXVlcnkgdG8gZ2V0IGFwcG9pbnRtZW50IGRldGFpbHMgd2l0aCBwYXRpZW50L2RvY3RvciBpbmZvXG4gKiBcbiAqIEBhdXRob3IgSG9zcGl0YWwgTWFuYWdlbWVudCBUZWFtXG4gKiBAdmVyc2lvbiAyLjAuMFxuICogQGNvbXBsaWFuY2UgQ2xlYW4gQXJjaGl0ZWN0dXJlLCBDUVJTXG4gKi9cblxuaW1wb3J0IHsgSUFwcG9pbnRtZW50UmVhZE1vZGVsUmVwb3NpdG9yeSB9IGZyb20gJy4uLy4uL2RvbWFpbi9yZXBvc2l0b3JpZXMvSUFwcG9pbnRtZW50UmVhZE1vZGVsUmVwb3NpdG9yeSc7XG5pbXBvcnQgeyBBcHBvaW50bWVudERldGFpbHNEVE8gfSBmcm9tICcuLi9kdG8vQXBwb2ludG1lbnREZXRhaWxzRFRPJztcblxuZXhwb3J0IGNsYXNzIEdldEFwcG9pbnRtZW50RGV0YWlsc1F1ZXJ5IHtcbiAgY29uc3RydWN0b3IoXG4gICAgcHJpdmF0ZSByZWFkTW9kZWxSZXBvOiBJQXBwb2ludG1lbnRSZWFkTW9kZWxSZXBvc2l0b3J5XG4gICkge31cblxuICAvKipcbiAgICogRXhlY3V0ZSBxdWVyeSB0byBnZXQgYXBwb2ludG1lbnQgZGV0YWlsc1xuICAgKi9cbiAgYXN5bmMgZXhlY3V0ZShhcHBvaW50bWVudElkOiBzdHJpbmcpOiBQcm9taXNlPEFwcG9pbnRtZW50RGV0YWlsc0RUTz4ge1xuICAgIC8vIFF1ZXJ5IHJlYWQgbW9kZWxcbiAgICBjb25zdCByZWFkTW9kZWwgPSBhd2FpdCB0aGlzLnJlYWRNb2RlbFJlcG8uZmluZEJ5SWQoYXBwb2ludG1lbnRJZCk7XG5cbiAgICBpZiAoIXJlYWRNb2RlbCkge1xuICAgICAgdGhyb3cgbmV3IEVycm9yKGBBcHBvaW50bWVudCBub3QgZm91bmQ6ICR7YXBwb2ludG1lbnRJZH1gKTtcbiAgICB9XG5cbiAgICAvLyBNYXAgdG8gRFRPXG4gICAgcmV0dXJuIHtcbiAgICAgIC8vIEFwcG9pbnRtZW50IENvcmVcbiAgICAgIGFwcG9pbnRtZW50SWQ6IHJlYWRNb2RlbC5hcHBvaW50bWVudElkLFxuICAgICAgYXBwb2ludG1lbnREYXRlOiByZWFkTW9kZWwuYXBwb2ludG1lbnREYXRlLnRvSVNPU3RyaW5nKCkuc3BsaXQoJ1QnKVswXSxcbiAgICAgIGFwcG9pbnRtZW50VGltZTogcmVhZE1vZGVsLmFwcG9pbnRtZW50VGltZSxcbiAgICAgIGR1cmF0aW9uTWludXRlczogcmVhZE1vZGVsLmR1cmF0aW9uTWludXRlcyxcbiAgICAgIHR5cGU6IHJlYWRNb2RlbC50eXBlLFxuICAgICAgcHJpb3JpdHk6IHJlYWRNb2RlbC5wcmlvcml0eSxcbiAgICAgIHN0YXR1czogcmVhZE1vZGVsLnN0YXR1cyxcbiAgICAgIHJvb21JZDogcmVhZE1vZGVsLnJvb21JZCxcbiAgICAgIGRlcGFydG1lbnRJZDogcmVhZE1vZGVsLmRlcGFydG1lbnRJZCxcblxuICAgICAgLy8gUGF0aWVudCBJbmZvcm1hdGlvblxuICAgICAgcGF0aWVudDoge1xuICAgICAgICBwYXRpZW50SWQ6IHJlYWRNb2RlbC5wYXRpZW50SWQsXG4gICAgICAgIGZ1bGxOYW1lOiByZWFkTW9kZWwucGF0aWVudEZ1bGxOYW1lLFxuICAgICAgICBwaG9uZTogcmVhZE1vZGVsLnBhdGllbnRQaG9uZSxcbiAgICAgICAgZW1haWw6IHJlYWRNb2RlbC5wYXRpZW50RW1haWwsXG4gICAgICAgIGRhdGVPZkJpcnRoOiByZWFkTW9kZWwucGF0aWVudERhdGVPZkJpcnRoPy50b0lTT1N0cmluZygpLnNwbGl0KCdUJylbMF0sXG4gICAgICAgIGdlbmRlcjogcmVhZE1vZGVsLnBhdGllbnRHZW5kZXIsXG4gICAgICAgIG5hdGlvbmFsSWQ6IHJlYWRNb2RlbC5wYXRpZW50TmF0aW9uYWxJZCxcbiAgICAgICAgaW5zdXJhbmNlTnVtYmVyOiByZWFkTW9kZWwucGF0aWVudEluc3VyYW5jZU51bWJlcixcbiAgICAgICAgaW5zdXJhbmNlVHlwZTogcmVhZE1vZGVsLnBhdGllbnRJbnN1cmFuY2VUeXBlLFxuICAgICAgICBhZGRyZXNzOiByZWFkTW9kZWwucGF0aWVudEFkZHJlc3NcbiAgICAgIH0sXG5cbiAgICAgIC8vIERvY3RvciBJbmZvcm1hdGlvblxuICAgICAgZG9jdG9yOiB7XG4gICAgICAgIGRvY3RvcklkOiByZWFkTW9kZWwuZG9jdG9ySWQsXG4gICAgICAgIGZ1bGxOYW1lOiByZWFkTW9kZWwuZG9jdG9yRnVsbE5hbWUsXG4gICAgICAgIHNwZWNpYWxpemF0aW9uOiByZWFkTW9kZWwuZG9jdG9yU3BlY2lhbGl6YXRpb24sXG4gICAgICAgIGRlcGFydG1lbnQ6IHJlYWRNb2RlbC5kb2N0b3JEZXBhcnRtZW50LFxuICAgICAgICBsaWNlbnNlTnVtYmVyOiByZWFkTW9kZWwuZG9jdG9yTGljZW5zZU51bWJlcixcbiAgICAgICAgcGhvbmU6IHJlYWRNb2RlbC5kb2N0b3JQaG9uZSxcbiAgICAgICAgZW1haWw6IHJlYWRNb2RlbC5kb2N0b3JFbWFpbFxuICAgICAgfSxcblxuICAgICAgLy8gQXBwb2ludG1lbnQgRGV0YWlsc1xuICAgICAgcmVhc29uOiByZWFkTW9kZWwucmVhc29uLFxuICAgICAgY2hpZWZDb21wbGFpbnQ6IHJlYWRNb2RlbC5jaGllZkNvbXBsYWludCxcbiAgICAgIHN5bXB0b21zOiByZWFkTW9kZWwuc3ltcHRvbXMsXG4gICAgICBub3RlczogcmVhZE1vZGVsLm5vdGVzLFxuICAgICAgc3BlY2lhbEluc3RydWN0aW9uczogcmVhZE1vZGVsLnNwZWNpYWxJbnN0cnVjdGlvbnMsXG4gICAgICByZXF1aXJlZEVxdWlwbWVudDogcmVhZE1vZGVsLnJlcXVpcmVkRXF1aXBtZW50LFxuXG4gICAgICAvLyBGaW5hbmNpYWxcbiAgICAgIGNvbnN1bHRhdGlvbkZlZTogcmVhZE1vZGVsLmNvbnN1bHRhdGlvbkZlZSxcbiAgICAgIGFkZGl0aW9uYWxGZWVzOiByZWFkTW9kZWwuYWRkaXRpb25hbEZlZXMsXG4gICAgICBwYXltZW50U3RhdHVzOiByZWFkTW9kZWwucGF5bWVudFN0YXR1cyxcblxuICAgICAgLy8gVGltZXN0YW1wc1xuICAgICAgY2hlY2tlZEluQXQ6IHJlYWRNb2RlbC5jaGVja2VkSW5BdD8udG9JU09TdHJpbmcoKSxcbiAgICAgIHN0YXJ0ZWRBdDogcmVhZE1vZGVsLnN0YXJ0ZWRBdD8udG9JU09TdHJpbmcoKSxcbiAgICAgIGNvbXBsZXRlZEF0OiByZWFkTW9kZWwuY29tcGxldGVkQXQ/LnRvSVNPU3RyaW5nKCksXG4gICAgICBjYW5jZWxsZWRBdDogcmVhZE1vZGVsLmNhbmNlbGxlZEF0Py50b0lTT1N0cmluZygpLFxuICAgICAgY2FuY2VsbGF0aW9uUmVhc29uOiByZWFkTW9kZWwuY2FuY2VsbGF0aW9uUmVhc29uLFxuICAgICAgY3JlYXRlZEF0OiByZWFkTW9kZWwuY3JlYXRlZEF0LnRvSVNPU3RyaW5nKCksXG4gICAgICB1cGRhdGVkQXQ6IHJlYWRNb2RlbC51cGRhdGVkQXQudG9JU09TdHJpbmcoKVxuICAgIH07XG4gIH1cbn1cblxuIl0sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7OztBQUFBO0FBQUEsU0FBQUEsZUFBQTtFQUFBLElBQUFDLElBQUE7RUFBQSxJQUFBQyxJQUFBO0VBQUEsSUFBQUMsTUFBQSxPQUFBQyxRQUFBO0VBQUEsSUFBQUMsR0FBQTtFQUFBLElBQUFDLFlBQUE7SUFBQUwsSUFBQTtJQUFBTSxZQUFBO01BQUE7UUFBQUMsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtNQUFBO1FBQUFGLEtBQUE7VUFBQUMsSUFBQTtVQUFBQyxNQUFBO1FBQUE7UUFBQUMsR0FBQTtVQUFBRixJQUFBO1VBQUFDLE1BQUE7UUFBQTtNQUFBO01BQUE7UUFBQUYsS0FBQTtVQUFBQyxJQUFBO1VBQUFDLE1BQUE7UUFBQTtRQUFBQyxHQUFBO1VBQUFGLElBQUE7VUFBQUMsTUFBQTtRQUFBO01BQUE7TUFBQTtRQUFBRixLQUFBO1VBQUFDLElBQUE7VUFBQUMsTUFBQTtRQUFBO1FBQUFDLEdBQUE7VUFBQUYsSUFBQTtVQUFBQyxNQUFBO1FBQUE7TUFBQTtJQUFBO0lBQUFFLEtBQUE7TUFBQTtRQUFBQyxJQUFBO1FBQUFDLElBQUE7VUFBQU4sS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUssR0FBQTtVQUFBUCxLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBRCxJQUFBO01BQUE7TUFBQTtRQUFBSSxJQUFBO1FBQUFDLElBQUE7VUFBQU4sS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7UUFBQUssR0FBQTtVQUFBUCxLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBRCxJQUFBO01BQUE7SUFBQTtJQUFBTyxTQUFBO01BQUE7UUFBQUQsR0FBQTtVQUFBUCxLQUFBO1lBQUFDLElBQUE7WUFBQUMsTUFBQTtVQUFBO1VBQUFDLEdBQUE7WUFBQUYsSUFBQTtZQUFBQyxNQUFBO1VBQUE7UUFBQTtRQUFBTyxJQUFBO1FBQUFDLFNBQUE7VUFBQVYsS0FBQTtZQUFBQyxJQUFBO1lBQUFDLE1BQUE7VUFBQTtVQUFBQyxHQUFBO1lBQUFGLElBQUE7WUFBQUMsTUFBQTtVQUFBO1FBQUE7VUFBQUYsS0FBQTtZQUFBQyxJQUFBLEVBQUFVLFNBQUE7WUFBQVQsTUFBQSxFQUFBUztVQUFBO1VBQUFSLEdBQUE7WUFBQUYsSUFBQSxFQUFBVSxTQUFBO1lBQUFULE1BQUEsRUFBQVM7VUFBQTtRQUFBO1FBQUFWLElBQUE7TUFBQTtJQUFBO0lB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

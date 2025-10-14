@@ -12,16 +12,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ValidateInsuranceUseCase = void 0;
 const PatientId_1 = require("../../domain/value-objects/PatientId");
 class ValidateInsuranceUseCase {
-    constructor(patientRepository, insuranceValidationService) {
+    constructor(patientRepository, insuranceValidationService, logger) {
         this.patientRepository = patientRepository;
         this.insuranceValidationService = insuranceValidationService;
+        this.logger = logger;
     }
     async execute(request) {
         try {
+            this.logger.info('Starting insurance validation', {
+                patientId: request.patientId,
+                requestedBy: request.requestedBy
+            });
             // 1. Find patient
             const patientId = PatientId_1.PatientId.create(request.patientId);
             const patient = await this.patientRepository.findById(patientId);
             if (!patient) {
+                this.logger.warn('Insurance validation failed: patient not found', {
+                    patientId: request.patientId
+                });
                 return {
                     success: false,
                     message: 'Không tìm thấy bệnh nhân',
@@ -78,7 +86,14 @@ class ValidateInsuranceUseCase {
             if (reasons.length === 0) {
                 reasons.push('VALID');
             }
-            // 4. Return validation result
+            // 4. HIPAA audit logging
+            this.auditInsuranceValidation(patient, request, isValid);
+            this.logger.info('Insurance validation completed', {
+                patientId: request.patientId,
+                isValid,
+                reasons: reasons.join(',')
+            });
+            // 5. Return validation result
             return {
                 success: true,
                 message: isValid ? 'Bảo hiểm hợp lệ' : 'Bảo hiểm không hợp lệ',
@@ -107,6 +122,11 @@ class ValidateInsuranceUseCase {
         catch (error) {
             // Handle validation errors
             if (error instanceof Error) {
+                this.logger.error('Insurance validation failed', {
+                    patientId: request.patientId,
+                    error: error.message,
+                    stack: error.stack
+                });
                 return {
                     success: false,
                     message: 'Xác thực bảo hiểm thất bại',
@@ -114,12 +134,30 @@ class ValidateInsuranceUseCase {
                 };
             }
             // Handle unexpected errors
+            this.logger.error('Unexpected error during insurance validation', {
+                patientId: request.patientId,
+                error: 'UNEXPECTED_ERROR'
+            });
             return {
                 success: false,
                 message: 'Đã xảy ra lỗi không mong muốn',
                 errors: ['UNEXPECTED_ERROR']
             };
         }
+    }
+    /**
+     * HIPAA audit logging for insurance validation
+     */
+    auditInsuranceValidation(patient, request, isValid) {
+        this.logger.info('HIPAA Audit: Insurance validation', {
+            action: 'INSURANCE_VALIDATION',
+            patientId: patient.getPatientId(),
+            requestedBy: request.requestedBy,
+            validationResult: isValid ? 'VALID' : 'INVALID',
+            timestamp: new Date().toISOString(),
+            dataAccessed: 'patient_insurance_info',
+            complianceLevel: 'hipaa'
+        });
     }
 }
 exports.ValidateInsuranceUseCase = ValidateInsuranceUseCase;

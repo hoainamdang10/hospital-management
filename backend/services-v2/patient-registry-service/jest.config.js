@@ -8,7 +8,10 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  
+
+  // Setup files
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+
   // Only match unit tests by default
   testMatch: [
     '**/tests/unit/**/*.test.ts',
@@ -20,11 +23,17 @@ module.exports = {
     '/node_modules/',
     '/tests/integration/'
   ],
+
+  // Transform uuid module
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)'
+  ],
   
   // Module paths
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@shared/(.*)$': '<rootDir>/../shared/$1'
+    '^@shared/(.*)$': '<rootDir>/../shared/$1',
+    '^uuid$': require.resolve('uuid')
   },
   
   // TypeScript configuration

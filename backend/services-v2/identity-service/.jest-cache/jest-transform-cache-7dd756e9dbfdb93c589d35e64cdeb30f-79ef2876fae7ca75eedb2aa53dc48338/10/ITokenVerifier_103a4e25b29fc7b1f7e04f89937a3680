@@ -1,0 +1,60 @@
+ff31d695a5ec0ec006be0d7703a93af9
+"use strict";
+
+/* istanbul ignore next */
+function cov_229uwd3lqz() {
+  var path = "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ITokenVerifier.ts";
+  var hash = "634452852408f763e497f28e1983f8031a6f3fc5";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ITokenVerifier.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 2,
+          column: 62
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ITokenVerifier.ts",
+      mappings: "",
+      names: [],
+      sources: ["D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\src\\application\\services\\ITokenVerifier.ts"],
+      sourcesContent: ["export interface TokenUser {\n  id: string;\n  email: string | null;\n  user_metadata?: Record<string, unknown>;\n}\n\n/**\n * Abstraction for verifying opaque authentication tokens.\n * Presentation layer depends on this contract to avoid importing infrastructure adapters directly.\n */\nexport interface ITokenVerifier {\n  verifyToken(token: string): Promise<TokenUser | null>;\n}\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "634452852408f763e497f28e1983f8031a6f3fc5"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_229uwd3lqz = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_229uwd3lqz();
+cov_229uwd3lqz().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxpZGVudGl0eS1zZXJ2aWNlXFxzcmNcXGFwcGxpY2F0aW9uXFxzZXJ2aWNlc1xcSVRva2VuVmVyaWZpZXIudHMiXSwic291cmNlc0NvbnRlbnQiOlsiZXhwb3J0IGludGVyZmFjZSBUb2tlblVzZXIge1xuICBpZDogc3RyaW5nO1xuICBlbWFpbDogc3RyaW5nIHwgbnVsbDtcbiAgdXNlcl9tZXRhZGF0YT86IFJlY29yZDxzdHJpbmcsIHVua25vd24+O1xufVxuXG4vKipcbiAqIEFic3RyYWN0aW9uIGZvciB2ZXJpZnlpbmcgb3BhcXVlIGF1dGhlbnRpY2F0aW9uIHRva2Vucy5cbiAqIFByZXNlbnRhdGlvbiBsYXllciBkZXBlbmRzIG9uIHRoaXMgY29udHJhY3QgdG8gYXZvaWQgaW1wb3J0aW5nIGluZnJhc3RydWN0dXJlIGFkYXB0ZXJzIGRpcmVjdGx5LlxuICovXG5leHBvcnQgaW50ZXJmYWNlIElUb2tlblZlcmlmaWVyIHtcbiAgdmVyaWZ5VG9rZW4odG9rZW46IHN0cmluZyk6IFByb21pc2U8VG9rZW5Vc2VyIHwgbnVsbD47XG59XG4iXSwibWFwcGluZ3MiOiIiLCJpZ25vcmVMaXN0IjpbXX0=

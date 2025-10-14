@@ -11,6 +11,7 @@
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { PatientId } from '../../domain/value-objects/PatientId';
 import { Patient } from '../../domain/aggregates/Patient';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface GetPatientProfileRequest {
   patientId?: string;
@@ -101,11 +102,18 @@ export interface GetPatientProfileResponse {
 
 export class GetPatientProfileUseCase {
   constructor(
-    private readonly patientRepository: IPatientRepository
+    private readonly patientRepository: IPatientRepository,
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: GetPatientProfileRequest): Promise<GetPatientProfileResponse> {
     try {
+      this.logger.info('Retrieving patient profile', {
+        patientId: request.patientId,
+        userId: request.userId,
+        requestedBy: request.requestedBy
+      });
+
       // 1. Find patient by one of the identifiers
       let patient: Patient | null = null;
 
@@ -127,6 +135,10 @@ export class GetPatientProfileUseCase {
       }
 
       if (!patient) {
+        this.logger.warn('Patient profile retrieval failed: patient not found', {
+          patientId: request.patientId,
+          userId: request.userId
+        });
         return {
           success: false,
           message: 'Không tìm thấy bệnh nhân',
@@ -134,7 +146,10 @@ export class GetPatientProfileUseCase {
         };
       }
 
-      // 2. Map patient aggregate to response DTO
+      // 2. HIPAA audit logging
+      this.auditPatientProfileAccess(patient, request);
+
+      // 3. Map patient aggregate to response DTO
       const personalInfo = patient.getPersonalInfo();
       const contactInfo = patient.getContactInfo();
       const basicMedicalInfo = patient.getBasicMedicalInfo();
@@ -142,6 +157,11 @@ export class GetPatientProfileUseCase {
       const emergencyContacts = patient.getEmergencyContacts();
       const consents = patient.getConsents();
       const links = patient.getLinks();
+
+      this.logger.info('Patient profile retrieved successfully', {
+        patientId: patient.getPatientId(),
+        requestedBy: request.requestedBy
+      });
 
       return {
         success: true,
@@ -224,6 +244,12 @@ export class GetPatientProfileUseCase {
     } catch (error) {
       // Handle validation errors
       if (error instanceof Error) {
+        this.logger.error('Patient profile retrieval failed', {
+          patientId: request.patientId,
+          userId: request.userId,
+          error: error.message,
+          stack: error.stack
+        });
         return {
           success: false,
           message: 'Lấy thông tin bệnh nhân thất bại',
@@ -232,12 +258,34 @@ export class GetPatientProfileUseCase {
       }
 
       // Handle unexpected errors
+      this.logger.error('Unexpected error during patient profile retrieval', {
+        patientId: request.patientId,
+        userId: request.userId,
+        error: 'UNEXPECTED_ERROR'
+      });
       return {
         success: false,
         message: 'Đã xảy ra lỗi không mong muốn',
         errors: ['UNEXPECTED_ERROR']
       };
     }
+  }
+
+  /**
+   * HIPAA audit logging for patient profile access
+   */
+  private auditPatientProfileAccess(
+    patient: Patient,
+    request: GetPatientProfileRequest
+  ): void {
+    this.logger.info('HIPAA Audit: Patient profile access', {
+      action: 'PATIENT_PROFILE_ACCESS',
+      patientId: patient.getPatientId(),
+      requestedBy: request.requestedBy,
+      timestamp: new Date().toISOString(),
+      dataAccessed: 'patient_full_profile',
+      complianceLevel: 'hipaa'
+    });
   }
 }
 

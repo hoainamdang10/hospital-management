@@ -23,15 +23,29 @@ export interface PatientRegisteredEventData {
 }
 
 export class PatientRegisteredEvent extends DomainEvent {
+  public readonly patientUserId: string;
+
   constructor(
-    public readonly patient: Patient
+    public readonly patientId: string,
+    patientUserId: string,
+    public readonly fullName: string,
+    public readonly dateOfBirth: Date,
+    public readonly gender: 'male' | 'female' | 'other',
+    public readonly nationalId: string,
+    correlationId?: string,
+    causationId?: string,
+    userIdForAudit?: string
   ) {
-    const patientId = patient.getPatientId() || '';
-    const personalInfo = patient.getPersonalInfo();
-    const eventData = {
+    const eventData: PatientRegisteredEventData = {
       patientId,
-      userId: patient.getUserId(),
-      fullName: personalInfo.fullName
+      userId: patientUserId,
+      personalInfo: {
+        fullName,
+        dateOfBirth,
+        gender,
+        nationalId
+      },
+      registeredAt: new Date()
     };
 
     super(
@@ -39,22 +53,24 @@ export class PatientRegisteredEvent extends DomainEvent {
       patientId,
       'Patient',
       eventData,
-      1
+      1,
+      correlationId,
+      causationId,
+      userIdForAudit
     );
+
+    this.patientUserId = patientUserId;
   }
 
   public getEventData(): PatientRegisteredEventData {
-    const personalInfo = this.patient.getPersonalInfo();
-    const patientId = this.patient.getPatientId() || '';
-
     return {
-      patientId,
-      userId: this.patient.getUserId(),
+      patientId: this.patientId,
+      userId: this.patientUserId,
       personalInfo: {
-        fullName: personalInfo.fullName,
-        dateOfBirth: personalInfo.dateOfBirth,
-        gender: personalInfo.gender,
-        nationalId: personalInfo.nationalId
+        fullName: this.fullName,
+        dateOfBirth: this.dateOfBirth,
+        gender: this.gender,
+        nationalId: this.nationalId
       },
       registeredAt: this.occurredAt
     };
@@ -65,7 +81,7 @@ export class PatientRegisteredEvent extends DomainEvent {
   }
 
   public getPatientId(): string | null {
-    return this.patient.getPatientId();
+    return this.patientId;
   }
 
   public getPayload(): PatientRegisteredEventData {

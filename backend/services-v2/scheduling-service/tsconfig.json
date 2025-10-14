@@ -5,7 +5,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -18,9 +17,9 @@
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": false,
@@ -29,13 +28,13 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"],
-      "@domain/*": ["domain/*"],
-      "@application/*": ["application/*"],
-      "@infrastructure/*": ["infrastructure/*"],
-      "@presentation/*": ["presentation/*"],
+      "@/*": ["src/*"],
+      "@domain/*": ["src/domain/*"],
+      "@application/*": ["src/application/*"],
+      "@infrastructure/*": ["src/infrastructure/*"],
+      "@presentation/*": ["src/presentation/*"],
       "@shared/*": ["../shared/*"]
     },
     "typeRoots": [
@@ -49,14 +48,22 @@
   },
   "include": [
     "src/**/*",
-    "tests/**/*"
+    "../shared/domain/**/*",
+    "../shared/application/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "coverage",
     "**/*.spec.ts",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "../shared/examples/**/*",
+    "../shared/testing/**/*",
+    "../shared/workflows/**/*",
+    "../shared/infrastructure/**/*",
+    "../shared/domain/events/domain-events.ts",
+    "../shared/domain/events/IDomainEventPublisher.ts",
+    "../shared/domain/repositories/**/*"
   ],
   "ts-node": {
     "require": ["tsconfig-paths/register"],

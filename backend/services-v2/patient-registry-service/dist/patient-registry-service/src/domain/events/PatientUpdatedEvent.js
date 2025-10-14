@@ -11,22 +11,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientUpdatedEvent = void 0;
 const domain_event_1 = require("@shared/domain/base/domain-event");
 class PatientUpdatedEvent extends domain_event_1.DomainEvent {
-    constructor(patient, updateType, updatedBy) {
-        const patientId = patient.getPatientId() || '';
+    constructor(patientId, updateType, updatedBy, correlationId, causationId, userIdForAudit) {
         const eventData = {
             patientId,
             updateType,
             updatedBy
         };
-        super('PatientUpdated', patientId, 'Patient', eventData, 1);
-        this.patient = patient;
+        super('PatientUpdated', patientId, 'Patient', eventData, 1, correlationId, causationId, userIdForAudit);
+        this.patientId = patientId;
         this.updateType = updateType;
         this.updatedBy = updatedBy;
     }
     getEventData() {
-        const patientId = this.patient.getPatientId() || '';
         return {
-            patientId,
+            patientId: this.patientId,
             updateType: this.updateType,
             updatedBy: this.updatedBy,
             updatedAt: this.occurredAt
@@ -36,7 +34,7 @@ class PatientUpdatedEvent extends domain_event_1.DomainEvent {
         return true;
     }
     getPatientId() {
-        return this.patient.getPatientId();
+        return this.patientId;
     }
     getPayload() {
         return this.getEventData();

@@ -19,10 +19,10 @@
 2. Check [DATABASE_ERD.md](DATABASE_ERD.md)
 3. Query Supabase via MCP if needed
 
-**All 17 tables exist and are verified** (2025-10-07):
+**All 17 tables exist and are verified** (2025-01-11):
 - ✅ user_profiles (7 rows)
 - ✅ user_sessions (0 rows)
-- ✅ healthcare_roles (8 rows)
+- ✅ healthcare_roles (5 active roles)
 - ✅ permissions (52 rows)
 - ✅ role_permissions (71 rows)
 - ✅ user_roles (0 rows)

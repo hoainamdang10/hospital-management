@@ -563,8 +563,9 @@ class SupabasePatientRepository {
     }
     /**
      * Save insurance info
+     * @private - Reserved for future use
      */
-    async saveInsurance(patientId, insuranceRecord) {
+    async _saveInsurance(patientId, insuranceRecord) {
         // Delete existing insurance
         await this.supabaseClient
             .from('insurance_info')
@@ -580,8 +581,9 @@ class SupabasePatientRepository {
     }
     /**
      * Save emergency contacts
+     * @private - Reserved for future use
      */
-    async saveEmergencyContacts(patientId, contacts) {
+    async _saveEmergencyContacts(patientId, contacts) {
         // Delete existing contacts
         await this.supabaseClient
             .from('emergency_contacts')
@@ -599,8 +601,9 @@ class SupabasePatientRepository {
     }
     /**
      * Save consents
+     * @private - Reserved for future use
      */
-    async saveConsents(patientId, consents) {
+    async _saveConsents(patientId, consents) {
         // Delete existing consents
         await this.supabaseClient
             .from('patient_consents')
@@ -618,8 +621,9 @@ class SupabasePatientRepository {
     }
     /**
      * Save links
+     * @private - Reserved for future use
      */
-    async saveLinks(patientId, links) {
+    async _saveLinks(patientId, links) {
         // Delete existing links
         await this.supabaseClient
             .from('patient_links')

@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">84.84% </span>
+                <span class="strong">85.71% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>56/66</span>
+                <span class='fraction'>54/63</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">84.61% </span>
+                <span class="strong">85.48% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>55/65</span>
+                <span class='fraction'>53/62</span>
             </div>
         
             
@@ -289,9 +289,7 @@
 <a name='L224'></a><a href='#L224'>224</a>
 <a name='L225'></a><a href='#L225'>225</a>
 <a name='L226'></a><a href='#L226'>226</a>
-<a name='L227'></a><a href='#L227'>227</a>
-<a name='L228'></a><a href='#L228'>228</a>
-<a name='L229'></a><a href='#L229'>229</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L227'></a><a href='#L227'>227</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -303,10 +301,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -342,9 +339,9 @@
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">12x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
@@ -419,7 +416,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -531,10 +527,9 @@
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
+import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { Email } from '../../domain/value-objects/Email';
-import { IEventPublisher } from '../../infrastructure/events/RabbitMQEventPublisher';
-import { DomainEventMapper } from '../../infrastructure/events/DomainEventMapper';
+import { IEventPublisher } from '../services/IEventPublisher';
 import { ILogger } from '../services/ILogger';
 &nbsp;
 export interface RegisterUserRequest {
@@ -567,7 +562,6 @@ export interface RegisterUserResponse {
  * and Clean Architecture compliance.
  */
 export class RegisterUserUseCase implements IUseCase&lt;RegisterUserRequest, RegisterUserResponse&gt; {
-  private circuitBreaker = CircuitBreakerFactory.getBreaker('register-user-use-case');
   private validRolesCache: string[] | null = null;
   private validRolesCacheTime: number = 0;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -576,6 +570,7 @@ export class RegisterUserUseCase implements IUseCase&lt;RegisterUserRequest, Reg
     private userRepository: IUserRepository,
     private permissionRepository: IPermissionRepository,
     private logger: ILogger,
+    private circuitBreaker: ICircuitBreaker,
     private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 &nbsp;
@@ -649,8 +644,7 @@ export class RegisterUserUseCase implements IUseCase&lt;RegisterUserRequest, Reg
       <span class="missing-if-branch" title="if path not taken" >I</span>if (this.eventPublisher) {
 <span class="cstat-no" title="statement not covered" >        try {</span>
           const domainEvents = <span class="cstat-no" title="statement not covered" >user.getUncommittedEvents();</span>
-          const rabbitMQEvents = <span class="cstat-no" title="statement not covered" >DomainEventMapper.toRabbitMQEvents(domainEvents);</span>
-<span class="cstat-no" title="statement not covered" >          await this.eventPublisher.publishBatch(rabbitMQEvents);</span>
+<span class="cstat-no" title="statement not covered" >          await this.eventPublisher.publishDomainEvents(domainEvents);</span>
 <span class="cstat-no" title="statement not covered" >          user.markEventsAsCommitted();</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >          this.logger.info('Domain events published', {</span>
@@ -683,7 +677,7 @@ export class RegisterUserUseCase implements IUseCase&lt;RegisterUserRequest, Reg
 &nbsp;
       return {
         success: false,
-        message: `Đăng ký thất bại: ${getErrorMessage(error)}`,
+        message: 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.',
         error: 'REGISTRATION_FAILED'
       };
     }
@@ -754,7 +748,7 @@ export class RegisterUserUseCase implements IUseCase&lt;RegisterUserRequest, Reg
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-07T11:54:24.034Z
+                at 2025-10-13T08:14:22.218Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

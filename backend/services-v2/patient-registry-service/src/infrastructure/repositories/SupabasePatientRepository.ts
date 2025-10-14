@@ -768,8 +768,9 @@ export class SupabasePatientRepository implements IPatientRepository {
 
   /**
    * Save insurance info
+   * @private - Reserved for future use
    */
-  private async saveInsurance(patientId: string, insuranceRecord: Partial<InsuranceRecord>): Promise<void> {
+  private async _saveInsurance(patientId: string, insuranceRecord: Partial<InsuranceRecord>): Promise<void> {
     // Delete existing insurance
     await this.supabaseClient
       .from('insurance_info')
@@ -788,8 +789,9 @@ export class SupabasePatientRepository implements IPatientRepository {
 
   /**
    * Save emergency contacts
+   * @private - Reserved for future use
    */
-  private async saveEmergencyContacts(patientId: string, contacts: Partial<EmergencyContactRecord>[]): Promise<void> {
+  private async _saveEmergencyContacts(patientId: string, contacts: Partial<EmergencyContactRecord>[]): Promise<void> {
     // Delete existing contacts
     await this.supabaseClient
       .from('emergency_contacts')
@@ -810,8 +812,9 @@ export class SupabasePatientRepository implements IPatientRepository {
 
   /**
    * Save consents
+   * @private - Reserved for future use
    */
-  private async saveConsents(patientId: string, consents: Partial<PatientConsentRecord>[]): Promise<void> {
+  private async _saveConsents(patientId: string, consents: Partial<PatientConsentRecord>[]): Promise<void> {
     // Delete existing consents
     await this.supabaseClient
       .from('patient_consents')
@@ -832,8 +835,9 @@ export class SupabasePatientRepository implements IPatientRepository {
 
   /**
    * Save links
+   * @private - Reserved for future use
    */
-  private async saveLinks(patientId: string, links: Partial<PatientLinkRecord>[]): Promise<void> {
+  private async _saveLinks(patientId: string, links: Partial<PatientLinkRecord>[]): Promise<void> {
     // Delete existing links
     await this.supabaseClient
       .from('patient_links')

@@ -1,8 +1,8 @@
 # Identity Service - Event Catalog
 
 **Version**: 1.0.0  
-**Last Updated**: 2025-01-06  
-**Status**: 📋 Draft
+**Last Updated**: 2025-01-11  
+**Status**: ✅ Complete
 
 ---
 
@@ -386,6 +386,8 @@ Published when a user's role is changed by an admin.
 
 ---
 
-**Status**: 📋 Draft - To be completed with all events  
-**Next Update**: Add remaining events (MFA, password reset, user deletion)
+**Status**: ✅ Complete  
+**Last Updated**: 2025-01-11
+
+**Note**: All 8 core domain events are documented. Additional events (MFA, password reset) can be added as needed.
 
