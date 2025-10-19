@@ -63,7 +63,7 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
    * Reconstitute from persistence
    */
   public static reconstitute(props: EmergencyContactProps): EmergencyContact {
-    return new EmergencyContact(props);
+    return new EmergencyContact(props, props.id);
   }
 
   // Getters

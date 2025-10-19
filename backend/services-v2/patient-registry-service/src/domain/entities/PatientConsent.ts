@@ -61,7 +61,7 @@ export class PatientConsent extends Entity<PatientConsentProps> {
    * Reconstitute from persistence
    */
   public static reconstitute(props: PatientConsentProps): PatientConsent {
-    return new PatientConsent(props);
+    return new PatientConsent(props, props.id);
   }
 
   // Getters

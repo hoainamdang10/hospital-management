@@ -144,6 +144,336 @@ describe('MergePatientsUseCase', () => {
       expect(result.message).toBe('Không thể merge bệnh nhân với chính nó');
       expect(result.errors).toContain('SAME_PATIENT');
     });
+
+    it('should fail when source patient not found', async () => {
+      mockRepository.findById.mockResolvedValueOnce(null);
+
+      const request = {
+        sourcePatientId: 'PAT-202501-001',
+        targetPatientId: 'PAT-202501-002',
+        reason: 'Duplicate',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('SOURCE_PATIENT_NOT_FOUND');
+    });
+
+    it('should fail when target patient not found', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const sourcePatient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValueOnce(sourcePatient);
+      mockRepository.findById.mockResolvedValueOnce(null);
+
+      const request = {
+        sourcePatientId: sourcePatient.getPatientId() || '',
+        targetPatientId: 'PAT-202501-002',
+        reason: 'Duplicate',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('TARGET_PATIENT_NOT_FOUND');
+    });
+
+    it('should handle repository save failure', async () => {
+      const personalInfo1 = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo1 = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo1 = BasicMedicalInfo.createEmpty();
+
+      const sourcePatient = Patient.register(
+        'user-123',
+        personalInfo1,
+        contactInfo1,
+        basicMedicalInfo1,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      const personalInfo2 = PersonalInfo.create({
+        fullName: 'Nguyễn Văn B',
+        dateOfBirth: new Date('1990-01-02'),
+        gender: 'male',
+        nationalId: '001234567891',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo2 = ContactInfo.create({
+        primaryPhone: '0987654321',
+        email: 'test2@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '456 Đường XYZ',
+          ward: 'Phường 2',
+          district: 'Quận 2',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo2 = BasicMedicalInfo.createEmpty();
+
+      const targetPatient = Patient.register(
+        'user-456',
+        personalInfo2,
+        contactInfo2,
+        basicMedicalInfo2,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValueOnce(sourcePatient);
+      mockRepository.findById.mockResolvedValueOnce(targetPatient);
+      mockRepository.save.mockRejectedValue(new Error('Database error'));
+
+      const request = {
+        sourcePatientId: sourcePatient.getPatientId() || '',
+        targetPatientId: targetPatient.getPatientId() || '',
+        reason: 'Duplicate',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('MERGE_FAILED');
+    });
+
+    it('should fail when source patient is already merged', async () => {
+      const personalInfo1 = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo1 = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo1 = BasicMedicalInfo.createEmpty();
+
+      const sourcePatient = Patient.register(
+        'user-123',
+        personalInfo1,
+        contactInfo1,
+        basicMedicalInfo1,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      const personalInfo2 = PersonalInfo.create({
+        fullName: 'Nguyễn Văn B',
+        dateOfBirth: new Date('1990-01-02'),
+        gender: 'male',
+        nationalId: '001234567891',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo2 = ContactInfo.create({
+        primaryPhone: '0987654321',
+        email: 'test2@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '456 Đường XYZ',
+          ward: 'Phường 2',
+          district: 'Quận 2',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo2 = BasicMedicalInfo.createEmpty();
+
+      const targetPatient = Patient.register(
+        'user-456',
+        personalInfo2,
+        contactInfo2,
+        basicMedicalInfo2,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      // Merge source patient first
+      const anotherPatientId = require('../../../../src/domain/value-objects/PatientId').PatientId.generate();
+      sourcePatient.mergeInto(anotherPatientId, 'Already merged', 'admin-123');
+
+      mockRepository.findById.mockResolvedValueOnce(sourcePatient);
+      mockRepository.findById.mockResolvedValueOnce(targetPatient);
+
+      const request = {
+        sourcePatientId: sourcePatient.getPatientId() || '',
+        targetPatientId: targetPatient.getPatientId() || '',
+        reason: 'Duplicate',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('SOURCE_ALREADY_MERGED');
+    });
+
+    it('should fail when source patient is deceased', async () => {
+      const personalInfo1 = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo1 = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo1 = BasicMedicalInfo.createEmpty();
+
+      const sourcePatient = Patient.register(
+        'user-123',
+        personalInfo1,
+        contactInfo1,
+        basicMedicalInfo1,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      const personalInfo2 = PersonalInfo.create({
+        fullName: 'Nguyễn Văn B',
+        dateOfBirth: new Date('1990-01-02'),
+        gender: 'male',
+        nationalId: '001234567891',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo2 = ContactInfo.create({
+        primaryPhone: '0987654321',
+        email: 'test2@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '456 Đường XYZ',
+          ward: 'Phường 2',
+          district: 'Quận 2',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo2 = BasicMedicalInfo.createEmpty();
+
+      const targetPatient = Patient.register(
+        'user-456',
+        personalInfo2,
+        contactInfo2,
+        basicMedicalInfo2,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      // Mark source patient as deceased
+      sourcePatient.markAsDeceased('admin-123');
+
+      mockRepository.findById.mockResolvedValueOnce(sourcePatient);
+      mockRepository.findById.mockResolvedValueOnce(targetPatient);
+
+      const request = {
+        sourcePatientId: sourcePatient.getPatientId() || '',
+        targetPatientId: targetPatient.getPatientId() || '',
+        reason: 'Duplicate',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('SOURCE_DECEASED');
+    });
   });
 });
 

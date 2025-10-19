@@ -189,6 +189,347 @@ describe('ValidateInsuranceUseCase', () => {
       expect(result.message).toBe('Không tìm thấy bệnh nhân');
       expect(result.errors).toContain('PATIENT_NOT_FOUND');
     });
+
+    it('should detect invalid BHYT insurance', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const insuranceInfo = InsuranceInfo.create({
+        provider: 'BHYT',
+        policyNumber: 'INVALID-FORMAT',
+        validFrom: new Date('2024-01-01'),
+        validTo: new Date('2025-12-31'),
+        coverageType: 'BHYT',
+        isVietnameseInsurance: true,
+        bhytNumber: 'INVALID-FORMAT',
+        isPrimary: true,
+        isActive: true
+      });
+
+      const patient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        insuranceInfo,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValue(patient);
+      mockInsuranceService.validateInsurance.mockResolvedValue({
+        isValid: false,
+        errors: ['Số BHYT không đúng định dạng'],
+        warnings: []
+      });
+
+      const request = {
+        patientId: patient.getPatientId() || '',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.validationResult.isValid).toBe(false);
+      expect(result.data?.validationResult.errors).toContain('Số BHYT không đúng định dạng');
+    });
+
+    it('should detect expired insurance', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const insuranceInfo = InsuranceInfo.create({
+        provider: 'BHYT',
+        policyNumber: 'HN-1-01-2020-12345-67890',
+        validFrom: new Date('2020-01-01'),
+        validTo: new Date('2021-12-31'),
+        coverageType: 'BHYT',
+        isVietnameseInsurance: true,
+        bhytNumber: 'HN-1-01-2020-12345-67890',
+        isPrimary: true,
+        isActive: true
+      });
+
+      const patient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        insuranceInfo,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValue(patient);
+      mockInsuranceService.validateInsurance.mockResolvedValue({
+        isValid: true,
+        errors: [],
+        warnings: ['Thẻ BHYT có thể đã hết hạn']
+      });
+      mockInsuranceService.checkExpiration.mockReturnValue({
+        isExpired: true,
+        isExpiringSoon: false,
+        daysUntilExpiration: -365
+      });
+
+      const request = {
+        patientId: patient.getPatientId() || '',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.expirationCheck.isExpired).toBe(true);
+    });
+
+    it('should detect insurance expiring soon', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const validTo = new Date();
+      validTo.setDate(validTo.getDate() + 15);
+
+      const insuranceInfo = InsuranceInfo.create({
+        provider: 'BHYT',
+        policyNumber: 'HN-1-01-2024-12345-67890',
+        validFrom: new Date('2024-01-01'),
+        validTo: validTo,
+        coverageType: 'BHYT',
+        isVietnameseInsurance: true,
+        bhytNumber: 'HN-1-01-2024-12345-67890',
+        isPrimary: true,
+        isActive: true
+      });
+
+      const patient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        insuranceInfo,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValue(patient);
+      mockInsuranceService.validateInsurance.mockResolvedValue({
+        isValid: true,
+        errors: [],
+        warnings: []
+      });
+      mockInsuranceService.checkExpiration.mockReturnValue({
+        isExpired: false,
+        isExpiringSoon: true,
+        daysUntilExpiration: 15
+      });
+
+      const request = {
+        patientId: patient.getPatientId() || '',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.expirationCheck.isExpiringSoon).toBe(true);
+    });
+
+    it('should handle insurance service error gracefully', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const insuranceInfo = InsuranceInfo.create({
+        provider: 'BHYT',
+        policyNumber: 'HN-1-01-2024-12345-67890',
+        validFrom: new Date('2024-01-01'),
+        validTo: new Date('2025-12-31'),
+        coverageType: 'BHYT',
+        isVietnameseInsurance: true,
+        bhytNumber: 'HN-1-01-2024-12345-67890',
+        isPrimary: true,
+        isActive: true
+      });
+
+      const patient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        insuranceInfo,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValue(patient);
+      mockInsuranceService.validateInsurance.mockRejectedValue(new Error('Service error'));
+
+      const request = {
+        patientId: patient.getPatientId() || '',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('VALIDATION_FAILED');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should validate BHTN insurance', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const insuranceInfo = InsuranceInfo.create({
+        provider: 'BHTN',
+        policyNumber: 'BHTN-2024-12345678',
+        validFrom: new Date('2024-01-01'),
+        validTo: new Date('2025-12-31'),
+        coverageType: 'BHTN',
+        isVietnameseInsurance: true,
+        bhtnNumber: 'BHTN-2024-12345678',
+        isPrimary: true,
+        isActive: true
+      });
+
+      const patient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        insuranceInfo,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValue(patient);
+      mockInsuranceService.validateInsurance.mockResolvedValue({
+        isValid: true,
+        errors: [],
+        warnings: []
+      });
+      mockInsuranceService.checkExpiration.mockReturnValue({
+        isExpired: false,
+        isExpiringSoon: false,
+        daysUntilExpiration: 365
+      });
+
+      const request = {
+        patientId: patient.getPatientId() || '',
+        requestedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.validationResult.isValid).toBe(true);
+    });
   });
 });
 

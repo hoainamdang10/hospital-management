@@ -50,7 +50,7 @@ export class InsuranceInfo extends Entity<InsuranceInfoProps> {
    * Reconstitute from persistence
    */
   public static reconstitute(props: InsuranceInfoProps): InsuranceInfo {
-    return new InsuranceInfo(props);
+    return new InsuranceInfo(props, props.id);
   }
 
   // Getters

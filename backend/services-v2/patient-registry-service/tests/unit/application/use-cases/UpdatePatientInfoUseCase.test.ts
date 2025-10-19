@@ -321,6 +321,126 @@ describe('UpdatePatientInfoUseCase', () => {
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
       expect(mockLogger.warn).toHaveBeenCalled();
     });
+
+    it('should handle repository save failure', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const existingPatient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValue(existingPatient);
+      mockRepository.save.mockRejectedValue(new Error('Database error'));
+
+      const request = {
+        patientId: existingPatient.getPatientId() || '',
+        personalInfo: {
+          fullName: 'Updated Name',
+          dateOfBirth: '1990-01-01',
+          gender: 'male' as 'male' | 'female' | 'other',
+          nationalId: '001234567890',
+          nationality: 'Vietnamese'
+        },
+        updatedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('UPDATE_FAILED');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should update contact info successfully', async () => {
+      const personalInfo = PersonalInfo.create({
+        fullName: 'Nguyễn Văn A',
+        dateOfBirth: new Date('1990-01-01'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+
+      const contactInfo = ContactInfo.create({
+        primaryPhone: '0901234567',
+        email: 'test@example.com',
+        preferredContactMethod: 'phone',
+        address: {
+          street: '123 Đường ABC',
+          ward: 'Phường Bến Nghé',
+          district: 'Quận 1',
+          city: 'TP.HCM',
+          province: 'Hồ Chí Minh',
+          country: 'Vietnam'
+        }
+      });
+
+      const basicMedicalInfo = BasicMedicalInfo.createEmpty();
+
+      const existingPatient = Patient.register(
+        'user-123',
+        personalInfo,
+        contactInfo,
+        basicMedicalInfo,
+        undefined,
+        [],
+        'admin-123'
+      );
+
+      mockRepository.findById.mockResolvedValue(existingPatient);
+      mockRepository.save.mockResolvedValue();
+      mockEventBus.publish.mockResolvedValue();
+
+      const request = {
+        patientId: existingPatient.getPatientId() || '',
+        contactInfo: {
+          primaryPhone: '0987654321',
+          email: 'newemail@example.com',
+          preferredContactMethod: 'email' as 'phone' | 'email' | 'sms',
+          address: {
+            street: '456 New Street',
+            ward: 'Ward 2',
+            district: 'District 2',
+            city: 'Hanoi',
+            province: 'Hanoi',
+            country: 'Vietnam'
+          }
+        },
+        updatedBy: 'admin-123'
+      };
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(mockRepository.save).toHaveBeenCalled();
+    });
   });
 });
 

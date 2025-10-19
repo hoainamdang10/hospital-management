@@ -211,6 +211,254 @@ describe('RegisterPatientUseCase', () => {
         })
       );
     });
+
+    it('should fail when nationalId already exists', async () => {
+      const request = {
+        userId: 'user-123',
+        personalInfo: {
+          fullName: 'Nguyễn Văn A',
+          dateOfBirth: '1990-01-01',
+          gender: 'male' as 'male' | 'female' | 'other',
+          nationalId: '001234567890',
+          nationality: 'Vietnamese'
+        },
+        contactInfo: {
+          primaryPhone: '0901234567',
+          email: 'nguyenvana@example.com',
+          preferredContactMethod: 'phone' as 'phone' | 'email' | 'sms',
+          address: {
+            street: '123 Đường ABC',
+            ward: 'Phường Bến Nghé',
+            district: 'Quận 1',
+            city: 'TP.HCM',
+            province: 'Hồ Chí Minh',
+            country: 'Vietnam'
+          }
+        },
+        emergencyContacts: [],
+        requestedBy: 'admin-123'
+      };
+
+      const existingPatient = {} as Patient;
+      mockRepository.findByUserId.mockResolvedValue(null);
+      mockRepository.findByNationalId.mockResolvedValue(existingPatient);
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('NATIONAL_ID_ALREADY_EXISTS');
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should handle repository save failure', async () => {
+      const request = {
+        userId: 'user-123',
+        personalInfo: {
+          fullName: 'Nguyễn Văn A',
+          dateOfBirth: '1990-01-01',
+          gender: 'male' as 'male' | 'female' | 'other',
+          nationalId: '001234567890',
+          nationality: 'Vietnamese'
+        },
+        contactInfo: {
+          primaryPhone: '0901234567',
+          email: 'nguyenvana@example.com',
+          preferredContactMethod: 'phone' as 'phone' | 'email' | 'sms',
+          address: {
+            street: '123 Đường ABC',
+            ward: 'Phường Bến Nghé',
+            district: 'Quận 1',
+            city: 'TP.HCM',
+            province: 'Hồ Chí Minh',
+            country: 'Vietnam'
+          }
+        },
+        emergencyContacts: [],
+        requestedBy: 'admin-123'
+      };
+
+      mockRepository.findByUserId.mockResolvedValue(null);
+      mockRepository.findByNationalId.mockResolvedValue(null);
+      mockRepository.save.mockRejectedValue(new Error('Database connection failed'));
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('REGISTRATION_FAILED');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should handle repository findByUserId failure', async () => {
+      const request = {
+        userId: 'user-123',
+        personalInfo: {
+          fullName: 'Nguyễn Văn A',
+          dateOfBirth: '1990-01-01',
+          gender: 'male' as 'male' | 'female' | 'other',
+          nationalId: '001234567890',
+          nationality: 'Vietnamese'
+        },
+        contactInfo: {
+          primaryPhone: '0901234567',
+          email: 'nguyenvana@example.com',
+          preferredContactMethod: 'phone' as 'phone' | 'email' | 'sms',
+          address: {
+            street: '123 Đường ABC',
+            ward: 'Phường Bến Nghé',
+            district: 'Quận 1',
+            city: 'TP.HCM',
+            province: 'Hồ Chí Minh',
+            country: 'Vietnam'
+          }
+        },
+        emergencyContacts: [],
+        requestedBy: 'admin-123'
+      };
+
+      mockRepository.findByUserId.mockRejectedValue(new Error('Database error'));
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('REGISTRATION_FAILED');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should register patient with insurance info', async () => {
+      const request = {
+        userId: 'user-123',
+        personalInfo: {
+          fullName: 'Nguyễn Văn A',
+          dateOfBirth: '1990-01-01',
+          gender: 'male' as 'male' | 'female' | 'other',
+          nationalId: '001234567890',
+          nationality: 'Vietnamese'
+        },
+        contactInfo: {
+          primaryPhone: '0901234567',
+          email: 'nguyenvana@example.com',
+          preferredContactMethod: 'phone' as 'phone' | 'email' | 'sms',
+          address: {
+            street: '123 Đường ABC',
+            ward: 'Phường Bến Nghé',
+            district: 'Quận 1',
+            city: 'TP.HCM',
+            province: 'Hồ Chí Minh',
+            country: 'Vietnam'
+          }
+        },
+        insuranceInfo: {
+          provider: 'BHYT',
+          policyNumber: 'HN-1-01-2024-12345-67890',
+          validFrom: '2024-01-01',
+          validTo: '2025-12-31',
+          coverageType: 'BHYT',
+          isVietnameseInsurance: true,
+          bhytNumber: 'HN-1-01-2024-12345-67890',
+          isPrimary: true
+        },
+        emergencyContacts: [],
+        requestedBy: 'admin-123'
+      };
+
+      mockRepository.findByUserId.mockResolvedValue(null);
+      mockRepository.findByNationalId.mockResolvedValue(null);
+      mockRepository.save.mockResolvedValue();
+      mockEventBus.publish.mockResolvedValue();
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.patientId).toBeDefined();
+    });
+
+    it('should register patient with emergency contacts', async () => {
+      const request = {
+        userId: 'user-123',
+        personalInfo: {
+          fullName: 'Nguyễn Văn A',
+          dateOfBirth: '1990-01-01',
+          gender: 'male' as 'male' | 'female' | 'other',
+          nationalId: '001234567890',
+          nationality: 'Vietnamese'
+        },
+        contactInfo: {
+          primaryPhone: '0901234567',
+          email: 'nguyenvana@example.com',
+          preferredContactMethod: 'phone' as 'phone' | 'email' | 'sms',
+          address: {
+            street: '123 Đường ABC',
+            ward: 'Phường Bến Nghé',
+            district: 'Quận 1',
+            city: 'TP.HCM',
+            province: 'Hồ Chí Minh',
+            country: 'Vietnam'
+          }
+        },
+        emergencyContacts: [
+          {
+            name: 'Nguyễn Văn B',
+            relationship: 'Vợ/Chồng',
+            phoneNumber: '0987654321',
+            isPrimary: true
+          }
+        ],
+        requestedBy: 'admin-123'
+      };
+
+      mockRepository.findByUserId.mockResolvedValue(null);
+      mockRepository.findByNationalId.mockResolvedValue(null);
+      mockRepository.save.mockResolvedValue();
+      mockEventBus.publish.mockResolvedValue();
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.patientId).toBeDefined();
+    });
+
+    it('should register patient with basic medical info', async () => {
+      const request = {
+        userId: 'user-123',
+        personalInfo: {
+          fullName: 'Nguyễn Văn A',
+          dateOfBirth: '1990-01-01',
+          gender: 'male' as 'male' | 'female' | 'other',
+          nationalId: '001234567890',
+          nationality: 'Vietnamese'
+        },
+        contactInfo: {
+          primaryPhone: '0901234567',
+          email: 'nguyenvana@example.com',
+          preferredContactMethod: 'phone' as 'phone' | 'email' | 'sms',
+          address: {
+            street: '123 Đường ABC',
+            ward: 'Phường Bến Nghé',
+            district: 'Quận 1',
+            city: 'TP.HCM',
+            province: 'Hồ Chí Minh',
+            country: 'Vietnam'
+          }
+        },
+        basicMedicalInfo: {
+          bloodType: 'A',
+          allergies: ['Penicillin'],
+          chronicConditions: ['Diabetes']
+        },
+        emergencyContacts: [],
+        requestedBy: 'admin-123'
+      };
+
+      mockRepository.findByUserId.mockResolvedValue(null);
+      mockRepository.findByNationalId.mockResolvedValue(null);
+      mockRepository.save.mockResolvedValue();
+      mockEventBus.publish.mockResolvedValue();
+
+      const result = await useCase.execute(request);
+
+      expect(result.success).toBe(true);
+      expect(result.patientId).toBeDefined();
+    });
   });
 });
 

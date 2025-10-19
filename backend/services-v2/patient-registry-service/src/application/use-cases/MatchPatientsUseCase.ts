@@ -141,10 +141,11 @@ export class MatchPatientsUseCase {
     } catch (error) {
       // Handle validation errors
       if (error instanceof Error) {
+        this.logger.error('Match patients failed', { error: error.message });
         return {
           success: false,
           message: 'Tìm kiếm bệnh nhân trùng khớp thất bại',
-          errors: [error.message]
+          errors: ['MATCH_FAILED']
         };
       }
 

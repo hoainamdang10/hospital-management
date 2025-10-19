@@ -33,6 +33,11 @@ export class BasicMedicalInfo extends ValueObject<BasicMedicalInfoProps> {
    * Factory method to create BasicMedicalInfo
    */
   public static create(props: BasicMedicalInfoProps): BasicMedicalInfo {
+    // Validate allergies is an array
+    if (!Array.isArray(props.knownAllergies)) {
+      throw new Error('Known allergies must be an array');
+    }
+
     // Validate and clean allergies
     const cleanedAllergies = props.knownAllergies
       .map(a => a.trim())
