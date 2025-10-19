@@ -51,6 +51,7 @@ export interface AuthenticatedRequest extends Request {
         email: string;
         roles: string[];
         permissions: string[];
+        sessionId?: string;
     };
 }
 /**

@@ -68,6 +68,7 @@ export declare class IdentityServiceHealthCheck {
     private checkSessions;
     /**
      * Check audit logging functionality
+     * Optimized query using index on created_at
      */
     private checkAudit;
     /**

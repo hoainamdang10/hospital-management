@@ -280,6 +280,22 @@ export interface IPermissionService {
         l2Size: number;
     }>;
     /**
+     * Get user roles from database (Single Source of Truth)
+     *
+     * Used by AuthenticationMiddleware to load roles from user_roles table.
+     * This is the authoritative source for user roles, NOT user_metadata.
+     *
+     * @param userId - User ID
+     * @returns Array of role names (e.g., ['admin', 'doctor'])
+     *
+     * @example
+     * ```typescript
+     * const roles = await permissionService.getUserRoles(userId);
+     * console.log(roles); // ['admin', 'doctor']
+     * ```
+     */
+    getUserRoles(userId: UserId): Promise<string[]>;
+    /**
      * Check if user has a specific role
      *
      * @param userId - User ID

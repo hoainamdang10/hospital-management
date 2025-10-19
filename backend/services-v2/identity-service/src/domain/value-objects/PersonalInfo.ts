@@ -62,8 +62,8 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
   }
 
   // REMOVED: fromSupabaseData() method
-  // This method violated Clean Architecture by knowing about database column names
-  // Use PersonalInfo.create() directly in infrastructure layer mappers
+  // This method violated Clean Architecture by coupling domain to external concerns
+  // Use PersonalInfo.create() directly in mappers
 
   private static isValidVietnamesePhone(phone: string): boolean {
     // Vietnamese phone: 10 digits, starts with 0

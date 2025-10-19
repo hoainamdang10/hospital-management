@@ -184,6 +184,11 @@ class MockSupabaseClient {
     };
   };
 
+  // Add schema() method to support .schema('auth_schema').from('table')
+  schema(_schemaName: string) {
+    return this; // Return self to allow chaining
+  }
+
   from(table: string) {
     if (table === 'auth_user_profiles_view') {
       const builder: any = {
@@ -216,6 +221,61 @@ class MockSupabaseClient {
           dataset.loginAttempts.push(payload);
           return { data: payload, error: null };
         }
+      };
+    }
+
+    // Support for healthcare_roles, user_roles, permissions, etc.
+    if (table === 'healthcare_roles') {
+      return {
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: null, error: null })
+          }),
+          data: [],
+          error: null
+        }),
+        insert: async (_payload: any) => ({ data: null, error: null }),
+        update: async (_payload: any) => ({ data: null, error: null })
+      };
+    }
+
+    if (table === 'user_roles') {
+      return {
+        select: () => ({
+          eq: () => ({
+            data: [],
+            error: null
+          }),
+          data: [],
+          error: null
+        }),
+        insert: async (_payload: any) => ({ data: null, error: null }),
+        delete: () => ({
+          eq: () => ({
+            data: null,
+            error: null
+          })
+        })
+      };
+    }
+
+    if (table === 'permissions' || table === 'user_permissions' || table === 'role_permissions' || table === 'audit_logs') {
+      return {
+        select: () => ({
+          eq: () => ({
+            data: [],
+            error: null
+          }),
+          data: [],
+          error: null
+        }),
+        insert: async (_payload: any) => ({ data: null, error: null }),
+        delete: () => ({
+          eq: () => ({
+            data: null,
+            error: null
+          })
+        })
       };
     }
 

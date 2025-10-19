@@ -13,6 +13,7 @@
  */
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ILogger } from '../services/ILogger';
+import { IEmailService } from '../services/IEmailService';
 import { IEventPublisher } from '../services/IEventPublisher';
 export interface ProvisionStaffRequest {
     email: string;
@@ -33,8 +34,10 @@ export interface ProvisionStaffResponse {
 export declare class ProvisionStaffUseCase {
     private readonly userRepository;
     private readonly logger;
+    private readonly emailService;
+    private readonly frontendUrl;
     private readonly eventPublisher?;
-    constructor(userRepository: IUserRepository, logger: ILogger, eventPublisher?: IEventPublisher | undefined);
+    constructor(userRepository: IUserRepository, logger: ILogger, emailService: IEmailService, frontendUrl: string, eventPublisher?: IEventPublisher | undefined);
     execute(request: ProvisionStaffRequest): Promise<ProvisionStaffResponse>;
     /**
      * Generate secure invitation token

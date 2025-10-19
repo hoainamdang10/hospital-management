@@ -14,7 +14,7 @@ class PatientLink extends value_object_1.ValueObject {
     }
     validateFormat() {
         // Validation - link type should be valid
-        if (!['refer', 'seealso'].includes(this.props.linkType)) {
+        if (!['replaced-by', 'replaces', 'refer', 'seealso'].includes(this.props.linkType)) {
             throw new Error('Invalid link type');
         }
     }

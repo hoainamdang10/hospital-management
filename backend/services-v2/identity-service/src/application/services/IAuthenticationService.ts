@@ -178,7 +178,7 @@ export interface IAuthenticationService {
   /**
    * Get user by access token
    * Retrieves user information from token
-   * 
+   *
    * @param accessToken User's access token
    * @returns User information
    */
@@ -187,6 +187,15 @@ export interface IAuthenticationService {
     email: string;
     role: string;
   } | null>;
+
+  /**
+   * Update user metadata
+   * Updates user metadata in Supabase Auth
+   *
+   * @param userId User ID
+   * @param metadata Metadata to update
+   */
+  updateUserMetadata(userId: string, metadata: Record<string, any>): Promise<void>;
 }
 
 /**

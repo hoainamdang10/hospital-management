@@ -1,21 +1,28 @@
 /**
- * Register User Use Case
- * Handles user registration with Supabase Auth integration
+ * Register User Use Case - Verify-First Approach
+ * Handles user registration with email verification BEFORE creating user
+ *
+ * Design Pattern: Verify-First
+ * - User data stored in pending_registrations table
+ * - User created ONLY after email verification
+ * - Prevents database pollution from unverified users
+ * - Allows re-registration after token expiration
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Verify-First Approach
  */
 import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
-import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { IEventPublisher } from '../services/IEventPublisher';
 import { ILogger } from '../services/ILogger';
+import { IEmailService } from '../services/IEmailService';
+import { IPendingRegistrationRepository } from '../../domain/repositories/IPendingRegistrationRepository';
 export interface RegisterUserRequest {
     email: string;
     password: string;
     fullName: string;
-    roleType: string;
+    roleType?: string;
     phoneNumber?: string;
     citizenId?: string;
     dateOfBirth?: string;
@@ -24,37 +31,33 @@ export interface RegisterUserRequest {
 }
 export interface RegisterUserResponse {
     success: boolean;
-    userId?: string;
+    pendingRegistrationId?: string;
     email?: string;
     message: string;
-    requiresEmailVerification?: boolean;
+    requiresEmailVerification: boolean;
     error?: string;
 }
 /**
- * Register User Use Case
- * Flow: Explicit user creation via Repository (NO trigger dependency)
+ * Register User Use Case - Verify-First Approach
+ * Flow: Store pending registration → Send verification email → User created after verification
  *
- * This use case creates both auth user and profile explicitly through
- * the repository layer, ensuring full control, rollback capability,
- * and Clean Architecture compliance.
+ * This use case stores user data temporarily in pending_registrations table
+ * and creates the actual user ONLY after email verification is completed.
+ * This prevents database pollution from unverified users.
  */
 export declare class RegisterUserUseCase implements IUseCase<RegisterUserRequest, RegisterUserResponse> {
     private userRepository;
-    private permissionRepository;
+    private pendingRegistrationRepository;
     private logger;
     private circuitBreaker;
+    private emailService;
+    private jwtSecret;
+    private frontendUrl;
     private eventPublisher?;
-    private validRolesCache;
-    private validRolesCacheTime;
-    private readonly CACHE_TTL;
-    constructor(userRepository: IUserRepository, permissionRepository: IPermissionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    private readonly BCRYPT_ROUNDS;
+    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, emailService: IEmailService, jwtSecret: string, frontendUrl: string, eventPublisher?: IEventPublisher | undefined);
     execute(request: RegisterUserRequest): Promise<RegisterUserResponse>;
     private executeImpl;
-    /**
-     * Get valid roles from database with caching
-     * Cache for 5 minutes to avoid repeated database queries
-     */
-    private getValidRoles;
     private validateRequest;
 }
 //# sourceMappingURL=RegisterUserUseCase.d.ts.map

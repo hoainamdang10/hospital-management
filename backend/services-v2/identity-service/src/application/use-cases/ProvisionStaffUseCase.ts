@@ -14,6 +14,7 @@
 
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ILogger } from '../services/ILogger';
+import { IEmailService } from '../services/IEmailService';
 import { Email } from '../../domain/value-objects/Email';
 import * as crypto from 'crypto';
 import { IEventPublisher } from '../services/IEventPublisher';
@@ -41,6 +42,8 @@ export class ProvisionStaffUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly logger: ILogger,
+    private readonly emailService: IEmailService,
+    private readonly frontendUrl: string,
     private readonly eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
@@ -110,13 +113,35 @@ export class ProvisionStaffUseCase {
       });
 
       // Generate invitation URL
-      const invitationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/activate?token=${invitationToken}`;
+      const invitationUrl = `${this.frontendUrl}/auth/activate?token=${invitationToken}`;
 
       this.logger.info('Staff invitation created successfully', {
         email: email.getMaskedEmail(),
         roleType: request.roleType,
         invitedBy: request.requesterId
       });
+
+      // Send staff invitation email
+      try {
+        await this.emailService.sendStaffInvitationEmail({
+          email: request.email,
+          userName: request.fullName,
+          role: request.roleType,
+          invitationUrl,
+          expiresAt
+        });
+
+        this.logger.info('Staff invitation email sent successfully', {
+          email: email.getMaskedEmail()
+        });
+      } catch (error) {
+        this.logger.error('Failed to send staff invitation email', {
+          email: email.getMaskedEmail(),
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Don't fail invitation if email sending fails
+        // Admin can manually send the invitation URL
+      }
 
       // Publish StaffInvitationCreated event for Notification service to send email
       if (this.eventPublisher) {

@@ -1,33 +1,42 @@
 /**
- * Verify Email Use Case
- * Handles email verification with OTP
+ * Verify Email Use Case - Verify-First Approach
+ * Handles email verification and creates user AFTER verification
+ *
+ * Design Pattern: Verify-First
+ * - Finds pending registration by token
+ * - Creates actual user in auth.users and user_profiles
+ * - Deletes pending registration after successful user creation
+ * - Sends welcome email
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Verify-First Approach
  */
 import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
+import { IPendingRegistrationRepository } from '../../domain/repositories/IPendingRegistrationRepository';
+import { IEmailService } from '../services/IEmailService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { IEventPublisher } from '../services/IEventPublisher';
 import { ILogger } from '../services/ILogger';
 export interface VerifyEmailRequest {
-    email: string;
     token: string;
 }
 export interface VerifyEmailResponse {
     success: boolean;
     userId?: string;
+    email?: string;
     message: string;
     error?: string;
 }
 export declare class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEmailResponse> {
-    private authService;
     private userRepository;
+    private pendingRegistrationRepository;
+    private emailService;
     private logger;
     private circuitBreaker;
+    private jwtSecret;
     private eventPublisher?;
-    constructor(authService: IAuthenticationService, userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, emailService: IEmailService, logger: ILogger, circuitBreaker: ICircuitBreaker, jwtSecret: string, eventPublisher?: IEventPublisher | undefined);
     execute(request: VerifyEmailRequest): Promise<VerifyEmailResponse>;
     private executeImpl;
 }

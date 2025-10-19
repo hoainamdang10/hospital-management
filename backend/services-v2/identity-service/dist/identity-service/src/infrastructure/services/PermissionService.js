@@ -278,11 +278,27 @@ class PermissionService {
         };
     }
     /**
+     * Get user roles from database (Single Source of Truth)
+     * Used by AuthenticationMiddleware to load roles from user_roles table
+     *
+     * @param userId - User ID
+     * @returns Array of role names (e.g., ['admin', 'doctor'])
+     */
+    async getUserRoles(userId) {
+        try {
+            return await this.permissionRepository.getUserRoles(userId);
+        }
+        catch (error) {
+            console.error('[PermissionService] Error getting user roles', error);
+            return []; // Return empty array on error (fail-safe)
+        }
+    }
+    /**
      * Check if user has a specific role
      */
     async hasRole(userId, role) {
         try {
-            const userRoles = await this.permissionRepository.getUserRoles(userId);
+            const userRoles = await this.getUserRoles(userId);
             return userRoles.includes(role);
         }
         catch (error) {
@@ -295,7 +311,7 @@ class PermissionService {
      */
     async hasAnyRole(userId, roles) {
         try {
-            const userRoles = await this.permissionRepository.getUserRoles(userId);
+            const userRoles = await this.getUserRoles(userId);
             return roles.some(role => userRoles.includes(role));
         }
         catch (error) {
@@ -308,7 +324,7 @@ class PermissionService {
      */
     async hasAllRoles(userId, roles) {
         try {
-            const userRoles = await this.permissionRepository.getUserRoles(userId);
+            const userRoles = await this.getUserRoles(userId);
             return roles.every(role => userRoles.includes(role));
         }
         catch (error) {

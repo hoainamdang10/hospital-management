@@ -53,6 +53,10 @@ declare class IdentityServiceApp {
     private refreshTokenUseCase;
     private provisionStaffUseCase;
     private acceptStaffInvitationUseCase;
+    private listStaffInvitationsUseCase;
+    private getStaffInvitationUseCase;
+    private cancelStaffInvitationUseCase;
+    private resendStaffInvitationUseCase;
     private eventPublisher;
     private sessionRepository;
     private listActiveSessionsUseCase;
@@ -70,6 +74,11 @@ declare class IdentityServiceApp {
     private verifyResetTokenUseCase;
     private resetPasswordWithTokenUseCase;
     private getRecoveryHistoryUseCase;
+    private emailVerificationTokenRepository;
+    private emailService;
+    private resendVerificationEmailUseCase;
+    private pendingRegistrationRepository;
+    private pendingRegistrationCleanupJob;
     private changePasswordUseCase;
     private lockAccountUseCase;
     private unlockAccountUseCase;

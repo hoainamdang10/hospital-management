@@ -74,6 +74,10 @@ import { ListUsersUseCase } from './application/use-cases/ListUsersUseCase';
 import { RefreshTokenUseCase } from './application/use-cases/RefreshTokenUseCase';
 import { ProvisionStaffUseCase } from './application/use-cases/ProvisionStaffUseCase';
 import { AcceptStaffInvitationUseCase } from './application/use-cases/AcceptStaffInvitationUseCase';
+import { ListStaffInvitationsUseCase } from './application/use-cases/ListStaffInvitationsUseCase';
+import { GetStaffInvitationUseCase } from './application/use-cases/GetStaffInvitationUseCase';
+import { CancelStaffInvitationUseCase } from './application/use-cases/CancelStaffInvitationUseCase';
+import { ResendStaffInvitationUseCase } from './application/use-cases/ResendStaffInvitationUseCase';
 import { RabbitMQEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
 import { IEventPublisher } from './application/services/IEventPublisher';
 
@@ -98,6 +102,16 @@ import { ResetPasswordWithTokenUseCase } from './application/use-cases/ResetPass
 import { GetRecoveryHistoryUseCase } from './application/use-cases/GetRecoveryHistoryUseCase';
 import { SupabaseRecoveryMethodRepository } from './infrastructure/repositories/SupabaseRecoveryMethodRepository';
 import { SupabaseRecoveryHistoryRepository } from './infrastructure/repositories/SupabaseRecoveryHistoryRepository';
+
+// Email Verification imports
+import { ResendVerificationEmailUseCase } from './application/use-cases/ResendVerificationEmailUseCase';
+import { SupabaseEmailVerificationTokenRepository } from './infrastructure/repositories/SupabaseEmailVerificationTokenRepository';
+// import { ResendEmailService } from './infrastructure/email/ResendEmailService'; // DEPRECATED - Migrated to SendGrid
+import { SendGridEmailService } from './infrastructure/email/SendGridEmailService';
+
+// Pending Registration imports (Verify-First Approach)
+import { SupabasePendingRegistrationRepository } from './infrastructure/repositories/SupabasePendingRegistrationRepository';
+import { PendingRegistrationCleanupJob } from './infrastructure/jobs/PendingRegistrationCleanupJob';
 
 // P1 Features - Account Management imports
 import { ChangePasswordUseCase } from './application/use-cases/ChangePasswordUseCase';
@@ -184,6 +198,10 @@ class IdentityServiceApp {
   private refreshTokenUseCase!: RefreshTokenUseCase;
   private provisionStaffUseCase!: ProvisionStaffUseCase;
   private acceptStaffInvitationUseCase!: AcceptStaffInvitationUseCase;
+  private listStaffInvitationsUseCase!: ListStaffInvitationsUseCase;
+  private getStaffInvitationUseCase!: GetStaffInvitationUseCase;
+  private cancelStaffInvitationUseCase!: CancelStaffInvitationUseCase;
+  private resendStaffInvitationUseCase!: ResendStaffInvitationUseCase;
   private eventPublisher!: IEventPublisher;
 
   // Session Management use cases
@@ -207,6 +225,15 @@ class IdentityServiceApp {
   private verifyResetTokenUseCase!: VerifyResetTokenUseCase;
   private resetPasswordWithTokenUseCase!: ResetPasswordWithTokenUseCase;
   private getRecoveryHistoryUseCase!: GetRecoveryHistoryUseCase;
+
+  // Email Verification
+  private emailVerificationTokenRepository!: SupabaseEmailVerificationTokenRepository;
+  private emailService!: SendGridEmailService;
+  private resendVerificationEmailUseCase!: ResendVerificationEmailUseCase;
+
+  // Pending Registration (Verify-First Approach)
+  private pendingRegistrationRepository!: SupabasePendingRegistrationRepository;
+  private pendingRegistrationCleanupJob!: PendingRegistrationCleanupJob;
 
   // P1 Features - Account Management
   private changePasswordUseCase!: ChangePasswordUseCase;
@@ -250,9 +277,12 @@ class IdentityServiceApp {
           auth: {
             autoRefreshToken: false,
             persistSession: false
+          },
+          db: {
+            schema: 'auth_schema'
           }
         }
-      );
+      ) as any;
 
       // Initialize health check service
       this.healthCheck = new IdentityServiceHealthCheck(
@@ -359,6 +389,22 @@ class IdentityServiceApp {
         logger
       );
 
+      // Initialize Email Verification Services
+      this.emailVerificationTokenRepository = new SupabaseEmailVerificationTokenRepository({
+        supabase: this.supabaseClient,
+        logger: logger
+      });
+
+      this.emailService = new SendGridEmailService(
+        {
+          apiKey: process.env.SENDGRID_API_KEY || '',
+          fromEmail: process.env.EMAIL_FROM || 'ngocthien20122003@gmail.com',
+          fromName: process.env.EMAIL_FROM_NAME || 'Hospital Management System',
+          frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
+        },
+        logger
+      );
+
       // Initialize Middleware
       this.authMiddleware = new AuthenticationMiddleware(
         this.authClient,
@@ -383,15 +429,26 @@ class IdentityServiceApp {
         this.eventPublisher // Add event publisher
       );
 
-      // RegisterUserUseCase now uses explicit control via repository
-      // No longer needs authService - repository handles auth user creation
-      // Requires permissionRepository for dynamic role validation
+      // Initialize Pending Registration Repository (Verify-First Approach)
+      // Must be initialized BEFORE RegisterUserUseCase and VerifyEmailUseCase
+      this.pendingRegistrationRepository = new SupabasePendingRegistrationRepository({
+        supabase: this.supabaseClient,
+        logger: logger,
+        circuitBreaker: CircuitBreakerFactory.getBreaker('pending-registration-repository')
+      });
+
+      // RegisterUserUseCase - Verify-First Approach (v3.0.0)
+      // Stores pending registration instead of creating user immediately
+      // User created ONLY after email verification
       this.registerUserUseCase = new RegisterUserUseCase(
         this.userRepository,
-        this.permissionRepository,
+        this.pendingRegistrationRepository, // Pending registration repository
         logger,
         CircuitBreakerFactory.getBreaker('register-user-use-case'),
-        this.eventPublisher // Add event publisher
+        this.emailService, // Email service
+        config.jwtSecret, // JWT secret
+        process.env.FRONTEND_URL || 'http://localhost:3000', // Frontend URL
+        this.eventPublisher // Event publisher (optional, last parameter)
       );
 
       this.forgotPasswordUseCase = new ForgotPasswordUseCase(
@@ -407,12 +464,28 @@ class IdentityServiceApp {
         CircuitBreakerFactory.getBreaker('reset-password-use-case')
       );
 
+      // VerifyEmailUseCase - Verify-First Approach (v3.0.0)
+      // Creates user from pending registration AFTER email verification
       this.verifyEmailUseCase = new VerifyEmailUseCase(
-        this.authService,
         this.userRepository,
+        this.pendingRegistrationRepository, // NEW: Pending registration repository (replaces emailVerificationTokenRepository)
+        this.emailService,
         logger,
         CircuitBreakerFactory.getBreaker('verify-email-use-case'),
-        this.eventPublisher // Add event publisher
+        config.jwtSecret, // JWT secret
+        this.eventPublisher // Event publisher (optional, last parameter)
+      );
+
+      // ResendVerificationEmailUseCase for resending verification emails (supports both V1 and verify-first flows)
+      this.resendVerificationEmailUseCase = new ResendVerificationEmailUseCase(
+        this.userRepository,
+        this.emailVerificationTokenRepository,
+        this.pendingRegistrationRepository,
+        this.emailService,
+        logger,
+        CircuitBreakerFactory.getBreaker('resend-verification-email-use-case'),
+        config.jwtSecret,
+        process.env.FRONTEND_URL || 'http://localhost:3000'
       );
 
       this.logoutUserUseCase = new LogoutUserUseCase(
@@ -477,6 +550,8 @@ class IdentityServiceApp {
       this.provisionStaffUseCase = new ProvisionStaffUseCase(
         this.userRepository,
         logger,
+        this.emailService,
+        process.env.FRONTEND_URL || 'http://localhost:3000',
         this.eventPublisher // Add event publisher
       );
 
@@ -484,6 +559,28 @@ class IdentityServiceApp {
         this.userRepository,
         logger,
         this.eventPublisher
+      );
+
+      this.listStaffInvitationsUseCase = new ListStaffInvitationsUseCase(
+        this.userRepository,
+        logger
+      );
+
+      this.getStaffInvitationUseCase = new GetStaffInvitationUseCase(
+        this.userRepository,
+        logger
+      );
+
+      this.cancelStaffInvitationUseCase = new CancelStaffInvitationUseCase(
+        this.userRepository,
+        logger
+      );
+
+      this.resendStaffInvitationUseCase = new ResendStaffInvitationUseCase(
+        this.userRepository,
+        this.emailService,
+        logger,
+        process.env.FRONTEND_URL || 'http://localhost:3000'
       );
 
       // Initialize Session Management use cases
@@ -495,11 +592,13 @@ class IdentityServiceApp {
       );
 
       this.terminateSessionUseCase = new TerminateSessionUseCase(
-        this.sessionRepository
+        this.sessionRepository,
+        logger
       );
 
       this.terminateAllSessionsUseCase = new TerminateAllSessionsUseCase(
-        this.sessionRepository
+        this.sessionRepository,
+        logger
       );
 
       // Initialize Password Policy use cases
@@ -628,6 +727,17 @@ class IdentityServiceApp {
         logger
       );
 
+      // Initialize Pending Registration Cleanup Job (repository already initialized above)
+      this.pendingRegistrationCleanupJob = new PendingRegistrationCleanupJob({
+        pendingRegistrationRepository: this.pendingRegistrationRepository,
+        logger: logger,
+        intervalMinutes: 60 // Run every hour
+      });
+
+      // Start cleanup job
+      this.pendingRegistrationCleanupJob.start();
+      logger.info('Pending registration cleanup job started (runs every 60 minutes)');
+
       logger.info('Infrastructure initialized successfully');
     } catch (error) {
       logger.error('Failed to initialize infrastructure', { error: getErrorMessage(error) });
@@ -727,6 +837,7 @@ class IdentityServiceApp {
       forgotPasswordUseCase: this.forgotPasswordUseCase,
       resetPasswordUseCase: this.resetPasswordUseCase,
       verifyEmailUseCase: this.verifyEmailUseCase,
+      resendVerificationEmailUseCase: this.resendVerificationEmailUseCase,
       logoutUserUseCase: this.logoutUserUseCase,
       refreshTokenUseCase: this.refreshTokenUseCase,
 
@@ -748,6 +859,10 @@ class IdentityServiceApp {
       // Staff Management Use Cases
       provisionStaffUseCase: this.provisionStaffUseCase,
       acceptStaffInvitationUseCase: this.acceptStaffInvitationUseCase,
+      listStaffInvitationsUseCase: this.listStaffInvitationsUseCase,
+      getStaffInvitationUseCase: this.getStaffInvitationUseCase,
+      cancelStaffInvitationUseCase: this.cancelStaffInvitationUseCase,
+      resendStaffInvitationUseCase: this.resendStaffInvitationUseCase,
 
       // Session Management Use Cases
       listActiveSessionsUseCase: this.listActiveSessionsUseCase,
@@ -776,7 +891,10 @@ class IdentityServiceApp {
       // Services
       healthCheck: this.healthCheck,
       degradationService: this.degradationService,
-      permissionService: this.permissionService
+      permissionService: this.permissionService,
+
+      // Repositories
+      sessionRepository: this.sessionRepository
     };
 
     // Register all routes
@@ -865,6 +983,12 @@ if (require.main === module) {
     logger.info(`${signal} received, shutting down gracefully...`);
 
     try {
+      // Stop pending registration cleanup job
+      if (app['pendingRegistrationCleanupJob']) {
+        app['pendingRegistrationCleanupJob'].stop();
+        logger.info('Pending registration cleanup job stopped');
+      }
+
       // Close RabbitMQ connection
       if (app['eventPublisher']) {
         await app['eventPublisher'].close?.();

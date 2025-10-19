@@ -89,6 +89,11 @@ export declare class SupabaseUserRepository implements IUserRepository {
      */
     update(user: User): Promise<void>;
     /**
+     * Update Supabase Auth email_confirmed_at timestamp
+     * Used after email verification to allow login
+     */
+    updateAuthEmailConfirmed(userId: UserId): Promise<void>;
+    /**
      * Save user (create or update) - minimal implementation for schema-per-service
      */
     save(user: User): Promise<void>;
@@ -236,5 +241,59 @@ export declare class SupabaseUserRepository implements IUserRepository {
      * Mark staff invitation as used
      */
     markInvitationAsUsed(token: string, userId: string): Promise<void>;
+    /**
+     * List staff invitations with pagination and filters
+     */
+    listStaffInvitations(options?: {
+        limit?: number;
+        offset?: number;
+        status?: string;
+        role?: string;
+        email?: string;
+    }): Promise<{
+        invitations: Array<{
+            id: string;
+            email: string;
+            role: string;
+            invitedBy: string;
+            invitationToken: string;
+            expiresAt: Date;
+            acceptedAt?: Date;
+            acceptedBy?: string;
+            status: string;
+            invitationData?: Record<string, unknown>;
+            createdAt: Date;
+            updatedAt: Date;
+        }>;
+        total: number;
+    }>;
+    /**
+     * Get staff invitation by ID
+     */
+    getStaffInvitationById(id: string): Promise<{
+        id: string;
+        email: string;
+        role: string;
+        invitedBy: string;
+        invitationToken: string;
+        expiresAt: Date;
+        acceptedAt?: Date;
+        acceptedBy?: string;
+        status: string;
+        invitationData?: Record<string, unknown>;
+        createdAt: Date;
+        updatedAt: Date;
+    } | null>;
+    /**
+     * Cancel staff invitation
+     */
+    cancelStaffInvitation(id: string, cancelledBy: string): Promise<void>;
+    /**
+     * Resend staff invitation (update expiry and generate new token)
+     */
+    resendStaffInvitation(id: string): Promise<{
+        invitationToken: string;
+        expiresAt: Date;
+    }>;
 }
 //# sourceMappingURL=SupabaseUserRepository.d.ts.map

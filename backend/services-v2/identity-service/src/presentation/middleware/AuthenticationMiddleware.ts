@@ -3,11 +3,12 @@
  * Express middleware for JWT token verification
  *
  * @author Hospital Management Team
- * @version 3.0.0 - Pure RBAC
+ * @version 3.1.0 - Fixed session_id extraction from JWT
  * @compliance Clean Architecture, HIPAA
  */
 
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { IPermissionService } from '../../domain/services/IPermissionService';
 import { UserId } from '../../domain/value-objects/UserId';
 import { getErrorMessage } from '../../utils/error-helper';
@@ -67,27 +68,54 @@ export class AuthenticationMiddleware {
           return;
         }
 
-        // Load user permissions
+        // Load user permissions and roles from database (Single Source of Truth)
         const userId = UserId.fromString(user.id);
         const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
 
-        // Extract roles from user metadata or default
-        const roles = Array.isArray(user.user_metadata?.roles)
-          ? (user.user_metadata?.roles as string[])
-          : ['patient'];
+        // Get roles from database (user_roles table), NOT from user_metadata
+        // This ensures roles are always up-to-date and consistent
+        const roles = await this.permissionService.getUserRoles(userId);
+
+        // Extract session ID from JWT token payload (not user_metadata)
+        // Supabase JWT contains session_id at top-level, not in user_metadata
+        let sessionId: string | undefined;
+        try {
+          const decoded = jwt.decode(token) as any;
+          sessionId = decoded?.session_id || decoded?.sid || decoded?.sessionId;
+
+          if (sessionId) {
+            this.logger.debug('Session ID extracted from JWT', {
+              userId: user.id,
+              sessionId
+            });
+          } else {
+            this.logger.warn('Session ID not found in JWT token', {
+              userId: user.id,
+              decodedKeys: Object.keys(decoded || {})
+            });
+          }
+        } catch (error) {
+          this.logger.warn('Failed to decode JWT for session_id extraction', {
+            userId: user.id,
+            error: getErrorMessage(error)
+          });
+          // Continue without session_id - not critical for authentication
+        }
 
         // Attach user info to request
         req.user = {
           userId: user.id,
           email: user.email!,
           roles,
-          permissions: permissionsArray
+          permissions: permissionsArray,
+          sessionId
         };
 
         // Log authentication for audit
         this.logger.debug('User authenticated', {
           userId: user.id,
           email: user.email,
+          sessionId,
           path: req.path,
           method: req.method
         });
@@ -128,15 +156,27 @@ export class AuthenticationMiddleware {
         if (user) {
           const userId = UserId.fromString(user.id);
           const permissionsArray = await this.permissionService.getEffectivePermissions(userId);
-          const roles = Array.isArray(user.user_metadata?.roles)
-            ? (user.user_metadata?.roles as string[])
-            : ['patient'];
+
+          // Get roles from database (user_roles table), NOT from user_metadata
+          const roles = await this.permissionService.getUserRoles(userId);
+
+          // Extract session ID from JWT token
+          let sessionId: string | undefined;
+          try {
+            const decoded = jwt.decode(token) as any;
+            sessionId = decoded?.session_id;
+          } catch (error) {
+            this.logger.warn('Failed to decode JWT for session_id in optional auth', {
+              error: getErrorMessage(error)
+            });
+          }
 
           req.user = {
             userId: user.id,
             email: user.email!,
             roles,
-            permissions: permissionsArray
+            permissions: permissionsArray,
+            sessionId
           };
         }
 

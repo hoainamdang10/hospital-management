@@ -1,7 +1,21 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthenticateUserUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
+/**
+ * Authenticate User Use Case - Enhanced with Circuit Breaker
+ * Handles user authentication with graceful degradation
+ *
+ * Pure RBAC: Uses IPermissionRepository for permission management
+ *
+ * @author Hospital Management Team
+ * @version 3.1.0 - Fixed session_id to use Supabase session_id
+ * @compliance Production-Ready, HIPAA-Compliant, Anti-Pattern Mitigation
+ */
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const IDegradationService_1 = require("../services/IDegradationService");
 const Email_1 = require("../../domain/value-objects/Email");
 const UserSession_1 = require("../../domain/entities/UserSession");
@@ -52,17 +66,25 @@ class AuthenticateUserUseCase {
         }
         catch (error) {
             // Log authentication failure
+            const errorMessage = (0, error_helper_1.getErrorMessage)(error);
             this.logger.error('Authentication failed', {
                 email: Email_1.Email.create(request.email).getMaskedEmail(),
                 ipAddress: request.ipAddress,
-                error: (0, error_helper_1.getErrorMessage)(error),
+                error: errorMessage,
                 responseTime: Date.now() - startTime
             });
+            // Check error type and preserve specific error messages
+            const isAccountLocked = errorMessage.includes('Tài khoản đã bị khóa');
+            const isEmailNotVerified = errorMessage.includes('xác thực email') ||
+                errorMessage.includes('Email not confirmed');
             return {
                 success: false,
                 mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
-                degradationReason: 'AUTHENTICATION_FAILED',
-                error: 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
+                degradationReason: isAccountLocked ? 'ACCOUNT_LOCKED' :
+                    isEmailNotVerified ? 'EMAIL_NOT_VERIFIED' :
+                        'AUTHENTICATION_FAILED',
+                error: (isAccountLocked || isEmailNotVerified) ? errorMessage : 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.',
+                message: (isAccountLocked || isEmailNotVerified) ? errorMessage : 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'
             };
         }
     }
@@ -107,15 +129,69 @@ class AuthenticateUserUseCase {
                 await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, 'Account disabled');
                 throw new Error('Tài khoản đã bị vô hiệu hóa');
             }
+            // Check email verification for PATIENT role only
+            // Staff accounts (DOCTOR, NURSE, RECEPTIONIST, ADMIN) are auto-verified by admin
+            // This follows healthcare industry best practices:
+            // - Patients must verify email (HIPAA security requirement)
+            // - Staff are verified through admin-initiated onboarding process
+            if (user.hasRole('PATIENT') && !user.isEmailVerified) {
+                // Record failed attempt (email not verified)
+                await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, 'Email not verified');
+                throw new Error('Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư email của bạn để nhận link xác thực.');
+            }
             // Step 3: Record successful login attempt
             await this.userRepository.recordLoginAttempt(email, true, request.ipAddress, request.userAgent);
             // Step 4: Record authentication in domain (triggers domain event)
             user.recordAuthentication(request.ipAddress, request.userAgent);
-            // Step 5: Create session in database with Supabase tokens
-            // Use new AuthResult structure (accessToken, expiresIn)
+            // Step 5: Extract Supabase session_id from JWT token
+            // Supabase JWT contains session_id at top-level payload
+            let supabaseSessionId;
+            try {
+                const decoded = jsonwebtoken_1.default.decode(authResult.accessToken);
+                supabaseSessionId = decoded?.session_id;
+                if (!supabaseSessionId) {
+                    this.logger.warn('Supabase session_id not found in JWT token', {
+                        userId: user.id
+                    });
+                }
+                else {
+                    this.logger.debug('Extracted Supabase session_id from JWT', {
+                        userId: user.id,
+                        sessionId: supabaseSessionId
+                    });
+                }
+            }
+            catch (error) {
+                this.logger.error('Failed to decode JWT for session_id extraction', {
+                    userId: user.id,
+                    error: (0, error_helper_1.getErrorMessage)(error)
+                });
+            }
+            // Step 5.1: Create session in database with Supabase session_id
+            // Use Supabase session_id as the session ID to ensure consistency
             const expiresAt = new Date(Date.now() + (authResult.expiresIn || 3600) * 1000);
-            const sessionWithToken = UserSession_1.UserSession.create(user.id, authResult.accessToken, request.deviceInfo || {}, request.ipAddress, request.userAgent, expiresAt);
+            // Create session with Supabase session_id if available
+            const sessionWithToken = supabaseSessionId
+                ? UserSession_1.UserSession.fromPersistenceData({
+                    id: supabaseSessionId, // Use Supabase session_id
+                    userId: user.id,
+                    sessionToken: authResult.accessToken,
+                    deviceInfo: request.deviceInfo || {},
+                    ipAddress: request.ipAddress,
+                    userAgent: request.userAgent,
+                    expiresAt,
+                    isActive: true,
+                    createdAt: new Date(),
+                    lastAccessedAt: new Date()
+                })
+                : UserSession_1.UserSession.create(// Fallback to random UUID if session_id not found
+                user.id, authResult.accessToken, request.deviceInfo || {}, request.ipAddress, request.userAgent, expiresAt);
             await this.userRepository.createSession(sessionWithToken);
+            this.logger.info('Session created in database', {
+                userId: user.id,
+                sessionId: sessionWithToken.id,
+                usedSupabaseSessionId: !!supabaseSessionId
+            });
             // Step 6: Get user roles and permissions (Pure RBAC)
             const roles = await this.userRepository.getUserRoles(user.userId);
             const permissions = authResult.permissions || await this.permissionRepository.getUserPermissions(user.userId);
@@ -168,6 +244,19 @@ class AuthenticateUserUseCase {
         this.logger.warn('Using fallback authentication', {
             email: Email_1.Email.create(request.email).getMaskedEmail()
         });
+        // IMPORTANT: Check account lockout even in fallback mode
+        // This prevents bypassing brute force protection via fallback authentication
+        const email = Email_1.Email.create(request.email);
+        const lockoutStatus = await this.userRepository.checkAccountLockout(email);
+        if (lockoutStatus.isLocked) {
+            this.logger.warn('Account is locked (fallback authentication blocked)', {
+                email: email.getMaskedEmail(),
+                unlockAt: lockoutStatus.unlockAt
+            });
+            // Record failed attempt (account locked)
+            await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, 'Account is locked (fallback blocked)');
+            throw new Error(`Tài khoản đã bị khóa. Vui lòng thử lại sau ${lockoutStatus.unlockAt?.toLocaleString('vi-VN')}`);
+        }
         const credentials = {
             email: request.email,
             password: request.password,

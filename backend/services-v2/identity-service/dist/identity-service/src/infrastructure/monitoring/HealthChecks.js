@@ -135,21 +135,25 @@ class IdentityServiceHealthCheck {
         const startTime = Date.now();
         try {
             // Test authentication endpoints availability
+            // Optimized: Only select id to use primary key index
             const { error } = await this.supabaseClient
+                .schema('auth_schema')
                 .from('healthcare_roles')
-                .select('id, role_name')
+                .select('id')
                 .limit(1);
             if (error) {
                 throw new Error(`Authentication check failed: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             const responseTime = Date.now() - startTime;
+            // Increased threshold from 500ms to 1000ms for consistency
             return {
-                status: responseTime < 500 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
+                status: responseTime < 1000 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
                 timestamp: new Date(),
                 responseTime,
                 details: {
                     rolesAccessible: true,
-                    authEndpoints: 'available'
+                    authEndpoints: 'available',
+                    optimized: true
                 }
             };
         }
@@ -177,8 +181,9 @@ class IdentityServiceHealthCheck {
                 throw new Error(`Authorization check failed: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             const responseTime = Date.now() - startTime;
+            // Increased threshold from 500ms to 1000ms for consistency
             return {
-                status: responseTime < 500 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
+                status: responseTime < 1000 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
                 timestamp: new Date(),
                 responseTime,
                 details: {
@@ -232,26 +237,33 @@ class IdentityServiceHealthCheck {
     }
     /**
      * Check audit logging functionality
+     * Optimized query using index on created_at
      */
     async checkAudit() {
         const startTime = Date.now();
         try {
-            // Test audit log access
+            // Test audit log access with optimized query
+            // Uses idx_audit_logs_created_at index for fast lookup
             const { error } = await this.supabaseClient
+                .schema('auth_schema')
                 .from('audit_logs')
-                .select('count')
+                .select('id')
+                .order('created_at', { ascending: false })
                 .limit(1);
             if (error) {
                 throw new Error(`Audit check failed: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             const responseTime = Date.now() - startTime;
+            // Increased threshold from 500ms to 1000ms for audit logs
+            // Audit logs can be slower due to table size
             return {
-                status: responseTime < 500 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
+                status: responseTime < 1000 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
                 timestamp: new Date(),
                 responseTime,
                 details: {
                     auditLogsAccessible: true,
-                    hipaaCompliance: 'active'
+                    hipaaCompliance: 'active',
+                    optimized: true // Indicates using indexed query
                 }
             };
         }

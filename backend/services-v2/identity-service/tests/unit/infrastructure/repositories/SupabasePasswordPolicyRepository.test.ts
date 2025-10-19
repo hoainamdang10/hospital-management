@@ -70,7 +70,7 @@ describe('SupabasePasswordPolicyRepository', () => {
       expect(result.requireSpecialChars).toBe(true);
       expect(result.expirationDays).toBe(90);
       expect(result.preventReuse).toBe(5);
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.password_policies');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('password_policies');
       expect(queryMock.eq).toHaveBeenCalledWith('is_active', true);
     });
 
@@ -161,7 +161,7 @@ describe('SupabasePasswordPolicyRepository', () => {
       await repository.update(policy, 'admin-456');
 
       // Assert
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.password_policies');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('password_policies');
       expect(updateMock.update).toHaveBeenCalled();
       expect(insertMock.insert).toHaveBeenCalled();
     });
@@ -287,7 +287,7 @@ describe('SupabasePasswordPolicyRepository', () => {
       expect(result).toHaveLength(2);
       expect(result[0]).toBeInstanceOf(PasswordPolicy);
       expect(result[1]).toBeInstanceOf(PasswordPolicy);
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.password_policies');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('password_policies');
       expect(queryMock.order).toHaveBeenCalledWith('updated_at', { ascending: false });
     });
 

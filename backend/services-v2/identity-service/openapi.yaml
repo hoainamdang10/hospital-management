@@ -21,6 +21,7 @@ tags:
   - name: Account Recovery
   - name: Permission Check
   - name: Staff Management
+  - name: Admin Operations
 
 security:
   - BearerAuth: []
@@ -163,6 +164,56 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  message: {type: string}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+
+  /auth/resend-verification:
+    post:
+      tags: [Authentication]
+      summary: Resend email verification
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: {type: string, format: email}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  message: {type: string}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
 
   # User Management
   /api/v1/users/me:
@@ -680,8 +731,238 @@ paths:
       responses:
         '201':
           description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  invitationUrl: {type: string}
+                  expiresAt: {type: string, format: date-time}
+                  message: {type: string}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
 
-  /auth/staff/accept-invitation:
+  /admin/staff/invitations:
+    get:
+      tags: [Staff Management]
+      summary: List staff invitations (admin only)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Items per page
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, EXPIRED, CANCELLED]
+          description: Filter by status
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [ADMIN, DOCTOR, NURSE, RECEPTIONIST]
+          description: Filter by role
+        - name: email
+          in: query
+          schema:
+            type: string
+          description: Search by email (partial match)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  invitations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string, format: uuid}
+                        email: {type: string}
+                        role: {type: string}
+                        invitedBy: {type: string, format: uuid}
+                        status: {type: string}
+                        expiresAt: {type: string, format: date-time}
+                        isExpired: {type: boolean}
+                        invitationData: {type: object}
+                        createdAt: {type: string, format: date-time}
+                        updatedAt: {type: string, format: date-time}
+                  total: {type: integer}
+                  page: {type: integer}
+                  limit: {type: integer}
+                  totalPages: {type: integer}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+
+  /admin/staff/invitations/{id}:
+    get:
+      tags: [Staff Management]
+      summary: Get staff invitation details (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Invitation ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  invitation:
+                    type: object
+                    properties:
+                      id: {type: string, format: uuid}
+                      email: {type: string}
+                      role: {type: string}
+                      invitedBy: {type: string, format: uuid}
+                      invitationToken: {type: string}
+                      expiresAt: {type: string, format: date-time}
+                      acceptedAt: {type: string, format: date-time}
+                      acceptedBy: {type: string, format: uuid}
+                      status: {type: string}
+                      isExpired: {type: boolean}
+                      invitationData: {type: object}
+                      createdAt: {type: string, format: date-time}
+                      updatedAt: {type: string, format: date-time}
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+
+    delete:
+      tags: [Staff Management]
+      summary: Cancel staff invitation (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Invitation ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: {type: string}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  message: {type: string}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+
+  /admin/staff/invitations/{id}/resend:
+    post:
+      tags: [Staff Management]
+      summary: Resend staff invitation (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Invitation ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  invitationUrl: {type: string}
+                  expiresAt: {type: string, format: date-time}
+                  message: {type: string}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+
+  /auth/activate-staff:
     post:
       tags: [Staff Management]
       summary: Accept staff invitation
@@ -692,13 +973,128 @@ paths:
           application/json:
             schema:
               type: object
-              required: [token, password]
+              required: [invitationToken, password, confirmPassword]
               properties:
-                token: {type: string}
+                invitationToken: {type: string}
                 password: {type: string}
+                confirmPassword: {type: string}
+                fullName: {type: string}
+                phoneNumber: {type: string}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  user:
+                    type: object
+                    properties:
+                      id: {type: string, format: uuid}
+                      email: {type: string}
+                      role: {type: string}
+                  accessToken: {type: string}
+                  refreshToken: {type: string}
+                  message: {type: string}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+
+  # Admin Operations
+  /admin/recovery:
+    post:
+      tags: [Admin Operations]
+      summary: Force service recovery (admin only)
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  message: {type: string}
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: {type: string}
+
+  /admin/permissions/invalidate/{userId}:
+    post:
+      tags: [Admin Operations]
+      summary: Invalidate user permission cache (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  message: {type: string}
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
+
+  /admin/permissions/invalidate-role/{roleType}:
+    post:
+      tags: [Admin Operations]
+      summary: Invalidate permission cache for all users with a role (admin only)
+      parameters:
+        - name: roleType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT]
+          description: Role type
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  message: {type: string}
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  error: {type: string}
 
 components:
   securitySchemes:

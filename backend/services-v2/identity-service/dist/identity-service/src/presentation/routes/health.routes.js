@@ -23,7 +23,23 @@ function createHealthRoutes(deps) {
     router.get('/health', async (_req, res) => {
         try {
             const health = await deps.healthCheck.checkHealth();
-            const statusCode = health.overall === 'HEALTHY' ? 200 : 503;
+            // Return appropriate HTTP status code based on health status
+            // DEGRADED still returns 200 as service is operational, just slower
+            // Only UNHEALTHY returns 503 (Service Unavailable)
+            let statusCode;
+            switch (health.overall) {
+                case 'HEALTHY':
+                    statusCode = 200;
+                    break;
+                case 'DEGRADED':
+                    statusCode = 200; // Service still operational, just degraded performance
+                    break;
+                case 'UNHEALTHY':
+                    statusCode = 503; // Service unavailable
+                    break;
+                default:
+                    statusCode = 500; // Unknown status
+            }
             res.status(statusCode).json(health);
         }
         catch (error) {

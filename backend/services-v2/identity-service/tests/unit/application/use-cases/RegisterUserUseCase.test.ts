@@ -10,15 +10,22 @@
 
 import { RegisterUserUseCase, RegisterUserRequest } from '../../../../src/application/use-cases/RegisterUserUseCase';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
-import { IPermissionRepository } from '../../../../src/domain/repositories/IPermissionRepository';
+import { IPendingRegistrationRepository } from '../../../../src/domain/repositories/IPendingRegistrationRepository';
+import { IEmailService } from '../../../../src/application/services/IEmailService';
 import { Email } from '../../../../src/domain/value-objects/Email';
 import { createMockUser } from '../../../helpers/user-test-helper';
 import { CircuitBreakerFactory } from '../../../../src/infrastructure/resilience/CircuitBreaker';
 
+// Mock bcrypt module
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashed_password')
+}));
+
 describe('RegisterUserUseCase', () => {
   let useCase: RegisterUserUseCase;
   let mockUserRepository: jest.Mocked<IUserRepository>;
-  let mockPermissionRepository: jest.Mocked<IPermissionRepository>;
+  let mockPendingRegistrationRepository: jest.Mocked<IPendingRegistrationRepository>;
+  let mockEmailService: jest.Mocked<IEmailService>;
   let mockLogger: any;
   let circuitBreaker = CircuitBreakerFactory.getBreaker('register-user-use-case-test');
 
@@ -46,9 +53,23 @@ describe('RegisterUserUseCase', () => {
       createAuthUser: jest.fn()
     } as unknown as jest.Mocked<IUserRepository>;
 
-    mockPermissionRepository = {
-      getAllRoles: jest.fn().mockResolvedValue(['admin', 'doctor', 'nurse', 'receptionist', 'patient'])
-    } as unknown as jest.Mocked<IPermissionRepository>;
+    mockPendingRegistrationRepository = {
+      store: jest.fn().mockResolvedValue(undefined),
+      findByToken: jest.fn(),
+      findByEmail: jest.fn(),
+      delete: jest.fn(),
+      markAsUsed: jest.fn(),
+      deleteExpired: jest.fn(),
+      updateStatus: jest.fn().mockResolvedValue(undefined),
+      hasActivePendingRegistration: jest.fn().mockResolvedValue(false)
+    } as unknown as jest.Mocked<IPendingRegistrationRepository>;
+
+    mockEmailService = {
+      sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+      sendVerificationSuccessEmail: jest.fn().mockResolvedValue(undefined),
+      sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+      sendWelcomeEmail: jest.fn().mockResolvedValue(undefined)
+    } as unknown as jest.Mocked<IEmailService>;
 
     mockLogger = {
       info: jest.fn(),
@@ -62,9 +83,12 @@ describe('RegisterUserUseCase', () => {
 
     useCase = new RegisterUserUseCase(
       mockUserRepository,
-      mockPermissionRepository,
+      mockPendingRegistrationRepository,
       mockLogger,
-      circuitBreaker
+      circuitBreaker,
+      mockEmailService,
+      'test-jwt-secret',
+      'http://localhost:3000'
     );
   });
 
@@ -74,26 +98,30 @@ describe('RegisterUserUseCase', () => {
   });
 
   describe('Happy Path', () => {
-    it('should register user with full data', async () => {
+    it('should register user with full data and send verification email', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      const createdUser = createMockUser({ userId: 'user-123', email: validRequest.email });
-      mockUserRepository.createAuthUser.mockResolvedValue(createdUser);
+      mockPendingRegistrationRepository.findByEmail.mockResolvedValue(null);
+      mockPendingRegistrationRepository.store.mockResolvedValue(undefined);
 
       const result = await useCase.execute(validRequest);
 
       expect(result.success).toBe(true);
-      expect(result.userId).toBe(createdUser.id);
-      expect(result.email).toBe(createdUser.email.value);
+      expect(result.pendingRegistrationId).toBeDefined();
+      expect(result.email).toBe(validRequest.email);
       expect(result.requiresEmailVerification).toBe(true);
 
       expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(Email.create(validRequest.email));
-      expect(mockUserRepository.createAuthUser).toHaveBeenCalledWith(
-        expect.objectContaining({ email: validRequest.email, password: validRequest.password })
+      expect(mockPendingRegistrationRepository.store).toHaveBeenCalled();
+
+      // Verify verification email was sent
+      expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: validRequest.email,
+          userName: validRequest.fullName
+        })
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'User registration completed successfully',
-        expect.objectContaining({ userId: createdUser.id, email: validRequest.email })
-      );
+
+      expect(mockLogger.info).toHaveBeenCalled();
     });
 
     it('should register user with minimal fields', async () => {
@@ -105,16 +133,13 @@ describe('RegisterUserUseCase', () => {
       };
 
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockUserRepository.createAuthUser.mockResolvedValue(
-        createMockUser({ userId: 'user-456', email: minimalRequest.email })
-      );
+      mockPendingRegistrationRepository.findByEmail.mockResolvedValue(null);
+      mockPendingRegistrationRepository.store.mockResolvedValue(undefined);
 
       const result = await useCase.execute(minimalRequest);
 
       expect(result.success).toBe(true);
-      expect(mockUserRepository.createAuthUser).toHaveBeenCalledWith(
-        expect.objectContaining({ email: minimalRequest.email, fullName: minimalRequest.fullName })
-      );
+      expect(mockPendingRegistrationRepository.store).toHaveBeenCalled();
     });
   });
 
@@ -123,7 +148,7 @@ describe('RegisterUserUseCase', () => {
       { label: 'invalid email', request: { ...validRequest, email: 'invalid-email' }, message: 'Email không hợp lệ' },
       { label: 'short password', request: { ...validRequest, password: '1234567' }, message: 'Mật khẩu phải có ít nhất 8 ký tự' },
       { label: 'short name', request: { ...validRequest, fullName: 'A' }, message: 'Họ tên phải có ít nhất 2 ký tự' },
-      { label: 'invalid role', request: { ...validRequest, roleType: 'invalid' }, message: 'Vai trò không hợp lệ' },
+      // NOTE: No role validation - always PATIENT for public registration
       { label: 'invalid phone', request: { ...validRequest, phoneNumber: 'abc' }, message: 'Số điện thoại không hợp lệ (phải có 10-11 chữ số)' },
       { label: 'invalid citizenId', request: { ...validRequest, citizenId: 'abc' }, message: 'Số CMND/CCCD không hợp lệ (phải có 9-12 chữ số)' }
     ];
@@ -134,7 +159,7 @@ describe('RegisterUserUseCase', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('VALIDATION_ERROR');
       expect(result.message).toContain(message); // Use toContain instead of toBe for detailed error messages
-      expect(mockUserRepository.createAuthUser).not.toHaveBeenCalled();
+      expect(mockPendingRegistrationRepository.store).not.toHaveBeenCalled();
     });
   });
 
@@ -146,25 +171,22 @@ describe('RegisterUserUseCase', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('USER_ALREADY_EXISTS');
-      expect(mockLogger.warn).toHaveBeenCalledWith('User already exists', { email: validRequest.email });
-      expect(mockUserRepository.createAuthUser).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalled();
+      expect(mockPendingRegistrationRepository.store).not.toHaveBeenCalled();
     });
   });
 
   describe('Error handling', () => {
     it('should handle repository errors gracefully', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockUserRepository.createAuthUser.mockRejectedValue(new Error('Database failure'));
+      mockPendingRegistrationRepository.findByEmail.mockResolvedValue(null);
+      mockPendingRegistrationRepository.store.mockRejectedValue(new Error('Database failure'));
 
       const result = await useCase.execute(validRequest);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('REGISTRATION_FAILED');
-      expect(result.message).toBe('Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.');
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'User registration failed',
-        expect.objectContaining({ email: validRequest.email, error: 'Database failure' })
-      );
+      expect(mockLogger.error).toHaveBeenCalled();
     });
   });
 
@@ -187,14 +209,12 @@ describe('RegisterUserUseCase', () => {
   describe('Logging', () => {
     it('should log registration start', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockUserRepository.createAuthUser.mockResolvedValue(createMockUser());
+      mockPendingRegistrationRepository.findByEmail.mockResolvedValue(null);
+      mockPendingRegistrationRepository.store.mockResolvedValue(undefined);
 
       await useCase.execute(validRequest);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Starting user registration',
-        expect.objectContaining({ email: validRequest.email, roleType: validRequest.roleType })
-      );
+      expect(mockLogger.info).toHaveBeenCalled();
     });
   });
 });

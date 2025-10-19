@@ -2,10 +2,11 @@ import { SupabasePermissionRepository } from '@infrastructure/repositories/Supab
 import { UserId } from '@domain/value-objects/UserId';
 import { PermissionCache } from '@infrastructure/cache/PermissionCache';
 
-// Mock Supabase Client
+// Mock Supabase Client with schema() support
 const mockSupabaseClient = {
   from: jest.fn(),
   rpc: jest.fn(),
+  schema: jest.fn().mockReturnThis(), // Add schema() method that returns self for chaining
 };
 
 // Mock Permission Cache

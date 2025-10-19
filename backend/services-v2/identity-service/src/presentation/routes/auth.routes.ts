@@ -117,20 +117,110 @@ export function createAuthRoutes(deps: RouteDependencies): Router {
     }
   });
 
-  // Verify Email endpoint (PUBLIC)
-  router.post('/verify-email', async (req, res) => {
+  // Verify Email endpoint - GET (PUBLIC)
+  // Used when user clicks verification link in email
+  router.get('/verify-email', async (req, res) => {
     try {
+      // Get token from query parameter
+      const token = req.query.token as string;
+
+      if (!token || typeof token !== 'string' || token.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã xác thực không hợp lệ',
+          error: 'INVALID_TOKEN'
+        });
+      }
+
       const request = {
-        email: req.body.email,
-        token: req.body.token
+        token: token.trim()
       };
 
       const result = await deps.verifyEmailUseCase.execute(request);
       const statusCode = result.success ? 200 : 400;
-      res.status(statusCode).json(result);
+      return res.status(statusCode).json(result);
     } catch (error) {
-      logger.error('Verify email endpoint error', { error: getErrorMessage(error) });
-      res.status(500).json({
+      logger.error('Verify email GET endpoint error', { error: getErrorMessage(error) });
+      return res.status(500).json({
+        success: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau'
+      });
+    }
+  });
+
+  // Verify Email endpoint - POST (PUBLIC)
+  // Used for programmatic verification with email + token
+  router.post('/verify-email', async (req, res) => {
+    try {
+      // Validate email first (before token validation)
+      const email = req.body.email;
+      if (!email || typeof email !== 'string' || email.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email không hợp lệ',
+          error: 'INVALID_EMAIL'
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email không hợp lệ',
+          error: 'INVALID_EMAIL'
+        });
+      }
+
+      // Validate token
+      const token = req.body.token;
+      if (!token || typeof token !== 'string' || token.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã xác thực không hợp lệ',
+          error: 'INVALID_TOKEN'
+        });
+      }
+
+      const request = {
+        token: token.trim()
+      };
+
+      const result = await deps.verifyEmailUseCase.execute(request);
+      const statusCode = result.success ? 200 : 400;
+      return res.status(statusCode).json(result);
+    } catch (error) {
+      logger.error('Verify email POST endpoint error', { error: getErrorMessage(error) });
+      return res.status(500).json({
+        success: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau'
+      });
+    }
+  });
+
+  // Resend Verification Email endpoint (PUBLIC)
+  router.post('/resend-verification', async (req, res) => {
+    try {
+      const email = req.body.email;
+
+      if (!email || typeof email !== 'string' || email.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email không hợp lệ',
+          error: 'INVALID_EMAIL'
+        });
+      }
+
+      const request = {
+        email: email.trim()
+      };
+
+      const result = await deps.resendVerificationEmailUseCase.execute(request);
+      const statusCode = result.success ? 200 : 400;
+      return res.status(statusCode).json(result);
+    } catch (error) {
+      logger.error('Resend verification email endpoint error', { error: getErrorMessage(error) });
+      return res.status(500).json({
         success: false,
         error: 'Lỗi hệ thống, vui lòng thử lại sau'
       });

@@ -50,6 +50,7 @@ export declare class SupabaseAuthService implements IAuthenticationService {
     /**
      * Sign in user with Supabase Auth
      * Password verification is handled by Supabase
+     * Includes retry logic for network errors (ECONNRESET, fetch failed)
      */
     signIn(credentials: UserCredentials): Promise<AuthResult>;
     /**
@@ -85,6 +86,11 @@ export declare class SupabaseAuthService implements IAuthenticationService {
      * Update user password (requires current password)
      */
     updatePassword(userId: string, newPassword: string): Promise<void>;
+    /**
+     * Update user metadata
+     * Updates user metadata in Supabase Auth
+     */
+    updateUserMetadata(userId: string, metadata: Record<string, any>): Promise<void>;
     /**
      * Verify email with token
      */

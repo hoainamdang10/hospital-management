@@ -12,6 +12,7 @@ import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUse
 import { ForgotPasswordUseCase } from '../../application/use-cases/ForgotPasswordUseCase';
 import { ResetPasswordUseCase } from '../../application/use-cases/ResetPasswordUseCase';
 import { VerifyEmailUseCase } from '../../application/use-cases/VerifyEmailUseCase';
+import { ResendVerificationEmailUseCase } from '../../application/use-cases/ResendVerificationEmailUseCase';
 import { LogoutUserUseCase } from '../../application/use-cases/LogoutUserUseCase';
 import { EnableMFAUseCase } from '../../application/use-cases/EnableMFAUseCase';
 import { VerifyMFAUseCase } from '../../application/use-cases/VerifyMFAUseCase';
@@ -23,6 +24,10 @@ import { ListUsersUseCase } from '../../application/use-cases/ListUsersUseCase';
 import { RefreshTokenUseCase } from '../../application/use-cases/RefreshTokenUseCase';
 import { ProvisionStaffUseCase } from '../../application/use-cases/ProvisionStaffUseCase';
 import { AcceptStaffInvitationUseCase } from '../../application/use-cases/AcceptStaffInvitationUseCase';
+import { ListStaffInvitationsUseCase } from '../../application/use-cases/ListStaffInvitationsUseCase';
+import { GetStaffInvitationUseCase } from '../../application/use-cases/GetStaffInvitationUseCase';
+import { CancelStaffInvitationUseCase } from '../../application/use-cases/CancelStaffInvitationUseCase';
+import { ResendStaffInvitationUseCase } from '../../application/use-cases/ResendStaffInvitationUseCase';
 import { ListActiveSessionsUseCase } from '../../application/use-cases/ListActiveSessionsUseCase';
 import { TerminateSessionUseCase } from '../../application/use-cases/TerminateSessionUseCase';
 import { TerminateAllSessionsUseCase } from '../../application/use-cases/TerminateAllSessionsUseCase';
@@ -46,6 +51,7 @@ import { CheckRolesUseCase } from '../../application/use-cases/CheckRolesUseCase
 import { IdentityServiceHealthCheck } from '../../infrastructure/monitoring/HealthChecks';
 import { IdentityServiceDegradation } from '../../infrastructure/resilience/GracefulDegradation';
 import { PermissionService } from '../../infrastructure/services/PermissionService';
+import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
 /**
  * All dependencies needed by route handlers
  */
@@ -57,6 +63,7 @@ export interface RouteDependencies {
     forgotPasswordUseCase: ForgotPasswordUseCase;
     resetPasswordUseCase: ResetPasswordUseCase;
     verifyEmailUseCase: VerifyEmailUseCase;
+    resendVerificationEmailUseCase: ResendVerificationEmailUseCase;
     logoutUserUseCase: LogoutUserUseCase;
     refreshTokenUseCase: RefreshTokenUseCase;
     enableMFAUseCase: EnableMFAUseCase;
@@ -72,6 +79,10 @@ export interface RouteDependencies {
     assignRoleUseCase: AssignRoleUseCase;
     provisionStaffUseCase: ProvisionStaffUseCase;
     acceptStaffInvitationUseCase: AcceptStaffInvitationUseCase;
+    listStaffInvitationsUseCase: ListStaffInvitationsUseCase;
+    getStaffInvitationUseCase: GetStaffInvitationUseCase;
+    cancelStaffInvitationUseCase: CancelStaffInvitationUseCase;
+    resendStaffInvitationUseCase: ResendStaffInvitationUseCase;
     listActiveSessionsUseCase: ListActiveSessionsUseCase;
     terminateSessionUseCase: TerminateSessionUseCase;
     terminateAllSessionsUseCase: TerminateAllSessionsUseCase;
@@ -91,5 +102,6 @@ export interface RouteDependencies {
     healthCheck: IdentityServiceHealthCheck;
     degradationService: IdentityServiceDegradation;
     permissionService: PermissionService;
+    sessionRepository: ISessionRepository;
 }
 //# sourceMappingURL=types.d.ts.map

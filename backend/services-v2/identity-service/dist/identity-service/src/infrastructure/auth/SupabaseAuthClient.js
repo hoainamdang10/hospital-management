@@ -21,8 +21,8 @@ class SupabaseAuthClient {
         this.logger = logger;
         this.supabaseClient = (0, supabase_js_1.createClient)(config.supabaseUrl, config.supabaseServiceRoleKey, {
             auth: {
-                autoRefreshToken: true,
-                persistSession: true,
+                autoRefreshToken: false, // Disabled to prevent memory leaks and session state pollution
+                persistSession: false, // Disabled to prevent session persistence across requests
                 detectSessionInUrl: false
             }
         });
@@ -73,7 +73,8 @@ class SupabaseAuthClient {
                 success: true,
                 userId: data.user.id,
                 email: data.user.email,
-                sessionToken: data.session.access_token,
+                accessToken: data.session.access_token, // normalized for use cases expecting accessToken
+                sessionToken: data.session.access_token, // kept for backward compatibility
                 refreshToken: data.session.refresh_token,
                 expiresAt: new Date(data.session.expires_at * 1000),
                 mode: IDegradationService_1.ServiceMode.FULL_SERVICE,

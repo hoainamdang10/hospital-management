@@ -1,12 +1,13 @@
 /**
  * TerminateAllSessionsUseCase
  * Use case for terminating all sessions except the current one
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
+import { ILogger } from '../services/ILogger';
 
 export interface TerminateAllSessionsRequest {
   userId: string;
@@ -21,7 +22,8 @@ export interface TerminateAllSessionsResponse {
 
 export class TerminateAllSessionsUseCase {
   constructor(
-    private readonly sessionRepository: ISessionRepository
+    private readonly sessionRepository: ISessionRepository,
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: TerminateAllSessionsRequest): Promise<TerminateAllSessionsResponse> {
@@ -51,7 +53,11 @@ export class TerminateAllSessionsUseCase {
       };
 
     } catch (error: any) {
-      console.error('Error terminating all sessions:', error);
+      this.logger.error('Error terminating all sessions', {
+        userId: request.userId,
+        currentSessionId: request.currentSessionId,
+        error: error.message
+      });
       throw new Error(`Failed to terminate all sessions: ${error.message}`);
     }
   }

@@ -29,28 +29,6 @@ export interface UserProps {
     updatedAt: Date;
 }
 /**
- * User Persistence Format
- * Used for database storage and retrieval
- */
-export interface UserPersistenceProps {
-    id: string;
-    email: string;
-    full_name: string;
-    citizen_id?: string;
-    date_of_birth?: string;
-    gender?: string;
-    address?: string;
-    phone_number?: string;
-    emergency_contact_name?: string;
-    emergency_contact_phone?: string;
-    is_active: boolean;
-    is_verified: boolean;
-    last_login_at?: string;
-    created_at: string;
-    updated_at: string;
-    roles?: string[];
-}
-/**
  * User Aggregate Root with Enhanced Error Handling
  * Implements anti-patterns mitigation and graceful degradation
  */
@@ -74,6 +52,9 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      * This is a valid use case in Clean Architecture - domain provides factory for reconstitution
      *
      * Pure RBAC: Supports multiple roles per user
+     *
+     * Note: Validation is relaxed for reconstitution to handle legacy data
+     * that may not meet current business rules (e.g., incomplete personal info)
      */
     static reconstitute(id: string, email: Email, personalInfo: PersonalInfo, healthcareRoles: HealthcareRole[], isActive: boolean, isEmailVerified: boolean, lastLoginAt: Date | undefined, createdAt: Date, updatedAt: Date): User;
     get id(): string;
@@ -155,6 +136,12 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      */
     protected validateBusinessInvariants(): void;
     /**
+     * Relaxed validation for reconstitution from database
+     * Only validates critical invariants, allows incomplete personal info
+     * This is necessary to handle legacy data that may not meet current business rules
+     */
+    protected validateReconstitutionInvariants(): void;
+    /**
      * Healthcare compliance checks
      */
     isVietnameseHealthcareCompliant(): boolean;
@@ -210,8 +197,13 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      */
     validate(): void;
     /**
-     * Convert to persistence format - required by Entity base class
+     * Convert to persistence format
+     *
+     * NOTE: This method returns domain-level data, NOT database column names.
+     * For actual database persistence, use UserMapper.toPersistence() in infrastructure layer.
+     *
+     * This satisfies the Entity base class requirement while maintaining Clean Architecture.
      */
-    toPersistence(): UserPersistenceProps;
+    toPersistence(): Record<string, any>;
 }
 //# sourceMappingURL=User.d.ts.map

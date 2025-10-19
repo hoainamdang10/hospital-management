@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">22.22% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>2/9</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">22.22% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>2/9</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -118,23 +118,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">64x</span>
-<span class="cline-any cline-yes">64x</span>
-<span class="cline-any cline-yes">64x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">64x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -142,7 +137,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -150,11 +150,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
@@ -171,12 +171,12 @@ import { Email } from '../value-objects/Email';
 import { HealthcareRole } from '../entities/HealthcareRole';
 &nbsp;
 export class UserCreatedEvent extends DomainEvent {
-  constructor(
-    public readonly userIdVO: UserId,
-    public readonly userEmail: Email,
-    public readonly userRole: HealthcareRole
+<span class="fstat-no" title="function not covered" >  constructor(</span>
+    public readonly <span class="cstat-no" title="statement not covered" >userIdVO: UserId,</span>
+    public readonly <span class="cstat-no" title="statement not covered" >userEmail: Email,</span>
+    public readonly <span class="cstat-no" title="statement not covered" >userRole: HealthcareRole</span>
   ) {
-    super(
+<span class="cstat-no" title="statement not covered" >    super(</span>
       'UserCreated',
       userIdVO.value,
       'User',
@@ -188,20 +188,20 @@ export class UserCreatedEvent extends DomainEvent {
     );
   }
 &nbsp;
-  getEventData(): Record&lt;string, unknown&gt; {
-    return {
+<span class="fstat-no" title="function not covered" >  getEventData(</span>): Record&lt;string, unknown&gt; {
+<span class="cstat-no" title="statement not covered" >    return {</span>
       userId: this.userIdVO.value,
       email: this.userEmail.value,
       role: this.userRole.type
     };
   }
 &nbsp;
-  containsPHI(): boolean {
-    return true; // Contains email which is PHI
+<span class="fstat-no" title="function not covered" >  containsPHI(</span>): boolean {
+<span class="cstat-no" title="statement not covered" >    return true; </span>// Contains email which is PHI
   }
 &nbsp;
-  getPatientId(): string | null {
-    return null; // User is not a patient
+<span class="fstat-no" title="function not covered" >  getPatientId(</span>): string | null {
+<span class="cstat-no" title="statement not covered" >    return null; </span>// User is not a patient
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -211,7 +211,7 @@ export class UserCreatedEvent extends DomainEvent {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-13T08:14:22.367Z
+                at 2025-10-19T15:03:36.479Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

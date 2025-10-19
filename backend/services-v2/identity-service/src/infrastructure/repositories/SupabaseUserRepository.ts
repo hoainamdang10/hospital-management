@@ -13,6 +13,7 @@ import { CircuitBreakerFactory } from '../resilience/CircuitBreaker';
 import { RedisCacheService } from '../cache/RedisCacheService';
 import { getErrorMessage } from '../../utils/error-helper';
 import { UserMapper } from '../mappers/UserMapper';
+import crypto from 'crypto';
 
 // Domain imports - Clean Architecture pattern
 import { IUserRepository, CreateAuthUserData } from '../../application/repositories/IUserRepository';
@@ -301,7 +302,9 @@ export class SupabaseUserRepository implements IUserRepository {
           email_confirm: userData.emailConfirm ?? true, // Auto-confirm by default
           user_metadata: {
             full_name: userData.fullName,
-            role: userData.roleType, // Note: 'role', not 'role_type'
+            // ❌ REMOVED: role: userData.roleType
+            // Roles are now managed ONLY in user_roles table (Single Source of Truth)
+            // This prevents metadata/database sync issues
             phone_number: userData.phoneNumber,
             citizen_id: userData.citizenId,
             date_of_birth: userData.dateOfBirth?.toISOString().split('T')[0],
@@ -508,6 +511,36 @@ export class SupabaseUserRepository implements IUserRepository {
         await this.invalidateUserCache(id, user.email.value);
       }
     );
+  }
+
+  /**
+   * Update Supabase Auth email_confirmed_at timestamp
+   * Used after email verification to allow login
+   */
+  async updateAuthEmailConfirmed(userId: UserId): Promise<void> {
+    const id = userId.value;
+
+    try {
+      // Update auth.users table directly using admin API
+      const { error } = await this.supabaseClient.auth.admin.updateUserById(
+        id,
+        {
+          email_confirm: true
+        }
+      );
+
+      if (error) {
+        throw new Error(`Failed to update auth email confirmed: ${getErrorMessage(error)}`);
+      }
+
+      this.logger.info('Supabase Auth email_confirmed_at updated', { userId: id });
+    } catch (error) {
+      this.logger.error('Failed to update Supabase Auth email_confirmed_at', {
+        userId: id,
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
   }
   /**
    * Save user (create or update) - minimal implementation for schema-per-service
@@ -1321,6 +1354,215 @@ export class SupabaseUserRepository implements IUserRepository {
       });
     } catch (error) {
       this.logger.error('Error marking invitation as used', {
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * List staff invitations with pagination and filters
+   */
+  async listStaffInvitations(options?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+    role?: string;
+    email?: string;
+  }): Promise<{
+    invitations: Array<{
+      id: string;
+      email: string;
+      role: string;
+      invitedBy: string;
+      invitationToken: string;
+      expiresAt: Date;
+      acceptedAt?: Date;
+      acceptedBy?: string;
+      status: string;
+      invitationData?: Record<string, unknown>;
+      createdAt: Date;
+      updatedAt: Date;
+    }>;
+    total: number;
+  }> {
+    try {
+      const limit = options?.limit || 20;
+      const offset = options?.offset || 0;
+
+      // Build query
+      let query = this.supabaseClient
+        .from('staff_invitations')
+        .select('*', { count: 'exact' });
+
+      // Apply filters
+      if (options?.status) {
+        query = query.eq('status', options.status);
+      }
+      if (options?.role) {
+        query = query.eq('role', options.role);
+      }
+      if (options?.email) {
+        query = query.ilike('email', `%${options.email}%`);
+      }
+
+      // Apply pagination and ordering
+      query = query
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        throw new Error(`Failed to list staff invitations: ${getErrorMessage(error)}`);
+      }
+
+      const invitations = (data || []).map((row: any) => ({
+        id: row.id,
+        email: row.email,
+        role: row.role,
+        invitedBy: row.invited_by,
+        invitationToken: row.invitation_token,
+        expiresAt: new Date(row.expires_at),
+        acceptedAt: row.accepted_at ? new Date(row.accepted_at) : undefined,
+        acceptedBy: row.accepted_by_user_id || undefined,
+        status: row.status,
+        invitationData: row.invitation_data || {},
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at)
+      }));
+
+      return {
+        invitations,
+        total: count || 0
+      };
+    } catch (error) {
+      this.logger.error('Error listing staff invitations', {
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get staff invitation by ID
+   */
+  async getStaffInvitationById(id: string): Promise<{
+    id: string;
+    email: string;
+    role: string;
+    invitedBy: string;
+    invitationToken: string;
+    expiresAt: Date;
+    acceptedAt?: Date;
+    acceptedBy?: string;
+    status: string;
+    invitationData?: Record<string, unknown>;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null> {
+    try {
+      const { data, error } = await this.supabaseClient
+        .from('staff_invitations')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        invitedBy: data.invited_by,
+        invitationToken: data.invitation_token,
+        expiresAt: new Date(data.expires_at),
+        acceptedAt: data.accepted_at ? new Date(data.accepted_at) : undefined,
+        acceptedBy: data.accepted_by_user_id || undefined,
+        status: data.status,
+        invitationData: data.invitation_data || {},
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at)
+      };
+    } catch (error) {
+      this.logger.error('Error getting staff invitation by ID', {
+        id,
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel staff invitation
+   */
+  async cancelStaffInvitation(id: string, cancelledBy: string): Promise<void> {
+    try {
+      const { error } = await this.supabaseClient
+        .from('staff_invitations')
+        .update({
+          status: 'CANCELLED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('status', 'PENDING'); // Only cancel pending invitations
+
+      if (error) {
+        throw new Error(`Failed to cancel staff invitation: ${getErrorMessage(error)}`);
+      }
+
+      this.logger.info('Staff invitation cancelled', {
+        id,
+        cancelledBy
+      });
+    } catch (error) {
+      this.logger.error('Error cancelling staff invitation', {
+        id,
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Resend staff invitation (update expiry and generate new token)
+   */
+  async resendStaffInvitation(id: string): Promise<{
+    invitationToken: string;
+    expiresAt: Date;
+  }> {
+    try {
+      // Generate new token and expiry
+      const invitationToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      const { error } = await this.supabaseClient
+        .from('staff_invitations')
+        .update({
+          invitation_token: invitationToken,
+          expires_at: expiresAt.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('status', 'PENDING'); // Only resend pending invitations
+
+      if (error) {
+        throw new Error(`Failed to resend staff invitation: ${getErrorMessage(error)}`);
+      }
+
+      this.logger.info('Staff invitation resent', {
+        id
+      });
+
+      return {
+        invitationToken,
+        expiresAt
+      };
+    } catch (error) {
+      this.logger.error('Error resending staff invitation', {
+        id,
         error: getErrorMessage(error)
       });
       throw error;

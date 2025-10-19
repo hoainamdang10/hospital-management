@@ -324,11 +324,27 @@ export class PermissionService implements IPermissionService {
   }
 
   /**
+   * Get user roles from database (Single Source of Truth)
+   * Used by AuthenticationMiddleware to load roles from user_roles table
+   *
+   * @param userId - User ID
+   * @returns Array of role names (e.g., ['admin', 'doctor'])
+   */
+  async getUserRoles(userId: UserId): Promise<string[]> {
+    try {
+      return await this.permissionRepository.getUserRoles(userId);
+    } catch (error) {
+      console.error('[PermissionService] Error getting user roles', error);
+      return []; // Return empty array on error (fail-safe)
+    }
+  }
+
+  /**
    * Check if user has a specific role
    */
   async hasRole(userId: UserId, role: string): Promise<boolean> {
     try {
-      const userRoles = await this.permissionRepository.getUserRoles(userId);
+      const userRoles = await this.getUserRoles(userId);
       return userRoles.includes(role);
     } catch (error) {
       console.error('[PermissionService] Error checking role', error);
@@ -341,7 +357,7 @@ export class PermissionService implements IPermissionService {
    */
   async hasAnyRole(userId: UserId, roles: string[]): Promise<boolean> {
     try {
-      const userRoles = await this.permissionRepository.getUserRoles(userId);
+      const userRoles = await this.getUserRoles(userId);
       return roles.some(role => userRoles.includes(role));
     } catch (error) {
       console.error('[PermissionService] Error checking any role', error);
@@ -354,7 +370,7 @@ export class PermissionService implements IPermissionService {
    */
   async hasAllRoles(userId: UserId, roles: string[]): Promise<boolean> {
     try {
-      const userRoles = await this.permissionRepository.getUserRoles(userId);
+      const userRoles = await this.getUserRoles(userId);
       return roles.every(role => userRoles.includes(role));
     } catch (error) {
       console.error('[PermissionService] Error checking all roles', error);

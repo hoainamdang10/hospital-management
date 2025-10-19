@@ -17,7 +17,9 @@ import {
   cleanupTestUsers,
   cleanupAllTestUsers,
   generateTestEmail,
-  createTestSupabaseClient
+  createTestSupabaseClient,
+  verifyPendingRegistrationExists,
+  getPendingRegistrationFromDb
 } from '../helpers/integrationHelpers';
 
 describe('Phase 1 Verification Tests', () => {
@@ -197,17 +199,17 @@ describe('Phase 1 Verification Tests', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.userId).toBeDefined();
+      expect(response.body.pendingRegistrationId).toBeDefined();
 
-      // Verify in database
-      const exists = await verifyUserExists(supabaseClient, response.body.userId);
+      // Verify pending registration in database
+      const exists = await verifyPendingRegistrationExists(supabaseClient, response.body.pendingRegistrationId);
       expect(exists).toBe(true);
 
-      // Get from database
-      const dbUser = await getUserFromDb(supabaseClient, response.body.userId);
-      expect(dbUser.email).toBe(email);
-      expect(dbUser.full_name).toBe('E2E Test User');
-      expect(dbUser.role_type).toBe('patient'); // Security: force patient role
+      // Get pending registration from database
+      const dbPendingReg = await getPendingRegistrationFromDb(supabaseClient, response.body.pendingRegistrationId);
+      expect(dbPendingReg.email).toBe(email);
+      expect(dbPendingReg.user_data.fullName).toBe('E2E Test User'); // Data stored in JSONB column
+      expect(dbPendingReg.user_data.roleType).toBe('patient'); // Security: force patient role (lowercase in DB)
     });
 
     it('should login user via API and verify session in database', async () => {

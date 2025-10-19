@@ -1,0 +1,736 @@
+{
+  "config": {
+    "configFile": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\playwright.config.ts",
+    "rootDir": "D:/hospital-management-V2/backend/services-v2/identity-service/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-report/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "D:/hospital-management-V2/backend/services-v2/identity-service/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "api-tests",
+        "name": "api-tests",
+        "testDir": "D:/hospital-management-V2/backend/services-v2/identity-service/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.spec\\.ts/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "frontend-integration.spec.ts",
+      "file": "frontend-integration.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Frontend Integration - Identity Service",
+          "file": "frontend-integration.spec.ts",
+          "line": 12,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "1. Health Check",
+              "file": "frontend-integration.spec.ts",
+              "line": 25,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should return healthy status",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 312,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m503\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m503\u001b[39m\n    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:29:33",
+                            "location": {
+                              "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                              "column": 33,
+                              "line": 29
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m       \u001b[36mconst\u001b[39m response \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m request\u001b[33m.\u001b[39m\u001b[36mget\u001b[39m(\u001b[32m`${baseURL}/health`\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 28 |\u001b[39m       \n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m       \n \u001b[90m 31 |\u001b[39m       \u001b[36mconst\u001b[39m body \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 32 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'Health Check Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                                "column": 33,
+                                "line": 29
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m503\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m       \u001b[36mconst\u001b[39m response \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m request\u001b[33m.\u001b[39m\u001b[36mget\u001b[39m(\u001b[32m`${baseURL}/health`\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 28 |\u001b[39m       \n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m       \n \u001b[90m 31 |\u001b[39m       \u001b[36mconst\u001b[39m body \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 32 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'Health Check Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:29:33\u001b[22m"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:38.262Z",
+                          "annotations": [],
+                          "attachments": [],
+                          "errorLocation": {
+                            "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                            "column": 33,
+                            "line": 29
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-e9d71c09dbdc262b1104",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 26,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "2. Login Flow",
+              "file": "frontend-integration.spec.ts",
+              "line": 39,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should successfully login with existing user",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 316,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:57:33",
+                            "location": {
+                              "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                              "column": 33,
+                              "line": 57
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 55 |\u001b[39m\n \u001b[90m 56 |\u001b[39m       \u001b[90m// Check response status\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 57 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 58 |\u001b[39m       \n \u001b[90m 59 |\u001b[39m       \u001b[90m// Check response structure\u001b[39m\n \u001b[90m 60 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                                "column": 33,
+                                "line": 57
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n\n\u001b[0m \u001b[90m 55 |\u001b[39m\n \u001b[90m 56 |\u001b[39m       \u001b[90m// Check response status\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 57 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 58 |\u001b[39m       \n \u001b[90m 59 |\u001b[39m       \u001b[90m// Check response structure\u001b[39m\n \u001b[90m 60 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:57:33\u001b[22m"
+                            }
+                          ],
+                          "stdout": [
+                            {
+                              "text": "Login Response Status: \u001b[33m401\u001b[39m\n"
+                            },
+                            {
+                              "text": "Login Response Body: {\n  \"success\": false,\n  \"mode\": \"DEGRADED_SERVICE\",\n  \"degradationReason\": \"Authentication failed: Invalid login credentials\",\n  \"requiresMFA\": false\n}\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:39.646Z",
+                          "annotations": [],
+                          "attachments": [],
+                          "errorLocation": {
+                            "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                            "column": 33,
+                            "line": 57
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-5e3f58cfc7c97ede9775",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 40,
+                  "column": 9
+                },
+                {
+                  "title": "should reject login with wrong password",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 301,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "Wrong Password Response Status: \u001b[33m401\u001b[39m\n"
+                            },
+                            {
+                              "text": "Wrong Password Response: {\n  \"success\": false,\n  \"mode\": \"DEGRADED_SERVICE\",\n  \"degradationReason\": \"Authentication failed: Invalid login credentials\",\n  \"requiresMFA\": false\n}\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:41.094Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-961d5427d80754a7e70d",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 80,
+                  "column": 9
+                },
+                {
+                  "title": "should reject login with non-existent email",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 176,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:41.418Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-0dd285e5f7772d5de22c",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 97,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "3. Protected Routes - Get User Info",
+              "file": "frontend-integration.spec.ts",
+              "line": 112,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should get user info with valid token",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 353,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:137:33",
+                            "location": {
+                              "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                              "column": 33,
+                              "line": 137
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 135 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'User Info Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\n \u001b[90m 136 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 137 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 138 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 139 |\u001b[39m       expect(body\u001b[33m.\u001b[39muser)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'userId'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 140 |\u001b[39m       expect(body\u001b[33m.\u001b[39muser)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'email'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                                "column": 33,
+                                "line": 137
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n\n\u001b[0m \u001b[90m 135 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'User Info Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\n \u001b[90m 136 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 137 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 138 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 139 |\u001b[39m       expect(body\u001b[33m.\u001b[39muser)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'userId'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 140 |\u001b[39m       expect(body\u001b[33m.\u001b[39muser)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'email'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:137:33\u001b[22m"
+                            }
+                          ],
+                          "stdout": [
+                            {
+                              "text": "Get User Info Response Status: \u001b[33m401\u001b[39m\n"
+                            },
+                            {
+                              "text": "User Info Response: {\n  \"success\": false,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Invalid or expired token\"\n}\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:41.611Z",
+                          "annotations": [],
+                          "attachments": [],
+                          "errorLocation": {
+                            "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                            "column": 33,
+                            "line": 137
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-201e2f00c1df080cc347",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 113,
+                  "column": 9
+                },
+                {
+                  "title": "should reject request without token",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 50,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:43.119Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-5aa22873cb7cdd837308",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 146,
+                  "column": 9
+                },
+                {
+                  "title": "should reject request with invalid token",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 112,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:43.191Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-f005d4aac75e45aae2ae",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 155,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "4. Token Refresh Flow",
+              "file": "frontend-integration.spec.ts",
+              "line": 169,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should successfully refresh access token",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 781,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:194:33",
+                            "location": {
+                              "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                              "column": 33,
+                              "line": 194
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 192 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'Token Refresh Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\n \u001b[90m 193 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 194 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 195 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 196 |\u001b[39m       expect(body)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'accessToken'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 197 |\u001b[39m       expect(body)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'refreshToken'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                                "column": 33,
+                                "line": 194
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n\n\u001b[0m \u001b[90m 192 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'Token Refresh Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\n \u001b[90m 193 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 194 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 195 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 196 |\u001b[39m       expect(body)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'accessToken'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 197 |\u001b[39m       expect(body)\u001b[33m.\u001b[39mtoHaveProperty(\u001b[32m'refreshToken'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:194:33\u001b[22m"
+                            }
+                          ],
+                          "stdout": [
+                            {
+                              "text": "Token Refresh Response Status: \u001b[33m401\u001b[39m\n"
+                            },
+                            {
+                              "text": "Token Refresh Response: {\n  \"success\": false,\n  \"error\": \"Refresh token is required\",\n  \"errorCode\": \"REFRESH_TOKEN_REQUIRED\"\n}\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:43.323Z",
+                          "annotations": [],
+                          "attachments": [],
+                          "errorLocation": {
+                            "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                            "column": 33,
+                            "line": 194
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-a1f478e2af79542e1bfc",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 170,
+                  "column": 9
+                },
+                {
+                  "title": "should reject refresh with invalid token",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 4,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 326,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:45.183Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-53530686e2e0a1259f5c",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 205,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "5. Logout Flow",
+              "file": "frontend-integration.spec.ts",
+              "line": 219,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should successfully logout",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 4,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 393,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:244:33",
+                            "location": {
+                              "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                              "column": 33,
+                              "line": 244
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 242 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'Logout Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\n \u001b[90m 243 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 244 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 245 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 246 |\u001b[39m       \n \u001b[90m 247 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'✅ Logout successful'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                                "column": 33,
+                                "line": 244
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n\n\u001b[0m \u001b[90m 242 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'Logout Response:'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mstringify(body\u001b[33m,\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m,\u001b[39m \u001b[35m2\u001b[39m))\u001b[33m;\u001b[39m\n \u001b[90m 243 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 244 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 245 |\u001b[39m       expect(body\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 246 |\u001b[39m       \n \u001b[90m 247 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'✅ Logout successful'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:244:33\u001b[22m"
+                            }
+                          ],
+                          "stdout": [
+                            {
+                              "text": "Logout Response Status: \u001b[33m401\u001b[39m\n"
+                            },
+                            {
+                              "text": "Logout Response: {\n  \"success\": false,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Invalid or expired token\"\n}\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:45.537Z",
+                          "annotations": [],
+                          "attachments": [],
+                          "errorLocation": {
+                            "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                            "column": 33,
+                            "line": 244
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-6ff9ba5bc1eb86125813",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 220,
+                  "column": 9
+                },
+                {
+                  "title": "should reject logout without token",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 47,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:46.967Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-63da639ccb20106af80f",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 250,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "6. Complete Authentication Flow",
+              "file": "frontend-integration.spec.ts",
+              "line": 260,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should complete full login -> get user -> refresh -> logout flow",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api-tests",
+                      "projectName": "api-tests",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 252,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:274:38",
+                            "location": {
+                              "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                              "column": 38,
+                              "line": 274
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 272 |\u001b[39m       \n \u001b[90m 273 |\u001b[39m       \u001b[36mconst\u001b[39m loginBody \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m loginResponse\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 274 |\u001b[39m       expect(loginResponse\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 275 |\u001b[39m       expect(loginBody\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 276 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'✅ Login successful'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 277 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                                "column": 38,
+                                "line": 274
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m401\u001b[39m\n\n\u001b[0m \u001b[90m 272 |\u001b[39m       \n \u001b[90m 273 |\u001b[39m       \u001b[36mconst\u001b[39m loginBody \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m loginResponse\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 274 |\u001b[39m       expect(loginResponse\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 275 |\u001b[39m       expect(loginBody\u001b[33m.\u001b[39msuccess)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 276 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'✅ Login successful'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 277 |\u001b[39m\u001b[0m\n\u001b[2m    at D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts:274:38\u001b[22m"
+                            }
+                          ],
+                          "stdout": [
+                            {
+                              "text": "\n🔄 Starting complete authentication flow...\n\n"
+                            },
+                            {
+                              "text": "Step 1: Login\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-17T08:13:47.035Z",
+                          "annotations": [],
+                          "attachments": [],
+                          "errorLocation": {
+                            "file": "D:\\hospital-management-V2\\backend\\services-v2\\identity-service\\tests\\e2e\\frontend-integration.spec.ts",
+                            "column": 38,
+                            "line": 274
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "894b7b7e39932ac2a900-82e5624551c8e78aa819",
+                  "file": "frontend-integration.spec.ts",
+                  "line": 261,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-10-17T08:13:37.143Z",
+    "duration": 10184.152,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 6,
+    "flaky": 0
+  }
+}

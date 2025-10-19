@@ -52,7 +52,7 @@ describe('SupabaseSessionRepository', () => {
       // Assert
       expect(result).not.toBeNull();
       expect(result?.id).toBe(sessionId);
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.user_sessions');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('user_sessions');
       expect(queryMock.eq).toHaveBeenCalledWith('id', sessionId);
     });
 
@@ -193,7 +193,7 @@ describe('SupabaseSessionRepository', () => {
       await repository.deleteAllByUserId(userId);
 
       // Assert
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.user_sessions');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('user_sessions');
       expect(deleteMock.delete).toHaveBeenCalled();
       expect(deleteMock.eq).toHaveBeenCalledWith('user_id', userId);
     });
@@ -220,7 +220,7 @@ describe('SupabaseSessionRepository', () => {
       await repository.delete(sessionId);
 
       // Assert
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.user_sessions');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('user_sessions');
       expect(deleteMock.delete).toHaveBeenCalled();
       expect(deleteMock.eq).toHaveBeenCalledWith('id', sessionId);
     });
@@ -240,7 +240,7 @@ describe('SupabaseSessionRepository', () => {
       await repository.deactivate(sessionId);
 
       // Assert
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.user_sessions');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('user_sessions');
       expect(updateMock.update).toHaveBeenCalledWith({ is_active: false });
       expect(updateMock.eq).toHaveBeenCalledWith('id', sessionId);
     });
@@ -258,7 +258,7 @@ describe('SupabaseSessionRepository', () => {
 
       // Assert
       expect(result).toBe(5);
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('auth_schema.user_sessions');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('user_sessions');
       expect(deleteMock.delete).toHaveBeenCalled();
     });
 

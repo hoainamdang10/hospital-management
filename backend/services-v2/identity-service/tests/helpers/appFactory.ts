@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 // Infrastructure
 import { SupabaseUserRepository } from '../../src/infrastructure/repositories/SupabaseUserRepository';
 import { SupabasePermissionRepository } from '../../src/infrastructure/repositories/SupabasePermissionRepository';
+import { SupabasePendingRegistrationRepository } from '../../src/infrastructure/repositories/SupabasePendingRegistrationRepository';
 import { SupabaseAuthClient } from '../../src/infrastructure/auth/SupabaseAuthClient';
 import { SupabaseAuthService } from '../../src/infrastructure/auth/SupabaseAuthService';
 import { PermissionService } from '../../src/infrastructure/services/PermissionService';
@@ -25,6 +26,8 @@ import { CircuitBreakerFactory } from '../../src/infrastructure/resilience/Circu
 // import { PermissionCache } from '../../src/infrastructure/cache/PermissionCache'; // Mocked below
 import { IdentityServiceHealthCheck } from '../../src/infrastructure/monitoring/HealthChecks';
 import { IdentityServiceDegradation } from '../../src/infrastructure/resilience/GracefulDegradation';
+import { SendGridEmailService } from '../../src/infrastructure/email/SendGridEmailService';
+import { IEmailService } from '../../src/application/services/IEmailService';
 
 // Middleware
 import { AuthenticationMiddleware } from '../../src/presentation/middleware/AuthenticationMiddleware';
@@ -40,6 +43,7 @@ import { RegisterUserUseCase } from '../../src/application/use-cases/RegisterUse
 import { ForgotPasswordUseCase } from '../../src/application/use-cases/ForgotPasswordUseCase';
 import { ResetPasswordUseCase } from '../../src/application/use-cases/ResetPasswordUseCase';
 import { VerifyEmailUseCase } from '../../src/application/use-cases/VerifyEmailUseCase';
+import { ResendVerificationEmailUseCase } from '../../src/application/use-cases/ResendVerificationEmailUseCase';
 import { LogoutUserUseCase } from '../../src/application/use-cases/LogoutUserUseCase';
 import { RefreshTokenUseCase } from '../../src/application/use-cases/RefreshTokenUseCase';
 
@@ -57,6 +61,10 @@ import { ListUsersUseCase } from '../../src/application/use-cases/ListUsersUseCa
 // Use Cases - Staff Management
 import { ProvisionStaffUseCase } from '../../src/application/use-cases/ProvisionStaffUseCase';
 import { AcceptStaffInvitationUseCase } from '../../src/application/use-cases/AcceptStaffInvitationUseCase';
+import { ListStaffInvitationsUseCase } from '../../src/application/use-cases/ListStaffInvitationsUseCase';
+import { GetStaffInvitationUseCase } from '../../src/application/use-cases/GetStaffInvitationUseCase';
+import { CancelStaffInvitationUseCase } from '../../src/application/use-cases/CancelStaffInvitationUseCase';
+import { ResendStaffInvitationUseCase } from '../../src/application/use-cases/ResendStaffInvitationUseCase';
 
 // Use Cases - Session Management
 import { ListActiveSessionsUseCase } from '../../src/application/use-cases/ListActiveSessionsUseCase';
@@ -105,6 +113,8 @@ export interface TestAppConfig {
   supabaseUrl?: string;
   supabaseServiceRoleKey?: string;
   supabaseJwtSecret?: string;
+  jwtSecret?: string;
+  frontendUrl?: string;
 }
 
 /**
@@ -222,6 +232,17 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     logger
   );
 
+  // Initialize Email Service
+  const emailService: IEmailService = new SendGridEmailService(
+    {
+      apiKey: process.env.SENDGRID_API_KEY || 'test-api-key',
+      fromEmail: process.env.SENDGRID_FROM_EMAIL || 'test@hospital.com',
+      fromName: 'Hospital Management System',
+      frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
+    },
+    logger
+  );
+
   // Initialize Middleware
   const authMiddleware = new AuthenticationMiddleware(
     authClient,
@@ -266,11 +287,30 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     mockEventPublisher
   );
 
+  // Initialize REAL Pending Registration Repository (not mock!)
+  const pendingRegistrationRepository = new SupabasePendingRegistrationRepository({
+    supabase: supabaseClient as any,
+    logger,
+    circuitBreaker: CircuitBreakerFactory.getBreaker('pending-registration-repository')
+  });
+
+  // Mock email service (to avoid sending real emails in tests)
+  const mockEmailService = {
+    sendEmail: jest.fn().mockResolvedValue(undefined),
+    sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+    sendStaffInvitationEmail: jest.fn().mockResolvedValue(undefined),
+    sendVerificationSuccessEmail: jest.fn().mockResolvedValue(undefined)
+  } as any;
+
   const registerUserUseCase = new RegisterUserUseCase(
     userRepository,
-    permissionRepository,
+    pendingRegistrationRepository, // Use REAL repository
     logger,
     CircuitBreakerFactory.getBreaker('register-user-use-case'),
+    mockEmailService,
+    config?.jwtSecret || process.env.JWT_SECRET || 'test-jwt-secret',
+    config?.frontendUrl || process.env.FRONTEND_URL || 'http://localhost:3000',
     mockEventPublisher
   );
 
@@ -288,11 +328,36 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
   );
 
   const verifyEmailUseCase = new VerifyEmailUseCase(
-    authService,
     userRepository,
+    pendingRegistrationRepository, // Use REAL repository
+    mockEmailService,
     logger,
     CircuitBreakerFactory.getBreaker('verify-email-use-case'),
+    config?.jwtSecret || process.env.JWT_SECRET || 'test-jwt-secret',
     mockEventPublisher
+  );
+
+  // Mock email verification token repository
+  const mockEmailVerificationTokenRepository = {
+    store: jest.fn(),
+    findByToken: jest.fn(),
+    findLatestByUserId: jest.fn(),
+    findLatestByEmail: jest.fn(),
+    markAsUsed: jest.fn(),
+    deleteExpired: jest.fn(),
+    countActiveForUser: jest.fn(),
+    countActiveForEmail: jest.fn()
+  } as any;
+
+  const resendVerificationEmailUseCase = new ResendVerificationEmailUseCase(
+    userRepository,
+    mockEmailVerificationTokenRepository,
+    pendingRegistrationRepository,
+    mockEmailService,
+    logger,
+    CircuitBreakerFactory.getBreaker('resend-verification-email-use-case'),
+    config?.jwtSecret || process.env.JWT_SECRET || 'test-jwt-secret',
+    config?.frontendUrl || process.env.FRONTEND_URL || 'http://localhost:3000'
   );
 
   const logoutUserUseCase = new LogoutUserUseCase(
@@ -359,6 +424,8 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
   const provisionStaffUseCase = new ProvisionStaffUseCase(
     userRepository,
     logger,
+    mockEmailService,
+    process.env.FRONTEND_URL || 'http://localhost:3000',
     mockEventPublisher
   );
 
@@ -368,6 +435,28 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     mockEventPublisher
   );
 
+  const listStaffInvitationsUseCase = new ListStaffInvitationsUseCase(
+    userRepository,
+    logger
+  );
+
+  const getStaffInvitationUseCase = new GetStaffInvitationUseCase(
+    userRepository,
+    logger
+  );
+
+  const cancelStaffInvitationUseCase = new CancelStaffInvitationUseCase(
+    userRepository,
+    logger
+  );
+
+  const resendStaffInvitationUseCase = new ResendStaffInvitationUseCase(
+    userRepository,
+    emailService,
+    logger,
+    process.env.FRONTEND_URL || 'http://localhost:3000'
+  );
+
   // Initialize Use Cases - Session Management
   const listActiveSessionsUseCase = new ListActiveSessionsUseCase(
     sessionRepository,
@@ -375,11 +464,13 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
   );
 
   const terminateSessionUseCase = new TerminateSessionUseCase(
-    sessionRepository
+    sessionRepository,
+    logger
   );
 
   const terminateAllSessionsUseCase = new TerminateAllSessionsUseCase(
-    sessionRepository
+    sessionRepository,
+    logger
   );
 
   // Initialize Use Cases - Password Policy
@@ -506,6 +597,7 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     forgotPasswordUseCase,
     resetPasswordUseCase,
     verifyEmailUseCase,
+    resendVerificationEmailUseCase,
     logoutUserUseCase,
     refreshTokenUseCase,
 
@@ -523,6 +615,10 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     // Staff Management Use Cases
     provisionStaffUseCase,
     acceptStaffInvitationUseCase,
+    listStaffInvitationsUseCase,
+    getStaffInvitationUseCase,
+    cancelStaffInvitationUseCase,
+    resendStaffInvitationUseCase,
 
     // Session Management Use Cases
     listActiveSessionsUseCase,
@@ -557,7 +653,10 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     // Services
     healthCheck,
     degradationService,
-    permissionService
+    permissionService,
+
+    // Repositories
+    sessionRepository
   };
 
   // Register routes

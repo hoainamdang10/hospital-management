@@ -1,39 +1,49 @@
 import { getErrorMessage } from '../../utils/error-helper';
 /**
- * Verify Email Use Case
- * Handles email verification with OTP
+ * Verify Email Use Case - Verify-First Approach
+ * Handles email verification and creates user AFTER verification
+ *
+ * Design Pattern: Verify-First
+ * - Finds pending registration by token
+ * - Creates actual user in auth.users and user_profiles
+ * - Deletes pending registration after successful user creation
+ * - Sends welcome email
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Verify-First Approach
  */
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
-import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
+import { IPendingRegistrationRepository } from '../../domain/repositories/IPendingRegistrationRepository';
+import { IEmailService } from '../services/IEmailService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
+import { EmailVerificationToken } from '../../domain/value-objects/EmailVerificationToken';
 import { Email } from '../../domain/value-objects/Email';
 import { IEventPublisher } from '../services/IEventPublisher';
 import { UserActivatedEvent } from '../../domain/events/UserActivatedEvent';
 import { ILogger } from '../services/ILogger';
 
 export interface VerifyEmailRequest {
-  email: string;
   token: string;
 }
 
 export interface VerifyEmailResponse {
   success: boolean;
   userId?: string;
+  email?: string;
   message: string;
   error?: string;
 }
 
 export class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEmailResponse> {
   constructor(
-    private authService: IAuthenticationService,
     private userRepository: IUserRepository,
+    private pendingRegistrationRepository: IPendingRegistrationRepository,
+    private emailService: IEmailService,
     private logger: ILogger,
     private circuitBreaker: ICircuitBreaker,
+    private jwtSecret: string,
     private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
@@ -53,67 +63,172 @@ export class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEm
 
   private async executeImpl(request: VerifyEmailRequest): Promise<VerifyEmailResponse> {
     try {
-      this.logger.info('Processing email verification', { email: request.email });
+      this.logger.info('Processing email verification (Verify-First)');
 
-      if (!request.email || !request.email.includes('@')) {
-        return {
-          success: false,
-          message: 'Email không hợp lệ',
-          error: 'INVALID_EMAIL'
-        };
-      }
-
+      // 1. Validate token format
       if (!request.token || request.token.trim().length === 0) {
         return {
           success: false,
-          message: 'Mã xác thực không hợp lệ',
+          message: 'Token xác thực không hợp lệ',
           error: 'INVALID_TOKEN'
         };
       }
 
-      // Use new interface method
-      await this.authService.verifyEmail(request.email, request.token);
-
-      this.logger.info('Email verified successfully via Supabase Auth', {
-        email: request.email
-      });
-
-      // Find user by email and update verification status
-      const email = Email.create(request.email);
-      const user = await this.userRepository.findByEmail(email);
-
-      if (!user) {
+      // 2. Verify JWT token and extract payload
+      let tokenPayload: { userId: string; email: string };
+      try {
+        tokenPayload = EmailVerificationToken.verify(request.token, this.jwtSecret);
+      } catch (error) {
+        this.logger.warn('Invalid JWT token', { error: getErrorMessage(error) });
         return {
           success: false,
-          error: 'User not found',
-          message: 'Không tìm thấy người dùng'
+          message: 'Token xác thực không hợp lệ hoặc đã hết hạn',
+          error: 'INVALID_TOKEN'
         };
       }
 
-      // Update user aggregate
-      user.verifyEmail();
+      // 3. Find pending registration by token
+      const pendingRegistration = await this.pendingRegistrationRepository.findByToken(request.token);
 
-      // Persist using new repository signature
-      await this.userRepository.update(user);
+      if (!pendingRegistration) {
+        this.logger.warn('Pending registration not found', {
+          tokenEmail: tokenPayload.email
+        });
+        return {
+          success: false,
+          message: 'Token xác thực không tồn tại hoặc đã hết hạn',
+          error: 'TOKEN_NOT_FOUND'
+        };
+      }
 
-      this.logger.info('User profile updated with email verification', { userId: user.id });
+      // 4. Check if pending registration can be verified
+      if (!pendingRegistration.canBeVerified()) {
+        if (pendingRegistration.isExpired()) {
+          this.logger.warn('Pending registration expired', {
+            pendingRegistrationId: pendingRegistration.id,
+            expiresAt: pendingRegistration.expiresAt
+          });
+          return {
+            success: false,
+            message: 'Token xác thực đã hết hạn. Vui lòng đăng ký lại.',
+            error: 'TOKEN_EXPIRED'
+          };
+        }
 
-      // Publish UserActivated event
+        if (pendingRegistration.isUsed) {
+          this.logger.warn('Pending registration already used', {
+            pendingRegistrationId: pendingRegistration.id
+          });
+          return {
+            success: false,
+            message: 'Token xác thực đã được sử dụng',
+            error: 'TOKEN_ALREADY_USED'
+          };
+        }
+      }
+
+      // 5. Check if user already exists (edge case: user created manually)
+      const email = Email.create(tokenPayload.email);
+      const existingUser = await this.userRepository.findByEmail(email);
+      if (existingUser) {
+        this.logger.warn('User already exists during verification', {
+          email: tokenPayload.email
+        });
+
+        // Cleanup pending registration
+        await this.pendingRegistrationRepository.delete(pendingRegistration.id);
+
+        return {
+          success: false,
+          message: 'Email đã được đăng ký. Vui lòng đăng nhập.',
+          error: 'USER_ALREADY_EXISTS'
+        };
+      }
+
+      // 6. Create user from pending registration data
+      const userData = pendingRegistration.userData;
+      const user = await this.userRepository.createAuthUser({
+        email: pendingRegistration.email.value,
+        password: pendingRegistration.passwordHash, // Already hashed
+        fullName: userData.fullName,
+        roleType: userData.roleType,
+        phoneNumber: userData.phoneNumber,
+        citizenId: userData.citizenId,
+        dateOfBirth: userData.dateOfBirth,
+        gender: userData.gender,
+        address: userData.address,
+        emailConfirm: true // Email already verified
+      });
+
+      this.logger.info('User created successfully from pending registration', {
+        userId: user.id,
+        email: user.email.value,
+        pendingRegistrationId: pendingRegistration.id
+      });
+
+      // 7. Mark pending registration as verified
+      try {
+        await this.pendingRegistrationRepository.updateStatus(pendingRegistration.id, 'VERIFIED');
+      } catch (error) {
+        this.logger.error('Failed to mark pending registration as verified', {
+          pendingRegistrationId: pendingRegistration.id,
+          error: getErrorMessage(error)
+        });
+        // Continue - user already created
+      }
+
+      // 8. Delete pending registration (cleanup)
+      try {
+        await this.pendingRegistrationRepository.delete(pendingRegistration.id);
+        this.logger.info('Pending registration deleted after successful verification', {
+          pendingRegistrationId: pendingRegistration.id
+        });
+      } catch (error) {
+        this.logger.error('Failed to delete pending registration', {
+          pendingRegistrationId: pendingRegistration.id,
+          error: getErrorMessage(error)
+        });
+        // Continue - user already created, cleanup can happen later
+      }
+
+      // 9. Send welcome email
+      try {
+        await this.emailService.sendVerificationSuccessEmail({
+          email: user.email.value,
+          userName: user.personalInfo.fullName
+        });
+      } catch (error) {
+        this.logger.error('Failed to send welcome email', {
+          userId: user.id,
+          error: getErrorMessage(error)
+        });
+        // Don't fail verification if email sending fails
+      }
+
+      // 10. Publish domain events
       if (this.eventPublisher) {
         try {
-          const event = new UserActivatedEvent(
-            user.id, // Pass string directly
-            email.value, // Pass string directly
+          // Publish UserCreated event from user aggregate
+          const userEvents = user.getUncommittedEvents();
+          if (userEvents.length > 0) {
+            await this.eventPublisher.publishDomainEvents(userEvents);
+            user.markEventsAsCommitted();
+          }
+
+          // Publish UserActivated event
+          const activatedEvent = new UserActivatedEvent(
+            user.id,
+            user.email.value,
             new Date()
           );
+          await this.eventPublisher.publishDomainEvents([activatedEvent]);
 
-          await this.eventPublisher.publishDomainEvents([event]);
-
-          this.logger.info('UserActivated event published', {
-            userId: user.id
+          this.logger.info('Domain events published', {
+            userId: user.id,
+            eventCount: userEvents.length + 1
           });
         } catch (error) {
-          this.logger.error('Failed to publish UserActivated event', {
+          this.logger.error('Failed to publish domain events', {
             userId: user.id,
             error: getErrorMessage(error)
           });
@@ -124,18 +239,18 @@ export class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, VerifyEm
       return {
         success: true,
         userId: user.id,
-        message: 'Email đã được xác thực thành công. Bạn có thể đăng nhập ngay bây giờ.'
+        email: user.email.value,
+        message: 'Email đã được xác thực thành công! Tài khoản của bạn đã được tạo. Bạn có thể đăng nhập ngay bây giờ.'
       };
 
     } catch (error) {
-      this.logger.error('Email verification failed', { 
-        email: request.email, 
-        error: getErrorMessage(error) 
+      this.logger.error('Email verification failed', {
+        error: getErrorMessage(error)
       });
 
       return {
         success: false,
-        message: `Xác thực email thất bại: ${getErrorMessage(error)}`,
+        message: 'Xác thực email thất bại. Vui lòng thử lại sau.',
         error: 'VERIFICATION_FAILED'
       };
     }

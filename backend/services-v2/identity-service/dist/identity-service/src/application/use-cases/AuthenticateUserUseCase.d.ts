@@ -1,13 +1,3 @@
-/**
- * Authenticate User Use Case - Enhanced with Circuit Breaker
- * Handles user authentication with graceful degradation
- *
- * Pure RBAC: Uses IPermissionRepository for permission management
- *
- * @author Hospital Management Team
- * @version 3.0.0 - Pure RBAC
- * @compliance Production-Ready, HIPAA-Compliant, Anti-Pattern Mitigation
- */
 import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { ServiceMode } from '../services/IDegradationService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
@@ -38,6 +28,7 @@ export interface AuthenticateUserResponse {
     degradationReason?: string;
     requiresMFA?: boolean;
     error?: string;
+    message?: string;
 }
 /**
  * Use Case for authenticating users with enhanced error handling

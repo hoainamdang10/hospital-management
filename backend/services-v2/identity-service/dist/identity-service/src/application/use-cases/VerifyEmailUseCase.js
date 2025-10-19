@@ -2,15 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerifyEmailUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
+const EmailVerificationToken_1 = require("../../domain/value-objects/EmailVerificationToken");
 const Email_1 = require("../../domain/value-objects/Email");
 const UserActivatedEvent_1 = require("../../domain/events/UserActivatedEvent");
 class VerifyEmailUseCase {
-    constructor(authService, userRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    constructor(userRepository, pendingRegistrationRepository, emailService, logger, circuitBreaker, jwtSecret, eventPublisher // Optional for backward compatibility
     ) {
-        this.authService = authService;
         this.userRepository = userRepository;
+        this.pendingRegistrationRepository = pendingRegistrationRepository;
+        this.emailService = emailService;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
+        this.jwtSecret = jwtSecret;
         this.eventPublisher = eventPublisher;
     }
     async execute(request) {
@@ -25,54 +28,156 @@ class VerifyEmailUseCase {
     }
     async executeImpl(request) {
         try {
-            this.logger.info('Processing email verification', { email: request.email });
-            if (!request.email || !request.email.includes('@')) {
-                return {
-                    success: false,
-                    message: 'Email không hợp lệ',
-                    error: 'INVALID_EMAIL'
-                };
-            }
+            this.logger.info('Processing email verification (Verify-First)');
+            // 1. Validate token format
             if (!request.token || request.token.trim().length === 0) {
                 return {
                     success: false,
-                    message: 'Mã xác thực không hợp lệ',
+                    message: 'Token xác thực không hợp lệ',
                     error: 'INVALID_TOKEN'
                 };
             }
-            // Use new interface method
-            await this.authService.verifyEmail(request.email, request.token);
-            this.logger.info('Email verified successfully via Supabase Auth', {
-                email: request.email
-            });
-            // Find user by email and update verification status
-            const email = Email_1.Email.create(request.email);
-            const user = await this.userRepository.findByEmail(email);
-            if (!user) {
+            // 2. Verify JWT token and extract payload
+            let tokenPayload;
+            try {
+                tokenPayload = EmailVerificationToken_1.EmailVerificationToken.verify(request.token, this.jwtSecret);
+            }
+            catch (error) {
+                this.logger.warn('Invalid JWT token', { error: (0, error_helper_1.getErrorMessage)(error) });
                 return {
                     success: false,
-                    error: 'User not found',
-                    message: 'Không tìm thấy người dùng'
+                    message: 'Token xác thực không hợp lệ hoặc đã hết hạn',
+                    error: 'INVALID_TOKEN'
                 };
             }
-            // Update user aggregate
-            user.verifyEmail();
-            // Persist using new repository signature
-            await this.userRepository.update(user);
-            this.logger.info('User profile updated with email verification', { userId: user.id });
-            // Publish UserActivated event
+            // 3. Find pending registration by token
+            const pendingRegistration = await this.pendingRegistrationRepository.findByToken(request.token);
+            if (!pendingRegistration) {
+                this.logger.warn('Pending registration not found', {
+                    tokenEmail: tokenPayload.email
+                });
+                return {
+                    success: false,
+                    message: 'Token xác thực không tồn tại hoặc đã hết hạn',
+                    error: 'TOKEN_NOT_FOUND'
+                };
+            }
+            // 4. Check if pending registration can be verified
+            if (!pendingRegistration.canBeVerified()) {
+                if (pendingRegistration.isExpired()) {
+                    this.logger.warn('Pending registration expired', {
+                        pendingRegistrationId: pendingRegistration.id,
+                        expiresAt: pendingRegistration.expiresAt
+                    });
+                    return {
+                        success: false,
+                        message: 'Token xác thực đã hết hạn. Vui lòng đăng ký lại.',
+                        error: 'TOKEN_EXPIRED'
+                    };
+                }
+                if (pendingRegistration.isUsed) {
+                    this.logger.warn('Pending registration already used', {
+                        pendingRegistrationId: pendingRegistration.id
+                    });
+                    return {
+                        success: false,
+                        message: 'Token xác thực đã được sử dụng',
+                        error: 'TOKEN_ALREADY_USED'
+                    };
+                }
+            }
+            // 5. Check if user already exists (edge case: user created manually)
+            const email = Email_1.Email.create(tokenPayload.email);
+            const existingUser = await this.userRepository.findByEmail(email);
+            if (existingUser) {
+                this.logger.warn('User already exists during verification', {
+                    email: tokenPayload.email
+                });
+                // Cleanup pending registration
+                await this.pendingRegistrationRepository.delete(pendingRegistration.id);
+                return {
+                    success: false,
+                    message: 'Email đã được đăng ký. Vui lòng đăng nhập.',
+                    error: 'USER_ALREADY_EXISTS'
+                };
+            }
+            // 6. Create user from pending registration data
+            const userData = pendingRegistration.userData;
+            const user = await this.userRepository.createAuthUser({
+                email: pendingRegistration.email.value,
+                password: pendingRegistration.passwordHash, // Already hashed
+                fullName: userData.fullName,
+                roleType: userData.roleType,
+                phoneNumber: userData.phoneNumber,
+                citizenId: userData.citizenId,
+                dateOfBirth: userData.dateOfBirth,
+                gender: userData.gender,
+                address: userData.address,
+                emailConfirm: true // Email already verified
+            });
+            this.logger.info('User created successfully from pending registration', {
+                userId: user.id,
+                email: user.email.value,
+                pendingRegistrationId: pendingRegistration.id
+            });
+            // 7. Mark pending registration as verified
+            try {
+                await this.pendingRegistrationRepository.updateStatus(pendingRegistration.id, 'VERIFIED');
+            }
+            catch (error) {
+                this.logger.error('Failed to mark pending registration as verified', {
+                    pendingRegistrationId: pendingRegistration.id,
+                    error: (0, error_helper_1.getErrorMessage)(error)
+                });
+                // Continue - user already created
+            }
+            // 8. Delete pending registration (cleanup)
+            try {
+                await this.pendingRegistrationRepository.delete(pendingRegistration.id);
+                this.logger.info('Pending registration deleted after successful verification', {
+                    pendingRegistrationId: pendingRegistration.id
+                });
+            }
+            catch (error) {
+                this.logger.error('Failed to delete pending registration', {
+                    pendingRegistrationId: pendingRegistration.id,
+                    error: (0, error_helper_1.getErrorMessage)(error)
+                });
+                // Continue - user already created, cleanup can happen later
+            }
+            // 9. Send welcome email
+            try {
+                await this.emailService.sendVerificationSuccessEmail({
+                    email: user.email.value,
+                    userName: user.personalInfo.fullName
+                });
+            }
+            catch (error) {
+                this.logger.error('Failed to send welcome email', {
+                    userId: user.id,
+                    error: (0, error_helper_1.getErrorMessage)(error)
+                });
+                // Don't fail verification if email sending fails
+            }
+            // 10. Publish domain events
             if (this.eventPublisher) {
                 try {
-                    const event = new UserActivatedEvent_1.UserActivatedEvent(user.id, // Pass string directly
-                    email.value, // Pass string directly
-                    new Date());
-                    await this.eventPublisher.publishDomainEvents([event]);
-                    this.logger.info('UserActivated event published', {
-                        userId: user.id
+                    // Publish UserCreated event from user aggregate
+                    const userEvents = user.getUncommittedEvents();
+                    if (userEvents.length > 0) {
+                        await this.eventPublisher.publishDomainEvents(userEvents);
+                        user.markEventsAsCommitted();
+                    }
+                    // Publish UserActivated event
+                    const activatedEvent = new UserActivatedEvent_1.UserActivatedEvent(user.id, user.email.value, new Date());
+                    await this.eventPublisher.publishDomainEvents([activatedEvent]);
+                    this.logger.info('Domain events published', {
+                        userId: user.id,
+                        eventCount: userEvents.length + 1
                     });
                 }
                 catch (error) {
-                    this.logger.error('Failed to publish UserActivated event', {
+                    this.logger.error('Failed to publish domain events', {
                         userId: user.id,
                         error: (0, error_helper_1.getErrorMessage)(error)
                     });
@@ -82,17 +187,17 @@ class VerifyEmailUseCase {
             return {
                 success: true,
                 userId: user.id,
-                message: 'Email đã được xác thực thành công. Bạn có thể đăng nhập ngay bây giờ.'
+                email: user.email.value,
+                message: 'Email đã được xác thực thành công! Tài khoản của bạn đã được tạo. Bạn có thể đăng nhập ngay bây giờ.'
             };
         }
         catch (error) {
             this.logger.error('Email verification failed', {
-                email: request.email,
                 error: (0, error_helper_1.getErrorMessage)(error)
             });
             return {
                 success: false,
-                message: `Xác thực email thất bại: ${(0, error_helper_1.getErrorMessage)(error)}`,
+                message: 'Xác thực email thất bại. Vui lòng thử lại sau.',
                 error: 'VERIFICATION_FAILED'
             };
         }

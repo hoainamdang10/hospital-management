@@ -36,6 +36,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       .from(this.tableName) // Supabase client already configured with schema
       .select('*')
       .eq('id', sessionId)
+      .eq('is_active', true) // Only return active sessions
       .single();
 
     if (error || !data) {

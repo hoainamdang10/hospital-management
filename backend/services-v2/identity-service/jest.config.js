@@ -116,8 +116,8 @@ module.exports = {
   restoreMocks: true,
   resetMocks: true,
   
-  // Verbose output (disabled for faster testing)
-  verbose: false,
+  // Verbose output (enabled for debugging)
+  verbose: true,
 
   // Test timeout (default for unit tests)
   // testTimeout: 5000, // Moved to projects config
@@ -217,7 +217,7 @@ module.exports = {
   cache: true,
   cacheDirectory: '<rootDir>/node_modules/.cache/jest',
   
-  // Silent mode
+  // Silent mode (disabled to see console.log)
   silent: false,
   
   // Max workers (optimized at 75% for best performance)

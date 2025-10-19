@@ -156,6 +156,12 @@ services:
       - SERVICE_NAME=identity-service
       - SERVICE_VERSION=2.0.0
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3101
+      # Email Verification Configuration
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - redis-v2
       - rabbitmq-v2

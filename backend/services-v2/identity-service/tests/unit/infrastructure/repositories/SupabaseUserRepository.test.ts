@@ -64,6 +64,7 @@ const buildMockUser = (over: Partial<any> = {}) => ({
     emergencyContactPhone: over.emergencyContactPhone,
   },
   healthcareRole: {
+    type: over.roleType ?? 'DOCTOR', // Add 'type' property for UserMapper.toPersistence()
     roleType: over.roleType ?? 'DOCTOR',
     name: over.roleName ?? 'DOCTOR',
     vietnameseName: over.vietnameseName ?? 'Bác sĩ',

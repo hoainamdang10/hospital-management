@@ -268,28 +268,6 @@ describe('Email Value Object', () => {
     });
   });
 
-  describe('isSupabaseCompatible', () => {
-    it('should return true for compatible email', () => {
-      const email = Email.create('test@example.com');
-      expect(email.isSupabaseCompatible()).toBe(true);
-    });
-
-    it('should return false for email with + alias', () => {
-      const email = Email.create('test+alias@example.com');
-      expect(email.isSupabaseCompatible()).toBe(false);
-    });
-
-    it('should return false for email without TLD', () => {
-      const email = Email.create('test@localhost');
-      expect(email.isSupabaseCompatible()).toBe(false);
-    });
-
-    it('should return true for email with subdomain', () => {
-      const email = Email.create('test@mail.example.com');
-      expect(email.isSupabaseCompatible()).toBe(true);
-    });
-  });
-
   describe('equals', () => {
     it('should return true for equal emails', () => {
       const email1 = Email.create('test@example.com');
@@ -321,13 +299,6 @@ describe('Email Value Object', () => {
     });
   });
 
-  describe('toSupabaseFormat', () => {
-    it('should return email in Supabase format', () => {
-      const email = Email.create('test@example.com');
-      expect(email.toSupabaseFormat()).toBe('test@example.com');
-    });
-  });
-
   describe('domain - invalid scenarios', () => {
     it('should return empty string for malformed email (no @)', () => {
       // This test verifies graceful degradation when email is somehow malformed
@@ -347,44 +318,6 @@ describe('Email Value Object', () => {
       expect(domain).toBe('example.com');
     });
 
-    it('should return empty string when split fails', () => {
-      const email = Email.create('test@example.com');
-      // Mock console.warn to verify it's called
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force an error by making value non-splittable
-      Object.defineProperty(email, 'props', {
-        get: () => ({ value: { split: () => { throw new Error('Split failed'); } } })
-      });
-
-      expect(email.domain).toBe('');
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Failed to extract email domain',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
-  });
-
-  describe('localPart - invalid scenarios', () => {
-    it('should return empty string when extraction fails', () => {
-      const email = Email.create('test@example.com');
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force an error
-      Object.defineProperty(email, 'props', {
-        get: () => ({ value: { split: () => { throw new Error('Split failed'); } } })
-      });
-
-      expect(email.localPart).toBe('');
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Failed to extract email local part',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
   });
 
   describe('isHealthcareStaffEmail - non-healthcare scenarios', () => {
@@ -406,156 +339,6 @@ describe('Email Value Object', () => {
     it('should return false for company email', () => {
       const email = Email.create('employee@company.com');
       expect(email.isHealthcareStaffEmail()).toBe(false);
-    });
-
-    it('should return false when error occurs', () => {
-      const email = Email.create('test@example.com');
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force an error
-      Object.defineProperty(email, 'domain', {
-        get: () => { throw new Error('Domain error'); }
-      });
-
-      expect(email.isHealthcareStaffEmail()).toBe(false);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Healthcare staff email check failed',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
-  });
-
-  describe('getEmailType - error handling', () => {
-    it('should return unknown when error occurs', () => {
-      const email = Email.create('test@example.com');
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force an error
-      Object.defineProperty(email, 'localPart', {
-        get: () => { throw new Error('LocalPart error'); }
-      });
-
-      expect(email.getEmailType()).toBe('unknown');
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Email type detection failed',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
-  });
-
-  describe('isVietnameseHospitalEmail - error handling', () => {
-    it('should return false when error occurs', () => {
-      const email = Email.create('test@example.com');
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force an error
-      Object.defineProperty(email, 'domain', {
-        get: () => { throw new Error('Domain error'); }
-      });
-
-      expect(email.isVietnameseHospitalEmail()).toBe(false);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Vietnamese hospital email check failed',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
-  });
-
-  describe('isValid - error handling', () => {
-    it('should return false when validation throws error', () => {
-      const email = Email.create('test@example.com');
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force validation to fail
-      Object.defineProperty(email, 'props', {
-        get: () => { throw new Error('Props error'); }
-      });
-
-      expect(email.isValid()).toBe(false);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Email validation failed',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
-  });
-
-  describe('getMaskedEmail - error handling', () => {
-    it('should return default masked email when error occurs', () => {
-      const email = Email.create('test@example.com');
-
-      // Force an error
-      Object.defineProperty(email, 'localPart', {
-        get: () => { throw new Error('LocalPart error'); }
-      });
-
-      expect(email.getMaskedEmail()).toBe('masked@email.com');
-    });
-  });
-
-  describe('isSupabaseCompatible - error handling', () => {
-    it('should return false when error occurs', () => {
-      const email = Email.create('test@example.com');
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force an error
-      Object.defineProperty(email, 'isValid', {
-        value: () => { throw new Error('Validation error'); }
-      });
-
-      expect(email.isSupabaseCompatible()).toBe(false);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Supabase compatibility check failed',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
-
-    it('should return false for email shorter than 6 chars', () => {
-      const email = Email.create('a@b.c');
-      expect(email.isSupabaseCompatible()).toBe(false);
-    });
-  });
-
-  describe('equals - error handling', () => {
-    it('should return false when comparison throws error', () => {
-      const email1 = Email.create('test@example.com');
-      const email2 = Email.create('test@example.com');
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Force an error
-      Object.defineProperty(email1, 'props', {
-        get: () => { throw new Error('Props error'); }
-      });
-
-      expect(email1.equals(email2)).toBe(false);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Email equality check failed',
-        expect.any(Object)
-      );
-
-      warnSpy.mockRestore();
-    });
-  });
-
-  describe('toString - error handling', () => {
-    it('should return default email when error occurs', () => {
-      const email = Email.create('test@example.com');
-
-      // Force an error
-      Object.defineProperty(email, 'props', {
-        get: () => { throw new Error('Props error'); }
-      });
-
-      expect(email.toString()).toBe('invalid@email.com');
     });
   });
 
@@ -587,8 +370,6 @@ describe('Email Value Object', () => {
       // Our regex may accept this - test actual behavior
       const email = Email.create('test@domain');
       expect(email.value).toBe('test@domain');
-      // But it should fail Supabase compatibility check
-      expect(email.isSupabaseCompatible()).toBe(false);
     });
 
     it('should throw error for domain starting with hyphen', () => {

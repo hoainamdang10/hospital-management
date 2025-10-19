@@ -46,8 +46,8 @@ class PersonalInfo extends value_object_1.ValueObject {
         });
     }
     // REMOVED: fromSupabaseData() method
-    // This method violated Clean Architecture by knowing about database column names
-    // Use PersonalInfo.create() directly in infrastructure layer mappers
+    // This method violated Clean Architecture by coupling domain to external concerns
+    // Use PersonalInfo.create() directly in mappers
     static isValidVietnamesePhone(phone) {
         // Vietnamese phone: 10 digits, starts with 0
         const phoneRegex = /^0\d{9}$/;

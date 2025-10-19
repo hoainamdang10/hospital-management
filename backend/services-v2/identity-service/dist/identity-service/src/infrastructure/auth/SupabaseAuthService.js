@@ -29,7 +29,7 @@ class SupabaseAuthService {
         this.logger = logger;
         this.supabaseClient = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
             auth: {
-                autoRefreshToken: true,
+                autoRefreshToken: false, // Disabled to prevent memory leaks and session state pollution in tests
                 persistSession: false,
             },
         });
@@ -71,50 +71,109 @@ class SupabaseAuthService {
     /**
      * Sign in user with Supabase Auth
      * Password verification is handled by Supabase
+     * Includes retry logic for network errors (ECONNRESET, fetch failed)
      */
     async signIn(credentials) {
-        try {
-            this.logger.info('Signing in user with Supabase Auth', { email: credentials.email });
-            const { data, error } = await this.supabaseClient.auth.signInWithPassword({
-                email: credentials.email,
-                password: credentials.password
-            });
-            if (error) {
-                this.logger.warn('Supabase Auth signIn failed', { email: credentials.email, error: (0, error_helper_1.getErrorMessage)(error) });
+        const maxRetries = 3;
+        let lastError = null;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                this.logger.info('Signing in user with Supabase Auth', {
+                    email: credentials.email,
+                    attempt: attempt > 1 ? `${attempt}/${maxRetries}` : undefined
+                });
+                const { data, error } = await this.supabaseClient.auth.signInWithPassword({
+                    email: credentials.email,
+                    password: credentials.password
+                });
+                if (error) {
+                    const errorMessage = (0, error_helper_1.getErrorMessage)(error);
+                    // Check if it's a network error that should be retried
+                    const isNetworkError = errorMessage.includes('fetch failed') ||
+                        errorMessage.includes('ECONNRESET') ||
+                        errorMessage.includes('ETIMEDOUT') ||
+                        errorMessage.includes('network');
+                    if (isNetworkError && attempt < maxRetries) {
+                        lastError = error;
+                        this.logger.warn('Network error during sign in, retrying...', {
+                            email: credentials.email,
+                            error: errorMessage,
+                            attempt: `${attempt}/${maxRetries}`
+                        });
+                        // Wait before retry (exponential backoff: 1s, 2s, 3s)
+                        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                        continue;
+                    }
+                    // Non-network error or max retries reached
+                    this.logger.warn('Supabase Auth signIn failed', { email: credentials.email, error: errorMessage });
+                    return {
+                        success: false,
+                        error: errorMessage,
+                        message: `Đăng nhập thất bại: ${errorMessage}`
+                    };
+                }
+                if (!data.user || !data.session) {
+                    return {
+                        success: false,
+                        error: 'No user or session returned',
+                        message: 'Đăng nhập thất bại: Không nhận được thông tin người dùng'
+                    };
+                }
+                this.logger.info('User signed in successfully', {
+                    userId: data.user.id,
+                    email: credentials.email,
+                    retriedAttempts: attempt > 1 ? attempt - 1 : 0
+                });
                 return {
-                    success: false,
-                    error: (0, error_helper_1.getErrorMessage)(error),
-                    message: `Đăng nhập thất bại: ${(0, error_helper_1.getErrorMessage)(error)}`
+                    success: true,
+                    user: {
+                        id: data.user.id,
+                        email: data.user.email,
+                        role: data.user.user_metadata?.role_type || this.defaultUserRole
+                    },
+                    accessToken: data.session.access_token,
+                    refreshToken: data.session.refresh_token,
+                    expiresIn: data.session.expires_in
                 };
             }
-            if (!data.user || !data.session) {
+            catch (error) {
+                lastError = error;
+                const errorMessage = (0, error_helper_1.getErrorMessage)(error);
+                // Check if it's a network error
+                const isNetworkError = errorMessage.includes('fetch failed') ||
+                    errorMessage.includes('ECONNRESET') ||
+                    errorMessage.includes('ETIMEDOUT');
+                if (isNetworkError && attempt < maxRetries) {
+                    this.logger.warn('Network exception during sign in, retrying...', {
+                        email: credentials.email,
+                        error: errorMessage,
+                        attempt: `${attempt}/${maxRetries}`
+                    });
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                    continue;
+                }
+                // Non-network error or max retries reached
+                this.logger.error('Sign in error', { email: credentials.email, error: errorMessage });
                 return {
                     success: false,
-                    error: 'No user or session returned',
-                    message: 'Đăng nhập thất bại: Không nhận được thông tin người dùng'
+                    error: errorMessage,
+                    message: `Đăng nhập thất bại: ${errorMessage}`
                 };
             }
-            this.logger.info('User signed in successfully', { userId: data.user.id, email: credentials.email });
-            return {
-                success: true,
-                user: {
-                    id: data.user.id,
-                    email: data.user.email,
-                    role: data.user.user_metadata?.role_type || this.defaultUserRole
-                },
-                accessToken: data.session.access_token,
-                refreshToken: data.session.refresh_token,
-                expiresIn: data.session.expires_in
-            };
         }
-        catch (error) {
-            this.logger.error('Sign in error', { email: credentials.email, error: (0, error_helper_1.getErrorMessage)(error) });
-            return {
-                success: false,
-                error: (0, error_helper_1.getErrorMessage)(error),
-                message: `Đăng nhập thất bại: ${(0, error_helper_1.getErrorMessage)(error)}`
-            };
-        }
+        // All retries failed
+        const finalErrorMessage = (0, error_helper_1.getErrorMessage)(lastError);
+        this.logger.error('Sign in failed after all retries', {
+            email: credentials.email,
+            error: finalErrorMessage,
+            attempts: maxRetries
+        });
+        return {
+            success: false,
+            error: finalErrorMessage,
+            message: `Đăng nhập thất bại sau ${maxRetries} lần thử: ${finalErrorMessage}`
+        };
     }
     /**
      * Sign out user
@@ -305,6 +364,28 @@ class SupabaseAuthService {
         }
         catch (error) {
             this.logger.error('Update password error', { error: (0, error_helper_1.getErrorMessage)(error) });
+            throw error;
+        }
+    }
+    /**
+     * Update user metadata
+     * Updates user metadata in Supabase Auth
+     */
+    async updateUserMetadata(userId, metadata) {
+        try {
+            this.logger.info('Updating user metadata', { userId, metadata });
+            // Update user metadata using Supabase Admin API
+            const { error } = await this.supabaseClient.auth.admin.updateUserById(userId, {
+                user_metadata: metadata
+            });
+            if (error) {
+                this.logger.error('Supabase Auth updateUserMetadata failed', { error: (0, error_helper_1.getErrorMessage)(error) });
+                throw new Error(`Cập nhật user metadata thất bại: ${(0, error_helper_1.getErrorMessage)(error)}`);
+            }
+            this.logger.info('User metadata updated successfully', { userId });
+        }
+        catch (error) {
+            this.logger.error('Update user metadata error', { error: (0, error_helper_1.getErrorMessage)(error) });
             throw error;
         }
     }

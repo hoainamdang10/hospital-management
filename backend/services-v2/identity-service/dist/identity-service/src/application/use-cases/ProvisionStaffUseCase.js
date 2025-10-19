@@ -51,10 +51,12 @@ const Email_1 = require("../../domain/value-objects/Email");
 const crypto = __importStar(require("crypto"));
 const StaffInvitationCreatedEvent_1 = require("../../domain/events/StaffInvitationCreatedEvent");
 class ProvisionStaffUseCase {
-    constructor(userRepository, logger, eventPublisher // Optional for backward compatibility
+    constructor(userRepository, logger, emailService, frontendUrl, eventPublisher // Optional for backward compatibility
     ) {
         this.userRepository = userRepository;
         this.logger = logger;
+        this.emailService = emailService;
+        this.frontendUrl = frontendUrl;
         this.eventPublisher = eventPublisher;
     }
     async execute(request) {
@@ -115,12 +117,33 @@ class ProvisionStaffUseCase {
                 }
             });
             // Generate invitation URL
-            const invitationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/activate?token=${invitationToken}`;
+            const invitationUrl = `${this.frontendUrl}/auth/activate?token=${invitationToken}`;
             this.logger.info('Staff invitation created successfully', {
                 email: email.getMaskedEmail(),
                 roleType: request.roleType,
                 invitedBy: request.requesterId
             });
+            // Send staff invitation email
+            try {
+                await this.emailService.sendStaffInvitationEmail({
+                    email: request.email,
+                    userName: request.fullName,
+                    role: request.roleType,
+                    invitationUrl,
+                    expiresAt
+                });
+                this.logger.info('Staff invitation email sent successfully', {
+                    email: email.getMaskedEmail()
+                });
+            }
+            catch (error) {
+                this.logger.error('Failed to send staff invitation email', {
+                    email: email.getMaskedEmail(),
+                    error: error instanceof Error ? error.message : String(error)
+                });
+                // Don't fail invitation if email sending fails
+                // Admin can manually send the invitation URL
+            }
             // Publish StaffInvitationCreated event for Notification service to send email
             if (this.eventPublisher) {
                 try {

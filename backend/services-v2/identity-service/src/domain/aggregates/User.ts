@@ -36,29 +36,6 @@ export interface UserProps {
 }
 
 /**
- * User Persistence Format
- * Used for database storage and retrieval
- */
-export interface UserPersistenceProps {
-  id: string;
-  email: string;
-  full_name: string;
-  citizen_id?: string;
-  date_of_birth?: string;
-  gender?: string;
-  address?: string;
-  phone_number?: string;
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  is_active: boolean;
-  is_verified: boolean;
-  last_login_at?: string;
-  created_at: string;
-  updated_at: string;
-  roles?: string[];
-}
-
-/**
  * User Aggregate Root with Enhanced Error Handling
  * Implements anti-patterns mitigation and graceful degradation
  */
@@ -121,6 +98,9 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * This is a valid use case in Clean Architecture - domain provides factory for reconstitution
    *
    * Pure RBAC: Supports multiple roles per user
+   *
+   * Note: Validation is relaxed for reconstitution to handle legacy data
+   * that may not meet current business rules (e.g., incomplete personal info)
    */
   public static reconstitute(
     id: string,
@@ -146,7 +126,8 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     };
 
     const user = new User(props, id);
-    user.validateBusinessInvariants();
+    // Relaxed validation for reconstitution - only validate critical invariants
+    user.validateReconstitutionInvariants();
     return user;
   }
 
@@ -382,6 +363,33 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   }
 
   /**
+   * Relaxed validation for reconstitution from database
+   * Only validates critical invariants, allows incomplete personal info
+   * This is necessary to handle legacy data that may not meet current business rules
+   */
+  protected validateReconstitutionInvariants(): void {
+    const errors: string[] = [];
+
+    // Email validation (critical)
+    if (!this.props.email || !this.props.email.isValid()) {
+      errors.push('Email không hợp lệ');
+    }
+
+    // Healthcare role validation (critical)
+    if (!this.props.healthcareRoles || this.props.healthcareRoles.length === 0) {
+      errors.push('Vai trò y tế phải được chỉ định');
+    }
+
+    // Skip personal info validation for reconstitution
+    // This allows us to load users with incomplete data from database
+    // Validation will be enforced when user tries to update their profile
+
+    if (errors.length > 0) {
+      throw new Error(`Critical invariants violated: ${errors.join(', ')}`);
+    }
+  }
+
+  /**
    * Healthcare compliance checks
    */
   public isVietnameseHealthcareCompliant(): boolean {
@@ -524,27 +532,37 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   }
 
   /**
-   * Convert to persistence format - required by Entity base class
+   * Convert to persistence format
+   *
+   * NOTE: This method returns domain-level data, NOT database column names.
+   * For actual database persistence, use UserMapper.toPersistence() in infrastructure layer.
+   *
+   * This satisfies the Entity base class requirement while maintaining Clean Architecture.
    */
-  toPersistence(): UserPersistenceProps {
+  toPersistence(): Record<string, any> {
     const props = this.getProps();
     return {
       id: this.id,
       email: props.email.value,
-      full_name: props.personalInfo.fullName,
-      phone_number: props.personalInfo.phoneNumber,
-      address: props.personalInfo.address,
-      date_of_birth: props.personalInfo.dateOfBirth?.toISOString().split('T')[0],
-      gender: props.personalInfo.gender,
-      citizen_id: props.personalInfo.citizenId,
-      emergency_contact_name: props.personalInfo.emergencyContactName,
-      emergency_contact_phone: props.personalInfo.emergencyContactPhone,
-      is_active: props.isActive,
-      is_verified: props.isEmailVerified,
-      last_login_at: props.lastLoginAt?.toISOString(),
-      created_at: props.createdAt.toISOString(),
-      updated_at: props.updatedAt.toISOString(),
-      roles: props.healthcareRoles.map(r => r.name)
+      personalInfo: {
+        fullName: props.personalInfo.fullName,
+        phoneNumber: props.personalInfo.phoneNumber,
+        address: props.personalInfo.address,
+        dateOfBirth: props.personalInfo.dateOfBirth,
+        gender: props.personalInfo.gender,
+        citizenId: props.personalInfo.citizenId,
+        emergencyContactName: props.personalInfo.emergencyContactName,
+        emergencyContactPhone: props.personalInfo.emergencyContactPhone
+      },
+      healthcareRoles: props.healthcareRoles.map(r => ({
+        type: r.type,
+        name: r.name
+      })),
+      isActive: props.isActive,
+      isEmailVerified: props.isEmailVerified,
+      lastLoginAt: props.lastLoginAt,
+      createdAt: props.createdAt,
+      updatedAt: props.updatedAt
     };
   }
 }

@@ -35,8 +35,8 @@ export class SupabaseAuthClient implements ITokenVerifier {
       config.supabaseServiceRoleKey,
       {
         auth: {
-          autoRefreshToken: true,
-          persistSession: true,
+          autoRefreshToken: false, // Disabled to prevent memory leaks and session state pollution
+          persistSession: false,   // Disabled to prevent session persistence across requests
           detectSessionInUrl: false
         }
       }
@@ -95,7 +95,8 @@ export class SupabaseAuthClient implements ITokenVerifier {
         success: true,
         userId: data.user.id,
         email: data.user.email!,
-        sessionToken: data.session.access_token,
+        accessToken: data.session.access_token,   // normalized for use cases expecting accessToken
+        sessionToken: data.session.access_token,  // kept for backward compatibility
         refreshToken: data.session.refresh_token,
         expiresAt: new Date(data.session.expires_at! * 1000),
         mode: ServiceMode.FULL_SERVICE,

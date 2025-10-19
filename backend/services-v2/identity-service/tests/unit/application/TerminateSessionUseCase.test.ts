@@ -89,11 +89,18 @@ class MockSessionRepository implements ISessionRepository {
 describe('TerminateSessionUseCase', () => {
   let useCase: TerminateSessionUseCase;
   let mockRepository: MockSessionRepository;
+  let mockLogger: any;
   const testUserId = 'user-123';
 
   beforeEach(() => {
     mockRepository = new MockSessionRepository();
-    useCase = new TerminateSessionUseCase(mockRepository);
+    mockLogger = {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn()
+    };
+    useCase = new TerminateSessionUseCase(mockRepository, mockLogger);
   });
 
   afterEach(() => {

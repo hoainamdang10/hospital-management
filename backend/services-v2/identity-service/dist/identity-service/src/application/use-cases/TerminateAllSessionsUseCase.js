@@ -9,8 +9,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TerminateAllSessionsUseCase = void 0;
 class TerminateAllSessionsUseCase {
-    constructor(sessionRepository) {
+    constructor(sessionRepository, logger) {
         this.sessionRepository = sessionRepository;
+        this.logger = logger;
     }
     async execute(request) {
         try {
@@ -34,7 +35,11 @@ class TerminateAllSessionsUseCase {
             };
         }
         catch (error) {
-            console.error('Error terminating all sessions:', error);
+            this.logger.error('Error terminating all sessions', {
+                userId: request.userId,
+                currentSessionId: request.currentSessionId,
+                error: error.message
+            });
             throw new Error(`Failed to terminate all sessions: ${error.message}`);
         }
     }

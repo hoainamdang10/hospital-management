@@ -14,9 +14,10 @@ describe('SupabasePermissionRepository - Error Handling Tests', () => {
   let mockSupabaseClient: any;
 
   beforeEach(() => {
-    // Create mock Supabase client
+    // Create mock Supabase client with schema() support
     mockSupabaseClient = {
-      from: jest.fn()
+      from: jest.fn(),
+      schema: jest.fn().mockReturnThis() // Add schema() method for chaining
     };
 
     // Create repository instance

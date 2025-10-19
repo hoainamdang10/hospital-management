@@ -6,6 +6,7 @@
  * @version 2.0.0
  */
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
+import { ILogger } from '../services/ILogger';
 export interface TerminateAllSessionsRequest {
     userId: string;
     currentSessionId?: string;
@@ -17,7 +18,8 @@ export interface TerminateAllSessionsResponse {
 }
 export declare class TerminateAllSessionsUseCase {
     private readonly sessionRepository;
-    constructor(sessionRepository: ISessionRepository);
+    private readonly logger;
+    constructor(sessionRepository: ISessionRepository, logger: ILogger);
     execute(request: TerminateAllSessionsRequest): Promise<TerminateAllSessionsResponse>;
 }
 //# sourceMappingURL=TerminateAllSessionsUseCase.d.ts.map

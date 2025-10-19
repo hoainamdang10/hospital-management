@@ -47,6 +47,91 @@ export function createAdminRoutes(deps: RouteDependencies): Router {
     }
   });
 
+  // List staff invitations (PROTECTED - admin only)
+  router.get('/staff/invitations', async (req: AuthenticatedRequest, res) => {
+    try {
+      const request = {
+        page: req.query.page ? parseInt(req.query.page as string) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        status: req.query.status as string | undefined,
+        role: req.query.role as string | undefined,
+        email: req.query.email as string | undefined,
+        requesterId: req.user?.userId || ''
+      };
+
+      const result = await deps.listStaffInvitationsUseCase.execute(request);
+      const statusCode = result.success ? 200 : 400;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      logger.error('List staff invitations endpoint error', { error: getErrorMessage(error) });
+      res.status(500).json({
+        success: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau'
+      });
+    }
+  });
+
+  // Get staff invitation by ID (PROTECTED - admin only)
+  router.get('/staff/invitations/:id', async (req: AuthenticatedRequest, res) => {
+    try {
+      const request = {
+        invitationId: req.params.id,
+        requesterId: req.user?.userId || ''
+      };
+
+      const result = await deps.getStaffInvitationUseCase.execute(request);
+      const statusCode = result.success ? 200 : 404;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      logger.error('Get staff invitation endpoint error', { error: getErrorMessage(error) });
+      res.status(500).json({
+        success: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau'
+      });
+    }
+  });
+
+  // Cancel staff invitation (PROTECTED - admin only)
+  router.delete('/staff/invitations/:id', async (req: AuthenticatedRequest, res) => {
+    try {
+      const request = {
+        invitationId: req.params.id,
+        requesterId: req.user?.userId || '',
+        reason: req.body.reason
+      };
+
+      const result = await deps.cancelStaffInvitationUseCase.execute(request);
+      const statusCode = result.success ? 200 : 400;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      logger.error('Cancel staff invitation endpoint error', { error: getErrorMessage(error) });
+      res.status(500).json({
+        success: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau'
+      });
+    }
+  });
+
+  // Resend staff invitation (PROTECTED - admin only)
+  router.post('/staff/invitations/:id/resend', async (req: AuthenticatedRequest, res) => {
+    try {
+      const request = {
+        invitationId: req.params.id,
+        requesterId: req.user?.userId || ''
+      };
+
+      const result = await deps.resendStaffInvitationUseCase.execute(request);
+      const statusCode = result.success ? 200 : 400;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      logger.error('Resend staff invitation endpoint error', { error: getErrorMessage(error) });
+      res.status(500).json({
+        success: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau'
+      });
+    }
+  });
+
   // Graceful degradation control (PROTECTED - admin only)
   router.post('/recovery', (_req, res) => {
     try {

@@ -9,8 +9,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TerminateSessionUseCase = void 0;
 class TerminateSessionUseCase {
-    constructor(sessionRepository) {
+    constructor(sessionRepository, logger) {
         this.sessionRepository = sessionRepository;
+        this.logger = logger;
     }
     async execute(request) {
         try {
@@ -38,7 +39,11 @@ class TerminateSessionUseCase {
             };
         }
         catch (error) {
-            console.error('Error terminating session:', error);
+            this.logger.error('Error terminating session', {
+                userId: request.userId,
+                sessionId: request.sessionId,
+                error: error.message
+            });
             // Re-throw known errors
             if (error.message.includes('not found') || error.message.includes('Unauthorized')) {
                 throw error;

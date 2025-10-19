@@ -3,7 +3,7 @@
  * Express middleware for JWT token verification
  *
  * @author Hospital Management Team
- * @version 3.0.0 - Pure RBAC
+ * @version 3.1.0 - Fixed session_id extraction from JWT
  * @compliance Clean Architecture, HIPAA
  */
 import { Request, Response, NextFunction } from 'express';

@@ -11,12 +11,14 @@
 
 import { ProvisionStaffUseCase, ProvisionStaffRequest } from '../../../../src/application/use-cases/ProvisionStaffUseCase';
 import { IUserRepository } from '../../../../src/application/repositories/IUserRepository';
+import { IEmailService } from '../../../../src/application/services/IEmailService';
 import { IEventPublisher } from '../../../../src/application/services/IEventPublisher';
 
 describe('ProvisionStaffUseCase', () => {
   let useCase: ProvisionStaffUseCase;
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
+  let mockEmailService: jest.Mocked<IEmailService>;
   let mockEventPublisher: jest.Mocked<IEventPublisher>;
 
   const validRequest: ProvisionStaffRequest = {
@@ -46,12 +48,26 @@ describe('ProvisionStaffUseCase', () => {
       debug: jest.fn()
     };
 
+    mockEmailService = {
+      sendVerificationEmail: jest.fn(),
+      sendVerificationSuccessEmail: jest.fn(),
+      sendPasswordResetEmail: jest.fn(),
+      sendWelcomeEmail: jest.fn(),
+      sendStaffInvitationEmail: jest.fn()
+    } as unknown as jest.Mocked<IEmailService>;
+
     mockEventPublisher = {
       publishDomainEvents: jest.fn(),
       publishIntegrationEvent: jest.fn()
     } as unknown as jest.Mocked<IEventPublisher>;
 
-    useCase = new ProvisionStaffUseCase(mockUserRepository, mockLogger, mockEventPublisher);
+    useCase = new ProvisionStaffUseCase(
+      mockUserRepository,
+      mockLogger,
+      mockEmailService,
+      'http://localhost:3000',
+      mockEventPublisher
+    );
   });
 
   afterEach(() => {
@@ -62,6 +78,7 @@ describe('ProvisionStaffUseCase', () => {
     it('should create staff invitation successfully', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.storeStaffInvitation.mockResolvedValue(undefined);
+      mockEmailService.sendStaffInvitationEmail.mockResolvedValue(undefined);
       mockEventPublisher.publishDomainEvents.mockResolvedValue(undefined);
 
       const result = await useCase.execute(validRequest);
@@ -99,6 +116,18 @@ describe('ProvisionStaffUseCase', () => {
         })
       );
 
+      // Verify email was sent
+      expect(mockEmailService.sendStaffInvitationEmail).toHaveBeenCalledTimes(1);
+      expect(mockEmailService.sendStaffInvitationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: validRequest.email,
+          userName: validRequest.fullName,
+          role: validRequest.roleType,
+          invitationUrl: expect.stringContaining('/auth/activate?token='),
+          expiresAt: expect.any(Date)
+        })
+      );
+
       // Verify event was published
       expect(mockEventPublisher.publishDomainEvents).toHaveBeenCalledTimes(1);
       const publishedEvents = mockEventPublisher.publishDomainEvents.mock.calls[0][0];
@@ -128,9 +157,15 @@ describe('ProvisionStaffUseCase', () => {
     });
 
     it('should work without event publisher', async () => {
-      const useCaseWithoutPublisher = new ProvisionStaffUseCase(mockUserRepository, mockLogger);
+      const useCaseWithoutPublisher = new ProvisionStaffUseCase(
+        mockUserRepository,
+        mockLogger,
+        mockEmailService,
+        'http://localhost:3000'
+      );
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.storeStaffInvitation.mockResolvedValue(undefined);
+      mockEmailService.sendStaffInvitationEmail.mockResolvedValue(undefined);
 
       const result = await useCaseWithoutPublisher.execute(validRequest);
 
@@ -258,6 +293,24 @@ describe('ProvisionStaffUseCase', () => {
       expect(result.invitationToken).toBeDefined();
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to publish staff invitation event',
+        expect.any(Object)
+      );
+    });
+
+    it('should succeed even if email sending fails', async () => {
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepository.storeStaffInvitation.mockResolvedValue(undefined);
+      mockEmailService.sendStaffInvitationEmail.mockRejectedValue(new Error('Email service unavailable'));
+      mockEventPublisher.publishDomainEvents.mockResolvedValue(undefined);
+
+      const result = await useCase.execute(validRequest);
+
+      // Should still succeed even if email sending fails
+      expect(result.success).toBe(true);
+      expect(result.invitationToken).toBeDefined();
+      expect(result.invitationUrl).toBeDefined();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to send staff invitation email',
         expect.any(Object)
       );
     });

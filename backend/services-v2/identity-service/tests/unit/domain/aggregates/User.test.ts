@@ -150,13 +150,13 @@ describe('User Aggregate Root', () => {
         [createValidRole()]
       );
 
-      const originalUpdatedAt = user.toPersistence().updated_at;
+      const originalUpdatedAt = user.toPersistence().updatedAt;
 
       // Advance time to ensure timestamp difference
       jest.advanceTimersByTime(10);
 
       user.verifyEmail();
-      const newUpdatedAt = user.toPersistence().updated_at;
+      const newUpdatedAt = user.toPersistence().updatedAt;
       expect(newUpdatedAt).not.toBe(originalUpdatedAt);
 
       jest.useRealTimers();
@@ -187,7 +187,7 @@ describe('User Aggregate Root', () => {
 
       user.deactivate();
 
-      expect(user.toPersistence().updated_at).toBeDefined();
+      expect(user.toPersistence().updatedAt).toBeDefined();
     });
   });
 
@@ -548,7 +548,7 @@ describe('User Aggregate Root', () => {
   });
 
   describe('toPersistence', () => {
-    it('should convert to persistence format', () => {
+    it('should convert to domain-level persistence format', () => {
       const user = User.create(
         createValidEmail(),
         createValidPersonalInfo(),
@@ -557,14 +557,17 @@ describe('User Aggregate Root', () => {
 
       const persistence = user.toPersistence();
 
+      // Domain-level format (NOT database column names)
       expect(persistence).toHaveProperty('id');
       expect(persistence).toHaveProperty('email');
-      expect(persistence).toHaveProperty('full_name');
-      expect(persistence).toHaveProperty('phone_number');
-      expect(persistence).toHaveProperty('is_active');
-      expect(persistence).toHaveProperty('is_verified');
-      expect(persistence).toHaveProperty('created_at');
-      expect(persistence).toHaveProperty('updated_at');
+      expect(persistence).toHaveProperty('personalInfo');
+      expect(persistence.personalInfo).toHaveProperty('fullName');
+      expect(persistence.personalInfo).toHaveProperty('phoneNumber');
+      expect(persistence).toHaveProperty('healthcareRoles');
+      expect(persistence).toHaveProperty('isActive');
+      expect(persistence).toHaveProperty('isEmailVerified');
+      expect(persistence).toHaveProperty('createdAt');
+      expect(persistence).toHaveProperty('updatedAt');
     });
   });
 });

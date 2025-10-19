@@ -1,10 +1,10 @@
 /**
  * Email Value Object - Enhanced with Error Handling
- * Validates and encapsulates email addresses with Supabase compatibility
+ * Validates and encapsulates email addresses
  *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Production-Ready, Anti-Pattern Mitigation
+ * @compliance Production-Ready, Anti-Pattern Mitigation, Clean Architecture
  */
 import { ValueObject } from '../../../../shared/domain/base/value-object';
 interface EmailProps {
@@ -26,7 +26,7 @@ export declare class Email extends ValueObject<EmailProps> {
      */
     static fromString(email: string): Email;
     /**
-     * Safe email validation
+     * Email validation
      */
     isValid(): boolean;
     get value(): string;
@@ -53,21 +53,13 @@ export declare class Email extends ValueObject<EmailProps> {
      */
     getMaskedEmail(): string;
     /**
-     * Validate email for Supabase auth
-     */
-    isSupabaseCompatible(): boolean;
-    /**
-     * Safe equality check
+     * Equality check
      */
     equals(other: Email): boolean;
     /**
-     * Safe string conversion
+     * String conversion
      */
     toString(): string;
-    /**
-     * Convert to Supabase format
-     */
-    toSupabaseFormat(): string;
 }
 export {};
 //# sourceMappingURL=Email.d.ts.map

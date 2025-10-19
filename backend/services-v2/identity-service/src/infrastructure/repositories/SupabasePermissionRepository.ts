@@ -34,6 +34,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   async getUserRoles(userId: UserId): Promise<string[]> {
     try {
       const { data, error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('user_roles')
         .select('role_name')
         .eq('user_id', userId.value);
@@ -88,6 +89,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
     try {
       // Step 1: Get role ID with proper error handling
       const { data: roleData, error: roleError } = await this.supabaseClient
+        .schema('auth_schema')
         .from('healthcare_roles')
         .select('id')
         .eq('role_name', roleType.toLowerCase())
@@ -100,6 +102,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
 
       // Step 2: Get permissions for the role
       const { data, error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('role_permissions')
         .select('permission_name')
         .eq('role_id', roleData.id)
@@ -151,6 +154,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
     try {
       // Verify role exists in healthcare_roles table
       const { data: roleData, error: roleError } = await this.supabaseClient
+        .schema('auth_schema')
         .from('healthcare_roles')
         .select('id, role_name')
         .eq('role_name', roleType.toLowerCase())
@@ -164,6 +168,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       // Note: user_roles table schema has: id, user_id, role_name, assigned_at, assigned_by
       // It does NOT have role_id column
       const { error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('user_roles')
         .insert({
           user_id: userId.value,
@@ -207,6 +212,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
 
       // Delete user_role
       const { error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('user_roles')
         .delete()
         .eq('user_id', userId.value)
@@ -240,6 +246,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
 
       // Insert user_permission
       const { error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('user_permissions')
         .insert({
           user_id: userId.value,
@@ -276,6 +283,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
     try {
       // Delete user_permission
       const { error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('user_permissions')
         .delete()
         .eq('user_id', userId.value)
@@ -305,6 +313,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   async getAllPermissions(): Promise<Permission[]> {
     try {
       const { data, error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('permissions')
         .select('permission_name')
         .eq('is_active', true)
@@ -327,6 +336,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   async getAllRoles(): Promise<string[]> {
     try {
       const { data, error } = await this.supabaseClient
+        .schema('auth_schema')
         .from('healthcare_roles')
         .select('role_name')
         .eq('is_active', true)
@@ -392,6 +402,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
     try {
       // Step 1: Get user-specific permissions
       const { data: userPerms, error: userPermsError } = await this.supabaseClient
+        .schema('auth_schema')
         .from('user_permissions')
         .select('permission_name')
         .eq('user_id', userId.value);
@@ -405,6 +416,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       // Step 2: Get role-based permissions
       // First get user's role names from user_roles table
       const { data: userRoles, error: rolesError } = await this.supabaseClient
+        .schema('auth_schema')
         .from('user_roles')
         .select('role_name')
         .eq('user_id', userId.value);
@@ -415,6 +427,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
         // Get role IDs from healthcare_roles table
         const roleNames = userRoles.map(r => r.role_name);
         const { data: roles, error: rolesLookupError } = await this.supabaseClient
+          .schema('auth_schema')
           .from('healthcare_roles')
           .select('id')
           .in('role_name', roleNames);
@@ -425,6 +438,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
           // Then get permissions for those role IDs
           const roleIds = roles.map(r => r.id);
           const { data: rolePerms, error: rolePermsError } = await this.supabaseClient
+            .schema('auth_schema')
             .from('role_permissions')
             .select('permission_name')
             .in('role_id', roleIds);
@@ -449,13 +463,16 @@ export class SupabasePermissionRepository implements IPermissionRepository {
    */
   private async logAudit(action: string, userId: string, details: Record<string, unknown>): Promise<void> {
     try {
-      await this.supabaseClient.from('audit_logs').insert({
-        action,
-        user_id: userId,
-        details,
-        severity: 'info',
-        created_at: new Date().toISOString(),
-      });
+      await this.supabaseClient
+        .schema('auth_schema')
+        .from('audit_logs')
+        .insert({
+          action,
+          user_id: userId,
+          details,
+          severity: 'info',
+          created_at: new Date().toISOString(),
+        });
     } catch (error) {
       console.error('[SupabasePermissionRepository] Error logging audit', error);
       // Don't throw - audit logging failure shouldn't break the operation

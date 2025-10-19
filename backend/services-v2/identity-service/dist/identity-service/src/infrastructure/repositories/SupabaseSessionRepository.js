@@ -21,6 +21,7 @@ class SupabaseSessionRepository {
             .from(this.tableName) // Supabase client already configured with schema
             .select('*')
             .eq('id', sessionId)
+            .eq('is_active', true) // Only return active sessions
             .single();
         if (error || !data) {
             return null;

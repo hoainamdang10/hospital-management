@@ -1,12 +1,13 @@
 /**
  * TerminateSessionUseCase
  * Use case for terminating a specific session
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
+import { ILogger } from '../services/ILogger';
 
 export interface TerminateSessionRequest {
   userId: string;
@@ -20,7 +21,8 @@ export interface TerminateSessionResponse {
 
 export class TerminateSessionUseCase {
   constructor(
-    private readonly sessionRepository: ISessionRepository
+    private readonly sessionRepository: ISessionRepository,
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: TerminateSessionRequest): Promise<TerminateSessionResponse> {
@@ -55,8 +57,12 @@ export class TerminateSessionUseCase {
       };
 
     } catch (error: any) {
-      console.error('Error terminating session:', error);
-      
+      this.logger.error('Error terminating session', {
+        userId: request.userId,
+        sessionId: request.sessionId,
+        error: error.message
+      });
+
       // Re-throw known errors
       if (error.message.includes('not found') || error.message.includes('Unauthorized')) {
         throw error;

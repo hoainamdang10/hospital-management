@@ -21,8 +21,8 @@ import {
   createTestSupabaseClient,
   createTestUser,
   cleanupTestUsers,
-  verifyUserExists,
-  getUserFromDb
+  verifyPendingRegistrationExists,
+  getPendingRegistrationFromDb
 } from '../helpers/integrationHelpers';
 
 describe('Auth Routes Integration Tests', () => {
@@ -36,6 +36,14 @@ describe('Auth Routes Integration Tests', () => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
     return `${prefix}-${timestamp}-${random}@hospital.vn`;
+  };
+
+  // Helper to generate unique citizen ID (12 digits)
+  const generateUniqueCitizenId = (): string => {
+    const timestamp = Date.now().toString();
+    const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const combined = timestamp + random;
+    return combined.slice(-12); // Take last 12 digits
   };
 
   beforeAll(async () => {
@@ -65,6 +73,9 @@ describe('Auth Routes Integration Tests', () => {
       const email = generateTestEmail('register-success');
       testEmails.push(email);
 
+      // Generate unique citizen ID to avoid duplicates in database
+      const uniqueCitizenId = `${Date.now()}${Math.floor(Math.random() * 10000)}`.slice(-12);
+
       const response = await request(app)
         .post('/auth/register')
         .send({
@@ -75,25 +86,25 @@ describe('Auth Routes Integration Tests', () => {
           address: '123 Test Street, Hanoi, Vietnam',
           dateOfBirth: '1990-01-01',
           gender: 'male',
-          citizenId: '001090001234'
+          citizenId: uniqueCitizenId
         });
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.userId).toBeDefined();
+      expect(response.body.pendingRegistrationId).toBeDefined();
       expect(response.body.email).toBe(email);
       expect(response.body.requiresEmailVerification).toBe(true);
 
-      // Verify user exists in database
-      const exists = await verifyUserExists(supabaseClient, response.body.userId);
+      // Verify pending registration exists in database
+      const exists = await verifyPendingRegistrationExists(supabaseClient, response.body.pendingRegistrationId);
       expect(exists).toBe(true);
 
-      // Verify user details in database
-      const dbUser = await getUserFromDb(supabaseClient, response.body.userId);
-      expect(dbUser.email).toBe(email);
-      expect(dbUser.full_name).toBe('Test Patient User');
-      expect(dbUser.role_type).toBe('patient'); // Security: force patient role
-      expect(dbUser.is_active).toBe(true);
+      // Verify pending registration details in database
+      const dbPendingReg = await getPendingRegistrationFromDb(supabaseClient, response.body.pendingRegistrationId);
+      expect(dbPendingReg.email).toBe(email);
+      expect(dbPendingReg.user_data.fullName).toBe('Test Patient User'); // Data stored in JSONB column
+      expect(dbPendingReg.user_data.roleType).toBe('patient'); // Lowercase in database
+      expect(dbPendingReg.status).toBe('EMAIL_SENT'); // Email service mock succeeds
     });
 
     it('should fail to register with existing email', async () => {
@@ -107,7 +118,7 @@ describe('Auth Routes Integration Tests', () => {
         address: '456 Test Street, Hanoi, Vietnam',
         dateOfBirth: '1991-02-02',
         gender: 'female',
-        citizenId: '001091002345'
+        citizenId: generateUniqueCitizenId() // Generate unique citizen ID
       });
 
       // Try to register with same email
@@ -169,8 +180,8 @@ describe('Auth Routes Integration Tests', () => {
       expect(response.body.success).toBe(false);
     });
 
-    it('should fail to register with incomplete personal info', async () => {
-      const email = generateTestEmail('register-incomplete');
+    it('should allow registration with minimal personal info (personal info is optional)', async () => {
+      const email = generateTestEmail('register-minimal');
       testEmails.push(email);
 
       const response = await request(app)
@@ -179,12 +190,14 @@ describe('Auth Routes Integration Tests', () => {
           email,
           password: 'SecurePassword123!',
           fullName: 'Test User',
-          phoneNumber: '0901234572'
-          // Missing: address, dateOfBirth, gender, citizenId
+          phoneNumber: '0901234572',
+          roleType: 'patient' // Required field
+          // Optional: address, dateOfBirth, gender, citizenId
         });
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.pendingRegistrationId).toBeDefined();
     });
 
     it('should force PATIENT role even if roleType is provided', async () => {
@@ -207,10 +220,11 @@ describe('Auth Routes Integration Tests', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
+      expect(response.body.pendingRegistrationId).toBeDefined();
 
-      // Verify role is PATIENT, not ADMIN
-      const dbUser = await getUserFromDb(supabaseClient, response.body.userId);
-      expect(dbUser.role_type).toBe('patient'); // Security: force patient role
+      // Verify role is PATIENT, not ADMIN (in pending registration)
+      const dbPendingReg = await getPendingRegistrationFromDb(supabaseClient, response.body.pendingRegistrationId);
+      expect(dbPendingReg.user_data.roleType).toBe('patient'); // Security: force patient role (lowercase in DB)
     });
   });
 
@@ -236,7 +250,7 @@ describe('Auth Routes Integration Tests', () => {
           address: '123 Test Street, Hanoi, Vietnam',
           dateOfBirth: '1990-01-01',
           gender: 'male',
-          citizenId: '001090001238'
+          citizenId: generateUniqueCitizenId() // Generate unique citizen ID
         }
       );
       testUserId = user.userId;
@@ -342,7 +356,7 @@ describe('Auth Routes Integration Tests', () => {
           address: '123 Test Street, Hanoi, Vietnam',
           dateOfBirth: '1990-01-01',
           gender: 'male',
-          citizenId: '001090001239'
+          citizenId: generateUniqueCitizenId() // Generate unique citizen ID
         }
       );
       testUserId = user.userId;

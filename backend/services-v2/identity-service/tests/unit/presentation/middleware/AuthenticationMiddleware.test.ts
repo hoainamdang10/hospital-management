@@ -32,6 +32,10 @@ describe('AuthenticationMiddleware', () => {
       hasAllPermissions: jest.fn(),
       getEffectivePermissions: jest.fn(),
       getEffectivePermissionsAsObjects: jest.fn(),
+      getUserRoles: jest.fn(), // ✅ Added for Option A implementation
+      hasRole: jest.fn(),
+      hasAnyRole: jest.fn(),
+      hasAllRoles: jest.fn(),
       invalidateCache: jest.fn(),
       invalidateCacheForRole: jest.fn(),
       expandPermissions: jest.fn(),
@@ -69,7 +73,7 @@ describe('AuthenticationMiddleware', () => {
       const mockUser = {
         id: 'u-123',
         email: 'doctor@hospital.vn',
-        user_metadata: { roles: ['doctor'] },
+        user_metadata: { roles: ['doctor'] }, // ⚠️ This is now ignored
       };
 
       mockReq.headers = {
@@ -78,12 +82,14 @@ describe('AuthenticationMiddleware', () => {
 
       mockAuthClient.verifyToken.mockResolvedValue(mockUser as any);
       mockPermissionService.getEffectivePermissions.mockResolvedValue(['patients:read', 'patients:write']);
+      mockPermissionService.getUserRoles.mockResolvedValue(['doctor']); // ✅ Roles from database
 
       const authenticateMiddleware = middleware.authenticate();
       await authenticateMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
       expect(mockAuthClient.verifyToken).toHaveBeenCalledWith('valid-token');
       expect(mockPermissionService.getEffectivePermissions).toHaveBeenCalled();
+      expect(mockPermissionService.getUserRoles).toHaveBeenCalled(); // ✅ Verify getUserRoles called
       expect(mockReq.user).toEqual({
         userId: 'u-123',
         email: 'doctor@hospital.vn',
@@ -165,11 +171,11 @@ describe('AuthenticationMiddleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
 
-    it('should use default patient role when user_metadata.roles is missing', async () => {
+    it('should get roles from database, not from user_metadata', async () => {
       const mockUser = {
         id: 'u-123',
         email: 'patient@example.com',
-        user_metadata: {},
+        user_metadata: {}, // ⚠️ Empty metadata - roles come from database
       };
 
       mockReq.headers = {
@@ -178,10 +184,12 @@ describe('AuthenticationMiddleware', () => {
 
       mockAuthClient.verifyToken.mockResolvedValue(mockUser as any);
       mockPermissionService.getEffectivePermissions.mockResolvedValue(['patients:read_own']);
+      mockPermissionService.getUserRoles.mockResolvedValue(['patient']); // ✅ Roles from database
 
       const authenticateMiddleware = middleware.authenticate();
       await authenticateMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
+      expect(mockPermissionService.getUserRoles).toHaveBeenCalled(); // ✅ Verify database query
       expect(mockReq.user?.roles).toEqual(['patient']);
       expect(mockNext).toHaveBeenCalled();
     });
@@ -214,7 +222,7 @@ describe('AuthenticationMiddleware', () => {
       const mockUser = {
         id: 'u-123',
         email: 'doctor@hospital.vn',
-        user_metadata: { roles: ['doctor'] },
+        user_metadata: { roles: ['doctor'] }, // ⚠️ This is now ignored
       };
 
       mockReq.headers = {
@@ -223,12 +231,14 @@ describe('AuthenticationMiddleware', () => {
 
       mockAuthClient.verifyToken.mockResolvedValue(mockUser as any);
       mockPermissionService.getEffectivePermissions.mockResolvedValue(['patients:read']);
+      mockPermissionService.getUserRoles.mockResolvedValue(['doctor']); // ✅ Roles from database
 
       const optionalMiddleware = middleware.optionalAuthenticate();
       await optionalMiddleware(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
       expect(mockReq.user).toBeDefined();
       expect(mockReq.user?.userId).toBe('u-123');
+      expect(mockPermissionService.getUserRoles).toHaveBeenCalled(); // ✅ Verify database query
       expect(mockNext).toHaveBeenCalled();
     });
 

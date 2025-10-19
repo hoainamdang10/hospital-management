@@ -77,7 +77,8 @@ export async function createTestUser(
     // 2. Create user_profiles EXPLICITLY (NO TRIGGER DEPENDENCY)
     // This matches the production code in SupabaseUserRepository.createAuthUser()
     // Generate unique citizen ID if not provided
-    const uniqueCitizenId = options.citizenId || `${Date.now()}${Math.floor(Math.random() * 10000)}`.slice(-12);
+    // Use timestamp + large random number to avoid collisions in parallel tests
+    const uniqueCitizenId = options.citizenId || `${Date.now()}${Math.floor(Math.random() * 1000000)}`.slice(-12);
     
     const profileRecord = {
       id: authData.user.id, // Use auth user ID
@@ -719,5 +720,106 @@ export async function cleanupAllTestUsers(
     }
   } catch (error) {
     console.warn(`⚠️  Failed to cleanup all test users:`, error);
+  }
+}
+
+/**
+ * Verify pending registration exists in database
+ *
+ * @param supabaseClient Supabase client
+ * @param pendingRegistrationId Pending registration ID
+ * @returns True if exists, false otherwise
+ */
+export async function verifyPendingRegistrationExists(
+  supabaseClient: SupabaseClient,
+  pendingRegistrationId: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('pending_registrations')
+      .select('id')
+      .eq('id', pendingRegistrationId)
+      .single();
+
+    if (error) {
+      return false;
+    }
+
+    return !!data;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Get pending registration from database
+ *
+ * @param supabaseClient Supabase client
+ * @param pendingRegistrationId Pending registration ID
+ * @returns Pending registration data
+ */
+export async function getPendingRegistrationFromDb(
+  supabaseClient: SupabaseClient,
+  pendingRegistrationId: string
+): Promise<any> {
+  const { data, error } = await supabaseClient
+    .from('pending_registrations')
+    .select('*')
+    .eq('id', pendingRegistrationId)
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to get pending registration: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Get pending registration by email
+ *
+ * @param supabaseClient Supabase client
+ * @param email User email
+ * @returns Pending registration data or null
+ */
+export async function getPendingRegistrationByEmail(
+  supabaseClient: SupabaseClient,
+  email: string
+): Promise<any> {
+  const { data, error } = await supabaseClient
+    .from('pending_registrations')
+    .select('*')
+    .eq('email', email)
+    .eq('status', 'PENDING')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return data;
+}
+
+/**
+ * Cleanup pending registrations by emails
+ *
+ * @param supabaseClient Supabase client
+ * @param emails Array of emails to cleanup
+ */
+export async function cleanupPendingRegistrations(
+  supabaseClient: SupabaseClient,
+  emails: string[]
+): Promise<void> {
+  for (const email of emails) {
+    try {
+      await supabaseClient
+        .from('pending_registrations')
+        .delete()
+        .eq('email', email);
+    } catch (error) {
+      console.warn(`Failed to cleanup pending registration for ${email}:`, error);
+    }
   }
 }

@@ -96,6 +96,14 @@ export declare class PermissionService implements IPermissionService {
         l2Size: number;
     }>;
     /**
+     * Get user roles from database (Single Source of Truth)
+     * Used by AuthenticationMiddleware to load roles from user_roles table
+     *
+     * @param userId - User ID
+     * @returns Array of role names (e.g., ['admin', 'doctor'])
+     */
+    getUserRoles(userId: UserId): Promise<string[]>;
+    /**
      * Check if user has a specific role
      */
     hasRole(userId: UserId, role: string): Promise<boolean>;

@@ -1,25 +1,36 @@
 import { getErrorMessage } from '../../utils/error-helper';
 /**
- * Register User Use Case
- * Handles user registration with Supabase Auth integration
+ * Register User Use Case - Verify-First Approach
+ * Handles user registration with email verification BEFORE creating user
+ *
+ * Design Pattern: Verify-First
+ * - User data stored in pending_registrations table
+ * - User created ONLY after email verification
+ * - Prevents database pollution from unverified users
+ * - Allows re-registration after token expiration
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0 - Verify-First Approach
  */
 
 import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IUserRepository } from '../repositories/IUserRepository';
-import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { Email } from '../../domain/value-objects/Email';
 import { IEventPublisher } from '../services/IEventPublisher';
 import { ILogger } from '../services/ILogger';
+import { IEmailService } from '../services/IEmailService';
+import { IPendingRegistrationRepository } from '../../domain/repositories/IPendingRegistrationRepository';
+import { PendingRegistration } from '../../domain/entities/PendingRegistration';
+import { EmailVerificationToken } from '../../domain/value-objects/EmailVerificationToken';
+import { PendingRegistrationCreatedEvent } from '../../domain/events/PendingRegistrationCreatedEvent';
+import * as bcrypt from 'bcrypt';
 
 export interface RegisterUserRequest {
   email: string;
   password: string;
   fullName: string;
-  roleType: string;
+  roleType?: string; // Optional - will be ignored for public registration (always PATIENT)
   phoneNumber?: string;
   citizenId?: string;
   dateOfBirth?: string;
@@ -29,31 +40,32 @@ export interface RegisterUserRequest {
 
 export interface RegisterUserResponse {
   success: boolean;
-  userId?: string;
+  pendingRegistrationId?: string; // Changed from userId
   email?: string;
   message: string;
-  requiresEmailVerification?: boolean;
+  requiresEmailVerification: boolean; // Always true now
   error?: string;
 }
 
 /**
- * Register User Use Case
- * Flow: Explicit user creation via Repository (NO trigger dependency)
+ * Register User Use Case - Verify-First Approach
+ * Flow: Store pending registration → Send verification email → User created after verification
  *
- * This use case creates both auth user and profile explicitly through
- * the repository layer, ensuring full control, rollback capability,
- * and Clean Architecture compliance.
+ * This use case stores user data temporarily in pending_registrations table
+ * and creates the actual user ONLY after email verification is completed.
+ * This prevents database pollution from unverified users.
  */
 export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, RegisterUserResponse> {
-  private validRolesCache: string[] | null = null;
-  private validRolesCacheTime: number = 0;
-  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly BCRYPT_ROUNDS = 10; // Bcrypt salt rounds
 
   constructor(
     private userRepository: IUserRepository,
-    private permissionRepository: IPermissionRepository,
+    private pendingRegistrationRepository: IPendingRegistrationRepository,
     private logger: ILogger,
     private circuitBreaker: ICircuitBreaker,
+    private emailService: IEmailService,
+    private jwtSecret: string,
+    private frontendUrl: string,
     private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
@@ -65,6 +77,7 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
         return {
           success: false,
           message: 'Dịch vụ đăng ký tạm thời không khả dụng. Vui lòng thử lại sau.',
+          requiresEmailVerification: false,
           error: 'SERVICE_UNAVAILABLE'
         };
       }
@@ -73,19 +86,28 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
 
   private async executeImpl(request: RegisterUserRequest): Promise<RegisterUserResponse> {
     try {
-      this.logger.info('Starting user registration', { email: request.email, roleType: request.roleType });
+      // SECURITY: Hardcode roleType = 'PATIENT' for public registration
+      // This prevents privilege escalation attacks where users try to register as ADMIN/DOCTOR
+      // Staff accounts (DOCTOR, NURSE, ADMIN) must be created by admins via separate endpoint
+      const roleType = 'PATIENT';
 
-      // 1. Validate input (async - queries database for valid roles)
-      const validationError = await this.validateRequest(request);
+      this.logger.info('Starting user registration (Verify-First)', {
+        email: request.email,
+        roleType: roleType // Always PATIENT for public registration
+      });
+
+      // 1. Validate input (no role validation needed - always PATIENT)
+      const validationError = this.validateRequest(request);
       if (validationError) {
         return {
           success: false,
           message: validationError,
+          requiresEmailVerification: false,
           error: 'VALIDATION_ERROR'
         };
       }
 
-      // 2. Check if user already exists
+      // 2. Check if user already exists (verified user)
       const email = Email.create(request.email);
       const existingUser = await this.userRepository.findByEmail(email);
       if (existingUser) {
@@ -93,105 +115,171 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
         return {
           success: false,
           message: 'Email đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.',
+          requiresEmailVerification: false,
           error: 'USER_ALREADY_EXISTS'
         };
       }
 
-      // 3. Create auth user + profile explicitly (NO TRIGGER DEPENDENCY)
-      // This method in repository handles:
-      // - Creating auth user via Supabase Admin API
-      // - Creating user profile in user_profiles table
-      // - Rollback if profile creation fails
-      // - Audit logging
-      // - Cache invalidation
-      const user = await this.userRepository.createAuthUser({
+      // 3. Check if email has active pending registration
+      const hasPending = await this.pendingRegistrationRepository.hasActivePendingRegistration(email);
+      if (hasPending) {
+        this.logger.warn('Email has active pending registration', { email: request.email });
+        return {
+          success: false,
+          message: 'Email đã có đăng ký đang chờ xác thực. Vui lòng kiểm tra email hoặc đợi hết hạn để đăng ký lại.',
+          requiresEmailVerification: false,
+          error: 'PENDING_REGISTRATION_EXISTS'
+        };
+      }
+
+      // 4. Hash password (will be used to create user after verification)
+      const passwordHash = await bcrypt.hash(request.password, this.BCRYPT_ROUNDS);
+
+      // 5. Generate verification token (24h expiry)
+      const verificationToken = EmailVerificationToken.generate(
+        'pending', // Temporary ID, will be replaced with actual user ID after verification
+        email,
+        this.jwtSecret,
+        24 // 24 hours
+      );
+
+      // 6. Create pending registration entity
+      const pendingRegistration = PendingRegistration.create(
+        email,
+        passwordHash,
+        {
+          fullName: request.fullName,
+          phoneNumber: request.phoneNumber,
+          citizenId: request.citizenId,
+          dateOfBirth: request.dateOfBirth ? new Date(request.dateOfBirth) : undefined,
+          gender: request.gender,
+          address: request.address,
+          roleType: roleType.toLowerCase() // Always 'patient'
+        },
+        verificationToken.token,
+        24 // 24 hours expiry
+      );
+
+      // 7. Store pending registration in database
+      await this.pendingRegistrationRepository.store(pendingRegistration);
+
+      this.logger.info('Pending registration created successfully', {
+        pendingRegistrationId: pendingRegistration.id,
         email: request.email,
-        password: request.password,
-        fullName: request.fullName,
-        roleType: request.roleType.toLowerCase(), // Normalize to lowercase for database constraint
-        phoneNumber: request.phoneNumber,
-        citizenId: request.citizenId,
-        dateOfBirth: request.dateOfBirth ? new Date(request.dateOfBirth) : undefined,
-        gender: request.gender,
-        address: request.address,
-        emailConfirm: false // Require email verification
+        expiresAt: pendingRegistration.expiresAt
       });
 
-      this.logger.info('User registration completed successfully', {
-        userId: user.id, // user.id getter returns string
-        email: request.email,
-        roleType: request.roleType
-      });
+      // 8. Send verification email
+      try {
+        const verificationUrl = `${this.frontendUrl}/auth/verify-email?token=${verificationToken.token}`;
+        await this.emailService.sendVerificationEmail({
+          email: email.value,
+          userName: request.fullName,
+          verificationUrl
+        });
 
-      // 4. Publish domain events
+        // Mark email as sent successfully
+        await this.pendingRegistrationRepository.updateStatus(pendingRegistration.id, 'EMAIL_SENT');
+
+        this.logger.info('Verification email sent successfully', {
+          pendingRegistrationId: pendingRegistration.id,
+          email: email.value
+        });
+      } catch (error) {
+        this.logger.error('Failed to send verification email', {
+          pendingRegistrationId: pendingRegistration.id,
+          error: getErrorMessage(error)
+        });
+
+        // Rollback: Delete pending registration if email sending fails
+        // ENHANCED: Add retry mechanism and fallback to prevent orphaned records
+        try {
+          await this.pendingRegistrationRepository.delete(pendingRegistration.id);
+          this.logger.info('Pending registration deleted after email failure', {
+            pendingRegistrationId: pendingRegistration.id
+          });
+        } catch (deleteError) {
+          this.logger.error('CRITICAL: Failed to rollback pending registration', {
+            pendingRegistrationId: pendingRegistration.id,
+            email: email.value,
+            error: getErrorMessage(deleteError)
+          });
+
+          // Fallback: Mark as FAILED to prevent blocking re-registration
+          // This allows cleanup job to remove it later
+          try {
+            await this.pendingRegistrationRepository.updateStatus(pendingRegistration.id, 'FAILED');
+            this.logger.warn('Marked pending registration as FAILED (fallback)', {
+              pendingRegistrationId: pendingRegistration.id
+            });
+          } catch (statusError) {
+            this.logger.error('CRITICAL: Failed to mark pending registration as FAILED', {
+              pendingRegistrationId: pendingRegistration.id,
+              error: getErrorMessage(statusError)
+            });
+            // At this point, record is orphaned and will need manual cleanup
+            // or cleanup job to remove it
+          }
+        }
+
+        return {
+          success: false,
+          message: 'Không thể gửi email xác thực. Vui lòng thử lại sau.',
+          requiresEmailVerification: false,
+          error: 'EMAIL_SENDING_FAILED'
+        };
+      }
+
+      // 9. Publish domain event
       if (this.eventPublisher) {
         try {
-          const domainEvents = user.getUncommittedEvents();
-          await this.eventPublisher.publishDomainEvents(domainEvents);
-          user.markEventsAsCommitted();
+          const event = new PendingRegistrationCreatedEvent(
+            pendingRegistration.id,
+            email.value,
+            request.fullName,
+            roleType, // Always 'PATIENT'
+            pendingRegistration.expiresAt
+          );
 
-          this.logger.info('Domain events published', {
-            userId: user.id,
-            eventCount: domainEvents.length
+          await this.eventPublisher.publishDomainEvents([event]);
+
+          this.logger.info('PendingRegistrationCreated event published', {
+            pendingRegistrationId: pendingRegistration.id
           });
         } catch (error) {
-          this.logger.error('Failed to publish domain events', {
-            userId: user.id,
+          this.logger.error('Failed to publish domain event', {
+            pendingRegistrationId: pendingRegistration.id,
             error: getErrorMessage(error)
           });
           // Don't fail registration if event publishing fails
         }
       }
 
-      // 5. Return success response
+      // 10. Return success response
       return {
         success: true,
-        userId: user.id, // user.id getter returns string
-        email: user.email.value,
-        message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
-        requiresEmailVerification: true // Always require email verification
+        pendingRegistrationId: pendingRegistration.id,
+        email: email.value,
+        message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực có hiệu lực trong 24 giờ.',
+        requiresEmailVerification: true
       };
 
     } catch (error) {
-      this.logger.error('User registration failed', { 
-        email: request.email, 
-        error: getErrorMessage(error) 
+      this.logger.error('User registration failed', {
+        email: request.email,
+        error: getErrorMessage(error)
       });
 
       return {
         success: false,
         message: 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.',
+        requiresEmailVerification: false,
         error: 'REGISTRATION_FAILED'
       };
     }
   }
 
-  /**
-   * Get valid roles from database with caching
-   * Cache for 5 minutes to avoid repeated database queries
-   */
-  private async getValidRoles(): Promise<string[]> {
-    const now = Date.now();
-
-    // Return cached roles if still valid
-    if (this.validRolesCache && (now - this.validRolesCacheTime) < this.CACHE_TTL) {
-      return this.validRolesCache;
-    }
-
-    // Query from database
-    try {
-      const roles = await this.permissionRepository.getAllRoles();
-      this.validRolesCache = roles.map(r => r.toLowerCase());
-      this.validRolesCacheTime = now;
-      return this.validRolesCache;
-    } catch (error: unknown) {
-      this.logger.error('Failed to get valid roles from database', error instanceof Error ? error : new Error(String(error)));
-      // Fallback to hardcoded 5 core roles if database query fails
-      return ['admin', 'doctor', 'nurse', 'receptionist', 'patient'];
-    }
-  }
-
-  private async validateRequest(request: RegisterUserRequest): Promise<string | null> {
+  private validateRequest(request: RegisterUserRequest): string | null {
     // Email format: basic RFC-compliant check (no spaces, must contain @ and a dot in domain)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!request.email || !emailRegex.test(request.email)) {
@@ -206,11 +294,8 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
       return 'Họ tên phải có ít nhất 2 ký tự';
     }
 
-    // Query valid roles from database (with caching)
-    const validRoles = await this.getValidRoles();
-    if (!request.roleType || !validRoles.includes(request.roleType.toLowerCase())) {
-      return `Vai trò không hợp lệ. Vai trò hợp lệ: ${validRoles.join(', ')}`;
-    }
+    // NO role validation - always PATIENT for public registration
+    // Staff accounts must be created by admins via separate endpoint
 
     if (request.phoneNumber && !/^[0-9]{10,11}$/.test(request.phoneNumber)) {
       return 'Số điện thoại không hợp lệ (phải có 10-11 chữ số)';

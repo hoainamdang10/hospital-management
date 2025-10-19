@@ -51,7 +51,7 @@ export class SupabaseAuthService implements IAuthenticationService {
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
-        autoRefreshToken: true,
+        autoRefreshToken: false, // Disabled to prevent memory leaks and session state pollution in tests
         persistSession: false,
       },
     });
@@ -430,6 +430,31 @@ export class SupabaseAuthService implements IAuthenticationService {
       this.logger.info('Password updated successfully', { userId });
     } catch (error) {
       this.logger.error('Update password error', { error: getErrorMessage(error) });
+      throw error as any;
+    }
+  }
+
+  /**
+   * Update user metadata
+   * Updates user metadata in Supabase Auth
+   */
+  async updateUserMetadata(userId: string, metadata: Record<string, any>): Promise<void> {
+    try {
+      this.logger.info('Updating user metadata', { userId, metadata });
+
+      // Update user metadata using Supabase Admin API
+      const { error } = await this.supabaseClient.auth.admin.updateUserById(userId, {
+        user_metadata: metadata
+      });
+
+      if (error) {
+        this.logger.error('Supabase Auth updateUserMetadata failed', { error: getErrorMessage(error) });
+        throw new Error(`Cập nhật user metadata thất bại: ${getErrorMessage(error)}`);
+      }
+
+      this.logger.info('User metadata updated successfully', { userId });
+    } catch (error) {
+      this.logger.error('Update user metadata error', { error: getErrorMessage(error) });
       throw error as any;
     }
   }
