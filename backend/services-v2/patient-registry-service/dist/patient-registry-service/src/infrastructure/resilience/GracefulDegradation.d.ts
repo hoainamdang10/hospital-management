@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant Fallbacks
  */
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 import { ServiceMode, PatientOperationResult, PatientSearchCriteria, IDegradationService } from '../../application/services/IDegradationService';
 export interface DegradationConfig {
     enableReadOnlyFallback: boolean;

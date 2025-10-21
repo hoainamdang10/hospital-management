@@ -10,6 +10,8 @@
  */
 
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { IPatientMatchingService } from '../services/IPatientMatchingService';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface MatchPatientsRequest {
   criteria: {
@@ -52,7 +54,9 @@ export interface MatchPatientsResponse {
 
 export class MatchPatientsUseCase {
   constructor(
-    private readonly patientRepository: IPatientRepository
+    private readonly patientRepository: IPatientRepository,
+    private readonly matchingService: IPatientMatchingService,
+    private readonly logger: ILogger
   ) {}
 
   async execute(request: MatchPatientsRequest): Promise<MatchPatientsResponse> {

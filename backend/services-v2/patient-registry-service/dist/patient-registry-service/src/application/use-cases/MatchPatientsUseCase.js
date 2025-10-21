@@ -12,8 +12,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MatchPatientsUseCase = void 0;
 class MatchPatientsUseCase {
-    constructor(patientRepository) {
+    constructor(patientRepository, matchingService, logger) {
         this.patientRepository = patientRepository;
+        this.matchingService = matchingService;
+        this.logger = logger;
     }
     async execute(request) {
         try {
@@ -91,10 +93,11 @@ class MatchPatientsUseCase {
         catch (error) {
             // Handle validation errors
             if (error instanceof Error) {
+                this.logger.error('Match patients failed', { error: error.message });
                 return {
                     success: false,
                     message: 'Tìm kiếm bệnh nhân trùng khớp thất bại',
-                    errors: [error.message]
+                    errors: ['MATCH_FAILED']
                 };
             }
             // Handle unexpected errors

@@ -42,7 +42,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmergencyContact = void 0;
-const entity_1 = require("@shared/domain/base/entity");
+const entity_1 = require("../../../../shared/domain/base/entity");
 const uuid = __importStar(require("uuid"));
 class EmergencyContact extends entity_1.Entity {
     constructor(props, id) {
@@ -72,7 +72,7 @@ class EmergencyContact extends entity_1.Entity {
      * Reconstitute from persistence
      */
     static reconstitute(props) {
-        return new EmergencyContact(props);
+        return new EmergencyContact(props, props.id);
     }
     // Getters
     getId() {
@@ -136,6 +136,12 @@ class EmergencyContact extends entity_1.Entity {
             this.props.address = address?.trim();
         }
         this.props.updatedAt = new Date();
+    }
+    updateRelationship(relationship) {
+        if (relationship && relationship.trim().length > 0) {
+            this.props.relationship = relationship.trim();
+            this.props.updatedAt = new Date();
+        }
     }
     // Validation methods
     validate() {

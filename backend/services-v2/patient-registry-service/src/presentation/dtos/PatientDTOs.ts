@@ -130,6 +130,18 @@ export interface AddEmergencyContactRequest {
 }
 
 /**
+ * Update emergency contact request
+ */
+export interface UpdateEmergencyContactRequest {
+  name?: string;
+  relationship?: string;
+  primaryPhone?: string;
+  secondaryPhone?: string;
+  email?: string;
+  address?: string;
+}
+
+/**
  * Grant consent request
  */
 export interface GrantConsentRequest {

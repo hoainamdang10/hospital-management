@@ -1,0 +1,326 @@
+# Prometheus Alerting Rules for Scheduler Service
+# Version: 1.0.0
+# Last Updated: 2025-10-21
+
+groups:
+  # ============================================================================
+  # SERVICE AVAILABILITY ALERTS
+  # ============================================================================
+  - name: scheduler_service_availability
+    interval: 30s
+    rules:
+      # Service Down
+      - alert: SchedulerServiceDown
+        expr: up{job="scheduler-service-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: scheduler-service
+          category: availability
+        annotations:
+          summary: "Scheduler Service is down"
+          description: "Scheduler Service API has been down for more than 1 minute. Instance: {{ $labels.instance }}"
+          runbook_url: "https://docs.hospital-management.com/runbooks/scheduler-service-down"
+
+      # High API Error Rate
+      - alert: HighAPIErrorRate
+        expr: |
+          (
+            sum(rate(scheduler_api_request_total{status_code=~"5.."}[5m])) by (job)
+            /
+            sum(rate(scheduler_api_request_total[5m])) by (job)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: availability
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }} (threshold: 5%). Check logs for details."
+          runbook_url: "https://docs.hospital-management.com/runbooks/high-api-error-rate"
+
+  # ============================================================================
+  # PERFORMANCE ALERTS
+  # ============================================================================
+  - name: scheduler_service_performance
+    interval: 30s
+    rules:
+      # High API Latency (P95)
+      - alert: HighAPILatencyP95
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(scheduler_api_request_duration_seconds_bucket[5m])) by (le, method, route)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: performance
+        annotations:
+          summary: "High API latency detected (P95)"
+          description: "API P95 latency is {{ $value | humanizeDuration }} for {{ $labels.method }} {{ $labels.route }} (threshold: 1s)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/high-api-latency"
+
+      # High API Latency (P99)
+      - alert: HighAPILatencyP99
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(scheduler_api_request_duration_seconds_bucket[5m])) by (le, method, route)
+          ) > 2
+        for: 5m
+        labels:
+          severity: critical
+          component: scheduler-service
+          category: performance
+        annotations:
+          summary: "Critical API latency detected (P99)"
+          description: "API P99 latency is {{ $value | humanizeDuration }} for {{ $labels.method }} {{ $labels.route }} (threshold: 2s)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/high-api-latency"
+
+      # Slow Worker Poll
+      - alert: SlowWorkerPoll
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(scheduler_worker_poll_duration_seconds_bucket[5m])) by (le, worker_id, segment)
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: performance
+        annotations:
+          summary: "Worker poll operation is slow"
+          description: "Worker {{ $labels.worker_id }} segment {{ $labels.segment }} poll P95 latency is {{ $value | humanizeDuration }} (threshold: 5s)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/slow-worker-poll"
+
+  # ============================================================================
+  # WORKER HEALTH ALERTS
+  # ============================================================================
+  - name: scheduler_worker_health
+    interval: 30s
+    rules:
+      # High Worker Error Rate
+      - alert: HighWorkerErrorRate
+        expr: |
+          (
+            sum(rate(scheduler_worker_runs_failed_total[5m])) by (worker_id)
+            /
+            sum(rate(scheduler_worker_runs_executed_total[5m])) by (worker_id)
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: scheduler-service
+          category: worker
+        annotations:
+          summary: "High worker error rate detected"
+          description: "Worker {{ $labels.worker_id }} error rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/high-worker-error-rate"
+
+      # Worker Not Processing Runs
+      - alert: WorkerNotProcessingRuns
+        expr: |
+          rate(scheduler_worker_runs_executed_total[10m]) == 0
+          and
+          scheduler_runs_pending_total > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: worker
+        annotations:
+          summary: "Worker is not processing runs"
+          description: "Worker {{ $labels.worker_id }} has not executed any runs in 10 minutes, but there are {{ $value }} pending runs"
+          runbook_url: "https://docs.hospital-management.com/runbooks/worker-not-processing"
+
+      # Too Many Active Runs
+      - alert: TooManyActiveRuns
+        expr: scheduler_worker_active_runs > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: worker
+        annotations:
+          summary: "Too many active runs"
+          description: "Worker {{ $labels.worker_id }} has {{ $value }} active runs (threshold: 100). May indicate stuck runs."
+          runbook_url: "https://docs.hospital-management.com/runbooks/too-many-active-runs"
+
+  # ============================================================================
+  # DATABASE ALERTS
+  # ============================================================================
+  - name: scheduler_database_health
+    interval: 30s
+    rules:
+      # High Database Error Rate
+      - alert: HighDatabaseErrorRate
+        expr: |
+          (
+            sum(rate(scheduler_db_query_errors_total[5m]))
+            /
+            sum(rate(scheduler_db_query_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: scheduler-service
+          category: database
+        annotations:
+          summary: "High database error rate detected"
+          description: "Database error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/high-db-error-rate"
+
+      # Slow Database Queries
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(scheduler_db_query_duration_seconds_bucket[5m])) by (le, operation)
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Database {{ $labels.operation }} P95 latency is {{ $value | humanizeDuration }} (threshold: 1s)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/slow-db-queries"
+
+  # ============================================================================
+  # BUSINESS LOGIC ALERTS
+  # ============================================================================
+  - name: scheduler_business_logic
+    interval: 30s
+    rules:
+      # Too Many Pending Runs
+      - alert: TooManyPendingRuns
+        expr: scheduler_runs_pending_total > 10000
+        for: 10m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: business
+        annotations:
+          summary: "Too many pending runs"
+          description: "There are {{ $value }} pending runs (threshold: 10,000). Workers may be overwhelmed."
+          runbook_url: "https://docs.hospital-management.com/runbooks/too-many-pending-runs"
+
+      # High Run Failure Rate
+      - alert: HighRunFailureRate
+        expr: |
+          (
+            sum(rate(scheduler_runs_completed_total{status="FAILED"}[10m]))
+            /
+            sum(rate(scheduler_runs_completed_total[10m]))
+          ) > 0.2
+        for: 10m
+        labels:
+          severity: critical
+          component: scheduler-service
+          category: business
+        annotations:
+          summary: "High run failure rate detected"
+          description: "Run failure rate is {{ $value | humanizePercentage }} (threshold: 20%)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/high-run-failure-rate"
+
+      # No Runs Completed Recently
+      - alert: NoRunsCompletedRecently
+        expr: |
+          rate(scheduler_runs_completed_total[30m]) == 0
+          and
+          scheduler_schedules_active_total > 0
+        for: 30m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: business
+        annotations:
+          summary: "No runs completed recently"
+          description: "No runs have completed in the last 30 minutes, but there are {{ $value }} active schedules"
+          runbook_url: "https://docs.hospital-management.com/runbooks/no-runs-completed"
+
+  # ============================================================================
+  # CLEANUP WORKER ALERTS
+  # ============================================================================
+  - name: scheduler_cleanup_worker
+    interval: 30s
+    rules:
+      # Cleanup Worker Not Running
+      - alert: CleanupWorkerNotRunning
+        expr: |
+          rate(scheduler_worker_cleanup_operations_total[24h]) == 0
+        for: 25h
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: cleanup
+        annotations:
+          summary: "Cleanup worker has not run recently"
+          description: "Cleanup worker has not performed any operations in the last 24 hours. Database may grow unbounded."
+          runbook_url: "https://docs.hospital-management.com/runbooks/cleanup-worker-not-running"
+
+      # High Cleanup Duration
+      - alert: HighCleanupDuration
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(scheduler_worker_cleanup_duration_seconds_bucket[1h])) by (le, operation_type)
+          ) > 60
+        for: 1h
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: cleanup
+        annotations:
+          summary: "Cleanup operations are slow"
+          description: "Cleanup {{ $labels.operation_type }} P95 duration is {{ $value | humanizeDuration }} (threshold: 60s)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/slow-cleanup"
+
+  # ============================================================================
+  # UNROUTABLE MESSAGES ALERTS
+  # ============================================================================
+  - name: scheduler_unroutable_messages
+    interval: 30s
+    rules:
+      # Unroutable Messages Detected
+      - alert: UnroutableMessagesDetected
+        expr: |
+          rate(scheduler_unroutable_messages_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: scheduler-service
+          category: messaging
+        annotations:
+          summary: "Unroutable messages detected"
+          description: "Unroutable messages detected for routing_key {{ $labels.routing_key }} on exchange {{ $labels.exchange }}. Rate: {{ $value | humanize }} msg/s"
+          runbook_url: "https://docs.hospital-management.com/runbooks/unroutable-messages"
+
+      # High Unroutable Message Rate
+      - alert: HighUnroutableMessageRate
+        expr: |
+          rate(scheduler_unroutable_messages_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: critical
+          component: scheduler-service
+          category: messaging
+        annotations:
+          summary: "High unroutable message rate detected"
+          description: "High rate of unroutable messages for routing_key {{ $labels.routing_key }} on exchange {{ $labels.exchange }}. Rate: {{ $value | humanize }} msg/s (threshold: 1 msg/s)"
+          runbook_url: "https://docs.hospital-management.com/runbooks/high-unroutable-rate"
+
+      # Too Many Unroutable Messages
+      - alert: TooManyUnroutableMessages
+        expr: |
+          sum(scheduler_unroutable_messages_total) > 100
+        for: 1h
+        labels:
+          severity: critical
+          component: scheduler-service
+          category: messaging
+        annotations:
+          summary: "Too many unroutable messages accumulated"
+          description: "Total unroutable messages: {{ $value }} (threshold: 100). Check RabbitMQ bindings and consumer configurations."
+          runbook_url: "https://docs.hospital-management.com/runbooks/too-many-unroutable"
+

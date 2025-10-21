@@ -11,7 +11,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Patient = void 0;
-const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const PatientId_1 = require("../value-objects/PatientId");
 const PatientLink_1 = require("../value-objects/PatientLink");
 const PatientStatus_1 = require("../value-objects/PatientStatus");
@@ -340,6 +340,53 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         if (this.props.status !== PatientStatus_1.PatientStatus.ACTIVE) {
             throw new Error(`Không thể cập nhật bệnh nhân với trạng thái: ${this.props.status}`);
         }
+    }
+    // ==================== Photo Management (FHIR: photo field) ====================
+    /**
+     * Update patient photo URL
+     */
+    updatePhoto(photoUrl, updatedBy) {
+        this.ensureCanUpdate();
+        if (!photoUrl || photoUrl.trim() === '') {
+            throw new Error('URL ảnh không được để trống');
+        }
+        this.props.photoUrl = photoUrl;
+        this.props.updatedAt = new Date();
+        this.props.updatedBy = updatedBy;
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), 'photo_updated', updatedBy));
+    }
+    /**
+     * Remove patient photo
+     */
+    removePhoto(updatedBy) {
+        this.ensureCanUpdate();
+        this.props.photoUrl = undefined;
+        this.props.updatedAt = new Date();
+        this.props.updatedBy = updatedBy;
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), 'photo_removed', updatedBy));
+    }
+    /**
+     * Get patient photo URL
+     */
+    getPhotoUrl() {
+        return this.props.photoUrl;
+    }
+    // ==================== Communication Preferences (FHIR: communication field) ====================
+    /**
+     * Update communication preferences
+     */
+    updateCommunicationPreference(preference, updatedBy) {
+        this.ensureCanUpdate();
+        this.props.communicationPreference = preference;
+        this.props.updatedAt = new Date();
+        this.props.updatedBy = updatedBy;
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), 'communication_preference_updated', updatedBy));
+    }
+    /**
+     * Get communication preferences
+     */
+    getCommunicationPreference() {
+        return this.props.communicationPreference;
     }
 }
 exports.Patient = Patient;

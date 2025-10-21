@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPatientRoutes = createPatientRoutes;
 const express_1 = require("express");
 const ErrorHandlingMiddleware_1 = require("../middleware/ErrorHandlingMiddleware");
+const UploadMiddleware_1 = require("../middleware/UploadMiddleware");
 const ValidationMiddleware_1 = require("../middleware/ValidationMiddleware");
 /**
  * Create patient routes
@@ -30,6 +31,11 @@ function createPatientRoutes(controller) {
      */
     router.post('/validate-insurance', asyncHandler(controller.validateInsurance.bind(controller)));
     // ==================== SEARCH & MATCH ROUTES ====================
+    /**
+     * Get patient statistics
+     * GET /api/v1/patients/statistics
+     */
+    router.get('/statistics', asyncHandler(controller.getStatistics.bind(controller)));
     /**
      * Search patients
      * GET /api/v1/patients/search?searchTerm=...
@@ -89,10 +95,93 @@ function createPatientRoutes(controller) {
      */
     router.post('/:patientId/emergency-contacts', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.addEmergencyContact.bind(controller)));
     /**
+     * Get emergency contacts
+     * GET /api/v1/patients/:patientId/emergency-contacts
+     */
+    router.get('/:patientId/emergency-contacts', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getEmergencyContacts.bind(controller)));
+    /**
+     * Update emergency contact
+     * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId
+     */
+    router.put('/:patientId/emergency-contacts/:contactId', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.updateEmergencyContact.bind(controller)));
+    /**
+     * Remove emergency contact
+     * DELETE /api/v1/patients/:patientId/emergency-contacts/:contactId
+     */
+    router.delete('/:patientId/emergency-contacts/:contactId', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.removeEmergencyContact.bind(controller)));
+    /**
+     * Set primary emergency contact
+     * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId/set-primary
+     */
+    router.put('/:patientId/emergency-contacts/:contactId/set-primary', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.setPrimaryEmergencyContact.bind(controller)));
+    // ==================== PHOTO MANAGEMENT (FHIR: photo field) ====================
+    /**
+     * Upload patient photo
+     * POST /api/v1/patients/:patientId/photo
+     */
+    router.post('/:patientId/photo', ValidationMiddleware_1.validatePatientId, UploadMiddleware_1.upload.single('photo'), asyncHandler(controller.uploadPhoto.bind(controller)));
+    /**
+     * Get patient photo
+     * GET /api/v1/patients/:patientId/photo
+     */
+    router.get('/:patientId/photo', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getPhoto.bind(controller)));
+    /**
+     * Delete patient photo
+     * DELETE /api/v1/patients/:patientId/photo
+     */
+    router.delete('/:patientId/photo', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.deletePhoto.bind(controller)));
+    // ==================== COMMUNICATION PREFERENCES (FHIR: communication field) ====================
+    /**
+     * Update communication preferences
+     * PUT /api/v1/patients/:patientId/communication
+     */
+    router.put('/:patientId/communication', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.updateCommunicationPreferences.bind(controller)));
+    /**
+     * Get communication preferences
+     * GET /api/v1/patients/:patientId/communication
+     */
+    router.get('/:patientId/communication', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getCommunicationPreferences.bind(controller)));
+    // ==================== CONSENT MANAGEMENT ====================
+    /**
      * Grant consent
      * POST /api/v1/patients/:patientId/consents
      */
     router.post('/:patientId/consents', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.grantConsent.bind(controller)));
+    /**
+     * Get all consents
+     * GET /api/v1/patients/:patientId/consents
+     */
+    router.get('/:patientId/consents', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getConsents.bind(controller)));
+    /**
+     * Get active consents only
+     * GET /api/v1/patients/:patientId/consents/active
+     */
+    router.get('/:patientId/consents/active', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getActiveConsents.bind(controller)));
+    /**
+     * Get consent details
+     * GET /api/v1/patients/:patientId/consents/:consentId
+     */
+    router.get('/:patientId/consents/:consentId', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getConsentDetails.bind(controller)));
+    /**
+     * Revoke consent
+     * POST /api/v1/patients/:patientId/consents/:consentId/revoke
+     */
+    router.post('/:patientId/consents/:consentId/revoke', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.revokeConsent.bind(controller)));
+    /**
+     * Get insurance info
+     * GET /api/v1/patients/:patientId/insurance
+     */
+    router.get('/:patientId/insurance', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getInsuranceInfo.bind(controller)));
+    /**
+     * Update insurance info
+     * PUT /api/v1/patients/:patientId/insurance
+     */
+    router.put('/:patientId/insurance', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.updateInsuranceInfo.bind(controller)));
+    /**
+     * Verify insurance
+     * POST /api/v1/patients/:patientId/insurance/verify
+     */
+    router.post('/:patientId/insurance/verify', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.verifyInsurance.bind(controller)));
     /**
      * Mark patient as deceased
      * POST /api/v1/patients/:patientId/mark-deceased

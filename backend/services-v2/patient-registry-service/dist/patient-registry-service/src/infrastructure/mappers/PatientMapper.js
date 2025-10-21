@@ -15,6 +15,7 @@ const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
 const ContactInfo_1 = require("../../domain/value-objects/ContactInfo");
 const BasicMedicalInfo_1 = require("../../domain/value-objects/BasicMedicalInfo");
 const PatientLink_1 = require("../../domain/value-objects/PatientLink");
+const CommunicationPreference_1 = require("../../domain/value-objects/CommunicationPreference");
 const InsuranceInfo_1 = require("../../domain/entities/InsuranceInfo");
 const EmergencyContact_1 = require("../../domain/entities/EmergencyContact");
 const PatientConsent_1 = require("../../domain/entities/PatientConsent");
@@ -99,12 +100,24 @@ class PatientMapper {
             }));
             // Map PatientLinks
             const links = (linkRecords || []).map(record => PatientLink_1.PatientLink.create(PatientId_1.PatientId.fromString(record.other_patient_id), record.link_type, record.created_by));
+            // Map CommunicationPreference if exists
+            let communicationPreference;
+            if (patientRecord.communication_preference) {
+                communicationPreference = CommunicationPreference_1.CommunicationPreference.create({
+                    language: patientRecord.communication_preference.language,
+                    preferred: patientRecord.communication_preference.preferred,
+                    contactMethod: patientRecord.communication_preference.contactMethod,
+                    timezone: patientRecord.communication_preference.timezone
+                });
+            }
             // Reconstitute Patient aggregate
             const patientProps = {
                 id: PatientId_1.PatientId.fromString(patientRecord.patient_id),
                 userId: patientRecord.user_id,
                 personalInfo,
                 contactInfo,
+                photoUrl: patientRecord.photo_url || undefined,
+                communicationPreference,
                 basicMedicalInfo,
                 insuranceInfo,
                 emergencyContacts,
@@ -155,6 +168,8 @@ class PatientMapper {
                 knownAllergies: props.basicMedicalInfo.knownAllergies,
                 emergencyMedicalInfo: props.basicMedicalInfo.emergencyMedicalInfo
             },
+            photo_url: props.photoUrl || null,
+            communication_preference: props.communicationPreference ? props.communicationPreference.toDTO() : null,
             status: props.status,
             merged_into: props.mergedInto?.value || null,
             created_at: props.createdAt.toISOString(),

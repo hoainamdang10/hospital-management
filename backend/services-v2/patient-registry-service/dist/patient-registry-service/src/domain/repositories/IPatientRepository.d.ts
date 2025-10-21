@@ -89,5 +89,39 @@ export interface IPatientRepository {
         status: string;
         message?: string;
     }>;
+    /**
+     * Get patient statistics for dashboard
+     */
+    getStatistics(): Promise<{
+        total: number;
+        byGender: {
+            male: number;
+            female: number;
+            other: number;
+            unknown: number;
+        };
+        byAgeRange: {
+            '0-18': number;
+            '19-40': number;
+            '41-60': number;
+            '60+': number;
+        };
+        byInsuranceType: {
+            bhyt: number;
+            bhtn: number;
+            private: number;
+            selfPay: number;
+        };
+        byStatus: {
+            active: number;
+            inactive: number;
+            deceased: number;
+            merged: number;
+        };
+        registrationTrend: Array<{
+            month: string;
+            count: number;
+        }>;
+    }>;
 }
 //# sourceMappingURL=IPatientRepository.d.ts.map

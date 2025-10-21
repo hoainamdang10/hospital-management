@@ -46,28 +46,28 @@ export function generateRandomPatientId(): string {
 }
 
 /**
- * Create valid patient data for testing
+ * Create valid patient data for testing (API format - flat structure)
  */
 export function createValidPatientData(overrides: any = {}) {
   return {
     userId: overrides.userId || `user-${Math.random().toString(36).substring(7)}`,
-    personalInfo: {
-      fullName: overrides.fullName || 'Nguyễn Văn Test',
-      dateOfBirth: overrides.dateOfBirth || '1990-01-01',
-      gender: overrides.gender || 'male',
-      nationalId: overrides.nationalId || generateRandomNationalId()
+    // Personal Info (flat structure for API)
+    fullName: overrides.fullName || 'Nguyễn Văn Test',
+    dateOfBirth: overrides.dateOfBirth || '1990-01-01',
+    gender: overrides.gender || 'male',
+    nationalId: overrides.nationalId || generateRandomNationalId(),
+    nationality: overrides.nationality || 'Vietnamese',
+    // Contact Info (flat structure for API)
+    primaryPhone: overrides.primaryPhone || generateRandomPhone(),
+    email: overrides.email || generateRandomEmail(),
+    address: {
+      street: overrides.street || '123 Đường Test',
+      ward: overrides.ward || 'Phường 1',
+      district: overrides.district || 'Quận 1',
+      city: overrides.city || 'Hồ Chí Minh',
+      country: 'Vietnam'
     },
-    contactInfo: {
-      primaryPhone: overrides.primaryPhone || generateRandomPhone(),
-      email: overrides.email || generateRandomEmail(),
-      address: {
-        street: overrides.street || '123 Đường Test',
-        ward: overrides.ward || 'Phường 1',
-        district: overrides.district || 'Quận 1',
-        city: overrides.city || 'Hồ Chí Minh',
-        country: 'Vietnam'
-      }
-    },
+    // Emergency Contacts
     emergencyContacts: overrides.emergencyContacts || [{
       fullName: 'Nguyễn Thị Emergency',
       relationship: 'Spouse',
@@ -154,6 +154,8 @@ export async function cleanupTestPatients(
 
 /**
  * Clean up test users from auth
+ * NOTE: Only cleanup user_profiles and user_roles, NOT auth.users
+ * This prevents orphaned profiles when auth.users is deleted
  */
 export async function cleanupTestUsers(
   supabaseClient: SupabaseClient,
@@ -161,15 +163,58 @@ export async function cleanupTestUsers(
 ): Promise<void> {
   for (const email of emails) {
     try {
+      // Delete from auth_schema tables only
+      // auth.users will be cleaned up by Supabase Auth automatically
+      const { error: loginError } = await supabaseClient
+        .from('login_attempts')
+        .delete()
+        .eq('email', email);
+
+      if (loginError) {
+        console.warn(`⚠️  Could not delete login attempts for ${email}: ${loginError.message}`);
+      }
+
+      // Get user profile to find user_id
+      const { data: profile } = await supabaseClient
+        .from('user_profiles')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (profile) {
+        // Delete user roles
+        const { error: rolesError } = await supabaseClient
+          .from('user_roles')
+          .delete()
+          .eq('user_id', profile.id);
+
+        if (rolesError) {
+          console.warn(`⚠️  Could not delete user roles for ${email}: ${rolesError.message}`);
+        }
+
+        // Delete user profile
+        const { error: profileError } = await supabaseClient
+          .from('user_profiles')
+          .delete()
+          .eq('id', profile.id);
+
+        if (profileError) {
+          console.warn(`⚠️  Could not delete user profile for ${email}: ${profileError.message}`);
+        } else {
+          console.log(`✅ Deleted test user profile: ${email}`);
+        }
+      }
+
+      // Finally, delete from auth.users using Admin API
       const { data: users } = await supabaseClient.auth.admin.listUsers();
       const user = users?.users.find(u => u.email === email);
 
       if (user) {
         const { error } = await supabaseClient.auth.admin.deleteUser(user.id);
         if (error) {
-          console.warn(`⚠️  Could not delete test user ${email}: ${error.message}`);
+          console.warn(`⚠️  Could not delete auth user ${email}: ${error.message}`);
         } else {
-          console.log(`✅ Deleted test user: ${email}`);
+          console.log(`✅ Deleted auth user: ${email}`);
         }
       }
     } catch (error) {
@@ -179,52 +224,119 @@ export async function cleanupTestUsers(
 }
 
 /**
- * Get or create test user
+ * Get or create test user via Identity Service
+ * Creates verified users directly in database to bypass email verification
  */
 export async function getOrCreateTestUser(
   supabaseClient: SupabaseClient,
   email: string,
   password: string
 ): Promise<{ userId: string; token: string }> {
-  try {
-    // Try to sign in first
-    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+  const axios = require('axios');
+  const identityServiceUrl = process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001';
 
-    if (signInData?.session) {
-      return {
-        userId: signInData.user.id,
-        token: signInData.session.access_token
-      };
+  try {
+    // Try to login first
+    try {
+      const loginResponse = await axios.post(`${identityServiceUrl}/auth/login`, {
+        email,
+        password
+      });
+
+      if (loginResponse.data.success && loginResponse.data.data?.accessToken) {
+        return {
+          userId: loginResponse.data.data.user.id,
+          token: loginResponse.data.data.accessToken
+        };
+      }
+    } catch (loginError) {
+      // Login failed, user might not exist
+      console.log(`Login failed for ${email}, will try to create user`);
     }
 
-    // If sign in failed, create user
-    const { data: signUpData, error: signUpError } = await supabaseClient.auth.admin.createUser({
+    // Create user in auth.users (Supabase Auth)
+    console.log(`🔧 Creating auth user for ${email}...`);
+    const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      user_metadata: {
+        full_name: `Test User ${email}`,
+        role_type: 'patient'
+      }
     });
 
-    if (signUpError || !signUpData.user) {
-      throw new Error(`Failed to create user: ${signUpError?.message}`);
+    if (authError) {
+      console.error(`❌ Failed to create auth user: ${authError.message}`);
+      throw new Error(`Failed to create auth user: ${authError.message}`);
     }
 
-    // Sign in to get token
-    const { data: newSignInData, error: newSignInError } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
+    if (!authUser.user) {
+      console.error(`❌ Auth user created but user object is null`);
+      throw new Error(`Auth user created but user object is null`);
+    }
+
+    console.log(`✅ Auth user created: ${authUser.user.id}`);
+
+    // Verify user exists in auth.users
+    const { data: verifyUser, error: verifyError } = await supabaseClient
+      .from('users')
+      .select('id, email')
+      .eq('id', authUser.user.id)
+      .single();
+
+    if (verifyError || !verifyUser) {
+      console.error(`❌ User not found in auth.users after creation: ${verifyError?.message}`);
+    } else {
+      console.log(`✅ Verified user exists in auth.users: ${verifyUser.email}`);
+    }
+
+    // Update user profile to verified using RPC function
+    const { error: updateError } = await supabaseClient.rpc('create_verified_test_user', {
+      p_user_id: authUser.user.id,
+      p_email: email,
+      p_full_name: `Test User ${email}`
     });
 
-    if (newSignInError || !newSignInData.session) {
-      throw new Error(`Failed to sign in after creating user: ${newSignInError?.message}`);
+    if (updateError) {
+      console.warn(`Failed to create verified test user: ${updateError.message}`);
+    } else {
+      console.log(`✅ Created verified test user for ${email}`);
     }
 
-    return {
-      userId: newSignInData.user.id,
-      token: newSignInData.session.access_token
-    };
+    // Login via Identity Service to get valid token
+    console.log(`🔐 Attempting login for ${email}...`);
+
+    try {
+      const loginResponse = await axios.post(`${identityServiceUrl}/auth/login`, {
+        email,
+        password
+      });
+
+      console.log(`📊 Login response:`, JSON.stringify(loginResponse.data, null, 2));
+
+      if (!loginResponse.data.success || !loginResponse.data.data?.accessToken) {
+        console.error(`❌ Login failed:`, loginResponse.data);
+        throw new Error(`Failed to login after creating user: ${loginResponse.data.error || loginResponse.data.message || 'Unknown error'}`);
+      }
+
+      console.log(`✅ Login successful for ${email}`);
+
+      return {
+        userId: loginResponse.data.data.user.id,
+        token: loginResponse.data.data.accessToken
+      };
+    } catch (loginError: unknown) {
+      if (axios.isAxiosError(loginError)) {
+        const axiosError = loginError as import('axios').AxiosError;
+        console.error(`❌ Login axios error:`, {
+          status: axiosError.response?.status,
+          data: axiosError.response?.data,
+          message: axiosError.message
+        });
+      }
+      throw loginError;
+    }
   } catch (error) {
     throw new Error(`Failed to get or create test user: ${error}`);
   }

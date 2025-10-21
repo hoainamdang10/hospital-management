@@ -9,8 +9,8 @@
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { BloodType } from '../../domain/value-objects/BasicMedicalInfo';
-import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { IEventBus } from '../../../../shared/infrastructure/event-bus/EventBus';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface RegisterPatientRequest {
     userId: string;
     personalInfo: {

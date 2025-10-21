@@ -13,22 +13,23 @@ import compression from 'compression';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Infrastructure
-import { SupabaseStaffRepository } from '../../src/infrastructure/repositories/SupabaseStaffRepository';
+import { SupabaseProviderStaffRepository } from '../../src/infrastructure/repositories/SupabaseProviderStaffRepository';
 import { RabbitMQEventPublisher } from '../../src/infrastructure/events/RabbitMQEventPublisher';
 import { RabbitMQStaffEventHandler } from '../../src/infrastructure/events/RabbitMQStaffEventHandler';
-import { WinstonLogger } from '../../src/infrastructure/logging/WinstonLogger';
-import { SupabaseEventBus } from '../../src/infrastructure/events/SupabaseEventBus';
+import { SupabaseEventBus } from '../../src/infrastructure/messaging/SupabaseEventBus';
 
 // Application
 import { RegisterStaffUseCase } from '../../src/application/use-cases/RegisterStaffUseCase';
 import { GetStaffProfileUseCase } from '../../src/application/use-cases/GetStaffProfileUseCase';
+import { StaffCommandHandlers } from '../../src/application/handlers/StaffCommandHandlers';
+import { StaffQueryHandlers } from '../../src/application/handlers/StaffQueryHandlers';
 
 // Presentation
 import { StaffController } from '../../src/presentation/controllers/StaffController';
-import { staffRoutes } from '../../src/presentation/routes/staffRoutes';
+import { createStaffRoutes } from '../../src/presentation/routes/staffRoutes';
 
 // Types
-import { ILogger } from '../../src/domain/interfaces/ILogger';
+import { ILogger } from '../../src/application/interfaces/ILogger';
 
 /**
  * Test Logger - Silent logger for tests
@@ -59,7 +60,7 @@ export interface AppFactoryResult {
   app: Application;
   cleanup: () => Promise<void>;
   eventPublisher?: RabbitMQEventPublisher;
-  staffRepository: SupabaseStaffRepository;
+  staffRepository: SupabaseProviderStaffRepository;
   supabaseClient: SupabaseClient;
 }
 
@@ -100,13 +101,25 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   }
 
   // Create event bus (fallback)
-  const eventBus = new SupabaseEventBus(logger);
+  const eventBus = new SupabaseEventBus(
+    config.supabaseUrl,
+    config.supabaseKey,
+    logger,
+    'provider_schema'
+  );
 
   // Create repository
-  const staffRepository = new SupabaseStaffRepository(
-    supabaseClient,
+  const staffRepository = new SupabaseProviderStaffRepository(
+    config.supabaseUrl,
+    config.supabaseKey,
     logger,
-    eventBus
+    {
+      logDataAccess: async (entry: any) => logger.info('AUDIT: Data Access', entry),
+      logDataModification: async (entry: any) => logger.info('AUDIT: Data Modification', entry),
+      logSecurityEvent: async (entry: any) => logger.warn('AUDIT: Security Event', entry)
+    },
+    'provider_schema',
+    'staff_profiles'
   );
 
   // Create use cases
@@ -121,11 +134,25 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger
   );
 
+  // Create handlers
+  const staffCommandHandlers = new StaffCommandHandlers(
+    registerStaffUseCase,
+    logger
+  );
+
+  const staffQueryHandlers = new StaffQueryHandlers(
+    getStaffProfileUseCase,
+    staffRepository,
+    logger
+  );
+
   // Create controller
   const staffController = new StaffController(
+    logger,
     registerStaffUseCase,
     getStaffProfileUseCase,
-    logger
+    staffCommandHandlers,
+    staffQueryHandlers
   );
 
   // Create Express app
@@ -148,7 +175,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   });
 
   // Routes
-  app.use('/api/v1/staff', staffRoutes(staffController));
+  app.use('/api/v1/staff', createStaffRoutes(staffController));
 
   // Error handler
   app.use((err: any, req: any, res: any, next: any) => {

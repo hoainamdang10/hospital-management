@@ -207,7 +207,7 @@ export class UpdatePatientInfoUseCase {
         return {
           success: false,
           message: 'Cập nhật thông tin bệnh nhân thất bại',
-          errors: [error.message]
+          errors: ['UPDATE_FAILED', error.message]
         };
       }
 

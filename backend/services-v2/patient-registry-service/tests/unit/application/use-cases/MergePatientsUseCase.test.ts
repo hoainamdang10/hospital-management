@@ -149,16 +149,16 @@ describe('MergePatientsUseCase', () => {
       mockRepository.findById.mockResolvedValueOnce(null);
 
       const request = {
-        sourcePatientId: 'PAT-202501-001',
-        targetPatientId: 'PAT-202501-002',
+        duplicatePatientId: 'PAT-202501-001',
+        masterPatientId: 'PAT-202501-002',
         reason: 'Duplicate',
-        requestedBy: 'admin-123'
+        performedBy: 'admin-123'
       };
 
       const result = await useCase.execute(request);
 
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('SOURCE_PATIENT_NOT_FOUND');
+      expect(result.errors).toContain('DUPLICATE_PATIENT_NOT_FOUND');
     });
 
     it('should fail when target patient not found', async () => {
@@ -200,16 +200,16 @@ describe('MergePatientsUseCase', () => {
       mockRepository.findById.mockResolvedValueOnce(null);
 
       const request = {
-        sourcePatientId: sourcePatient.getPatientId() || '',
-        targetPatientId: 'PAT-202501-002',
+        duplicatePatientId: sourcePatient.getPatientId() || '',
+        masterPatientId: 'PAT-202501-002',
         reason: 'Duplicate',
-        requestedBy: 'admin-123'
+        performedBy: 'admin-123'
       };
 
       const result = await useCase.execute(request);
 
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('TARGET_PATIENT_NOT_FOUND');
+      expect(result.errors).toContain('MASTER_PATIENT_NOT_FOUND');
     });
 
     it('should handle repository save failure', async () => {
@@ -286,10 +286,10 @@ describe('MergePatientsUseCase', () => {
       mockRepository.save.mockRejectedValue(new Error('Database error'));
 
       const request = {
-        sourcePatientId: sourcePatient.getPatientId() || '',
-        targetPatientId: targetPatient.getPatientId() || '',
+        duplicatePatientId: sourcePatient.getPatientId() || '',
+        masterPatientId: targetPatient.getPatientId() || '',
         reason: 'Duplicate',
-        requestedBy: 'admin-123'
+        performedBy: 'admin-123'
       };
 
       const result = await useCase.execute(request);
@@ -375,10 +375,10 @@ describe('MergePatientsUseCase', () => {
       mockRepository.findById.mockResolvedValueOnce(targetPatient);
 
       const request = {
-        sourcePatientId: sourcePatient.getPatientId() || '',
-        targetPatientId: targetPatient.getPatientId() || '',
+        duplicatePatientId: sourcePatient.getPatientId() || '',
+        masterPatientId: targetPatient.getPatientId() || '',
         reason: 'Duplicate',
-        requestedBy: 'admin-123'
+        performedBy: 'admin-123'
       };
 
       const result = await useCase.execute(request);
@@ -463,10 +463,10 @@ describe('MergePatientsUseCase', () => {
       mockRepository.findById.mockResolvedValueOnce(targetPatient);
 
       const request = {
-        sourcePatientId: sourcePatient.getPatientId() || '',
-        targetPatientId: targetPatient.getPatientId() || '',
+        duplicatePatientId: sourcePatient.getPatientId() || '',
+        masterPatientId: targetPatient.getPatientId() || '',
         reason: 'Duplicate',
-        requestedBy: 'admin-123'
+        performedBy: 'admin-123'
       };
 
       const result = await useCase.execute(request);

@@ -1,0 +1,305 @@
+### Scheduler Service API Tests
+### Base URL: http://localhost:3030/api/v1
+
+### Variables
+@baseUrl = http://localhost:3030/api/v1
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LXVzZXItMTIzIiwiZW1haWwiOiJ0ZXN0QGhvc3BpdGFsLmNvbSIsInJvbGUiOiJhZG1pbiIsInNlcnZpY2UiOiJhcHBvaW50bWVudHMiLCJpYXQiOjE3NjA5ODk2MDcsImV4cCI6MTc2MTA3NjAwN30.haV-hdwyOJSm4ICmGi9WOVuLr3sTe8oCcetU7kAcX00
+
+### 1. Health Check (No Auth Required)
+GET {{baseUrl}}/health
+
+###
+
+### 2. Create ONCE Schedule (Valid)
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "ownerResourceType": "appointment",
+  "ownerResourceId": "appt-123",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-23T09:00:00Z",
+  "topicOrCommand": "appointments.appointment.reminder.24h",
+  "payloadJson": {
+    "appointmentId": "appt-123",
+    "patientId": "patient-456",
+    "doctorId": "doctor-789",
+    "appointmentTime": "2025-10-24T09:00:00Z"
+  },
+  "dedupKey": "appt-123:reminder-24h",
+  "retryPolicy": {
+    "strategy": "exp",
+    "maxAttempts": 3,
+    "baseMs": 1000,
+    "maxDelayMs": 60000
+  }
+}
+
+###
+
+### 3. Create ONCE Schedule with Wildcard Topic (Valid)
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-23T11:00:00Z",
+  "topicOrCommand": "appointments.appointment.reminder.custom",
+  "payloadJson": {
+    "appointmentId": "appt-456",
+    "message": "Custom reminder"
+  },
+  "dedupKey": "appt-456:reminder-custom"
+}
+
+###
+
+### 4. Create CRON Schedule (Invalid - MVP Only Supports ONCE)
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "billing",
+  "scheduleType": "CRON",
+  "cronExpr": "0 9 * * *",
+  "topicOrCommand": "billing.invoice.generate.monthly",
+  "payloadJson": {
+    "reportType": "monthly"
+  },
+  "dedupKey": "billing:monthly-invoice"
+}
+
+###
+
+### 5. Create ONCE Schedule without startAtUtc (Invalid)
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "scheduleType": "ONCE",
+  "topicOrCommand": "appointments.appointment.reminder.24h",
+  "payloadJson": {
+    "appointmentId": "appt-789"
+  },
+  "dedupKey": "appt-789:reminder-24h"
+}
+
+###
+
+### 6. Create Schedule with Unauthorized Topic (Invalid)
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-23T09:00:00Z",
+  "topicOrCommand": "billing.invoice.send",
+  "payloadJson": {
+    "test": "data"
+  },
+  "dedupKey": "test:unauthorized-topic"
+}
+
+###
+
+### 7. Create Schedule with Unknown Service (Invalid)
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "unknown-service",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-23T09:00:00Z",
+  "topicOrCommand": "unknown-service.test",
+  "payloadJson": {
+    "test": "data"
+  },
+  "dedupKey": "test:unknown-service"
+}
+
+###
+
+### 8. Create Schedule without Authentication (Invalid)
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-23T09:00:00Z",
+  "topicOrCommand": "appointments.appointment.reminder.24h",
+  "payloadJson": {
+    "appointmentId": "appt-999"
+  },
+  "dedupKey": "appt-999:reminder-24h"
+}
+
+###
+
+### 9. Update Existing Schedule by dedupKey
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-24T09:00:00Z",
+  "topicOrCommand": "appointments.appointment.reminder.24h",
+  "payloadJson": {
+    "appointmentId": "appt-123",
+    "updated": true,
+    "newTime": "2025-10-24T09:00:00Z"
+  },
+  "dedupKey": "appt-123:reminder-24h"
+}
+
+###
+
+### 10. Get Schedule by ID
+# Replace {scheduleId} with actual schedule ID from create response
+GET {{baseUrl}}/schedules/{scheduleId}
+Authorization: Bearer {{token}}
+
+###
+
+### 11. Get Schedule Runs
+# Replace {scheduleId} with actual schedule ID
+GET {{baseUrl}}/schedules/{scheduleId}/runs?limit=10&offset=0
+Authorization: Bearer {{token}}
+
+###
+
+### 12. Run Now
+# Replace {scheduleId} with actual schedule ID
+POST {{baseUrl}}/schedules/{scheduleId}:runNow
+Authorization: Bearer {{token}}
+
+###
+
+### 13. Cancel Schedules by Owner Resource ID
+POST {{baseUrl}}/schedules:cancelByOwner
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "ownerResourceId": "appt-123",
+  "reason": "Appointment cancelled by patient"
+}
+
+###
+
+### 14. Cancel All Schedules for Owner Service
+POST {{baseUrl}}/schedules:cancelByOwner
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "appointments",
+  "reason": "Bulk cancellation for testing"
+}
+
+###
+
+### 15. Billing Service - Create Monthly Invoice Schedule
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "billing",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-11-01T00:00:00Z",
+  "topicOrCommand": "billing.invoice.generate.monthly",
+  "payloadJson": {
+    "month": "2025-11",
+    "reportType": "monthly"
+  },
+  "dedupKey": "billing:invoice-2025-11"
+}
+
+###
+
+### 16. Notifications Service - Send Alert
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "notifications",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-21T10:00:00Z",
+  "topicOrCommand": "notifications.alert.send",
+  "payloadJson": {
+    "alertType": "system",
+    "message": "System maintenance scheduled"
+  },
+  "dedupKey": "notifications:system-alert-2025-10-21"
+}
+
+###
+
+### 17. Clinical Service - Prescription Refill Reminder
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "clinical",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-10-25T09:00:00Z",
+  "topicOrCommand": "clinical.prescription.refill.reminder",
+  "payloadJson": {
+    "prescriptionId": "rx-123",
+    "patientId": "patient-456",
+    "medication": "Aspirin"
+  },
+  "dedupKey": "clinical:rx-123:refill-reminder"
+}
+
+###
+
+### 18. Patient Registry - Annual Checkup Reminder
+POST {{baseUrl}}/schedules:createOrUpdateByDedup
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenantId": "hospital-1",
+  "ownerService": "patient-registry",
+  "scheduleType": "ONCE",
+  "startAtUtc": "2025-12-01T09:00:00Z",
+  "topicOrCommand": "patient-registry.patient.checkup.annual",
+  "payloadJson": {
+    "patientId": "patient-456",
+    "lastCheckup": "2024-12-01"
+  },
+  "dedupKey": "patient-registry:patient-456:annual-checkup-2025"
+}
+
+###
+

@@ -45,12 +45,28 @@ class MergePatientsUseCase {
                     errors: ['MASTER_PATIENT_NOT_FOUND']
                 };
             }
-            // 4. Validate patients are active
+            // 4. Check if duplicate patient is already merged (check before isActive)
+            if (duplicatePatient.isMerged()) {
+                return {
+                    success: false,
+                    message: 'Bệnh nhân trùng lặp đã được merge trước đó',
+                    errors: ['SOURCE_ALREADY_MERGED']
+                };
+            }
+            // 5. Check if duplicate patient is deceased
+            if (duplicatePatient.isDeceased()) {
+                return {
+                    success: false,
+                    message: 'Bệnh nhân trùng lặp đã qua đời',
+                    errors: ['SOURCE_DECEASED']
+                };
+            }
+            // 6. Validate patients are active
             if (!duplicatePatient.isActive()) {
                 return {
                     success: false,
                     message: 'Bệnh nhân trùng lặp không hoạt động',
-                    errors: ['DUPLICATE_PATIENT_NOT_ACTIVE']
+                    errors: ['PATIENT_INACTIVE']
                 };
             }
             if (!masterPatient.isActive()) {
@@ -60,19 +76,11 @@ class MergePatientsUseCase {
                     errors: ['MASTER_PATIENT_NOT_ACTIVE']
                 };
             }
-            // 5. Check if duplicate patient is already merged
-            if (duplicatePatient.isMerged()) {
-                return {
-                    success: false,
-                    message: 'Bệnh nhân trùng lặp đã được merge trước đó',
-                    errors: ['DUPLICATE_PATIENT_ALREADY_MERGED']
-                };
-            }
-            // 6. Merge duplicate patient into master patient
+            // 7. Merge duplicate patient into master patient
             duplicatePatient.mergeInto(masterPatientId, request.reason, request.performedBy);
-            // 7. Save duplicate patient (now marked as 'merged')
+            // 8. Save duplicate patient (now marked as 'merged')
             await this.patientRepository.save(duplicatePatient);
-            // 8. Return success response
+            // 9. Return success response
             return {
                 success: true,
                 message: 'Đã merge bệnh nhân thành công',
@@ -89,7 +97,7 @@ class MergePatientsUseCase {
                 return {
                     success: false,
                     message: 'Merge bệnh nhân thất bại',
-                    errors: [error.message]
+                    errors: ['MERGE_FAILED', error.message]
                 };
             }
             // Handle unexpected errors

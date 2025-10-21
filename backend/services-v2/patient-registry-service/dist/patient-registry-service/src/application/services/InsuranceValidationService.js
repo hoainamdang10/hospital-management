@@ -51,8 +51,8 @@ class InsuranceValidationService {
         try {
             // Remove spaces and convert to uppercase
             const normalized = bhytNumber.trim().toUpperCase();
-            // Check format
-            const bhytPattern = /^([A-Z]{2})-(\d)-(\d{2})-(\d{4})-(\d{5})-(\d{5})$/;
+            // Check format (support Vietnamese characters like Đ, Ă, Ê, Ô, Ơ, Ư)
+            const bhytPattern = /^([A-ZĐĂÂÊÔƠƯ]{2})-(\d)-(\d{2})-(\d{4})-(\d{5})-(\d{5})$/;
             const match = normalized.match(bhytPattern);
             if (!match) {
                 errors.push('Số BHYT không đúng định dạng. Định dạng đúng: XX-Y-ZZ-YYYY-NNNNN-CCCCC');

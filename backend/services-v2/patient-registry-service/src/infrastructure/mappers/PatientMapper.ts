@@ -14,6 +14,7 @@ import { ContactInfo, Address } from '../../domain/value-objects/ContactInfo';
 import { BasicMedicalInfo, BloodType } from '../../domain/value-objects/BasicMedicalInfo';
 import { PatientStatus } from '../../domain/value-objects/PatientStatus';
 import { PatientLink } from '../../domain/value-objects/PatientLink';
+import { CommunicationPreference } from '../../domain/value-objects/CommunicationPreference';
 import { InsuranceInfo } from '../../domain/entities/InsuranceInfo';
 import { EmergencyContact } from '../../domain/entities/EmergencyContact';
 import { PatientConsent } from '../../domain/entities/PatientConsent';
@@ -70,6 +71,13 @@ export interface PatientRecord {
   personal_info: PersonalInfoDTO; // JSONB
   contact_info: ContactInfoDTO; // JSONB
   basic_medical_info: BasicMedicalInfoDTO; // JSONB
+  photo_url?: string | null; // FHIR: photo field
+  communication_preference?: {
+    language: 'vi' | 'en';
+    preferred: boolean;
+    contactMethod: 'email' | 'sms' | 'phone';
+    timezone: string;
+  } | null; // FHIR: communication field
   status: string;
   merged_into?: string | null;
   created_at: string;
@@ -248,12 +256,25 @@ export class PatientMapper {
         )
       );
 
+      // Map CommunicationPreference if exists
+      let communicationPreference: CommunicationPreference | undefined;
+      if (patientRecord.communication_preference) {
+        communicationPreference = CommunicationPreference.create({
+          language: patientRecord.communication_preference.language,
+          preferred: patientRecord.communication_preference.preferred,
+          contactMethod: patientRecord.communication_preference.contactMethod,
+          timezone: patientRecord.communication_preference.timezone
+        });
+      }
+
       // Reconstitute Patient aggregate
       const patientProps: PatientProps = {
         id: PatientId.fromString(patientRecord.patient_id),
         userId: patientRecord.user_id,
         personalInfo,
         contactInfo,
+        photoUrl: patientRecord.photo_url || undefined,
+        communicationPreference,
         basicMedicalInfo,
         insuranceInfo,
         emergencyContacts,
@@ -313,6 +334,8 @@ export class PatientMapper {
         knownAllergies: props.basicMedicalInfo.knownAllergies,
         emergencyMedicalInfo: props.basicMedicalInfo.emergencyMedicalInfo
       },
+      photo_url: props.photoUrl || null,
+      communication_preference: props.communicationPreference ? props.communicationPreference.toDTO() : null,
       status: props.status,
       merged_into: props.mergedInto?.value || null,
       created_at: props.createdAt.toISOString(),

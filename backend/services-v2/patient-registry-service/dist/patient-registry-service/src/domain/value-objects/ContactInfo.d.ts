@@ -2,7 +2,7 @@
  * ContactInfo Value Object
  * Patient contact information with Vietnamese standards
  */
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from '../../../../shared/domain/base/value-object';
 export interface ContactInfoProps {
     primaryPhone: string;
     secondaryPhone?: string | undefined;

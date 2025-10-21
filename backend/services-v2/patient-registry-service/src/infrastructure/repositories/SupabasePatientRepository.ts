@@ -143,19 +143,22 @@ export class SupabasePatientRepository implements IPatientRepository {
   async findByNationalId(nationalId: string): Promise<Patient | null> {
     return await this.circuitBreaker.execute(
       async () => {
-        const { data: patientData, error: patientError } = await this.supabaseClient
+        const { data: patientDataArray, error: patientError } = await this.supabaseClient
           .from('patients')
           .select('*')
           .eq('personal_info->>nationalId', nationalId)
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1);
 
         if (patientError) {
-          if (patientError.code === 'PGRST116') {
-            return null;
-          }
           throw new Error(`Failed to find patient by national ID: ${patientError.message}`);
         }
 
+        if (!patientDataArray || patientDataArray.length === 0) {
+          return null;
+        }
+
+        const patientData = patientDataArray[0];
         const patientIdValue = patientData.patient_id;
 
         const [insuranceData, emergencyContactsData, consentsData, linksData] = await Promise.all([
@@ -892,6 +895,201 @@ export class SupabasePatientRepository implements IPatientRepository {
       // Don't throw - event publishing failure shouldn't fail the transaction
       // Events will be retried on next save or can be published via outbox pattern
     }
+  }
+
+  /**
+   * Get patient statistics for dashboard
+   */
+  async getStatistics(): Promise<{
+    total: number;
+    byGender: {
+      male: number;
+      female: number;
+      other: number;
+      unknown: number;
+    };
+    byAgeRange: {
+      '0-18': number;
+      '19-40': number;
+      '41-60': number;
+      '60+': number;
+    };
+    byInsuranceType: {
+      bhyt: number;
+      bhtn: number;
+      private: number;
+      selfPay: number;
+    };
+    byStatus: {
+      active: number;
+      inactive: number;
+      deceased: number;
+      merged: number;
+    };
+    registrationTrend: Array<{
+      month: string;
+      count: number;
+    }>;
+  }> {
+    return this.circuitBreaker.execute(
+      async () => {
+        this.logger.info('Getting patient statistics');
+
+        // Get total count
+        const { count: total, error: totalError } = await this.supabaseClient
+          .from('patients')
+          .select('*', { count: 'exact', head: true });
+
+        if (totalError) {
+          throw new Error(`Failed to get total count: ${totalError.message}`);
+        }
+
+        // Get gender distribution
+        const { data: genderData, error: genderError } = await this.supabaseClient
+          .from('patients')
+          .select('personal_info');
+
+        if (genderError) {
+          throw new Error(`Failed to get gender data: ${genderError.message}`);
+        }
+
+        const byGender = {
+          male: 0,
+          female: 0,
+          other: 0,
+          unknown: 0
+        };
+
+        genderData?.forEach((row: any) => {
+          const gender = row.personal_info?.gender?.toLowerCase();
+          if (gender === 'male') byGender.male++;
+          else if (gender === 'female') byGender.female++;
+          else if (gender === 'other') byGender.other++;
+          else byGender.unknown++;
+        });
+
+        // Get age distribution
+        const { data: ageData, error: ageError } = await this.supabaseClient
+          .from('patients')
+          .select('personal_info');
+
+        if (ageError) {
+          throw new Error(`Failed to get age data: ${ageError.message}`);
+        }
+
+        const byAgeRange = {
+          '0-18': 0,
+          '19-40': 0,
+          '41-60': 0,
+          '60+': 0
+        };
+
+        const currentYear = new Date().getFullYear();
+        ageData?.forEach((row: any) => {
+          const dob = row.personal_info?.dateOfBirth;
+          if (dob) {
+            const birthYear = new Date(dob).getFullYear();
+            const age = currentYear - birthYear;
+            if (age <= 18) byAgeRange['0-18']++;
+            else if (age <= 40) byAgeRange['19-40']++;
+            else if (age <= 60) byAgeRange['41-60']++;
+            else byAgeRange['60+']++;
+          }
+        });
+
+        // Get insurance type distribution
+        const { data: insuranceData, error: insuranceError } = await this.supabaseClient
+          .from('insurance_info')
+          .select('insurance_type');
+
+        if (insuranceError) {
+          throw new Error(`Failed to get insurance data: ${insuranceError.message}`);
+        }
+
+        const byInsuranceType = {
+          bhyt: 0,
+          bhtn: 0,
+          private: 0,
+          selfPay: total || 0
+        };
+
+        insuranceData?.forEach((row: any) => {
+          const type = row.insurance_type?.toLowerCase();
+          if (type === 'bhyt') {
+            byInsuranceType.bhyt++;
+            byInsuranceType.selfPay--;
+          } else if (type === 'bhtn') {
+            byInsuranceType.bhtn++;
+            byInsuranceType.selfPay--;
+          } else if (type === 'private') {
+            byInsuranceType.private++;
+            byInsuranceType.selfPay--;
+          }
+        });
+
+        // Get status distribution
+        const { data: statusData, error: statusError } = await this.supabaseClient
+          .from('patients')
+          .select('status');
+
+        if (statusError) {
+          throw new Error(`Failed to get status data: ${statusError.message}`);
+        }
+
+        const byStatus = {
+          active: 0,
+          inactive: 0,
+          deceased: 0,
+          merged: 0
+        };
+
+        statusData?.forEach((row: any) => {
+          const status = row.status?.toLowerCase();
+          if (status === 'active') byStatus.active++;
+          else if (status === 'inactive') byStatus.inactive++;
+          else if (status === 'deceased') byStatus.deceased++;
+          else if (status === 'merged') byStatus.merged++;
+        });
+
+        // Get registration trend (last 12 months)
+        const { data: trendData, error: trendError } = await this.supabaseClient
+          .from('patients')
+          .select('created_at')
+          .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString());
+
+        if (trendError) {
+          throw new Error(`Failed to get trend data: ${trendError.message}`);
+        }
+
+        const monthCounts: Record<string, number> = {};
+        trendData?.forEach((row: any) => {
+          const month = new Date(row.created_at).toISOString().substring(0, 7); // YYYY-MM
+          monthCounts[month] = (monthCounts[month] || 0) + 1;
+        });
+
+        const registrationTrend = Object.entries(monthCounts)
+          .map(([month, count]) => ({ month, count }))
+          .sort((a, b) => a.month.localeCompare(b.month));
+
+        this.logger.info('Patient statistics retrieved successfully', {
+          total,
+          byGender,
+          byAgeRange,
+          byInsuranceType,
+          byStatus,
+          trendMonths: registrationTrend.length
+        });
+
+        return {
+          total: total || 0,
+          byGender,
+          byAgeRange,
+          byInsuranceType,
+          byStatus,
+          registrationTrend
+        };
+      }
+    );
   }
 }
 

@@ -135,7 +135,7 @@ class RegisterPatientUseCase {
                 return {
                     success: false,
                     message: 'Đăng ký bệnh nhân thất bại',
-                    errors: [error.message]
+                    errors: ['REGISTRATION_FAILED', error.message]
                 };
             }
             // Handle unexpected errors

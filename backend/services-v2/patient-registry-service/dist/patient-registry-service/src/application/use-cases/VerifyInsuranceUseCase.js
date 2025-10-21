@@ -1,0 +1,100 @@
+"use strict";
+/**
+ * VerifyInsuranceUseCase - Application Layer
+ * Verify insurance with external system (BHYT/BHTN)
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, DDD, CQRS, HIPAA
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VerifyInsuranceUseCase = void 0;
+const PatientId_1 = require("../../domain/value-objects/PatientId");
+class VerifyInsuranceUseCase {
+    constructor(patientRepository, logger) {
+        this.patientRepository = patientRepository;
+        this.logger = logger;
+    }
+    async execute(command) {
+        this.logger.info('Verifying insurance', {
+            patientId: command.patientId,
+            requestedBy: command.requestedBy
+        });
+        try {
+            if (!command.patientId || command.patientId.trim().length === 0) {
+                return {
+                    success: false,
+                    message: 'Patient ID không được để trống',
+                    errors: ['INVALID_PATIENT_ID']
+                };
+            }
+            const patientId = PatientId_1.PatientId.create(command.patientId);
+            const patient = await this.patientRepository.findById(patientId);
+            if (!patient) {
+                return {
+                    success: false,
+                    message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
+                    errors: ['PATIENT_NOT_FOUND']
+                };
+            }
+            const insuranceInfo = patient.getInsuranceInfo();
+            if (!insuranceInfo) {
+                return {
+                    success: false,
+                    message: 'Bệnh nhân chưa có thông tin bảo hiểm',
+                    errors: ['NO_INSURANCE_INFO']
+                };
+            }
+            // Verify insurance validity
+            const now = new Date();
+            const isValid = insuranceInfo.isActive &&
+                insuranceInfo.validFrom <= now &&
+                insuranceInfo.validTo >= now;
+            let verificationStatus;
+            if (!insuranceInfo.isActive) {
+                verificationStatus = 'invalid';
+            }
+            else if (insuranceInfo.validTo < now) {
+                verificationStatus = 'expired';
+            }
+            else if (isValid) {
+                verificationStatus = 'verified';
+            }
+            else {
+                verificationStatus = 'not_found';
+            }
+            // TODO: Integrate with external BHYT/BHTN verification API
+            // For now, we just verify based on local data
+            this.logger.info('Insurance verified', {
+                patientId: command.patientId,
+                verificationStatus
+            });
+            return {
+                success: true,
+                data: {
+                    isValid,
+                    coverageType: insuranceInfo.coverageType,
+                    validFrom: insuranceInfo.validFrom,
+                    validTo: insuranceInfo.validTo,
+                    provider: insuranceInfo.provider,
+                    verificationStatus,
+                    verifiedAt: new Date()
+                },
+                message: 'Xác thực bảo hiểm thành công'
+            };
+        }
+        catch (error) {
+            this.logger.error('Error verifying insurance', {
+                patientId: command.patientId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            return {
+                success: false,
+                message: 'Lỗi khi xác thực bảo hiểm',
+                errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+            };
+        }
+    }
+}
+exports.VerifyInsuranceUseCase = VerifyInsuranceUseCase;
+//# sourceMappingURL=VerifyInsuranceUseCase.js.map

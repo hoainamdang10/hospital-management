@@ -5,7 +5,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContactInfo = void 0;
-const value_object_1 = require("@shared/domain/base/value-object");
+const value_object_1 = require("../../../../shared/domain/base/value-object");
 class ContactInfo extends value_object_1.ValueObject {
     constructor(props) {
         super(props);
@@ -29,7 +29,9 @@ class ContactInfo extends value_object_1.ValueObject {
         if (props.secondaryPhone && !this.isValidVietnamesePhoneNumber(props.secondaryPhone)) {
             throw new Error('Số điện thoại phụ không đúng định dạng Việt Nam');
         }
-        if (props.email && !this.isValidEmail(props.email)) {
+        // Trim and lowercase email before validation
+        const trimmedEmail = props.email?.trim().toLowerCase();
+        if (trimmedEmail && !this.isValidEmail(trimmedEmail)) {
             throw new Error('Email không đúng định dạng');
         }
         // Validate address
@@ -51,7 +53,7 @@ class ContactInfo extends value_object_1.ValueObject {
         return new ContactInfo({
             primaryPhone: props.primaryPhone.trim(),
             secondaryPhone: props.secondaryPhone?.trim(),
-            email: props.email?.trim().toLowerCase(),
+            email: trimmedEmail,
             address: {
                 street: props.address.street.trim(),
                 ward: props.address.ward.trim(),

@@ -24,7 +24,7 @@ function getUserRole(req) {
  * Patient Controller
  */
 class PatientController {
-    constructor(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, grantConsentUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, patientQueryHandlers) {
+    constructor(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, patientQueryHandlers) {
         this.logger = logger;
         this.registerPatientUseCase = registerPatientUseCase;
         this.updatePatientInfoUseCase = updatePatientInfoUseCase;
@@ -34,9 +34,26 @@ class PatientController {
         this.deactivatePatientUseCase = deactivatePatientUseCase;
         this.validateInsuranceUseCase = validateInsuranceUseCase;
         this.addEmergencyContactUseCase = addEmergencyContactUseCase;
+        this.getEmergencyContactsUseCase = getEmergencyContactsUseCase;
+        this.updateEmergencyContactUseCase = updateEmergencyContactUseCase;
+        this.removeEmergencyContactUseCase = removeEmergencyContactUseCase;
+        this.setPrimaryEmergencyContactUseCase = setPrimaryEmergencyContactUseCase;
         this.grantConsentUseCase = grantConsentUseCase;
+        this.getConsentsUseCase = getConsentsUseCase;
+        this.getConsentDetailsUseCase = getConsentDetailsUseCase;
+        this.revokeConsentUseCase = revokeConsentUseCase;
+        this.getActiveConsentsUseCase = getActiveConsentsUseCase;
+        this.getInsuranceInfoUseCase = getInsuranceInfoUseCase;
+        this.updateInsuranceInfoUseCase = updateInsuranceInfoUseCase;
+        this.verifyInsuranceUseCase = verifyInsuranceUseCase;
         this.markAsDeceasedUseCase = markAsDeceasedUseCase;
         this.reactivatePatientUseCase = reactivatePatientUseCase;
+        this.getPatientStatisticsUseCase = getPatientStatisticsUseCase;
+        this.uploadPatientPhotoUseCase = uploadPatientPhotoUseCase;
+        this.getPatientPhotoUseCase = getPatientPhotoUseCase;
+        this.deletePatientPhotoUseCase = deletePatientPhotoUseCase;
+        this.updateCommunicationPreferencesUseCase = updateCommunicationPreferencesUseCase;
+        this.getCommunicationPreferencesUseCase = getCommunicationPreferencesUseCase;
         this.patientQueryHandlers = patientQueryHandlers;
     }
     /**
@@ -470,6 +487,7 @@ class PatientController {
     }
     /**
      * Add emergency contact
+     * POST /api/v1/patients/:patientId/emergency-contacts
      */
     async addEmergencyContact(req, res) {
         const { patientId } = req.params;
@@ -482,6 +500,99 @@ class PatientController {
             performedBy
         });
         ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+    }
+    /**
+     * Get emergency contacts
+     * GET /api/v1/patients/:patientId/emergency-contacts
+     */
+    async getEmergencyContacts(req, res) {
+        const { patientId } = req.params;
+        const requestedBy = getUserId(req);
+        this.logger.info('Getting emergency contacts', { patientId });
+        const result = await this.getEmergencyContactsUseCase.execute({
+            patientId,
+            requestedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+    }
+    /**
+     * Update emergency contact
+     * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId
+     */
+    async updateEmergencyContact(req, res) {
+        const { patientId, contactId } = req.params;
+        const request = req.body;
+        const performedBy = getUserId(req);
+        this.logger.info('Updating emergency contact', { patientId, contactId });
+        const result = await this.updateEmergencyContactUseCase.execute({
+            patientId,
+            contactId,
+            ...request,
+            performedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, { contactId: result.contactId }, result.message);
+    }
+    /**
+     * Remove emergency contact
+     * DELETE /api/v1/patients/:patientId/emergency-contacts/:contactId
+     */
+    async removeEmergencyContact(req, res) {
+        const { patientId, contactId } = req.params;
+        const performedBy = getUserId(req);
+        this.logger.info('Removing emergency contact', { patientId, contactId });
+        const result = await this.removeEmergencyContactUseCase.execute({
+            patientId,
+            contactId,
+            performedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, null, result.message);
+    }
+    /**
+     * Set primary emergency contact
+     * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId/set-primary
+     */
+    async setPrimaryEmergencyContact(req, res) {
+        const { patientId, contactId } = req.params;
+        const performedBy = getUserId(req);
+        this.logger.info('Setting primary emergency contact', { patientId, contactId });
+        const result = await this.setPrimaryEmergencyContactUseCase.execute({
+            patientId,
+            contactId,
+            performedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, null, result.message);
     }
     /**
      * Grant consent
@@ -527,6 +638,309 @@ class PatientController {
             performedBy
         });
         ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+    }
+    /**
+     * Get all consents for a patient
+     * GET /api/v1/patients/:patientId/consents
+     */
+    async getConsents(req, res) {
+        const { patientId } = req.params;
+        const requestedBy = getUserId(req);
+        const result = await this.getConsentsUseCase.execute({
+            patientId,
+            requestedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+    }
+    /**
+     * Get consent details
+     * GET /api/v1/patients/:patientId/consents/:consentId
+     */
+    async getConsentDetails(req, res) {
+        const { patientId, consentId } = req.params;
+        const requestedBy = getUserId(req);
+        const result = await this.getConsentDetailsUseCase.execute({
+            patientId,
+            consentId,
+            requestedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+    }
+    /**
+     * Revoke consent
+     * POST /api/v1/patients/:patientId/consents/:consentId/revoke
+     */
+    async revokeConsent(req, res) {
+        const { patientId, consentId } = req.params;
+        const performedBy = getUserId(req);
+        const result = await this.revokeConsentUseCase.execute({
+            patientId,
+            consentId,
+            performedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, { success: true }, result.message);
+    }
+    /**
+     * Get active consents only
+     * GET /api/v1/patients/:patientId/consents/active
+     */
+    async getActiveConsents(req, res) {
+        const { patientId } = req.params;
+        const requestedBy = getUserId(req);
+        const result = await this.getActiveConsentsUseCase.execute({
+            patientId,
+            requestedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+    }
+    /**
+     * Get insurance info
+     * GET /api/v1/patients/:patientId/insurance
+     */
+    async getInsuranceInfo(req, res) {
+        const { patientId } = req.params;
+        const requestedBy = getUserId(req);
+        const result = await this.getInsuranceInfoUseCase.execute({
+            patientId,
+            requestedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+    }
+    /**
+     * Update insurance info
+     * PUT /api/v1/patients/:patientId/insurance
+     */
+    async updateInsuranceInfo(req, res) {
+        const { patientId } = req.params;
+        const performedBy = getUserId(req);
+        const result = await this.updateInsuranceInfoUseCase.execute({
+            patientId,
+            ...req.body,
+            performedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, { success: true }, result.message);
+    }
+    /**
+     * Verify insurance
+     * POST /api/v1/patients/:patientId/insurance/verify
+     */
+    async verifyInsurance(req, res) {
+        const { patientId } = req.params;
+        const requestedBy = getUserId(req);
+        const result = await this.verifyInsuranceUseCase.execute({
+            patientId,
+            requestedBy
+        });
+        if (!result.success) {
+            res.status(400).json({
+                success: false,
+                message: result.message,
+                errors: result.errors
+            });
+            return;
+        }
+        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+    }
+    /**
+     * Get patient statistics
+     * GET /api/v1/patients/statistics
+     */
+    async getStatistics(req, res) {
+        try {
+            this.logger.info('Getting patient statistics');
+            const statistics = await this.getPatientStatisticsUseCase.execute();
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, statistics, 'Thống kê bệnh nhân thành công');
+        }
+        catch (error) {
+            this.logger.error('Failed to get patient statistics', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            res.status(500).json({
+                success: false,
+                message: 'Lỗi khi lấy thống kê bệnh nhân',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    }
+    /**
+     * Upload patient photo
+     * POST /api/v1/patients/:patientId/photo
+     */
+    async uploadPhoto(req, res) {
+        try {
+            const { patientId } = req.params;
+            const userId = getUserId(req);
+            if (!req.file) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Không có file ảnh được tải lên'
+                });
+                return;
+            }
+            this.logger.info('Uploading patient photo', { patientId, userId });
+            const result = await this.uploadPatientPhotoUseCase.execute({
+                patientId,
+                fileBuffer: req.file.buffer,
+                fileName: req.file.originalname,
+                contentType: req.file.mimetype,
+                uploadedBy: userId
+            });
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+        }
+        catch (error) {
+            this.logger.error('Failed to upload patient photo', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            res.status(500).json({
+                success: false,
+                message: error instanceof Error ? error.message : 'Lỗi khi tải ảnh lên'
+            });
+        }
+    }
+    /**
+     * Get patient photo
+     * GET /api/v1/patients/:patientId/photo
+     */
+    async getPhoto(req, res) {
+        try {
+            const { patientId } = req.params;
+            this.logger.info('Getting patient photo', { patientId });
+            const result = await this.getPatientPhotoUseCase.execute({ patientId });
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, 'Lấy ảnh bệnh nhân thành công');
+        }
+        catch (error) {
+            this.logger.error('Failed to get patient photo', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            res.status(500).json({
+                success: false,
+                message: error instanceof Error ? error.message : 'Lỗi khi lấy ảnh bệnh nhân'
+            });
+        }
+    }
+    /**
+     * Delete patient photo
+     * DELETE /api/v1/patients/:patientId/photo
+     */
+    async deletePhoto(req, res) {
+        try {
+            const { patientId } = req.params;
+            const userId = getUserId(req);
+            this.logger.info('Deleting patient photo', { patientId, userId });
+            const result = await this.deletePatientPhotoUseCase.execute({
+                patientId,
+                deletedBy: userId
+            });
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+        }
+        catch (error) {
+            this.logger.error('Failed to delete patient photo', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            res.status(500).json({
+                success: false,
+                message: error instanceof Error ? error.message : 'Lỗi khi xóa ảnh bệnh nhân'
+            });
+        }
+    }
+    /**
+     * Update communication preferences
+     * PUT /api/v1/patients/:patientId/communication
+     */
+    async updateCommunicationPreferences(req, res) {
+        try {
+            const { patientId } = req.params;
+            const { language, preferred, contactMethod, timezone } = req.body;
+            const userId = getUserId(req);
+            this.logger.info('Updating communication preferences', { patientId, userId });
+            const result = await this.updateCommunicationPreferencesUseCase.execute({
+                patientId,
+                language,
+                preferred,
+                contactMethod,
+                timezone,
+                updatedBy: userId
+            });
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+        }
+        catch (error) {
+            this.logger.error('Failed to update communication preferences', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            res.status(500).json({
+                success: false,
+                message: error instanceof Error ? error.message : 'Lỗi khi cập nhật tùy chọn liên hệ'
+            });
+        }
+    }
+    /**
+     * Get communication preferences
+     * GET /api/v1/patients/:patientId/communication
+     */
+    async getCommunicationPreferences(req, res) {
+        try {
+            const { patientId } = req.params;
+            this.logger.info('Getting communication preferences', { patientId });
+            const result = await this.getCommunicationPreferencesUseCase.execute({ patientId });
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, 'Lấy tùy chọn liên hệ thành công');
+        }
+        catch (error) {
+            this.logger.error('Failed to get communication preferences', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            res.status(500).json({
+                success: false,
+                message: error instanceof Error ? error.message : 'Lỗi khi lấy tùy chọn liên hệ'
+            });
+        }
     }
 }
 exports.PatientController = PatientController;

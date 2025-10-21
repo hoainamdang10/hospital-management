@@ -56,6 +56,13 @@ export interface PatientRecord {
     personal_info: PersonalInfoDTO;
     contact_info: ContactInfoDTO;
     basic_medical_info: BasicMedicalInfoDTO;
+    photo_url?: string | null;
+    communication_preference?: {
+        language: 'vi' | 'en';
+        preferred: boolean;
+        contactMethod: 'email' | 'sms' | 'phone';
+        timezone: string;
+    } | null;
     status: string;
     merged_into?: string | null;
     created_at: string;

@@ -9,7 +9,7 @@ import { WorkSchedule } from '../../../../src/domain/value-objects/WorkSchedule'
 
 describe('WorkSchedule Value Object', () => {
   const validData = {
-    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const,
+    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     workingHours: {
       start: '08:00',
       end: '17:00'
@@ -127,13 +127,13 @@ describe('WorkSchedule Value Object', () => {
     });
   });
 
-  describe('getWorkingHoursCount', () => {
+  describe('getWorkingHoursPerDay', () => {
     it('should calculate correct working hours', () => {
       // Arrange
       const schedule = WorkSchedule.create(validData);
 
       // Act
-      const hours = schedule.getWorkingHoursCount();
+      const hours = schedule.getWorkingHoursPerDay();
 
       // Assert
       expect(hours).toBe(9); // 08:00 to 17:00 = 9 hours
@@ -151,20 +151,20 @@ describe('WorkSchedule Value Object', () => {
       const schedule = WorkSchedule.create(halfDayData);
 
       // Act
-      const hours = schedule.getWorkingHoursCount();
+      const hours = schedule.getWorkingHoursPerDay();
 
       // Assert
       expect(hours).toBe(4);
     });
   });
 
-  describe('getWeeklyWorkingHours', () => {
+  describe('getWorkingHoursPerWeek', () => {
     it('should calculate total weekly hours', () => {
       // Arrange
       const schedule = WorkSchedule.create(validData);
 
       // Act
-      const weeklyHours = schedule.getWeeklyWorkingHours();
+      const weeklyHours = schedule.getWorkingHoursPerWeek();
 
       // Assert
       expect(weeklyHours).toBe(45); // 5 days * 9 hours
@@ -174,7 +174,7 @@ describe('WorkSchedule Value Object', () => {
       // Arrange
       const partTimeData = {
         ...validData,
-        workingDays: ['monday', 'wednesday', 'friday'] as const,
+        workingDays: ['monday', 'wednesday', 'friday'],
         workingHours: {
           start: '08:00',
           end: '12:00'
@@ -183,7 +183,7 @@ describe('WorkSchedule Value Object', () => {
       const schedule = WorkSchedule.create(partTimeData);
 
       // Act
-      const weeklyHours = schedule.getWeeklyWorkingHours();
+      const weeklyHours = schedule.getWorkingHoursPerWeek();
 
       // Assert
       expect(weeklyHours).toBe(12); // 3 days * 4 hours
@@ -229,7 +229,7 @@ describe('WorkSchedule Value Object', () => {
       const schedule = WorkSchedule.create(vietnameseOfficeHours);
 
       // Assert
-      expect(schedule.getWorkingHoursCount()).toBe(9);
+      expect(schedule.getWorkingHoursPerDay()).toBe(9);
       expect(schedule.timeZone).toBe('Asia/Ho_Chi_Minh');
     });
 
@@ -256,15 +256,15 @@ describe('WorkSchedule Value Object', () => {
       const afternoon = WorkSchedule.create(afternoonShift);
 
       // Assert
-      expect(morning.getWorkingHoursCount()).toBe(8);
-      expect(afternoon.getWorkingHoursCount()).toBe(8);
+      expect(morning.getWorkingHoursPerDay()).toBe(8);
+      expect(afternoon.getWorkingHoursPerDay()).toBe(8);
     });
 
     it('should support weekend work for emergency staff', () => {
       // Arrange
       const weekendSchedule = {
         ...validData,
-        workingDays: ['saturday', 'sunday'] as const
+        workingDays: ['saturday', 'sunday']
       };
 
       // Act
@@ -273,7 +273,7 @@ describe('WorkSchedule Value Object', () => {
       // Assert
       expect(schedule.isWorkingDay('saturday')).toBe(true);
       expect(schedule.isWorkingDay('sunday')).toBe(true);
-      expect(schedule.getWeeklyWorkingHours()).toBe(18); // 2 days * 9 hours
+      expect(schedule.getWorkingHoursPerWeek()).toBe(18); // 2 days * 9 hours
     });
   });
 

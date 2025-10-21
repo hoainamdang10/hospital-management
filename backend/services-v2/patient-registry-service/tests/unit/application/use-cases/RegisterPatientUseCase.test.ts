@@ -352,7 +352,7 @@ describe('RegisterPatientUseCase', () => {
           policyNumber: 'HN-1-01-2024-12345-67890',
           validFrom: '2024-01-01',
           validTo: '2025-12-31',
-          coverageType: 'BHYT',
+          coverageType: 'BHYT' as 'BHYT' | 'BHTN' | 'private' | 'self_pay',
           isVietnameseInsurance: true,
           bhytNumber: 'HN-1-01-2024-12345-67890',
           isPrimary: true
@@ -399,7 +399,7 @@ describe('RegisterPatientUseCase', () => {
           {
             name: 'Nguyễn Văn B',
             relationship: 'Vợ/Chồng',
-            phoneNumber: '0987654321',
+            primaryPhone: '0987654321',
             isPrimary: true
           }
         ],
@@ -441,9 +441,8 @@ describe('RegisterPatientUseCase', () => {
           }
         },
         basicMedicalInfo: {
-          bloodType: 'A',
-          allergies: ['Penicillin'],
-          chronicConditions: ['Diabetes']
+          bloodType: 'A+' as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-',
+          knownAllergies: ['Penicillin']
         },
         emergencyContacts: [],
         requestedBy: 'admin-123'

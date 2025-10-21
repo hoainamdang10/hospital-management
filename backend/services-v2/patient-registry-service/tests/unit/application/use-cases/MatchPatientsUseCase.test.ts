@@ -8,6 +8,8 @@
 
 import { MatchPatientsUseCase } from '../../../../src/application/use-cases/MatchPatientsUseCase';
 import { IPatientRepository } from '../../../../src/domain/repositories/IPatientRepository';
+import { IPatientMatchingService } from '../../../../src/application/services/IPatientMatchingService';
+import { ILogger } from '@shared/application/services/logger.interface';
 import { Patient } from '../../../../src/domain/aggregates/Patient';
 import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
 import { ContactInfo } from '../../../../src/domain/value-objects/ContactInfo';
@@ -16,6 +18,8 @@ import { BasicMedicalInfo } from '../../../../src/domain/value-objects/BasicMedi
 describe('MatchPatientsUseCase', () => {
   let useCase: MatchPatientsUseCase;
   let mockRepository: jest.Mocked<IPatientRepository>;
+  let mockMatchingService: jest.Mocked<IPatientMatchingService>;
+  let mockLogger: jest.Mocked<ILogger>;
 
   beforeEach(() => {
     mockRepository = {
@@ -31,7 +35,18 @@ describe('MatchPatientsUseCase', () => {
       getHealthStatus: jest.fn()
     } as any;
 
-    useCase = new MatchPatientsUseCase(mockRepository);
+    mockMatchingService = {
+      matchPatients: jest.fn()
+    } as any;
+
+    mockLogger = {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn()
+    } as any;
+
+    useCase = new MatchPatientsUseCase(mockRepository, mockMatchingService, mockLogger);
   });
 
   describe('execute', () => {

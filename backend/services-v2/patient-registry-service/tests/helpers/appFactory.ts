@@ -35,6 +35,23 @@ import { AddEmergencyContactUseCase } from '../../src/application/use-cases/AddE
 import { GrantConsentUseCase } from '../../src/application/use-cases/GrantConsentUseCase';
 import { MarkAsDeceasedUseCase } from '../../src/application/use-cases/MarkAsDeceasedUseCase';
 import { ReactivatePatientUseCase } from '../../src/application/use-cases/ReactivatePatientUseCase';
+import { GetEmergencyContactsUseCase } from '../../src/application/use-cases/GetEmergencyContactsUseCase';
+import { UpdateEmergencyContactUseCase } from '../../src/application/use-cases/UpdateEmergencyContactUseCase';
+import { RemoveEmergencyContactUseCase } from '../../src/application/use-cases/RemoveEmergencyContactUseCase';
+import { SetPrimaryEmergencyContactUseCase } from '../../src/application/use-cases/SetPrimaryEmergencyContactUseCase';
+import { GetConsentsUseCase } from '../../src/application/use-cases/GetConsentsUseCase';
+import { GetConsentDetailsUseCase } from '../../src/application/use-cases/GetConsentDetailsUseCase';
+import { RevokeConsentUseCase } from '../../src/application/use-cases/RevokeConsentUseCase';
+import { GetActiveConsentsUseCase } from '../../src/application/use-cases/GetActiveConsentsUseCase';
+import { GetInsuranceInfoUseCase } from '../../src/application/use-cases/GetInsuranceInfoUseCase';
+import { UpdateInsuranceInfoUseCase } from '../../src/application/use-cases/UpdateInsuranceInfoUseCase';
+import { VerifyInsuranceUseCase } from '../../src/application/use-cases/VerifyInsuranceUseCase';
+import { GetPatientStatisticsUseCase } from '../../src/application/use-cases/GetPatientStatisticsUseCase';
+import { UploadPatientPhotoUseCase } from '../../src/application/use-cases/UploadPatientPhotoUseCase';
+import { GetPatientPhotoUseCase } from '../../src/application/use-cases/GetPatientPhotoUseCase';
+import { DeletePatientPhotoUseCase } from '../../src/application/use-cases/DeletePatientPhotoUseCase';
+import { UpdateCommunicationPreferencesUseCase } from '../../src/application/use-cases/UpdateCommunicationPreferencesUseCase';
+import { GetCommunicationPreferencesUseCase } from '../../src/application/use-cases/GetCommunicationPreferencesUseCase';
 import { PatientCommandHandlers } from '../../src/application/handlers/PatientCommandHandlers';
 import { PatientQueryHandlers } from '../../src/application/handlers/PatientQueryHandlers';
 
@@ -44,6 +61,7 @@ import { CommandController } from '../../src/presentation/controllers/CommandCon
 import { createPatientRoutes } from '../../src/presentation/routes/patientRoutes';
 import { createCommandRoutes } from '../../src/presentation/routes/commandRoutes';
 import { ErrorHandlingMiddleware } from '../../src/presentation/middleware/ErrorHandlingMiddleware';
+import { AuthenticationMiddleware } from '../../src/presentation/middleware/AuthenticationMiddleware';
 
 // Logger
 import { ILogger, LogMetadata } from '@shared/application/services/logger.interface';
@@ -67,6 +85,8 @@ export interface AppFactoryConfig {
   supabaseKey: string;
   rabbitmqUrl?: string;
   enableRabbitMQ?: boolean;
+  enableAuthentication?: boolean;
+  identityServiceUrl?: string;
   logger?: ILogger;
 }
 
@@ -129,20 +149,62 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     eventPublisher
   );
 
+  // Create mock event bus for tests (if no RabbitMQ)
+  const mockEventBus = {
+    connect: async () => {},
+    disconnect: async () => {},
+    publish: async () => {},
+    subscribe: async () => {}
+  };
+
+  const eventBus = eventPublisher || mockEventBus;
+
   // Initialize Use Cases
-  const registerPatientUseCase = new RegisterPatientUseCase(patientRepository);
-  const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository);
-  const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository);
+  const registerPatientUseCase = new RegisterPatientUseCase(patientRepository, eventBus as any, logger);
+  const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository, eventBus as any, logger);
+  const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, logger);
   const searchPatientsUseCase = new SearchPatientsUseCase(patientRepository);
-  const matchPatientsUseCase = new MatchPatientsUseCase(patientRepository);
+  const matchPatientsUseCase = new MatchPatientsUseCase(patientRepository, matchingService, logger);
   const mergePatientsUseCase = new MergePatientsUseCase(patientRepository);
   const linkPatientsUseCase = new LinkPatientsUseCase(patientRepository);
-  const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository);
-  const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService);
-  const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository);
+  const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository, eventBus as any, logger);
+  const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
+  const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository, eventBus as any, logger);
   const grantConsentUseCase = new GrantConsentUseCase(patientRepository);
   const markAsDeceasedUseCase = new MarkAsDeceasedUseCase(patientRepository);
   const reactivatePatientUseCase = new ReactivatePatientUseCase(patientRepository);
+
+  // New use cases
+  const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase(patientRepository, logger);
+  const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(patientRepository, eventBus as any, logger);
+  const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(patientRepository, eventBus as any, logger);
+  const setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase(patientRepository, eventBus as any, logger);
+  const getConsentsUseCase = new GetConsentsUseCase(patientRepository, logger);
+  const getConsentDetailsUseCase = new GetConsentDetailsUseCase(patientRepository, logger);
+  const revokeConsentUseCase = new RevokeConsentUseCase(patientRepository, eventBus as any, logger);
+  const getActiveConsentsUseCase = new GetActiveConsentsUseCase(patientRepository, logger);
+  const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase(patientRepository, logger);
+  const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase(patientRepository, eventBus as any, logger);
+  const verifyInsuranceUseCase = new VerifyInsuranceUseCase(patientRepository, logger);
+
+  // Additional use cases for PatientController
+  const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(patientRepository);
+
+  // Mock storage service for photo use cases
+  const mockStorageService = {
+    bucketName: 'test-bucket',
+    supabaseClient: null,
+    logger: logger,
+    uploadPatientPhoto: jest.fn(),
+    getPatientPhoto: jest.fn(),
+    deletePatientPhoto: jest.fn()
+  } as any;
+
+  const uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase(patientRepository, mockStorageService);
+  const getPatientPhotoUseCase = new GetPatientPhotoUseCase(patientRepository);
+  const deletePatientPhotoUseCase = new DeletePatientPhotoUseCase(patientRepository, mockStorageService);
+  const updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase(patientRepository);
+  const getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase(patientRepository);
 
   const patientQueryHandlers = new PatientQueryHandlers(
     getPatientProfileUseCase,
@@ -172,9 +234,26 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     deactivatePatientUseCase,
     validateInsuranceUseCase,
     addEmergencyContactUseCase,
+    getEmergencyContactsUseCase,
+    updateEmergencyContactUseCase,
+    removeEmergencyContactUseCase,
+    setPrimaryEmergencyContactUseCase,
     grantConsentUseCase,
+    getConsentsUseCase,
+    getConsentDetailsUseCase,
+    revokeConsentUseCase,
+    getActiveConsentsUseCase,
+    getInsuranceInfoUseCase,
+    updateInsuranceInfoUseCase,
+    verifyInsuranceUseCase,
     markAsDeceasedUseCase,
     reactivatePatientUseCase,
+    getPatientStatisticsUseCase,
+    uploadPatientPhotoUseCase,
+    getPatientPhotoUseCase,
+    deletePatientPhotoUseCase,
+    updateCommunicationPreferencesUseCase,
+    getCommunicationPreferencesUseCase,
     patientQueryHandlers
   );
 
@@ -187,6 +266,19 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   app.use(compression());
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Setup Authentication Middleware (if enabled)
+  let authMiddleware: AuthenticationMiddleware | undefined;
+  if (config.enableAuthentication && config.identityServiceUrl) {
+    authMiddleware = new AuthenticationMiddleware({
+      identityServiceUrl: config.identityServiceUrl,
+      logger,
+      skipPaths: ['/health', '/api-docs']
+    });
+
+    // Apply authentication to all routes except skipped paths
+    app.use(authMiddleware.authenticate());
+  }
 
   // Setup Routes
   app.get('/health', (_req, res) => {
@@ -224,13 +316,27 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
 }
 
 /**
- * Create minimal test app (without RabbitMQ)
+ * Create minimal test app (without RabbitMQ, without authentication)
  */
 export async function createMinimalTestApp(): Promise<AppFactoryResult> {
   return createTestApp({
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    enableRabbitMQ: false
+    enableRabbitMQ: false,
+    enableAuthentication: false
+  });
+}
+
+/**
+ * Create test app with authentication (calls Identity Service)
+ */
+export async function createAuthenticatedTestApp(): Promise<AppFactoryResult> {
+  return createTestApp({
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    enableRabbitMQ: false,
+    enableAuthentication: true,
+    identityServiceUrl: process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001'
   });
 }
 

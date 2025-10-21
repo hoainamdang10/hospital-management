@@ -9,6 +9,8 @@
  * @compliance Clean Architecture, DDD, HL7 FHIR, PMI Best Practices
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { IPatientMatchingService } from '../services/IPatientMatchingService';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface MatchPatientsRequest {
     criteria: {
         fullName?: string;
@@ -48,7 +50,9 @@ export interface MatchPatientsResponse {
 }
 export declare class MatchPatientsUseCase {
     private readonly patientRepository;
-    constructor(patientRepository: IPatientRepository);
+    private readonly matchingService;
+    private readonly logger;
+    constructor(patientRepository: IPatientRepository, matchingService: IPatientMatchingService, logger: ILogger);
     execute(request: MatchPatientsRequest): Promise<MatchPatientsResponse>;
 }
 //# sourceMappingURL=MatchPatientsUseCase.d.ts.map

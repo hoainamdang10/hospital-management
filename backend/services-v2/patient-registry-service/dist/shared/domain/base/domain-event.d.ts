@@ -20,7 +20,8 @@ export declare abstract class DomainEvent {
     readonly causationId?: string;
     readonly userId?: string;
     readonly metadata: EventMetadata;
-    protected constructor(eventType: string, aggregateId: string, aggregateType: string, _eventData: any, eventVersion?: number, correlationId?: string, causationId?: string, userId?: string, metadata?: Partial<EventMetadata>);
+    readonly data: any;
+    protected constructor(eventType: string, aggregateId: string, aggregateType: string, eventData: any, eventVersion?: number, correlationId?: string, causationId?: string, userId?: string, metadata?: Partial<EventMetadata>);
     /**
      * Get event data payload
      */

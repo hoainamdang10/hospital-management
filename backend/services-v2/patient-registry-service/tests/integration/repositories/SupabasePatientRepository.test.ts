@@ -11,11 +11,13 @@ import { Patient } from '../../../src/domain/aggregates/Patient';
 import { PersonalInfo } from '../../../src/domain/value-objects/PersonalInfo';
 import { ContactInfo } from '../../../src/domain/value-objects/ContactInfo';
 import { BasicMedicalInfo } from '../../../src/domain/value-objects/BasicMedicalInfo';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { PatientId } from '../../../src/domain/value-objects/PatientId';
+import { ConsoleLogger } from '@shared/application/services/logger.interface';
+import { PatientMatchingService } from '../../../src/application/services/PatientMatchingService';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('SupabasePatientRepository Integration Tests', () => {
   let repository: SupabasePatientRepository;
-  let supabaseClient: SupabaseClient;
   let testPatient: Patient;
 
   const validPersonalInfo = PersonalInfo.create({
@@ -25,13 +27,12 @@ describe('SupabasePatientRepository Integration Tests', () => {
     nationalId: '001234567890',
     nationality: 'Vietnamese',
     ethnicity: 'Kinh',
-    religion: 'Buddhism',
     occupation: 'Software Engineer',
     maritalStatus: 'single'
   });
 
   const validContactInfo = ContactInfo.create({
-    phoneNumber: '0901234567',
+    primaryPhone: '0901234567',
     email: 'integration.test@example.com',
     address: {
       street: '123 Test Street',
@@ -41,44 +42,51 @@ describe('SupabasePatientRepository Integration Tests', () => {
       province: 'Ho Chi Minh',
       country: 'Vietnam',
       postalCode: '700000'
-    }
+    },
+    preferredContactMethod: 'phone'
   });
 
   const validBasicMedicalInfo = BasicMedicalInfo.create({
     bloodType: 'O+',
-    allergies: ['Penicillin'],
-    chronicDiseases: [],
-    disabilities: []
+    knownAllergies: ['Penicillin']
   });
 
   beforeAll(() => {
     const supabaseUrl = process.env.SUPABASE_URL || '';
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    
+
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase credentials not configured');
     }
 
-    supabaseClient = createClient(supabaseUrl, supabaseKey);
-    repository = new SupabasePatientRepository(supabaseClient);
+    const logger = new ConsoleLogger();
+    const matchingService = new PatientMatchingService(logger);
+
+    repository = new SupabasePatientRepository(
+      supabaseUrl,
+      supabaseKey,
+      logger,
+      matchingService
+    );
   });
 
   beforeEach(() => {
     testPatient = Patient.register(
-      'integration-test-user-' + Date.now(),
+      uuidv4(), // Use UUID for user_id
       validPersonalInfo,
       validContactInfo,
       validBasicMedicalInfo,
       undefined,
       [],
-      'admin-user-id'
+      uuidv4() // Use UUID for admin user ID
     );
   });
 
   afterEach(async () => {
     if (testPatient) {
       try {
-        await repository.delete(testPatient.id.value);
+        const patientIdObj = testPatient.getPatientIdObject();
+        await repository.delete(patientIdObj);
       } catch (error) {
         console.warn('Cleanup failed:', error);
       }
@@ -89,28 +97,47 @@ describe('SupabasePatientRepository Integration Tests', () => {
     it('should save patient to database', async () => {
       await repository.save(testPatient);
 
-      const retrieved = await repository.findById(testPatient.id.value);
-      
+      const patientIdObj = testPatient.getPatientIdObject();
+      const retrieved = await repository.findById(patientIdObj);
+
       expect(retrieved).toBeDefined();
-      expect(retrieved?.id.value).toBe(testPatient.id.value);
-      expect(retrieved?.personalInfo.fullName).toBe('Nguyễn Văn Test Integration');
+      expect(retrieved?.getPatientId()).toBe(testPatient.getPatientId());
+      expect(retrieved?.getPersonalInfo().fullName).toBe('Nguyễn Văn Test Integration');
     });
 
     it('should save patient with all fields', async () => {
       await repository.save(testPatient);
 
-      const retrieved = await repository.findById(testPatient.id.value);
-      
-      expect(retrieved?.personalInfo.nationalId).toBe('001234567890');
-      expect(retrieved?.contactInfo.phoneNumber).toBe('0901234567');
-      expect(retrieved?.contactInfo.email).toBe('integration.test@example.com');
-      expect(retrieved?.basicMedicalInfo.bloodType).toBe('O+');
+      const patientIdObj = testPatient.getPatientIdObject();
+      const retrieved = await repository.findById(patientIdObj);
+
+      expect(retrieved?.getPersonalInfo().nationalId).toBe('001234567890');
+      expect(retrieved?.getContactInfo().primaryPhone).toBe('0901234567');
+      expect(retrieved?.getContactInfo().email).toBe('integration.test@example.com');
+      expect(retrieved?.getBasicMedicalInfo().bloodType).toBe('O+');
     });
 
-    it('should throw error when saving duplicate patient ID', async () => {
+    it('should update patient when saving duplicate patient ID (UPSERT)', async () => {
+      // First save
       await repository.save(testPatient);
 
-      await expect(repository.save(testPatient)).rejects.toThrow();
+      // Update patient data
+      const updatedPersonalInfo = PersonalInfo.create({
+        fullName: 'Updated Name',
+        dateOfBirth: new Date('1990-01-15'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese'
+      });
+      testPatient.updatePersonalInfo(updatedPersonalInfo, uuidv4());
+
+      // Second save should update, not throw
+      await expect(repository.save(testPatient)).resolves.not.toThrow();
+
+      // Verify update
+      const patientIdObj = testPatient.getPatientIdObject();
+      const retrieved = await repository.findById(patientIdObj);
+      expect(retrieved?.getPersonalInfo().fullName).toBe('Updated Name');
     });
   });
 
@@ -118,38 +145,53 @@ describe('SupabasePatientRepository Integration Tests', () => {
     it('should find patient by ID', async () => {
       await repository.save(testPatient);
 
-      const found = await repository.findById(testPatient.id.value);
-      
+      const patientIdObj = testPatient.getPatientIdObject();
+      const found = await repository.findById(patientIdObj);
+
       expect(found).toBeDefined();
-      expect(found?.id.value).toBe(testPatient.id.value);
+      expect(found?.getPatientId()).toBe(testPatient.getPatientId());
     });
 
     it('should return null for non-existent patient', async () => {
-      const found = await repository.findById('PAT-999999-999');
-      
+      const nonExistentId = PatientId.create('PAT-202512-999');
+      const found = await repository.findById(nonExistentId);
+
       expect(found).toBeNull();
     });
 
     it('should reconstruct patient aggregate correctly', async () => {
       await repository.save(testPatient);
 
-      const found = await repository.findById(testPatient.id.value);
-      
+      const patientIdObj = testPatient.getPatientIdObject();
+      const found = await repository.findById(patientIdObj);
+
       expect(found).toBeInstanceOf(Patient);
-      expect(found?.personalInfo).toBeInstanceOf(PersonalInfo);
-      expect(found?.contactInfo).toBeInstanceOf(ContactInfo);
-      expect(found?.basicMedicalInfo).toBeInstanceOf(BasicMedicalInfo);
+      expect(found?.getPersonalInfo()).toBeInstanceOf(PersonalInfo);
+      expect(found?.getContactInfo()).toBeInstanceOf(ContactInfo);
+      expect(found?.getBasicMedicalInfo()).toBeInstanceOf(BasicMedicalInfo);
     });
   });
 
   describe('findByUserId', () => {
     it('should find patient by user ID', async () => {
-      await repository.save(testPatient);
+      // Create a fresh patient for this test
+      const testUserId = uuidv4();
+      const freshPatient = Patient.register(
+        testUserId,
+        validPersonalInfo,
+        validContactInfo,
+        validBasicMedicalInfo,
+        undefined,
+        [],
+        'test-admin'
+      );
 
-      const found = await repository.findByUserId(testPatient.userId);
-      
+      await repository.save(freshPatient);
+
+      const found = await repository.findByUserId(testUserId);
+
       expect(found).toBeDefined();
-      expect(found?.userId).toBe(testPatient.userId);
+      expect(found?.getUserId()).toBe(testUserId);
     });
 
     it('should return null for non-existent user ID', async () => {
@@ -166,7 +208,7 @@ describe('SupabasePatientRepository Integration Tests', () => {
       const found = await repository.findByNationalId('001234567890');
       
       expect(found).toBeDefined();
-      expect(found?.personalInfo.nationalId).toBe('001234567890');
+      expect(found?.getPersonalInfo().nationalId).toBe('001234567890');
     });
 
     it('should return null for non-existent national ID', async () => {
@@ -176,73 +218,75 @@ describe('SupabasePatientRepository Integration Tests', () => {
     });
   });
 
-  describe('update', () => {
+  describe('save (update)', () => {
     it('should update patient information', async () => {
       await repository.save(testPatient);
 
       const newPersonalInfo = PersonalInfo.create({
-        ...validPersonalInfo,
-        fullName: 'Nguyễn Văn Updated'
+        fullName: 'Nguyễn Văn Updated',
+        dateOfBirth: new Date('1990-01-15'),
+        gender: 'male',
+        nationalId: '001234567890',
+        nationality: 'Vietnamese',
+        ethnicity: 'Kinh',
+        occupation: 'Software Engineer',
+        maritalStatus: 'single'
       });
 
       testPatient.updatePersonalInfo(newPersonalInfo, 'admin-user-id');
-      await repository.update(testPatient);
+      await repository.save(testPatient);
 
-      const retrieved = await repository.findById(testPatient.id.value);
-      
-      expect(retrieved?.personalInfo.fullName).toBe('Nguyễn Văn Updated');
+      const patientIdObj = testPatient.getPatientIdObject();
+      const retrieved = await repository.findById(patientIdObj);
+
+      expect(retrieved?.getPersonalInfo().fullName).toBe('Nguyễn Văn Updated');
     });
 
     it('should update contact information', async () => {
       await repository.save(testPatient);
 
       const newContactInfo = ContactInfo.create({
-        ...validContactInfo,
-        phoneNumber: '0987654321'
+        primaryPhone: '0987654321',
+        email: 'updated@example.com',
+        address: {
+          street: '456 Updated Street',
+          ward: 'Ward 2',
+          district: 'District 2',
+          city: 'Ho Chi Minh City',
+          province: 'Ho Chi Minh',
+          country: 'Vietnam',
+          postalCode: '700000'
+        },
+        preferredContactMethod: 'email'
       });
 
       testPatient.updateContactInfo(newContactInfo, 'admin-user-id');
-      await repository.update(testPatient);
+      await repository.save(testPatient);
 
-      const retrieved = await repository.findById(testPatient.id.value);
-      
-      expect(retrieved?.contactInfo.phoneNumber).toBe('0987654321');
+      const patientIdObj = testPatient.getPatientIdObject();
+      const retrieved = await repository.findById(patientIdObj);
+
+      expect(retrieved?.getContactInfo().primaryPhone).toBe('0987654321');
+      expect(retrieved?.getContactInfo().email).toBe('updated@example.com');
     });
   });
 
   describe('delete', () => {
-    it('should delete patient from database', async () => {
+    it('should delete patient from database (soft delete)', async () => {
       await repository.save(testPatient);
 
-      await repository.delete(testPatient.id.value);
+      const patientIdObj = testPatient.getPatientIdObject();
+      await repository.delete(patientIdObj);
 
-      const found = await repository.findById(testPatient.id.value);
-      expect(found).toBeNull();
+      const found = await repository.findById(patientIdObj);
+      // Soft delete: patient still exists but status is 'inactive'
+      expect(found).toBeDefined();
+      expect(found?.getStatus()).toBe('inactive');
     });
 
     it('should not throw error when deleting non-existent patient', async () => {
-      await expect(repository.delete('PAT-999999-999')).resolves.not.toThrow();
-    });
-  });
-
-  describe('findAll', () => {
-    it('should return all patients', async () => {
-      await repository.save(testPatient);
-
-      const patients = await repository.findAll();
-      
-      expect(patients).toBeInstanceOf(Array);
-      expect(patients.length).toBeGreaterThan(0);
-    });
-
-    it('should return patients with correct structure', async () => {
-      await repository.save(testPatient);
-
-      const patients = await repository.findAll();
-      const patient = patients.find(p => p.id.value === testPatient.id.value);
-      
-      expect(patient).toBeDefined();
-      expect(patient?.personalInfo).toBeInstanceOf(PersonalInfo);
+      const nonExistentId = PatientId.create('PAT-202512-999');
+      await expect(repository.delete(nonExistentId)).resolves.not.toThrow();
     });
   });
 
@@ -250,7 +294,8 @@ describe('SupabasePatientRepository Integration Tests', () => {
     it('should respect RLS policies', async () => {
       await repository.save(testPatient);
 
-      const found = await repository.findById(testPatient.id.value);
+      const patientIdObj = testPatient.getPatientIdObject();
+      const found = await repository.findById(patientIdObj);
       expect(found).toBeDefined();
     });
   });
@@ -259,15 +304,18 @@ describe('SupabasePatientRepository Integration Tests', () => {
     it('should store PHI securely', async () => {
       await repository.save(testPatient);
 
-      const found = await repository.findById(testPatient.id.value);
-      
-      expect(found?.personalInfo.nationalId).toBe('001234567890');
-      expect(found?.contactInfo.email).toBe('integration.test@example.com');
+      const patientIdObj = testPatient.getPatientIdObject();
+      const found = await repository.findById(patientIdObj);
+
+      expect(found?.getPersonalInfo().nationalId).toBe('001234567890');
+      expect(found?.getContactInfo().email).toBe('integration.test@example.com');
     });
 
     it('should audit patient data access', async () => {
       await repository.save(testPatient);
-      await repository.findById(testPatient.id.value);
+
+      const patientIdObj = testPatient.getPatientIdObject();
+      await repository.findById(patientIdObj);
 
       // Audit log should be created (check audit_logs table)
       // This is implementation-specific
@@ -286,8 +334,9 @@ describe('SupabasePatientRepository Integration Tests', () => {
     it('should retrieve patient within acceptable time', async () => {
       await repository.save(testPatient);
 
+      const patientIdObj = testPatient.getPatientIdObject();
       const startTime = Date.now();
-      await repository.findById(testPatient.id.value);
+      await repository.findById(patientIdObj);
       const endTime = Date.now();
 
       expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
@@ -300,7 +349,8 @@ describe('SupabasePatientRepository Integration Tests', () => {
 
       await expect(repository.save(invalidPatient)).rejects.toThrow();
 
-      const found = await repository.findById(testPatient.id.value);
+      const patientIdObj = testPatient.getPatientIdObject();
+      const found = await repository.findById(patientIdObj);
       expect(found).toBeNull();
     });
   });

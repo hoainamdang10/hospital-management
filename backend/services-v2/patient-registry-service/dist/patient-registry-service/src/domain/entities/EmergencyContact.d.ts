@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from '../../../../shared/domain/base/entity';
 export interface EmergencyContactProps {
     id: string;
     name: string;
@@ -44,6 +44,7 @@ export declare class EmergencyContact extends Entity<EmergencyContactProps> {
     activate(): void;
     deactivate(): void;
     updateContactInfo(name?: string, primaryPhone?: string, secondaryPhone?: string, email?: string, address?: string): void;
+    updateRelationship(relationship: string): void;
     validate(): void;
     isValid(): boolean;
     private static isValidVietnamesePhone;

@@ -43,8 +43,7 @@ describe('PersonalInfo Value Object', () => {
 
     it('should create PersonalInfo without optional email', () => {
       // Arrange
-      const dataWithoutEmail = { ...validData };
-      delete dataWithoutEmail.email;
+      const dataWithoutEmail = { ...validData, email: undefined };
 
       // Act
       const personalInfo = PersonalInfo.create(dataWithoutEmail);
@@ -145,7 +144,7 @@ describe('PersonalInfo Value Object', () => {
     });
   });
 
-  describe('getAge', () => {
+  describe('calculateAge', () => {
     it('should calculate correct age', () => {
       // Arrange
       const birthDate = new Date();
@@ -154,34 +153,10 @@ describe('PersonalInfo Value Object', () => {
       const personalInfo = PersonalInfo.create(data);
 
       // Act
-      const age = personalInfo.getAge();
+      const age = personalInfo.calculateAge();
 
       // Assert
       expect(age).toBe(35);
-    });
-  });
-
-  describe('isAdult', () => {
-    it('should return true for adult', () => {
-      // Arrange
-      const adultDate = new Date();
-      adultDate.setFullYear(adultDate.getFullYear() - 25);
-      const data = { ...validData, dateOfBirth: adultDate };
-      const personalInfo = PersonalInfo.create(data);
-
-      // Act & Assert
-      expect(personalInfo.isAdult()).toBe(true);
-    });
-
-    it('should return false for minor', () => {
-      // Arrange - This should fail in create() due to age validation
-      // But if we could create it, it would return false
-      const minorDate = new Date();
-      minorDate.setFullYear(minorDate.getFullYear() - 16);
-
-      // Act & Assert
-      // Can't test this as create() will throw for age < 18
-      expect(true).toBe(true);
     });
   });
 

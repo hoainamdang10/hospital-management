@@ -10,6 +10,7 @@
 import { Router } from 'express';
 import { PatientController } from '../controllers/PatientController';
 import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';
+import { upload } from '../middleware/UploadMiddleware';
 import {
   validateRegisterPatient,
   validateUpdatePatient,
@@ -52,6 +53,15 @@ export function createPatientRoutes(controller: PatientController): Router {
   );
 
   // ==================== SEARCH & MATCH ROUTES ====================
+
+  /**
+   * Get patient statistics
+   * GET /api/v1/patients/statistics
+   */
+  router.get(
+    '/statistics',
+    asyncHandler(controller.getStatistics.bind(controller))
+  );
 
   /**
    * Search patients
@@ -170,6 +180,103 @@ export function createPatientRoutes(controller: PatientController): Router {
   );
 
   /**
+   * Get emergency contacts
+   * GET /api/v1/patients/:patientId/emergency-contacts
+   */
+  router.get(
+    '/:patientId/emergency-contacts',
+    validatePatientId,
+    asyncHandler(controller.getEmergencyContacts.bind(controller))
+  );
+
+  /**
+   * Update emergency contact
+   * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId
+   */
+  router.put(
+    '/:patientId/emergency-contacts/:contactId',
+    validatePatientId,
+    asyncHandler(controller.updateEmergencyContact.bind(controller))
+  );
+
+  /**
+   * Remove emergency contact
+   * DELETE /api/v1/patients/:patientId/emergency-contacts/:contactId
+   */
+  router.delete(
+    '/:patientId/emergency-contacts/:contactId',
+    validatePatientId,
+    asyncHandler(controller.removeEmergencyContact.bind(controller))
+  );
+
+  /**
+   * Set primary emergency contact
+   * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId/set-primary
+   */
+  router.put(
+    '/:patientId/emergency-contacts/:contactId/set-primary',
+    validatePatientId,
+    asyncHandler(controller.setPrimaryEmergencyContact.bind(controller))
+  );
+
+  // ==================== PHOTO MANAGEMENT (FHIR: photo field) ====================
+
+  /**
+   * Upload patient photo
+   * POST /api/v1/patients/:patientId/photo
+   */
+  router.post(
+    '/:patientId/photo',
+    validatePatientId,
+    upload.single('photo'),
+    asyncHandler(controller.uploadPhoto.bind(controller))
+  );
+
+  /**
+   * Get patient photo
+   * GET /api/v1/patients/:patientId/photo
+   */
+  router.get(
+    '/:patientId/photo',
+    validatePatientId,
+    asyncHandler(controller.getPhoto.bind(controller))
+  );
+
+  /**
+   * Delete patient photo
+   * DELETE /api/v1/patients/:patientId/photo
+   */
+  router.delete(
+    '/:patientId/photo',
+    validatePatientId,
+    asyncHandler(controller.deletePhoto.bind(controller))
+  );
+
+  // ==================== COMMUNICATION PREFERENCES (FHIR: communication field) ====================
+
+  /**
+   * Update communication preferences
+   * PUT /api/v1/patients/:patientId/communication
+   */
+  router.put(
+    '/:patientId/communication',
+    validatePatientId,
+    asyncHandler(controller.updateCommunicationPreferences.bind(controller))
+  );
+
+  /**
+   * Get communication preferences
+   * GET /api/v1/patients/:patientId/communication
+   */
+  router.get(
+    '/:patientId/communication',
+    validatePatientId,
+    asyncHandler(controller.getCommunicationPreferences.bind(controller))
+  );
+
+  // ==================== CONSENT MANAGEMENT ====================
+
+  /**
    * Grant consent
    * POST /api/v1/patients/:patientId/consents
    */
@@ -177,6 +284,76 @@ export function createPatientRoutes(controller: PatientController): Router {
     '/:patientId/consents',
     validatePatientId,
     asyncHandler(controller.grantConsent.bind(controller))
+  );
+
+  /**
+   * Get all consents
+   * GET /api/v1/patients/:patientId/consents
+   */
+  router.get(
+    '/:patientId/consents',
+    validatePatientId,
+    asyncHandler(controller.getConsents.bind(controller))
+  );
+
+  /**
+   * Get active consents only
+   * GET /api/v1/patients/:patientId/consents/active
+   */
+  router.get(
+    '/:patientId/consents/active',
+    validatePatientId,
+    asyncHandler(controller.getActiveConsents.bind(controller))
+  );
+
+  /**
+   * Get consent details
+   * GET /api/v1/patients/:patientId/consents/:consentId
+   */
+  router.get(
+    '/:patientId/consents/:consentId',
+    validatePatientId,
+    asyncHandler(controller.getConsentDetails.bind(controller))
+  );
+
+  /**
+   * Revoke consent
+   * POST /api/v1/patients/:patientId/consents/:consentId/revoke
+   */
+  router.post(
+    '/:patientId/consents/:consentId/revoke',
+    validatePatientId,
+    asyncHandler(controller.revokeConsent.bind(controller))
+  );
+
+  /**
+   * Get insurance info
+   * GET /api/v1/patients/:patientId/insurance
+   */
+  router.get(
+    '/:patientId/insurance',
+    validatePatientId,
+    asyncHandler(controller.getInsuranceInfo.bind(controller))
+  );
+
+  /**
+   * Update insurance info
+   * PUT /api/v1/patients/:patientId/insurance
+   */
+  router.put(
+    '/:patientId/insurance',
+    validatePatientId,
+    asyncHandler(controller.updateInsuranceInfo.bind(controller))
+  );
+
+  /**
+   * Verify insurance
+   * POST /api/v1/patients/:patientId/insurance/verify
+   */
+  router.post(
+    '/:patientId/insurance/verify',
+    validatePatientId,
+    asyncHandler(controller.verifyInsurance.bind(controller))
   );
 
   /**

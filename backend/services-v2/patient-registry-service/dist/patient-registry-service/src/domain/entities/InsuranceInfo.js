@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InsuranceInfo = void 0;
-const entity_1 = require("@shared/domain/base/entity");
+const entity_1 = require("../../../../shared/domain/base/entity");
 const uuid_1 = require("uuid");
 class InsuranceInfo extends entity_1.Entity {
     constructor(props, id) {
@@ -32,7 +32,7 @@ class InsuranceInfo extends entity_1.Entity {
      * Reconstitute from persistence
      */
     static reconstitute(props) {
-        return new InsuranceInfo(props);
+        return new InsuranceInfo(props, props.id);
     }
     // Getters
     getId() {

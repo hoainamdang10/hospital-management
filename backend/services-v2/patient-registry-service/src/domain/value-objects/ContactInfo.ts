@@ -51,7 +51,9 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
       throw new Error('Số điện thoại phụ không đúng định dạng Việt Nam');
     }
 
-    if (props.email && !this.isValidEmail(props.email)) {
+    // Trim and lowercase email before validation
+    const trimmedEmail = props.email?.trim().toLowerCase();
+    if (trimmedEmail && !this.isValidEmail(trimmedEmail)) {
       throw new Error('Email không đúng định dạng');
     }
 
@@ -79,7 +81,7 @@ export class ContactInfo extends ValueObject<ContactInfoProps> {
     return new ContactInfo({
       primaryPhone: props.primaryPhone.trim(),
       secondaryPhone: props.secondaryPhone?.trim(),
-      email: props.email?.trim().toLowerCase(),
+      email: trimmedEmail,
       address: {
         street: props.address.street.trim(),
         ward: props.address.ward.trim(),

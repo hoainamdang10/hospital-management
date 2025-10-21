@@ -243,6 +243,11 @@ describe('ValidateInsuranceUseCase', () => {
         errors: ['Số BHYT không đúng định dạng'],
         warnings: []
       });
+      mockInsuranceService.checkExpiration.mockReturnValue({
+        isExpired: false,
+        isExpiringSoon: false,
+        daysUntilExpiration: 365
+      });
 
       const request = {
         patientId: patient.getPatientId() || '',
@@ -253,7 +258,7 @@ describe('ValidateInsuranceUseCase', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.validationResult.isValid).toBe(false);
-      expect(result.data?.validationResult.errors).toContain('Số BHYT không đúng định dạng');
+      expect(result.data?.validationResult.reasons).toContain('Số BHYT không đúng định dạng');
     });
 
     it('should detect expired insurance', async () => {
@@ -323,7 +328,8 @@ describe('ValidateInsuranceUseCase', () => {
       const result = await useCase.execute(request);
 
       expect(result.success).toBe(true);
-      expect(result.data?.expirationCheck.isExpired).toBe(true);
+      expect(result.data?.validationResult.isValid).toBe(false);
+      expect(result.data?.validationResult.reasons).toContain('INSURANCE_EXPIRED');
     });
 
     it('should detect insurance expiring soon', async () => {
@@ -396,7 +402,7 @@ describe('ValidateInsuranceUseCase', () => {
       const result = await useCase.execute(request);
 
       expect(result.success).toBe(true);
-      expect(result.data?.expirationCheck.isExpiringSoon).toBe(true);
+      expect(result.data?.validationResult.reasons).toContain('INSURANCE_EXPIRING_SOON');
     });
 
     it('should handle insurance service error gracefully', async () => {
@@ -493,7 +499,7 @@ describe('ValidateInsuranceUseCase', () => {
         validTo: new Date('2025-12-31'),
         coverageType: 'BHTN',
         isVietnameseInsurance: true,
-        bhtnNumber: 'BHTN-2024-12345678',
+        bhytNumber: 'BHTN-2024-12345678',
         isPrimary: true,
         isActive: true
       });

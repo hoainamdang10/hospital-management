@@ -84,33 +84,34 @@ class PatientMatchingService {
      */
     calculateMatchScore(patient, criteria) {
         let score = 0;
-        const props = patient.getProps();
+        const personalInfo = patient.getPersonalInfo();
+        const contactInfo = patient.getContactInfo();
         // National ID match (40 points)
-        if (criteria.nationalId && props.personalInfo.nationalId) {
-            if (this.normalizeString(criteria.nationalId) === this.normalizeString(props.personalInfo.nationalId)) {
+        if (criteria.nationalId && personalInfo.nationalId) {
+            if (this.normalizeString(criteria.nationalId) === this.normalizeString(personalInfo.nationalId)) {
                 score += this.WEIGHTS.nationalId;
             }
         }
         // Full name match (20 points)
-        if (criteria.fullName && props.personalInfo.fullName) {
-            const similarity = this.calculateStringSimilarity(this.normalizeString(criteria.fullName), this.normalizeString(props.personalInfo.fullName));
+        if (criteria.fullName && personalInfo.fullName) {
+            const similarity = this.calculateStringSimilarity(this.normalizeString(criteria.fullName), this.normalizeString(personalInfo.fullName));
             score += this.WEIGHTS.fullName * similarity;
         }
         // Date of birth match (20 points)
-        if (criteria.dateOfBirth && props.personalInfo.dateOfBirth) {
-            if (this.isSameDate(criteria.dateOfBirth, props.personalInfo.dateOfBirth)) {
+        if (criteria.dateOfBirth && personalInfo.dateOfBirth) {
+            if (this.isSameDate(criteria.dateOfBirth, personalInfo.dateOfBirth)) {
                 score += this.WEIGHTS.dateOfBirth;
             }
         }
         // Phone match (15 points)
-        if (criteria.primaryPhone && props.contactInfo.primaryPhone) {
-            if (this.normalizePhone(criteria.primaryPhone) === this.normalizePhone(props.contactInfo.primaryPhone)) {
+        if (criteria.primaryPhone && contactInfo.primaryPhone) {
+            if (this.normalizePhone(criteria.primaryPhone) === this.normalizePhone(contactInfo.primaryPhone)) {
                 score += this.WEIGHTS.primaryPhone;
             }
         }
         // Email match (5 points)
-        if (criteria.email && props.contactInfo.email) {
-            if (this.normalizeString(criteria.email) === this.normalizeString(props.contactInfo.email)) {
+        if (criteria.email && contactInfo.email) {
+            if (this.normalizeString(criteria.email) === this.normalizeString(contactInfo.email)) {
                 score += this.WEIGHTS.email;
             }
         }
@@ -137,36 +138,37 @@ class PatientMatchingService {
      * Get detailed match information
      */
     getMatchDetails(patient, criteria) {
-        const props = patient.getProps();
+        const personalInfo = patient.getPersonalInfo();
+        const contactInfo = patient.getContactInfo();
         const matchedFields = [];
         const scores = {};
-        if (criteria.nationalId && props.personalInfo.nationalId) {
-            if (this.normalizeString(criteria.nationalId) === this.normalizeString(props.personalInfo.nationalId)) {
+        if (criteria.nationalId && personalInfo.nationalId) {
+            if (this.normalizeString(criteria.nationalId) === this.normalizeString(personalInfo.nationalId)) {
                 matchedFields.push('nationalId');
                 scores.nationalId = this.WEIGHTS.nationalId;
             }
         }
-        if (criteria.fullName && props.personalInfo.fullName) {
-            const similarity = this.calculateStringSimilarity(this.normalizeString(criteria.fullName), this.normalizeString(props.personalInfo.fullName));
+        if (criteria.fullName && personalInfo.fullName) {
+            const similarity = this.calculateStringSimilarity(this.normalizeString(criteria.fullName), this.normalizeString(personalInfo.fullName));
             if (similarity > 0.8) {
                 matchedFields.push('fullName');
                 scores.fullName = this.WEIGHTS.fullName * similarity;
             }
         }
-        if (criteria.dateOfBirth && props.personalInfo.dateOfBirth) {
-            if (this.isSameDate(criteria.dateOfBirth, props.personalInfo.dateOfBirth)) {
+        if (criteria.dateOfBirth && personalInfo.dateOfBirth) {
+            if (this.isSameDate(criteria.dateOfBirth, personalInfo.dateOfBirth)) {
                 matchedFields.push('dateOfBirth');
                 scores.dateOfBirth = this.WEIGHTS.dateOfBirth;
             }
         }
-        if (criteria.primaryPhone && props.contactInfo.primaryPhone) {
-            if (this.normalizePhone(criteria.primaryPhone) === this.normalizePhone(props.contactInfo.primaryPhone)) {
+        if (criteria.primaryPhone && contactInfo.primaryPhone) {
+            if (this.normalizePhone(criteria.primaryPhone) === this.normalizePhone(contactInfo.primaryPhone)) {
                 matchedFields.push('primaryPhone');
                 scores.primaryPhone = this.WEIGHTS.primaryPhone;
             }
         }
-        if (criteria.email && props.contactInfo.email) {
-            if (this.normalizeString(criteria.email) === this.normalizeString(props.contactInfo.email)) {
+        if (criteria.email && contactInfo.email) {
+            if (this.normalizeString(criteria.email) === this.normalizeString(contactInfo.email)) {
                 matchedFields.push('email');
                 scores.email = this.WEIGHTS.email;
             }

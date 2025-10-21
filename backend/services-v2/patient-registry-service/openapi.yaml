@@ -37,10 +37,14 @@ servers:
 tags:
   - name: Patients
     description: Patient registration and profile management
+  - name: Emergency Contacts
+    description: Emergency contact management
+  - name: Consents
+    description: Patient consent management (HIPAA compliance)
+  - name: Insurance
+    description: Insurance information and validation
   - name: Search
     description: Patient search and matching
-  - name: Insurance
-    description: Insurance validation
   - name: Health
     description: Service health and monitoring
 
@@ -176,6 +180,115 @@ paths:
                       pagination:
                         $ref: '#/components/schemas/Pagination'
 
+  /api/v1/patients/user/{userId}:
+    get:
+      tags:
+        - Patients
+      summary: Get patient by user ID
+      description: Retrieve patient profile by Identity Service user ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/patients/national-id/{nationalId}:
+    get:
+      tags:
+        - Patients
+      summary: Get patient by national ID
+      description: Retrieve patient profile by Vietnamese national ID (CCCD/CMND)
+      parameters:
+        - name: nationalId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{9}$|^\d{12}$'
+      responses:
+        '200':
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/patients/bhyt/{bhytNumber}:
+    get:
+      tags:
+        - Patients
+      summary: Get patient by BHYT number
+      description: Retrieve patient profile by Vietnamese health insurance number
+      parameters:
+        - name: bhytNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/patients/search:
+    get:
+      tags:
+        - Search
+      summary: Search patients
+      description: Search patients by name, national ID, or phone number
+      parameters:
+        - name: searchTerm
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      patients:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PatientSummary'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+
   /api/v1/patients/{patientId}:
     get:
       tags:
@@ -225,6 +338,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/PatientResponse'
 
+  /api/v1/patients/{patientId}/link:
+    post:
+      tags:
+        - Patients
+      summary: Link patients
+      description: Create a link between two patient records (e.g., same person, see-also)
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                targetPatientId:
+                  type: string
+                linkType:
+                  type: string
+                  enum: [replaces, replaced-by, refer, seealso]
+                performedBy:
+                  type: string
+              required:
+                - targetPatientId
+                - linkType
+                - performedBy
+      responses:
+        '200':
+          description: Patients linked successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /api/v1/patients/{patientId}/deactivate:
     post:
       tags:
@@ -256,6 +405,35 @@ paths:
       responses:
         '200':
           description: Patient deactivated successfully
+
+  /api/v1/patients/merge:
+    post:
+      tags:
+        - Patients
+      summary: Merge patients
+      description: Merge duplicate patient records into a single master record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sourcePatientId:
+                  type: string
+                targetPatientId:
+                  type: string
+                performedBy:
+                  type: string
+              required:
+                - sourcePatientId
+                - targetPatientId
+                - performedBy
+      responses:
+        '200':
+          description: Patients merged successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /api/v1/patients/match:
     post:
@@ -349,6 +527,526 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InsuranceValidationResponse'
+
+  /api/v1/patients/{patientId}/reactivate:
+    post:
+      tags:
+        - Patients
+      summary: Reactivate patient
+      description: Reactivate a deactivated patient account
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                performedBy:
+                  type: string
+              required:
+                - performedBy
+      responses:
+        '200':
+          description: Patient reactivated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/patients/{patientId}/mark-deceased:
+    post:
+      tags:
+        - Patients
+      summary: Mark patient as deceased
+      description: Mark a patient as deceased with date and cause
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deceasedDate:
+                  type: string
+                  format: date
+                causeOfDeath:
+                  type: string
+                performedBy:
+                  type: string
+              required:
+                - deceasedDate
+                - performedBy
+      responses:
+        '200':
+          description: Patient marked as deceased successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # Emergency Contacts Endpoints
+  /api/v1/patients/{patientId}/emergency-contacts:
+    get:
+      tags:
+        - Emergency Contacts
+      summary: Get all emergency contacts
+      description: Retrieve all emergency contacts for a patient
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Patient ID (PAT-YYYYMM-XXX)
+      responses:
+        '200':
+          description: Emergency contacts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      patientId:
+                        type: string
+                      contacts:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/EmergencyContactResponse'
+                      totalCount:
+                        type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - Emergency Contacts
+      summary: Add emergency contact
+      description: Add a new emergency contact for a patient
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddEmergencyContactRequest'
+      responses:
+        '201':
+          description: Emergency contact added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/patients/{patientId}/emergency-contacts/{contactId}:
+    put:
+      tags:
+        - Emergency Contacts
+      summary: Update emergency contact
+      description: Update an existing emergency contact
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmergencyContactRequest'
+      responses:
+        '200':
+          description: Emergency contact updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Emergency Contacts
+      summary: Remove emergency contact
+      description: Remove an emergency contact from patient
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                performedBy:
+                  type: string
+              required:
+                - performedBy
+      responses:
+        '200':
+          description: Emergency contact removed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/patients/{patientId}/emergency-contacts/{contactId}/set-primary:
+    put:
+      tags:
+        - Emergency Contacts
+      summary: Set primary emergency contact
+      description: Set an emergency contact as primary
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                performedBy:
+                  type: string
+              required:
+                - performedBy
+      responses:
+        '200':
+          description: Primary contact set successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Consents Endpoints
+  /api/v1/patients/{patientId}/consents:
+    get:
+      tags:
+        - Consents
+      summary: Get all consents
+      description: Retrieve all consents for a patient (HIPAA compliance)
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Consents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      patientId:
+                        type: string
+                      consents:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ConsentResponse'
+                      totalCount:
+                        type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - Consents
+      summary: Grant consent
+      description: Grant a new consent for patient data usage
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrantConsentRequest'
+      responses:
+        '201':
+          description: Consent granted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/patients/{patientId}/consents/active:
+    get:
+      tags:
+        - Consents
+      summary: Get active consents only
+      description: Retrieve only active (valid) consents for a patient
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active consents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      patientId:
+                        type: string
+                      activeConsents:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ConsentResponse'
+                      totalCount:
+                        type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/patients/{patientId}/consents/{consentId}:
+    get:
+      tags:
+        - Consents
+      summary: Get consent details
+      description: Retrieve detailed information about a specific consent
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: consentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Consent details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ConsentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/patients/{patientId}/consents/{consentId}/revoke:
+    post:
+      tags:
+        - Consents
+      summary: Revoke consent
+      description: Revoke a previously granted consent
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: consentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                performedBy:
+                  type: string
+              required:
+                - performedBy
+      responses:
+        '200':
+          description: Consent revoked successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Insurance Info Endpoints
+  /api/v1/patients/{patientId}/insurance:
+    get:
+      tags:
+        - Insurance
+      summary: Get insurance information
+      description: Retrieve insurance information for a patient
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Insurance info retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/InsuranceInfoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Insurance
+      summary: Update insurance information
+      description: Update patient insurance information (only isActive and isPrimary fields)
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInsuranceInfoRequest'
+      responses:
+        '200':
+          description: Insurance info updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/patients/{patientId}/insurance/verify:
+    post:
+      tags:
+        - Insurance
+      summary: Verify insurance with external system
+      description: Verify insurance validity with BHYT/BHTN external system
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestedBy:
+                  type: string
+              required:
+                - requestedBy
+      responses:
+        '200':
+          description: Insurance verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      isValid:
+                        type: boolean
+                      coverageType:
+                        type: string
+                      validFrom:
+                        type: string
+                        format: date
+                      validTo:
+                        type: string
+                        format: date
+                      provider:
+                        type: string
+                      verificationStatus:
+                        type: string
+                        enum: [verified, expired, invalid, not_found]
+                      verifiedAt:
+                        type: string
+                        format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 components:
   securitySchemes:
@@ -649,6 +1347,161 @@ components:
           type: integer
         totalPages:
           type: integer
+
+    # Emergency Contacts Schemas
+    EmergencyContactResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        alternatePhone:
+          type: string
+        address:
+          type: string
+        isPrimary:
+          type: boolean
+        notes:
+          type: string
+
+    AddEmergencyContactRequest:
+      type: object
+      required:
+        - name
+        - relationship
+        - phone
+        - performedBy
+      properties:
+        name:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        alternatePhone:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+        performedBy:
+          type: string
+
+    UpdateEmergencyContactRequest:
+      type: object
+      required:
+        - performedBy
+      properties:
+        name:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        alternatePhone:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+        performedBy:
+          type: string
+
+    # Consents Schemas
+    ConsentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        consentType:
+          type: string
+          enum: [treatment, research, data_sharing, marketing]
+        witnessedBy:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        isActive:
+          type: boolean
+        grantedAt:
+          type: string
+          format: date-time
+        withdrawnAt:
+          type: string
+          format: date-time
+        isExpired:
+          type: boolean
+        isValid:
+          type: boolean
+        daysUntilExpiry:
+          type: integer
+
+    GrantConsentRequest:
+      type: object
+      required:
+        - consentType
+        - witnessedBy
+        - performedBy
+      properties:
+        consentType:
+          type: string
+          enum: [treatment, research, data_sharing, marketing]
+        witnessedBy:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        performedBy:
+          type: string
+
+    # Insurance Schemas
+    InsuranceInfoResponse:
+      type: object
+      properties:
+        provider:
+          type: string
+        policyNumber:
+          type: string
+        groupNumber:
+          type: string
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+        coverageType:
+          type: string
+          enum: [BHYT, BHTN, private, self_pay]
+        isActive:
+          type: boolean
+        isPrimary:
+          type: boolean
+        isVietnameseInsurance:
+          type: boolean
+        bhytNumber:
+          type: string
+
+    UpdateInsuranceInfoRequest:
+      type: object
+      required:
+        - performedBy
+      properties:
+        isActive:
+          type: boolean
+        isPrimary:
+          type: boolean
+        performedBy:
+          type: string
 
     ErrorResponse:
       type: object

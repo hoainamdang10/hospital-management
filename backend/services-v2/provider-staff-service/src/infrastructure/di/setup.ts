@@ -72,7 +72,7 @@ export function setupDependencies(): DIContainer {
   });
 
   // Register infrastructure services
-  container.register(
+  container.registerFactory(
     ServiceTokens.LOGGER,
     () => ({
       debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta),
@@ -84,7 +84,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.SINGLETON
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.AUDIT_SERVICE,
     (container) => {
       const logger = container.resolve(ServiceTokens.LOGGER);
@@ -104,20 +104,20 @@ export function setupDependencies(): DIContainer {
   );
 
   // Register Supabase URL and Key
-  container.register(
+  container.registerFactory(
     ServiceTokens.SUPABASE_URL,
     () => process.env.SUPABASE_URL || "",
     ServiceLifetime.SINGLETON
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.SUPABASE_KEY,
     () => process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     ServiceLifetime.SINGLETON
   );
 
   // Register event bus
-  container.register(
+  container.registerFactory(
     ServiceTokens.EVENT_BUS,
     (container) => {
       const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
@@ -135,7 +135,7 @@ export function setupDependencies(): DIContainer {
   );
 
   // Register repositories
-  container.register(
+  container.registerFactory(
     ServiceTokens.PROVIDER_STAFF_REPOSITORY,
     (container) => {
       const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
@@ -156,7 +156,7 @@ export function setupDependencies(): DIContainer {
   );
 
   // Register use cases
-  container.register(
+  container.registerFactory(
     ServiceTokens.REGISTER_STAFF_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -172,7 +172,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.GET_STAFF_PROFILE_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -183,7 +183,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.UPDATE_STAFF_PROFILE_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -194,7 +194,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.DEACTIVATE_STAFF_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -205,7 +205,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.SEARCH_STAFF_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -216,7 +216,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.GET_STAFF_BY_DEPARTMENT_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -227,7 +227,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -238,7 +238,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.ADD_STAFF_CERTIFICATION_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -249,7 +249,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.UPDATE_STAFF_AVAILABILITY_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
@@ -261,7 +261,7 @@ export function setupDependencies(): DIContainer {
   );
 
   // Register handlers
-  container.register(
+  container.registerFactory(
     ServiceTokens.STAFF_COMMAND_HANDLERS,
     (container) => {
       const registerStaffUseCase = container.resolve(ServiceTokens.REGISTER_STAFF_USE_CASE);
@@ -275,7 +275,7 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.SCOPED
   );
 
-  container.register(
+  container.registerFactory(
     ServiceTokens.STAFF_QUERY_HANDLERS,
     (container) => {
       const getStaffProfileUseCase = container.resolve(ServiceTokens.GET_STAFF_PROFILE_USE_CASE);
@@ -292,7 +292,7 @@ export function setupDependencies(): DIContainer {
   );
 
   // Register event handlers
-  container.register(
+  container.registerFactory(
     ServiceTokens.STAFF_DOMAIN_EVENT_HANDLER,
     (container) => {
       const logger = container.resolve(ServiceTokens.LOGGER);

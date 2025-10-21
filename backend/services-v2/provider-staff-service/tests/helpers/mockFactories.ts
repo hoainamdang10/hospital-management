@@ -1,12 +1,12 @@
 /**
  * Mock Factories for Testing
  * Factory functions for creating mock objects
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
-import { ILogger } from '../../src/domain/interfaces/ILogger';
+import { ILogger } from '../../src/application/interfaces/ILogger';
 import { IProviderStaffRepository } from '../../src/domain/repositories/IProviderStaffRepository';
 
 /**
@@ -31,15 +31,15 @@ export function createMockStaffRepository(): jest.Mocked<IProviderStaffRepositor
     findById: jest.fn(),
     findByUserId: jest.fn(),
     findByLicenseNumber: jest.fn(),
+    findAll: jest.fn(),
     findByDepartment: jest.fn(),
     findBySpecialization: jest.fn(),
-    findByStaffType: jest.fn(),
-    search: jest.fn(),
-    update: jest.fn(),
+    findAvailableStaff: jest.fn(),
     delete: jest.fn(),
     exists: jest.fn(),
-    count: jest.fn()
-  } as any;
+    count: jest.fn(),
+    getStatistics: jest.fn()
+  } as jest.Mocked<IProviderStaffRepository>;
 }
 
 /**

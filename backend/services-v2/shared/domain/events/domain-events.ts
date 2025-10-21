@@ -18,7 +18,7 @@ import { DomainEvent } from '../base/domain-event';
  */
 export class UserCreatedEvent extends DomainEvent {
   constructor(
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly email: string,
     public readonly fullName: string,
     public readonly roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' | 'technician',
@@ -63,7 +63,7 @@ export class UserCreatedEvent extends DomainEvent {
  */
 export class UserAuthenticatedEvent extends DomainEvent {
   constructor(
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly email: string,
     public readonly sessionId: string,
     public readonly ipAddress: string,
@@ -108,7 +108,7 @@ export class UserAuthenticatedEvent extends DomainEvent {
  */
 export class UserRoleChangedEvent extends DomainEvent {
   constructor(
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly oldRole: string,
     public readonly newRole: string,
     public readonly changedBy: string,
@@ -151,7 +151,7 @@ export class UserRoleChangedEvent extends DomainEvent {
  */
 export class UserDeactivatedEvent extends DomainEvent {
   constructor(
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly email: string,
     public readonly reason: string,
     public readonly deactivatedBy: string
@@ -197,7 +197,7 @@ export class UserDeactivatedEvent extends DomainEvent {
 export class PatientRegisteredEvent extends DomainEvent {
   constructor(
     public readonly patientId: string,
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly patientIdCode: string, // PAT-YYYYMM-XXX
     public readonly fullName: string,
     public readonly dateOfBirth: Date,
@@ -246,7 +246,7 @@ export class PatientRegisteredEvent extends DomainEvent {
 export class PatientUpdatedEvent extends DomainEvent {
   constructor(
     public readonly patientId: string,
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly updatedFields: string[],
     public readonly updatedBy: string
   ) {
@@ -329,7 +329,7 @@ export class PatientInsuranceUpdatedEvent extends DomainEvent {
 export class DoctorRegisteredEvent extends DomainEvent {
   constructor(
     public readonly doctorId: string,
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly doctorIdCode: string, // DEPT-DOC-YYYYMM-XXX
     public readonly fullName: string,
     public readonly specialty: string,
@@ -516,15 +516,38 @@ export class AppointmentConfirmedEvent extends DomainEvent {
     public readonly confirmedAt: Date,
     public readonly confirmationMethod: string
   ) {
-    super();
+    super(
+      'AppointmentConfirmed',
+      appointmentId,
+      'Appointment',
+      {
+        patientId,
+        doctorId,
+        confirmedAt,
+        confirmationMethod
+      },
+      1,
+      undefined,
+      undefined,
+      patientId
+    );
   }
 
-  get eventType(): string {
-    return 'AppointmentConfirmed';
+  override getEventData(): any {
+    return {
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      confirmedAt: this.confirmedAt,
+      confirmationMethod: this.confirmationMethod
+    };
   }
 
-  get aggregateId(): string {
-    return this.appointmentId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -542,15 +565,42 @@ export class AppointmentCancelledEvent extends DomainEvent {
     public readonly reason: string,
     public readonly cancelledAt: Date
   ) {
-    super();
+    super(
+      'AppointmentCancelled',
+      appointmentId,
+      'Appointment',
+      {
+        patientId,
+        doctorId,
+        cancelledBy,
+        cancellationType,
+        reason,
+        cancelledAt
+      },
+      1,
+      undefined,
+      undefined,
+      cancelledBy
+    );
   }
 
-  get eventType(): string {
-    return 'AppointmentCancelled';
+  override getEventData(): any {
+    return {
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      cancelledBy: this.cancelledBy,
+      cancellationType: this.cancellationType,
+      reason: this.reason,
+      cancelledAt: this.cancelledAt
+    };
   }
 
-  get aggregateId(): string {
-    return this.appointmentId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -567,15 +617,40 @@ export class AppointmentCompletedEvent extends DomainEvent {
     public readonly duration: number,
     public readonly notes?: string
   ) {
-    super();
+    super(
+      'AppointmentCompleted',
+      appointmentId,
+      'Appointment',
+      {
+        patientId,
+        doctorId,
+        completedAt,
+        duration,
+        notes
+      },
+      1,
+      undefined,
+      undefined,
+      doctorId
+    );
   }
 
-  get eventType(): string {
-    return 'AppointmentCompleted';
+  override getEventData(): any {
+    return {
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      completedAt: this.completedAt,
+      duration: this.duration,
+      notes: this.notes
+    };
   }
 
-  get aggregateId(): string {
-    return this.appointmentId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -598,15 +673,44 @@ export class MedicalRecordCreatedEvent extends DomainEvent {
     public readonly primaryDiagnosis?: string,
     public readonly createdBy?: string
   ) {
-    super();
+    super(
+      'MedicalRecordCreated',
+      recordId,
+      'MedicalRecord',
+      {
+        recordIdCode,
+        patientId,
+        doctorId,
+        appointmentId,
+        visitDate,
+        primaryDiagnosis,
+        createdBy
+      },
+      1,
+      undefined,
+      undefined,
+      createdBy
+    );
   }
 
-  get eventType(): string {
-    return 'MedicalRecordCreated';
+  override getEventData(): any {
+    return {
+      recordIdCode: this.recordIdCode,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      appointmentId: this.appointmentId,
+      visitDate: this.visitDate,
+      primaryDiagnosis: this.primaryDiagnosis,
+      createdBy: this.createdBy
+    };
   }
 
-  get aggregateId(): string {
-    return this.recordId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -625,15 +729,44 @@ export class PrescriptionCreatedEvent extends DomainEvent {
     public readonly duration: number,
     public readonly prescribedBy: string
   ) {
-    super();
+    super(
+      'PrescriptionCreated',
+      prescriptionId,
+      'Prescription',
+      {
+        prescriptionNumber,
+        patientId,
+        doctorId,
+        medicationName,
+        dosage,
+        duration,
+        prescribedBy
+      },
+      1,
+      undefined,
+      undefined,
+      prescribedBy
+    );
   }
 
-  get eventType(): string {
-    return 'PrescriptionCreated';
+  override getEventData(): any {
+    return {
+      prescriptionNumber: this.prescriptionNumber,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      medicationName: this.medicationName,
+      dosage: this.dosage,
+      duration: this.duration,
+      prescribedBy: this.prescribedBy
+    };
   }
 
-  get aggregateId(): string {
-    return this.prescriptionId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -650,15 +783,40 @@ export class LabResultsReadyEvent extends DomainEvent {
     public readonly hasAbnormalResults: boolean,
     public readonly resultDate: Date
   ) {
-    super();
+    super(
+      'LabResultsReady',
+      labOrderId,
+      'LabOrder',
+      {
+        patientId,
+        doctorId,
+        testName,
+        hasAbnormalResults,
+        resultDate
+      },
+      1,
+      undefined,
+      undefined,
+      doctorId
+    );
   }
 
-  get eventType(): string {
-    return 'LabResultsReady';
+  override getEventData(): any {
+    return {
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      testName: this.testName,
+      hasAbnormalResults: this.hasAbnormalResults,
+      resultDate: this.resultDate
+    };
   }
 
-  get aggregateId(): string {
-    return this.labOrderId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -680,15 +838,38 @@ export class InvoiceGeneratedEvent extends DomainEvent {
     public readonly dueDate: Date,
     public readonly invoiceDate: Date
   ) {
-    super();
+    super(
+      'InvoiceGenerated',
+      invoiceId,
+      'Invoice',
+      {
+        invoiceNumber,
+        patientId,
+        appointmentId,
+        totalAmount,
+        dueDate,
+        invoiceDate
+      }
+    );
   }
 
-  get eventType(): string {
-    return 'InvoiceGenerated';
+  override getEventData(): any {
+    return {
+      invoiceNumber: this.invoiceNumber,
+      patientId: this.patientId,
+      appointmentId: this.appointmentId,
+      totalAmount: this.totalAmount,
+      dueDate: this.dueDate,
+      invoiceDate: this.invoiceDate
+    };
   }
 
-  get aggregateId(): string {
-    return this.invoiceId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -706,15 +887,38 @@ export class PaymentReceivedEvent extends DomainEvent {
     public readonly paymentMethod: string,
     public readonly paymentDate: Date
   ) {
-    super();
+    super(
+      'PaymentReceived',
+      paymentId,
+      'Payment',
+      {
+        paymentNumber,
+        invoiceId,
+        patientId,
+        amount,
+        paymentMethod,
+        paymentDate
+      }
+    );
   }
 
-  get eventType(): string {
-    return 'PaymentReceived';
+  override getEventData(): any {
+    return {
+      paymentNumber: this.paymentNumber,
+      invoiceId: this.invoiceId,
+      patientId: this.patientId,
+      amount: this.amount,
+      paymentMethod: this.paymentMethod,
+      paymentDate: this.paymentDate
+    };
   }
 
-  get aggregateId(): string {
-    return this.paymentId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -731,15 +935,36 @@ export class InvoiceOverdueEvent extends DomainEvent {
     public readonly dueDate: Date,
     public readonly daysOverdue: number
   ) {
-    super();
+    super(
+      'InvoiceOverdue',
+      invoiceId,
+      'Invoice',
+      {
+        invoiceNumber,
+        patientId,
+        totalAmount,
+        dueDate,
+        daysOverdue
+      }
+    );
   }
 
-  get eventType(): string {
-    return 'InvoiceOverdue';
+  override getEventData(): any {
+    return {
+      invoiceNumber: this.invoiceNumber,
+      patientId: this.patientId,
+      totalAmount: this.totalAmount,
+      dueDate: this.dueDate,
+      daysOverdue: this.daysOverdue
+    };
   }
 
-  get aggregateId(): string {
-    return this.invoiceId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -757,15 +982,38 @@ export class InsuranceClaimSubmittedEvent extends DomainEvent {
     public readonly insuranceProvider: string,
     public readonly submittedAt: Date
   ) {
-    super();
+    super(
+      'InsuranceClaimSubmitted',
+      claimId,
+      'InsuranceClaim',
+      {
+        claimNumber,
+        patientId,
+        invoiceId,
+        claimedAmount,
+        insuranceProvider,
+        submittedAt
+      }
+    );
   }
 
-  get eventType(): string {
-    return 'InsuranceClaimSubmitted';
+  override getEventData(): any {
+    return {
+      claimNumber: this.claimNumber,
+      patientId: this.patientId,
+      invoiceId: this.invoiceId,
+      claimedAmount: this.claimedAmount,
+      insuranceProvider: this.insuranceProvider,
+      submittedAt: this.submittedAt
+    };
   }
 
-  get aggregateId(): string {
-    return this.claimId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -783,15 +1031,38 @@ export class InsuranceClaimProcessedEvent extends DomainEvent {
     public readonly rejectedAmount: number,
     public readonly reason?: string
   ) {
-    super();
+    super(
+      'InsuranceClaimProcessed',
+      claimId,
+      'InsuranceClaim',
+      {
+        claimNumber,
+        patientId,
+        status,
+        approvedAmount,
+        rejectedAmount,
+        reason
+      }
+    );
   }
 
-  get eventType(): string {
-    return 'InsuranceClaimProcessed';
+  override getEventData(): any {
+    return {
+      claimNumber: this.claimNumber,
+      patientId: this.patientId,
+      status: this.status,
+      approvedAmount: this.approvedAmount,
+      rejectedAmount: this.rejectedAmount,
+      reason: this.reason
+    };
   }
 
-  get aggregateId(): string {
-    return this.claimId;
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
   }
 }
 
@@ -806,21 +1077,42 @@ export class InsuranceClaimProcessedEvent extends DomainEvent {
 export class NotificationSentEvent extends DomainEvent {
   constructor(
     public readonly notificationId: string,
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly notificationType: string,
     public readonly channel: string,
     public readonly sentAt: Date,
     public readonly success: boolean
   ) {
-    super();
+    super(
+      'NotificationSent',
+      notificationId,
+      'Notification',
+      {
+        userId,
+        notificationType,
+        channel,
+        sentAt,
+        success
+      }
+    );
   }
 
-  get eventType(): string {
-    return 'NotificationSent';
+  override getEventData(): any {
+    return {
+      userId: this.userId,
+      notificationType: this.notificationType,
+      channel: this.channel,
+      sentAt: this.sentAt,
+      success: this.success
+    };
   }
 
-  get aggregateId(): string {
-    return this.notificationId;
+  override containsPHI(): boolean {
+    return false;
+  }
+
+  override getPatientId(): string | null {
+    return null;
   }
 }
 
@@ -831,21 +1123,42 @@ export class NotificationSentEvent extends DomainEvent {
 export class NotificationFailedEvent extends DomainEvent {
   constructor(
     public readonly notificationId: string,
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly channel: string,
     public readonly errorMessage: string,
     public readonly retryCount: number,
     public readonly failedAt: Date
   ) {
-    super();
+    super(
+      'NotificationFailed',
+      notificationId,
+      'Notification',
+      {
+        userId,
+        channel,
+        errorMessage,
+        retryCount,
+        failedAt
+      }
+    );
   }
 
-  get eventType(): string {
-    return 'NotificationFailed';
+  override getEventData(): any {
+    return {
+      userId: this.userId,
+      channel: this.channel,
+      errorMessage: this.errorMessage,
+      retryCount: this.retryCount,
+      failedAt: this.failedAt
+    };
   }
 
-  get aggregateId(): string {
-    return this.notificationId;
+  override containsPHI(): boolean {
+    return false;
+  }
+
+  override getPatientId(): string | null {
+    return null;
   }
 }
 

@@ -11,16 +11,16 @@ describe('StaffId Value Object', () => {
   describe('create', () => {
     it('should create valid StaffId with correct format', () => {
       // Arrange & Act
-      const staffId = StaffId.create();
+      const staffId = StaffId.create('DOC-CARDIO-202501-001');
 
       // Assert
       expect(staffId).toBeInstanceOf(StaffId);
-      expect(staffId.value).toMatch(/^STF-\d{6}-\d{3}$/);
+      expect(staffId.value).toBe('DOC-CARDIO-202501-001');
     });
 
     it('should create StaffId from existing value', () => {
       // Arrange
-      const existingId = 'STF-202501-001';
+      const existingId = 'DOC-CARDIO-202501-001';
 
       // Act
       const staffId = StaffId.fromString(existingId);
@@ -31,8 +31,8 @@ describe('StaffId Value Object', () => {
 
     it('should generate unique IDs', () => {
       // Arrange & Act
-      const id1 = StaffId.create();
-      const id2 = StaffId.create();
+      const id1 = StaffId.generate('doctor', 'CARDIO');
+      const id2 = StaffId.generate('doctor', 'CARDIO');
 
       // Assert
       expect(id1.value).not.toBe(id2.value);
@@ -43,10 +43,10 @@ describe('StaffId Value Object', () => {
       const now = new Date();
       const year = now.getFullYear();
       const month = (now.getMonth() + 1).toString().padStart(2, '0');
-      const expectedPrefix = `STF-${year}${month}`;
+      const expectedPrefix = `DOC-CARDIO-${year}${month}`;
 
       // Act
-      const staffId = StaffId.create();
+      const staffId = StaffId.generate('doctor', 'CARDIO');
 
       // Assert
       expect(staffId.value).toContain(expectedPrefix);
@@ -56,7 +56,7 @@ describe('StaffId Value Object', () => {
   describe('fromString', () => {
     it('should create StaffId from valid string', () => {
       // Arrange
-      const validId = 'STF-202501-001';
+      const validId = 'DOC-CARDIO-202501-001';
 
       // Act
       const staffId = StaffId.fromString(validId);
@@ -92,8 +92,8 @@ describe('StaffId Value Object', () => {
   describe('equals', () => {
     it('should return true for same ID values', () => {
       // Arrange
-      const id1 = StaffId.fromString('STF-202501-001');
-      const id2 = StaffId.fromString('STF-202501-001');
+      const id1 = StaffId.fromString('DOC-CARDIO-202501-001');
+      const id2 = StaffId.fromString('DOC-CARDIO-202501-001');
 
       // Act & Assert
       expect(id1.equals(id2)).toBe(true);
@@ -101,8 +101,8 @@ describe('StaffId Value Object', () => {
 
     it('should return false for different ID values', () => {
       // Arrange
-      const id1 = StaffId.fromString('STF-202501-001');
-      const id2 = StaffId.fromString('STF-202501-002');
+      const id1 = StaffId.fromString('DOC-CARDIO-202501-001');
+      const id2 = StaffId.fromString('DOC-CARDIO-202501-002');
 
       // Act & Assert
       expect(id1.equals(id2)).toBe(false);
@@ -110,7 +110,7 @@ describe('StaffId Value Object', () => {
 
     it('should return false when comparing with null', () => {
       // Arrange
-      const id = StaffId.fromString('STF-202501-001');
+      const id = StaffId.fromString('DOC-CARDIO-202501-001');
 
       // Act & Assert
       expect(id.equals(null as any)).toBe(false);
@@ -120,7 +120,7 @@ describe('StaffId Value Object', () => {
   describe('toString', () => {
     it('should return string representation', () => {
       // Arrange
-      const idValue = 'STF-202501-001';
+      const idValue = 'DOC-CARDIO-202501-001';
       const staffId = StaffId.fromString(idValue);
 
       // Act
@@ -134,12 +134,12 @@ describe('StaffId Value Object', () => {
   describe('immutability', () => {
     it('should be immutable', () => {
       // Arrange
-      const staffId = StaffId.fromString('STF-202501-001');
+      const staffId = StaffId.fromString('DOC-CARDIO-202501-001');
       const originalValue = staffId.value;
 
       // Act - Try to modify (should not work)
       try {
-        (staffId as any).value = 'STF-202501-999';
+        (staffId as any).value = 'DOC-CARDIO-202501-999';
       } catch (e) {
         // Expected to fail in strict mode
       }

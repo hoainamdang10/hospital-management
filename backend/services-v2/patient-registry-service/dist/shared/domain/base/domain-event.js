@@ -14,7 +14,7 @@ const uuid_1 = require("uuid");
  * Abstract base class for all domain events
  */
 class DomainEvent {
-    constructor(eventType, aggregateId, aggregateType, _eventData, eventVersion = 1, correlationId, causationId, userId, metadata) {
+    constructor(eventType, aggregateId, aggregateType, eventData, eventVersion = 1, correlationId, causationId, userId, metadata) {
         this.eventId = (0, uuid_1.v4)();
         this.eventType = eventType;
         this.aggregateId = aggregateId;
@@ -24,6 +24,7 @@ class DomainEvent {
         this.correlationId = correlationId;
         this.causationId = causationId;
         this.userId = userId;
+        this.data = eventData; // Store event data
         this.metadata = {
             source: 'domain',
             priority: 'normal',

@@ -1,0 +1,357 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # API Server (Control-Plane)
+  # ============================================
+  scheduler-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: scheduler-api
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    environment:
+      NODE_ENV: production
+      PORT: 3030
+      COMPONENT: api
+      
+      # Database (Supabase)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      
+      # Message Bus (RabbitMQ)
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq-v2:5672
+      RABBITMQ_EXCHANGE: hospital.events
+      
+      # Cache (Redis)
+      REDIS_URL: redis://redis-v2:6379
+      
+      # Authentication
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: 300
+      
+      # Observability
+      METRICS_PORT: 9090
+      LOG_LEVEL: info
+      
+      # Rate Limiting
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_REQUESTS: 100
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3030/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      rabbitmq-v2:
+        condition: service_healthy
+      redis-v2:
+        condition: service_healthy
+    command: ["node", "dist/api.js"]
+
+  # ============================================
+  # Materializer Worker (Data-Plane)
+  # ============================================
+  scheduler-materializer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: scheduler-materializer
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      COMPONENT: materializer
+      
+      # Database (Supabase)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      
+      # Materializer Configuration
+      MATERIALIZER_INTERVAL: 60000
+      MATERIALIZER_LOOKAHEAD_HOURS: 48
+      MATERIALIZER_BATCH_SIZE: 100
+      NUM_SEGMENTS: 10
+      
+      # Observability
+      LOG_LEVEL: info
+    networks:
+      - hospital-network
+    depends_on:
+      scheduler-api:
+        condition: service_healthy
+    command: ["node", "dist/materializer.js"]
+
+  # ============================================
+  # Execution Workers (Data-Plane) - 3 instances
+  # ============================================
+  scheduler-worker-0:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: scheduler-worker-0
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      COMPONENT: worker
+      
+      # Database (Supabase)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      
+      # Worker Configuration
+      WORKER_CONCURRENCY: 10
+      WORKER_POLL_INTERVAL: 5000
+      WORKER_LEASE_TTL: 60000
+      WORKER_SEGMENT: 0
+      
+      # Observability
+      LOG_LEVEL: info
+    networks:
+      - hospital-network
+    depends_on:
+      scheduler-api:
+        condition: service_healthy
+    command: ["node", "dist/worker.js"]
+
+  scheduler-worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: scheduler-worker-1
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      COMPONENT: worker
+      
+      # Database (Supabase)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      
+      # Worker Configuration
+      WORKER_CONCURRENCY: 10
+      WORKER_POLL_INTERVAL: 5000
+      WORKER_LEASE_TTL: 60000
+      WORKER_SEGMENT: 1
+      
+      # Observability
+      LOG_LEVEL: info
+    networks:
+      - hospital-network
+    depends_on:
+      scheduler-api:
+        condition: service_healthy
+    command: ["node", "dist/worker.js"]
+
+  scheduler-worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: scheduler-worker-2
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      COMPONENT: worker
+      
+      # Database (Supabase)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      
+      # Worker Configuration
+      WORKER_CONCURRENCY: 10
+      WORKER_POLL_INTERVAL: 5000
+      WORKER_LEASE_TTL: 60000
+      WORKER_SEGMENT: 2
+      
+      # Observability
+      LOG_LEVEL: info
+    networks:
+      - hospital-network
+    depends_on:
+      scheduler-api:
+        condition: service_healthy
+    command: ["node", "dist/worker.js"]
+
+  # ============================================
+  # Outbox Publisher (Data-Plane)
+  # ============================================
+  scheduler-publisher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: scheduler-publisher
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      COMPONENT: publisher
+      
+      # Database (Supabase)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      
+      # Message Bus (RabbitMQ)
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq-v2:5672
+      RABBITMQ_EXCHANGE: hospital.events
+      
+      # Publisher Configuration
+      PUBLISHER_INTERVAL: 1000
+      PUBLISHER_BATCH_SIZE: 100
+      PUBLISHER_MAX_RETRIES: 3
+      
+      # Observability
+      LOG_LEVEL: info
+    networks:
+      - hospital-network
+    depends_on:
+      scheduler-api:
+        condition: service_healthy
+      rabbitmq-v2:
+        condition: service_healthy
+    command: ["node", "dist/publisher.js"]
+
+  # ============================================
+  # Infrastructure Services (External Dependencies)
+  # ============================================
+  
+  # RabbitMQ (Message Broker)
+  rabbitmq-v2:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq-v2
+    restart: unless-stopped
+    ports:
+      - "5673:5672"      # AMQP port
+      - "15673:15672"    # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Redis (Cache)
+  redis-v2:
+    image: redis:7-alpine
+    container_name: redis-v2
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # ============================================
+  # Monitoring Services
+  # ============================================
+
+  # Prometheus (Metrics Collection & Alerting)
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: scheduler-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      scheduler-api:
+        condition: service_healthy
+    labels:
+      - "com.hospital-management.service=prometheus"
+      - "com.hospital-management.component=monitoring"
+
+  # Grafana (Metrics Visualization)
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: scheduler-grafana
+    restart: unless-stopped
+    ports:
+      - '3001:3000'
+    environment:
+      # Admin credentials
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+      # Server settings
+      GF_SERVER_ROOT_URL: http://localhost:3001
+      GF_SERVER_SERVE_FROM_SUB_PATH: false
+
+      # Anonymous access (optional - disable in production)
+      GF_AUTH_ANONYMOUS_ENABLED: false
+
+      # Datasource provisioning
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+
+      # Logging
+      GF_LOG_LEVEL: info
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    labels:
+      - "com.hospital-management.service=grafana"
+      - "com.hospital-management.component=monitoring"
+
+networks:
+  hospital-network:
+    driver: bridge
+
+volumes:
+  rabbitmq-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+

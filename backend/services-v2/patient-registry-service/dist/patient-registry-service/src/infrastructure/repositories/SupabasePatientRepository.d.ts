@@ -10,9 +10,9 @@ import { IPatientRepository } from '../../domain/repositories/IPatientRepository
 import { Patient } from '../../domain/aggregates/Patient';
 import { PatientId } from '../../domain/value-objects/PatientId';
 import { PatientRegistryCircuitBreaker } from '../resilience/CircuitBreaker';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 import { IPatientMatchingService } from '../../application/services/IPatientMatchingService';
-import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
+import { IDomainEventPublisher } from '../../../../shared/domain/events/IDomainEventPublisher';
 /**
  * Supabase Patient Repository Implementation
  */
@@ -159,6 +159,40 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      * Publish domain events from aggregate
      */
     private publishDomainEvents;
+    /**
+     * Get patient statistics for dashboard
+     */
+    getStatistics(): Promise<{
+        total: number;
+        byGender: {
+            male: number;
+            female: number;
+            other: number;
+            unknown: number;
+        };
+        byAgeRange: {
+            '0-18': number;
+            '19-40': number;
+            '41-60': number;
+            '60+': number;
+        };
+        byInsuranceType: {
+            bhyt: number;
+            bhtn: number;
+            private: number;
+            selfPay: number;
+        };
+        byStatus: {
+            active: number;
+            inactive: number;
+            deceased: number;
+            merged: number;
+        };
+        registrationTrend: Array<{
+            month: string;
+            count: number;
+        }>;
+    }>;
 }
 interface RepositoryHealthStatus {
     status: 'healthy' | 'unhealthy';

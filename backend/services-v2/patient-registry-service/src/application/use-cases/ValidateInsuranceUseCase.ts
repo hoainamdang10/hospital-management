@@ -183,7 +183,7 @@ export class ValidateInsuranceUseCase {
         return {
           success: false,
           message: 'Xác thực bảo hiểm thất bại',
-          errors: [error.message]
+          errors: ['VALIDATION_FAILED', error.message]
         };
       }
 

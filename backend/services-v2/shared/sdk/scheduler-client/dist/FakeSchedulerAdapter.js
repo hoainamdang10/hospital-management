@@ -1,0 +1,189 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FakeSchedulerAdapter = void 0;
+const uuid_1 = require("uuid");
+const types_1 = require("./types");
+class FakeSchedulerAdapter {
+    constructor(config = {}) {
+        this.schedules = new Map();
+        this.runs = new Map();
+        this.dedupIndex = new Map();
+        this.config = {
+            delay: config.delay || 0,
+            simulateErrors: config.simulateErrors || {}
+        };
+    }
+    async delay() {
+        if (this.config.delay && this.config.delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, this.config.delay));
+        }
+    }
+    async createOrUpdateByDedup(request) {
+        await this.delay();
+        if (this.config.simulateErrors?.createOrUpdateByDedup) {
+            throw new types_1.SchedulerError(this.config.simulateErrors.createOrUpdateByDedup, `Simulated error: ${this.config.simulateErrors.createOrUpdateByDedup}`);
+        }
+        (0, types_1.validateScheduleType)(request);
+        const dedupKey = `${request.tenantId}:${request.dedupKey}`;
+        const existingScheduleId = this.dedupIndex.get(dedupKey);
+        let scheduleId;
+        let isUpdate = false;
+        if (existingScheduleId) {
+            scheduleId = existingScheduleId;
+            isUpdate = true;
+        }
+        else {
+            scheduleId = (0, uuid_1.v4)();
+            this.dedupIndex.set(dedupKey, scheduleId);
+        }
+        const now = new Date().toISOString();
+        const schedule = {
+            scheduleId,
+            tenantId: request.tenantId,
+            ownerService: request.ownerService,
+            ownerResourceType: request.ownerResourceType,
+            ownerResourceId: request.ownerResourceId,
+            scheduleType: request.scheduleType,
+            status: 'ACTIVE',
+            topicOrCommand: request.topicOrCommand,
+            dedupKey: request.dedupKey,
+            nextRunAtUtc: request.scheduleType === 'ONCE'
+                ? (typeof request.startAtUtc === 'string' ? request.startAtUtc : request.startAtUtc?.toISOString())
+                : null,
+            createdAtUtc: isUpdate ? this.schedules.get(scheduleId).createdAtUtc : now,
+            updatedAtUtc: now
+        };
+        this.schedules.set(scheduleId, schedule);
+        return schedule;
+    }
+    async cancelByOwner(request) {
+        await this.delay();
+        if (this.config.simulateErrors?.cancelByOwner) {
+            throw new types_1.SchedulerError(this.config.simulateErrors.cancelByOwner, `Simulated error: ${this.config.simulateErrors.cancelByOwner}`);
+        }
+        const cancelledScheduleIds = [];
+        for (const [scheduleId, schedule] of this.schedules.entries()) {
+            if (schedule.tenantId !== request.tenantId)
+                continue;
+            if (schedule.ownerService !== request.ownerService)
+                continue;
+            if (request.ownerResourceType && schedule.ownerResourceType !== request.ownerResourceType)
+                continue;
+            if (request.ownerResourceId && schedule.ownerResourceId !== request.ownerResourceId)
+                continue;
+            schedule.status = 'CANCELLED';
+            schedule.updatedAtUtc = new Date().toISOString();
+            const runs = this.runs.get(scheduleId) || [];
+            for (const run of runs) {
+                if (run.status === 'DUE') {
+                    run.status = 'CANCELLED';
+                }
+            }
+            cancelledScheduleIds.push(scheduleId);
+        }
+        return {
+            cancelledCount: cancelledScheduleIds.length,
+            cancelledScheduleIds
+        };
+    }
+    async getSchedule(scheduleId) {
+        await this.delay();
+        if (this.config.simulateErrors?.getSchedule) {
+            throw new types_1.SchedulerError(this.config.simulateErrors.getSchedule, `Simulated error: ${this.config.simulateErrors.getSchedule}`);
+        }
+        const schedule = this.schedules.get(scheduleId);
+        if (!schedule) {
+            throw new types_1.SchedulerError('NOT_FOUND', `Schedule not found: ${scheduleId}`);
+        }
+        return schedule;
+    }
+    async runNow(scheduleId) {
+        await this.delay();
+        if (this.config.simulateErrors?.runNow) {
+            throw new types_1.SchedulerError(this.config.simulateErrors.runNow, `Simulated error: ${this.config.simulateErrors.runNow}`);
+        }
+        const schedule = this.schedules.get(scheduleId);
+        if (!schedule) {
+            throw new types_1.SchedulerError('NOT_FOUND', `Schedule not found: ${scheduleId}`);
+        }
+        if (schedule.status !== 'ACTIVE') {
+            throw new types_1.SchedulerError('CONFLICT', `Schedule is not ACTIVE: ${schedule.status}`);
+        }
+        const runId = (0, uuid_1.v4)();
+        const now = new Date().toISOString();
+        const run = {
+            runId,
+            scheduleId,
+            tenantId: schedule.tenantId,
+            status: 'DUE',
+            dueAtUtc: now,
+            attempt: 0
+        };
+        const runs = this.runs.get(scheduleId) || [];
+        runs.push(run);
+        this.runs.set(scheduleId, runs);
+        return {
+            runId,
+            scheduleId,
+            status: 'DUE',
+            dueAtUtc: now
+        };
+    }
+    async getScheduleRuns(request) {
+        await this.delay();
+        if (this.config.simulateErrors?.getScheduleRuns) {
+            throw new types_1.SchedulerError(this.config.simulateErrors.getScheduleRuns, `Simulated error: ${this.config.simulateErrors.getScheduleRuns}`);
+        }
+        const schedule = this.schedules.get(request.scheduleId);
+        if (!schedule) {
+            throw new types_1.SchedulerError('NOT_FOUND', `Schedule not found: ${request.scheduleId}`);
+        }
+        let runs = this.runs.get(request.scheduleId) || [];
+        if (request.status) {
+            runs = runs.filter(r => r.status === request.status);
+        }
+        if (request.fromUtc) {
+            const fromUtc = typeof request.fromUtc === 'string' ? request.fromUtc : request.fromUtc.toISOString();
+            runs = runs.filter(r => r.dueAtUtc >= fromUtc);
+        }
+        if (request.toUtc) {
+            const toUtc = typeof request.toUtc === 'string' ? request.toUtc : request.toUtc.toISOString();
+            runs = runs.filter(r => r.dueAtUtc <= toUtc);
+        }
+        const limit = request.limit || 20;
+        const cursorIndex = request.cursor ? parseInt(request.cursor, 10) : 0;
+        const paginatedRuns = runs.slice(cursorIndex, cursorIndex + limit);
+        const hasMore = runs.length > cursorIndex + limit;
+        return {
+            runs: paginatedRuns,
+            pagination: {
+                nextCursor: hasMore ? (cursorIndex + limit).toString() : null,
+                hasMore
+            }
+        };
+    }
+    async health() {
+        await this.delay();
+        return {
+            status: 'healthy',
+            service: 'scheduler-service',
+            version: '1.0.1',
+            timestamp: new Date().toISOString(),
+            components: {
+                database: { status: 'healthy', latencyMs: 5 },
+                rabbitmq: { status: 'healthy', latencyMs: 3 },
+                redis: { status: 'healthy', latencyMs: 2 }
+            }
+        };
+    }
+    reset() {
+        this.schedules.clear();
+        this.runs.clear();
+        this.dedupIndex.clear();
+    }
+    getAllSchedules() {
+        return Array.from(this.schedules.values());
+    }
+}
+exports.FakeSchedulerAdapter = FakeSchedulerAdapter;
+//# sourceMappingURL=FakeSchedulerAdapter.js.map

@@ -42,7 +42,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientConsent = void 0;
-const entity_1 = require("@shared/domain/base/entity");
+const entity_1 = require("../../../../shared/domain/base/entity");
 const uuid = __importStar(require("uuid"));
 class PatientConsent extends entity_1.Entity {
     constructor(props, id) {
@@ -71,7 +71,7 @@ class PatientConsent extends entity_1.Entity {
      * Reconstitute from persistence
      */
     static reconstitute(props) {
-        return new PatientConsent(props);
+        return new PatientConsent(props, props.id);
     }
     // Getters
     getId() {

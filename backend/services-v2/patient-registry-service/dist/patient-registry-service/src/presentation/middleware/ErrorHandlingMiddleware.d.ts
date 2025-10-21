@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, HIPAA
  */
 import { Request, Response, NextFunction } from 'express';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 /**
  * Custom application error
  */

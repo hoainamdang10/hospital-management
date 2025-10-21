@@ -2,7 +2,7 @@
  * PatientId Value Object
  * Vietnamese Healthcare Patient ID Format: PAT-YYYYMM-XXX
  */
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from '../../../../shared/domain/base/value-object';
 interface PatientIdProps {
     value: string;
 }

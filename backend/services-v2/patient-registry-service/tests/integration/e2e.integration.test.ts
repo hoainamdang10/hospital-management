@@ -9,10 +9,10 @@
 
 import request from 'supertest';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Express } from 'express';
-import { createMinimalTestApp } from '../helpers/appFactory';
-import { 
-  getOrCreateTestUser, 
+import { Application } from 'express';
+import { createAuthenticatedTestApp } from '../helpers/appFactory';
+import {
+  getOrCreateTestUser,
   createValidPatientData,
   verifyPatientExists,
   getPatientFromDb,
@@ -20,7 +20,7 @@ import {
 } from '../helpers/testHelpers';
 
 describe('End-to-End Integration Tests', () => {
-  let app: Express;
+  let app: Application;
   let cleanup: () => Promise<void>;
   let supabaseClient: SupabaseClient;
   let adminToken: string;
@@ -37,8 +37,8 @@ describe('End-to-End Integration Tests', () => {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Initialize app
-    const appFactory = await createMinimalTestApp();
+    // Initialize app with authentication enabled
+    const appFactory = await createAuthenticatedTestApp();
     app = appFactory.app;
     cleanup = appFactory.cleanup;
 
@@ -97,12 +97,12 @@ describe('End-to-End Integration Tests', () => {
       expect(getResponse.status).toBe(200);
       expect(getResponse.body.success).toBe(true);
       expect(getResponse.body.data.patientId).toBe(patientId);
-      expect(getResponse.body.data.personalInfo.fullName).toBe(patientData.personalInfo.fullName);
+      expect(getResponse.body.data.personalInfo.fullName).toBe(patientData.fullName);
 
       // Step 4: Verify data consistency between API and database
       const dbPatient = await getPatientFromDb(supabaseClient, patientId);
-      expect(dbPatient.full_name).toBe(patientData.personalInfo.fullName);
-      expect(dbPatient.national_id).toBe(patientData.personalInfo.nationalId);
+      expect(dbPatient.personal_info.fullName).toBe(patientData.fullName);
+      expect(dbPatient.personal_info.nationalId).toBe(patientData.nationalId);
     });
 
     it('should handle duplicate patient registration', async () => {
@@ -149,9 +149,9 @@ describe('End-to-End Integration Tests', () => {
       const updateData = {
         personalInfo: {
           fullName: 'Updated Name',
-          dateOfBirth: patientData.personalInfo.dateOfBirth,
-          gender: patientData.personalInfo.gender,
-          nationalId: patientData.personalInfo.nationalId
+          dateOfBirth: patientData.dateOfBirth,
+          gender: patientData.gender,
+          nationalId: patientData.nationalId
         },
         requestedBy: receptionistUserId
       };
@@ -166,7 +166,7 @@ describe('End-to-End Integration Tests', () => {
 
       // Verify update in database
       const dbPatient = await getPatientFromDb(supabaseClient, patientId);
-      expect(dbPatient.full_name).toBe('Updated Name');
+      expect(dbPatient.personal_info.fullName).toBe('Updated Name');
     });
   });
 

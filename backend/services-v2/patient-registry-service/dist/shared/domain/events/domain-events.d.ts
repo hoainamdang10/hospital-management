@@ -193,8 +193,9 @@ export declare class AppointmentConfirmedEvent extends DomainEvent {
     readonly confirmedAt: Date;
     readonly confirmationMethod: string;
     constructor(appointmentId: string, patientId: string, doctorId: string, confirmedAt: Date, confirmationMethod: string);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when appointment is cancelled
@@ -209,8 +210,9 @@ export declare class AppointmentCancelledEvent extends DomainEvent {
     readonly reason: string;
     readonly cancelledAt: Date;
     constructor(appointmentId: string, patientId: string, doctorId: string, cancelledBy: string, cancellationType: 'patient' | 'doctor' | 'system' | 'emergency', reason: string, cancelledAt: Date);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when appointment is completed
@@ -224,8 +226,9 @@ export declare class AppointmentCompletedEvent extends DomainEvent {
     readonly duration: number;
     readonly notes?: string | undefined;
     constructor(appointmentId: string, patientId: string, doctorId: string, completedAt: Date, duration: number, notes?: string | undefined);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when medical record is created
@@ -242,8 +245,9 @@ export declare class MedicalRecordCreatedEvent extends DomainEvent {
     readonly createdBy?: string | undefined;
     constructor(recordId: string, recordIdCode: string, // MED-YYYYMM-XXX
     patientId: string, doctorId: string, appointmentId: string | undefined, visitDate: Date, primaryDiagnosis?: string | undefined, createdBy?: string | undefined);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when prescription is created
@@ -259,8 +263,9 @@ export declare class PrescriptionCreatedEvent extends DomainEvent {
     readonly duration: number;
     readonly prescribedBy: string;
     constructor(prescriptionId: string, prescriptionNumber: string, patientId: string, doctorId: string, medicationName: string, dosage: string, duration: number, prescribedBy: string);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when lab results are ready
@@ -274,8 +279,9 @@ export declare class LabResultsReadyEvent extends DomainEvent {
     readonly hasAbnormalResults: boolean;
     readonly resultDate: Date;
     constructor(labOrderId: string, patientId: string, doctorId: string, testName: string, hasAbnormalResults: boolean, resultDate: Date);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when invoice is generated
@@ -290,8 +296,9 @@ export declare class InvoiceGeneratedEvent extends DomainEvent {
     readonly dueDate: Date;
     readonly invoiceDate: Date;
     constructor(invoiceId: string, invoiceNumber: string, patientId: string, appointmentId: string | undefined, totalAmount: number, dueDate: Date, invoiceDate: Date);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when payment is received
@@ -306,8 +313,9 @@ export declare class PaymentReceivedEvent extends DomainEvent {
     readonly paymentMethod: string;
     readonly paymentDate: Date;
     constructor(paymentId: string, paymentNumber: string, invoiceId: string, patientId: string, amount: number, paymentMethod: string, paymentDate: Date);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when invoice is overdue
@@ -321,8 +329,9 @@ export declare class InvoiceOverdueEvent extends DomainEvent {
     readonly dueDate: Date;
     readonly daysOverdue: number;
     constructor(invoiceId: string, invoiceNumber: string, patientId: string, totalAmount: number, dueDate: Date, daysOverdue: number);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when insurance claim is submitted
@@ -337,8 +346,9 @@ export declare class InsuranceClaimSubmittedEvent extends DomainEvent {
     readonly insuranceProvider: string;
     readonly submittedAt: Date;
     constructor(claimId: string, claimNumber: string, patientId: string, invoiceId: string, claimedAmount: number, insuranceProvider: string, submittedAt: Date);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when insurance claim is approved/rejected
@@ -353,8 +363,9 @@ export declare class InsuranceClaimProcessedEvent extends DomainEvent {
     readonly rejectedAmount: number;
     readonly reason?: string | undefined;
     constructor(claimId: string, claimNumber: string, patientId: string, status: 'approved' | 'rejected' | 'partially_approved', approvedAmount: number, rejectedAmount: number, reason?: string | undefined);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when notification is sent
@@ -368,8 +379,9 @@ export declare class NotificationSentEvent extends DomainEvent {
     readonly sentAt: Date;
     readonly success: boolean;
     constructor(notificationId: string, userId: string, notificationType: string, channel: string, sentAt: Date, success: boolean);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Published when notification delivery fails
@@ -383,8 +395,9 @@ export declare class NotificationFailedEvent extends DomainEvent {
     readonly retryCount: number;
     readonly failedAt: Date;
     constructor(notificationId: string, userId: string, channel: string, errorMessage: string, retryCount: number, failedAt: Date);
-    get eventType(): string;
-    get aggregateId(): string;
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 export declare const EVENT_TYPE_REGISTRY: Record<string, new (...args: any[]) => DomainEvent>;
 //# sourceMappingURL=domain-events.d.ts.map

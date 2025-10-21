@@ -8,8 +8,8 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { IEventBus } from '../../../../shared/infrastructure/event-bus/EventBus';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface DeactivatePatientRequest {
     patientId: string;
     reason: string;

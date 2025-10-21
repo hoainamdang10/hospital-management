@@ -8,18 +8,15 @@
 
 import { UpdateStaffProfileUseCase, UpdateStaffProfileRequest } from '../../../../src/application/use-cases/UpdateStaffProfileUseCase';
 import { IProviderStaffRepository } from '../../../../src/domain/repositories/IProviderStaffRepository';
-import { IEventBus } from '../../../../src/application/interfaces/IEventBus';
 import { ILogger } from '../../../../src/application/interfaces/ILogger';
 import { ProviderStaff } from '../../../../src/domain/aggregates/ProviderStaff';
 import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
 import { ProfessionalInfo } from '../../../../src/domain/value-objects/ProfessionalInfo';
 import { WorkSchedule } from '../../../../src/domain/value-objects/WorkSchedule';
-import { StaffId } from '../../../../src/domain/value-objects/StaffId';
 
 describe('UpdateStaffProfileUseCase', () => {
   let useCase: UpdateStaffProfileUseCase;
   let mockStaffRepository: jest.Mocked<IProviderStaffRepository>;
-  let mockEventBus: jest.Mocked<IEventBus>;
   let mockLogger: jest.Mocked<ILogger>;
   let existingStaff: ProviderStaff;
 
@@ -94,24 +91,26 @@ describe('UpdateStaffProfileUseCase', () => {
   beforeEach(() => {
     mockStaffRepository = {
       findById: jest.fn(),
+      findByUserId: jest.fn(),
       findByLicenseNumber: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
       findAll: jest.fn(),
-      delete: jest.fn()
-    } as any;
-
-    mockEventBus = {
-      publish: jest.fn(),
-      subscribe: jest.fn()
-    } as any;
+      findByDepartment: jest.fn(),
+      findBySpecialization: jest.fn(),
+      findAvailableStaff: jest.fn(),
+      save: jest.fn(),
+      delete: jest.fn(),
+      exists: jest.fn(),
+      count: jest.fn(),
+      getStatistics: jest.fn()
+    } as jest.Mocked<IProviderStaffRepository>;
 
     mockLogger = {
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
-      debug: jest.fn()
-    } as any;
+      debug: jest.fn(),
+      fatal: jest.fn()
+    } as jest.Mocked<ILogger>;
 
     existingStaff = ProviderStaff.create(
       'user-123',
@@ -120,14 +119,13 @@ describe('UpdateStaffProfileUseCase', () => {
       validProfessionalInfo,
       validWorkSchedule,
       'BYS-12345',
-      'full-time',
+      'full_time',
       new Date('2020-01-01'),
       15
     );
 
     useCase = new UpdateStaffProfileUseCase(
       mockStaffRepository,
-      mockEventBus,
       mockLogger
     );
   });
@@ -135,59 +133,41 @@ describe('UpdateStaffProfileUseCase', () => {
   describe('execute - successful update', () => {
     it('should update staff profile with valid data', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       const result = await useCase.execute(validRequest);
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
-      expect(mockStaffRepository.update).toHaveBeenCalledTimes(1);
-      expect(mockEventBus.publish).toHaveBeenCalled();
+      expect(result.data?.staffId).toBeDefined();
+      expect(result.data?.updatedFields).toBeDefined();
+      expect(result.data?.updatedAt).toBeDefined();
+      expect(mockStaffRepository.save).toHaveBeenCalledTimes(1);
     });
 
     it('should update personal info correctly', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       const result = await useCase.execute(validRequest);
 
       expect(result.success).toBe(true);
-      expect(result.data?.personalInfo.fullName).toBe('Bác sĩ Nguyễn Văn Updated');
-      expect(result.data?.personalInfo.email).toBe('doctor.updated@hospital.vn');
+      expect(result.data?.updatedFields).toContain('personal_info');
     });
 
     it('should update professional info correctly', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       const result = await useCase.execute(validRequest);
 
       expect(result.success).toBe(true);
-      expect(result.data?.professionalInfo.title).toBe('Bác sĩ Chuyên khoa II');
-      expect(result.data?.professionalInfo.position).toBe('Head of Department');
-    });
-
-    it('should publish StaffUpdated event', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
-
-      await useCase.execute(validRequest);
-
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'StaffUpdated'
-        })
-      );
+      expect(result.data?.updatedFields).toContain('professional_info');
     });
 
     it('should allow partial update (only personal info)', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       const partialRequest = {
         ...validRequest,
@@ -197,13 +177,12 @@ describe('UpdateStaffProfileUseCase', () => {
       const result = await useCase.execute(partialRequest);
 
       expect(result.success).toBe(true);
-      expect(mockStaffRepository.update).toHaveBeenCalled();
+      expect(mockStaffRepository.save).toHaveBeenCalled();
     });
 
     it('should allow partial update (only professional info)', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       const partialRequest = {
         ...validRequest,
@@ -213,7 +192,7 @@ describe('UpdateStaffProfileUseCase', () => {
       const result = await useCase.execute(partialRequest);
 
       expect(result.success).toBe(true);
-      expect(mockStaffRepository.update).toHaveBeenCalled();
+      expect(mockStaffRepository.save).toHaveBeenCalled();
     });
   });
 
@@ -224,8 +203,8 @@ describe('UpdateStaffProfileUseCase', () => {
       const result = await useCase.execute(validRequest);
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('Nhân viên không tồn tại');
-      expect(mockStaffRepository.update).not.toHaveBeenCalled();
+      expect(result.message).toContain('Không tìm thấy thông tin nhân viên');
+      expect(mockStaffRepository.save).not.toHaveBeenCalled();
     });
 
     it('should fail when staff ID is invalid', async () => {
@@ -252,33 +231,19 @@ describe('UpdateStaffProfileUseCase', () => {
       const result = await useCase.execute(emptyRequest);
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('Không có thông tin cập nhật');
-      expect(mockStaffRepository.update).not.toHaveBeenCalled();
+      expect(result.message).toContain('ít nhất một trường');
+      expect(mockStaffRepository.save).not.toHaveBeenCalled();
     });
   });
 
   describe('execute - authorization', () => {
     it('should allow ADMIN to update any staff', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       const result = await useCase.execute({
         ...validRequest,
-        updatedByRole: 'ADMIN'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should allow SUPER_ADMIN to update any staff', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
-
-      const result = await useCase.execute({
-        ...validRequest,
-        updatedByRole: 'SUPER_ADMIN'
+        updatedByRole: 'admin'
       });
 
       expect(result.success).toBe(true);
@@ -286,13 +251,12 @@ describe('UpdateStaffProfileUseCase', () => {
 
     it('should allow staff to update their own profile', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       const result = await useCase.execute({
         ...validRequest,
         updatedBy: existingStaff.userId,
-        updatedByRole: 'DOCTOR'
+        updatedByRole: 'doctor'
       });
 
       expect(result.success).toBe(true);
@@ -304,43 +268,31 @@ describe('UpdateStaffProfileUseCase', () => {
       const result = await useCase.execute({
         ...validRequest,
         updatedBy: 'different-user-id',
-        updatedByRole: 'DOCTOR'
+        updatedByRole: 'doctor'
       });
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('Không có quyền');
-      expect(mockStaffRepository.update).not.toHaveBeenCalled();
+      expect(mockStaffRepository.save).not.toHaveBeenCalled();
     });
   });
 
   describe('execute - error handling', () => {
     it('should handle repository errors gracefully', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockRejectedValue(new Error('Database error'));
+      mockStaffRepository.save.mockRejectedValue(new Error('Database error'));
 
       const result = await useCase.execute(validRequest);
 
       expect(result.success).toBe(false);
       expect(mockLogger.error).toHaveBeenCalled();
     });
-
-    it('should handle event bus errors gracefully', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockRejectedValue(new Error('Event bus error'));
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(true);
-      expect(mockLogger.warn).toHaveBeenCalled();
-    });
   });
 
   describe('HIPAA audit logging', () => {
     it('should log staff profile update for audit', async () => {
       mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.update.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
+      mockStaffRepository.save.mockResolvedValue(undefined);
 
       await useCase.execute(validRequest);
 

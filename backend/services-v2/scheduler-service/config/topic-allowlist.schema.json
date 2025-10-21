@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hospital-v2.com/schemas/topic-allowlist.schema.json",
+  "title": "Topic Allowlist Schema",
+  "description": "Schema for Scheduler Service topic allowlist configuration",
+  "type": "object",
+  "required": ["version", "allowlist"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of allowlist configuration"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp (ISO 8601)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of allowlist purpose"
+    },
+    "allowlist": {
+      "type": "object",
+      "description": "Service-specific topic allowlists",
+      "patternProperties": {
+        "^[a-z-]+$": {
+          "type": "object",
+          "required": ["topics"],
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Service description"
+            },
+            "topics": {
+              "type": "array",
+              "description": "Exact topic matches",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z-]+\\.[a-z-]+\\.[a-z0-9.-]+$"
+              },
+              "uniqueItems": true
+            },
+            "wildcards": {
+              "type": "array",
+              "description": "Wildcard patterns (ending with .*)",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z-]+\\.[a-z-]+\\.\\*$|^[a-z-]+\\.\\*$"
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "description": "Validation rules",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["rule", "description"],
+            "properties": {
+              "rule": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "regex": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "examples": {
+      "type": "object",
+      "description": "Usage examples",
+      "properties": {
+        "valid": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ownerService", "topic", "reason"],
+            "properties": {
+              "ownerService": {
+                "type": "string"
+              },
+              "topic": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "invalid": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ownerService", "topic", "reason"],
+            "properties": {
+              "ownerService": {
+                "type": "string"
+              },
+              "topic": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

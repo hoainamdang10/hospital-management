@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
 import { StaffId } from '../../domain/value-objects/StaffId';
@@ -49,15 +49,17 @@ export interface AddStaffCertificationResponse {
 /**
  * Add Staff Certification Use Case
  */
-export class AddStaffCertificationUseCase extends BaseHealthcareUseCase<AddStaffCertificationRequest, AddStaffCertificationResponse> {
+export class AddStaffCertificationUseCase implements IUseCase<AddStaffCertificationRequest, AddStaffCertificationResponse> {
   constructor(
     private readonly staffRepository: IProviderStaffRepository,
     private readonly logger: ILogger
-  ) {
-    super();
+  ) {}
+
+  async execute(request: AddStaffCertificationRequest): Promise<AddStaffCertificationResponse> {
+    return await this.executeImpl(request);
   }
 
-  protected async executeImpl(request: AddStaffCertificationRequest): Promise<AddStaffCertificationResponse> {
+  private async executeImpl(request: AddStaffCertificationRequest): Promise<AddStaffCertificationResponse> {
     try {
       this.logger.info('Adding staff certification', {
         staffId: request.staffId,
@@ -66,12 +68,11 @@ export class AddStaffCertificationUseCase extends BaseHealthcareUseCase<AddStaff
       });
 
       // Validate request
-      const validationResult = this.validateRequest(request);
-      if (!validationResult.isValid) {
+      const validationError = this.validateRequest(request);
+      if (validationError) {
         return {
           success: false,
-          message: 'Yêu cầu không hợp lệ',
-          errors: validationResult.errors
+          message: validationError
         };
       }
 
@@ -82,35 +83,22 @@ export class AddStaffCertificationUseCase extends BaseHealthcareUseCase<AddStaff
       if (!staff) {
         return {
           success: false,
-          message: 'Không tìm thấy thông tin nhân viên'
+          message: 'Không tìm thấy nhân viên'
         };
       }
 
-      // Check authorization
-      if (!this.checkAuthorization(staff, request)) {
-        return {
-          success: false,
-          message: 'Không có quyền thêm chứng chỉ cho nhân viên này'
-        };
-      }
-
-      // Create certification
+      // Create certification entity
       const certification = StaffCertification.create({
-        certificationNumber: request.certification.certificationNumber,
-        certificationType: request.certification.certificationType,
-        issuingAuthority: request.certification.issuingAuthority,
+        certificationName: request.certification.certificationType,
+        issuingOrganization: request.certification.issuingAuthority,
         issueDate: new Date(request.certification.issueDate),
         expiryDate: request.certification.expiryDate ? new Date(request.certification.expiryDate) : undefined,
-        isValid: request.certification.isValid,
+        credentialId: request.certification.certificationNumber,
         verificationUrl: request.certification.verificationUrl
       });
 
       // Add certification to staff
       staff.addCertification(certification);
-
-      // Update metadata
-      staff.props.updatedAt = new Date();
-      staff.props.updatedBy = request.addedBy;
 
       // Save
       await this.staffRepository.save(staff);
@@ -130,7 +118,7 @@ export class AddStaffCertificationUseCase extends BaseHealthcareUseCase<AddStaff
         data: {
           staffId: staff.id.value,
           certificationId: certification.id,
-          addedAt: staff.props.updatedAt.toISOString()
+          addedAt: staff.updatedAt.toISOString()
         }
       };
 
@@ -147,40 +135,40 @@ export class AddStaffCertificationUseCase extends BaseHealthcareUseCase<AddStaff
     }
   }
 
-  private validateRequest(request: AddStaffCertificationRequest): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
+  private validateRequest(request: AddStaffCertificationRequest): string | null {
     if (!request.staffId?.trim()) {
-      errors.push('ID nhân viên không được để trống');
+      return 'ID nhân viên không được để trống';
     }
 
     if (!request.certification) {
-      errors.push('Thông tin chứng chỉ không được để trống');
-    } else {
-      if (!request.certification.certificationNumber?.trim()) {
-        errors.push('Số chứng chỉ không được để trống');
-      }
-      if (!request.certification.certificationType?.trim()) {
-        errors.push('Loại chứng chỉ không được để trống');
-      }
-      if (!request.certification.issuingAuthority?.trim()) {
-        errors.push('Cơ quan cấp không được để trống');
-      }
-      if (!request.certification.issueDate) {
-        errors.push('Ngày cấp không được để trống');
-      }
+      return 'Thông tin chứng chỉ không được để trống';
+    }
+
+    if (!request.certification.certificationNumber?.trim()) {
+      return 'Số chứng chỉ không được để trống';
+    }
+
+    if (!request.certification.certificationType?.trim()) {
+      return 'Loại chứng chỉ không được để trống';
+    }
+
+    if (!request.certification.issuingAuthority?.trim()) {
+      return 'Cơ quan cấp không được để trống';
+    }
+
+    if (!request.certification.issueDate) {
+      return 'Ngày cấp không được để trống';
     }
 
     if (!request.addedBy?.trim()) {
-      errors.push('Thông tin người thêm không được để trống');
+      return 'Người thêm chứng chỉ không được để trống';
     }
 
-    return { isValid: errors.length === 0, errors };
-  }
+    if (!request.addedByRole?.trim()) {
+      return 'Vai trò người thêm không được để trống';
+    }
 
-  private checkAuthorization(staff: ProviderStaff, request: AddStaffCertificationRequest): boolean {
-    const { addedByRole } = request;
-    return addedByRole === 'admin' || addedByRole === 'hr' || addedByRole === 'department_head';
+    return null;
   }
 
   private async auditCertificationAdd(
@@ -189,16 +177,16 @@ export class AddStaffCertificationUseCase extends BaseHealthcareUseCase<AddStaff
     certification: StaffCertification
   ): Promise<void> {
     this.logger.info('HIPAA Audit: Staff certification added', {
-      action: 'STAFF_CERTIFICATION_ADD',
+      action: 'ADD_STAFF_CERTIFICATION',
       staffId: staff.id.value,
       certificationId: certification.id,
-      certificationType: certification.certificationType,
+      certificationType: request.certification.certificationType,
       addedBy: request.addedBy,
       addedByRole: request.addedByRole,
       timestamp: new Date().toISOString(),
       ipAddress: request.requestMetadata?.ipAddress,
-      complianceLevel: 'hipaa'
+      userAgent: request.requestMetadata?.userAgent,
+      sessionId: request.requestMetadata?.sessionId
     });
   }
 }
-

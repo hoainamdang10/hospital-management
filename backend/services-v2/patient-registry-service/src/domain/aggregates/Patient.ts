@@ -17,6 +17,7 @@ import { ContactInfo } from '../value-objects/ContactInfo';
 import { BasicMedicalInfo } from '../value-objects/BasicMedicalInfo';
 import { PatientLink } from '../value-objects/PatientLink';
 import { PatientStatus } from '../value-objects/PatientStatus';
+import { CommunicationPreference } from '../value-objects/CommunicationPreference';
 import { InsuranceInfo } from '../entities/InsuranceInfo';
 import { EmergencyContact } from '../entities/EmergencyContact';
 import { PatientConsent } from '../entities/PatientConsent';
@@ -35,6 +36,12 @@ export interface PatientProps {
   // Demographics
   personalInfo: PersonalInfo;
   contactInfo: ContactInfo;
+
+  // Photo (FHIR: photo field)
+  photoUrl?: string;
+
+  // Communication Preferences (FHIR: communication field)
+  communicationPreference?: CommunicationPreference;
 
   // Basic Medical (Emergency only)
   basicMedicalInfo: BasicMedicalInfo;
@@ -498,6 +505,88 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     if (this.props.status !== PatientStatus.ACTIVE) {
       throw new Error(`Không thể cập nhật bệnh nhân với trạng thái: ${this.props.status}`);
     }
+  }
+
+  // ==================== Photo Management (FHIR: photo field) ====================
+
+  /**
+   * Update patient photo URL
+   */
+  public updatePhoto(photoUrl: string, updatedBy: string): void {
+    this.ensureCanUpdate();
+
+    if (!photoUrl || photoUrl.trim() === '') {
+      throw new Error('URL ảnh không được để trống');
+    }
+
+    this.props.photoUrl = photoUrl;
+    this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
+
+    this.addDomainEvent(
+      new PatientUpdatedEvent(
+        this.props.id.getValue(),
+        'photo_updated',
+        updatedBy
+      )
+    );
+  }
+
+  /**
+   * Remove patient photo
+   */
+  public removePhoto(updatedBy: string): void {
+    this.ensureCanUpdate();
+
+    this.props.photoUrl = undefined;
+    this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
+
+    this.addDomainEvent(
+      new PatientUpdatedEvent(
+        this.props.id.getValue(),
+        'photo_removed',
+        updatedBy
+      )
+    );
+  }
+
+  /**
+   * Get patient photo URL
+   */
+  public getPhotoUrl(): string | undefined {
+    return this.props.photoUrl;
+  }
+
+  // ==================== Communication Preferences (FHIR: communication field) ====================
+
+  /**
+   * Update communication preferences
+   */
+  public updateCommunicationPreference(
+    preference: CommunicationPreference,
+    updatedBy: string
+  ): void {
+    this.ensureCanUpdate();
+
+    this.props.communicationPreference = preference;
+    this.props.updatedAt = new Date();
+    this.props.updatedBy = updatedBy;
+
+    this.addDomainEvent(
+      new PatientUpdatedEvent(
+        this.props.id.getValue(),
+        'communication_preference_updated',
+        updatedBy
+      )
+    );
+  }
+
+  /**
+   * Get communication preferences
+   */
+  public getCommunicationPreference(): CommunicationPreference | undefined {
+    return this.props.communicationPreference;
   }
 }
 

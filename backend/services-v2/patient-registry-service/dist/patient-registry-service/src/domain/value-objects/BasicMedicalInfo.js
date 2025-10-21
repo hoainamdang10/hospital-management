@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicMedicalInfo = void 0;
-const value_object_1 = require("@shared/domain/base/value-object");
+const value_object_1 = require("../../../../shared/domain/base/value-object");
 class BasicMedicalInfo extends value_object_1.ValueObject {
     constructor(props) {
         super(props);
@@ -24,6 +24,10 @@ class BasicMedicalInfo extends value_object_1.ValueObject {
      * Factory method to create BasicMedicalInfo
      */
     static create(props) {
+        // Validate allergies is an array
+        if (!Array.isArray(props.knownAllergies)) {
+            throw new Error('Known allergies must be an array');
+        }
         // Validate and clean allergies
         const cleanedAllergies = props.knownAllergies
             .map(a => a.trim())

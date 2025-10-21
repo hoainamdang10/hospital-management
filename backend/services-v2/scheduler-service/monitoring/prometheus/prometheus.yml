@@ -1,0 +1,140 @@
+# Prometheus Configuration for Scheduler Service
+# Version: 1.0.0
+# Last Updated: 2025-10-21
+
+global:
+  # How frequently to scrape targets by default
+  scrape_interval: 15s
+  
+  # How long until a scrape request times out
+  scrape_timeout: 10s
+  
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+  
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager)
+  external_labels:
+    cluster: 'hospital-management-v2'
+    environment: 'development'
+    service: 'scheduler-service'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - 'localhost:9093'
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'
+rule_files:
+  - 'alerts.yml'
+  # - 'recording_rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Scheduler Service - Main API
+  - job_name: 'scheduler-service-api'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    scheme: 'http'
+    static_configs:
+      # When running with Docker Compose, use container name
+      - targets: ['scheduler-api:3030']
+        labels:
+          component: 'api'
+          service: 'scheduler-service'
+          environment: 'development'
+
+      # When running standalone (for local development), uncomment below
+      # - targets: ['localhost:3025']
+      #   labels:
+      #     component: 'api'
+      #     service: 'scheduler-service'
+      #     environment: 'development'
+    
+    # Relabel configurations
+    relabel_configs:
+      # Add instance label
+      - source_labels: [__address__]
+        target_label: instance
+      
+      # Add job label
+      - source_labels: [job]
+        target_label: job
+    
+    # Metric relabel configurations (filter/modify metrics)
+    metric_relabel_configs:
+      # Drop metrics with high cardinality if needed
+      # - source_labels: [__name__]
+      #   regex: 'scheduler_.*_bucket'
+      #   action: drop
+      
+      # Rename labels if needed
+      # - source_labels: [old_label]
+      #   target_label: new_label
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'prometheus'
+          environment: 'development'
+
+  # Node Exporter (optional - for system metrics)
+  # - job_name: 'node-exporter'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets: ['localhost:9100']
+  #       labels:
+  #         component: 'node-exporter'
+  #         environment: 'development'
+
+  # PostgreSQL Exporter (optional - for database metrics)
+  # - job_name: 'postgres-exporter'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets: ['localhost:9187']
+  #       labels:
+  #         component: 'postgres'
+  #         database: 'scheduler'
+  #         environment: 'development'
+
+  # Redis Exporter (optional - for cache metrics)
+  # - job_name: 'redis-exporter'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets: ['localhost:9121']
+  #       labels:
+  #         component: 'redis'
+  #         environment: 'development'
+
+  # RabbitMQ Exporter (optional - for message queue metrics)
+  # - job_name: 'rabbitmq-exporter'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets: ['localhost:15692']
+  #       labels:
+  #         component: 'rabbitmq'
+  #         environment: 'development'
+
+# Remote write configuration (optional - for long-term storage)
+# remote_write:
+#   - url: 'http://localhost:9009/api/v1/push'
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 5
+#       min_shards: 1
+#       max_samples_per_send: 1000
+#       batch_send_deadline: 5s
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: 'http://localhost:9009/api/v1/read'
+#     read_recent: true
+

@@ -9,7 +9,6 @@
 
 import { RegisterStaffUseCase, RegisterStaffRequest } from '../../../../src/application/use-cases/RegisterStaffUseCase';
 import { createMockLogger, createMockStaffRepository } from '../../../helpers/mockFactories';
-import { TestDataFactory } from '../../../setup';
 
 describe('RegisterStaffUseCase', () => {
   let useCase: RegisterStaffUseCase;
@@ -55,7 +54,7 @@ describe('RegisterStaffUseCase', () => {
       isFlexible: false
     },
     licenseNumber: 'BYS-12345',
-    employmentType: 'full-time',
+    employmentType: 'full_time',
     hireDate: '2025-01-01',
     yearsOfExperience: 15,
     requestedBy: 'admin-123'

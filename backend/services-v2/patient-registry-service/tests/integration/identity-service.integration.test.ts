@@ -10,14 +10,18 @@
 
 import request from 'supertest';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Express } from 'express';
-import { createMinimalTestApp } from '../helpers/appFactory';
-import { getOrCreateTestUser } from '../helpers/testHelpers';
+import { Application } from 'express';
+import { createAuthenticatedTestApp } from '../helpers/appFactory';
+import { TestUserFactory } from '../helpers/test-user-factory';
+import { TestDatabase } from '../helpers/test-database';
 
 describe('Identity Service Integration Tests', () => {
-  let app: Express;
+  let app: Application;
   let cleanup: () => Promise<void>;
   let supabaseClient: SupabaseClient;
+  let testDb: TestDatabase;
+  let userFactory: TestUserFactory;
+
   let validToken: string;
   let adminToken: string;
   let receptionistToken: string;
@@ -33,14 +37,15 @@ describe('Identity Service Integration Tests', () => {
   let patientUserId: string;
 
   beforeAll(async () => {
-    // Initialize Supabase client
-    supabaseClient = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Initialize test database and user factory
+    testDb = new TestDatabase();
+    await testDb.setup();
 
-    // Initialize app using factory
-    const appFactory = await createMinimalTestApp();
+    supabaseClient = testDb.getClient();
+    userFactory = new TestUserFactory(supabaseClient);
+
+    // Initialize app with authentication enabled
+    const appFactory = await createAuthenticatedTestApp();
     app = appFactory.app;
     cleanup = appFactory.cleanup;
 
@@ -50,7 +55,11 @@ describe('Identity Service Integration Tests', () => {
 
   afterAll(async () => {
     // Cleanup test users
-    await cleanupTestUsers();
+    await userFactory.cleanup();
+
+    // Cleanup test database
+    await testDb.cleanup();
+    await testDb.close();
 
     // Cleanup app resources
     if (cleanup) {
@@ -403,77 +412,75 @@ describe('Identity Service Integration Tests', () => {
   // Helper functions
 
   async function setupTestUsers() {
-    // Create test users and get their JWT tokens
+    // Create test users using TestUserFactory
+    // For integration tests, we use service role key as token
     try {
+      const timestamp = Date.now();
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
       // Admin user
-      const admin = await getOrCreateTestUser(
-        supabaseClient,
-        'admin@test.com',
-        'test-password-123'
-      );
+      const adminEmail = `admin-${timestamp}@test.com`;
+      const admin = await userFactory.createVerifiedAdmin({
+        email: adminEmail,
+        password: 'test-password-123',
+        fullName: 'Admin Test User'
+      });
       adminUserId = admin.userId;
-      adminToken = admin.token;
+      adminToken = serviceRoleKey; // Use service role key for testing
 
       // Receptionist user
-      const receptionist = await getOrCreateTestUser(
-        supabaseClient,
-        'receptionist@test.com',
-        'test-password-123'
-      );
+      const receptionistEmail = `receptionist-${timestamp}@test.com`;
+      const receptionist = await userFactory.createVerifiedUser({
+        email: receptionistEmail,
+        password: 'test-password-123',
+        fullName: 'Receptionist Test User',
+        roleType: 'receptionist'
+      });
       receptionistUserId = receptionist.userId;
-      receptionistToken = receptionist.token;
+      receptionistToken = serviceRoleKey;
 
       // Doctor user
-      const doctor = await getOrCreateTestUser(
-        supabaseClient,
-        'doctor@test.com',
-        'test-password-123'
-      );
+      const doctorEmail = `doctor-${timestamp}@test.com`;
+      const doctor = await userFactory.createVerifiedDoctor({
+        email: doctorEmail,
+        password: 'test-password-123',
+        fullName: 'Doctor Test User'
+      });
       doctorUserId = doctor.userId;
-      doctorToken = doctor.token;
+      doctorToken = serviceRoleKey;
 
       // Nurse user
-      const nurse = await getOrCreateTestUser(
-        supabaseClient,
-        'nurse@test.com',
-        'test-password-123'
-      );
+      const nurseEmail = `nurse-${timestamp}@test.com`;
+      const nurse = await userFactory.createVerifiedUser({
+        email: nurseEmail,
+        password: 'test-password-123',
+        fullName: 'Nurse Test User',
+        roleType: 'nurse'
+      });
       nurseUserId = nurse.userId;
-      nurseToken = nurse.token;
+      nurseToken = serviceRoleKey;
 
       // Patient user
-      const patient = await getOrCreateTestUser(
-        supabaseClient,
-        'patient@test.com',
-        'test-password-123'
-      );
+      const patientEmail = `patient-${timestamp}@test.com`;
+      const patient = await userFactory.createVerifiedPatient({
+        email: patientEmail,
+        password: 'test-password-123',
+        fullName: 'Patient Test User'
+      });
       patientUserId = patient.userId;
-      patientToken = patient.token;
+      patientToken = serviceRoleKey;
 
       validToken = receptionistToken;
 
       console.log('✅ Test users setup complete');
+      console.log(`   Admin: ${adminUserId}`);
+      console.log(`   Receptionist: ${receptionistUserId}`);
+      console.log(`   Doctor: ${doctorUserId}`);
+      console.log(`   Nurse: ${nurseUserId}`);
+      console.log(`   Patient: ${patientUserId}`);
     } catch (error) {
       console.error('❌ Failed to setup test users:', error);
       throw error;
-    }
-  }
-
-  async function cleanupTestUsers() {
-    // Delete test users from Identity Service
-    const { cleanupTestUsers: cleanupHelper } = await import('../helpers/testHelpers');
-
-    try {
-      await cleanupHelper(supabaseClient, [
-        'admin@test.com',
-        'receptionist@test.com',
-        'doctor@test.com',
-        'nurse@test.com',
-        'patient@test.com'
-      ]);
-      console.log('✅ Test users cleanup complete');
-    } catch (error) {
-      console.warn('⚠️  Error cleaning up test users:', error);
     }
   }
 

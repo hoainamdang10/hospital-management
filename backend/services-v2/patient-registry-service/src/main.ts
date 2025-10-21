@@ -42,11 +42,31 @@ import { LinkPatientsUseCase } from './application/use-cases/LinkPatientsUseCase
 import { DeactivatePatientUseCase } from './application/use-cases/DeactivatePatientUseCase';
 import { ValidateInsuranceUseCase } from './application/use-cases/ValidateInsuranceUseCase';
 import { AddEmergencyContactUseCase } from './application/use-cases/AddEmergencyContactUseCase';
+import { GetEmergencyContactsUseCase } from './application/use-cases/GetEmergencyContactsUseCase';
+import { UpdateEmergencyContactUseCase } from './application/use-cases/UpdateEmergencyContactUseCase';
+import { RemoveEmergencyContactUseCase } from './application/use-cases/RemoveEmergencyContactUseCase';
+import { SetPrimaryEmergencyContactUseCase } from './application/use-cases/SetPrimaryEmergencyContactUseCase';
 import { GrantConsentUseCase } from './application/use-cases/GrantConsentUseCase';
+import { GetConsentsUseCase } from './application/use-cases/GetConsentsUseCase';
+import { GetConsentDetailsUseCase } from './application/use-cases/GetConsentDetailsUseCase';
+import { RevokeConsentUseCase } from './application/use-cases/RevokeConsentUseCase';
+import { GetActiveConsentsUseCase } from './application/use-cases/GetActiveConsentsUseCase';
+import { GetInsuranceInfoUseCase } from './application/use-cases/GetInsuranceInfoUseCase';
+import { UpdateInsuranceInfoUseCase } from './application/use-cases/UpdateInsuranceInfoUseCase';
+import { VerifyInsuranceUseCase } from './application/use-cases/VerifyInsuranceUseCase';
 import { MarkAsDeceasedUseCase } from './application/use-cases/MarkAsDeceasedUseCase';
 import { ReactivatePatientUseCase } from './application/use-cases/ReactivatePatientUseCase';
+import { GetPatientStatisticsUseCase } from './application/use-cases/GetPatientStatisticsUseCase';
+import { UploadPatientPhotoUseCase } from './application/use-cases/UploadPatientPhotoUseCase';
+import { GetPatientPhotoUseCase } from './application/use-cases/GetPatientPhotoUseCase';
+import { DeletePatientPhotoUseCase } from './application/use-cases/DeletePatientPhotoUseCase';
+import { UpdateCommunicationPreferencesUseCase } from './application/use-cases/UpdateCommunicationPreferencesUseCase';
+import { GetCommunicationPreferencesUseCase } from './application/use-cases/GetCommunicationPreferencesUseCase';
 import { PatientCommandHandlers } from './application/handlers/PatientCommandHandlers';
 import { PatientQueryHandlers } from './application/handlers/PatientQueryHandlers';
+
+// Infrastructure imports
+import { SupabaseStorageService } from './infrastructure/storage/SupabaseStorageService';
 
 // Presentation imports
 import { PatientController } from './presentation/controllers/PatientController';
@@ -115,9 +135,29 @@ class PatientRegistryServiceApp {
   private deactivatePatientUseCase!: DeactivatePatientUseCase;
   private validateInsuranceUseCase!: ValidateInsuranceUseCase;
   private addEmergencyContactUseCase!: AddEmergencyContactUseCase;
+  private getEmergencyContactsUseCase!: GetEmergencyContactsUseCase;
+  private updateEmergencyContactUseCase!: UpdateEmergencyContactUseCase;
+  private removeEmergencyContactUseCase!: RemoveEmergencyContactUseCase;
+  private setPrimaryEmergencyContactUseCase!: SetPrimaryEmergencyContactUseCase;
   private grantConsentUseCase!: GrantConsentUseCase;
+  private getConsentsUseCase!: GetConsentsUseCase;
+  private getConsentDetailsUseCase!: GetConsentDetailsUseCase;
+  private revokeConsentUseCase!: RevokeConsentUseCase;
+  private getActiveConsentsUseCase!: GetActiveConsentsUseCase;
+  private getInsuranceInfoUseCase!: GetInsuranceInfoUseCase;
+  private updateInsuranceInfoUseCase!: UpdateInsuranceInfoUseCase;
+  private verifyInsuranceUseCase!: VerifyInsuranceUseCase;
   private markAsDeceasedUseCase!: MarkAsDeceasedUseCase;
   private reactivatePatientUseCase!: ReactivatePatientUseCase;
+  private getPatientStatisticsUseCase!: GetPatientStatisticsUseCase;
+  private uploadPatientPhotoUseCase!: UploadPatientPhotoUseCase;
+  private getPatientPhotoUseCase!: GetPatientPhotoUseCase;
+  private deletePatientPhotoUseCase!: DeletePatientPhotoUseCase;
+  private updateCommunicationPreferencesUseCase!: UpdateCommunicationPreferencesUseCase;
+  private getCommunicationPreferencesUseCase!: GetCommunicationPreferencesUseCase;
+
+  // Infrastructure Services
+  private storageService!: SupabaseStorageService;
 
   // Command Handlers
   private patientCommandHandlers!: PatientCommandHandlers;
@@ -248,7 +288,9 @@ class PatientRegistryServiceApp {
       );
 
       this.matchPatientsUseCase = new MatchPatientsUseCase(
-        this.patientRepository
+        this.patientRepository,
+        this.matchingService,
+        logger
       );
 
       this.mergePatientsUseCase = new MergePatientsUseCase(
@@ -277,8 +319,68 @@ class PatientRegistryServiceApp {
         logger
       );
 
+      this.getEmergencyContactsUseCase = new GetEmergencyContactsUseCase(
+        this.patientRepository,
+        logger
+      );
+
+      this.updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(
+        this.patientRepository,
+        this.eventBus,
+        logger
+      );
+
+      this.removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(
+        this.patientRepository,
+        this.eventBus,
+        logger
+      );
+
+      this.setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase(
+        this.patientRepository,
+        this.eventBus,
+        logger
+      );
+
       this.grantConsentUseCase = new GrantConsentUseCase(
         this.patientRepository
+      );
+
+      this.getConsentsUseCase = new GetConsentsUseCase(
+        this.patientRepository,
+        logger
+      );
+
+      this.getConsentDetailsUseCase = new GetConsentDetailsUseCase(
+        this.patientRepository,
+        logger
+      );
+
+      this.revokeConsentUseCase = new RevokeConsentUseCase(
+        this.patientRepository,
+        this.eventBus,
+        logger
+      );
+
+      this.getActiveConsentsUseCase = new GetActiveConsentsUseCase(
+        this.patientRepository,
+        logger
+      );
+
+      this.getInsuranceInfoUseCase = new GetInsuranceInfoUseCase(
+        this.patientRepository,
+        logger
+      );
+
+      this.updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase(
+        this.patientRepository,
+        this.eventBus,
+        logger
+      );
+
+      this.verifyInsuranceUseCase = new VerifyInsuranceUseCase(
+        this.patientRepository,
+        logger
       );
 
       this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase(
@@ -286,6 +388,44 @@ class PatientRegistryServiceApp {
       );
 
       this.reactivatePatientUseCase = new ReactivatePatientUseCase(
+        this.patientRepository
+      );
+
+      this.getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(
+        this.patientRepository
+      );
+
+      // Initialize Storage Service
+      const { createClient } = await import('@supabase/supabase-js');
+      const storageClient = createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+      this.storageService = new SupabaseStorageService(storageClient as any, logger);
+
+      // Initialize Photo Use Cases
+      this.uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase(
+        this.patientRepository,
+        this.storageService
+      );
+
+      this.getPatientPhotoUseCase = new GetPatientPhotoUseCase(
+        this.patientRepository
+      );
+
+      this.deletePatientPhotoUseCase = new DeletePatientPhotoUseCase(
+        this.patientRepository,
+        this.storageService
+      );
+
+      // Initialize Communication Preferences Use Cases
+      this.updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase(
+        this.patientRepository
+      );
+
+      this.getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase(
         this.patientRepository
       );
 
@@ -317,9 +457,26 @@ class PatientRegistryServiceApp {
         this.deactivatePatientUseCase,
         this.validateInsuranceUseCase,
         this.addEmergencyContactUseCase,
+        this.getEmergencyContactsUseCase,
+        this.updateEmergencyContactUseCase,
+        this.removeEmergencyContactUseCase,
+        this.setPrimaryEmergencyContactUseCase,
         this.grantConsentUseCase,
+        this.getConsentsUseCase,
+        this.getConsentDetailsUseCase,
+        this.revokeConsentUseCase,
+        this.getActiveConsentsUseCase,
+        this.getInsuranceInfoUseCase,
+        this.updateInsuranceInfoUseCase,
+        this.verifyInsuranceUseCase,
         this.markAsDeceasedUseCase,
         this.reactivatePatientUseCase,
+        this.getPatientStatisticsUseCase,
+        this.uploadPatientPhotoUseCase,
+        this.getPatientPhotoUseCase,
+        this.deletePatientPhotoUseCase,
+        this.updateCommunicationPreferencesUseCase,
+        this.getCommunicationPreferencesUseCase,
         this.patientQueryHandlers
       );
 

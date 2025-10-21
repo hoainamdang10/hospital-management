@@ -1,0 +1,1703 @@
+
+> patient-registry-service@1.0.0 test
+> jest --coverage --passWithNoTests
+
+● Validation Warning:
+
+  Unknown option "timeout" with value 5000 was found.
+  This is probably a typing mistake. Fixing it will remove this message.
+
+  Configuration Documentation:
+  https://jestjs.io/docs/configuration
+
+● Validation Warning:
+
+  Unknown option "timeout" with value 30000 was found.
+  This is probably a typing mistake. Fixing it will remove this message.
+
+  Configuration Documentation:
+  https://jestjs.io/docs/configuration
+
+PASS Unit Tests tests/unit/domain/value-objects/ContactInfo.test.ts
+  ContactInfo Value Object
+    create
+      √ should create ContactInfo with valid data (4 ms)
+      √ should throw error for invalid phone number format (27 ms)
+      √ should accept valid Vietnamese phone numbers (1 ms)
+      √ should throw error for invalid email format (2 ms)
+      √ should accept valid email formats (1 ms)
+      √ should throw error for empty address street (1 ms)
+      √ should throw error for empty address ward (1 ms)
+      √ should throw error for empty address district (1 ms)
+      √ should throw error for empty address city (1 ms)
+      √ should create ContactInfo with optional postal code (1 ms)
+      √ should accept Vietnamese address with city name
+      √ should accept Vietnamese address with postal code (1 ms)
+      √ should create ContactInfo with optional secondary phone (1 ms)
+      √ should accept all preferred contact methods (6 ms)
+      √ should throw error for empty primary phone (1 ms)
+      √ should throw error for whitespace-only primary phone (1 ms)
+      √ should throw error for invalid secondary phone (1 ms)
+      √ should throw error for empty province (2 ms)
+      √ should trim and lowercase email (1 ms)
+      √ should trim phone numbers (1 ms)
+      √ should trim address fields (2 ms)
+      √ should default country to Việt Nam when not provided (1 ms)
+    isInHoChiMinhCity
+      √ should return true for Hồ Chí Minh city
+      √ should return true for TP.HCM
+      √ should return true for Sài Gòn (1 ms)
+      √ should return false for other cities (1 ms)
+    isInHanoi
+      √ should return true for Hà Nội
+      √ should return true for Hanoi (English)
+      √ should return false for other cities (1 ms)
+    isInMajorCity
+      √ should return true for Hồ Chí Minh (1 ms)
+      √ should return true for Hà Nội
+      √ should return true for Đà Nẵng (1 ms)
+      √ should return true for Cần Thơ (1 ms)
+      √ should return true for Hải Phòng
+      √ should return false for non-major cities (2 ms)
+    Vietnamese healthcare compliance
+      √ should support Vietnamese address format (5 ms)
+    equals
+      √ should return true for same contact info (1 ms)
+      √ should return false for different contact info (1 ms)
+    getFormattedPrimaryPhone
+      √ should format primary phone number (1 ms)
+    getFormattedSecondaryPhone
+      √ should format secondary phone number
+      √ should return undefined when no secondary phone (1 ms)
+    getFullAddress
+      √ should return full formatted address (1 ms)
+    getShortAddress
+      √ should return short address with district and city (1 ms)
+    hasEmail
+      √ should return true when email exists
+      √ should return false when email does not exist (1 ms)
+    hasSecondaryPhone
+      √ should return true when secondary phone exists (1 ms)
+      √ should return false when secondary phone does not exist (1 ms)
+    canContactByEmail
+      √ should return true when has email and preferred method is email (1 ms)
+      √ should return true when has email and preferred method is sms
+      √ should return false when preferred method is phone (1 ms)
+      √ should return false when no email
+    canContactByPhone
+      √ should return true when preferred method is phone
+      √ should return false when preferred method is not phone (1 ms)
+    canContactBySMS
+      √ should return true when preferred method is sms
+      √ should return false when preferred method is not sms (1 ms)
+    getContactPhones
+      √ should return array with primary phone only (1 ms)
+      √ should return array with both phones (1 ms)
+    immutability
+      √ should be immutable (1 ms)
+
+PASS Unit Tests tests/unit/application/use-cases/UpdatePatientInfoUseCase.test.ts
+  UpdatePatientInfoUseCase
+    execute
+      √ should update patient personal info successfully (5 ms)
+      √ should fail when patient not found (2 ms)
+      √ should fail when patient is inactive (1 ms)
+      √ should update contact info successfully (2 ms)
+      √ should handle event publishing failure gracefully (1 ms)
+      √ should handle repository save failure (11 ms)
+      √ should update contact info successfully (2 ms)
+
+PASS Unit Tests tests/unit/application/use-cases/DeactivatePatientUseCase.test.ts
+  DeactivatePatientUseCase
+    execute
+      √ should deactivate patient successfully (2 ms)
+      √ should fail when patient not found (3 ms)
+      √ should fail when patient is already inactive (2 ms)
+      √ should handle event publishing failure gracefully (1 ms)
+      √ should log HIPAA audit after successful deactivation (2 ms)
+
+PASS Unit Tests tests/unit/domain/aggregates/Patient.test.ts
+  Patient Aggregate
+    register
+      √ should create Patient with valid data (1 ms)
+      √ should generate PatientRegistered domain event (1 ms)
+      √ should create Patient without optional fields (1 ms)
+      √ should set status to ACTIVE by default (5 ms)
+    updatePersonalInfo
+      √ should update personal information (1 ms)
+      √ should generate PatientUpdated domain event (1 ms)
+    updateContactInfo
+      √ should update contact information (1 ms)
+    deactivate
+      √ should deactivate patient (1 ms)
+      √ should generate PatientDeactivated domain event
+      √ should throw error when deactivating already inactive patient (31 ms)
+    reactivate
+      √ should reactivate inactive patient (1 ms)
+    addEmergencyContact
+      √ should add emergency contact (1 ms)
+    getPatientId
+      √ should return patient ID as string (1 ms)
+    updateBasicMedicalInfo
+      √ should update basic medical information (1 ms)
+      √ should generate PatientUpdated domain event
+      √ should throw error when updating inactive patient (1 ms)
+    updateInsuranceInfo
+      √ should update insurance information (1 ms)
+      √ should allow setting insurance to undefined (1 ms)
+      √ should generate PatientUpdated domain event
+    removeEmergencyContact
+      √ should remove emergency contact (1 ms)
+      √ should generate PatientUpdated domain event (1 ms)
+      √ should not throw error when removing non-existent contact (1 ms)
+    grantConsent
+      √ should grant consent (5 ms)
+      √ should generate PatientConsentGranted domain event
+    mergeInto
+      √ should merge patient into master patient (3 ms)
+      √ should generate PatientMerged domain event
+      √ should throw error when merging already merged patient (1 ms)
+      √ should throw error when merging deceased patient (1 ms)
+      √ should throw error when merging patient into itself (1 ms)
+    linkTo
+      √ should link to another patient (1 ms)
+      √ should generate PatientLinked domain event (1 ms)
+      √ should throw error when linking to itself (1 ms)
+      √ should throw error when link already exists (1 ms)
+    markAsDeceased
+      √ should mark patient as deceased
+      √ should generate PatientUpdated domain event (1 ms)
+      √ should throw error when marking already deceased patient (1 ms)
+    status query methods
+      √ isActive should return true for active patient (1 ms)
+      √ isInactive should return true for inactive patient
+      √ isMerged should return true for merged patient (1 ms)
+      √ isDeceased should return true for deceased patient (1 ms)
+    insurance query methods
+      √ hasBHYTInsurance should return true when patient has BHYT insurance
+      √ hasBHYTInsurance should return false when patient has no insurance (1 ms)
+      √ hasValidInsurance should return true when patient has valid insurance
+      √ hasValidInsurance should return false when patient has no insurance
+    collection query methods
+      √ hasEmergencyContacts should return true when patient has emergency contacts (1 ms)
+      √ hasEmergencyContacts should return false when patient has no emergency contacts
+      √ hasActiveConsents should return true when patient has active consents (1 ms)
+      √ hasActiveConsents should return false when patient has no consents
+      √ hasLinks should return true when patient has links (1 ms)
+      √ hasLinks should return false when patient has no links (1 ms)
+    error handling for update operations
+      √ should throw error when updating personal info on merged patient (1 ms)
+      √ should throw error when updating contact info on deceased patient (1 ms)
+      √ should throw error when deactivating merged patient (5 ms)
+      √ should throw error when deactivating deceased patient (1 ms)
+      √ should throw error when reactivating non-inactive patient (1 ms)
+    getters
+      √ should return copies of collections to prevent external mutation
+      √ should return all getters correctly (1 ms)
+
+PASS Unit Tests tests/unit/domain/value-objects/PersonalInfo.test.ts
+  PersonalInfo Value Object
+    create
+      √ should create PersonalInfo with valid data (1 ms)
+      √ should throw error for empty full name (27 ms)
+      √ should throw error for whitespace-only full name (1 ms)
+      √ should throw error for future date of birth (1 ms)
+      √ should throw error for age over 150 years
+      √ should throw error for invalid gender (1 ms)
+      √ should throw error for invalid national ID format (2 ms)
+      √ should accept valid Vietnamese national ID (12 digits) (1 ms)
+      √ should accept valid Vietnamese CCCD (12 digits) (1 ms)
+    getAge
+      √ should calculate correct age (3 ms)
+      √ should return 0 for newborn (1 ms)
+      √ should handle birthday not yet occurred this year
+    age validation
+      √ should calculate age correctly for adults
+      √ should calculate age correctly for minors (1 ms)
+      √ should calculate age correctly for seniors (1 ms)
+    Vietnamese healthcare compliance
+      √ should support Vietnamese full names with diacritics (1 ms)
+      √ should support Vietnamese ethnicities (1 ms)
+      √ should support Vietnamese marital statuses (1 ms)
+    equals
+      √ should return true for same personal info (1 ms)
+      √ should return false for different personal info
+    isMinor
+      √ should return true for patient under 18
+      √ should return false for patient 18 or older (1 ms)
+      √ should return false for patient exactly 18 years old
+    isElderly
+      √ should return true for patient 65 or older (1 ms)
+      √ should return false for patient under 65 (1 ms)
+      √ should return true for patient exactly 65 years old
+    isVietnameseCompliant
+      √ should return true for valid Vietnamese data (1 ms)
+      √ should return false for invalid national ID (1 ms)
+      √ should return false for short full name (1 ms)
+    isHIPAACompliant
+      √ should return true for valid HIPAA data (1 ms)
+      √ should return true with minimal required fields
+    isValid
+      √ should return true for valid personal info (1 ms)
+    toPersistence
+      √ should convert to persistence format (4 ms)
+      √ should handle optional fields in persistence (1 ms)
+    fromPersistence
+      √ should create from persistence data (2 ms)
+      √ should handle optional fields from persistence
+    getDisplayName
+      √ should return full name
+    getMaskedNationalId
+      √ should mask national ID showing only last 4 digits (1 ms)
+      √ should return *** for short national ID
+    getSummaryForLogging
+      √ should return summary without sensitive data (1 ms)
+      √ should include correct age flags for minor (1 ms)
+      √ should include correct age flags for elderly (1 ms)
+    data trimming
+      √ should trim full name
+      √ should trim national ID (1 ms)
+      √ should trim nationality
+      √ should trim optional fields
+    validation errors
+      √ should throw error for empty nationality (1 ms)
+      √ should throw error for whitespace-only nationality (1 ms)
+      √ should throw error for empty national ID (1 ms)
+      √ should throw error for whitespace-only national ID (1 ms)
+      √ should throw error for missing gender (1 ms)
+      √ should throw error for missing date of birth
+
+PASS Unit Tests tests/unit/domain/entities/PatientConsent.test.ts
+  PatientConsent Entity
+    grant
+      √ should grant consent with full data (2 ms)
+      √ should grant consent with minimal data (1 ms)
+      √ should trim whitespace from consent type and notes (1 ms)
+      √ should generate unique ID for each consent (1 ms)
+      √ should set grantedAt timestamp (1 ms)
+    reconstitute
+      √ should reconstitute consent from persistence data (1 ms)
+    isGranted
+      √ should return true for active consent without withdrawal (1 ms)
+      √ should return false for withdrawn consent (1 ms)
+    withdraw
+      √ should withdraw active consent (1 ms)
+      √ should set withdrawnAt timestamp (1 ms)
+    isExpired
+      √ should return false for consent without expiry date (3 ms)
+      √ should return false for non-expired consent (1 ms)
+      √ should return true for expired consent
+    isValid
+      √ should return true for active non-expired consent (1 ms)
+      √ should return false for withdrawn consent (1 ms)
+      √ should return false for expired consent
+    getDaysUntilExpiry
+      √ should return null for consent without expiry date
+      √ should calculate days until expiry correctly (1 ms)
+      √ should return negative days for expired consent (1 ms)
+    isExpiringWithin
+      √ should return false for consent without expiry date (1 ms)
+      √ should return true if expiring within specified days (1 ms)
+      √ should return false if not expiring within specified days (1 ms)
+      √ should return false for already expired consent
+    HIPAA specific methods
+      √ should identify HIPAA consent (1 ms)
+      √ should identify data sharing as HIPAA consent (1 ms)
+      √ should identify treatment consent (1 ms)
+      √ should identify research consent (1 ms)
+    isHIPAACompliant
+      √ should return true for valid HIPAA compliant consent
+      √ should return true for withdrawn consent (audit trail) (1 ms)
+    validate
+      √ should not throw error for HIPAA compliant consent (1 ms)
+    toPersistence
+      √ should convert to persistence format (1 ms)
+      √ should handle withdrawn consent in persistence (1 ms)
+    getSummaryForLogging
+      √ should return summary for logging (3 ms)
+      √ should include withdrawnAt in summary if withdrawn (1 ms)
+
+PASS Unit Tests tests/unit/domain/value-objects/PatientStatus.test.ts
+  PatientStatus
+    enum values
+      √ should have ACTIVE status (1 ms)
+      √ should have INACTIVE status (1 ms)
+      √ should have DECEASED status
+      √ should have MERGED status
+      √ should have exactly 4 status values (1 ms)
+    PatientStatusHelper.getDescription
+      √ should return Vietnamese description for ACTIVE
+      √ should return Vietnamese description for INACTIVE (1 ms)
+      √ should return Vietnamese description for DECEASED
+      √ should return Vietnamese description for MERGED
+      √ should return default description for invalid status (1 ms)
+    PatientStatusHelper.isValid
+      √ should return true for valid status values (3 ms)
+      √ should return false for invalid status values
+    PatientStatusHelper.parse
+      √ should parse valid status strings (1 ms)
+      √ should throw error for invalid status strings (11 ms)
+      √ should throw error for empty string (1 ms)
+      √ should throw error for uppercase status (1 ms)
+    PatientStatusHelper.canUpdate
+      √ should return true for ACTIVE status
+      √ should return false for INACTIVE status (1 ms)
+      √ should return false for DECEASED status
+      √ should return false for MERGED status (1 ms)
+    PatientStatusHelper.canMerge
+      √ should return true for ACTIVE status
+      √ should return true for INACTIVE status (1 ms)
+      √ should return false for DECEASED status (1 ms)
+      √ should return false for MERGED status
+    PatientStatusHelper.canDeactivate
+      √ should return true for ACTIVE status (1 ms)
+      √ should return false for INACTIVE status (1 ms)
+      √ should return false for DECEASED status
+      √ should return false for MERGED status (1 ms)
+    business logic validation
+      √ should allow update only for active patients
+      √ should allow merge for active and inactive patients only (1 ms)
+      √ should allow deactivate only for active patients (1 ms)
+    status transitions
+      √ should validate valid status transitions
+
+PASS Unit Tests tests/unit/application/services/InsuranceValidationService.test.ts
+  InsuranceValidationService
+    validateBHYTNumber
+      √ should validate correct BHYT number (2 ms)
+      √ should validate BHYT number with different province codes (2 ms)
+      √ should reject invalid BHYT format (1 ms)
+      √ should reject invalid province code (1 ms)
+      √ should reject invalid priority level (1 ms)
+      √ should warn about uncommon group code (1 ms)
+      √ should reject invalid year (too old) (1 ms)
+      √ should reject invalid year (too far in future) (1 ms)
+      √ should warn about expired BHYT (3 ms)
+      √ should normalize BHYT number (lowercase to uppercase) (1 ms)
+      √ should normalize BHYT number (trim spaces) (1 ms)
+      √ should handle errors gracefully (2 ms)
+    validateBHTNNumber
+      √ should validate correct BHTN number (1 ms)
+      √ should reject invalid BHTN format (1 ms)
+      √ should reject invalid year (too old) (1 ms)
+      √ should reject invalid year (too far in future)
+      √ should warn about expired BHTN (1 ms)
+      √ should reject invalid policy number (not 8 digits)
+      √ should normalize BHTN number (lowercase to uppercase) (1 ms)
+      √ should normalize BHTN number (trim spaces) (1 ms)
+      √ should handle errors gracefully (1 ms)
+    checkExpiration
+      √ should detect expired insurance (1 ms)
+      √ should detect insurance expiring soon (within 30 days) (1 ms)
+      √ should detect valid insurance (not expiring soon) (1 ms)
+      √ should calculate correct days until expiration (1 ms)
+    validateInsurance
+      √ should validate BHYT insurance (1 ms)
+      √ should validate BHTN insurance
+      √ should validate private insurance by dates only
+      √ should reject private insurance with invalid dates (3 ms)
+    getStatus
+      √ should return service status (1 ms)
+
+PASS Unit Tests tests/unit/domain/value-objects/BasicMedicalInfo.test.ts
+  BasicMedicalInfo Value Object
+    create
+      √ should create BasicMedicalInfo with valid data (1 ms)
+      √ should throw error when knownAllergies is not an array (12 ms)
+      √ should accept all valid blood types (2 ms)
+      √ should accept optional blood type
+      √ should allow empty allergies array (1 ms)
+      √ should create BasicMedicalInfo without optional fields
+      √ should create empty BasicMedicalInfo (3 ms)
+    hasAllergies
+      √ should return true when allergies exist
+      √ should return false when no allergies (1 ms)
+    hasBloodType
+      √ should return true when blood type is set
+      √ should return false when blood type is not set (1 ms)
+    equals
+      √ should return true for same medical info
+      √ should return false for different medical info (1 ms)
+    immutability
+      √ should be immutable (1 ms)
+    hasEmergencyInfo
+      √ should return true when emergency info exists
+      √ should return false when emergency info is undefined (1 ms)
+      √ should return false when emergency info is empty string (1 ms)
+    isAllergyKnown
+      √ should return true for exact allergy match (1 ms)
+      √ should return true for case-insensitive match (1 ms)
+      √ should return true for partial match (1 ms)
+      √ should return false for unknown allergy (1 ms)
+      √ should handle whitespace in allergy name (1 ms)
+    getEmergencyDisplay
+      √ should format complete medical info in Vietnamese (1 ms)
+      √ should format with blood type only (1 ms)
+      √ should format with allergies only (1 ms)
+      √ should format with emergency info only (1 ms)
+      √ should return default message when no info available (1 ms)
+    toJSON
+      √ should convert to JSON format (1 ms)
+      √ should return copy of allergies array (1 ms)
+      √ should handle empty medical info (1 ms)
+    Vietnamese healthcare compliance
+      √ should support Vietnamese allergy names (1 ms)
+
+PASS Unit Tests tests/unit/domain/events/PatientEvents.test.ts
+  Patient Domain Events
+    PatientUpdatedEvent
+      √ should create event with required data (1 ms)
+      √ should create event with correlation and causation IDs (1 ms)
+      √ should return event data (1 ms)
+      √ should contain PHI
+      √ should return patient ID (1 ms)
+      √ should return payload
+    PatientDeactivatedEvent
+      √ should create event with required data
+      √ should return event data (1 ms)
+      √ should contain PHI (1 ms)
+    PatientLinkedEvent
+      √ should create event with required data (1 ms)
+      √ should return event data
+      √ should contain PHI
+    PatientMergedEvent
+      √ should create event with required data (3 ms)
+      √ should return event data (1 ms)
+      √ should contain PHI (1 ms)
+    PatientConsentGrantedEvent
+      √ should create event with required data
+      √ should return event data
+      √ should contain PHI (1 ms)
+      √ should return patient ID
+      √ should return payload (1 ms)
+    Common Event Properties
+      √ all events should have occurredAt timestamp (1 ms)
+      √ all events should have Patient aggregate type (1 ms)
+
+PASS Unit Tests tests/unit/domain/value-objects/PatientLink.test.ts
+  PatientLink Value Object
+    create
+      √ should create patient link with all link types (2 ms)
+      √ should create patient link with default createdBy (1 ms)
+      √ should throw error for invalid link type (12 ms)
+    createReplacedBy
+      √ should create replaced-by link (1 ms)
+      √ should return true for isReplacedBy
+    createReplaces
+      √ should create replaces link
+      √ should return true for isReplaces (1 ms)
+    createRefer
+      √ should create refer link (1 ms)
+      √ should return true for isRefer
+    createSeeAlso
+      √ should create seealso link (1 ms)
+      √ should return true for isSeeAlso (1 ms)
+    getDescription
+      √ should return Vietnamese description for replaced-by
+      √ should return Vietnamese description for replaces
+      √ should return Vietnamese description for refer (1 ms)
+      √ should return Vietnamese description for seealso (1 ms)
+    toJSON
+      √ should convert to JSON format (3 ms)
+      √ should have ISO date format in JSON
+    getters
+      √ should return otherPatientId
+      √ should return linkType
+      √ should return createdAt (1 ms)
+      √ should return createdBy (1 ms)
+    value object equality
+      √ should not be equal when createdAt timestamps are different (1 ms)
+      √ should not be equal when link types are different (1 ms)
+      √ should not be equal when other patient IDs are different
+
+PASS Unit Tests tests/unit/application/use-cases/AddEmergencyContactUseCase.test.ts
+  AddEmergencyContactUseCase
+    execute
+      √ should add emergency contact successfully (3 ms)
+      √ should throw error when patient not found (12 ms)
+      √ should throw error when name is empty (2 ms)
+      √ should throw error when relationship is empty (1 ms)
+      √ should throw error when primary phone is empty (1 ms)
+
+PASS Unit Tests tests/unit/application/use-cases/ReactivatePatientUseCase.test.ts
+  ReactivatePatientUseCase
+    execute
+      √ should reactivate patient successfully (3 ms)
+      √ should throw error when patient not found (8 ms)
+      √ should throw error when patient is already active (17 ms)
+
+PASS Unit Tests tests/unit/domain/entities/EmergencyContact.test.ts
+  EmergencyContact Entity
+    create
+      √ should create emergency contact with valid data (1 ms)
+      √ should create emergency contact with minimal data (3 ms)
+      √ should trim whitespace from input fields (1 ms)
+      √ should generate unique ID for each contact (1 ms)
+      √ should set createdAt and updatedAt timestamps (1 ms)
+    reconstitute
+      √ should reconstitute emergency contact from persistence data (1 ms)
+    setPrimary
+      √ should set contact as primary
+      √ should update updatedAt timestamp when setting primary (2 ms)
+    removePrimary
+      √ should remove primary status from contact (1 ms)
+    activate
+      √ should activate inactive contact (1 ms)
+    deactivate
+      √ should deactivate active contact
+    updateContactInfo
+      √ should update all contact information (1 ms)
+      √ should update only specified fields (1 ms)
+      √ should trim whitespace when updating
+    isValid
+      √ should return true for valid emergency contact
+      √ should return false for invalid Vietnamese phone number (1 ms)
+    validate
+      √ should not throw error for valid contact
+    toPersistence
+      √ should convert to persistence format (2 ms)
+    getSummaryForLogging
+      √ should return summary without sensitive data (1 ms)
+    getMaskedPhoneNumber
+      √ should mask phone number showing only last 4 digits
+      √ should return *** for short phone numbers
+
+PASS Unit Tests tests/unit/domain/entities/InsuranceInfo.test.ts
+  InsuranceInfo Entity
+    create
+      √ should create BHYT insurance with valid data (1 ms)
+      √ should create BHTN insurance (1 ms)
+      √ should create private insurance (1 ms)
+      √ should create self-pay insurance
+      √ should generate unique ID for each insurance (1 ms)
+    reconstitute
+      √ should reconstitute insurance from persistence data (1 ms)
+    isNotExpired
+      √ should return true for non-expired insurance
+      √ should return false for expired insurance (1 ms)
+    isExpired
+      √ should return true for expired insurance
+    isValidOn
+      √ should return true for date within validity period
+      √ should return false for date before validity period (1 ms)
+      √ should return false for date after validity period
+    getDaysUntilExpiry
+      √ should calculate days until expiry correctly (1 ms)
+    isExpiringWithin
+      √ should return true if expiring within specified days (1 ms)
+      √ should return false if not expiring within specified days
+    activate and deactivate
+      √ should activate insurance (3 ms)
+      √ should deactivate insurance (1 ms)
+    setPrimary and removePrimary
+      √ should set insurance as primary
+      √ should remove primary status (1 ms)
+    Vietnamese insurance methods
+      √ should identify BHYT insurance (1 ms)
+      √ should get Vietnamese insurance number
+      √ should return null for non-Vietnamese insurance (1 ms)
+    toPersistence
+      √ should convert to persistence format (1 ms)
+    getMaskedPolicyNumber
+      √ should mask policy number showing only last 4 characters
+      √ should return *** for short policy numbers (1 ms)
+
+PASS Unit Tests tests/unit/domain/value-objects/PatientId.test.ts
+  PatientId Value Object
+    generate
+      √ should generate valid PatientId with correct format (PAT-YYYYMM-XXX) (1 ms)
+      √ should generate unique IDs (3 ms)
+      √ should include current year and month in ID (1 ms)
+      √ should generate unique numbers
+    fromString
+      √ should create PatientId from valid string (1 ms)
+      √ should throw error for invalid format (13 ms)
+      √ should throw error for null or undefined (1 ms)
+    equals
+      √ should return true for same patient IDs (1 ms)
+      √ should return false for different patient IDs
+    toString
+      √ should return string representation (1 ms)
+    Vietnamese healthcare compliance
+      √ should follow Vietnamese patient ID format
+      √ should support up to 999 patients per month
+
+PASS Unit Tests tests/unit/application/use-cases/MarkAsDeceasedUseCase.test.ts
+  MarkAsDeceasedUseCase
+    execute
+      √ should mark patient as deceased successfully (3 ms)
+      √ should throw error when patient not found (6 ms)
+
+PASS Unit Tests tests/unit/application/use-cases/GrantConsentUseCase.test.ts
+  GrantConsentUseCase
+    execute
+      √ should grant consent successfully (3 ms)
+      √ should throw error when patient not found (8 ms)
+
+PASS Unit Tests tests/unit/application/use-cases/SearchPatientsUseCase.test.ts
+  SearchPatientsUseCase
+    execute
+      √ should search patients by name successfully (3 ms)
+      √ should return empty results when no patients found (1 ms)
+      √ should fail when search term is too short (1 ms)
+      √ should handle pagination correctly (4 ms)
+      √ should handle repository errors (1 ms)
+
+PASS Unit Tests tests/unit/application/use-cases/LinkPatientsUseCase.test.ts
+  LinkPatientsUseCase
+    execute
+      √ should link patients successfully (3 ms)
+      √ should fail when trying to link same patient (1 ms)
+
+PASS Unit Tests tests/unit/application/use-cases/GetPatientProfileUseCase.test.ts
+  GetPatientProfileUseCase
+    execute
+      √ should retrieve patient profile successfully by patientId (2 ms)
+      √ should fail when patient not found (1 ms)
+      √ should fail when no identifier provided (1 ms)
+      √ should log HIPAA audit for every profile access (1 ms)
+
+PASS Unit Tests tests/unit/domain/events/PatientRegisteredEvent.test.ts
+  PatientRegisteredEvent
+    constructor
+      √ should create event with all required data (2 ms)
+      √ should create event with correlation and causation IDs (1 ms)
+      √ should set occurredAt timestamp
+    getEventData
+      √ should return complete event data (1 ms)
+    containsPHI
+      √ should return true as event contains PHI data (1 ms)
+    getPatientId
+      √ should return patient ID
+    getPayload
+      √ should return event payload (1 ms)
+    gender variations
+      √ should handle male gender (1 ms)
+      √ should handle female gender
+      √ should handle other gender (1 ms)
+
+PASS Unit Tests tests/unit/service.test.ts
+  Patient Registry Service
+    √ should be defined (1 ms)
+
+FAIL Integration Tests tests/integration/repositories/SupabasePatientRepository.test.ts
+  ● Test suite failed to run
+
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m28[0m:[93m5[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'religion' does not exist in type 'PersonalInfoProps'.
+
+    [7m28[0m     religion: 'Buddhism',
+    [7m  [0m [91m    ~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m50[0m:[93m5[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'allergies' does not exist in type 'BasicMedicalInfoProps'.
+
+    [7m50[0m     allergies: ['Penicillin'],
+    [7m  [0m [91m    ~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m64[0m:[93m18[0m - [91merror[0m[90m TS2554: [0mExpected 4-5 arguments, but got 1.
+
+    [7m64[0m     repository = new SupabasePatientRepository(supabaseClient);
+    [7m  [0m [91m                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/infrastructure/repositories/SupabasePatientRepository.ts[0m:[93m30[0m:[93m5[0m
+        [7m30[0m     supabaseKey: string,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'supabaseKey' was not provided.
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m84[0m:[93m35[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m84[0m           await repository.delete(patientId);
+    [7m  [0m [91m                                  ~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m96[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m96[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m  [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m106[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m106[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m125[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m125[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m132[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m132[0m       const found = await repository.findById('PAT-999999-999');
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m140[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m140[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m145[0m:[93m21[0m - [91merror[0m[90m TS2551: [0mProperty 'basicMedicalInfo' does not exist on type 'Patient'. Did you mean 'getBasicMedicalInfo'?
+
+    [7m145[0m       expect(found?.basicMedicalInfo).toBeInstanceOf(BasicMedicalInfo);
+    [7m   [0m [91m                    ~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/domain/aggregates/Patient.ts[0m:[93m372[0m:[93m10[0m
+        [7m372[0m   public getBasicMedicalInfo(): BasicMedicalInfo {
+        [7m   [0m [96m         ~~~~~~~~~~~~~~~~~~~[0m
+        'getBasicMedicalInfo' is declared here.
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m153[0m:[93m63[0m - [91merror[0m[90m TS2339: [0mProperty 'userId' does not exist on type 'Patient'.
+
+    [7m153[0m       const found = await repository.findByUserId(testPatient.userId);
+    [7m   [0m [91m                                                              ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m156[0m:[93m21[0m - [91merror[0m[90m TS2339: [0mProperty 'userId' does not exist on type 'Patient'.
+
+    [7m156[0m       expect(found?.userId).toBe(testPatient.userId);
+    [7m   [0m [91m                    ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m156[0m:[93m46[0m - [91merror[0m[90m TS2339: [0mProperty 'userId' does not exist on type 'Patient'.
+
+    [7m156[0m       expect(found?.userId).toBe(testPatient.userId);
+    [7m   [0m [91m                                             ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m187[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ fullName: string; }' is not assignable to parameter of type 'PersonalInfoProps'.
+      Type '{ fullName: string; }' is missing the following properties from type 'PersonalInfoProps': dateOfBirth, gender, nationalId, nationality
+
+    [7m187[0m       const newPersonalInfo = PersonalInfo.create({
+    [7m   [0m [91m                                                  ~[0m
+    [7m188[0m         ...validPersonalInfo,
+    [7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [7m189[0m         fullName: 'Nguyễn Văn Updated'
+    [7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [7m190[0m       });
+    [7m   [0m [91m~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m193[0m:[93m24[0m - [91merror[0m[90m TS2339: [0mProperty 'update' does not exist on type 'SupabasePatientRepository'.
+
+    [7m193[0m       await repository.update(testPatient);
+    [7m   [0m [91m                       ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m195[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m195[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m205[0m:[93m9[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'phoneNumber' does not exist in type 'ContactInfoProps'.
+
+    [7m205[0m         phoneNumber: '0987654321'
+    [7m   [0m [91m        ~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m209[0m:[93m24[0m - [91merror[0m[90m TS2339: [0mProperty 'update' does not exist on type 'SupabasePatientRepository'.
+
+    [7m209[0m       await repository.update(testPatient);
+    [7m   [0m [91m                       ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m211[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m211[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m221[0m:[93m31[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m221[0m       await repository.delete(testPatient.getPatientId()!);
+    [7m   [0m [91m                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m223[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m223[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m228[0m:[93m38[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m228[0m       await expect(repository.delete('PAT-999999-999')).resolves.not.toThrow();
+    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m236[0m:[93m41[0m - [91merror[0m[90m TS2339: [0mProperty 'findAll' does not exist on type 'SupabasePatientRepository'.
+
+    [7m236[0m       const patients = await repository.findAll();
+    [7m   [0m [91m                                        ~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m245[0m:[93m41[0m - [91merror[0m[90m TS2339: [0mProperty 'findAll' does not exist on type 'SupabasePatientRepository'.
+
+    [7m245[0m       const patients = await repository.findAll();
+    [7m   [0m [91m                                        ~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m246[0m:[93m37[0m - [91merror[0m[90m TS7006: [0mParameter 'p' implicitly has an 'any' type.
+
+    [7m246[0m       const patient = patients.find(p => p.getPatientId()! === testPatient.getPatientId()!);
+    [7m   [0m [91m                                    ~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m257[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m257[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m266[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m266[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m274[0m:[93m33[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m274[0m       await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m294[0m:[93m33[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m294[0m       await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m307[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m307[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+FAIL Integration Tests tests/integration/service-communication.integration.test.ts
+  ● Test suite failed to run
+
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m155[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ fullName: string; }' is not assignable to parameter of type 'string'.
+
+    [7m155[0m         { fullName: 'Updated Name' },
+    [7m   [0m [91m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m178[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ personalInfo: { fullName: string; }; contactInfo: { primaryPhone: string; }; }' is not assignable to parameter of type 'string'.
+
+    [7m178[0m         changedFields,
+    [7m   [0m [91m        ~~~~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m200[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ fullName: string; }' is not assignable to parameter of type 'string'.
+
+    [7m200[0m         { fullName: 'Updated' },
+    [7m   [0m [91m        ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m219[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Date' is not assignable to parameter of type 'string'.
+
+    [7m219[0m         new Date()
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m233[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Date' is not assignable to parameter of type 'string'.
+
+    [7m233[0m         new Date()
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m257[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Date' is not assignable to parameter of type 'string'.
+
+    [7m257[0m         new Date()
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+
+FAIL Integration Tests tests/integration/identity-service.integration.test.ts
+  ● Test suite failed to run
+
+    [96mtests/helpers/appFactory.ts[0m:[93m133[0m:[93m34[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m133[0m   const registerPatientUseCase = new RegisterPatientUseCase(patientRepository);
+    [7m   [0m [91m                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/RegisterPatientUseCase.ts[0m:[93m85[0m:[93m5[0m
+        [7m85[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m134[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m134[0m   const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/UpdatePatientInfoUseCase.ts[0m:[93m75[0m:[93m5[0m
+        [7m75[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m135[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.
+
+    [7m135[0m   const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/GetPatientProfileUseCase.ts[0m:[93m106[0m:[93m5[0m
+        [7m106[0m     private readonly logger: ILogger
+        [7m   [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m140[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m140[0m   const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/DeactivatePatientUseCase.ts[0m:[93m36[0m:[93m5[0m
+        [7m36[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m141[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 2.
+
+    [7m141[0m   const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/ValidateInsuranceUseCase.ts[0m:[93m51[0m:[93m5[0m
+        [7m51[0m     private readonly logger: ILogger
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m142[0m:[93m38[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m142[0m   const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository);
+    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/AddEmergencyContactUseCase.ts[0m:[93m41[0m:[93m5[0m
+        [7m41[0m     private eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+
+FAIL Integration Tests tests/integration/e2e.integration.test.ts
+  ● Test suite failed to run
+
+    [96mtests/helpers/appFactory.ts[0m:[93m133[0m:[93m34[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m133[0m   const registerPatientUseCase = new RegisterPatientUseCase(patientRepository);
+    [7m   [0m [91m                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/RegisterPatientUseCase.ts[0m:[93m85[0m:[93m5[0m
+        [7m85[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m134[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m134[0m   const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/UpdatePatientInfoUseCase.ts[0m:[93m75[0m:[93m5[0m
+        [7m75[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m135[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.
+
+    [7m135[0m   const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/GetPatientProfileUseCase.ts[0m:[93m106[0m:[93m5[0m
+        [7m106[0m     private readonly logger: ILogger
+        [7m   [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m140[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m140[0m   const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/DeactivatePatientUseCase.ts[0m:[93m36[0m:[93m5[0m
+        [7m36[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m141[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 2.
+
+    [7m141[0m   const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/ValidateInsuranceUseCase.ts[0m:[93m51[0m:[93m5[0m
+        [7m51[0m     private readonly logger: ILogger
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m142[0m:[93m38[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m142[0m   const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository);
+    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/AddEmergencyContactUseCase.ts[0m:[93m41[0m:[93m5[0m
+        [7m41[0m     private eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+
+FAIL Unit Tests tests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m256[0m:[93m44[0m - [91merror[0m[90m TS2339: [0mProperty 'errors' does not exist on type '{ isValid: boolean; reasons: string[]; }'.
+
+    [7m256[0m       expect(result.data?.validationResult.errors).toContain('Số BHYT không đúng định dạng');
+    [7m   [0m [91m                                           ~~~~~~[0m
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m326[0m:[93m27[0m - [91merror[0m[90m TS2339: [0mProperty 'expirationCheck' does not exist on type '{ patientId: string; hasInsurance: boolean; insuranceInfo?: { provider: string; policyNumber: string; coverageType: string; isVietnameseInsurance: boolean; bhytNumber?: string | undefined; ... 4 more ...; daysUntilExpiration?: number | undefined; } | undefined; validationResult: { ...; }; }'.
+
+    [7m326[0m       expect(result.data?.expirationCheck.isExpired).toBe(true);
+    [7m   [0m [91m                          ~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m399[0m:[93m27[0m - [91merror[0m[90m TS2339: [0mProperty 'expirationCheck' does not exist on type '{ patientId: string; hasInsurance: boolean; insuranceInfo?: { provider: string; policyNumber: string; coverageType: string; isVietnameseInsurance: boolean; bhytNumber?: string | undefined; ... 4 more ...; daysUntilExpiration?: number | undefined; } | undefined; validationResult: { ...; }; }'.
+
+    [7m399[0m       expect(result.data?.expirationCheck.isExpiringSoon).toBe(true);
+    [7m   [0m [91m                          ~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m496[0m:[93m9[0m - [91merror[0m[90m TS2561: [0mObject literal may only specify known properties, but 'bhtnNumber' does not exist in type 'Omit<InsuranceInfoProps, "id" | "createdAt" | "updatedAt">'. Did you mean to write 'bhytNumber'?
+
+    [7m496[0m         bhtnNumber: 'BHTN-2024-12345678',
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+
+FAIL Unit Tests tests/unit/application/use-cases/RegisterPatientUseCase.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/use-cases/RegisterPatientUseCase.test.ts[0m:[93m369[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ userId: string; personalInfo: { fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; nationalId: string; nationality: string; }; contactInfo: { primaryPhone: string; email: string; preferredContactMethod: "phone" | "email" | "sms"; address: { ...; }; }; insuranceInfo: { ...; }; emergencyCont...' is not assignable to parameter of type 'RegisterPatientRequest'.
+      The types of 'insuranceInfo.coverageType' are incompatible between these types.
+        Type 'string' is not assignable to type '"BHYT" | "BHTN" | "private" | "self_pay"'.
+
+    [7m369[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/RegisterPatientUseCase.test.ts[0m:[93m414[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ userId: string; personalInfo: { fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; nationalId: string; nationality: string; }; contactInfo: { primaryPhone: string; email: string; preferredContactMethod: "phone" | "email" | "sms"; address: { ...; }; }; emergencyContacts: { ...; }[]; request...' is not assignable to parameter of type 'RegisterPatientRequest'.
+      Types of property 'emergencyContacts' are incompatible.
+        Type '{ name: string; relationship: string; phoneNumber: string; isPrimary: boolean; }[]' is not assignable to type '{ name: string; relationship: string; primaryPhone: string; secondaryPhone?: string | undefined; email?: string | undefined; address?: string | undefined; isPrimary: boolean; }[]'.
+          Property 'primaryPhone' is missing in type '{ name: string; relationship: string; phoneNumber: string; isPrimary: boolean; }' but required in type '{ name: string; relationship: string; primaryPhone: string; secondaryPhone?: string | undefined; email?: string | undefined; address?: string | undefined; isPrimary: boolean; }'.
+
+    [7m414[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+
+      [96msrc/application/use-cases/RegisterPatientUseCase.ts[0m:[93m66[0m:[93m5[0m
+        [7m66[0m     primaryPhone: string;
+        [7m  [0m [96m    ~~~~~~~~~~~~[0m
+        'primaryPhone' is declared here.
+    [96mtests/unit/application/use-cases/RegisterPatientUseCase.test.ts[0m:[93m457[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ userId: string; personalInfo: { fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; nationalId: string; nationality: string; }; contactInfo: { primaryPhone: string; email: string; preferredContactMethod: "phone" | "email" | "sms"; address: { ...; }; }; basicMedicalInfo: { ...; }; emergencyC...' is not assignable to parameter of type 'RegisterPatientRequest'.
+      The types of 'basicMedicalInfo.bloodType' are incompatible between these types.
+        Type 'string' is not assignable to type 'BloodType | undefined'.
+
+    [7m457[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+
+FAIL Unit Tests tests/unit/application/use-cases/MergePatientsUseCase.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m158[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m158[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m209[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m209[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m295[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m295[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m384[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m384[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m472[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m472[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+
+FAIL Unit Tests tests/unit/application/use-cases/MatchPatientsUseCase.test.ts
+  ● Test suite failed to run
+
+    [96msrc/application/use-cases/MatchPatientsUseCase.ts[0m:[93m144[0m:[93m14[0m - [91merror[0m[90m TS2339: [0mProperty 'logger' does not exist on type 'MatchPatientsUseCase'.
+
+    [7m144[0m         this.logger.error('Match patients failed', { error: error.message });
+    [7m   [0m [91m             ~~~~~~[0m
+
+FAIL Unit Tests tests/unit/application/services/PatientMatchingService.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m60[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '"A"' is not assignable to type 'BloodType | undefined'.
+
+    [7m60[0m       bloodType: 'A',
+    [7m  [0m [91m      ~~~~~~~~~[0m
+
+      [96msrc/domain/value-objects/BasicMedicalInfo.ts[0m:[93m15[0m:[93m3[0m
+        [7m15[0m   bloodType?: BloodType;
+        [7m  [0m [96m  ~~~~~~~~~[0m
+        The expected type comes from property 'bloodType' which is declared here on type 'BasicMedicalInfoProps'
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m99[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '"A"' is not assignable to type 'BloodType | undefined'.
+
+    [7m99[0m       bloodType: 'A',
+    [7m  [0m [91m      ~~~~~~~~~[0m
+
+      [96msrc/domain/value-objects/BasicMedicalInfo.ts[0m:[93m15[0m:[93m3[0m
+        [7m15[0m   bloodType?: BloodType;
+        [7m  [0m [96m  ~~~~~~~~~[0m
+        The expected type comes from property 'bloodType' which is declared here on type 'BasicMedicalInfoProps'
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m138[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '"B"' is not assignable to type 'BloodType | undefined'.
+
+    [7m138[0m       bloodType: 'B',
+    [7m   [0m [91m      ~~~~~~~~~[0m
+
+      [96msrc/domain/value-objects/BasicMedicalInfo.ts[0m:[93m15[0m:[93m3[0m
+        [7m15[0m   bloodType?: BloodType;
+        [7m  [0m [96m  ~~~~~~~~~[0m
+        The expected type comes from property 'bloodType' which is declared here on type 'BasicMedicalInfoProps'
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m243[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m243[0m       expect(results[0].matchDetails.matchedFields).toContain('nationalId');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m244[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m244[0m       expect(results[0].matchDetails.matchedFields).toContain('fullName');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m245[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m245[0m       expect(results[0].matchDetails.matchedFields).toContain('dateOfBirth');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m246[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m246[0m       expect(results[0].matchDetails.scores).toBeDefined();
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m289[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m289[0m       expect(results[0].matchDetails.scores.nationalId).toBe(40);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m299[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m299[0m       expect(results[0].matchDetails.scores.fullName).toBeGreaterThan(15); // High similarity
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m309[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m309[0m       expect(results[0].matchDetails.scores.dateOfBirth).toBe(20);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m319[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m319[0m       expect(results[0].matchDetails.scores.primaryPhone).toBe(15);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m329[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m329[0m       expect(results[0].matchDetails.scores.email).toBe(5);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m340[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m340[0m       expect(results[0].matchDetails.matchedFields).toContain('fullName');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m350[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m350[0m       expect(results[0].matchDetails.matchedFields).toContain('primaryPhone');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m361[0m:[93m11[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m361[0m       if (results[0].matchDetails.scores.fullName) {
+    [7m   [0m [91m          ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m362[0m:[93m16[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m362[0m         expect(results[0].matchDetails.scores.fullName).toBeLessThan(20);
+    [7m   [0m [91m               ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m363[0m:[93m16[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m363[0m         expect(results[0].matchDetails.scores.fullName).toBeGreaterThan(0);
+    [7m   [0m [91m               ~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+(node:31492) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Failed to collect coverage from D:\hospital-management-V2\backend\services-v2\patient-registry-service\src\application\use-cases\MatchPatientsUseCase.ts
+ERROR: [96msrc/application/use-cases/MatchPatientsUseCase.ts[0m:[93m144[0m:[93m14[0m - [91merror[0m[90m TS2339: [0mProperty 'logger' does not exist on type 'MatchPatientsUseCase'.
+
+[7m144[0m         this.logger.error('Match patients failed', { error: error.message });
+[7m   [0m [91m             ~~~~~~[0m
+STACK: 
+Failed to collect coverage from D:\hospital-management-V2\backend\services-v2\patient-registry-service\src\application\use-cases\MatchPatientsUseCase.ts
+ERROR: [96msrc/application/use-cases/MatchPatientsUseCase.ts[0m:[93m144[0m:[93m14[0m - [91merror[0m[90m TS2339: [0mProperty 'logger' does not exist on type 'MatchPatientsUseCase'.
+
+[7m144[0m         this.logger.error('Match patients failed', { error: error.message });
+[7m   [0m [91m             ~~~~~~[0m
+STACK: 
+----------------------------------|---------|----------|---------|---------|---------------------------------------------
+File                              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                           
+----------------------------------|---------|----------|---------|---------|---------------------------------------------
+All files                         |   31.75 |    23.76 |   42.94 |   32.21 |                                             
+ application/handlers             |       0 |        0 |       0 |       0 |                                             
+  PatientCommandHandlers.ts       |       0 |        0 |       0 |       0 | 105-455                                     
+  PatientQueryHandlers.ts         |       0 |        0 |       0 |       0 | 25-792                                      
+ application/services             |   44.27 |    26.31 |   31.81 |   45.94 |                                             
+  IDegradationService.ts          |       0 |        0 |       0 |       0 | 11-15                                       
+  InsuranceValidationService.ts   |   94.44 |    78.12 |     100 |   94.44 | 104,109,176,263,271                         
+  PatientMatchingService.ts       |       0 |        0 |       0 |       0 | 26-287                                      
+ application/use-cases            |   52.68 |    41.44 |   59.09 |   52.68 |                                             
+  AddEmergencyContactUseCase.ts   |   91.42 |       75 |     100 |   91.42 | 53,69,129                                   
+  DeactivatePatientUseCase.ts     |   80.55 |    42.85 |     100 |   80.55 | 74,83,119-137                               
+  GetPatientProfileUseCase.ts     |   71.79 |    57.14 |      50 |   71.79 | 124,126,128,213-266                         
+  GrantConsentUseCase.ts          |      80 |    69.23 |     100 |      80 | 38,42,46,50                                 
+  LinkPatientsUseCase.ts          |   70.83 |    16.66 |     100 |   70.83 | 54,66,75,83,110-119                         
+  MarkAsDeceasedUseCase.ts        |   85.71 |    71.42 |     100 |   85.71 | 32,36                                       
+  MergePatientsUseCase.ts         |       0 |        0 |       0 |       0 | 12-126                                      
+  ReactivatePatientUseCase.ts     |   81.25 |       70 |     100 |   81.25 | 33,37,41                                    
+  RegisterPatientUseCase.ts       |       0 |        0 |       0 |       0 | 12-283                                      
+  SearchPatientsUseCase.ts        |   44.44 |    32.14 |    37.5 |   44.44 | 101-102,107-108,113-114,119-121,127-157,216 
+  UpdatePatientInfoUseCase.ts     |    84.9 |    54.54 |     100 |    84.9 | 149-156,161-175,215-219                     
+  ValidateInsuranceUseCase.ts     |       0 |        0 |       0 |       0 | 12-211                                      
+ domain/aggregates                |   92.51 |    73.91 |   88.88 |   92.46 |                                             
+  Patient.ts                      |   92.51 |    73.91 |   88.88 |   92.46 | 119,416-424,480-493                         
+ domain/entities                  |   91.09 |    73.07 |   90.58 |   91.09 |                                             
+  EmergencyContact.ts             |   97.87 |    91.66 |     100 |   97.87 | 155                                         
+  InsuranceInfo.ts                |   82.14 |       50 |   80.55 |   82.14 | 74-78,180-206,248                           
+  PatientConsent.ts               |   95.34 |    93.75 |   96.15 |   95.34 | 77,164                                      
+ domain/events                    |   91.66 |      100 |      80 |   91.66 |                                             
+  PatientConsentGrantedEvent.ts   |     100 |      100 |     100 |     100 |                                             
+  PatientDeactivatedEvent.ts      |   81.81 |      100 |      60 |   81.81 | 57-61                                       
+  PatientLinkedEvent.ts           |   83.33 |      100 |      60 |   83.33 | 61-65                                       
+  PatientMergedEvent.ts           |   83.33 |      100 |      60 |   83.33 | 61-65                                       
+  PatientRegisteredEvent.ts       |     100 |      100 |     100 |     100 |                                             
+  PatientUpdatedEvent.ts          |     100 |      100 |     100 |     100 |                                             
+ domain/value-objects             |   91.21 |    93.38 |    91.5 |   91.21 |                                             
+  BasicMedicalInfo.ts             |   96.66 |    88.88 |     100 |   96.66 | 28                                          
+  ContactInfo.ts                  |   89.06 |    96.42 |   82.75 |   89.06 | 33,36,209-237                               
+  PatientId.ts                    |   76.19 |       75 |   71.42 |   76.19 | 19,64-79,99,104                             
+  PatientLink.ts                  |      96 |    85.71 |     100 |      96 | 124                                         
+  PatientStatus.ts                |     100 |      100 |     100 |     100 |                                             
+  PersonalInfo.ts                 |   96.61 |    96.29 |     100 |   96.61 | 199,266                                     
+ infrastructure/cache             |       0 |        0 |       0 |       0 |                                             
+  PatientCache.ts                 |       0 |        0 |       0 |       0 | 10-291                                      
+  RedisCacheService.ts            |       0 |        0 |       0 |       0 | 9-280                                       
+ infrastructure/events            |       0 |        0 |       0 |       0 |                                             
+  RabbitMQEventPublisher.ts       |       0 |        0 |       0 |       0 | 10-323                                      
+ infrastructure/mappers           |       0 |        0 |       0 |       0 |                                             
+  PatientMapper.ts                |       0 |        0 |       0 |       0 | 10-377                                      
+ infrastructure/monitoring        |       0 |        0 |       0 |       0 |                                             
+  HealthChecks.ts                 |       0 |        0 |       0 |       0 | 10-399                                      
+ infrastructure/repositories      |       0 |        0 |       0 |       0 |                                             
+  SupabasePatientRepository.ts    |       0 |        0 |       0 |       0 | 10-886                                      
+ infrastructure/resilience        |       0 |        0 |       0 |       0 |                                             
+  CircuitBreaker.ts               |       0 |        0 |       0 |       0 | 10-261                                      
+  GracefulDegradation.ts          |       0 |        0 |       0 |       0 | 10-358                                      
+  UseCaseCircuitBreakerWrapper.ts |       0 |      100 |       0 |       0 | 10-195                                      
+ presentation/controllers         |       0 |        0 |       0 |       0 |                                             
+  CommandController.ts            |       0 |        0 |       0 |       0 | 13-58                                       
+  PatientController.ts            |       0 |        0 |       0 |       0 | 11-655                                      
+ presentation/middleware          |       0 |        0 |       0 |       0 |                                             
+  ErrorHandlingMiddleware.ts      |       0 |        0 |       0 |       0 | 16-251                                      
+  ValidationMiddleware.ts         |       0 |        0 |       0 |       0 | 10-321                                      
+ presentation/routes              |       0 |      100 |       0 |       0 |                                             
+  commandRoutes.ts                |       0 |      100 |       0 |       0 | 10-39                                       
+  patientRoutes.ts                |       0 |      100 |       0 |       0 | 10-202                                      
+----------------------------------|---------|----------|---------|---------|---------------------------------------------
+
+=============================== Coverage summary ===============================
+Statements   : 31.75% ( 854/2689 )
+Branches     : 23.76% ( 256/1077 )
+Functions    : 42.94% ( 271/631 )
+Lines        : 32.21% ( 853/2648 )
+================================================================================
+Jest: "global" coverage threshold for statements (80%) not met: 0%
+Jest: "global" coverage threshold for branches (80%) not met: 0%
+Jest: "global" coverage threshold for lines (80%) not met: 0%
+Jest: "global" coverage threshold for functions (80%) not met: 0%
+Jest: "./src/domain/" coverage threshold for branches (90%) not met: 85.71%
+Jest: "./src/domain/" coverage threshold for functions (90%) not met: 89.47%
+Jest: "./src/application/" coverage threshold for statements (85%) not met: 35.53%
+Jest: "./src/application/" coverage threshold for branches (85%) not met: 21.78%
+Jest: "./src/application/" coverage threshold for lines (85%) not met: 36.17%
+Jest: "./src/application/" coverage threshold for functions (85%) not met: 30%
+Summary of all failing tests
+FAIL tests/integration/repositories/SupabasePatientRepository.test.ts
+  ● Test suite failed to run
+
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m28[0m:[93m5[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'religion' does not exist in type 'PersonalInfoProps'.
+
+    [7m28[0m     religion: 'Buddhism',
+    [7m  [0m [91m    ~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m50[0m:[93m5[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'allergies' does not exist in type 'BasicMedicalInfoProps'.
+
+    [7m50[0m     allergies: ['Penicillin'],
+    [7m  [0m [91m    ~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m64[0m:[93m18[0m - [91merror[0m[90m TS2554: [0mExpected 4-5 arguments, but got 1.
+
+    [7m64[0m     repository = new SupabasePatientRepository(supabaseClient);
+    [7m  [0m [91m                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/infrastructure/repositories/SupabasePatientRepository.ts[0m:[93m30[0m:[93m5[0m
+        [7m30[0m     supabaseKey: string,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'supabaseKey' was not provided.
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m84[0m:[93m35[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m84[0m           await repository.delete(patientId);
+    [7m  [0m [91m                                  ~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m96[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m96[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m  [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m106[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m106[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m125[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m125[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m132[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m132[0m       const found = await repository.findById('PAT-999999-999');
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m140[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m140[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m145[0m:[93m21[0m - [91merror[0m[90m TS2551: [0mProperty 'basicMedicalInfo' does not exist on type 'Patient'. Did you mean 'getBasicMedicalInfo'?
+
+    [7m145[0m       expect(found?.basicMedicalInfo).toBeInstanceOf(BasicMedicalInfo);
+    [7m   [0m [91m                    ~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/domain/aggregates/Patient.ts[0m:[93m372[0m:[93m10[0m
+        [7m372[0m   public getBasicMedicalInfo(): BasicMedicalInfo {
+        [7m   [0m [96m         ~~~~~~~~~~~~~~~~~~~[0m
+        'getBasicMedicalInfo' is declared here.
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m153[0m:[93m63[0m - [91merror[0m[90m TS2339: [0mProperty 'userId' does not exist on type 'Patient'.
+
+    [7m153[0m       const found = await repository.findByUserId(testPatient.userId);
+    [7m   [0m [91m                                                              ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m156[0m:[93m21[0m - [91merror[0m[90m TS2339: [0mProperty 'userId' does not exist on type 'Patient'.
+
+    [7m156[0m       expect(found?.userId).toBe(testPatient.userId);
+    [7m   [0m [91m                    ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m156[0m:[93m46[0m - [91merror[0m[90m TS2339: [0mProperty 'userId' does not exist on type 'Patient'.
+
+    [7m156[0m       expect(found?.userId).toBe(testPatient.userId);
+    [7m   [0m [91m                                             ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m187[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ fullName: string; }' is not assignable to parameter of type 'PersonalInfoProps'.
+      Type '{ fullName: string; }' is missing the following properties from type 'PersonalInfoProps': dateOfBirth, gender, nationalId, nationality
+
+    [7m187[0m       const newPersonalInfo = PersonalInfo.create({
+    [7m   [0m [91m                                                  ~[0m
+    [7m188[0m         ...validPersonalInfo,
+    [7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [7m189[0m         fullName: 'Nguyễn Văn Updated'
+    [7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [7m190[0m       });
+    [7m   [0m [91m~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m193[0m:[93m24[0m - [91merror[0m[90m TS2339: [0mProperty 'update' does not exist on type 'SupabasePatientRepository'.
+
+    [7m193[0m       await repository.update(testPatient);
+    [7m   [0m [91m                       ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m195[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m195[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m205[0m:[93m9[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'phoneNumber' does not exist in type 'ContactInfoProps'.
+
+    [7m205[0m         phoneNumber: '0987654321'
+    [7m   [0m [91m        ~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m209[0m:[93m24[0m - [91merror[0m[90m TS2339: [0mProperty 'update' does not exist on type 'SupabasePatientRepository'.
+
+    [7m209[0m       await repository.update(testPatient);
+    [7m   [0m [91m                       ~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m211[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m211[0m       const retrieved = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m221[0m:[93m31[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m221[0m       await repository.delete(testPatient.getPatientId()!);
+    [7m   [0m [91m                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m223[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m223[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m228[0m:[93m38[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m228[0m       await expect(repository.delete('PAT-999999-999')).resolves.not.toThrow();
+    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m236[0m:[93m41[0m - [91merror[0m[90m TS2339: [0mProperty 'findAll' does not exist on type 'SupabasePatientRepository'.
+
+    [7m236[0m       const patients = await repository.findAll();
+    [7m   [0m [91m                                        ~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m245[0m:[93m41[0m - [91merror[0m[90m TS2339: [0mProperty 'findAll' does not exist on type 'SupabasePatientRepository'.
+
+    [7m245[0m       const patients = await repository.findAll();
+    [7m   [0m [91m                                        ~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m246[0m:[93m37[0m - [91merror[0m[90m TS7006: [0mParameter 'p' implicitly has an 'any' type.
+
+    [7m246[0m       const patient = patients.find(p => p.getPatientId()! === testPatient.getPatientId()!);
+    [7m   [0m [91m                                    ~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m257[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m257[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m266[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m266[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m274[0m:[93m33[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m274[0m       await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m294[0m:[93m33[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m294[0m       await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/repositories/SupabasePatientRepository.test.ts[0m:[93m307[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type 'PatientId'.
+
+    [7m307[0m       const found = await repository.findById(testPatient.getPatientId()!);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+FAIL tests/integration/service-communication.integration.test.ts
+  ● Test suite failed to run
+
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m155[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ fullName: string; }' is not assignable to parameter of type 'string'.
+
+    [7m155[0m         { fullName: 'Updated Name' },
+    [7m   [0m [91m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m178[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ personalInfo: { fullName: string; }; contactInfo: { primaryPhone: string; }; }' is not assignable to parameter of type 'string'.
+
+    [7m178[0m         changedFields,
+    [7m   [0m [91m        ~~~~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m200[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ fullName: string; }' is not assignable to parameter of type 'string'.
+
+    [7m200[0m         { fullName: 'Updated' },
+    [7m   [0m [91m        ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m219[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Date' is not assignable to parameter of type 'string'.
+
+    [7m219[0m         new Date()
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m233[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Date' is not assignable to parameter of type 'string'.
+
+    [7m233[0m         new Date()
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+    [96mtests/integration/service-communication.integration.test.ts[0m:[93m257[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Date' is not assignable to parameter of type 'string'.
+
+    [7m257[0m         new Date()
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+
+FAIL tests/integration/identity-service.integration.test.ts
+  ● Test suite failed to run
+
+    [96mtests/helpers/appFactory.ts[0m:[93m133[0m:[93m34[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m133[0m   const registerPatientUseCase = new RegisterPatientUseCase(patientRepository);
+    [7m   [0m [91m                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/RegisterPatientUseCase.ts[0m:[93m85[0m:[93m5[0m
+        [7m85[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m134[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m134[0m   const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/UpdatePatientInfoUseCase.ts[0m:[93m75[0m:[93m5[0m
+        [7m75[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m135[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.
+
+    [7m135[0m   const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/GetPatientProfileUseCase.ts[0m:[93m106[0m:[93m5[0m
+        [7m106[0m     private readonly logger: ILogger
+        [7m   [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m140[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m140[0m   const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/DeactivatePatientUseCase.ts[0m:[93m36[0m:[93m5[0m
+        [7m36[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m141[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 2.
+
+    [7m141[0m   const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/ValidateInsuranceUseCase.ts[0m:[93m51[0m:[93m5[0m
+        [7m51[0m     private readonly logger: ILogger
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m142[0m:[93m38[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m142[0m   const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository);
+    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/AddEmergencyContactUseCase.ts[0m:[93m41[0m:[93m5[0m
+        [7m41[0m     private eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+
+FAIL tests/integration/e2e.integration.test.ts
+  ● Test suite failed to run
+
+    [96mtests/helpers/appFactory.ts[0m:[93m133[0m:[93m34[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m133[0m   const registerPatientUseCase = new RegisterPatientUseCase(patientRepository);
+    [7m   [0m [91m                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/RegisterPatientUseCase.ts[0m:[93m85[0m:[93m5[0m
+        [7m85[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m134[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m134[0m   const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/UpdatePatientInfoUseCase.ts[0m:[93m75[0m:[93m5[0m
+        [7m75[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m135[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.
+
+    [7m135[0m   const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/GetPatientProfileUseCase.ts[0m:[93m106[0m:[93m5[0m
+        [7m106[0m     private readonly logger: ILogger
+        [7m   [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m140[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m140[0m   const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/DeactivatePatientUseCase.ts[0m:[93m36[0m:[93m5[0m
+        [7m36[0m     private readonly eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m141[0m:[93m36[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 2.
+
+    [7m141[0m   const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/ValidateInsuranceUseCase.ts[0m:[93m51[0m:[93m5[0m
+        [7m51[0m     private readonly logger: ILogger
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'logger' was not provided.
+    [96mtests/helpers/appFactory.ts[0m:[93m142[0m:[93m38[0m - [91merror[0m[90m TS2554: [0mExpected 3 arguments, but got 1.
+
+    [7m142[0m   const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository);
+    [7m   [0m [91m                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/application/use-cases/AddEmergencyContactUseCase.ts[0m:[93m41[0m:[93m5[0m
+        [7m41[0m     private eventBus: IEventBus,
+        [7m  [0m [96m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'eventBus' was not provided.
+
+FAIL tests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m256[0m:[93m44[0m - [91merror[0m[90m TS2339: [0mProperty 'errors' does not exist on type '{ isValid: boolean; reasons: string[]; }'.
+
+    [7m256[0m       expect(result.data?.validationResult.errors).toContain('Số BHYT không đúng định dạng');
+    [7m   [0m [91m                                           ~~~~~~[0m
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m326[0m:[93m27[0m - [91merror[0m[90m TS2339: [0mProperty 'expirationCheck' does not exist on type '{ patientId: string; hasInsurance: boolean; insuranceInfo?: { provider: string; policyNumber: string; coverageType: string; isVietnameseInsurance: boolean; bhytNumber?: string | undefined; ... 4 more ...; daysUntilExpiration?: number | undefined; } | undefined; validationResult: { ...; }; }'.
+
+    [7m326[0m       expect(result.data?.expirationCheck.isExpired).toBe(true);
+    [7m   [0m [91m                          ~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m399[0m:[93m27[0m - [91merror[0m[90m TS2339: [0mProperty 'expirationCheck' does not exist on type '{ patientId: string; hasInsurance: boolean; insuranceInfo?: { provider: string; policyNumber: string; coverageType: string; isVietnameseInsurance: boolean; bhytNumber?: string | undefined; ... 4 more ...; daysUntilExpiration?: number | undefined; } | undefined; validationResult: { ...; }; }'.
+
+    [7m399[0m       expect(result.data?.expirationCheck.isExpiringSoon).toBe(true);
+    [7m   [0m [91m                          ~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/use-cases/ValidateInsuranceUseCase.test.ts[0m:[93m496[0m:[93m9[0m - [91merror[0m[90m TS2561: [0mObject literal may only specify known properties, but 'bhtnNumber' does not exist in type 'Omit<InsuranceInfoProps, "id" | "createdAt" | "updatedAt">'. Did you mean to write 'bhytNumber'?
+
+    [7m496[0m         bhtnNumber: 'BHTN-2024-12345678',
+    [7m   [0m [91m        ~~~~~~~~~~[0m
+
+FAIL tests/unit/application/use-cases/RegisterPatientUseCase.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/use-cases/RegisterPatientUseCase.test.ts[0m:[93m369[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ userId: string; personalInfo: { fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; nationalId: string; nationality: string; }; contactInfo: { primaryPhone: string; email: string; preferredContactMethod: "phone" | "email" | "sms"; address: { ...; }; }; insuranceInfo: { ...; }; emergencyCont...' is not assignable to parameter of type 'RegisterPatientRequest'.
+      The types of 'insuranceInfo.coverageType' are incompatible between these types.
+        Type 'string' is not assignable to type '"BHYT" | "BHTN" | "private" | "self_pay"'.
+
+    [7m369[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/RegisterPatientUseCase.test.ts[0m:[93m414[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ userId: string; personalInfo: { fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; nationalId: string; nationality: string; }; contactInfo: { primaryPhone: string; email: string; preferredContactMethod: "phone" | "email" | "sms"; address: { ...; }; }; emergencyContacts: { ...; }[]; request...' is not assignable to parameter of type 'RegisterPatientRequest'.
+      Types of property 'emergencyContacts' are incompatible.
+        Type '{ name: string; relationship: string; phoneNumber: string; isPrimary: boolean; }[]' is not assignable to type '{ name: string; relationship: string; primaryPhone: string; secondaryPhone?: string | undefined; email?: string | undefined; address?: string | undefined; isPrimary: boolean; }[]'.
+          Property 'primaryPhone' is missing in type '{ name: string; relationship: string; phoneNumber: string; isPrimary: boolean; }' but required in type '{ name: string; relationship: string; primaryPhone: string; secondaryPhone?: string | undefined; email?: string | undefined; address?: string | undefined; isPrimary: boolean; }'.
+
+    [7m414[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+
+      [96msrc/application/use-cases/RegisterPatientUseCase.ts[0m:[93m66[0m:[93m5[0m
+        [7m66[0m     primaryPhone: string;
+        [7m  [0m [96m    ~~~~~~~~~~~~[0m
+        'primaryPhone' is declared here.
+    [96mtests/unit/application/use-cases/RegisterPatientUseCase.test.ts[0m:[93m457[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ userId: string; personalInfo: { fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; nationalId: string; nationality: string; }; contactInfo: { primaryPhone: string; email: string; preferredContactMethod: "phone" | "email" | "sms"; address: { ...; }; }; basicMedicalInfo: { ...; }; emergencyC...' is not assignable to parameter of type 'RegisterPatientRequest'.
+      The types of 'basicMedicalInfo.bloodType' are incompatible between these types.
+        Type 'string' is not assignable to type 'BloodType | undefined'.
+
+    [7m457[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+
+FAIL tests/unit/application/use-cases/MergePatientsUseCase.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m158[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m158[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m209[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m209[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m295[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m295[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m384[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m384[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+    [96mtests/unit/application/use-cases/MergePatientsUseCase.test.ts[0m:[93m472[0m:[93m44[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is not assignable to parameter of type 'MergePatientsRequest'.
+      Type '{ sourcePatientId: string; targetPatientId: string; reason: string; requestedBy: string; }' is missing the following properties from type 'MergePatientsRequest': duplicatePatientId, masterPatientId, performedBy
+
+    [7m472[0m       const result = await useCase.execute(request);
+    [7m   [0m [91m                                           ~~~~~~~[0m
+
+FAIL tests/unit/application/use-cases/MatchPatientsUseCase.test.ts
+  ● Test suite failed to run
+
+    [96msrc/application/use-cases/MatchPatientsUseCase.ts[0m:[93m144[0m:[93m14[0m - [91merror[0m[90m TS2339: [0mProperty 'logger' does not exist on type 'MatchPatientsUseCase'.
+
+    [7m144[0m         this.logger.error('Match patients failed', { error: error.message });
+    [7m   [0m [91m             ~~~~~~[0m
+
+FAIL tests/unit/application/services/PatientMatchingService.test.ts
+  ● Test suite failed to run
+
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m60[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '"A"' is not assignable to type 'BloodType | undefined'.
+
+    [7m60[0m       bloodType: 'A',
+    [7m  [0m [91m      ~~~~~~~~~[0m
+
+      [96msrc/domain/value-objects/BasicMedicalInfo.ts[0m:[93m15[0m:[93m3[0m
+        [7m15[0m   bloodType?: BloodType;
+        [7m  [0m [96m  ~~~~~~~~~[0m
+        The expected type comes from property 'bloodType' which is declared here on type 'BasicMedicalInfoProps'
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m99[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '"A"' is not assignable to type 'BloodType | undefined'.
+
+    [7m99[0m       bloodType: 'A',
+    [7m  [0m [91m      ~~~~~~~~~[0m
+
+      [96msrc/domain/value-objects/BasicMedicalInfo.ts[0m:[93m15[0m:[93m3[0m
+        [7m15[0m   bloodType?: BloodType;
+        [7m  [0m [96m  ~~~~~~~~~[0m
+        The expected type comes from property 'bloodType' which is declared here on type 'BasicMedicalInfoProps'
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m138[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '"B"' is not assignable to type 'BloodType | undefined'.
+
+    [7m138[0m       bloodType: 'B',
+    [7m   [0m [91m      ~~~~~~~~~[0m
+
+      [96msrc/domain/value-objects/BasicMedicalInfo.ts[0m:[93m15[0m:[93m3[0m
+        [7m15[0m   bloodType?: BloodType;
+        [7m  [0m [96m  ~~~~~~~~~[0m
+        The expected type comes from property 'bloodType' which is declared here on type 'BasicMedicalInfoProps'
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m243[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m243[0m       expect(results[0].matchDetails.matchedFields).toContain('nationalId');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m244[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m244[0m       expect(results[0].matchDetails.matchedFields).toContain('fullName');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m245[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m245[0m       expect(results[0].matchDetails.matchedFields).toContain('dateOfBirth');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m246[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m246[0m       expect(results[0].matchDetails.scores).toBeDefined();
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m289[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m289[0m       expect(results[0].matchDetails.scores.nationalId).toBe(40);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m299[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m299[0m       expect(results[0].matchDetails.scores.fullName).toBeGreaterThan(15); // High similarity
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m309[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m309[0m       expect(results[0].matchDetails.scores.dateOfBirth).toBe(20);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m319[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m319[0m       expect(results[0].matchDetails.scores.primaryPhone).toBe(15);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m329[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m329[0m       expect(results[0].matchDetails.scores.email).toBe(5);
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m340[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m340[0m       expect(results[0].matchDetails.matchedFields).toContain('fullName');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m350[0m:[93m14[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m350[0m       expect(results[0].matchDetails.matchedFields).toContain('primaryPhone');
+    [7m   [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m361[0m:[93m11[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m361[0m       if (results[0].matchDetails.scores.fullName) {
+    [7m   [0m [91m          ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m362[0m:[93m16[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m362[0m         expect(results[0].matchDetails.scores.fullName).toBeLessThan(20);
+    [7m   [0m [91m               ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtests/unit/application/services/PatientMatchingService.test.ts[0m:[93m363[0m:[93m16[0m - [91merror[0m[90m TS2532: [0mObject is possibly 'undefined'.
+
+    [7m363[0m         expect(results[0].matchDetails.scores.fullName).toBeGreaterThan(0);
+    [7m   [0m [91m               ~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+Test Suites: 9 failed, 23 passed, 32 total
+Tests:       444 passed, 444 total
+Snapshots:   0 total
+Time:        40.942 s
+Ran all test suites in 2 projects.

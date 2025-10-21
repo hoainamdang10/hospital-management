@@ -149,6 +149,13 @@ export class EmergencyContact extends Entity<EmergencyContactProps> {
     this.props.updatedAt = new Date();
   }
 
+  public updateRelationship(relationship: string): void {
+    if (relationship && relationship.trim().length > 0) {
+      this.props.relationship = relationship.trim();
+      this.props.updatedAt = new Date();
+    }
+  }
+
   // Validation methods
   override validate(): void {
     if (!this.isValid()) {

@@ -7,6 +7,39 @@
  * @version 2.0.0
  * @compliance Clean Architecture, HIPAA, Vietnamese Healthcare Standards
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -29,7 +62,7 @@ const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegra
 const PatientMatchingService_1 = require("./application/services/PatientMatchingService");
 const InsuranceValidationService_1 = require("./application/services/InsuranceValidationService");
 const RabbitMQEventPublisher_1 = require("./infrastructure/events/RabbitMQEventPublisher");
-const EventBus_1 = require("@shared/infrastructure/event-bus/EventBus");
+const EventBus_1 = require("../../shared/infrastructure/event-bus/EventBus");
 // Application imports
 const RegisterPatientUseCase_1 = require("./application/use-cases/RegisterPatientUseCase");
 const UpdatePatientInfoUseCase_1 = require("./application/use-cases/UpdatePatientInfoUseCase");
@@ -41,11 +74,30 @@ const LinkPatientsUseCase_1 = require("./application/use-cases/LinkPatientsUseCa
 const DeactivatePatientUseCase_1 = require("./application/use-cases/DeactivatePatientUseCase");
 const ValidateInsuranceUseCase_1 = require("./application/use-cases/ValidateInsuranceUseCase");
 const AddEmergencyContactUseCase_1 = require("./application/use-cases/AddEmergencyContactUseCase");
+const GetEmergencyContactsUseCase_1 = require("./application/use-cases/GetEmergencyContactsUseCase");
+const UpdateEmergencyContactUseCase_1 = require("./application/use-cases/UpdateEmergencyContactUseCase");
+const RemoveEmergencyContactUseCase_1 = require("./application/use-cases/RemoveEmergencyContactUseCase");
+const SetPrimaryEmergencyContactUseCase_1 = require("./application/use-cases/SetPrimaryEmergencyContactUseCase");
 const GrantConsentUseCase_1 = require("./application/use-cases/GrantConsentUseCase");
+const GetConsentsUseCase_1 = require("./application/use-cases/GetConsentsUseCase");
+const GetConsentDetailsUseCase_1 = require("./application/use-cases/GetConsentDetailsUseCase");
+const RevokeConsentUseCase_1 = require("./application/use-cases/RevokeConsentUseCase");
+const GetActiveConsentsUseCase_1 = require("./application/use-cases/GetActiveConsentsUseCase");
+const GetInsuranceInfoUseCase_1 = require("./application/use-cases/GetInsuranceInfoUseCase");
+const UpdateInsuranceInfoUseCase_1 = require("./application/use-cases/UpdateInsuranceInfoUseCase");
+const VerifyInsuranceUseCase_1 = require("./application/use-cases/VerifyInsuranceUseCase");
 const MarkAsDeceasedUseCase_1 = require("./application/use-cases/MarkAsDeceasedUseCase");
 const ReactivatePatientUseCase_1 = require("./application/use-cases/ReactivatePatientUseCase");
+const GetPatientStatisticsUseCase_1 = require("./application/use-cases/GetPatientStatisticsUseCase");
+const UploadPatientPhotoUseCase_1 = require("./application/use-cases/UploadPatientPhotoUseCase");
+const GetPatientPhotoUseCase_1 = require("./application/use-cases/GetPatientPhotoUseCase");
+const DeletePatientPhotoUseCase_1 = require("./application/use-cases/DeletePatientPhotoUseCase");
+const UpdateCommunicationPreferencesUseCase_1 = require("./application/use-cases/UpdateCommunicationPreferencesUseCase");
+const GetCommunicationPreferencesUseCase_1 = require("./application/use-cases/GetCommunicationPreferencesUseCase");
 const PatientCommandHandlers_1 = require("./application/handlers/PatientCommandHandlers");
 const PatientQueryHandlers_1 = require("./application/handlers/PatientQueryHandlers");
+// Infrastructure imports
+const SupabaseStorageService_1 = require("./infrastructure/storage/SupabaseStorageService");
 // Presentation imports
 const PatientController_1 = require("./presentation/controllers/PatientController");
 const CommandController_1 = require("./presentation/controllers/CommandController");
@@ -162,20 +214,48 @@ class PatientRegistryServiceApp {
             this.updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(this.patientRepository, this.eventBus, logger);
             this.getPatientProfileUseCase = new GetPatientProfileUseCase_1.GetPatientProfileUseCase(this.patientRepository, logger);
             this.searchPatientsUseCase = new SearchPatientsUseCase_1.SearchPatientsUseCase(this.patientRepository);
-            this.matchPatientsUseCase = new MatchPatientsUseCase_1.MatchPatientsUseCase(this.patientRepository);
+            this.matchPatientsUseCase = new MatchPatientsUseCase_1.MatchPatientsUseCase(this.patientRepository, this.matchingService, logger);
             this.mergePatientsUseCase = new MergePatientsUseCase_1.MergePatientsUseCase(this.patientRepository);
             this.linkPatientsUseCase = new LinkPatientsUseCase_1.LinkPatientsUseCase(this.patientRepository);
             this.deactivatePatientUseCase = new DeactivatePatientUseCase_1.DeactivatePatientUseCase(this.patientRepository, this.eventBus, logger);
             this.validateInsuranceUseCase = new ValidateInsuranceUseCase_1.ValidateInsuranceUseCase(this.patientRepository, this.insuranceValidationService, logger);
             this.addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(this.patientRepository, this.eventBus, logger);
+            this.getEmergencyContactsUseCase = new GetEmergencyContactsUseCase_1.GetEmergencyContactsUseCase(this.patientRepository, logger);
+            this.updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase_1.UpdateEmergencyContactUseCase(this.patientRepository, this.eventBus, logger);
+            this.removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase_1.RemoveEmergencyContactUseCase(this.patientRepository, this.eventBus, logger);
+            this.setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase_1.SetPrimaryEmergencyContactUseCase(this.patientRepository, this.eventBus, logger);
             this.grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(this.patientRepository);
+            this.getConsentsUseCase = new GetConsentsUseCase_1.GetConsentsUseCase(this.patientRepository, logger);
+            this.getConsentDetailsUseCase = new GetConsentDetailsUseCase_1.GetConsentDetailsUseCase(this.patientRepository, logger);
+            this.revokeConsentUseCase = new RevokeConsentUseCase_1.RevokeConsentUseCase(this.patientRepository, this.eventBus, logger);
+            this.getActiveConsentsUseCase = new GetActiveConsentsUseCase_1.GetActiveConsentsUseCase(this.patientRepository, logger);
+            this.getInsuranceInfoUseCase = new GetInsuranceInfoUseCase_1.GetInsuranceInfoUseCase(this.patientRepository, logger);
+            this.updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase_1.UpdateInsuranceInfoUseCase(this.patientRepository, this.eventBus, logger);
+            this.verifyInsuranceUseCase = new VerifyInsuranceUseCase_1.VerifyInsuranceUseCase(this.patientRepository, logger);
             this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(this.patientRepository);
             this.reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(this.patientRepository);
+            this.getPatientStatisticsUseCase = new GetPatientStatisticsUseCase_1.GetPatientStatisticsUseCase(this.patientRepository);
+            // Initialize Storage Service
+            const { createClient } = await Promise.resolve().then(() => __importStar(require('@supabase/supabase-js')));
+            const storageClient = createClient(config.supabaseUrl, config.supabaseKey, {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            });
+            this.storageService = new SupabaseStorageService_1.SupabaseStorageService(storageClient, logger);
+            // Initialize Photo Use Cases
+            this.uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase_1.UploadPatientPhotoUseCase(this.patientRepository, this.storageService);
+            this.getPatientPhotoUseCase = new GetPatientPhotoUseCase_1.GetPatientPhotoUseCase(this.patientRepository);
+            this.deletePatientPhotoUseCase = new DeletePatientPhotoUseCase_1.DeletePatientPhotoUseCase(this.patientRepository, this.storageService);
+            // Initialize Communication Preferences Use Cases
+            this.updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase_1.UpdateCommunicationPreferencesUseCase(this.patientRepository);
+            this.getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase_1.GetCommunicationPreferencesUseCase(this.patientRepository);
             this.patientQueryHandlers = new PatientQueryHandlers_1.PatientQueryHandlers(this.getPatientProfileUseCase, this.searchPatientsUseCase, this.patientRepository, logger);
             // Initialize Command Handlers (CQRS)
             this.patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(this.registerPatientUseCase, this.updatePatientInfoUseCase, this.deactivatePatientUseCase, this.grantConsentUseCase, this.addEmergencyContactUseCase, logger);
             // Initialize Presentation Layer
-            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.grantConsentUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase, this.patientQueryHandlers);
+            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.getEmergencyContactsUseCase, this.updateEmergencyContactUseCase, this.removeEmergencyContactUseCase, this.setPrimaryEmergencyContactUseCase, this.grantConsentUseCase, this.getConsentsUseCase, this.getConsentDetailsUseCase, this.revokeConsentUseCase, this.getActiveConsentsUseCase, this.getInsuranceInfoUseCase, this.updateInsuranceInfoUseCase, this.verifyInsuranceUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase, this.getPatientStatisticsUseCase, this.uploadPatientPhotoUseCase, this.getPatientPhotoUseCase, this.deletePatientPhotoUseCase, this.updateCommunicationPreferencesUseCase, this.getCommunicationPreferencesUseCase, this.patientQueryHandlers);
             this.commandController = new CommandController_1.CommandController(logger, this.patientCommandHandlers);
             this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
             logger.info('Dependencies initialized successfully');

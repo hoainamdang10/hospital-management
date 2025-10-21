@@ -88,9 +88,9 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `📋 Creating medical record for completed appointment: ${event.eventData.appointmentId}`);
+      this.log('info', `📋 Creating medical record for completed appointment: ${event.data.appointmentId}`);
 
-      const appointmentData = event.eventData;
+      const appointmentData = event.data;
 
       // Create medical record from appointment data
       const medicalRecordCommand = {
@@ -133,7 +133,7 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
           aggregateType: 'MedicalRecord',
           serviceName: 'clinical-emr-service',
           eventVersion: '1.0',
-          {
+          data: {
             medicalRecordId: result.medicalRecordId,
             patientId: appointmentData.patientId,
             doctorId: appointmentData.doctorId,
@@ -168,7 +168,7 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
             aggregateType: 'Prescription',
             serviceName: 'clinical-emr-service',
             eventVersion: '1.0',
-            eventData: {
+            data: {
               prescriptionId: `PRESC-${Date.now()}`,
               patientId: appointmentData.patientId,
               doctorId: appointmentData.doctorId,
@@ -216,9 +216,9 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `👤 Processing patient registration for EMR: ${event.eventData.patientId}`);
+      this.log('info', `👤 Processing patient registration for EMR: ${event.data.patientId}`);
 
-      const patientData = event.eventData;
+      const patientData = event.data;
 
       // Create initial patient medical profile
       // This includes medical history template, allergies, etc.
@@ -253,9 +253,9 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `🧪 Processing test results: ${event.eventData.testResultId}`);
+      this.log('info', `🧪 Processing test results: ${event.data.testResultId}`);
 
-      const testData = event.eventData;
+      const testData = event.data;
 
       // Update medical record with test results
       if (testData.medicalRecordId) {
@@ -354,9 +354,9 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `🩺 Processing diagnosis confirmation: ${event.eventData.diagnosisId}`);
+      this.log('info', `🩺 Processing diagnosis confirmation: ${event.data.diagnosisId}`);
 
-      const diagnosisData = event.eventData;
+      const diagnosisData = event.data;
 
       // Update medical record with confirmed diagnosis
       const updateCommand = {
@@ -435,9 +435,9 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `💊 Processing medication prescription: ${event.eventData.prescriptionId}`);
+      this.log('info', `💊 Processing medication prescription: ${event.data.prescriptionId}`);
 
-      const prescriptionData = event.eventData;
+      const prescriptionData = event.data;
 
       // Update medical record with prescription information
       const updateCommand = {
@@ -493,16 +493,16 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `🧪 Processing lab sample collection: ${event.eventData.sampleId}`);
+      this.log('info', `🧪 Processing lab sample collection: ${event.data.sampleId}`);
 
       // Track sample collection in medical record
       // Update test status to "Sample Collected"
-      
+
       return {
         success: true,
         processingTime: Date.now() - startTime,
-        metadata: { 
-          sampleId: event.eventData.sampleId,
+        metadata: {
+          sampleId: event.data.sampleId,
           action: 'lab_sample_tracked'
         }
       };
@@ -520,16 +520,16 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `📷 Processing imaging study completion: ${event.eventData.studyId}`);
+      this.log('info', `📷 Processing imaging study completion: ${event.data.studyId}`);
 
       // Update medical record with imaging results
       // Generate imaging report if needed
-      
+
       return {
         success: true,
         processingTime: Date.now() - startTime,
-        metadata: { 
-          studyId: event.eventData.studyId,
+        metadata: {
+          studyId: event.data.studyId,
           action: 'imaging_study_processed'
         }
       };
