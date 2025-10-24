@@ -9,7 +9,7 @@
 | Identity Service | 3001 | **3021** | 3001 | ✅ Fixed |
 | Provider/Staff Service | 3002 | **3022** | 3002 | ✅ Fixed |
 | Patient Registry Service | 3003 | **3023** | 3003 | ✅ Fixed |
-| Scheduling Service | 3004 | **3024** | 3004 | ✅ Fixed |
+| Appointments Service | 3004 | **3024** | 3004 | ✅ Fixed |
 | Clinical EMR Service | 3007 | **3027** | 3007 | ✅ Fixed |
 | Billing Service | 3009 | **3029** | 3009 | ✅ Fixed |
 | Notifications Service | 3011 | **3031** | 3011 | ✅ Fixed |
@@ -30,9 +30,9 @@
 ```bash
 # External Access (from host)
 http://localhost:3021  # Identity Service
-http://localhost:3022  # Provider/Staff Service  
+http://localhost:3022  # Provider/Staff Service
 http://localhost:3023  # Patient Registry Service
-http://localhost:3024  # Scheduling Service
+http://localhost:3024  # Appointments Service
 http://localhost:3027  # Clinical EMR Service
 http://localhost:3029  # Billing Service
 http://localhost:3031  # Notifications Service
@@ -51,7 +51,7 @@ http://localhost:15673 # RabbitMQ Management UI V2
 http://identity-service:3001
 http://provider-staff-service:3002
 http://patient-registry-service:3003
-http://scheduling-service:3004
+http://appointments-service:3004
 http://clinical-emr-service:3007
 http://billing-service:3009
 http://notifications-service:3011
@@ -88,7 +88,7 @@ netstat -tulpn | grep :30
 curl http://localhost:3021/health  # Identity
 curl http://localhost:3022/health  # Provider/Staff
 curl http://localhost:3023/health  # Patient Registry
-curl http://localhost:3024/health  # Scheduling
+curl http://localhost:3024/health  # Appointments
 curl http://localhost:3027/health  # Clinical EMR
 curl http://localhost:3029/health  # Billing
 curl http://localhost:3031/health  # Notifications

@@ -1,13 +1,41 @@
 /**
  * NotificationEventHandlers - Event Handlers
  * Event handlers for cross-service integration with Vietnamese healthcare context
- * 
+ * Implements Inbox Pattern for idempotent event processing
+ *
+ * BOUNDED CONTEXT RESPONSIBILITIES:
+ * ✅ IN SCOPE:
+ *    - Receive scheduled notification events from Scheduler Service
+ *    - Send immediate notifications from other services
+ *    - Idempotent event processing (Inbox Pattern)
+ *    - Multi-channel delivery (EMAIL, SMS, PUSH, IN_APP, VOICE)
+ *    - Delivery tracking and retry logic
+ *
+ * ❌ OUT OF SCOPE:
+ *    - Scheduling logic (belongs to Scheduler Service)
+ *    - Business logic to create notifications (belongs to domain services)
+ *    - User preferences management (belongs to Identity Service)
+ *
+ * EVENT FLOW:
+ * 1. Scheduled Notifications:
+ *    Appointments Service → Scheduler Service → (RabbitMQ) → Notifications Service
+ *    - Appointments Service creates schedule via SchedulerServiceClient
+ *    - Scheduler Service fires event when due
+ *    - Notifications Service receives event and sends notification
+ *
+ * 2. Immediate Notifications:
+ *    Any Service → Notifications Service (direct API call)
+ *    - Service calls Notifications API directly
+ *    - Notification sent immediately
+ *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, Event-Driven Architecture, Vietnamese Healthcare Standards
+ * @compliance Clean Architecture, Event-Driven Architecture, Vietnamese Healthcare Standards, Inbox Pattern
  */
 
 import { NotificationApplicationService } from '../../application/services/NotificationApplicationService';
+import { IInboxRepository } from '../../domain/repositories/IInboxRepository';
+import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
 
 export interface DomainEvent {
   eventId: string;
@@ -28,57 +56,145 @@ export interface DomainEvent {
 export interface IntegrationEvent extends DomainEvent {
   serviceName: string;
   eventVersion: string;
+  headers?: {
+    idempotency_key?: string;
+    schedule_id?: string;
+    run_id?: string;
+    correlation_id?: string;
+    causation_id?: string;
+    tenant_id?: string;
+  };
+}
+
+/**
+ * Event payload from Scheduler Service
+ */
+export interface ScheduleRunDueEvent {
+  type: string;
+  payload: {
+    recipient: {
+      recipientId: string;
+      recipientType: string;
+    };
+    template: {
+      templateType: string;
+      templateData: Record<string, any>;
+    };
+    content: any;
+    channels: string[];
+    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+    metadata?: {
+      correlationId?: string;
+      healthcareContext?: {
+        patientId?: string;
+        doctorId?: string;
+        appointmentId?: string;
+        medicalRecordId?: string;
+      };
+      tags?: string[];
+      source?: string;
+    };
+  };
+  headers: {
+    idempotency_key: string;
+    schedule_id: string;
+    run_id: string;
+    correlation_id?: string;
+    causation_id?: string;
+    tenant_id?: string;
+  };
 }
 
 export class NotificationEventHandlers {
   constructor(
-    private readonly notificationService: NotificationApplicationService
+    private readonly notificationService: NotificationApplicationService,
+    private readonly inboxRepo: IInboxRepository,
+    private readonly sendNotificationUseCase: SendNotificationUseCase
   ) {}
 
   /**
-   * Handle appointment scheduled event
+   * Handle schedule run due event from Scheduler Service
+   * This is the ONLY entry point for scheduled notifications
+   * Implements Inbox Pattern for idempotent processing
+   */
+  public async handleScheduleRunDue(event: ScheduleRunDueEvent): Promise<void> {
+    const idempotencyKey = event.headers.idempotency_key;
+
+    try {
+      // Step 1: Check if event is duplicate (Inbox Pattern)
+      const result = await this.inboxRepo.processEventIdempotent(
+        idempotencyKey,
+        event.type,
+        event.payload,
+        event.headers
+      );
+
+      if (!result.isNew) {
+        console.log(`[Inbox] Duplicate event ${idempotencyKey}, skipping`);
+        return;
+      }
+
+      console.log(`[Inbox] New event ${idempotencyKey}, processing...`);
+
+      // Step 2: Get inbox event and mark as processing
+      const inboxEvent = await this.inboxRepo.findById(result.inboxId);
+      if (!inboxEvent) {
+        throw new Error(`Inbox event ${result.inboxId} not found`);
+      }
+
+      inboxEvent.markAsProcessing();
+      await this.inboxRepo.update(inboxEvent);
+
+      // Step 3: Send notification immediately
+      await this.sendNotificationUseCase.execute({
+        recipientId: event.payload.recipient.recipientId,
+        recipientType: event.payload.recipient.recipientType,
+        templateType: event.payload.template.templateType as any,
+        templateData: event.payload.template.templateData,
+        channels: event.payload.channels,
+        priority: event.payload.priority,
+        metadata: {
+          correlationId: event.headers.correlation_id || event.payload.metadata?.correlationId,
+          source: event.payload.metadata?.source || 'SCHEDULER_SERVICE',
+          tags: event.payload.metadata?.tags || [],
+          healthcareContext: event.payload.metadata?.healthcareContext
+        }
+      });
+
+      // Step 4: Mark inbox event as completed
+      inboxEvent.markAsCompleted();
+      await this.inboxRepo.update(inboxEvent);
+
+      console.log(`[Inbox] Event ${idempotencyKey} processed successfully`);
+
+    } catch (error) {
+      console.error(`[Inbox] Error processing event ${idempotencyKey}:`, error);
+
+      // Mark inbox event as failed
+      try {
+        const inboxEvent = await this.inboxRepo.findByIdempotencyKey(idempotencyKey);
+        if (inboxEvent) {
+          inboxEvent.markAsFailed(error instanceof Error ? error.message : 'Unknown error');
+          await this.inboxRepo.update(inboxEvent);
+        }
+      } catch (updateError) {
+        console.error(`[Inbox] Failed to update inbox event ${idempotencyKey}:`, updateError);
+      }
+
+      throw new Error(`Lỗi xử lý sự kiện schedule run due: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle appointment scheduled event (IMMEDIATE CONFIRMATION ONLY)
+   * NOTE: Reminder scheduling is handled by Appointments Service → Scheduler Service
    */
   public async handleAppointmentScheduled(event: IntegrationEvent): Promise<void> {
     try {
       const { appointmentId, patientId, doctorId, appointmentDate, appointmentTime, doctorName, roomNumber } = event.eventData;
 
-      // Schedule appointment reminder 24 hours before
-      const reminderTime = new Date(appointmentDate);
-      reminderTime.setHours(reminderTime.getHours() - 24);
-
-      // Only schedule if reminder time is in the future
-      if (reminderTime > new Date()) {
-        await this.notificationService.scheduleNotification({
-          recipientId: patientId,
-          recipientType: 'PATIENT',
-          templateType: 'APPOINTMENT_REMINDER',
-          templateData: {
-            patientName: event.eventData.patientName || 'Quý khách',
-            appointmentDate: new Date(appointmentDate).toLocaleDateString('vi-VN'),
-            appointmentTime: appointmentTime,
-            doctorName: doctorName,
-            roomNumber: roomNumber || 'Sẽ thông báo sau',
-            hospitalName: 'Bệnh viện Đa khoa',
-            hospitalAddress: '123 Đường ABC, Quận XYZ, TP.HCM',
-            contactPhone: '1900-xxxx'
-          },
-          channels: ['EMAIL', 'SMS', 'PUSH'],
-          priority: 'HIGH',
-          scheduledAt: reminderTime,
-          metadata: {
-            correlationId: event.metadata?.correlationId,
-            healthcareContext: {
-              patientId,
-              doctorId,
-              appointmentId
-            },
-            tags: ['appointment', 'reminder', 'scheduled'],
-            source: 'APPOINTMENT_SERVICE'
-          }
-        });
-      }
-
-      // Send immediate confirmation
+      // Send immediate confirmation ONLY
+      // Reminder scheduling is handled by Appointments Service calling Scheduler Service
       await this.notificationService.sendNotification({
         recipientId: patientId,
         recipientType: 'PATIENT',
@@ -233,13 +349,15 @@ export class NotificationEventHandlers {
   }
 
   /**
-   * Handle invoice generated event
+   * Handle invoice generated event (IMMEDIATE NOTIFICATION ONLY)
+   * NOTE: Payment reminder scheduling is handled by Billing Service → Scheduler Service
    */
   public async handleInvoiceGenerated(event: IntegrationEvent): Promise<void> {
     try {
       const { invoiceId, patientId, amount, dueDate, services, insuranceCoverage } = event.eventData;
 
-      // Send invoice notification
+      // Send invoice notification ONLY
+      // Payment reminder scheduling is handled by Billing Service calling Scheduler Service
       await this.notificationService.sendNotification({
         recipientId: patientId,
         recipientType: 'PATIENT',
@@ -271,40 +389,6 @@ export class NotificationEventHandlers {
           source: 'BILLING_SERVICE'
         }
       });
-
-      // Schedule payment reminder 3 days before due date
-      const reminderDate = new Date(dueDate);
-      reminderDate.setDate(reminderDate.getDate() - 3);
-
-      if (reminderDate > new Date()) {
-        await this.notificationService.scheduleNotification({
-          recipientId: patientId,
-          recipientType: 'PATIENT',
-          templateType: 'PAYMENT_REMINDER',
-          templateData: {
-            patientName: event.eventData.patientName || 'Quý khách',
-            invoiceNumber: invoiceId,
-            amount: amount.toLocaleString('vi-VN'),
-            dueDate: new Date(dueDate).toLocaleDateString('vi-VN'),
-            services: services || [],
-            paymentUrl: 'https://payment.hospital.com',
-            hospitalName: 'Bệnh viện Đa khoa',
-            contactPhone: '1900-xxxx'
-          },
-          channels: ['EMAIL', 'SMS'],
-          priority: 'NORMAL',
-          scheduledAt: reminderDate,
-          metadata: {
-            correlationId: event.metadata?.correlationId,
-            healthcareContext: {
-              patientId,
-              invoiceId
-            },
-            tags: ['payment', 'reminder', 'billing'],
-            source: 'BILLING_SERVICE'
-          }
-        });
-      }
 
     } catch (error) {
       console.error('Lỗi khi xử lý sự kiện invoice generated:', error);
@@ -472,46 +556,59 @@ export class NotificationEventHandlers {
   /**
    * Generic event handler dispatcher
    */
-  public async handleEvent(event: IntegrationEvent): Promise<void> {
+  public async handleEvent(event: IntegrationEvent | ScheduleRunDueEvent): Promise<void> {
     try {
-      console.log(`Xử lý sự kiện: ${event.eventType} từ ${event.serviceName}`);
+      const eventType = 'eventType' in event ? event.eventType : event.type;
+      const serviceName = 'serviceName' in event ? event.serviceName : 'SCHEDULER_SERVICE';
 
-      switch (event.eventType) {
+      console.log(`Xử lý sự kiện: ${eventType} từ ${serviceName}`);
+
+      // Handle ScheduleRunDue event from Scheduler Service (CRITICAL PATH)
+      if (eventType === 'schedule.run.due' || eventType === 'ScheduleRunDue') {
+        await this.handleScheduleRunDue(event as ScheduleRunDueEvent);
+        return;
+      }
+
+      // Handle other integration events
+      const integrationEvent = event as IntegrationEvent;
+
+      switch (integrationEvent.eventType) {
         case 'AppointmentScheduled':
-          await this.handleAppointmentScheduled(event);
+          await this.handleAppointmentScheduled(integrationEvent);
           break;
 
         case 'AppointmentCancelled':
-          await this.handleAppointmentCancelled(event);
+          await this.handleAppointmentCancelled(integrationEvent);
           break;
 
         case 'MedicalRecordUpdated':
-          await this.handleMedicalRecordUpdated(event);
+          await this.handleMedicalRecordUpdated(integrationEvent);
           break;
 
         case 'InvoiceGenerated':
-          await this.handleInvoiceGenerated(event);
+          await this.handleInvoiceGenerated(integrationEvent);
           break;
 
         case 'PaymentCompleted':
-          await this.handlePaymentCompleted(event);
+          await this.handlePaymentCompleted(integrationEvent);
           break;
 
         case 'EmergencyAlert':
-          await this.handleEmergencyAlert(event);
+          await this.handleEmergencyAlert(integrationEvent);
           break;
 
         case 'MedicationReminder':
-          await this.handleMedicationReminder(event);
+          await this.handleMedicationReminder(integrationEvent);
           break;
 
         default:
-          console.warn(`Không có handler cho sự kiện: ${event.eventType}`);
+          console.warn(`Không có handler cho sự kiện: ${integrationEvent.eventType}`);
           break;
       }
 
     } catch (error) {
-      console.error(`Lỗi khi xử lý sự kiện ${event.eventType}:`, error);
+      const eventType = 'eventType' in event ? event.eventType : event.type;
+      console.error(`Lỗi khi xử lý sự kiện ${eventType}:`, error);
       throw error;
     }
   }

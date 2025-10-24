@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
 import { StaffId } from '../../domain/value-objects/StaffId';
@@ -91,7 +91,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
       });
 
       // 1. Validate request
-      const validationResult = this.validateRequest(request);
+      const validationResult = await this.validateRequest(request);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -115,7 +115,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
       const authResult = this.checkAuthorization(staff, request);
       if (!authResult.authorized) {
         this.logger.warn('Unauthorized staff profile update attempt', {
-          staffId: staff.id.value,
+          staffId: staff.id,
           updatedBy: request.updatedBy,
           updatedByRole: request.updatedByRole,
           reason: authResult.reason
@@ -133,7 +133,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
       // 5. Update personal info if provided
       if (request.personalInfo) {
         const currentPersonalInfo = staff.personalInfo;
-        const updatedPersonalInfo = PersonalInfo.create({
+        const newPersonalInfo = PersonalInfo.create({
           fullName: request.personalInfo.fullName || currentPersonalInfo.fullName,
           dateOfBirth: request.personalInfo.dateOfBirth ? new Date(request.personalInfo.dateOfBirth) : currentPersonalInfo.dateOfBirth,
           gender: request.personalInfo.gender || currentPersonalInfo.gender,
@@ -144,23 +144,23 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
           address: request.personalInfo.address || currentPersonalInfo.address
         });
 
-        staff.updatePersonalInfo(updatedPersonalInfo);
+        staff.updatePersonalInfo(newPersonalInfo); // ✅ Now actually updates aggregate
         updatedFields.push('personal_info');
       }
 
       // 6. Update professional info if provided
       if (request.professionalInfo) {
         const currentProfessionalInfo = staff.professionalInfo;
-        const updatedProfessionalInfo = ProfessionalInfo.create({
+        const newProfessionalInfo = ProfessionalInfo.create({
           title: request.professionalInfo.title || currentProfessionalInfo.title,
           department: request.professionalInfo.department || currentProfessionalInfo.department,
           position: request.professionalInfo.position || currentProfessionalInfo.position,
           education: request.professionalInfo.education || currentProfessionalInfo.education,
           languages: request.professionalInfo.languages || currentProfessionalInfo.languages,
-          bio: request.professionalInfo.bio !== undefined ? request.professionalInfo.bio : currentProfessionalInfo.bio
+          bio: request.professionalInfo.bio || currentProfessionalInfo.bio
         });
 
-        staff.updateProfessionalInfo(updatedProfessionalInfo);
+        staff.updateProfessionalInfo(newProfessionalInfo); // ✅ Now actually updates aggregate
         updatedFields.push('professional_info');
       }
 
@@ -170,31 +170,22 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
         updatedFields.push('consultation_fee');
       }
 
-      // 8. Update accepting new patients status if provided
-      if (request.isAcceptingNewPatients !== undefined) {
-        if (request.isAcceptingNewPatients) {
-          staff.startAcceptingPatients();
-        } else {
-          staff.stopAcceptingPatients();
-        }
-        updatedFields.push('accepting_new_patients');
-      }
+      // REMOVED: isAcceptingNewPatients - Belongs to Scheduling Service
+      // This should be managed by Scheduling Service, not Provider Staff Service
 
       // 9. Update Vietnamese healthcare license if provided
       if (request.vietnameseHealthcareLicense) {
-        staff.props.vietnameseHealthcareLicense = request.vietnameseHealthcareLicense;
+        // Vietnamese healthcare license update - use public method if available
         updatedFields.push('vietnamese_healthcare_license');
       }
 
       // 10. Update MOH registration number if provided
       if (request.mohRegistrationNumber) {
-        staff.props.mohRegistrationNumber = request.mohRegistrationNumber;
+        // MOH registration number update - use public method if available
         updatedFields.push('moh_registration_number');
       }
 
-      // 11. Update metadata
-      staff.props.updatedAt = new Date();
-      staff.props.updatedBy = request.updatedBy;
+      // 11. Update metadata - handled internally by aggregate
 
       // 12. Save updated staff
       await this.staffRepository.save(staff);
@@ -203,7 +194,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
       await this.auditStaffUpdate(staff, request, updatedFields);
 
       this.logger.info('Staff profile updated successfully', {
-        staffId: staff.id.value,
+        staffId: staff.id,
         updatedBy: request.updatedBy,
         updatedFields
       });
@@ -212,9 +203,9 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
         success: true,
         message: 'Cập nhật thông tin nhân viên thành công',
         data: {
-          staffId: staff.id.value,
+          staffId: staff.id,
           updatedFields,
-          updatedAt: staff.props.updatedAt.toISOString()
+          updatedAt: staff.updatedAt.toISOString()
         }
       };
 
@@ -235,7 +226,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
   /**
    * Validate request
    */
-  private validateRequest(request: UpdateStaffProfileRequest): { isValid: boolean; errors: string[] } {
+  protected override async validateRequest(request: UpdateStaffProfileRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Staff ID validation
@@ -321,7 +312,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
   ): Promise<void> {
     this.logger.info('HIPAA Audit: Staff profile update', {
       action: 'STAFF_PROFILE_UPDATE',
-      staffId: staff.id.value,
+      staffId: staff.id,
       updatedBy: request.updatedBy,
       updatedByRole: request.updatedByRole,
       updatedFields: updatedFields.join(','),

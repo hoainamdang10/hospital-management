@@ -1,59 +1,76 @@
 /**
  * Integration Events for Provider/Staff Service
  * Events published to RabbitMQ for inter-service communication
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Vietnamese Healthcare Standards
  */
 
-import { IntegrationEvent } from './RabbitMQEventPublisher';
+import { IntegrationEvent } from '@shared/domain/base/domain-event';
 
 /**
  * Staff Registered Event
  * Published when a new staff member is registered
- * 
+ *
  * Subscribers:
  * - Scheduling Service: Create doctor schedule
  * - Clinical/EMR Service: Initialize provider profile
  * - Notifications Service: Send welcome email
  */
-export function createStaffRegisteredEvent(data: {
-  staffId: string;
-  userId: string;
-  staffType: 'doctor' | 'nurse' | 'technician' | 'pharmacist' | 'receptionist' | 'admin';
-  fullName: string;
-  department?: string;
-  specialization?: string;
-  licenseNumber?: string;
-  registrationDate: Date;
-}): IntegrationEvent {
-  return {
-    eventId: `staff-registered-${Date.now()}`,
-    eventType: 'provider.staff.registered',
-    aggregateId: data.staffId,
-    aggregateType: 'Staff',
-    occurredAt: new Date(),
-    serviceName: 'provider-staff-service',
-    eventData: {
-      staffId: data.staffId,
-      userId: data.userId,
-      staffType: data.staffType,
-      fullName: data.fullName,
-      department: data.department,
-      specialization: data.specialization,
-      licenseNumber: data.licenseNumber,
-      registrationDate: data.registrationDate.toISOString()
-    },
-    metadata: {
-      priority: 'normal',
-      complianceLevel: 'hipaa',
-      containsPHI: false,
-      eventCategory: 'provider_staff',
-      eventSubcategory: 'staff_registration',
-      vietnameseDescription: 'Nhân viên y tế mới được đăng ký vào hệ thống'
-    }
-  };
+export class StaffRegisteredIntegrationEvent extends IntegrationEvent {
+  constructor(data: {
+    staffId: string;
+    userId: string;
+    staffType: 'doctor' | 'nurse' | 'technician' | 'pharmacist' | 'receptionist' | 'admin';
+    fullName: string;
+    department?: string;
+    specialization?: string;
+    licenseNumber?: string;
+    registrationDate: Date;
+  }) {
+    super(
+      'provider.staff.registered',
+      'provider-staff-service',
+      data.staffId,
+      'Staff',
+      {
+        staffId: data.staffId,
+        userId: data.userId,
+        staffType: data.staffType,
+        fullName: data.fullName,
+        department: data.department,
+        specialization: data.specialization,
+        licenseNumber: data.licenseNumber,
+        registrationDate: data.registrationDate.toISOString()
+      },
+      undefined,
+      undefined,
+      data.userId
+    );
+  }
+
+  public override getEventData(): any {
+    return {
+      staffId: this.aggregateId,
+      userId: this.userId,
+      fullName: (this as any).fullName,
+      email: (this as any).email,
+      phoneNumber: (this as any).phoneNumber,
+      department: (this as any).department,
+      specialization: (this as any).specialization,
+      licenseNumber: (this as any).licenseNumber,
+      registrationDate: (this as any).registrationDate
+    };
+  }
+
+  public override containsPHI(): boolean {
+    return false;
+  }
+
+  public override getPatientId(): string | null {
+    return null;
+  }
 }
 
 /**
@@ -79,7 +96,6 @@ export function createStaffUpdatedEvent(data: {
     aggregateId: data.staffId,
     aggregateType: 'Staff',
     occurredAt: new Date(),
-    serviceName: 'provider-staff-service',
     eventData: {
       staffId: data.staffId,
       userId: data.userId,
@@ -89,14 +105,16 @@ export function createStaffUpdatedEvent(data: {
       status: data.status
     },
     metadata: {
+      source: 'integration',
       priority: 'normal',
+      retryable: true,
       complianceLevel: 'hipaa',
       containsPHI: false,
       eventCategory: 'provider_staff',
       eventSubcategory: 'staff_update',
       vietnameseDescription: 'Thông tin nhân viên y tế được cập nhật'
     }
-  };
+  } as any;
 }
 
 /**
@@ -119,7 +137,6 @@ export function createDoctorAvailabilityChangedEvent(data: {
     aggregateId: data.staffId,
     aggregateType: 'Staff',
     occurredAt: new Date(),
-    serviceName: 'provider-staff-service',
     eventData: {
       staffId: data.staffId,
       isAcceptingNewPatients: data.isAcceptingNewPatients,
@@ -127,14 +144,16 @@ export function createDoctorAvailabilityChangedEvent(data: {
       effectiveDate: data.effectiveDate?.toISOString()
     },
     metadata: {
+      source: 'integration',
       priority: 'high',
+      retryable: true,
       complianceLevel: 'hipaa',
       containsPHI: false,
       eventCategory: 'provider_staff',
       eventSubcategory: 'availability_change',
       vietnameseDescription: 'Trạng thái nhận bệnh nhân của bác sĩ thay đổi'
     }
-  };
+  } as any;
 }
 
 /**
@@ -160,7 +179,6 @@ export function createStaffStatusChangedEvent(data: {
     aggregateId: data.staffId,
     aggregateType: 'Staff',
     occurredAt: new Date(),
-    serviceName: 'provider-staff-service',
     eventData: {
       staffId: data.staffId,
       userId: data.userId,
@@ -170,95 +188,124 @@ export function createStaffStatusChangedEvent(data: {
       changedBy: data.changedBy
     },
     metadata: {
+      source: 'integration',
       priority: 'high',
+      retryable: true,
       complianceLevel: 'hipaa',
       containsPHI: false,
       eventCategory: 'provider_staff',
       eventSubcategory: 'status_change',
       vietnameseDescription: 'Trạng thái nhân viên y tế thay đổi'
     }
-  };
+  } as any;
 }
 
 /**
  * Staff Credential Added Event
  * Published when new credential/certification is added
- * 
+ *
  * Subscribers:
  * - Clinical/EMR Service: Update provider qualifications
  * - Compliance Service: Track certifications
  */
-export function createStaffCredentialAddedEvent(data: {
-  staffId: string;
-  credentialType: string;
-  credentialNumber: string;
-  issuedBy: string;
-  issuedDate: Date;
-  expiryDate?: Date;
-}): IntegrationEvent {
-  return {
-    eventId: `staff-credential-added-${Date.now()}`,
-    eventType: 'provider.staff.credential.added',
-    aggregateId: data.staffId,
-    aggregateType: 'Staff',
-    occurredAt: new Date(),
-    serviceName: 'provider-staff-service',
-    eventData: {
-      staffId: data.staffId,
-      credentialType: data.credentialType,
-      credentialNumber: data.credentialNumber,
-      issuedBy: data.issuedBy,
-      issuedDate: data.issuedDate.toISOString(),
-      expiryDate: data.expiryDate?.toISOString()
-    },
-    metadata: {
-      priority: 'normal',
-      complianceLevel: 'hipaa',
-      containsPHI: false,
-      eventCategory: 'provider_staff',
-      eventSubcategory: 'credential_management',
-      vietnameseDescription: 'Chứng chỉ hành nghề mới được thêm vào'
-    }
-  };
+export class StaffCredentialVerifiedIntegrationEvent extends IntegrationEvent {
+  constructor(data: {
+    staffId: string;
+    credentialType: string;
+    credentialNumber: string;
+    issuedBy: string;
+    issuedDate: Date;
+    expiryDate?: Date;
+  }) {
+    super(
+      'provider.staff.credential.added',
+      'provider-staff-service',
+      data.staffId,
+      'Staff',
+      {
+        staffId: data.staffId,
+        credentialType: data.credentialType,
+        credentialNumber: data.credentialNumber,
+        issuedBy: data.issuedBy,
+        issuedDate: data.issuedDate.toISOString(),
+        expiryDate: data.expiryDate?.toISOString()
+      },
+      undefined,
+      undefined,
+      undefined
+    );
+  }
+
+  public override getEventData(): any {
+    return {
+      staffId: this.aggregateId,
+      credentialType: (this as any).credentialType,
+      credentialNumber: (this as any).credentialNumber,
+      issuedBy: (this as any).issuedBy,
+      issuedDate: (this as any).issuedDate,
+      expiryDate: (this as any).expiryDate
+    };
+  }
+
+  public override containsPHI(): boolean {
+    return false;
+  }
+
+  public override getPatientId(): string | null {
+    return null;
+  }
 }
 
 /**
  * Staff Department Assigned Event
  * Published when staff is assigned to a department
- * 
+ *
  * Subscribers:
  * - Scheduling Service: Update department schedules
  * - Notifications Service: Notify department head
  */
-export function createStaffDepartmentAssignedEvent(data: {
-  staffId: string;
-  departmentId: string;
-  departmentName: string;
-  role: string;
-  assignedBy: string;
-}): IntegrationEvent {
-  return {
-    eventId: `staff-department-assigned-${Date.now()}`,
-    eventType: 'provider.staff.department.assigned',
-    aggregateId: data.staffId,
-    aggregateType: 'Staff',
-    occurredAt: new Date(),
-    serviceName: 'provider-staff-service',
-    eventData: {
-      staffId: data.staffId,
-      departmentId: data.departmentId,
-      departmentName: data.departmentName,
-      role: data.role,
-      assignedBy: data.assignedBy
-    },
-    metadata: {
-      priority: 'normal',
-      complianceLevel: 'hipaa',
-      containsPHI: false,
-      eventCategory: 'provider_staff',
-      eventSubcategory: 'department_assignment',
-      vietnameseDescription: 'Nhân viên được phân công vào khoa'
-    }
-  };
+export class StaffScheduleUpdatedIntegrationEvent extends IntegrationEvent {
+  constructor(data: {
+    staffId: string;
+    departmentId: string;
+    departmentName: string;
+    role: string;
+    assignedBy: string;
+  }) {
+    super(
+      'provider.staff.department.assigned',
+      'provider-staff-service',
+      data.staffId,
+      'Staff',
+      {
+        staffId: data.staffId,
+        departmentId: data.departmentId,
+        departmentName: data.departmentName,
+        role: data.role,
+        assignedBy: data.assignedBy
+      },
+      undefined,
+      undefined,
+      data.assignedBy
+    );
+  }
+
+  public override getEventData(): any {
+    return {
+      staffId: this.aggregateId,
+      departmentId: (this as any).departmentId,
+      departmentName: (this as any).departmentName,
+      role: (this as any).role,
+      assignedBy: (this as any).assignedBy
+    };
+  }
+
+  public override containsPHI(): boolean {
+    return false;
+  }
+
+  public override getPatientId(): string | null {
+    return null;
+  }
 }
 

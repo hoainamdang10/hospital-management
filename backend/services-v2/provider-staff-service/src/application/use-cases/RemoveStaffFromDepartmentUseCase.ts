@@ -98,7 +98,7 @@ export class RemoveStaffFromDepartmentUseCase {
       await this.staffRepository.update(staff);
 
       // Audit log
-      if (this.auditService) {
+      if (this.auditService && this.auditService.logAction) {
         await this.auditService.logAction({
           action: 'REMOVE_STAFF_FROM_DEPARTMENT',
           entityType: 'ProviderStaff',

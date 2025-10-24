@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Repository Pattern
  */
 
-import { NotificationAggregate } from '../aggregates/NotificationAggregate';
+import { Notification } from '../aggregates/Notification';
 import { NotificationId } from '../value-objects/NotificationId';
 
 export type NotificationStatus = 
@@ -83,47 +83,47 @@ export interface INotificationRepository {
   /**
    * Save notification aggregate
    */
-  save(notification: NotificationAggregate): Promise<void>;
+  save(notification: Notification): Promise<void>;
 
   /**
    * Update existing notification
    */
-  update(notification: NotificationAggregate): Promise<void>;
+  update(notification: Notification): Promise<void>;
 
   /**
    * Find notification by ID
    */
-  findById(id: NotificationId): Promise<NotificationAggregate | null>;
+  findById(id: NotificationId): Promise<Notification | null>;
 
   /**
    * Find notifications by recipient
    */
-  findByRecipient(recipientId: string, limit?: number, offset?: number): Promise<NotificationAggregate[]>;
+  findByRecipient(recipientId: string, limit?: number, offset?: number): Promise<Notification[]>;
 
   /**
    * Find notifications by multiple criteria
    */
-  findByCriteria(criteria: NotificationSearchCriteria): Promise<NotificationAggregate[]>;
+  findByCriteria(criteria: NotificationSearchCriteria): Promise<Notification[]>;
 
   /**
    * Find scheduled notifications ready for processing
    */
-  findScheduledForProcessing(beforeTime?: Date, limit?: number): Promise<NotificationAggregate[]>;
+  findScheduledForProcessing(beforeTime?: Date, limit?: number): Promise<Notification[]>;
 
   /**
    * Find failed notifications eligible for retry
    */
-  findFailedForRetry(beforeTime?: Date, maxAttempts?: number, limit?: number): Promise<NotificationAggregate[]>;
+  findFailedForRetry(beforeTime?: Date, maxAttempts?: number, limit?: number): Promise<Notification[]>;
 
   /**
    * Find notifications by status
    */
-  findByStatus(status: NotificationStatus, limit?: number, offset?: number): Promise<NotificationAggregate[]>;
+  findByStatus(status: NotificationStatus, limit?: number, offset?: number): Promise<Notification[]>;
 
   /**
    * Find urgent notifications
    */
-  findUrgentNotifications(limit?: number): Promise<NotificationAggregate[]>;
+  findUrgentNotifications(limit?: number): Promise<Notification[]>;
 
   /**
    * Find notifications by healthcare context
@@ -133,27 +133,27 @@ export interface INotificationRepository {
     doctorId?: string;
     appointmentId?: string;
     medicalRecordId?: string;
-  }, limit?: number): Promise<NotificationAggregate[]>;
+  }, limit?: number): Promise<Notification[]>;
 
   /**
    * Find notifications by template type
    */
-  findByTemplateType(templateType: string, limit?: number, offset?: number): Promise<NotificationAggregate[]>;
+  findByTemplateType(templateType: string, limit?: number, offset?: number): Promise<Notification[]>;
 
   /**
    * Find notifications by channel
    */
-  findByChannel(channel: string, limit?: number, offset?: number): Promise<NotificationAggregate[]>;
+  findByChannel(channel: string, limit?: number, offset?: number): Promise<Notification[]>;
 
   /**
    * Find notifications by date range
    */
-  findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<NotificationAggregate[]>;
+  findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<Notification[]>;
 
   /**
    * Find duplicate notifications (same recipient, template, content hash)
    */
-  findDuplicates(recipientId: string, templateType: string, contentHash: string, withinHours?: number): Promise<NotificationAggregate[]>;
+  findDuplicates(recipientId: string, templateType: string, contentHash: string, withinHours?: number): Promise<Notification[]>;
 
   /**
    * Count notifications by criteria
@@ -203,37 +203,37 @@ export interface INotificationRepository {
   /**
    * Get notifications requiring immediate attention (failed urgent notifications)
    */
-  getNotificationsRequiringAttention(): Promise<NotificationAggregate[]>;
+  getNotificationsRequiringAttention(): Promise<Notification[]>;
 
   /**
    * Get notification history for recipient
    */
-  getRecipientHistory(recipientId: string, limit?: number, offset?: number): Promise<NotificationAggregate[]>;
+  getRecipientHistory(recipientId: string, limit?: number, offset?: number): Promise<Notification[]>;
 
   /**
    * Get recent notifications for dashboard
    */
-  getRecentNotifications(limit?: number): Promise<NotificationAggregate[]>;
+  getRecentNotifications(limit?: number): Promise<Notification[]>;
 
   /**
    * Get notifications by correlation ID (for tracing)
    */
-  findByCorrelationId(correlationId: string): Promise<NotificationAggregate[]>;
+  findByCorrelationId(correlationId: string): Promise<Notification[]>;
 
   /**
    * Get overdue notifications (scheduled but not processed)
    */
-  findOverdueNotifications(overdueThreshold?: number): Promise<NotificationAggregate[]>;
+  findOverdueNotifications(overdueThreshold?: number): Promise<Notification[]>;
 
   /**
    * Get notifications with high retry count
    */
-  findHighRetryNotifications(minRetryCount?: number): Promise<NotificationAggregate[]>;
+  findHighRetryNotifications(minRetryCount?: number): Promise<Notification[]>;
 
   /**
    * Get notifications by priority and status
    */
-  findByPriorityAndStatus(priority: NotificationPriority, status: NotificationStatus, limit?: number): Promise<NotificationAggregate[]>;
+  findByPriorityAndStatus(priority: NotificationPriority, status: NotificationStatus, limit?: number): Promise<Notification[]>;
 
   /**
    * Update notification status

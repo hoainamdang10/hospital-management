@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-export type RecipientType = 'PATIENT' | 'DOCTOR' | 'STAFF' | 'ADMIN' | 'FAMILY' | 'EXTERNAL';
+export type RecipientType = 'PATIENT' | 'DOCTOR' | 'NURSE' | 'ADMIN' | 'FAMILY' | 'EXTERNAL';
 
 export interface ContactInfo {
   email?: string;
@@ -321,7 +321,7 @@ export class RecipientInfo {
     const typeNames: Record<RecipientType, string> = {
       PATIENT: 'Bệnh nhân',
       DOCTOR: 'Bác sĩ',
-      STAFF: 'Nhân viên',
+      NURSE: 'Điều dưỡng',
       ADMIN: 'Quản trị viên',
       FAMILY: 'Thân nhân',
       EXTERNAL: 'Bên ngoài'

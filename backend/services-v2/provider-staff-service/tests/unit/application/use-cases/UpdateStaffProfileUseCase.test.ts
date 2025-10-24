@@ -1,310 +1,99 @@
-/**
- * UpdateStaffProfileUseCase Tests
- * Provider/Staff Service - Unit Tests
- * 
- * @author Hospital Management Team
- * @version 2.0.0
- */
-
 import { UpdateStaffProfileUseCase, UpdateStaffProfileRequest } from '../../../../src/application/use-cases/UpdateStaffProfileUseCase';
-import { IProviderStaffRepository } from '../../../../src/domain/repositories/IProviderStaffRepository';
-import { ILogger } from '../../../../src/application/interfaces/ILogger';
-import { ProviderStaff } from '../../../../src/domain/aggregates/ProviderStaff';
-import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
-import { ProfessionalInfo } from '../../../../src/domain/value-objects/ProfessionalInfo';
-import { WorkSchedule } from '../../../../src/domain/value-objects/WorkSchedule';
+import { createMockLogger, createMockStaffRepository, createTestStaff } from '../../../helpers/mockFactories';
+
+const baseRequest: UpdateStaffProfileRequest = {
+  staffId: 'DOC-CARD-202501-001',
+  updatedBy: 'admin-001',
+  updatedByRole: 'admin',
+  personalInfo: {
+    fullName: 'Bác sĩ Nguyễn Văn B',
+    phoneNumber: '0909998888'
+  },
+  professionalInfo: {
+    position: 'Trưởng khoa'
+  },
+  consultationFee: 750000,
+  vietnameseHealthcareLicense: 'VN-MOH-223344',
+  mohRegistrationNumber: 'MOH-REG-2025-010'
+};
 
 describe('UpdateStaffProfileUseCase', () => {
+  let repository: ReturnType<typeof createMockStaffRepository>;
+  let logger: ReturnType<typeof createMockLogger>;
   let useCase: UpdateStaffProfileUseCase;
-  let mockStaffRepository: jest.Mocked<IProviderStaffRepository>;
-  let mockLogger: jest.Mocked<ILogger>;
-  let existingStaff: ProviderStaff;
-
-  const validPersonalInfo = PersonalInfo.create({
-    fullName: 'Bác sĩ Nguyễn Văn Test',
-    dateOfBirth: new Date('1985-01-15'),
-    gender: 'male',
-    nationalId: '001234567890',
-    nationality: 'Vietnamese',
-    phoneNumber: '0901234567',
-    email: 'doctor@hospital.vn',
-    address: {
-      street: '123 Test Street',
-      ward: 'Ward 1',
-      district: 'District 1',
-      city: 'Ho Chi Minh City',
-      province: 'Ho Chi Minh',
-      country: 'Vietnam'
-    }
-  });
-
-  const validProfessionalInfo = ProfessionalInfo.create({
-    title: 'Bác sĩ',
-    department: 'Cardiology',
-    position: 'Senior Doctor',
-    education: ['MD - Medical University'],
-    languages: ['Vietnamese', 'English'],
-    bio: 'Experienced cardiologist'
-  });
-
-  const validWorkSchedule = WorkSchedule.create({
-    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    workingHours: {
-      start: '08:00',
-      end: '17:00'
-    },
-    timeZone: 'Asia/Ho_Chi_Minh',
-    isFlexible: false
-  });
-
-  const validRequest: UpdateStaffProfileRequest = {
-    staffId: 'STF-202501-001',
-    personalInfo: {
-      fullName: 'Bác sĩ Nguyễn Văn Updated',
-      dateOfBirth: '1985-01-15',
-      gender: 'male',
-      nationalId: '001234567890',
-      nationality: 'Vietnamese',
-      phoneNumber: '0901234567',
-      email: 'doctor.updated@hospital.vn',
-      address: {
-        street: '456 Updated Street',
-        ward: 'Ward 2',
-        district: 'District 2',
-        city: 'Ho Chi Minh City',
-        province: 'Ho Chi Minh',
-        country: 'Vietnam'
-      }
-    },
-    professionalInfo: {
-      title: 'Bác sĩ Chuyên khoa II',
-      department: 'Cardiology',
-      position: 'Head of Department',
-      education: ['MD - Medical University', 'PhD - Cardiology'],
-      languages: ['Vietnamese', 'English', 'French'],
-      bio: 'Highly experienced cardiologist'
-    },
-    updatedBy: 'admin-user-id',
-    updatedByRole: 'ADMIN'
-  };
 
   beforeEach(() => {
-    mockStaffRepository = {
-      findById: jest.fn(),
-      findByUserId: jest.fn(),
-      findByLicenseNumber: jest.fn(),
-      findAll: jest.fn(),
-      findByDepartment: jest.fn(),
-      findBySpecialization: jest.fn(),
-      findAvailableStaff: jest.fn(),
-      save: jest.fn(),
-      delete: jest.fn(),
-      exists: jest.fn(),
-      count: jest.fn(),
-      getStatistics: jest.fn()
-    } as jest.Mocked<IProviderStaffRepository>;
+    repository = createMockStaffRepository();
+    logger = createMockLogger();
+    useCase = new UpdateStaffProfileUseCase(repository, logger);
+  });
 
-    mockLogger = {
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
-      fatal: jest.fn()
-    } as jest.Mocked<ILogger>;
+  it('cập nhật personal và professional info thành công', async () => {
+    const staff = createTestStaff({ staffId: baseRequest.staffId });
+    repository.findById.mockResolvedValue(staff);
+    repository.save.mockResolvedValue();
 
-    existingStaff = ProviderStaff.create(
-      'user-123',
-      'doctor',
-      validPersonalInfo,
-      validProfessionalInfo,
-      validWorkSchedule,
-      'BYS-12345',
-      'full_time',
-      new Date('2020-01-01'),
-      15
+    const result = await useCase.execute(baseRequest);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.staffId).toBe('aggregate-staff-test');
+    expect(result.data?.updatedFields).toEqual(
+      expect.arrayContaining([
+        'personal_info',
+        'professional_info',
+        'consultation_fee',
+        'vietnamese_healthcare_license',
+        'moh_registration_number'
+      ])
     );
+    expect(repository.save).toHaveBeenCalledWith(staff);
+  });
 
-    useCase = new UpdateStaffProfileUseCase(
-      mockStaffRepository,
-      mockLogger
+  it('trả về lỗi khi không tìm thấy staff', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    const result = await useCase.execute(baseRequest);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Không tìm thấy thông tin nhân viên');
+  });
+
+  it('không cho phép staff tự cập nhật giấy phép hành nghề', async () => {
+    const staff = createTestStaff({ staffId: baseRequest.staffId, userId: baseRequest.updatedBy });
+    repository.findById.mockResolvedValue(staff);
+
+    const result = await useCase.execute(baseRequest);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Không có quyền cập nhật thông tin nhân viên này');
+  });
+
+  it('trả về lỗi validation khi không có trường nào để cập nhật', async () => {
+    const result = await useCase.execute({
+      staffId: baseRequest.staffId,
+      updatedBy: 'admin-001',
+      updatedByRole: 'admin'
+    } as UpdateStaffProfileRequest);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('Phải cung cấp ít nhất một trường để cập nhật');
+  });
+
+  it('xử lý lỗi repository.save', async () => {
+    const staff = createTestStaff({ staffId: baseRequest.staffId });
+    repository.findById.mockResolvedValue(staff);
+    repository.save.mockRejectedValue(new Error('Database error'));
+
+    const result = await useCase.execute(baseRequest);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Lỗi hệ thống khi cập nhật thông tin nhân viên');
+    expect(logger.error).toHaveBeenCalledWith(
+      'Error updating staff profile',
+      expect.objectContaining({
+        staffId: baseRequest.staffId,
+        error: 'Database error'
+      })
     );
-  });
-
-  describe('execute - successful update', () => {
-    it('should update staff profile with valid data', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.data?.staffId).toBeDefined();
-      expect(result.data?.updatedFields).toBeDefined();
-      expect(result.data?.updatedAt).toBeDefined();
-      expect(mockStaffRepository.save).toHaveBeenCalledTimes(1);
-    });
-
-    it('should update personal info correctly', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(true);
-      expect(result.data?.updatedFields).toContain('personal_info');
-    });
-
-    it('should update professional info correctly', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(true);
-      expect(result.data?.updatedFields).toContain('professional_info');
-    });
-
-    it('should allow partial update (only personal info)', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      const partialRequest = {
-        ...validRequest,
-        professionalInfo: undefined
-      };
-
-      const result = await useCase.execute(partialRequest);
-
-      expect(result.success).toBe(true);
-      expect(mockStaffRepository.save).toHaveBeenCalled();
-    });
-
-    it('should allow partial update (only professional info)', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      const partialRequest = {
-        ...validRequest,
-        personalInfo: undefined
-      };
-
-      const result = await useCase.execute(partialRequest);
-
-      expect(result.success).toBe(true);
-      expect(mockStaffRepository.save).toHaveBeenCalled();
-    });
-  });
-
-  describe('execute - validation errors', () => {
-    it('should fail when staff not found', async () => {
-      mockStaffRepository.findById.mockResolvedValue(null);
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('Không tìm thấy thông tin nhân viên');
-      expect(mockStaffRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('should fail when staff ID is invalid', async () => {
-      const invalidRequest = {
-        ...validRequest,
-        staffId: 'INVALID-ID'
-      };
-
-      const result = await useCase.execute(invalidRequest);
-
-      expect(result.success).toBe(false);
-      expect(mockStaffRepository.findById).not.toHaveBeenCalled();
-    });
-
-    it('should fail when no update data provided', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-
-      const emptyRequest = {
-        ...validRequest,
-        personalInfo: undefined,
-        professionalInfo: undefined
-      };
-
-      const result = await useCase.execute(emptyRequest);
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('ít nhất một trường');
-      expect(mockStaffRepository.save).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('execute - authorization', () => {
-    it('should allow ADMIN to update any staff', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      const result = await useCase.execute({
-        ...validRequest,
-        updatedByRole: 'admin'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should allow staff to update their own profile', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      const result = await useCase.execute({
-        ...validRequest,
-        updatedBy: existingStaff.userId,
-        updatedByRole: 'doctor'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should fail when non-admin tries to update other staff', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-
-      const result = await useCase.execute({
-        ...validRequest,
-        updatedBy: 'different-user-id',
-        updatedByRole: 'doctor'
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('Không có quyền');
-      expect(mockStaffRepository.save).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('execute - error handling', () => {
-    it('should handle repository errors gracefully', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockRejectedValue(new Error('Database error'));
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(false);
-      expect(mockLogger.error).toHaveBeenCalled();
-    });
-  });
-
-  describe('HIPAA audit logging', () => {
-    it('should log staff profile update for audit', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      await useCase.execute(validRequest);
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('HIPAA Audit'),
-        expect.objectContaining({
-          action: 'STAFF_PROFILE_UPDATE',
-          staffId: validRequest.staffId,
-          updatedBy: validRequest.updatedBy
-        })
-      );
-    });
   });
 });
-

@@ -1,256 +1,274 @@
 /**
- * Test Setup - Provider/Staff Service
- * Global test configuration and utilities
+ * Jest Setup File
+ * Global test configuration and mocks
  * 
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
-import dotenv from 'dotenv';
-import path from 'path';
+import { config } from 'dotenv';
+import { randomUUID } from 'crypto';
 
-// Load test environment variables
-dotenv.config({ path: path.join(__dirname, '../.env.test') });
+// Load environment variables from .env file
+config();
 
-// Set test environment
-process.env.NODE_ENV = 'test';
-process.env.TZ = 'Asia/Ho_Chi_Minh';
+// Mock uuid module
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => '00000000-0000-0000-0000-000000000000')
+}));
 
-// Increase test timeout for integration tests
-jest.setTimeout(30000);
+// Set timezone to UTC for consistent date testing
+process.env.TZ = 'UTC';
 
-// Mock console methods to reduce noise in tests
-global.console = {
-  ...console,
-  log: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn()
-};
-
-// Test utilities
+/**
+ * Test Utilities
+ */
 export class TestUtils {
-  /**
-   * Generate random staff ID
-   */
   static generateRandomStaffId(): string {
-    const year = new Date().getFullYear();
-    const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `STF-${year}${month}-${random}`;
+    const types = ['DOC', 'NUR', 'TEC', 'PHA', 'THE', 'ADM', 'REC'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const dept = 'TEST';
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const seq = Math.floor(Math.random() * 999) + 1;
+    const seqStr = seq.toString().padStart(3, '0');
+    return `${type}-${dept}-${year}${month}-${seqStr}`;
   }
 
-  /**
-   * Generate random user ID
-   */
   static generateRandomUserId(): string {
-    return `user-${Math.random().toString(36).substring(2, 11)}`;
+    return randomUUID();
   }
 
-  /**
-   * Generate random email
-   */
   static generateRandomEmail(): string {
-    const randomString = Math.random().toString(36).substring(2, 10);
-    return `test-${randomString}@hospital.test`;
+    return `test-${randomUUID()}@hospital-test.vn`;
   }
 
-  /**
-   * Generate random Vietnamese phone number
-   */
   static generateRandomPhone(): string {
-    const prefixes = ['090', '091', '092', '093', '094', '095', '096', '097', '098', '099'];
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const suffix = Math.floor(Math.random() * 10000000).toString().padStart(7, '0');
-    return `${prefix}${suffix}`;
+    const random = Math.floor(Math.random() * 900000000) + 100000000;
+    return `09${random.toString().substring(0, 8)}`;
   }
 
-  /**
-   * Generate random Vietnamese national ID (CCCD)
-   */
   static generateRandomNationalId(): string {
-    return Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0');
+    const prefixes = ['001', '002', '004', '005', '007'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const randomPart = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    return `${prefix}${randomPart}`.substring(0, 12);
   }
 
-  /**
-   * Generate random license number
-   */
   static generateRandomLicenseNumber(): string {
-    const prefix = 'BYS';
-    const number = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-    return `${prefix}-${number}`;
+    const sequence = Math.floor(Math.random() * 90000) + 10000;
+    return `BYS-${sequence}`;
   }
 
-  /**
-   * Sleep utility
-   */
   static sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Wait for condition
-   */
   static async waitFor(
-    condition: () => boolean | Promise<boolean>,
-    timeout: number = 5000,
-    interval: number = 100
+    predicate: () => boolean | Promise<boolean>,
+    timeoutMs: number = 5000,
+    intervalMs: number = 100
   ): Promise<void> {
-    const startTime = Date.now();
+    const start = Date.now();
 
-    while (Date.now() - startTime < timeout) {
-      if (await condition()) {
+    while (Date.now() - start <= timeoutMs) {
+      const result = await predicate();
+      if (result) {
         return;
       }
-      await TestUtils.sleep(interval);
+      await TestUtils.sleep(intervalMs);
     }
 
-    throw new Error(`Timeout waiting for condition after ${timeout}ms`);
+    throw new Error('Timeout waiting for condition');
   }
 
-  /**
-   * Format Vietnamese currency
-   */
   static formatVNDAmount(amount: number): string {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(amount);
+    const safeAmount = Number.isFinite(amount) ? Math.round(amount) : 0;
+    return `${safeAmount.toLocaleString('vi-VN')} VND`;
   }
 }
 
-// Test data factories
+/**
+ * Test Data Factory
+ */
 export class TestDataFactory {
-  /**
-   * Create valid staff registration data
-   */
+  static createStaffData(overrides: any = {}) {
+    return this.createValidStaffData(overrides);
+  }
+
   static createValidStaffData(overrides: any = {}) {
-    return {
-      userId: overrides.userId || TestUtils.generateRandomUserId(),
-      staffType: overrides.staffType || 'doctor',
-      personalInfo: {
-        fullName: overrides.fullName || 'Bác sĩ Nguyễn Văn Test',
-        dateOfBirth: overrides.dateOfBirth || '1985-01-01',
-        gender: overrides.gender || 'male',
-        nationalId: overrides.nationalId || TestUtils.generateRandomNationalId(),
-        phoneNumber: overrides.phoneNumber || TestUtils.generateRandomPhone(),
-        email: overrides.email || TestUtils.generateRandomEmail()
-      },
-      professionalInfo: {
-        licenseNumber: overrides.licenseNumber || TestUtils.generateRandomLicenseNumber(),
-        specialization: overrides.specialization || 'Nội khoa',
-        department: overrides.department || 'Khoa Nội',
-        yearsOfExperience: overrides.yearsOfExperience || 10
-      },
-      ...overrides
-    };
+    return this.createBaseStaffData(overrides);
   }
 
-  /**
-   * Create valid doctor data
-   */
   static createValidDoctorData(overrides: any = {}) {
-    return TestDataFactory.createValidStaffData({
-      ...overrides,
+    return this.createBaseStaffData({
       staffType: 'doctor',
-      professionalInfo: {
-        licenseNumber: TestUtils.generateRandomLicenseNumber(),
-        specialization: overrides.specialization || 'Tim mạch',
-        department: overrides.department || 'Khoa Tim mạch',
-        yearsOfExperience: overrides.yearsOfExperience || 15,
-        consultationFee: overrides.consultationFee || 500000
-      }
+      title: 'Bác sĩ',
+      position: 'Bác sĩ điều trị',
+      department: 'Khoa Nội tổng quát',
+      consultationFee: overrides.consultationFee ?? 500000,
+      ...overrides
     });
   }
 
-  /**
-   * Create valid nurse data
-   */
   static createValidNurseData(overrides: any = {}) {
-    return TestDataFactory.createValidStaffData({
-      ...overrides,
+    return this.createBaseStaffData({
       staffType: 'nurse',
-      professionalInfo: {
-        licenseNumber: TestUtils.generateRandomLicenseNumber(),
-        specialization: overrides.specialization || 'Điều dưỡng đa khoa',
-        department: overrides.department || 'Khoa Nội',
-        yearsOfExperience: overrides.yearsOfExperience || 5
-      }
+      title: 'Điều dưỡng',
+      position: 'Điều dưỡng viên',
+      consultationFee: overrides.consultationFee ?? 0,
+      specializations: [],
+      ...overrides
     });
   }
 
-  /**
-   * Create valid technician data
-   */
   static createValidTechnicianData(overrides: any = {}) {
-    return TestDataFactory.createValidStaffData({
-      ...overrides,
+    return this.createBaseStaffData({
       staffType: 'technician',
-      professionalInfo: {
-        licenseNumber: TestUtils.generateRandomLicenseNumber(),
-        specialization: overrides.specialization || 'Kỹ thuật X-quang',
-        department: overrides.department || 'Khoa Chẩn đoán hình ảnh',
-        yearsOfExperience: overrides.yearsOfExperience || 7
-      }
+      title: 'Kỹ thuật viên',
+      position: 'KTV xét nghiệm',
+      consultationFee: overrides.consultationFee ?? 0,
+      specializations: [],
+      ...overrides
     });
   }
 
-  /**
-   * Create valid pharmacist data
-   */
   static createValidPharmacistData(overrides: any = {}) {
-    return TestDataFactory.createValidStaffData({
-      ...overrides,
+    return this.createBaseStaffData({
       staffType: 'pharmacist',
-      professionalInfo: {
-        licenseNumber: TestUtils.generateRandomLicenseNumber(),
-        specialization: overrides.specialization || 'Dược lâm sàng',
-        department: overrides.department || 'Khoa Dược',
-        yearsOfExperience: overrides.yearsOfExperience || 8
-      }
+      title: 'Dược sĩ',
+      position: 'Quản lý dược phẩm',
+      consultationFee: overrides.consultationFee ?? 0,
+      specializations: [],
+      ...overrides
     });
   }
 
-  /**
-   * Create work schedule data
-   */
   static createWorkScheduleData(overrides: any = {}) {
+    const workingHours = overrides.workingHours || {};
+
     return {
-      monday: overrides.monday || { start: '08:00', end: '17:00', isWorking: true },
-      tuesday: overrides.tuesday || { start: '08:00', end: '17:00', isWorking: true },
-      wednesday: overrides.wednesday || { start: '08:00', end: '17:00', isWorking: true },
-      thursday: overrides.thursday || { start: '08:00', end: '17:00', isWorking: true },
-      friday: overrides.friday || { start: '08:00', end: '17:00', isWorking: true },
-      saturday: overrides.saturday || { start: '08:00', end: '12:00', isWorking: true },
-      sunday: overrides.sunday || { isWorking: false }
+      workingDays: overrides.workingDays || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      workingHours: {
+        start: workingHours.start || '08:00',
+        end: workingHours.end || '17:00'
+      },
+      timeZone: overrides.timeZone || 'Asia/Ho_Chi_Minh',
+      isFlexible: overrides.isFlexible ?? false
     };
   }
 
-  /**
-   * Create credential data
-   */
   static createCredentialData(overrides: any = {}) {
     return {
       credentialType: overrides.credentialType || 'medical_license',
-      credentialNumber: overrides.credentialNumber || TestUtils.generateRandomLicenseNumber(),
+      credentialNumber: overrides.credentialNumber || `CRED-${Date.now()}`,
       issuedBy: overrides.issuedBy || 'Bộ Y tế',
-      issuedDate: overrides.issuedDate || '2015-01-01',
-      expiryDate: overrides.expiryDate || '2025-01-01',
-      documentUrl: overrides.documentUrl || 'https://example.com/credential.pdf'
+      issuedDate: this.normalizeDate(overrides.issuedDate || new Date()),
+      expiryDate: overrides.expiryDate ? this.normalizeDate(overrides.expiryDate) : undefined,
+      documentUrl: overrides.documentUrl || 'https://storage.test/credential.pdf'
     };
   }
+
+  private static createBaseStaffData(overrides: any = {}) {
+    const personalInfoOverrides = overrides.personalInfo || {};
+    const addressOverrides = overrides.address || personalInfoOverrides.address || {};
+    const professionalOverrides = overrides.professionalInfo || {};
+    const workScheduleOverrides = overrides.workSchedule || {};
+
+    const staffType = overrides.staffType || professionalOverrides.staffType || 'doctor';
+
+    const personalInfo = {
+      fullName: overrides.fullName || personalInfoOverrides.fullName || 'Test Staff',
+      dateOfBirth: this.normalizeDate(overrides.dateOfBirth || personalInfoOverrides.dateOfBirth || '1985-01-01'),
+      gender: overrides.gender || personalInfoOverrides.gender || 'male',
+      nationalId: overrides.nationalId || personalInfoOverrides.nationalId || TestUtils.generateRandomNationalId(),
+      nationality: overrides.nationality || personalInfoOverrides.nationality || 'Vietnamese',
+      phoneNumber: overrides.phoneNumber || personalInfoOverrides.phoneNumber || TestUtils.generateRandomPhone(),
+      email: overrides.email || personalInfoOverrides.email || TestUtils.generateRandomEmail(),
+      address: {
+        street: overrides.street || addressOverrides.street || '123 Test St',
+        ward: overrides.ward || addressOverrides.ward || 'Ward 1',
+        district: overrides.district || addressOverrides.district || 'District 1',
+        city: overrides.city || addressOverrides.city || 'Ho Chi Minh',
+        province: overrides.province || addressOverrides.province || 'Ho Chi Minh',
+        country: overrides.country || addressOverrides.country || 'Vietnam'
+      }
+    };
+
+    const professionalInfo = {
+      title: overrides.title || professionalOverrides.title || 'Bác sĩ',
+      department: overrides.department || professionalOverrides.department || 'Khoa Nội tổng quát',
+      position: overrides.position || professionalOverrides.position || 'Bác sĩ điều trị',
+      education: overrides.education || professionalOverrides.education || ['Doctor of Medicine'],
+      languages: overrides.languages || professionalOverrides.languages || ['Vietnamese', 'English'],
+      bio: overrides.bio || professionalOverrides.bio
+    };
+
+    const workingDays = overrides.workingDays || workScheduleOverrides.workingDays;
+    const workingHoursOverrides = overrides.workingHours || workScheduleOverrides.workingHours || {};
+
+    const workSchedule = {
+      workingDays: workingDays || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      workingHours: {
+        start: workingHoursOverrides.start || '08:00',
+        end: workingHoursOverrides.end || '17:00'
+      },
+      timeZone: overrides.timeZone || workScheduleOverrides.timeZone || 'Asia/Ho_Chi_Minh',
+      isFlexible: overrides.isFlexible ?? workScheduleOverrides.isFlexible ?? false
+    };
+
+    const specializations =
+      overrides.specializations ||
+      professionalOverrides.specializations ||
+      (staffType === 'doctor'
+        ? [
+            {
+              code: overrides.specializationCode || 'CARD',
+              name: overrides.specialization || 'Tim mạch',
+              description: overrides.specializationDescription || 'Chuyên khoa Tim mạch',
+              isActive: true
+            }
+          ]
+        : []);
+
+    return {
+      userId: overrides.userId || personalInfoOverrides.userId || TestUtils.generateRandomUserId(),
+      staffType,
+      personalInfo,
+      professionalInfo,
+      workSchedule,
+      licenseNumber: overrides.licenseNumber || professionalOverrides.licenseNumber || TestUtils.generateRandomLicenseNumber(),
+      employmentType: overrides.employmentType || overrides.employment?.employmentType || 'full_time',
+      hireDate: this.normalizeDate(overrides.hireDate || overrides.employment?.hireDate || new Date()),
+      contractEndDate: overrides.contractEndDate
+        ? this.normalizeDate(overrides.contractEndDate)
+        : overrides.employment?.contractEndDate
+        ? this.normalizeDate(overrides.employment.contractEndDate)
+        : undefined,
+      yearsOfExperience: overrides.yearsOfExperience ?? professionalOverrides.yearsOfExperience ?? 5,
+      consultationFee: overrides.consultationFee ?? professionalOverrides.consultationFee ?? (staffType === 'doctor' ? 500000 : 0),
+      specializations,
+      vietnameseHealthcareLicense:
+        overrides.vietnameseHealthcareLicense ?? professionalOverrides.vietnameseHealthcareLicense,
+      mohRegistrationNumber:
+        overrides.mohRegistrationNumber ?? professionalOverrides.mohRegistrationNumber
+    };
+  }
+
+  private static normalizeDate(value: any): string {
+    if (!value) {
+      return new Date().toISOString();
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (typeof value === 'number') {
+      return new Date(value).toISOString();
+    }
+
+    return new Date(value).toISOString();
+  }
 }
-
-// Mock logger for tests
-export const createMockLogger = () => ({
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  fatal: jest.fn()
-});
-
-// Export for use in tests
-export { dotenv };
-

@@ -92,9 +92,7 @@ export class AddStaffCertificationUseCase implements IUseCase<AddStaffCertificat
         certificationName: request.certification.certificationType,
         issuingOrganization: request.certification.issuingAuthority,
         issueDate: new Date(request.certification.issueDate),
-        expiryDate: request.certification.expiryDate ? new Date(request.certification.expiryDate) : undefined,
-        credentialId: request.certification.certificationNumber,
-        verificationUrl: request.certification.verificationUrl
+        expiryDate: request.certification.expiryDate ? new Date(request.certification.expiryDate) : undefined
       });
 
       // Add certification to staff
@@ -107,7 +105,7 @@ export class AddStaffCertificationUseCase implements IUseCase<AddStaffCertificat
       await this.auditCertificationAdd(staff, request, certification);
 
       this.logger.info('Staff certification added successfully', {
-        staffId: staff.id.value,
+        staffId: staff.id,
         certificationId: certification.id,
         addedBy: request.addedBy
       });
@@ -116,7 +114,7 @@ export class AddStaffCertificationUseCase implements IUseCase<AddStaffCertificat
         success: true,
         message: 'Thêm chứng chỉ thành công',
         data: {
-          staffId: staff.id.value,
+          staffId: staff.id,
           certificationId: certification.id,
           addedAt: staff.updatedAt.toISOString()
         }
@@ -178,7 +176,7 @@ export class AddStaffCertificationUseCase implements IUseCase<AddStaffCertificat
   ): Promise<void> {
     this.logger.info('HIPAA Audit: Staff certification added', {
       action: 'ADD_STAFF_CERTIFICATION',
-      staffId: staff.id.value,
+      staffId: staff.id,
       certificationId: certification.id,
       certificationType: request.certification.certificationType,
       addedBy: request.addedBy,

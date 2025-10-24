@@ -1,0 +1,14 @@
+c148b804cb00284b549afc83653cabf7
+"use strict";
+/**
+ * Scheduling Service Tests
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+describe('Scheduling Service', () => {
+    it('should be defined', () => {
+        expect(true).toBe(true);
+    });
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXGhvc3BpdGFsLW1hbmFnZW1lbnQtVjJcXGJhY2tlbmRcXHNlcnZpY2VzLXYyXFxhcHBvaW50bWVudHMtc2VydmljZVxcdGVzdHNcXHVuaXRcXHNlcnZpY2UudGVzdC50cyIsIm1hcHBpbmdzIjoiO0FBQUE7Ozs7O0dBS0c7QUFFSCxRQUFRLENBQUMsb0JBQW9CLEVBQUUsR0FBRyxFQUFFO0lBQ2xDLEVBQUUsQ0FBQyxtQkFBbUIsRUFBRSxHQUFHLEVBQUU7UUFDM0IsTUFBTSxDQUFDLElBQUksQ0FBQyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsQ0FBQztJQUMxQixDQUFDLENBQUMsQ0FBQztBQUNMLENBQUMsQ0FBQyxDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxob3NwaXRhbC1tYW5hZ2VtZW50LVYyXFxiYWNrZW5kXFxzZXJ2aWNlcy12MlxcYXBwb2ludG1lbnRzLXNlcnZpY2VcXHRlc3RzXFx1bml0XFxzZXJ2aWNlLnRlc3QudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBTY2hlZHVsaW5nIFNlcnZpY2UgVGVzdHNcbiAqIFxuICogQGF1dGhvciBIb3NwaXRhbCBNYW5hZ2VtZW50IFRlYW1cbiAqIEB2ZXJzaW9uIDIuMC4wXG4gKi9cblxuZGVzY3JpYmUoJ1NjaGVkdWxpbmcgU2VydmljZScsICgpID0+IHtcbiAgaXQoJ3Nob3VsZCBiZSBkZWZpbmVkJywgKCkgPT4ge1xuICAgIGV4cGVjdCh0cnVlKS50b0JlKHRydWUpO1xuICB9KTtcbn0pO1xuIl0sInZlcnNpb24iOjN9

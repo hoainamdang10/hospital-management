@@ -6,18 +6,23 @@
  * @compliance Clean Architecture, DDD, Event Sourcing, HIPAA
  */
 
-import { DomainEvent } from '../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { StaffId } from '../value-objects/StaffId';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { ProfessionalInfo } from '../value-objects/ProfessionalInfo';
+import { WorkSchedule } from '../value-objects/WorkSchedule';
 
 export class StaffRegisteredEvent extends DomainEvent {
   constructor(
     public readonly staffId: StaffId,
-    public readonly userId: string,
+    public override readonly userId: string,
     public readonly staffType: string,
     public readonly personalInfo: PersonalInfo,
     public readonly professionalInfo: ProfessionalInfo,
+    public readonly licenseNumber: string,
+    public readonly employmentType: string,
+    public readonly hireDate: Date,
+    public readonly workSchedule: WorkSchedule,
     correlationId?: string,
     causationId?: string,
     requestedBy?: string
@@ -31,7 +36,11 @@ export class StaffRegisteredEvent extends DomainEvent {
         userId,
         staffType,
         personalInfo: personalInfo.toPersistence(),
-        professionalInfo: professionalInfo.toPersistence()
+        professionalInfo: professionalInfo.toPersistence(),
+        licenseNumber,
+        employmentType,
+        hireDate: hireDate.toISOString(),
+        workSchedule: workSchedule.toPersistence()
       },
       1,
       correlationId,
@@ -47,6 +56,10 @@ export class StaffRegisteredEvent extends DomainEvent {
       staffType: this.staffType,
       personalInfo: this.personalInfo.toPersistence(),
       professionalInfo: this.professionalInfo.toPersistence(),
+      licenseNumber: this.licenseNumber,
+      employmentType: this.employmentType,
+      hireDate: this.hireDate.toISOString(),
+      workSchedule: this.workSchedule.toPersistence(),
       occurredAt: this.occurredAt.toISOString()
     };
   }

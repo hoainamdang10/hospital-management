@@ -220,6 +220,28 @@ export class NotificationChannel {
   }
 
   /**
+   * Create channel from type string (simple factory)
+   */
+  public static create(channelType: string): NotificationChannel {
+    const type = channelType.toUpperCase() as ChannelType;
+
+    switch (type) {
+      case 'EMAIL':
+        return NotificationChannel.createEmail();
+      case 'SMS':
+        return NotificationChannel.createSMS();
+      case 'PUSH':
+        return NotificationChannel.createPush();
+      case 'IN_APP':
+        return NotificationChannel.createInApp();
+      case 'VOICE':
+        return NotificationChannel.createVoice();
+      default:
+        throw new Error(`Unsupported channel type: ${channelType}`);
+    }
+  }
+
+  /**
    * Create multi-channel configuration for healthcare notifications
    */
   public static createHealthcareChannels(): NotificationChannel[] {

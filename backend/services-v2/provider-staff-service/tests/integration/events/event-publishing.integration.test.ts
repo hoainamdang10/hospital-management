@@ -8,22 +8,34 @@
  */
 
 import { createFullTestApp, AppFactoryResult } from '../../helpers/appFactory';
+import { createStaffUpdatedEvent } from '../../../src/infrastructure/events/IntegrationEvents';
 import { MockRabbitMQEventPublisher } from '../../helpers/testHelpers';
-import { createStaffRegisteredEvent } from '../../../src/infrastructure/events/IntegrationEvents';
-import { TestUtils } from '../../setup';
 
 describe('Event Publishing Integration Tests', () => {
-  let cleanup: () => Promise<void>;
+  let cleanup: (() => Promise<void>) | undefined;
   let eventPublisher: any;
 
   beforeAll(async () => {
-    const result: AppFactoryResult = await createFullTestApp();
-    cleanup = result.cleanup;
-    eventPublisher = result.eventPublisher;
+    try {
+      // Try to connect to real RabbitMQ
+      const result: AppFactoryResult = await createFullTestApp();
+      cleanup = result.cleanup;
+      eventPublisher = result.eventPublisher;
+    } catch (error) {
+      // Fallback to mock if RabbitMQ not available
+      console.warn('RabbitMQ not available, using mock:', error);
+      eventPublisher = new MockRabbitMQEventPublisher();
+      await eventPublisher.connect();
+      cleanup = async () => {
+        await eventPublisher.disconnect();
+      };
+    }
   });
 
   afterAll(async () => {
-    await cleanup();
+    if (cleanup) {
+      await cleanup();
+    }
   });
 
   describe('RabbitMQ Connection', () => {
@@ -34,17 +46,18 @@ describe('Event Publishing Integration Tests', () => {
   });
 
   describe('Event Publishing', () => {
-    it('should publish StaffRegistered event', async () => {
+    it('should publish StaffUpdated event', async () => {
       // Arrange
-      const event = createStaffRegisteredEvent({
+      const event = createStaffUpdatedEvent({
         staffId: 'STF-202501-001',
         userId: 'user-123',
-        staffType: 'doctor',
-        fullName: 'Bác sĩ Test',
-        department: 'Khoa Nội',
-        specialization: 'Tim mạch',
-        licenseNumber: 'BYS-12345',
-        registrationDate: new Date().toISOString()
+        updatedFields: ['personalInfo', 'professionalInfo'],
+        consultationFee: 500000,
+        workSchedule: {
+          monday: { start: '08:00', end: '17:00' },
+          tuesday: { start: '08:00', end: '17:00' }
+        },
+        status: 'active'
       });
 
       // Act
@@ -57,17 +70,25 @@ describe('Event Publishing Integration Tests', () => {
     it('should publish multiple events', async () => {
       // Arrange
       const events = [
-        createStaffRegisteredEvent({
-          staffId: 'STF-202501-001',
+        createStaffUpdatedEvent({
+          staffId: 'DOC-GEN-202501-001',
           userId: 'user-123',
-          staffType: 'doctor',
-          fullName: 'Doctor 1'
+          updatedFields: ['personalInfo'],
+          consultationFee: 500000,
+          workSchedule: {
+            monday: { start: '08:00', end: '17:00' }
+          },
+          status: 'active'
         }),
-        createStaffRegisteredEvent({
-          staffId: 'STF-202501-002',
+        createStaffUpdatedEvent({
+          staffId: 'NUR-GEN-202501-002',
           userId: 'user-456',
-          staffType: 'nurse',
-          fullName: 'Nurse 1'
+          updatedFields: ['professionalInfo'],
+          consultationFee: 300000,
+          workSchedule: {
+            tuesday: { start: '08:00', end: '17:00' }
+          },
+          status: 'active'
         })
       ];
 

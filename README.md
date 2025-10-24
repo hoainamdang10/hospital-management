@@ -14,7 +14,7 @@
 - **Provider/Staff** - Doctor/Staff management (Port 3022)
 
 ### **🔄 In Development (4/7)**
-- **Scheduling Service** - Appointments & Queue Management (Port 3024)
+- **Appointments Service** - Appointments & Queue Management (Port 3024)
 - **Clinical EMR Service** - Medical Records & FHIR compliance (Port 3027)
 - **Billing Service** - Payments & Insurance (Port 3029)
 - **Notifications Service** - Multi-channel alerts (Port 3031)
@@ -47,7 +47,7 @@ hospital-management-V2/
 │       ├── identity-service/           # ✅ Auth & User Management
 │       ├── patient-registry-service/   # ✅ Patient Management
 │       ├── provider-staff-service/     # ✅ Doctor/Staff Management
-│       ├── scheduling-service/         # 🔄 Appointments & Scheduling
+│       ├── appointments-service/       # 🔄 Appointments & Scheduling
 │       ├── clinical-emr-service/       # 🔄 Medical Records & FHIR
 │       ├── billing-service/            # 🔄 Payments & Billing
 │       ├── notifications-service/      # 🔄 Notifications
@@ -171,7 +171,7 @@ Each service has its own README:
 
 ### **Phase 2: Core Services (Weeks 3-5)** 🔄 IN PROGRESS
 - [ ] API Gateway V2 implementation
-- [ ] Scheduling Service completion
+- [ ] Appointments Service completion
 - [ ] Clinical EMR Service with FHIR compliance
 - [ ] Identity Service consolidation
 

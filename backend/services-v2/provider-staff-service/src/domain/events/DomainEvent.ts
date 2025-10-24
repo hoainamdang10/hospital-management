@@ -3,5 +3,5 @@
  * Re-export from shared domain for backward compatibility
  */
 
-export { DomainEvent } from '../../../../shared/domain/base/domain-event';
+export { DomainEvent } from '@shared/domain/base/domain-event';
 

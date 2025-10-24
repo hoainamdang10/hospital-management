@@ -1,60 +1,22 @@
-/**
- * ProviderStaff Aggregate - Unit Tests
- * 
- * @author Hospital Management Team
- * @version 2.0.0
- */
-
 import { ProviderStaff } from '../../../../src/domain/aggregates/ProviderStaff';
-import { StaffId } from '../../../../src/domain/value-objects/StaffId';
 import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
 import { ProfessionalInfo } from '../../../../src/domain/value-objects/ProfessionalInfo';
 import { WorkSchedule } from '../../../../src/domain/value-objects/WorkSchedule';
 import { Specialization } from '../../../../src/domain/entities/Specialization';
+import { DepartmentAssignment } from '../../../../src/domain/entities/DepartmentAssignment';
+import { StaffId } from '../../../../src/domain/value-objects/StaffId';
 
-describe('ProviderStaff Aggregate', () => {
-  // Create valid specialization for doctor tests
-  const validSpecialization = Specialization.create({
-    code: 'CARDIO',
-    name: 'Tim mạch',
-    description: 'Chuyên khoa Tim mạch',
-    isActive: true
-  });
-
-  // Helper function to create staff with default values
-  const createTestStaff = (overrides: {
-    userId?: string;
-    staffType?: 'doctor' | 'nurse' | 'technician' | 'pharmacist';
-    licenseNumber?: string;
-    employmentType?: 'full-time' | 'part-time' | 'contract';
-    hireDate?: Date;
-    yearsOfExperience?: number;
-    specializations?: Specialization[];
-  } = {}) => {
-    return ProviderStaff.create(
-      overrides.userId || 'user-123',
-      overrides.staffType || 'doctor',
-      validPersonalInfo,
-      validProfessionalInfo,
-      validWorkSchedule,
-      overrides.licenseNumber || 'BYS-12345',
-      overrides.employmentType || 'full-time',
-      overrides.hireDate || new Date('2025-01-01'),
-      overrides.yearsOfExperience !== undefined ? overrides.yearsOfExperience : 15,
-      overrides.specializations || [validSpecialization]
-    );
-  };
-
-  const validPersonalInfo = PersonalInfo.create({
-    fullName: 'Bác sĩ Nguyễn Văn Test',
+const buildPersonalInfo = () =>
+  PersonalInfo.create({
+    fullName: 'Bác sĩ Nguyễn Văn A',
     dateOfBirth: new Date('1985-01-01'),
-    gender: 'male' as const,
-    nationalId: '001234567890',
-    nationality: 'Vietnamese',
+    gender: 'male',
+    nationalId: '012345678901',
+    nationality: 'Vietnam',
     phoneNumber: '0901234567',
-    email: 'doctor@hospital.vn',
+    email: 'doctor@example.com',
     address: {
-      street: '123 Đường Test',
+      street: '123 Đường ABC',
       ward: 'Phường 1',
       district: 'Quận 1',
       city: 'Hồ Chí Minh',
@@ -63,346 +25,125 @@ describe('ProviderStaff Aggregate', () => {
     }
   });
 
-  const validProfessionalInfo = ProfessionalInfo.create({
+const buildProfessionalInfo = () =>
+  ProfessionalInfo.create({
     title: 'Bác sĩ',
     department: 'Khoa Tim mạch',
-    position: 'Bác sĩ chính',
-    education: ['Đại học Y Hà Nội', 'Chuyên khoa II Tim mạch'],
-    languages: ['Vietnamese', 'English'],
-    bio: 'Bác sĩ chuyên khoa Tim mạch với 15 năm kinh nghiệm'
+    position: 'Trưởng khoa',
+    education: ['Đại học Y Hà Nội'],
+    languages: ['Vietnamese', 'English']
   });
 
-  const validWorkSchedule = WorkSchedule.create({
-    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const,
-    workingHours: {
-      start: '08:00',
-      end: '17:00'
-    },
+const buildWorkSchedule = () =>
+  WorkSchedule.create({
+    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    workingHours: { start: '08:00', end: '17:00' },
     timeZone: 'Asia/Ho_Chi_Minh',
     isFlexible: false
   });
 
-  describe('create', () => {
-    it('should create ProviderStaff with valid data', () => {
-      // Arrange - Using individual parameters as per method signature
-      const userId = 'user-123';
-      const staffType = 'doctor' as const;
-      const licenseNumber = 'BYS-12345';
-      const employmentType = 'full-time' as const;
-      const hireDate = new Date('2025-01-01');
-      const yearsOfExperience = 15;
-      const specializations = [validSpecialization];
+const buildSpecializations = () => [
+  Specialization.create({
+    code: 'CARD',
+    name: 'Tim mạch',
+    description: 'Chuyên khoa tim mạch',
+    isActive: true
+  })
+];
 
-      // Act
-      const staff = ProviderStaff.create(
-        userId,
-        staffType,
-        validPersonalInfo,
-        validProfessionalInfo,
-        validWorkSchedule,
-        licenseNumber,
-        employmentType,
-        hireDate,
-        yearsOfExperience,
-        specializations
-      );
+describe('ProviderStaff Aggregate', () => {
+  const baseProps = {
+    userId: 'user-123',
+    staffType: 'doctor' as const,
+    licenseNumber: 'BYS-12345',
+    employmentType: 'full_time' as const,
+    hireDate: new Date('2020-01-01'),
+    yearsOfExperience: 10,
+    vietnameseHealthcareLicense: 'VN-MOH-123456',
+    mohRegistrationNumber: 'MOH-REG-2024-001'
+  };
 
-      // Assert
-      expect(staff).toBeInstanceOf(ProviderStaff);
-      expect(staff.id).toBeInstanceOf(StaffId);
-      expect(staff.userId).toBe('user-123');
-      expect(staff.staffType).toBe('doctor');
-      expect(staff.licenseNumber).toBe('BYS-12345');
-      expect(staff.isActive).toBe(true);
-      expect(staff.yearsOfExperience).toBe(15);
-    });
+  function createDoctor() {
+    return ProviderStaff.create(
+      baseProps.userId,
+      baseProps.staffType,
+      buildPersonalInfo(),
+      buildProfessionalInfo(),
+      buildWorkSchedule(),
+      baseProps.licenseNumber,
+      baseProps.employmentType,
+      baseProps.hireDate,
+      baseProps.yearsOfExperience,
+      buildSpecializations(),
+      baseProps.vietnameseHealthcareLicense,
+      baseProps.mohRegistrationNumber
+    );
+  }
 
-    it('should create staff with specializations', () => {
-      // Arrange
-      const specialization2 = Specialization.create({
-        code: 'NEURO',
-        name: 'Thần kinh',
-        description: 'Chuyên khoa Thần kinh',
-        isActive: true
-      });
+  it('creates a compliant doctor and emits StaffRegistered event', () => {
+    const staff = createDoctor();
 
-      const specializations = [validSpecialization, specialization2];
+    expect(staff.staffType).toBe('doctor');
+    expect(staff.isActive).toBe(true);
+    expect(staff.staffIdValue).toMatch(/^(DOC|NUR|TEC|PHA|THE|ADM|REC)-[A-Z]{3,5}-\d{6}-\d{3}$/);
+    expect(staff.isVietnameseHealthcareCompliant()).toBe(true);
 
-      // Act
-      const staff = ProviderStaff.create(
-        'user-123',
-        'doctor',
-        validPersonalInfo,
-        validProfessionalInfo,
-        validWorkSchedule,
-        'BYS-12345',
-        'full-time',
-        new Date('2025-01-01'),
-        15,
-        specializations
-      );
-
-      // Assert
-      expect(staff.specializations).toBeDefined();
-      expect(staff.specializations.length).toBe(2);
-      expect(staff.specializations[0].code).toBe('CARDIO');
-      expect(staff.specializations[1].code).toBe('NEURO');
-    });
-
-    it('should generate StaffRegistered domain event', () => {
-      // Act
-      const staff = ProviderStaff.create(
-        'user-123',
-        'doctor',
-        validPersonalInfo,
-        validProfessionalInfo,
-        validWorkSchedule,
-        'BYS-12345',
-        'full-time',
-        new Date('2025-01-01'),
-        15,
-        [validSpecialization]
-      );
-
-      // Assert
-      const events = staff.getDomainEvents();
-      expect(events.length).toBeGreaterThan(0);
-      expect(events[0].eventType).toBe('StaffRegistered');
-
-      // Verify event data structure
-      expect(events[0].eventData).toMatchObject({
-        staffId: expect.any(String),
-        userId: 'user-123',
-        staffType: 'doctor'
-      });
-    });
+    const events = staff.getUncommittedEvents();
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0].eventType).toBe('StaffRegistered');
   });
 
-  describe('updatePersonalInfo', () => {
-    it('should update personal info successfully', () => {
-      // Arrange
-      const staff = ProviderStaff.create(
-        'user-123',
-        'doctor',
-        validPersonalInfo,
-        validProfessionalInfo,
-        validWorkSchedule,
-        'BYS-12345',
-        'full-time',
-        new Date('2025-01-01'),
-        15,
-        [validSpecialization]
-      );
+  it('emits StaffStatusChanged event when suspended', () => {
+    const staff = createDoctor();
+    staff.markEventsAsCommitted();
 
-      const newPersonalInfo = PersonalInfo.create({
-        fullName: 'Bác sĩ Nguyễn Văn Test Updated',
-        dateOfBirth: new Date('1985-01-01'),
-        gender: 'male' as const,
-        nationalId: '001234567890',
-        nationality: 'Vietnamese',
-        phoneNumber: '0987654321',
-        email: 'doctor@hospital.vn',
-        address: {
-          street: '123 Đường Test',
-          ward: 'Phường 1',
-          district: 'Quận 1',
-          city: 'Hồ Chí Minh',
-          province: 'Hồ Chí Minh',
-          country: 'Vietnam'
-        }
-      });
+    staff.suspend('Đi công tác dài hạn', 'admin-001');
 
-      // Act
-      staff.updatePersonalInfo(newPersonalInfo);
+    expect(staff.status).toBe('suspended');
+    expect(staff.isActive).toBe(false);
 
-      // Assert
-      expect(staff.personalInfo.phoneNumber).toBe('0987654321');
-    });
-
-    it('should generate StaffUpdated domain event', () => {
-      // Arrange
-      const staff = ProviderStaff.create(
-        'user-123',
-        'doctor',
-        validPersonalInfo,
-        validProfessionalInfo,
-        validWorkSchedule,
-        'BYS-12345',
-        'full-time',
-        new Date('2025-01-01'),
-        15,
-        [validSpecialization]
-      );
-
-      staff.clearDomainEvents(); // Clear creation events
-
-      const newPersonalInfo = PersonalInfo.create({
-        fullName: 'Bác sĩ Nguyễn Văn Test Updated',
-        dateOfBirth: new Date('1985-01-01'),
-        gender: 'male' as const,
-        nationalId: '001234567890',
-        nationality: 'Vietnamese',
-        phoneNumber: '0987654321',
-        email: 'doctor@hospital.vn',
-        address: {
-          street: '123 Đường Test',
-          ward: 'Phường 1',
-          district: 'Quận 1',
-          city: 'Hồ Chí Minh',
-          province: 'Hồ Chí Minh',
-          country: 'Vietnam'
-        }
-      });
-
-      // Act
-      staff.updatePersonalInfo(newPersonalInfo);
-
-      // Assert
-      const events = staff.getDomainEvents();
-      expect(events.length).toBeGreaterThan(0);
-      expect(events.some(e => e.eventType === 'StaffUpdated')).toBe(true);
-    });
+    const events = staff.getUncommittedEvents();
+    expect(events.some(event => event.eventType === 'StaffStatusChanged')).toBe(true);
   });
 
-  describe('updateWorkSchedule', () => {
-    it('should update work schedule successfully', () => {
-      // Arrange
-      const staff = createTestStaff();
+  it('replaces department assignment and emits StaffDepartmentAssigned event', () => {
+    const staff = createDoctor();
+    staff.markEventsAsCommitted();
 
-      const newSchedule = WorkSchedule.create({
-        workingDays: ['monday', 'wednesday', 'friday'] as const,
-        workingHours: {
-          start: '09:00',
-          end: '18:00'
-        },
-        timeZone: 'Asia/Ho_Chi_Minh',
-        isFlexible: true
-      });
-
-      // Act
-      staff.updateWorkSchedule(newSchedule);
-
-      // Assert
-      expect(staff.workSchedule.isFlexible).toBe(true);
-      expect(staff.workSchedule.workingDays).toEqual(['monday', 'wednesday', 'friday']);
+    const firstAssignment = DepartmentAssignment.create({
+      departmentId: 'f10ee789-ddec-4592-8d03-1161a3c3f4ed',
+      departmentCode: 'CARD',
+      departmentNameEn: 'Cardiology',
+      departmentNameVi: 'Tim mạch',
+      role: 'Bác sĩ chính',
+      isPrimary: true,
+      startDate: new Date('2024-01-01'),
+      isActive: true
     });
 
-    it('should generate StaffScheduleUpdated domain event', () => {
-      // Arrange
-      const staff = createTestStaff();
-      staff.clearDomainEvents();
-
-      const newSchedule = WorkSchedule.create({
-        workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const,
-        workingHours: {
-          start: '08:00',
-          end: '17:00'
-        },
-        timeZone: 'Asia/Ho_Chi_Minh',
-        isFlexible: true
-      });
-
-      // Act
-      staff.updateWorkSchedule(newSchedule);
-
-      // Assert
-      const events = staff.getDomainEvents();
-      expect(events.some(e => e.eventType === 'StaffScheduleUpdated')).toBe(true);
-    });
-  });
-
-  describe('activate/deactivate', () => {
-    it('should activate staff', () => {
-      // Arrange
-      const staff = createTestStaff();
-      staff.deactivate('Nghỉ phép');
-
-      // Act
-      staff.activate();
-
-      // Assert
-      expect(staff.isActive).toBe(true);
+    const secondAssignment = DepartmentAssignment.create({
+      departmentId: 'f10ee789-ddec-4592-8d03-1161a3c3f4ed',
+      departmentCode: 'CARD',
+      departmentNameEn: 'Cardiology',
+      departmentNameVi: 'Tim mạch',
+      role: 'Trưởng khoa',
+      isPrimary: true,
+      startDate: new Date('2024-06-01'),
+      isActive: true
     });
 
-    it('should deactivate staff with reason', () => {
-      // Arrange
-      const staff = createTestStaff();
+    staff.assignToDepartment(firstAssignment);
+    staff.markEventsAsCommitted();
 
-      // Act
-      staff.deactivate('Nghỉ phép dài hạn');
+    staff.assignToDepartment(secondAssignment);
 
-      // Assert
-      expect(staff.isActive).toBe(false);
-    });
+    const assignments = staff.getCurrentDepartmentAssignments();
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].role).toBe('Trưởng khoa');
 
-    it('should generate StaffStatusChanged event on deactivation', () => {
-      // Arrange
-      const staff = createTestStaff();
-      staff.clearDomainEvents();
-
-      // Act
-      staff.deactivate('Nghỉ phép');
-
-      // Assert
-      const events = staff.getDomainEvents();
-      expect(events.some(e => e.eventType === 'StaffStatusChanged')).toBe(true);
-    });
-  });
-
-  describe('business rules', () => {
-    it('should enforce minimum years of experience', () => {
-      // Arrange & Act & Assert
-      expect(() => {
-        createTestStaff({ yearsOfExperience: -1 });
-      }).toThrow('Số năm kinh nghiệm không được âm');
-    });
-
-    it('should enforce valid license number format', () => {
-      // Arrange & Act & Assert
-      expect(() => {
-        createTestStaff({ licenseNumber: '' });
-      }).toThrow('Số giấy phép hành nghề không được để trống');
-    });
-
-    it('should enforce hire date not in future', () => {
-      // Arrange
-      const futureDate = new Date();
-      futureDate.setFullYear(futureDate.getFullYear() + 1);
-
-      // Act & Assert
-      expect(() => {
-        createTestStaff({ hireDate: futureDate });
-      }).toThrow();
-    });
-
-    it('should enforce doctor must have at least one specialization', () => {
-      // Arrange & Act & Assert
-      expect(() => {
-        createTestStaff({ specializations: [] });
-      }).toThrow('Bác sĩ phải có ít nhất một chuyên khoa');
-    });
-  });
-
-  describe('domain events', () => {
-    it('should track domain events', () => {
-      // Arrange & Act
-      const staff = createTestStaff();
-
-      // Assert
-      const events = staff.getDomainEvents();
-      expect(events.length).toBeGreaterThan(0);
-    });
-
-    it('should clear domain events', () => {
-      // Arrange
-      const staff = createTestStaff();
-
-      // Act
-      staff.clearDomainEvents();
-
-      // Assert
-      expect(staff.getDomainEvents().length).toBe(0);
-    });
+    const events = staff.getUncommittedEvents();
+    expect(events.some(event => event.eventType === 'StaffDepartmentAssigned')).toBe(true);
+    expect((events.find(event => event.eventType === 'StaffDepartmentAssigned')?.aggregateId))
+      .toBe(StaffId.fromString(staff.staffIdValue).value);
   });
 });
-

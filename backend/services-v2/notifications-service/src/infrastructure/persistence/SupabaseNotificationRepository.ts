@@ -8,16 +8,16 @@
  * @compliance Clean Architecture, DDD, Repository Pattern, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { OptimizedSupabaseClient } from '../../../../shared/infrastructure/database/optimized-supabase-client';
+import { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
 import { INotificationRepository, NotificationSearchCriteria, NotificationStatistics, DeliveryMetrics, NotificationStatus, NotificationPriority } from '../../domain/repositories/INotificationRepository';
-import { NotificationAggregate } from '../../domain/aggregates/NotificationAggregate';
+import { Notification } from '../../domain/aggregates/Notification';
 import { NotificationId } from '../../domain/value-objects/NotificationId';
 import { RecipientInfo } from '../../domain/value-objects/RecipientInfo';
 import { NotificationTemplate } from '../../domain/value-objects/NotificationTemplate';
 import { NotificationContent } from '../../domain/value-objects/NotificationContent';
 import { NotificationChannel } from '../../domain/value-objects/NotificationChannel';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
-import { IAuditService } from '../../../../shared/application/services/audit.service.interface';
+import { ILogger } from '@shared/infrastructure/logging/logger.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
 
 interface NotificationRecord {
   notification_id: string;
@@ -67,23 +67,16 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     this.auditService = config.auditService;
     this.schema = config.schema || 'notifications_schema';
     this.tableName = config.tableName || 'notifications';
-      throw new Error('Thiếu cấu hình Supabase URL hoặc Service Role Key');
-    }
-
-    this.supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      db: { schema: this.schema },
-      auth: { persistSession: false }
-    });
   }
 
   /**
    * Save notification aggregate
    */
-  public async save(notification: NotificationAggregate): Promise<void> {
+  public async save(notification: Notification): Promise<void> {
     try {
       const record = this.mapToRecord(notification);
 
-      const { error } = await this.supabase
+      const { error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .insert(record);
 
@@ -99,12 +92,12 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Update existing notification
    */
-  public async update(notification: NotificationAggregate): Promise<void> {
+  public async update(notification: Notification): Promise<void> {
     try {
       const record = this.mapToRecord(notification);
       const { notification_id, created_at, ...updateData } = record;
 
-      const { error } = await this.supabase
+      const { error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .update({
           ...updateData,
@@ -124,9 +117,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find notification by ID
    */
-  public async findById(id: NotificationId): Promise<NotificationAggregate | null> {
+  public async findById(id: NotificationId): Promise<Notification | null> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('notification_id', id.getValue())
@@ -149,9 +142,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find notifications by recipient
    */
-  public async findByRecipient(recipientId: string, limit?: number, offset?: number): Promise<NotificationAggregate[]> {
+  public async findByRecipient(recipientId: string, limit?: number, offset?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('recipient_id', recipientId)
@@ -181,9 +174,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find notifications by multiple criteria
    */
-  public async findByCriteria(criteria: NotificationSearchCriteria): Promise<NotificationAggregate[]> {
+  public async findByCriteria(criteria: NotificationSearchCriteria): Promise<Notification[]> {
     try {
-      let query = this.supabase.from('notifications').select('*');
+      let query = this.supabaseClient.getRawClient().from('notifications').select('*');
 
       // Apply filters
       if (criteria.recipientId) {
@@ -296,11 +289,11 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find scheduled notifications ready for processing
    */
-  public async findScheduledForProcessing(beforeTime?: Date, limit?: number): Promise<NotificationAggregate[]> {
+  public async findScheduledForProcessing(beforeTime?: Date, limit?: number): Promise<Notification[]> {
     try {
       const cutoffTime = beforeTime || new Date();
 
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('status', 'SCHEDULED')
@@ -328,12 +321,12 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find failed notifications eligible for retry
    */
-  public async findFailedForRetry(beforeTime?: Date, maxAttempts?: number, limit?: number): Promise<NotificationAggregate[]> {
+  public async findFailedForRetry(beforeTime?: Date, maxAttempts?: number, limit?: number): Promise<Notification[]> {
     try {
       const cutoffTime = beforeTime || new Date();
       const maxRetries = maxAttempts || 5;
 
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('status', 'FAILED')
@@ -362,9 +355,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find notifications by status
    */
-  public async findByStatus(status: NotificationStatus, limit?: number, offset?: number): Promise<NotificationAggregate[]> {
+  public async findByStatus(status: NotificationStatus, limit?: number, offset?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('status', status)
@@ -394,9 +387,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find urgent notifications
    */
-  public async findUrgentNotifications(limit?: number): Promise<NotificationAggregate[]> {
+  public async findUrgentNotifications(limit?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('priority', 'URGENT')
@@ -428,9 +421,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     doctorId?: string;
     appointmentId?: string;
     medicalRecordId?: string;
-  }, limit?: number): Promise<NotificationAggregate[]> {
+  }, limit?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase.from('notifications').select('*');
+      let query = this.supabaseClient.getRawClient().from('notifications').select('*');
 
       if (context.patientId) {
         query = query.eq('metadata->>healthcareContext->>patientId', context.patientId);
@@ -484,7 +477,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Map notification aggregate to database record
    */
-  private mapToRecord(notification: NotificationAggregate): NotificationRecord {
+  private mapToRecord(notification: Notification): NotificationRecord {
     return {
       notification_id: notification.getId().getValue(),
       recipient_id: notification.getRecipient().getRecipientId(),
@@ -512,7 +505,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Map database record to notification aggregate
    */
-  private mapToAggregate(record: NotificationRecord): NotificationAggregate {
+  private mapToAggregate(record: NotificationRecord): Notification {
     // This is a simplified mapping - in a real implementation,
     // you would need to properly reconstruct all value objects
     // and the aggregate from the stored data
@@ -533,7 +526,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     });
 
     // Create aggregate using the create method
-    const notification = NotificationAggregate.create({
+    const notification = Notification.create({
       recipient,
       template,
       content,
@@ -554,9 +547,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find notifications by template type
    */
-  public async findByTemplateType(templateType: string, limit?: number, offset?: number): Promise<NotificationAggregate[]> {
+  public async findByTemplateType(templateType: string, limit?: number, offset?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('template_type', templateType)
@@ -586,9 +579,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find notifications by channel
    */
-  public async findByChannel(channel: string, limit?: number, offset?: number): Promise<NotificationAggregate[]> {
+  public async findByChannel(channel: string, limit?: number, offset?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .contains('channels', [channel])
@@ -618,9 +611,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find notifications by date range
    */
-  public async findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<NotificationAggregate[]> {
+  public async findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .gte('created_at', startDate.toISOString())
@@ -651,9 +644,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   /**
    * Find duplicate notifications
    */
-  public async findDuplicates(recipientId: string, templateType: string, contentHash: string, withinHours?: number): Promise<NotificationAggregate[]> {
+  public async findDuplicates(recipientId: string, templateType: string, contentHash: string, withinHours?: number): Promise<Notification[]> {
     try {
-      let query = this.supabase
+      let query = this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*')
         .eq('recipient_id', recipientId)
@@ -683,7 +676,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
    */
   public async countByCriteria(criteria: NotificationSearchCriteria): Promise<number> {
     try {
-      let query = this.supabase.from('notifications').select('*', { count: 'exact', head: true });
+      let query = this.supabaseClient.getRawClient().from('notifications').select('*', { count: 'exact', head: true });
 
       // Apply same filters as findByCriteria
       if (criteria.recipientId) {
@@ -724,7 +717,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
    */
   public async countByStatus(status: NotificationStatus): Promise<number> {
     try {
-      const { count, error } = await this.supabase
+      const { count, error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('status', status);
@@ -745,7 +738,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
    */
   public async countByRecipient(recipientId: string): Promise<number> {
     try {
-      const { count, error } = await this.supabase
+      const { count, error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('recipient_id', recipientId);
@@ -766,7 +759,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
    */
   public async delete(id: NotificationId): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .delete()
         .eq('notification_id', id.getValue());
@@ -785,7 +778,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
    */
   public async deleteOlderThan(date: Date): Promise<number> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .delete()
         .lt('created_at', date.toISOString())
@@ -807,7 +800,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
    */
   public async exists(id: NotificationId): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.supabaseClient.getRawClient()
         .from('notifications')
         .select('notification_id')
         .eq('notification_id', id.getValue())
@@ -826,3 +819,4 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       throw new Error(`Lỗi repository khi kiểm tra tồn tại thông báo: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
     }
   }
+}

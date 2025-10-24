@@ -11,6 +11,21 @@ import { StaffController } from '../controllers/StaffController';
 import { logger } from '../../infrastructure/logging/logger';
 import { RegisterStaffUseCase } from '../../application/use-cases/RegisterStaffUseCase';
 import { GetStaffProfileUseCase } from '../../application/use-cases/GetStaffProfileUseCase';
+import { AssignStaffToDepartmentUseCase } from '../../application/use-cases/AssignStaffToDepartmentUseCase';
+import { AddStaffCredentialUseCase } from '../../application/use-cases/AddStaffCredentialUseCase';
+import { RemoveStaffCredentialUseCase } from '../../application/use-cases/RemoveStaffCredentialUseCase';
+import { RenewStaffCredentialUseCase } from '../../application/use-cases/RenewStaffCredentialUseCase';
+import { GetExpiringCredentialsUseCase } from '../../application/use-cases/GetExpiringCredentialsUseCase';
+import { ActivateStaffUseCase } from '../../application/use-cases/ActivateStaffUseCase';
+import { SuspendStaffUseCase } from '../../application/use-cases/SuspendStaffUseCase';
+import { ReactivateStaffUseCase } from '../../application/use-cases/ReactivateStaffUseCase';
+import { TerminateStaffUseCase } from '../../application/use-cases/TerminateStaffUseCase';
+import { UpdateEmploymentStatusUseCase } from '../../application/use-cases/UpdateEmploymentStatusUseCase';
+import { UpdateStaffScheduleUseCase } from '../../application/use-cases/UpdateStaffScheduleUseCase';
+// REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
+import { GetStaffSpecializationsUseCase } from '../../application/use-cases/GetStaffSpecializationsUseCase';
+import { AddStaffSpecializationUseCase } from '../../application/use-cases/AddStaffSpecializationUseCase';
+import { RemoveStaffSpecializationUseCase } from '../../application/use-cases/RemoveStaffSpecializationUseCase';
 import { StaffCommandHandlers } from '../../application/handlers/StaffCommandHandlers';
 import { StaffQueryHandlers } from '../../application/handlers/StaffQueryHandlers';
 
@@ -18,32 +33,54 @@ export function setupRoutes(
   app: Express,
   registerStaffUseCase: RegisterStaffUseCase,
   getStaffProfileUseCase: GetStaffProfileUseCase,
+  assignStaffToDepartmentUseCase: AssignStaffToDepartmentUseCase,
   staffCommandHandlers: StaffCommandHandlers,
-  staffQueryHandlers: StaffQueryHandlers
+  staffQueryHandlers: StaffQueryHandlers,
+  addStaffCredentialUseCase: AddStaffCredentialUseCase,
+  removeStaffCredentialUseCase: RemoveStaffCredentialUseCase,
+  renewStaffCredentialUseCase: RenewStaffCredentialUseCase,
+  getExpiringCredentialsUseCase: GetExpiringCredentialsUseCase,
+  activateStaffUseCase: ActivateStaffUseCase,
+  suspendStaffUseCase: SuspendStaffUseCase,
+  reactivateStaffUseCase: ReactivateStaffUseCase,
+  terminateStaffUseCase: TerminateStaffUseCase,
+  updateEmploymentStatusUseCase: UpdateEmploymentStatusUseCase,
+  updateStaffScheduleUseCase: UpdateStaffScheduleUseCase,
+  // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
+  getStaffSpecializationsUseCase: GetStaffSpecializationsUseCase,
+  addStaffSpecializationUseCase: AddStaffSpecializationUseCase,
+  removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase
 ): void {
   // Initialize controller
   const staffController = new StaffController(
     logger,
     registerStaffUseCase,
     getStaffProfileUseCase,
+    assignStaffToDepartmentUseCase,
     staffCommandHandlers,
-    staffQueryHandlers
+    staffQueryHandlers,
+    addStaffCredentialUseCase,
+    removeStaffCredentialUseCase,
+    renewStaffCredentialUseCase,
+    getExpiringCredentialsUseCase,
+    activateStaffUseCase,
+    suspendStaffUseCase,
+    reactivateStaffUseCase,
+    terminateStaffUseCase,
+    updateEmploymentStatusUseCase,
+    updateStaffScheduleUseCase,
+    // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
+    getStaffSpecializationsUseCase,
+    addStaffSpecializationUseCase,
+    removeStaffSpecializationUseCase
   );
 
   // Staff routes
   const staffRoutes = createStaffRoutes(staffController);
   app.use('/api/v1/staff', staffRoutes);
 
-  // Health check endpoint
-  app.get('/health', (_req, res) => {
-    res.json({
-      success: true,
-      message: 'Provider/Staff Service is running',
-      service: 'provider-staff-service',
-      version: '2.0.0',
-      timestamp: new Date().toISOString()
-    });
-  });
+  // Note: /health endpoint is registered in src/main.ts (detailed version)
+  // Removed duplicate registration to avoid conflicts
 
   // 404 handler
   app.use((_req, res) => {

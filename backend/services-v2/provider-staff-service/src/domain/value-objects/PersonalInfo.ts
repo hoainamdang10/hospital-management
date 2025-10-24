@@ -1,13 +1,13 @@
 /**
  * PersonalInfo Value Object
  * Vietnamese Healthcare Personal Information
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { HealthcareValueObject } from '../../../shared/domain/base/value-object';
+import { HealthcareValueObject } from '@shared/domain/base/value-object';
 
 export interface Address {
   street: string;
@@ -303,7 +303,7 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
     };
   }
 
-  public equals(other: PersonalInfo): boolean {
+  public override equals(other: PersonalInfo): boolean {
     if (!other) return false;
     
     return this.props.fullName === other.props.fullName &&
@@ -313,7 +313,7 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
            this.props.phoneNumber === other.props.phoneNumber;
   }
 
-  public toString(): string {
+  public override toString(): string {
     return `${this.props.fullName} (${this.props.nationalId})`;
   }
 }

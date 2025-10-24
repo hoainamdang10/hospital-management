@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
 import { StaffId } from '../../domain/value-objects/StaffId';
@@ -71,7 +71,7 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       });
 
       // 1. Validate request
-      const validationResult = this.validateRequest(request);
+      const validationResult = await this.validateRequest(request);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -95,7 +95,7 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       const authResult = this.checkAuthorization(staff, request);
       if (!authResult.authorized) {
         this.logger.warn('Unauthorized staff schedule update attempt', {
-          staffId: staff.id.value,
+          staffId: staff.id,
           updatedBy: request.updatedBy,
           updatedByRole: request.updatedByRole,
           reason: authResult.reason
@@ -118,9 +118,7 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       // 5. Update staff schedule
       staff.updateWorkSchedule(newWorkSchedule);
 
-      // 6. Update metadata
-      staff.props.updatedAt = new Date();
-      staff.props.updatedBy = request.updatedBy;
+      // 6. Update metadata - handled internally by aggregate
 
       // 7. Save updated staff
       await this.staffRepository.save(staff);
@@ -129,7 +127,7 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       await this.auditScheduleUpdate(staff, request);
 
       this.logger.info('Staff schedule updated successfully', {
-        staffId: staff.id.value,
+        staffId: staff.id,
         updatedBy: request.updatedBy
       });
 
@@ -137,8 +135,8 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
         success: true,
         message: 'Cập nhật lịch làm việc thành công',
         data: {
-          staffId: staff.id.value,
-          updatedAt: staff.props.updatedAt.toISOString(),
+          staffId: staff.id,
+          updatedAt: staff.updatedAt.toISOString(),
           effectiveDate: request.effectiveDate
         }
       };
@@ -160,7 +158,7 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
   /**
    * Validate request
    */
-  private validateRequest(request: UpdateStaffScheduleRequest): { isValid: boolean; errors: string[] } {
+  protected override async validateRequest(request: UpdateStaffScheduleRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Staff ID validation
@@ -250,7 +248,7 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
   ): Promise<void> {
     this.logger.info('HIPAA Audit: Staff schedule update', {
       action: 'STAFF_SCHEDULE_UPDATE',
-      staffId: staff.id.value,
+      staffId: staff.id,
       staffType: staff.staffType,
       updatedBy: request.updatedBy,
       updatedByRole: request.updatedByRole,

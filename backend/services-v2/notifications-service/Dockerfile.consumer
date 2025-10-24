@@ -1,0 +1,25 @@
+# Dockerfile for Notifications Service Consumer
+# Runs RabbitMQ consumer for scheduled notification events
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Expose health check port (optional)
+EXPOSE 3032
+
+# Start consumer
+CMD ["npm", "run", "start:consumer"]
+

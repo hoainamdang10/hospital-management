@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
  */
 
-import { Entity } from '../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 
 interface SpecializationProps {
   code: string;
@@ -36,7 +36,7 @@ export class Specialization extends Entity<SpecializationProps> {
     });
   }
 
-  public static fromPersistence(data: any): Specialization {
+  public static fromPersistenceData(data: any): Specialization {
     return new Specialization({
       code: data.code,
       name: data.name,
@@ -102,12 +102,12 @@ export class Specialization extends Entity<SpecializationProps> {
     };
   }
 
-  public equals(other: Specialization): boolean {
+  public override equals(other: Specialization): boolean {
     if (!other) return false;
     return this.props.code === other.props.code;
   }
 
-  public toString(): string {
+  public override toString(): string {
     return `${this.props.code} - ${this.props.name}`;
   }
 }

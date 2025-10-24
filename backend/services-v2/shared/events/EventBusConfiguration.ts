@@ -254,7 +254,7 @@ export class EventBusConfiguration {
         });
 
         console.log('✅ Connected to RabbitMQ successfully');
-        return connection;
+        return connection as any;
 
       } catch (error) {
         attempts++;

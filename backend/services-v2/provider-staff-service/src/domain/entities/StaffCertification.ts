@@ -5,7 +5,7 @@
  * @version 2.0.0
  */
 
-import { Entity } from '../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 
 interface StaffCertificationProps {
   certificationName: string;
@@ -27,7 +27,7 @@ export class StaffCertification extends Entity<StaffCertificationProps> {
     return new StaffCertification({ ...props, isValid: true, createdAt: now, updatedAt: now });
   }
 
-  public static fromPersistence(data: any): StaffCertification {
+  public static fromPersistenceData(data: any): StaffCertification {
     return new StaffCertification({
       certificationName: data.certification_name,
       issuingOrganization: data.issuing_organization,

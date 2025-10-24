@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
 import { StaffId } from '../../domain/value-objects/StaffId';
@@ -64,7 +64,7 @@ export class DeactivateStaffUseCase extends BaseHealthcareUseCase<DeactivateStaf
       });
 
       // 1. Validate request
-      const validationResult = this.validateRequest(request);
+      const validationResult = await this.validateRequest(request);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -96,7 +96,7 @@ export class DeactivateStaffUseCase extends BaseHealthcareUseCase<DeactivateStaf
       const authResult = this.checkAuthorization(staff, request);
       if (!authResult.authorized) {
         this.logger.warn('Unauthorized staff deactivation attempt', {
-          staffId: staff.id.value,
+          staffId: staff.id,
           deactivatedBy: request.deactivatedBy,
           deactivatedByRole: request.deactivatedByRole,
           reason: authResult.reason
@@ -111,9 +111,7 @@ export class DeactivateStaffUseCase extends BaseHealthcareUseCase<DeactivateStaf
       // 5. Deactivate staff
       staff.deactivate(request.reason);
 
-      // 6. Update metadata
-      staff.props.updatedAt = new Date();
-      staff.props.updatedBy = request.deactivatedBy;
+      // 6. Update metadata - handled internally by deactivate() method
 
       // 7. Save updated staff
       await this.staffRepository.save(staff);
@@ -122,7 +120,7 @@ export class DeactivateStaffUseCase extends BaseHealthcareUseCase<DeactivateStaf
       await this.auditStaffDeactivation(staff, request);
 
       this.logger.info('Staff deactivated successfully', {
-        staffId: staff.id.value,
+        staffId: staff.id,
         deactivatedBy: request.deactivatedBy,
         reason: request.reason
       });
@@ -131,8 +129,8 @@ export class DeactivateStaffUseCase extends BaseHealthcareUseCase<DeactivateStaf
         success: true,
         message: 'Vô hiệu hóa nhân viên thành công',
         data: {
-          staffId: staff.id.value,
-          deactivatedAt: staff.props.updatedAt.toISOString(),
+          staffId: staff.id,
+          deactivatedAt: staff.updatedAt.toISOString(),
           reason: request.reason
         }
       };
@@ -154,7 +152,7 @@ export class DeactivateStaffUseCase extends BaseHealthcareUseCase<DeactivateStaf
   /**
    * Validate request
    */
-  private validateRequest(request: DeactivateStaffRequest): { isValid: boolean; errors: string[] } {
+  protected override async validateRequest(request: DeactivateStaffRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Staff ID validation
@@ -235,7 +233,7 @@ export class DeactivateStaffUseCase extends BaseHealthcareUseCase<DeactivateStaf
   ): Promise<void> {
     this.logger.info('HIPAA Audit: Staff deactivation', {
       action: 'STAFF_DEACTIVATION',
-      staffId: staff.id.value,
+      staffId: staff.id,
       staffType: staff.staffType,
       deactivatedBy: request.deactivatedBy,
       deactivatedByRole: request.deactivatedByRole,

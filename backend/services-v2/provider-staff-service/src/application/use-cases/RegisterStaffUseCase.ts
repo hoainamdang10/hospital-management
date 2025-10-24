@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ProviderStaff, StaffType, EmploymentType } from '../../domain/aggregates/ProviderStaff';
 import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
@@ -82,6 +82,7 @@ export interface RegisterStaffResponse {
   staffId?: string;
   message: string;
   errors?: string[];
+  warnings?: string[];
   data?: {
     staff: {
       id: string;
@@ -118,6 +119,8 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<RegisterStaffReq
         staffType: request.staffType,
         requestedBy: request.requestedBy
       });
+
+      const warnings: string[] = [];
 
       // 1. Validate request
       const validationResult = await this.validateRequest(request);
@@ -199,24 +202,16 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<RegisterStaffReq
         request.employmentType,
         new Date(request.hireDate),
         request.yearsOfExperience,
-        specializations
+        specializations,
+        request.vietnameseHealthcareLicense,
+        request.mohRegistrationNumber
       );
 
       // 7. Set additional properties
-      if (request.contractEndDate) {
-        staff.props.contractEndDate = new Date(request.contractEndDate);
-      }
-
+      // Note: Direct props access should be replaced with public methods
+      // For now, keeping minimal changes to avoid breaking functionality
       if (request.consultationFee && request.staffType === 'doctor') {
         staff.updateConsultationFee(request.consultationFee);
-      }
-
-      if (request.vietnameseHealthcareLicense) {
-        staff.props.vietnameseHealthcareLicense = request.vietnameseHealthcareLicense;
-      }
-
-      if (request.mohRegistrationNumber) {
-        staff.props.mohRegistrationNumber = request.mohRegistrationNumber;
       }
 
       // 8. Vietnamese healthcare compliance validation
@@ -230,7 +225,7 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<RegisterStaffReq
       // 9. HIPAA compliance validation
       if (!staff.isHIPAACompliant()) {
         this.logger.warn('Staff registration lacks HIPAA compliance', {
-          staffId: staff.id.value,
+          staffId: staff.id,
           userId: request.userId
         });
       }
@@ -238,14 +233,25 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<RegisterStaffReq
       // 10. Save staff
       await this.staffRepository.save(staff);
 
-      // 11. Publish domain events
-      await this.publishDomainEvents(staff);
+      // 11. Publish domain events (best effort)
+      try {
+        await this.publishDomainEvents(staff);
+      } catch (eventError) {
+        const errorMessage = eventError instanceof Error ? eventError.message : 'Unknown error';
+        this.logger.warn('Failed to publish staff registration events', {
+          staffId: staff.staffIdValue,
+          userId: staff.userId,
+          requestedBy: request.requestedBy,
+          error: errorMessage
+        });
+        warnings.push('Không thể phát sự kiện đăng ký nhân viên, hệ thống sẽ thử lại sau.');
+      }
 
       // 12. HIPAA audit logging
       await this.auditStaffRegistration(staff, request);
 
       this.logger.info('Staff registration completed successfully', {
-        staffId: staff.id.value,
+        staffId: staff.id,
         userId: request.userId,
         staffType: request.staffType,
         requestedBy: request.requestedBy
@@ -253,11 +259,12 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<RegisterStaffReq
 
       return {
         success: true,
-        staffId: staff.id.value,
+        staffId: staff.staffIdValue,
         message: 'Đăng ký nhân viên thành công',
+        ...(warnings.length > 0 ? { warnings } : {}),
         data: {
           staff: {
-            id: staff.id.value,
+            id: staff.staffIdValue,
             userId: staff.userId,
             staffType: staff.staffType,
             fullName: staff.personalInfo.fullName,
@@ -286,7 +293,7 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<RegisterStaffReq
   /**
    * Validate registration request
    */
-  private async validateRequest(request: RegisterStaffRequest): Promise<{ isValid: boolean; errors: string[] }> {
+  protected override async validateRequest(request: RegisterStaffRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // User ID validation
@@ -389,7 +396,7 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<RegisterStaffReq
   private async auditStaffRegistration(staff: ProviderStaff, request: RegisterStaffRequest): Promise<void> {
     this.logger.info('HIPAA Audit: Staff registration', {
       action: 'STAFF_REGISTRATION',
-      staffId: staff.id.value,
+      staffId: staff.id,
       userId: request.userId,
       staffType: request.staffType,
       requestedBy: request.requestedBy,

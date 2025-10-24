@@ -8,13 +8,13 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
+import { ILogger } from '@shared/infrastructure/logging/logger.interface';
 
 // ==================== ERROR CLASSES ====================
 
 export class ApplicationError extends Error {
   constructor(
-    public message: string,
+    public override message: string,
     public statusCode: number = 500,
     public code?: string,
     public details?: any
@@ -188,6 +188,18 @@ export class ResponseHelper {
    */
   static noContent(res: Response): void {
     res.status(204).send();
+  }
+
+  /**
+   * Bad request response (400)
+   */
+  static badRequest(res: Response, message: string, errors?: any): void {
+    res.status(400).json({
+      success: false,
+      error: 'BAD_REQUEST',
+      message,
+      errors
+    });
   }
 
   /**

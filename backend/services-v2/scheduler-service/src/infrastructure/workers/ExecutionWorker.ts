@@ -1,7 +1,5 @@
 import { IScheduleRepository } from '../../domain/repositories/IScheduleRepository';
 import { IScheduleRunRepository } from '../../domain/repositories/IScheduleRunRepository';
-import { IOutboxRepository } from '../../domain/repositories/IOutboxRepository';
-import { Outbox } from '../../domain/entities/Outbox.entity';
 import { Logger } from '../observability/Logger';
 import { MetricsCollector } from '../observability/MetricsCollector';
 
@@ -24,7 +22,6 @@ export class ExecutionWorker {
   constructor(
     private readonly scheduleRepo: IScheduleRepository,
     private readonly runRepo: IScheduleRunRepository,
-    private readonly outboxRepo: IOutboxRepository,
     private readonly config: ExecutionWorkerConfig
   ) {
     // Set default context for logger
@@ -151,9 +148,6 @@ export class ExecutionWorker {
         return;
       }
 
-      run.start(this.config.workerId);
-      await this.runRepo.update(run);
-
       this.logger.logWorkerRunStart(
         this.config.workerId,
         run.getRunId(),
@@ -168,31 +162,31 @@ export class ExecutionWorker {
 
       const scheduleProps = schedule.getProps();
 
-      run.markAsEmitting();
-      await this.runRepo.update(run);
-
-      const outbox = Outbox.create(
-        run.getRunId(),
-        scheduleProps.topicOrCommand,
-        scheduleProps.payloadJson,
-        {
+      // ✅ NEW: Use transactional execution
+      // This atomically executes: RUNNING → EMITTING → EMITTED → SUCCEEDED + Outbox creation
+      // All in a single database transaction
+      const result = await this.runRepo.executeRunTransactional({
+        runId: run.getRunId(),
+        workerId: this.config.workerId,
+        topicOrCommand: scheduleProps.topicOrCommand,
+        payloadJson: scheduleProps.payloadJson,
+        headersJson: {
           correlation_id: crypto.randomUUID(),
           causation_id: schedule.getScheduleId(),
           schedule_id: schedule.getScheduleId(),
           run_id: run.getRunId(),
           tenant_id: schedule.getTenantId().getValue(),
           idempotency_key: `sched:${schedule.getScheduleId()}:${run.getRunId()}`,
-          emitted_at: new Date().toISOString()
+          emitted_at: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+          schema_version: '1.0',
+          event_type: scheduleProps.topicOrCommand
         }
-      );
+      });
 
-      await this.outboxRepo.save(outbox);
-
-      run.markAsEmitted(scheduleProps.topicOrCommand);
-      await this.runRepo.update(run);
-
-      run.markAsSucceeded();
-      await this.runRepo.update(run);
+      if (!result.success) {
+        throw new Error(result.errorMessage || 'Transactional execution failed');
+      }
 
       const duration = (Date.now() - startTime) / 1000;
 
@@ -230,12 +224,8 @@ export class ExecutionWorker {
         status: 'failed'
       });
 
-      try {
-        run.markAsFailed(error instanceof Error ? error.message : 'Unknown error');
-        await this.runRepo.update(run);
-      } catch (updateError) {
-        this.logger.error('Failed to update run status', updateError as Error);
-      }
+      // Note: No need to update run status here
+      // The transactional function already marked it as FAILED on error
     } finally {
       this.activeExecutions--;
 

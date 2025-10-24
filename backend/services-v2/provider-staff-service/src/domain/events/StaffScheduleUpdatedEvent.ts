@@ -5,7 +5,7 @@
  * @version 2.0.0
  */
 
-import { DomainEvent } from '../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { StaffId } from '../value-objects/StaffId';
 import { WorkSchedule } from '../value-objects/WorkSchedule';
 

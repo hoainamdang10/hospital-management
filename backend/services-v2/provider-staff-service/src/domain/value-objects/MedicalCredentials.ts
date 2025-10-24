@@ -3,7 +3,7 @@
  * Vietnamese Healthcare Professional Credentials
  */
 
-import { ValueObject } from '../../../shared/domain/ValueObject';
+import { ValueObject } from '@shared/domain/ValueObject';
 
 interface MedicalCredentialsProps {
   licenseNumber: string;

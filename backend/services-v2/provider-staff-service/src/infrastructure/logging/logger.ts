@@ -77,7 +77,12 @@ class WinstonLogger implements ILogger {
   fatal(message: string, meta?: any): void {
     this.logger.error(`[FATAL] ${message}`, meta);
   }
+
+  log(level: string, message: string, meta?: any): void {
+    this.logger.log(level, message, meta);
+  }
 }
 
+export { WinstonLogger };
 export const logger = new WinstonLogger('provider-staff-service');
 

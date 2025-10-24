@@ -8,19 +8,19 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { body, param, query, validationResult, ValidationChain } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 
 // ==================== VALIDATION ERROR HANDLER ====================
 
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
     res.status(400).json({
       success: false,
       error: 'VALIDATION_ERROR',
       message: 'Dữ liệu đầu vào không hợp lệ',
-      errors: errors.array().map(err => ({
+      errors: errors.array().map((err: any) => ({
         field: 'param' in err ? err.param : 'unknown',
         message: err.msg
       }))
@@ -33,7 +33,7 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
 
 // ==================== REGISTER STAFF VALIDATION ====================
 
-export const validateRegisterStaff: ValidationChain[] = [
+export const validateRegisterStaff = [
   // User ID
   body('userId')
     .notEmpty().withMessage('User ID không được để trống')
@@ -104,7 +104,7 @@ export const validateRegisterStaff: ValidationChain[] = [
 
   body('employmentType')
     .notEmpty().withMessage('Loại hợp đồng không được để trống')
-    .isIn(['full-time', 'part-time', 'contract', 'temporary', 'intern'])
+    .isIn(['full_time', 'part_time', 'contract', 'intern', 'volunteer'])
     .withMessage('Loại hợp đồng không hợp lệ'),
 
   body('hireDate')
@@ -118,12 +118,174 @@ export const validateRegisterStaff: ValidationChain[] = [
   handleValidationErrors
 ];
 
+// ==================== CREDENTIAL MANAGEMENT VALIDATION ====================
+
+export const validateAddCredential = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX (ví dụ: DOC-CARD-202501-001)'),
+
+  body('credentialNumber')
+    .notEmpty().withMessage('Số chứng chỉ không được để trống')
+    .isString().withMessage('Số chứng chỉ phải là chuỗi'),
+
+  body('credentialType')
+    .notEmpty().withMessage('Loại chứng chỉ không được để trống')
+    .isIn(['license', 'certificate', 'registration'])
+    .withMessage('Loại chứng chỉ không hợp lệ (license, certificate, registration)'),
+
+  body('issuingAuthority')
+    .notEmpty().withMessage('Cơ quan cấp không được để trống')
+    .isString().withMessage('Cơ quan cấp phải là chuỗi'),
+
+  body('issueDate')
+    .notEmpty().withMessage('Ngày cấp không được để trống')
+    .isISO8601().withMessage('Ngày cấp phải là ngày hợp lệ'),
+
+  body('expiryDate')
+    .optional()
+    .isISO8601().withMessage('Ngày hết hạn phải là ngày hợp lệ'),
+
+  handleValidationErrors
+];
+
+export const validateRemoveCredential = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX'),
+
+  param('credentialNumber')
+    .notEmpty().withMessage('Số chứng chỉ không được để trống')
+    .isString().withMessage('Số chứng chỉ phải là chuỗi'),
+
+  body('reason')
+    .optional()
+    .isString().withMessage('Lý do phải là chuỗi'),
+
+  handleValidationErrors
+];
+
+export const validateRenewCredential = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX'),
+
+  param('credentialNumber')
+    .notEmpty().withMessage('Số chứng chỉ không được để trống')
+    .isString().withMessage('Số chứng chỉ phải là chuỗi'),
+
+  body('newExpiryDate')
+    .notEmpty().withMessage('Ngày hết hạn mới không được để trống')
+    .isISO8601().withMessage('Ngày hết hạn mới phải là ngày hợp lệ'),
+
+  handleValidationErrors
+];
+
+export const validateGetExpiringCredentials = [
+  query('daysThreshold')
+    .optional()
+    .isInt({ min: 1, max: 365 })
+    .withMessage('Ngưỡng số ngày phải từ 1 đến 365'),
+
+  query('staffType')
+    .optional()
+    .isIn(['doctor', 'nurse', 'technician', 'pharmacist', 'therapist', 'admin', 'receptionist'])
+    .withMessage('Loại nhân viên không hợp lệ'),
+
+  query('departmentId')
+    .optional()
+    .isString().withMessage('Department ID phải là chuỗi'),
+
+  handleValidationErrors
+];
+
+// ==================== STATUS MANAGEMENT VALIDATION ====================
+
+export const validateActivateStaff = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX'),
+
+  handleValidationErrors
+];
+
+export const validateSuspendStaff = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX'),
+
+  body('reason')
+    .notEmpty().withMessage('Lý do tạm ngưng không được để trống')
+    .isString().withMessage('Lý do phải là chuỗi')
+    .isLength({ min: 10 }).withMessage('Lý do phải có ít nhất 10 ký tự'),
+
+  body('suspensionStartDate')
+    .optional()
+    .isISO8601().withMessage('Ngày bắt đầu tạm ngưng phải là ngày hợp lệ'),
+
+  body('suspensionEndDate')
+    .optional()
+    .isISO8601().withMessage('Ngày kết thúc tạm ngưng phải là ngày hợp lệ'),
+
+  handleValidationErrors
+];
+
+export const validateReactivateStaff = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX'),
+
+  handleValidationErrors
+];
+
+export const validateTerminateStaff = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX'),
+
+  body('reason')
+    .notEmpty().withMessage('Lý do chấm dứt hợp đồng không được để trống')
+    .isString().withMessage('Lý do phải là chuỗi')
+    .isLength({ min: 10 }).withMessage('Lý do phải có ít nhất 10 ký tự'),
+
+  body('terminationDate')
+    .optional()
+    .isISO8601().withMessage('Ngày chấm dứt hợp đồng phải là ngày hợp lệ'),
+
+  handleValidationErrors
+];
+
+export const validateUpdateEmploymentStatus = [
+  param('staffId')
+    .notEmpty().withMessage('Staff ID không được để trống')
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/)
+    .withMessage('Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX'),
+
+  body('employmentType')
+    .notEmpty().withMessage('Loại hình làm việc không được để trống')
+    .isIn(['full_time', 'part_time', 'contract', 'intern', 'volunteer'])
+    .withMessage('Loại hình làm việc không hợp lệ'),
+
+  body('contractEndDate')
+    .optional()
+    .isISO8601().withMessage('Ngày kết thúc hợp đồng phải là ngày hợp lệ'),
+
+  handleValidationErrors
+];
+
 // ==================== UPDATE STAFF INFO VALIDATION ====================
 
-export const validateUpdateStaffInfo: ValidationChain[] = [
+export const validateUpdateStaffInfo = [
   body('staffId')
     .notEmpty().withMessage('Staff ID không được để trống')
-    .matches(/^STAFF-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng (STAFF-YYYYMM-XXX)'),
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng ({TYPE}-{DEPT}-YYYYMM-XXX)'),
 
   body('personalInfo.phoneNumber')
     .optional()
@@ -142,10 +304,10 @@ export const validateUpdateStaffInfo: ValidationChain[] = [
 
 // ==================== UPDATE STAFF STATUS VALIDATION ====================
 
-export const validateUpdateStaffStatus: ValidationChain[] = [
+export const validateUpdateStaffStatus = [
   body('staffId')
     .notEmpty().withMessage('Staff ID không được để trống')
-    .matches(/^STAFF-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng'),
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng'),
 
   body('status')
     .notEmpty().withMessage('Trạng thái không được để trống')
@@ -157,15 +319,15 @@ export const validateUpdateStaffStatus: ValidationChain[] = [
 
 // ==================== PARAMETER VALIDATION ====================
 
-export const validateStaffId: ValidationChain[] = [
+export const validateStaffId = [
   param('staffId')
     .notEmpty().withMessage('Staff ID không được để trống')
-    .matches(/^STAFF-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng (STAFF-YYYYMM-XXX)'),
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng ({TYPE}-{DEPT}-YYYYMM-XXX)'),
 
   handleValidationErrors
 ];
 
-export const validateUserId: ValidationChain[] = [
+export const validateUserId = [
   param('userId')
     .notEmpty().withMessage('User ID không được để trống')
     .isUUID().withMessage('User ID phải là UUID hợp lệ'),
@@ -173,7 +335,7 @@ export const validateUserId: ValidationChain[] = [
   handleValidationErrors
 ];
 
-export const validateLicenseNumber: ValidationChain[] = [
+export const validateLicenseNumber = [
   param('licenseNumber')
     .notEmpty().withMessage('Số giấy phép không được để trống'),
 
@@ -182,7 +344,7 @@ export const validateLicenseNumber: ValidationChain[] = [
 
 // ==================== SEARCH VALIDATION ====================
 
-export const validateSearchStaff: ValidationChain[] = [
+export const validateSearchStaff = [
   query('searchTerm')
     .optional()
     .isLength({ min: 2 }).withMessage('Từ khóa tìm kiếm phải có ít nhất 2 ký tự'),
@@ -216,39 +378,12 @@ export const validateSearchStaff: ValidationChain[] = [
   handleValidationErrors
 ];
 
-// ==================== ADD CREDENTIAL VALIDATION ====================
-
-export const validateAddCredential: ValidationChain[] = [
-  body('staffId')
-    .notEmpty().withMessage('Staff ID không được để trống')
-    .matches(/^STAFF-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng'),
-
-  body('credentialType')
-    .notEmpty().withMessage('Loại chứng chỉ không được để trống'),
-
-  body('credentialNumber')
-    .notEmpty().withMessage('Số chứng chỉ không được để trống'),
-
-  body('issuingAuthority')
-    .notEmpty().withMessage('Cơ quan cấp không được để trống'),
-
-  body('issueDate')
-    .notEmpty().withMessage('Ngày cấp không được để trống')
-    .isISO8601().withMessage('Ngày cấp phải là ngày hợp lệ'),
-
-  body('expiryDate')
-    .optional()
-    .isISO8601().withMessage('Ngày hết hạn phải là ngày hợp lệ'),
-
-  handleValidationErrors
-];
-
 // ==================== ASSIGN DEPARTMENT VALIDATION ====================
 
-export const validateAssignDepartment: ValidationChain[] = [
+export const validateAssignDepartment = [
   body('staffId')
     .notEmpty().withMessage('Staff ID không được để trống')
-    .matches(/^STAFF-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng'),
+    .matches(/^[A-Z]{3}-[A-Z]{4}-\d{6}-\d{3}$/).withMessage('Staff ID không đúng định dạng'),
 
   body('departmentId')
     .notEmpty().withMessage('Department ID không được để trống'),
@@ -269,3 +404,42 @@ export const validateAssignDepartment: ValidationChain[] = [
   handleValidationErrors
 ];
 
+// ==================== UPDATE SCHEDULE VALIDATION ====================
+
+export const validateUpdateSchedule = [
+  body('workSchedule')
+    .notEmpty().withMessage('Lịch làm việc không được để trống')
+    .isObject().withMessage('Lịch làm việc phải là object'),
+
+  body('workSchedule.workingDays')
+    .isArray({ min: 1 }).withMessage('Ngày làm việc phải là mảng và có ít nhất 1 ngày')
+    .custom((value: string[]) => {
+      const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      return value.every(day => validDays.includes(day.toLowerCase()));
+    }).withMessage('Ngày làm việc không hợp lệ'),
+
+  body('workSchedule.workingHours')
+    .notEmpty().withMessage('Giờ làm việc không được để trống')
+    .isObject().withMessage('Giờ làm việc phải là object'),
+
+  body('workSchedule.workingHours.start')
+    .notEmpty().withMessage('Giờ bắt đầu không được để trống')
+    .matches(/^([01]\d|2[0-3]):([0-5]\d)$/).withMessage('Giờ bắt đầu phải có định dạng HH:mm'),
+
+  body('workSchedule.workingHours.end')
+    .notEmpty().withMessage('Giờ kết thúc không được để trống')
+    .matches(/^([01]\d|2[0-3]):([0-5]\d)$/).withMessage('Giờ kết thúc phải có định dạng HH:mm'),
+
+  body('workSchedule.timeZone')
+    .notEmpty().withMessage('Múi giờ không được để trống')
+    .isString().withMessage('Múi giờ phải là chuỗi'),
+
+  body('workSchedule.isFlexible')
+    .isBoolean().withMessage('isFlexible phải là boolean'),
+
+  body('effectiveDate')
+    .optional()
+    .isISO8601().withMessage('Ngày hiệu lực phải là ngày hợp lệ'),
+
+  handleValidationErrors
+];

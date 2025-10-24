@@ -5,12 +5,15 @@
  * @version 2.0.0
  */
 
-import { Entity } from '../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 
 interface DepartmentAssignmentProps {
   departmentId: string;
-  departmentName: string;
+  departmentCode: string;        // Department code (CARD, ORTH, PEDI, etc.)
+  departmentNameEn: string;      // English name
+  departmentNameVi: string;      // Vietnamese name
   role: string;
+  isPrimary?: boolean;           // Is this the primary department assignment?
   startDate: Date;
   endDate?: Date;
   isActive: boolean;
@@ -28,16 +31,19 @@ export class DepartmentAssignment extends Entity<DepartmentAssignmentProps> {
     return new DepartmentAssignment({ ...props, createdAt: now, updatedAt: now });
   }
 
-  public static fromPersistence(data: any): DepartmentAssignment {
+  public static fromPersistenceData(data: any): DepartmentAssignment {
     return new DepartmentAssignment({
-      departmentId: data.department_id,
-      departmentName: data.department_name,
+      departmentId: data.department_id || data.departmentId,
+      departmentCode: data.department_code || data.departmentCode,
+      departmentNameEn: data.department_name_en || data.departmentNameEn || data.department_name || data.departmentName,
+      departmentNameVi: data.department_name_vi || data.departmentNameVi || data.department_name || data.departmentName,
       role: data.role,
-      startDate: new Date(data.start_date),
-      endDate: data.end_date ? new Date(data.end_date) : undefined,
-      isActive: data.is_active,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
+      isPrimary: data.is_primary || data.isPrimary || false,
+      startDate: new Date(data.start_date || data.startDate),
+      endDate: data.end_date || data.endDate ? new Date(data.end_date || data.endDate) : undefined,
+      isActive: data.is_active !== undefined ? data.is_active : (data.isActive !== undefined ? data.isActive : true),
+      createdAt: new Date(data.created_at || data.createdAt || Date.now()),
+      updatedAt: new Date(data.updated_at || data.updatedAt || Date.now())
     }, data.id);
   }
 
@@ -45,8 +51,20 @@ export class DepartmentAssignment extends Entity<DepartmentAssignmentProps> {
     return this.props.departmentId;
   }
 
-  public get departmentName(): string {
-    return this.props.departmentName;
+  public get departmentCode(): string {
+    return this.props.departmentCode;
+  }
+
+  public get departmentNameEn(): string {
+    return this.props.departmentNameEn;
+  }
+
+  public get departmentNameVi(): string {
+    return this.props.departmentNameVi;
+  }
+
+  public get isPrimary(): boolean {
+    return this.props.isPrimary || false;
   }
 
   public get role(): string {
@@ -80,14 +98,17 @@ export class DepartmentAssignment extends Entity<DepartmentAssignmentProps> {
   public toPersistence(): any {
     return {
       id: this.id,
-      department_id: this.props.departmentId,
-      department_name: this.props.departmentName,
+      departmentId: this.props.departmentId,
+      departmentCode: this.props.departmentCode,
+      departmentNameEn: this.props.departmentNameEn,
+      departmentNameVi: this.props.departmentNameVi,
       role: this.props.role,
-      start_date: this.props.startDate.toISOString(),
-      end_date: this.props.endDate?.toISOString(),
-      is_active: this.props.isActive,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString()
+      isPrimary: this.props.isPrimary || false,
+      startDate: this.props.startDate.toISOString(),
+      endDate: this.props.endDate?.toISOString(),
+      isActive: this.props.isActive,
+      createdAt: this.props.createdAt.toISOString(),
+      updatedAt: this.props.updatedAt.toISOString()
     };
   }
 }

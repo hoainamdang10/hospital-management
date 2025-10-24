@@ -27,7 +27,7 @@
 - `provider-staff-service` - Doctor/Staff Management (Port 3022)
 
 **In Development (4/7)**:
-- `scheduling-service` - Appointments & Queue (Port 3024)
+- `appointments-service` - Appointments & Queue (Port 3024)
 - `clinical-emr-service` - Medical Records & FHIR (Port 3027)
 - `billing-service` - Payments & Insurance (Port 3029)
 - `notifications-service` - Multi-channel Alerts (Port 3031)
@@ -46,7 +46,7 @@ hospital-management-V2/
 │       ├── identity-service/           # ✅ Auth & User Management
 │       ├── patient-registry-service/   # ✅ Patient Management
 │       ├── provider-staff-service/     # ✅ Doctor/Staff Management
-│       ├── scheduling-service/         # 🔄 Appointments
+│       ├── appointments-service/       # 🔄 Appointments
 │       ├── clinical-emr-service/       # 🔄 Medical Records
 │       ├── billing-service/            # 🔄 Billing
 │       ├── notifications-service/      # 🔄 Notifications
@@ -194,7 +194,7 @@ npm run build:all
 npm run build:identity
 npm run build:patient
 npm run build:provider
-npm run build:scheduling
+npm run build:appointments
 npm run build:clinical
 npm run build:billing
 npm run build:notifications
@@ -209,6 +209,7 @@ npm run test:all
 npm run test:identity
 npm run test:patient
 npm run test:provider
+npm run test:appointments
 
 # Inside a service directory:
 cd identity-service
@@ -238,6 +239,7 @@ npm run logs:all
 npm run logs:identity
 npm run logs:patient
 npm run logs:provider
+npm run logs:appointments
 ```
 
 #### Service-Specific Development
@@ -684,7 +686,7 @@ npm test
 
 ---
 
-### Scheduling Service (Port 3024)
+### Appointments Service (Port 3024)
 **Status**: 🔄 In Development
 **Responsibilities**: Appointments, Queue Management, Calendar
 
@@ -695,7 +697,7 @@ npm test
 - Reminder notifications
 - Conflict detection
 
-**Database Schema**: `scheduling_schema`
+**Database Schema**: `appointments_schema`
 
 ---
 
@@ -841,7 +843,7 @@ Each service has its own isolated schema:
 - `auth_schema` - Identity Service
 - `patient_schema` - Patient Registry
 - `provider_schema` - Provider/Staff Service
-- `scheduling_schema` - Scheduling Service
+- `appointments_schema` - Appointments Service
 - `clinical_schema` - Clinical EMR Service
 - `billing_schema` - Billing Service
 - `notifications_schema` - Notifications Service
@@ -1041,7 +1043,7 @@ curl http://localhost:3022/health  # Provider
 | Identity Service | 3021 | ✅ Production-Ready |
 | Provider/Staff Service | 3022 | ✅ Production-Ready |
 | Patient Registry | 3023 | ✅ Production-Ready |
-| Scheduling Service | 3024 | 🔄 In Development |
+| Appointments Service | 3024 | 🔄 In Development |
 | Clinical EMR Service | 3027 | 🔄 In Development |
 | Billing Service | 3029 | 🔄 In Development |
 | Notifications Service | 3031 | 🔄 In Development |

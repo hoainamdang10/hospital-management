@@ -8,9 +8,9 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { IDomainEventHandler } from '../../../../shared/events/domain-event-handler.interface';
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
-import { IEventBus } from '../../../../shared/events/event-bus.interface';
+import { IDomainEventHandler } from '@shared/events/domain-event-handler.interface';
+import { DomainEvent } from '@shared/domain/base/domain-event';
+import { IEventBus } from '@shared/events/event-bus.interface';
 import { ILogger } from '../../application/interfaces/ILogger';
 import { IAuditService } from '../../application/interfaces/IAuditService';
 
@@ -18,6 +18,11 @@ import { IAuditService } from '../../application/interfaces/IAuditService';
 import { StaffRegisteredEvent } from '../../domain/events/StaffRegisteredEvent';
 import { StaffCredentialVerifiedEvent } from '../../domain/events/StaffCredentialVerifiedEvent';
 import { StaffScheduleUpdatedEvent } from '../../domain/events/StaffScheduleUpdatedEvent';
+import { StaffStatusChangedEvent } from '../../domain/events/StaffStatusChangedEvent';
+import { StaffEmploymentStatusUpdatedEvent } from '../../domain/events/StaffEmploymentStatusUpdatedEvent';
+import { StaffUpdatedEvent } from '../../domain/events/StaffUpdatedEvent';
+import { StaffSpecializationAddedEvent } from '../../domain/events/StaffSpecializationAddedEvent';
+import { StaffDepartmentAssignedEvent } from '../../domain/events/StaffDepartmentAssignedEvent';
 
 // Integration Events
 interface StaffRegisteredIntegrationEvent {
@@ -44,6 +49,15 @@ interface StaffRegisteredIntegrationEvent {
     licenseNumber: string;
     employmentType: string;
     hireDate: string;
+    workSchedule: {
+      workingDays: string[];
+      workingHours: {
+        start: string;
+        end: string;
+      };
+      timeZone: string;
+      isFlexible: boolean;
+    };
     isActive: boolean;
     vietnameseHealthcareCompliant: boolean;
     hipaaCompliant: boolean;
@@ -136,7 +150,7 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
         eventType: event.eventType,
         aggregateId: event.aggregateId,
         eventId: event.eventId,
-        timestamp: event.timestamp
+        timestamp: (event as any).timestamp || new Date()
       });
 
       switch (event.eventType) {
@@ -150,6 +164,26 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
         
         case 'StaffScheduleUpdated':
           await this.handleStaffScheduleUpdated(event as StaffScheduleUpdatedEvent);
+          break;
+        
+        case 'StaffStatusChanged':
+          await this.handleStaffStatusChanged(event as StaffStatusChangedEvent);
+          break;
+        
+        case 'StaffEmploymentStatusUpdated':
+          await this.handleStaffEmploymentStatusUpdated(event as StaffEmploymentStatusUpdatedEvent);
+          break;
+        
+        case 'StaffUpdated':
+          await this.handleStaffUpdated(event as StaffUpdatedEvent);
+          break;
+        
+        case 'StaffSpecializationAdded':
+          await this.handleStaffSpecializationAdded(event as StaffSpecializationAddedEvent);
+          break;
+        
+        case 'StaffDepartmentAssigned':
+          await this.handleStaffDepartmentAssigned(event as StaffDepartmentAssignedEvent);
           break;
         
         default:
@@ -212,9 +246,10 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
         licenseNumber: this.maskSensitiveData(event.licenseNumber),
         employmentType: event.employmentType,
         hireDate: event.hireDate.toISOString(),
+        workSchedule: event.workSchedule.toPersistence(),
         isActive: true,
-        vietnameseHealthcareCompliant: event.vietnameseHealthcareCompliant || false,
-        hipaaCompliant: event.hipaaCompliant || false
+        vietnameseHealthcareCompliant: event.personalInfo.isVietnameseCompliant(),
+        hipaaCompliant: event.personalInfo.isHIPAACompliant()
       },
       metadata: {
         serviceName: 'provider-staff-service',
@@ -225,7 +260,7 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
     };
 
     // Publish integration event
-    await this.eventBus.publish(integrationEvent);
+    await this.eventBus.publish(integrationEvent as any);
 
     this.logger.info('StaffRegistered integration event published', {
       staffId: event.staffId.value,
@@ -253,7 +288,7 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
       data: {
         staffId: event.staffId.value,
         credentialNumber: this.maskSensitiveData(event.credentialNumber),
-        credentialType: event.credentialType || 'unknown',
+        credentialType: event.credentialType,
         issuingAuthority: event.issuingAuthority,
         verificationDate: new Date().toISOString()
       },
@@ -266,7 +301,7 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
     };
 
     // Publish integration event
-    await this.eventBus.publish(integrationEvent);
+    await this.eventBus.publish(integrationEvent as any);
 
     this.logger.info('StaffCredentialVerified integration event published', {
       staffId: event.staffId.value,
@@ -292,12 +327,7 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
       timestamp: new Date(),
       data: {
         staffId: event.staffId.value,
-        workSchedule: {
-          workingDays: event.workSchedule.workingDays,
-          workingHours: event.workSchedule.workingHours,
-          timeZone: event.workSchedule.timeZone,
-          isFlexible: event.workSchedule.isFlexible
-        },
+        workSchedule: event.newSchedule.toPersistence(),
         effectiveDate: new Date().toISOString()
       },
       metadata: {
@@ -309,12 +339,149 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
     };
 
     // Publish integration event
-    await this.eventBus.publish(integrationEvent);
+    await this.eventBus.publish(integrationEvent as any);
 
     this.logger.info('StaffScheduleUpdated integration event published', {
       staffId: event.staffId.value,
       integrationEventId: integrationEvent.eventId
     });
+  }
+
+  /**
+   * Handle StaffStatusChanged event
+   */
+  private async handleStaffStatusChanged(event: StaffStatusChangedEvent): Promise<void> {
+    this.logger.info('Handling StaffStatusChanged event', {
+      staffId: event.staffId,
+      oldStatus: event.oldStatus,
+      newStatus: event.newStatus
+    });
+
+    const integrationEvent = {
+      eventId: this.generateEventId(),
+      eventType: 'StaffStatusChanged',
+      aggregateId: event.staffId,
+      aggregateType: 'ProviderStaff',
+      version: 1,
+      timestamp: new Date(),
+      data: {
+        staffId: event.staffId,
+        oldStatus: event.oldStatus,
+        newStatus: event.newStatus,
+        reason: event.reason,
+        changedBy: event.changedBy,
+        statusChangedAt: new Date().toISOString()
+      },
+      metadata: {
+        serviceName: 'provider-staff-service',
+        version: '2.0.0',
+        correlationId: event.correlationId,
+        causationId: event.eventId
+      }
+    };
+
+    await this.eventBus.publish(integrationEvent as any);
+
+    this.logger.info('StaffStatusChanged integration event published', {
+      staffId: event.staffId,
+      integrationEventId: integrationEvent.eventId
+    });
+  }
+
+  /**
+   * Handle StaffEmploymentStatusUpdated event
+   */
+  private async handleStaffEmploymentStatusUpdated(event: StaffEmploymentStatusUpdatedEvent): Promise<void> {
+    this.logger.info('Handling StaffEmploymentStatusUpdated event', {
+      staffId: event.staffId,
+      oldEmploymentType: event.oldEmploymentType,
+      newEmploymentType: event.newEmploymentType
+    });
+
+    const integrationEvent = {
+      eventId: this.generateEventId(),
+      eventType: 'StaffEmploymentStatusUpdated',
+      aggregateId: event.staffId,
+      aggregateType: 'ProviderStaff',
+      version: 1,
+      timestamp: new Date(),
+      data: {
+        staffId: event.staffId,
+        oldEmploymentType: event.oldEmploymentType,
+        newEmploymentType: event.newEmploymentType,
+        contractEndDate: event.contractEndDate?.toISOString(),
+        updatedBy: event.updatedBy,
+        updatedAt: new Date().toISOString()
+      },
+      metadata: {
+        serviceName: 'provider-staff-service',
+        version: '2.0.0',
+        correlationId: event.correlationId,
+        causationId: event.eventId
+      }
+    };
+
+    await this.eventBus.publish(integrationEvent as any);
+
+    this.logger.info('StaffEmploymentStatusUpdated integration event published', {
+      staffId: event.staffId,
+      integrationEventId: integrationEvent.eventId
+    });
+  }
+
+  /**
+   * Handle StaffUpdated event
+   */
+  private async handleStaffUpdated(event: StaffUpdatedEvent): Promise<void> {
+    this.logger.info('Handling StaffUpdated event', {
+      staffId: event.staffId.value,
+      updatedFields: event.updatedFields
+    });
+
+    const integrationEvent = {
+      eventId: this.generateEventId(),
+      eventType: 'StaffUpdated',
+      aggregateId: event.staffId.value,
+      aggregateType: 'ProviderStaff',
+      version: 1,
+      timestamp: new Date(),
+      data: {
+        staffId: event.staffId.value,
+        updatedFields: event.updatedFields,
+        updatedData: this.sanitizeUpdatedData(event.updatedData),
+        updatedAt: new Date().toISOString()
+      },
+      metadata: {
+        serviceName: 'provider-staff-service',
+        version: '2.0.0',
+        correlationId: event.correlationId,
+        causationId: event.eventId
+      }
+    };
+
+    await this.eventBus.publish(integrationEvent as any);
+
+    this.logger.info('StaffUpdated integration event published', {
+      staffId: event.staffId.value,
+      integrationEventId: integrationEvent.eventId
+    });
+  }
+
+  /**
+   * Sanitize updated data to remove sensitive information
+   */
+  private sanitizeUpdatedData(data: Record<string, any>): Record<string, any> {
+    const sanitized = { ...data };
+    
+    // Remove sensitive fields
+    const sensitiveFields = ['password', 'nationalId', 'phoneNumber', 'email'];
+    sensitiveFields.forEach(field => {
+      if (sanitized[field]) {
+        sanitized[field] = '***REDACTED***';
+      }
+    });
+
+    return sanitized;
   }
 
   /**
@@ -324,7 +491,10 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
     const supportedEvents = [
       'StaffRegistered',
       'StaffCredentialVerified',
-      'StaffScheduleUpdated'
+      'StaffScheduleUpdated',
+      'StaffStatusChanged',
+      'StaffEmploymentStatusUpdated',
+      'StaffUpdated'
     ];
     
     return supportedEvents.includes(eventType);
@@ -341,7 +511,10 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
       supportedEvents: [
         'StaffRegistered',
         'StaffCredentialVerified',
-        'StaffScheduleUpdated'
+        'StaffScheduleUpdated',
+        'StaffStatusChanged',
+        'StaffEmploymentStatusUpdated',
+        'StaffUpdated'
       ],
       isHealthy: true,
       lastProcessedAt: new Date().toISOString()
@@ -410,18 +583,107 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
   }
 
   /**
+   * Handle StaffSpecializationAdded event
+   */
+  private async handleStaffSpecializationAdded(event: StaffSpecializationAddedEvent): Promise<void> {
+    this.logger.info('Handling StaffSpecializationAdded event', {
+      staffId: event.staffId.value,
+      specialization: event.specialization.name
+    });
+
+    const integrationEvent = {
+      eventId: this.generateEventId(),
+      eventType: 'StaffSpecializationAdded',
+      aggregateId: event.staffId.value,
+      aggregateType: 'ProviderStaff',
+      version: 1,
+      timestamp: new Date(),
+      data: {
+        staffId: event.staffId.value,
+        specialization: {
+          code: event.specialization.code,
+          name: event.specialization.name,
+          description: event.specialization.description
+        }
+      },
+      metadata: {
+        serviceName: 'provider-staff-service',
+        version: '2.0.0',
+        correlationId: event.correlationId,
+        causationId: event.eventId
+      }
+    };
+
+    await this.eventBus.publish(integrationEvent as any);
+
+    this.logger.info('StaffSpecializationAdded integration event published', {
+      staffId: event.staffId.value,
+      integrationEventId: integrationEvent.eventId
+    });
+  }
+
+  /**
+   * Handle StaffDepartmentAssigned event
+   */
+  private async handleStaffDepartmentAssigned(event: StaffDepartmentAssignedEvent): Promise<void> {
+    this.logger.info('Handling StaffDepartmentAssigned event', {
+      staffId: event.staffId.value,
+      departmentId: event.assignment.departmentId
+    });
+
+    const integrationEvent = {
+      eventId: this.generateEventId(),
+      eventType: 'StaffDepartmentAssigned',
+      aggregateId: event.staffId.value,
+      aggregateType: 'ProviderStaff',
+      version: 1,
+      timestamp: new Date(),
+      data: {
+        staffId: event.staffId.value,
+        assignment: {
+          departmentId: event.assignment.departmentId,
+          departmentCode: event.assignment.departmentCode,
+          departmentNameEn: event.assignment.departmentNameEn,
+          departmentNameVi: event.assignment.departmentNameVi,
+          role: event.assignment.role,
+          isPrimary: event.assignment.isPrimary,
+          startDate: event.assignment.startDate.toISOString()
+        }
+      },
+      metadata: {
+        serviceName: 'provider-staff-service',
+        version: '2.0.0',
+        correlationId: event.correlationId,
+        causationId: event.eventId
+      }
+    };
+
+    await this.eventBus.publish(integrationEvent as any);
+
+    this.logger.info('StaffDepartmentAssigned integration event published', {
+      staffId: event.staffId.value,
+      integrationEventId: integrationEvent.eventId
+    });
+  }
+
+  /**
    * Get event processing statistics
    */
   getStatistics(): any {
     return {
       handlerName: 'StaffDomainEventHandler',
-      supportedEventsCount: 3,
+      supportedEventsCount: 8,
       lastHealthCheck: new Date().toISOString(),
       isHealthy: true,
       processingCapabilities: {
         canHandleStaffRegistered: true,
         canHandleStaffCredentialVerified: true,
-        canHandleStaffScheduleUpdated: true
+        canHandleStaffScheduleUpdated: true,
+        canHandleStaffStatusChanged: true,
+        canHandleStaffEmploymentStatusUpdated: true,
+        canHandleStaffUpdated: true,
+        canHandleStaffSpecializationAdded: true,
+        canHandleStaffDepartmentAssigned: true
       }
     };
   }

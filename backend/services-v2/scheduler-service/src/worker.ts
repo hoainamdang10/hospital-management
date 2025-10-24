@@ -69,7 +69,7 @@ async function bootstrap() {
       deadLettersRetention: `${cleanerConfig.deadLettersRetentionDays} days`
     });
 
-    const executionWorker = new ExecutionWorker(scheduleRepo, runRepo, outboxRepo, executionConfig);
+    const executionWorker = new ExecutionWorker(scheduleRepo, runRepo, executionConfig);
     const cleanerWorker = new CleanerWorker(runRepo, outboxRepo, deadLetterRepo, cleanerConfig);
 
     await executionWorker.start();

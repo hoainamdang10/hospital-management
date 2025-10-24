@@ -93,9 +93,16 @@ export class AssignStaffToDepartmentUseCase {
       }
 
       // Create department assignment
+      // Extract department code from ID (e.g., DEPT-CARDIO -> CARD)
+      const deptCode = request.departmentId.includes('-')
+        ? request.departmentId.split('-')[1].substring(0, 4).toUpperCase()
+        : request.departmentId.substring(0, 4).toUpperCase();
+
       const assignment = DepartmentAssignment.create({
         departmentId: request.departmentId,
-        departmentName: request.departmentName,
+        departmentCode: deptCode,
+        departmentNameEn: request.departmentName,
+        departmentNameVi: request.departmentName,
         role: request.role,
         isPrimary: request.isPrimary || false,
         startDate: request.startDate || new Date(),
@@ -109,7 +116,7 @@ export class AssignStaffToDepartmentUseCase {
       await this.staffRepository.update(staff);
 
       // Audit log
-      if (this.auditService) {
+      if (this.auditService && this.auditService.logAction) {
         await this.auditService.logAction({
           action: 'ASSIGN_STAFF_TO_DEPARTMENT',
           entityType: 'ProviderStaff',
@@ -140,7 +147,7 @@ export class AssignStaffToDepartmentUseCase {
         data: {
           staffId: staff.id,
           departmentId: assignment.departmentId,
-          departmentName: assignment.departmentName,
+          departmentName: assignment.departmentNameEn,
           role: assignment.role,
           isPrimary: request.isPrimary || false,
           startDate: assignment.startDate.toISOString()

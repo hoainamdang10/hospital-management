@@ -1,76 +1,29 @@
 /**
- * RabbitMQStaffEventHandler Unit Tests
- * 
- * @author Hospital Management Team
- * @version 2.0.0
+ * RabbitMQStaffEventHandler Unit Tests (updated for v2 implementation)
  */
 
 import { RabbitMQStaffEventHandler } from '../../../../src/infrastructure/events/RabbitMQStaffEventHandler';
-import { createMockLogger, createMockEventPublisher, createMockDomainEvent } from '../../../helpers/mockFactories';
+import {
+  createMockDomainEvent,
+  createMockEventPublisher,
+  createMockLogger
+} from '../../../helpers/mockFactories';
 
 describe('RabbitMQStaffEventHandler', () => {
-  let eventHandler: RabbitMQStaffEventHandler;
-  let mockEventPublisher: any;
-  let mockLogger: any;
+  let handler: RabbitMQStaffEventHandler;
+  let mockPublisher: ReturnType<typeof createMockEventPublisher>;
+  let mockLogger: ReturnType<typeof createMockLogger>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    mockEventPublisher = createMockEventPublisher();
+    mockPublisher = createMockEventPublisher();
     mockLogger = createMockLogger();
-
-    eventHandler = new RabbitMQStaffEventHandler(mockEventPublisher, mockLogger);
+    handler = new RabbitMQStaffEventHandler(mockPublisher as any, mockLogger);
   });
 
   describe('handleStaffRegistered', () => {
-    it('should publish StaffRegistered integration event', async () => {
-      const domainEvent = createMockDomainEvent('StaffRegisteredEvent', {
-        aggregateId: 'STF-202501-001',
-        userId: 'user-123',
-        staffType: 'doctor',
-        fullName: 'Bác sĩ Nguyễn Văn Test',
-        department: 'Khoa Nội',
-        specialization: 'Tim mạch',
-        licenseNumber: 'BYS-12345',
-        registrationDate: new Date().toISOString()
-      });
-
-      await eventHandler.handleStaffRegistered(domainEvent);
-
-      expect(mockEventPublisher.publishAll).toHaveBeenCalledTimes(1);
-      
-      const publishedEvents = mockEventPublisher.publishAll.mock.calls[0][0];
-      expect(publishedEvents).toHaveLength(3);
-      
-      // Check Identity Service event
-      expect(publishedEvents[0]).toMatchObject({
-        eventType: 'provider.staff.registered',
-        aggregateId: 'STF-202501-001',
-        serviceName: 'provider-staff-service'
-      });
-      
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('Handling StaffRegisteredEvent')
-      );
-    });
-
-    it('should include all required data in integration event', async () => {
-      const domainEvent = createMockDomainEvent('StaffRegisteredEvent', {
-        aggregateId: 'STF-202501-001',
-        userId: 'user-123',
-        staffType: 'doctor',
-        fullName: 'Bác sĩ Nguyễn Văn Test',
-        department: 'Khoa Tim mạch',
-        specialization: 'Tim mạch',
-        licenseNumber: 'BYS-12345'
-      });
-
-      await eventHandler.handleStaffRegistered(domainEvent);
-
-      const publishedEvents = mockEventPublisher.publishAll.mock.calls[0][0];
-      const identityEvent = publishedEvents[0];
-
-      expect(identityEvent.eventData).toMatchObject({
+    it('publishes integration + notification events for doctor registration', async () => {
+      const domainEvent = createMockDomainEvent('StaffRegistered', {
         staffId: 'STF-202501-001',
         userId: 'user-123',
         staffType: 'doctor',
@@ -79,262 +32,171 @@ describe('RabbitMQStaffEventHandler', () => {
         specialization: 'Tim mạch',
         licenseNumber: 'BYS-12345'
       });
+
+      await handler.handleStaffRegistered(domainEvent as any);
+
+      expect(mockPublisher.publish).toHaveBeenCalledTimes(4);
+
+      const publishedEvents = mockPublisher.publish.mock.calls.map(call => call[0]);
+      expect(publishedEvents[0].eventType).toBe('provider.staff.registered');
+      expect(publishedEvents[1]).toMatchObject({
+        eventType: 'identity.staff-registered',
+        eventData: expect.objectContaining({
+          staffId: 'STF-202501-001',
+          userId: 'user-123',
+          staffType: 'doctor'
+        })
+      });
+      expect(publishedEvents[2]).toMatchObject({
+        eventType: 'scheduling.doctor-registered',
+        eventData: expect.objectContaining({
+          staffId: 'STF-202501-001',
+          requiresScheduleInitialization: true
+        })
+      });
+      expect(publishedEvents[3]).toMatchObject({
+        eventType: 'clinical.provider-registered',
+        eventData: expect.objectContaining({
+          staffId: 'STF-202501-001',
+          licenseNumber: 'BYS-12345'
+        })
+      });
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'StaffRegistered event processed successfully',
+        expect.objectContaining({ staffId: 'STF-202501-001' })
+      );
     });
 
-    it('should publish events to Identity, Scheduling, and Clinical services', async () => {
-      const domainEvent = createMockDomainEvent('StaffRegisteredEvent', {
-        aggregateId: 'STF-202501-001',
+    it('logs and rethrows when publishing fails', async () => {
+      mockPublisher.publish.mockRejectedValueOnce(new Error('Publish failed'));
+      const domainEvent = createMockDomainEvent('StaffRegistered', {
+        staffId: 'STF-202501-001',
         userId: 'user-123',
         staffType: 'doctor'
       });
 
-      await eventHandler.handleStaffRegistered(domainEvent);
+      await expect(handler.handleStaffRegistered(domainEvent as any)).rejects.toThrow('Publish failed');
 
-      const publishedEvents = mockEventPublisher.publishAll.mock.calls[0][0];
-      
-      expect(publishedEvents).toHaveLength(3);
-      expect(publishedEvents[0].eventType).toBe('provider.staff.registered');
-      expect(publishedEvents[1].eventType).toBe('provider.staff.registered');
-      expect(publishedEvents[2].eventType).toBe('provider.staff.registered');
-    });
-
-    it('should handle errors gracefully', async () => {
-      mockEventPublisher.publishAll.mockRejectedValue(new Error('Publish failed'));
-
-      const domainEvent = createMockDomainEvent('StaffRegisteredEvent', {
-        aggregateId: 'STF-202501-001'
-      });
-
-      await expect(eventHandler.handleStaffRegistered(domainEvent)).rejects.toThrow('Publish failed');
-      expect(mockLogger.error).toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to handle StaffRegistered event',
+        expect.objectContaining({ error: 'Publish failed' })
+      );
     });
   });
 
   describe('handleStaffUpdated', () => {
-    it('should publish StaffUpdated integration event', async () => {
-      const domainEvent = createMockDomainEvent('StaffUpdatedEvent', {
-        aggregateId: 'STF-202501-001',
-        userId: 'user-123',
-        updatedFields: ['consultationFee', 'workSchedule'],
-        consultationFee: 600000,
-        workSchedule: { monday: { start: '08:00', end: '17:00' } }
+    it('publishes updates and notifies scheduling/billing when relevant fields change', async () => {
+      const domainEvent = createMockDomainEvent('StaffUpdated', {
+        staffId: 'STF-202501-001',
+        updatedFields: ['workSchedule', 'consultationFee'],
+        updatedData: {
+          workSchedule: { monday: { start: '08:00', end: '17:00' } },
+          consultationFee: 650000
+        }
       });
 
-      await eventHandler.handleStaffUpdated(domainEvent);
+      await handler.handleStaffUpdated(domainEvent as any);
 
-      expect(mockEventPublisher.publishAll).toHaveBeenCalled();
-      
-      const publishedEvents = mockEventPublisher.publishAll.mock.calls[0][0];
-      expect(publishedEvents.length).toBeGreaterThan(0);
-      
-      expect(publishedEvents[0]).toMatchObject({
-        eventType: 'provider.staff.updated',
-        aggregateId: 'STF-202501-001'
+      expect(mockPublisher.publish).toHaveBeenCalledTimes(3);
+
+      const [integrationEvent, schedulingEvent, billingEvent] = mockPublisher.publish.mock.calls.map(call => call[0]);
+      expect(integrationEvent.eventType).toBe('provider.staff.updated');
+      expect(schedulingEvent).toMatchObject({
+        eventType: 'scheduling.work-schedule-updated',
+        eventData: expect.objectContaining({
+          staffId: 'STF-202501-001'
+        })
       });
-    });
-
-    it('should notify Scheduling Service when work schedule changes', async () => {
-      const domainEvent = createMockDomainEvent('StaffUpdatedEvent', {
-        aggregateId: 'STF-202501-001',
-        updatedFields: ['workSchedule'],
-        workSchedule: { monday: { start: '09:00', end: '18:00' } }
+      expect(billingEvent).toMatchObject({
+        eventType: 'billing.consultation-fee-updated',
+        eventData: expect.objectContaining({
+          consultationFee: 650000
+        })
       });
-
-      await eventHandler.handleStaffUpdated(domainEvent);
-
-      const publishedEvents = mockEventPublisher.publishAll.mock.calls[0][0];
-      
-      const schedulingEvent = publishedEvents.find((e: any) => 
-        e.eventData.notifySchedulingService === true
-      );
-      
-      expect(schedulingEvent).toBeDefined();
-    });
-
-    it('should notify Billing Service when consultation fee changes', async () => {
-      const domainEvent = createMockDomainEvent('StaffUpdatedEvent', {
-        aggregateId: 'STF-202501-001',
-        updatedFields: ['consultationFee'],
-        consultationFee: 700000
-      });
-
-      await eventHandler.handleStaffUpdated(domainEvent);
-
-      const publishedEvents = mockEventPublisher.publishAll.mock.calls[0][0];
-      
-      const billingEvent = publishedEvents.find((e: any) => 
-        e.eventData.notifyBillingService === true
-      );
-      
-      expect(billingEvent).toBeDefined();
-    });
-
-    it('should include updated fields in event data', async () => {
-      const domainEvent = createMockDomainEvent('StaffUpdatedEvent', {
-        aggregateId: 'STF-202501-001',
-        updatedFields: ['specialization', 'department'],
-        specialization: 'Nội tiết',
-        department: 'Khoa Nội tiết'
-      });
-
-      await eventHandler.handleStaffUpdated(domainEvent);
-
-      const publishedEvents = mockEventPublisher.publishAll.mock.calls[0][0];
-      
-      expect(publishedEvents[0].eventData.updatedFields).toEqual(['specialization', 'department']);
     });
   });
 
   describe('handleDoctorAvailabilityChanged', () => {
-    it('should publish DoctorAvailabilityChanged integration event', async () => {
-      const domainEvent = createMockDomainEvent('DoctorAvailabilityChangedEvent', {
-        aggregateId: 'STF-202501-001',
-        isAcceptingNewPatients: false,
-        reason: 'Đang nghỉ phép',
-        effectiveDate: new Date().toISOString()
-      });
-
-      await eventHandler.handleDoctorAvailabilityChanged(domainEvent);
-
-      expect(mockEventPublisher.publish).toHaveBeenCalled();
-      
-      const publishedEvent = mockEventPublisher.publish.mock.calls[0][0];
-      
-      expect(publishedEvent).toMatchObject({
-        eventType: 'provider.doctor.availability.changed',
-        aggregateId: 'STF-202501-001'
-      });
-      
-      expect(publishedEvent.eventData).toMatchObject({
+    it('marks integration event as high priority and notifies scheduling', async () => {
+      const domainEvent = createMockDomainEvent('DoctorAvailabilityChanged', {
         staffId: 'STF-202501-001',
         isAcceptingNewPatients: false,
-        reason: 'Đang nghỉ phép'
-      });
-    });
-
-    it('should set high priority for availability changes', async () => {
-      const domainEvent = createMockDomainEvent('DoctorAvailabilityChangedEvent', {
-        aggregateId: 'STF-202501-001',
-        isAcceptingNewPatients: false
+        reason: 'Annual leave'
       });
 
-      await eventHandler.handleDoctorAvailabilityChanged(domainEvent);
+      await handler.handleDoctorAvailabilityChanged(domainEvent as any);
 
-      const publishedEvent = mockEventPublisher.publish.mock.calls[0][0];
-      
-      expect(publishedEvent.metadata.priority).toBe('high');
-    });
+      expect(mockPublisher.publish).toHaveBeenCalledTimes(2);
+      const [integrationEvent, schedulingEvent] = mockPublisher.publish.mock.calls.map(call => call[0]);
 
-    it('should notify Scheduling Service', async () => {
-      const domainEvent = createMockDomainEvent('DoctorAvailabilityChangedEvent', {
-        aggregateId: 'STF-202501-001',
-        isAcceptingNewPatients: true
-      });
-
-      await eventHandler.handleDoctorAvailabilityChanged(domainEvent);
-
-      expect(mockEventPublisher.publish).toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('Handling DoctorAvailabilityChangedEvent')
-      );
+      expect(integrationEvent.eventType).toBe('provider.doctor.availability.changed');
+      expect(integrationEvent.metadata.priority).toBe('high');
+      expect(schedulingEvent.eventType).toBe('scheduling.doctor-availability-changed');
     });
   });
 
   describe('handleStaffStatusChanged', () => {
-    it('should publish StaffStatusChanged integration event', async () => {
-      const domainEvent = createMockDomainEvent('StaffStatusChangedEvent', {
-        aggregateId: 'STF-202501-001',
-        userId: 'user-123',
-        previousStatus: 'active',
-        newStatus: 'inactive',
-        reason: 'Nghỉ việc',
-        changedBy: 'admin-123'
-      });
-
-      await eventHandler.handleStaffStatusChanged(domainEvent);
-
-      expect(mockEventPublisher.publish).toHaveBeenCalled();
-      
-      const publishedEvent = mockEventPublisher.publish.mock.calls[0][0];
-      
-      expect(publishedEvent).toMatchObject({
-        eventType: 'provider.staff.status.changed',
-        aggregateId: 'STF-202501-001'
-      });
-      
-      expect(publishedEvent.eventData).toMatchObject({
+    it('publishes high-priority status change event', async () => {
+      const domainEvent = createMockDomainEvent('StaffStatusChanged', {
         staffId: 'STF-202501-001',
         userId: 'user-123',
         previousStatus: 'active',
         newStatus: 'inactive',
-        reason: 'Nghỉ việc',
-        changedBy: 'admin-123'
-      });
-    });
-
-    it('should set high priority for status changes', async () => {
-      const domainEvent = createMockDomainEvent('StaffStatusChangedEvent', {
-        aggregateId: 'STF-202501-001',
-        previousStatus: 'active',
-        newStatus: 'suspended'
+        reason: 'Resigned',
+        changedBy: 'admin-001'
       });
 
-      await eventHandler.handleStaffStatusChanged(domainEvent);
+      await handler.handleStaffStatusChanged(domainEvent as any);
 
-      const publishedEvent = mockEventPublisher.publish.mock.calls[0][0];
-      
+      expect(mockPublisher.publish).toHaveBeenCalledTimes(1);
+      const publishedEvent = mockPublisher.publish.mock.calls[0][0];
+      expect(publishedEvent.eventType).toBe('provider.staff.status.changed');
       expect(publishedEvent.metadata.priority).toBe('high');
     });
   });
 
   describe('handle', () => {
-    it('should route StaffRegisteredEvent to handleStaffRegistered', async () => {
-      const spy = jest.spyOn(eventHandler, 'handleStaffRegistered');
-      
-      const domainEvent = createMockDomainEvent('StaffRegisteredEvent', {
-        aggregateId: 'STF-202501-001'
+    it('routes known event types to specific handlers', async () => {
+      const registeredEvent = createMockDomainEvent('StaffRegistered', {
+        staffId: 'STF-1',
+        staffType: 'doctor',
+        userId: 'user-1'
+      });
+      const updatedEvent = createMockDomainEvent('StaffUpdated', {
+        staffId: 'STF-2',
+        updatedFields: [],
+        updatedData: {}
+      });
+      const availabilityEvent = createMockDomainEvent('DoctorAvailabilityChanged', {
+        staffId: 'STF-3',
+        isAcceptingNewPatients: true
       });
 
-      await eventHandler.handle(domainEvent);
+      const registeredSpy = jest.spyOn(handler, 'handleStaffRegistered');
+      const updatedSpy = jest.spyOn(handler, 'handleStaffUpdated');
+      const availabilitySpy = jest.spyOn(handler, 'handleDoctorAvailabilityChanged');
 
-      expect(spy).toHaveBeenCalledWith(domainEvent);
+      await handler.handle(registeredEvent as any);
+      await handler.handle(updatedEvent as any);
+      await handler.handle(availabilityEvent as any);
+
+      expect(registeredSpy).toHaveBeenCalledWith(registeredEvent);
+      expect(updatedSpy).toHaveBeenCalledWith(updatedEvent);
+      expect(availabilitySpy).toHaveBeenCalledWith(availabilityEvent);
     });
 
-    it('should route StaffUpdatedEvent to handleStaffUpdated', async () => {
-      const spy = jest.spyOn(eventHandler, 'handleStaffUpdated');
-      
-      const domainEvent = createMockDomainEvent('StaffUpdatedEvent', {
-        aggregateId: 'STF-202501-001'
-      });
+    it('logs warning for unknown event types', async () => {
+      const unknownEvent = createMockDomainEvent('SomeUnknownEvent', { staffId: 'STF-999' });
 
-      await eventHandler.handle(domainEvent);
-
-      expect(spy).toHaveBeenCalledWith(domainEvent);
-    });
-
-    it('should route DoctorAvailabilityChangedEvent to handleDoctorAvailabilityChanged', async () => {
-      const spy = jest.spyOn(eventHandler, 'handleDoctorAvailabilityChanged');
-      
-      const domainEvent = createMockDomainEvent('DoctorAvailabilityChangedEvent', {
-        aggregateId: 'STF-202501-001'
-      });
-
-      await eventHandler.handle(domainEvent);
-
-      expect(spy).toHaveBeenCalledWith(domainEvent);
-    });
-
-    it('should log warning for unknown event types', async () => {
-      const domainEvent = createMockDomainEvent('UnknownEvent', {
-        aggregateId: 'STF-202501-001'
-      });
-
-      await eventHandler.handle(domainEvent);
+      await handler.handle(unknownEvent as any);
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unknown event type')
+        'Unknown event type',
+        expect.objectContaining({
+          eventType: 'SomeUnknownEvent'
+        })
       );
     });
   });
 });
-

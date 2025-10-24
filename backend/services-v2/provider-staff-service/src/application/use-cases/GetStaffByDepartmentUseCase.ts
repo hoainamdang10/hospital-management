@@ -8,9 +8,9 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { ProviderStaff, StaffType } from '../../domain/aggregates/ProviderStaff';
+import { StaffType } from '../../domain/aggregates/ProviderStaff';
 import { ILogger } from '../interfaces/ILogger';
 
 export interface GetStaffByDepartmentRequest {
@@ -73,7 +73,7 @@ export class GetStaffByDepartmentUseCase extends BaseHealthcareUseCase<GetStaffB
       });
 
       // 1. Validate request
-      const validationResult = this.validateRequest(request);
+      const validationResult = await this.validateRequest(request);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -101,7 +101,7 @@ export class GetStaffByDepartmentUseCase extends BaseHealthcareUseCase<GetStaffB
 
       // 6. Prepare response data
       const staffData = staff.map(s => ({
-        id: s.id.value,
+        id: s.id,
         userId: s.userId,
         staffType: s.staffType,
         fullName: s.personalInfo.fullName,
@@ -151,7 +151,7 @@ export class GetStaffByDepartmentUseCase extends BaseHealthcareUseCase<GetStaffB
   /**
    * Validate request
    */
-  private validateRequest(request: GetStaffByDepartmentRequest): { isValid: boolean; errors: string[] } {
+  protected override async validateRequest(request: GetStaffByDepartmentRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Department ID validation

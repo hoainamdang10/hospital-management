@@ -3,7 +3,7 @@
  * Vietnamese Healthcare Doctor ID Format: {DEPT}-DOC-YYYYMM-XXX
  */
 
-import { ValueObject } from '../../../shared/domain/ValueObject';
+import { ValueObject } from '@shared/domain/ValueObject';
 
 interface DoctorIdProps {
   value: string;
@@ -131,7 +131,7 @@ export class DoctorId extends ValueObject<DoctorIdProps> {
     return this.props.value === other.props.value;
   }
 
-  public toString(): string {
+  public override toString(): string {
     return this.props.value;
   }
 }

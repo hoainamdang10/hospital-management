@@ -24,7 +24,6 @@ describe('Staff API Integration Tests', () => {
   let cleanup: () => Promise<void>;
   let supabaseClient: SupabaseClient;
   let adminToken: string;
-  let adminUserId: string;
   let testStaffIds: string[] = [];
   let testUserIds: string[] = [];
 
@@ -36,12 +35,11 @@ describe('Staff API Integration Tests', () => {
     supabaseClient = result.supabaseClient;
 
     // Create admin user
-    const { userId, token } = await getOrCreateTestUser(
+    const { token } = await getOrCreateTestUser(
       supabaseClient,
       'admin@test.com',
-      'Admin123!@#'
+      'Admin123!@#456'
     );
-    adminUserId = userId;
     adminToken = token;
   });
 

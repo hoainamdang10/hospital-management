@@ -42,7 +42,12 @@ module.exports = {
       tsconfig: '<rootDir>/tsconfig.json'
     }]
   },
-  
+
+  // Transform ES modules from node_modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)'
+  ],
+
   // Coverage configuration
   collectCoverage: true,
   coverageDirectory: 'coverage/integration',

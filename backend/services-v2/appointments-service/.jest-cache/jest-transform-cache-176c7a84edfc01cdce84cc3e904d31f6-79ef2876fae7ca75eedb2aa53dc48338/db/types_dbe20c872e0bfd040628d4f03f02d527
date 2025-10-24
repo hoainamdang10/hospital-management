@@ -1,0 +1,65 @@
+ec7ff06285505f1976d396c8045ab70f
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SchedulerError = void 0;
+exports.validateScheduleType = validateScheduleType;
+exports.isErrorResponse = isErrorResponse;
+exports.isScheduleResponse = isScheduleResponse;
+exports.isRunsResponse = isRunsResponse;
+class SchedulerError extends Error {
+    constructor(code, message, details, traceId) {
+        super(message);
+        this.code = code;
+        this.details = details;
+        this.traceId = traceId;
+        this.name = 'SchedulerError';
+    }
+}
+exports.SchedulerError = SchedulerError;
+function validateScheduleType(request) {
+    const { scheduleType, startAtUtc, cronExpr, rrule } = request;
+    switch (scheduleType) {
+        case 'ONCE':
+            if (!startAtUtc) {
+                throw new SchedulerError('VALIDATION_ERROR', 'ONCE schedules require startAtUtc', { field: 'startAtUtc', scheduleType });
+            }
+            if (cronExpr) {
+                throw new SchedulerError('VALIDATION_ERROR', 'ONCE schedules cannot have cronExpr', { field: 'cronExpr', scheduleType });
+            }
+            if (rrule) {
+                throw new SchedulerError('VALIDATION_ERROR', 'ONCE schedules cannot have rrule', { field: 'rrule', scheduleType });
+            }
+            break;
+        case 'CRON':
+            if (!cronExpr) {
+                throw new SchedulerError('VALIDATION_ERROR', 'CRON schedules require cronExpr', { field: 'cronExpr', scheduleType });
+            }
+            if (startAtUtc) {
+                throw new SchedulerError('VALIDATION_ERROR', 'CRON schedules cannot have startAtUtc', { field: 'startAtUtc', scheduleType });
+            }
+            if (rrule) {
+                throw new SchedulerError('VALIDATION_ERROR', 'CRON schedules cannot have rrule', { field: 'rrule', scheduleType });
+            }
+            break;
+        case 'RRULE':
+            if (!rrule) {
+                throw new SchedulerError('VALIDATION_ERROR', 'RRULE schedules require rrule', { field: 'rrule', scheduleType });
+            }
+            if (cronExpr) {
+                throw new SchedulerError('VALIDATION_ERROR', 'RRULE schedules cannot have cronExpr', { field: 'cronExpr', scheduleType });
+            }
+            break;
+        default:
+            throw new SchedulerError('VALIDATION_ERROR', `Invalid scheduleType: ${scheduleType}`, { field: 'scheduleType', value: scheduleType });
+    }
+}
+function isErrorResponse(obj) {
+    return obj !== null && obj !== undefined && typeof obj === 'object' && 'error' in obj;
+}
+function isScheduleResponse(obj) {
+    return obj !== null && obj !== undefined && typeof obj === 'object' && 'scheduleId' in obj;
+}
+function isRunsResponse(obj) {
+    return obj !== null && obj !== undefined && typeof obj === 'object' && 'runs' in obj && 'pagination' in obj;
+}
+//# sourceMappingURL=types.js.map

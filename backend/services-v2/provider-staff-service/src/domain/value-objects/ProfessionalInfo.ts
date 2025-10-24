@@ -1,13 +1,13 @@
 /**
  * ProfessionalInfo Value Object
  * Vietnamese Healthcare Professional Information
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { HealthcareValueObject } from '../../../shared/domain/base/value-object';
+import { HealthcareValueObject } from '@shared/domain/base/value-object';
 
 interface ProfessionalInfoProps {
   title: string; // Dr., Nurse, etc.
@@ -229,7 +229,7 @@ export class ProfessionalInfo extends HealthcareValueObject<ProfessionalInfoProp
     };
   }
 
-  public equals(other: ProfessionalInfo): boolean {
+  public override equals(other: ProfessionalInfo): boolean {
     if (!other) return false;
     
     return this.props.title === other.props.title &&
@@ -240,7 +240,7 @@ export class ProfessionalInfo extends HealthcareValueObject<ProfessionalInfoProp
            this.props.bio === other.props.bio;
   }
 
-  public toString(): string {
+  public override toString(): string {
     return `${this.props.title} - ${this.props.department} (${this.props.position})`;
   }
 }

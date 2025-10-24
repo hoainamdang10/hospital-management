@@ -1,0 +1,68 @@
+# Ignore all node_modules except the one being built
+**/node_modules
+!department-service/node_modules
+
+# Ignore all dist folders except the one being built
+**/dist
+!department-service/dist
+
+# Ignore all coverage folders
+**/coverage
+
+# Ignore all test folders
+**/tests
+**/test-results
+
+# Ignore documentation
+**/*.md
+!department-service/README.md
+
+# Ignore git
+.git
+.gitignore
+
+# Ignore IDE
+.vscode
+.idea
+
+# Ignore logs
+**/*.log
+
+# Ignore environment files
+**/.env
+**/.env.*
+
+# Ignore build artifacts
+**/build
+**/tmp
+
+# Ignore other services (only include department-service)
+api-gateway
+appointments-service
+billing-service
+clinical-emr-service
+identity-service
+notifications-service
+patient-registry-service
+provider-staff-service
+scheduler-service
+
+# Ignore shared (will be copied separately if needed)
+shared
+
+# Ignore scripts
+scripts
+
+# Ignore migration
+migration
+
+# Ignore assessment
+assessment
+
+# Ignore root level files
+package.json
+package-lock.json
+docker-compose.v2.yml
+*.ts
+*.js
+

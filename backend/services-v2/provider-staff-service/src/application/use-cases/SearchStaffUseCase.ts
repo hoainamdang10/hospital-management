@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ProviderStaff, StaffType } from '../../domain/aggregates/ProviderStaff';
 import { ILogger } from '../interfaces/ILogger';
@@ -20,7 +20,6 @@ export interface SearchStaffRequest {
   specialization?: string;
   status?: 'active' | 'inactive' | 'on_leave' | 'suspended';
   isActive?: boolean;
-  isAcceptingNewPatients?: boolean;
   
   // Search query
   searchQuery?: string; // Search by name, license number, etc.
@@ -58,9 +57,7 @@ export interface SearchStaffResponse {
       department: string;
       position: string;
       specializations: string[];
-      rating: number;
       yearsOfExperience: number;
-      isAcceptingNewPatients: boolean;
       consultationFee?: number;
       status: string;
       isActive: boolean;
@@ -103,7 +100,7 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<SearchStaffRequest
       });
 
       // 1. Validate request
-      const validationResult = this.validateRequest(request);
+      const validationResult = await this.validateRequest(request);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -150,17 +147,14 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<SearchStaffRequest
         );
       }
 
-      if (request.isAcceptingNewPatients !== undefined) {
-        allStaff = allStaff.filter(staff => 
-          staff.props.isAcceptingNewPatients === request.isAcceptingNewPatients
-        );
-      }
+      // REMOVED: isAcceptingNewPatients filter - Belongs to Scheduling Service
+      // This should be handled by API Gateway aggregating data from multiple services
 
       if (request.searchQuery) {
         const query = request.searchQuery.toLowerCase();
         allStaff = allStaff.filter(staff => 
           staff.personalInfo.fullName.toLowerCase().includes(query) ||
-          staff.props.licenseNumber.toLowerCase().includes(query) ||
+          staff.licenseNumber.toLowerCase().includes(query) ||
           staff.professionalInfo.department.toLowerCase().includes(query)
         );
       }
@@ -176,7 +170,7 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<SearchStaffRequest
       const paginatedStaff = allStaff.slice(startIndex, endIndex);
 
       // 8. Prepare response data
-      const staffData = paginatedStaff.map(staff => this.prepareStaffData(staff, request));
+      const staffData = paginatedStaff.map(staff => this.prepareStaffData(staff));
 
       // 9. HIPAA audit logging
       await this.auditStaffSearch(request, total);
@@ -218,7 +212,7 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<SearchStaffRequest
   /**
    * Validate request
    */
-  private validateRequest(request: SearchStaffRequest): { isValid: boolean; errors: string[] } {
+  protected override async validateRequest(request: SearchStaffRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Requested by validation
@@ -264,8 +258,9 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<SearchStaffRequest
         case 'hireDate':
           return multiplier * (a.hireDate.getTime() - b.hireDate.getTime());
         
+        // REMOVED: rating sort - Belongs to Review Service
         case 'rating':
-          return multiplier * (a.getAverageRating() - b.getAverageRating());
+          return 0; // No-op, rating data should come from Review Service
         
         case 'experience':
           return multiplier * (a.getTotalExperience() - b.getTotalExperience());
@@ -279,9 +274,9 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<SearchStaffRequest
   /**
    * Prepare staff data for response
    */
-  private prepareStaffData(staff: ProviderStaff, request: SearchStaffRequest): any {
+  private prepareStaffData(staff: ProviderStaff): any {
     return {
-      id: staff.id.value,
+      id: staff.id,
       userId: staff.userId,
       staffType: staff.staffType,
       fullName: staff.personalInfo.fullName,
@@ -289,10 +284,9 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<SearchStaffRequest
       department: staff.professionalInfo.department,
       position: staff.professionalInfo.position,
       specializations: staff.getActiveSpecializations().map(spec => spec.name),
-      rating: staff.getAverageRating(),
+      // REMOVED: rating, isAcceptingNewPatients - Belong to other services
       yearsOfExperience: staff.getTotalExperience(),
-      isAcceptingNewPatients: staff.props.isAcceptingNewPatients,
-      consultationFee: staff.props.consultationFee,
+      consultationFee: staff.consultationFee,
       status: staff.status,
       isActive: staff.isActive
     };

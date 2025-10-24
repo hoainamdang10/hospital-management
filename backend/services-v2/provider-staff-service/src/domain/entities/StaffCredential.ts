@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { Entity } from '../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 
 interface StaffCredentialProps {
   credentialNumber: string;
@@ -40,7 +40,7 @@ export class StaffCredential extends Entity<StaffCredentialProps> {
     });
   }
 
-  public static fromPersistence(data: any): StaffCredential {
+  public static fromPersistenceData(data: any): StaffCredential {
     return new StaffCredential({
       credentialNumber: data.credential_number,
       credentialType: data.credential_type,
@@ -90,12 +90,48 @@ export class StaffCredential extends Entity<StaffCredentialProps> {
     this.props.isValid = true;
     this.props.verifiedAt = new Date();
     this.props.verifiedBy = verifiedBy;
-    this.touch();
+    this.props.updatedAt = new Date();
   }
 
   public revoke(): void {
     this.props.isValid = false;
-    this.touch();
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Renew credential with new expiry date
+   * Business rule: Can only renew if current credential is valid
+   */
+  public renew(newExpiryDate: Date, renewedBy: string): void {
+    if (!this.props.isValid) {
+      throw new Error('Không thể gia hạn chứng chỉ đã bị thu hồi');
+    }
+
+    if (newExpiryDate <= new Date()) {
+      throw new Error('Ngày hết hạn mới phải trong tương lai');
+    }
+
+    if (this.props.expiryDate && newExpiryDate <= this.props.expiryDate) {
+      throw new Error('Ngày hết hạn mới phải sau ngày hết hạn hiện tại');
+    }
+
+    this.props.expiryDate = newExpiryDate;
+    this.props.verifiedAt = new Date();
+    this.props.verifiedBy = renewedBy;
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Check if credential is expiring soon (within 30 days)
+   */
+  public isExpiringSoon(daysThreshold: number = 30): boolean {
+    if (!this.props.expiryDate) return false;
+    
+    const now = new Date();
+    const thresholdDate = new Date();
+    thresholdDate.setDate(now.getDate() + daysThreshold);
+    
+    return this.props.expiryDate <= thresholdDate && this.props.expiryDate > now;
   }
 
   public isHIPAACompliant(): boolean {

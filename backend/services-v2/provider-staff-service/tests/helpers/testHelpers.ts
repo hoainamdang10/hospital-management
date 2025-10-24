@@ -18,7 +18,7 @@ export async function createTestStaffInDb(
 ): Promise<string> {
   const staffId = staffData.staffId || TestUtils.generateRandomStaffId();
   
-  const { data, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from('staff_profiles')
     .insert({
       staff_id: staffId,
@@ -68,15 +68,16 @@ export async function deleteTestStaffFromDb(
 }
 
 /**
- * Get or create test user in Supabase Auth
+ * Get or create test user in Supabase Auth with specific role
  */
 export async function getOrCreateTestUser(
   supabaseClient: SupabaseClient,
   email: string,
-  password: string
-): Promise<{ userId: string; token: string }> {
+  password: string,
+  role: string = 'ADMIN'
+): Promise<{ userId: string; token: string; role: string }> {
   // Try to sign in first
-  const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+  const { data: signInData } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
@@ -84,7 +85,8 @@ export async function getOrCreateTestUser(
   if (signInData?.user && signInData?.session) {
     return {
       userId: signInData.user.id,
-      token: signInData.session.access_token
+      token: signInData.session.access_token,
+      role: signInData.user.user_metadata?.role || role
     };
   }
 
@@ -94,8 +96,9 @@ export async function getOrCreateTestUser(
     password,
     options: {
       data: {
-        full_name: 'Test User',
-        role_type: 'doctor'
+        full_name: `Test ${role}`,
+        role: role,
+        role_type: role.toLowerCase()
       }
     }
   });
@@ -104,10 +107,79 @@ export async function getOrCreateTestUser(
     throw new Error(`Failed to create test user: ${signUpError?.message || 'Unknown error'}`);
   }
 
+  // Assign role in auth_schema.user_roles table
+  await assignUserRole(supabaseClient, signUpData.user.id, role);
+
   return {
     userId: signUpData.user.id,
-    token: signUpData.session.access_token
+    token: signUpData.session.access_token,
+    role
   };
+}
+
+/**
+ * Assign role to user in auth_schema.user_roles table
+ */
+export async function assignUserRole(
+  supabaseClient: SupabaseClient,
+  userId: string,
+  roleName: string
+): Promise<void> {
+  const { error } = await supabaseClient
+    .schema('auth_schema')
+    .from('user_roles')
+    .insert({
+      user_id: userId,
+      role_name: roleName,
+      assigned_at: new Date().toISOString(),
+      assigned_by: 'system'
+    });
+
+  if (error && !error.message.includes('duplicate')) {
+    console.warn(`Failed to assign role ${roleName} to user ${userId}:`, error.message);
+  }
+}
+
+/**
+ * Create test users for different roles
+ */
+export async function createTestUsersForRoles(
+  supabaseClient: SupabaseClient
+): Promise<{
+  admin: { userId: string; token: string; role: string };
+  doctor: { userId: string; token: string; role: string };
+  nurse: { userId: string; token: string; role: string };
+  departmentManager: { userId: string; token: string; role: string };
+}> {
+  const admin = await getOrCreateTestUser(
+    supabaseClient,
+    'admin-test@hospital.vn',
+    'Admin123!@#456',
+    'ADMIN'
+  );
+
+  const doctor = await getOrCreateTestUser(
+    supabaseClient,
+    'doctor-test@hospital.vn',
+    'Doctor123!@#456',
+    'DOCTOR'
+  );
+
+  const nurse = await getOrCreateTestUser(
+    supabaseClient,
+    'nurse-test@hospital.vn',
+    'Nurse123!@#456',
+    'NURSE'
+  );
+
+  const departmentManager = await getOrCreateTestUser(
+    supabaseClient,
+    'dept-manager-test@hospital.vn',
+    'Manager123!@#456',
+    'DEPARTMENT_MANAGER'
+  );
+
+  return { admin, doctor, nurse, departmentManager };
 }
 
 /**

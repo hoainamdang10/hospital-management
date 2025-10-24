@@ -8,6 +8,8 @@
  * @compliance Clean Architecture, Production-Ready Logging
  */
 
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
 export interface LogMetadata {
   [key: string]: any;
 }
@@ -18,5 +20,6 @@ export interface ILogger {
   warn(message: string, meta?: LogMetadata): void;
   error(message: string, meta?: LogMetadata): void;
   fatal(message: string, meta?: LogMetadata): void;
+  log(level: LogLevel, message: string, meta?: LogMetadata): void;
 }
 

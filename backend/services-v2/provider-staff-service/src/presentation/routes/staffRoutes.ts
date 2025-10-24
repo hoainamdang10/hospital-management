@@ -10,24 +10,53 @@
 import { Router } from 'express';
 import { StaffController } from '../controllers/StaffController';
 import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';
+import { RateLimitMiddleware } from '../middleware/RateLimitMiddleware';
+import { AuthenticationMiddleware } from '../middleware/AuthenticationMiddleware';
 import {
   validateRegisterStaff,
   validateUpdateStaffInfo,
-  validateUpdateStaffStatus,
   validateStaffId,
   validateUserId,
   validateLicenseNumber,
   validateSearchStaff,
+  validateAssignDepartment,
   validateAddCredential,
-  validateAssignDepartment
+  validateRemoveCredential,
+  validateRenewCredential,
+  validateGetExpiringCredentials,
+  validateActivateStaff,
+  validateSuspendStaff,
+  validateReactivateStaff,
+  validateTerminateStaff,
+  validateUpdateEmploymentStatus,
+  validateUpdateSchedule
 } from '../middleware/ValidationMiddleware';
 
 /**
- * Create staff routes
+ * Create staff routes with authentication and rate limiting
  */
 export function createStaffRoutes(controller: StaffController): Router {
   const router = Router();
   const asyncHandler = ErrorHandlingMiddleware.asyncHandler;
+
+  // Create authentication middleware
+  const requireAuth = AuthenticationMiddleware.requireAuth(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+
+  const adminOnly = AuthenticationMiddleware.adminOnly(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+
+  const healthcareStaffOnly = AuthenticationMiddleware.healthcareStaffOnly(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+
+  // Apply general rate limiting to all routes
+  router.use(RateLimitMiddleware.general);
 
   // ==================== PUBLIC ROUTES ====================
 
@@ -37,6 +66,8 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.post(
     '/',
+    RateLimitMiddleware.writeOperations,
+    adminOnly,
     validateRegisterStaff,
     asyncHandler(controller.registerStaff.bind(controller))
   );
@@ -49,6 +80,8 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.get(
     '/search',
+    RateLimitMiddleware.search,
+    requireAuth,
     validateSearchStaff,
     asyncHandler(controller.searchStaff.bind(controller))
   );
@@ -61,6 +94,7 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.get(
     '/user/:userId',
+    requireAuth,
     validateUserId,
     asyncHandler(controller.getStaffByUserId.bind(controller))
   );
@@ -71,6 +105,7 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.get(
     '/license/:licenseNumber',
+    healthcareStaffOnly,
     validateLicenseNumber,
     asyncHandler(controller.getStaffByLicenseNumber.bind(controller))
   );
@@ -82,6 +117,7 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.get(
     '/:staffId',
+    requireAuth,
     validateStaffId,
     asyncHandler(controller.getStaffById.bind(controller))
   );
@@ -94,8 +130,207 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.put(
     '/:staffId',
+    RateLimitMiddleware.writeOperations,
+    adminOnly,
     validateUpdateStaffInfo,
     asyncHandler(controller.updateStaffInfo.bind(controller))
+  );
+
+  /**
+   * Assign staff to department
+   * POST /api/v1/staff/:staffId/departments
+   */
+  router.post(
+    '/:staffId/departments',
+    RateLimitMiddleware.writeOperations,
+    adminOnly,
+    validateStaffId,
+    validateAssignDepartment,
+    asyncHandler(controller.assignToDepartment.bind(controller))
+  );
+
+  // ==================== CREDENTIAL MANAGEMENT ROUTES ====================
+
+  /**
+   * Get expiring credentials
+   * GET /api/v1/staff/credentials/expiring
+   * Note: This must be before /:staffId/credentials to avoid route conflicts
+   */
+  router.get(
+    '/credentials/expiring',
+    adminOnly,
+    validateGetExpiringCredentials,
+    asyncHandler(controller.getExpiringCredentials.bind(controller))
+  );
+
+  /**
+   * Add staff credential
+   * POST /api/v1/staff/:staffId/credentials
+   */
+  router.post(
+    '/:staffId/credentials',
+    RateLimitMiddleware.credentialManagement,
+    adminOnly,
+    validateAddCredential,
+    asyncHandler(controller.addStaffCredential.bind(controller))
+  );
+
+  /**
+   * Renew staff credential
+   * PUT /api/v1/staff/:staffId/credentials/:credentialNumber/renew
+   */
+  router.put(
+    '/:staffId/credentials/:credentialNumber/renew',
+    RateLimitMiddleware.credentialManagement,
+    adminOnly,
+    validateRenewCredential,
+    asyncHandler(controller.renewStaffCredential.bind(controller))
+  );
+
+  /**
+   * Remove staff credential
+   * DELETE /api/v1/staff/:staffId/credentials/:credentialNumber
+   */
+  router.delete(
+    '/:staffId/credentials/:credentialNumber',
+    RateLimitMiddleware.credentialManagement,
+    adminOnly,
+    validateRemoveCredential,
+    asyncHandler(controller.removeStaffCredential.bind(controller))
+  );
+
+  // ==================== STATUS MANAGEMENT ROUTES ====================
+
+  /**
+   * Activate staff
+   * POST /api/v1/staff/:staffId/activate
+   */
+  router.post(
+    '/:staffId/activate',
+    RateLimitMiddleware.statusChange,
+    adminOnly,
+    validateActivateStaff,
+    asyncHandler(controller.activateStaff.bind(controller))
+  );
+
+  /**
+   * Suspend staff
+   * POST /api/v1/staff/:staffId/suspend
+   */
+  router.post(
+    '/:staffId/suspend',
+    RateLimitMiddleware.statusChange,
+    adminOnly,
+    validateSuspendStaff,
+    asyncHandler(controller.suspendStaff.bind(controller))
+  );
+
+  /**
+   * Reactivate staff
+   * POST /api/v1/staff/:staffId/reactivate
+   */
+  router.post(
+    '/:staffId/reactivate',
+    RateLimitMiddleware.statusChange,
+    adminOnly,
+    validateReactivateStaff,
+    asyncHandler(controller.reactivateStaff.bind(controller))
+  );
+
+  /**
+   * Terminate staff
+   * POST /api/v1/staff/:staffId/terminate
+   */
+  router.post(
+    '/:staffId/terminate',
+    RateLimitMiddleware.statusChange,
+    adminOnly,
+    validateTerminateStaff,
+    asyncHandler(controller.terminateStaff.bind(controller))
+  );
+
+  /**
+   * Update employment status
+   * PATCH /api/v1/staff/:staffId/employment-status
+   */
+  router.patch(
+    '/:staffId/employment-status',
+    RateLimitMiddleware.statusChange,
+    adminOnly,
+    validateUpdateEmploymentStatus,
+    asyncHandler(controller.updateEmploymentStatus.bind(controller))
+  );
+
+  // ==================== SCHEDULE MANAGEMENT ====================
+
+  /**
+   * Update staff work schedule
+   * PUT /api/v1/staff/:staffId/schedule
+   */
+  router.put(
+    '/:staffId/schedule',
+    RateLimitMiddleware.writeOperations,
+    adminOnly,
+    validateStaffId,
+    validateUpdateSchedule,
+    asyncHandler(controller.updateStaffSchedule.bind(controller))
+  );
+
+  /**
+   * Get staff work schedule
+   * GET /api/v1/staff/:staffId/schedule
+   */
+  router.get(
+    '/:staffId/schedule',
+    requireAuth,
+    validateStaffId,
+    asyncHandler(controller.getStaffSchedule.bind(controller))
+  );
+
+  /**
+   * Availability Management Routes
+   * GET /api/v1/staff/:staffId/availability
+   * POST /api/v1/staff/:staffId/availability
+   * PUT /api/v1/staff/:staffId/availability/:availabilityId
+   * DELETE /api/v1/staff/:staffId/availability/:availabilityId
+   */
+  // REMOVED: 4 Availability Routes - Belongs to Scheduling/Appointment Service (bounded context violation)
+  // - GET /:staffId/availability
+  // - POST /:staffId/availability
+  // - PUT /:staffId/availability/:availabilityId
+  // - DELETE /:staffId/availability/:availabilityId
+  //
+  // These endpoints should be implemented in Appointments Service:
+  // - GET /api/appointments/providers/:providerId/available-slots?date=YYYY-MM-DD&duration=30
+  // - GET /api/appointments/providers/:providerId/schedule
+
+  /**
+   * Specialization Management Routes
+   * GET /api/v1/staff/:staffId/specializations
+   * POST /api/v1/staff/:staffId/specializations
+   * DELETE /api/v1/staff/:staffId/specializations/:specializationCode
+   */
+  router.get(
+    '/:staffId/specializations',
+    requireAuth,
+    validateStaffId,
+    asyncHandler(controller.getStaffSpecializations.bind(controller))
+  );
+
+  router.post(
+    '/:staffId/specializations',
+    RateLimitMiddleware.writeOperations,
+    adminOnly,
+    validateStaffId,
+    asyncHandler(controller.addStaffSpecialization.bind(controller))
+  );
+
+  router.delete(
+    '/:staffId/specializations/:specializationCode',
+    RateLimitMiddleware.writeOperations,
+    adminOnly,
+    validateStaffId,
+    asyncHandler(controller.removeStaffSpecialization.bind(controller))
   );
 
   return router;
@@ -153,5 +388,35 @@ export function createStaffRoutes(controller: StaffController): Router {
  *   "message": "Error message",
  *   "details": { ... }
  * }
+ *
+ * ==================== STATUS MANAGEMENT ROUTES ====================
+ *
+ * 7. POST /:staffId/activate
+ *    - Activate staff
+ *    - Params: staffId ({TYPE}-{DEPT}-YYYYMM-XXX)
+ *    - Response: ActivateStaffResponse
+ *
+ * 8. POST /:staffId/suspend
+ *    - Suspend staff
+ *    - Params: staffId ({TYPE}-{DEPT}-YYYYMM-XXX)
+ *    - Body: { reason, suspensionStartDate?, suspensionEndDate? }
+ *    - Response: SuspendStaffResponse
+ *
+ * 9. POST /:staffId/reactivate
+ *    - Reactivate staff
+ *    - Params: staffId ({TYPE}-{DEPT}-YYYYMM-XXX)
+ *    - Response: ReactivateStaffResponse
+ *
+ * 10. POST /:staffId/terminate
+ *     - Terminate staff
+ *     - Params: staffId ({TYPE}-{DEPT}-YYYYMM-XXX)
+ *     - Body: { reason, terminationDate? }
+ *     - Response: TerminateStaffResponse
+ *
+ * 11. PATCH /:staffId/employment-status
+ *     - Update employment status
+ *     - Params: staffId ({TYPE}-{DEPT}-YYYYMM-XXX)
+ *     - Body: { employmentType, contractEndDate? }
+ *     - Response: UpdateEmploymentStatusResponse
  */
 

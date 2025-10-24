@@ -112,7 +112,7 @@ export class VerifyStaffCredentialUseCase {
       await this.staffRepository.update(staff);
 
       // Audit log
-      if (this.auditService) {
+      if (this.auditService && this.auditService.logAction) {
         await this.auditService.logAction({
           action: 'VERIFY_STAFF_CREDENTIAL',
           entityType: 'ProviderStaff',

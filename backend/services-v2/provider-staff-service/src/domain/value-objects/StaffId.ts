@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
  */
 
-import { ValueObject } from '../../../shared/domain/base/value-object';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 interface StaffIdProps {
   value: string;
@@ -169,12 +169,12 @@ export class StaffId extends ValueObject<StaffIdProps> {
     return true;
   }
 
-  public equals(other: StaffId): boolean {
+  public override equals(other: StaffId): boolean {
     if (!other) return false;
     return this.props.value === other.props.value;
   }
 
-  public toString(): string {
+  public override toString(): string {
     return this.props.value;
   }
 }

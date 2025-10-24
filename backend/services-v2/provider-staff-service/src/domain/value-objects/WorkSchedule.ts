@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
  */
 
-import { ValueObject } from '../../../shared/domain/base/value-object';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 export interface WorkingHours {
   start: string; // '08:00'
@@ -235,7 +235,7 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
     };
   }
 
-  public equals(other: WorkSchedule): boolean {
+  public override equals(other: WorkSchedule): boolean {
     if (!other) return false;
     
     return JSON.stringify(this.props.workingDays) === JSON.stringify(other.props.workingDays) &&
@@ -245,7 +245,7 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
            this.props.isFlexible === other.props.isFlexible;
   }
 
-  public toString(): string {
+  public override toString(): string {
     return this.getScheduleSummary();
   }
 }

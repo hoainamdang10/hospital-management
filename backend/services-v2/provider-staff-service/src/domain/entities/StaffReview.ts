@@ -5,7 +5,7 @@
  * @version 2.0.0
  */
 
-import { Entity } from '../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 
 interface StaffReviewProps {
   patientId: string;
@@ -26,7 +26,7 @@ export class StaffReview extends Entity<StaffReviewProps> {
     return new StaffReview({ ...props, createdAt: now, updatedAt: now });
   }
 
-  public static fromPersistence(data: any): StaffReview {
+  public static fromPersistenceData(data: any): StaffReview {
     return new StaffReview({
       patientId: data.patient_id,
       rating: data.rating,

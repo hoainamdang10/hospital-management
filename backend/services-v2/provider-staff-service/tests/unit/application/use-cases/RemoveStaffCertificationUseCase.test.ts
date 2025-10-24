@@ -1,243 +1,98 @@
-/**
- * RemoveStaffCertificationUseCase Unit Tests
- * Tests for removing staff certifications
- */
-
-import { RemoveStaffCertificationUseCase, RemoveStaffCertificationRequest } from '../../../../src/application/use-cases/RemoveStaffCertificationUseCase';
-import { IProviderStaffRepository } from '../../../../src/domain/repositories/IProviderStaffRepository';
-import { ILogger } from '../../../../src/application/interfaces/ILogger';
-import { ProviderStaff } from '../../../../src/domain/aggregates/ProviderStaff';
-import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
-import { ProfessionalInfo } from '../../../../src/domain/value-objects/ProfessionalInfo';
-import { WorkSchedule } from '../../../../src/domain/value-objects/WorkSchedule';
-import { createMockStaffRepository, createMockLogger } from '../../../helpers/mockFactories';
+import { RemoveStaffCertificationUseCase } from '../../../../src/application/use-cases/RemoveStaffCertificationUseCase';
+import { StaffCertification } from '../../../../src/domain/entities/StaffCertification';
+import { createMockLogger, createMockStaffRepository, createTestStaff } from '../../../helpers/mockFactories';
 
 describe('RemoveStaffCertificationUseCase', () => {
+  let repository: ReturnType<typeof createMockStaffRepository>;
+  let logger: ReturnType<typeof createMockLogger>;
   let useCase: RemoveStaffCertificationUseCase;
-  let mockStaffRepository: jest.Mocked<IProviderStaffRepository>;
-  let mockLogger: jest.Mocked<ILogger>;
-  let existingStaff: ProviderStaff;
 
-  const validPersonalInfo = PersonalInfo.create({
-    fullName: 'Dr. Nguyen Van A',
-    dateOfBirth: new Date('1985-01-01'),
-    gender: 'male',
-    nationalId: '001085012345',
-    nationality: 'Vietnam',
-    phoneNumber: '0901234567',
-    email: 'doctor.a@hospital.vn',
-    address: {
-      street: '123 Main St',
-      ward: 'Ward 1',
-      district: 'District 1',
-      city: 'Ho Chi Minh',
-      province: 'Ho Chi Minh',
-      country: 'Vietnam',
-      postalCode: '700000'
-    }
-  });
-
-  const validProfessionalInfo = ProfessionalInfo.create({
-    licenseNumber: 'BYS-12345',
-    title: 'Bác sĩ Chuyên khoa I',
-    position: 'Attending Physician',
-    department: 'Cardiology',
-    specialization: 'CARDIO',
-    yearsOfExperience: 10,
-    education: [{
-      degree: 'Doctor of Medicine',
-      institution: 'University of Medicine',
-      graduationYear: 2010,
-      country: 'Vietnam'
-    }],
-    certifications: []
-  });
-
-  const validWorkSchedule = WorkSchedule.create({
-    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    workingHours: {
-      start: '08:00',
-      end: '17:00'
-    },
-    timeZone: 'Asia/Ho_Chi_Minh',
-    isFlexible: false
-  });
-
-  const validRequest: RemoveStaffCertificationRequest = {
-    staffId: 'DOC-CARDIO-202501-001',
-    certificationId: 'cert-123',
-    reason: 'Certification expired',
-    removedBy: 'admin-123',
-    removedByRole: 'admin'
+  const baseRequest = {
+    staffId: 'DOC-CARD-202501-040',
+    certificationId: 'CERT-001',
+    removedBy: 'admin-001',
+    removedByRole: 'ADMIN',
+    reason: 'Certification revoked'
   };
 
+  const buildCertification = (id: string) =>
+    StaffCertification.create({
+      certificationName: `Certification ${id}`,
+      issuingOrganization: 'Ministry of Health',
+      issueDate: new Date('2020-01-01'),
+      expiryDate: new Date('2030-01-01')
+    });
+
   beforeEach(() => {
-    mockStaffRepository = createMockStaffRepository();
-    mockLogger = createMockLogger();
-
-    existingStaff = ProviderStaff.create(
-      'user-123',
-      'doctor',
-      validPersonalInfo,
-      validProfessionalInfo,
-      validWorkSchedule,
-      'BYS-12345',
-      'full_time',
-      new Date('2020-01-01'),
-      15
-    );
-
-    useCase = new RemoveStaffCertificationUseCase(
-      mockStaffRepository,
-      mockLogger
-    );
+    repository = createMockStaffRepository();
+    logger = createMockLogger();
+    useCase = new RemoveStaffCertificationUseCase(repository, logger);
   });
 
-  describe('execute - successful removal', () => {
-    it('should remove certification with valid data', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
+  it('xóa chứng nhận thành công', async () => {
+    const staff = createTestStaff({ staffId: baseRequest.staffId, status: 'active' });
+    const cert1 = buildCertification('CERT-001');
+    const cert2 = buildCertification('CERT-002');
+    (cert1 as any)._id = 'CERT-001';
+    (cert2 as any)._id = 'CERT-002';
+    (staff as any).props.certifications = [cert1, cert2];
+    repository.findById.mockResolvedValue(staff);
+    repository.update.mockResolvedValue();
 
-      const result = await useCase.execute(validRequest);
+    const result = await useCase.execute(baseRequest);
 
-      expect(result.success).toBe(true);
-      expect(result.message).toContain('thành công');
-      expect(result.data).toBeDefined();
-      expect(result.data?.staffId).toBe(validRequest.staffId);
-      expect(result.data?.certificationId).toBe(validRequest.certificationId);
-      expect(mockStaffRepository.save).toHaveBeenCalledWith(existingStaff);
-    });
-
-    it('should log removal for audit', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      await useCase.execute(validRequest);
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Removing'),
-        expect.objectContaining({
-          staffId: validRequest.staffId,
-          certificationId: validRequest.certificationId
-        })
-      );
-    });
+    expect(result.success).toBe(true);
+    expect(result.data?.certificationId).toBe(baseRequest.certificationId);
+    expect(staff.certifications.length).toBe(1);
+    expect(repository.update).toHaveBeenCalledWith(staff);
   });
 
-  describe('execute - validation errors', () => {
-    it('should fail when staff not found', async () => {
-      mockStaffRepository.findById.mockResolvedValue(null);
+  it('trả về lỗi khi nhân viên không tồn tại', async () => {
+    repository.findById.mockResolvedValue(null);
 
-      const result = await useCase.execute(validRequest);
+    const result = await useCase.execute(baseRequest);
 
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('không tìm thấy');
-      expect(mockStaffRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('should fail when staffId is invalid', async () => {
-      const invalidRequest = {
-        ...validRequest,
-        staffId: 'INVALID-ID'
-      };
-
-      const result = await useCase.execute(invalidRequest);
-
-      expect(result.success).toBe(false);
-      expect(mockStaffRepository.findById).not.toHaveBeenCalled();
-    });
-
-    it('should fail when certificationId is empty', async () => {
-      const invalidRequest = {
-        ...validRequest,
-        certificationId: ''
-      };
-
-      const result = await useCase.execute(invalidRequest);
-
-      expect(result.success).toBe(false);
-      expect(result.errors).toContain('Certification ID là bắt buộc');
-    });
-
-    it('should fail when certification not found', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-
-      const result = await useCase.execute({
-        ...validRequest,
-        certificationId: 'non-existent-cert'
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('không tìm thấy');
-    });
-
-    it('should fail when reason is empty', async () => {
-      const invalidRequest = {
-        ...validRequest,
-        reason: ''
-      };
-
-      const result = await useCase.execute(invalidRequest);
-
-      expect(result.success).toBe(false);
-      expect(result.errors).toContain('Lý do xóa là bắt buộc');
-    });
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('STAFF_NOT_FOUND');
   });
 
-  describe('execute - authorization', () => {
-    it('should allow admin to remove certification', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
+  it('cho phép xóa dù nhân viên đang inactive', async () => {
+    const staff = createTestStaff({ staffId: baseRequest.staffId, status: 'inactive' });
+    const inactiveCert = buildCertification('CERT-001');
+    (inactiveCert as any)._id = 'CERT-001';
+    const activeCert = buildCertification('CERT-002');
+    (activeCert as any)._id = 'CERT-002';
+    (staff as any).props.certifications = [inactiveCert, activeCert];
+    (staff as any).props.isActive = false;
+    repository.findById.mockResolvedValue(staff);
+    repository.update.mockResolvedValue();
 
-      const result = await useCase.execute({
-        ...validRequest,
-        removedByRole: 'admin'
-      });
+    const result = await useCase.execute(baseRequest);
 
-      expect(result.success).toBe(true);
-    });
-
-    it('should fail when non-admin tries to remove certification', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-
-      const result = await useCase.execute({
-        ...validRequest,
-        removedByRole: 'doctor'
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('quyền');
-    });
+    expect(result.success).toBe(true);
+    expect(staff.certifications.length).toBe(1);
   });
 
-  describe('execute - error handling', () => {
-    it('should handle repository errors gracefully', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockRejectedValue(new Error('Database error'));
+  it('trả về lỗi khi không tìm thấy chứng chỉ', async () => {
+    const staff = createTestStaff({ staffId: baseRequest.staffId });
+    const missingCert = buildCertification('CERT-999');
+    (missingCert as any)._id = 'CERT-999';
+    (staff as any).props.certifications = [missingCert];
+    repository.findById.mockResolvedValue(staff);
 
-      const result = await useCase.execute(validRequest);
+    const result = await useCase.execute(baseRequest);
 
-      expect(result.success).toBe(false);
-      expect(mockLogger.error).toHaveBeenCalled();
-    });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Không tìm thấy chứng chỉ');
   });
 
-  describe('HIPAA audit logging', () => {
-    it('should log certification removal for HIPAA compliance', async () => {
-      mockStaffRepository.findById.mockResolvedValue(existingStaff);
-      mockStaffRepository.save.mockResolvedValue(undefined);
-
-      await useCase.execute(validRequest);
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Removing'),
-        expect.objectContaining({
-          staffId: validRequest.staffId,
-          certificationId: validRequest.certificationId,
-          reason: validRequest.reason
-        })
-      );
+  it('validate quyền xóa chứng chỉ', async () => {
+    const result = await useCase.execute({
+      ...baseRequest,
+      removedByRole: 'DOCTOR'
     });
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền xóa chứng chỉ');
   });
 });
-

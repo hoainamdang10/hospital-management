@@ -15,11 +15,15 @@ export interface AuditLogEntry {
   userId: string;
   timestamp: Date;
   details?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  sessionId?: string;
 }
 
 export interface IAuditService {
   logDataAccess(entry: AuditLogEntry): Promise<void>;
   logDataModification(entry: AuditLogEntry): Promise<void>;
   logSecurityEvent(entry: AuditLogEntry): Promise<void>;
+  logAction?(entry: any): Promise<void>;
 }
 

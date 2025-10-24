@@ -41,8 +41,8 @@ export class ProviderStaffHealthCheck {
   private readonly version = '2.0.0';
 
   constructor(
-    private supabaseUrl: string,
-    private supabaseKey: string,
+    supabaseUrl: string,
+    supabaseKey: string,
     private logger: ILogger
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
@@ -134,7 +134,7 @@ export class ProviderStaffHealthCheck {
 
     try {
       // Test database connection with a simple query
-      const { data, error } = await this.supabaseClient
+      const { error } = await this.supabaseClient
         .from('staff_profiles')
         .select('id')
         .limit(1);

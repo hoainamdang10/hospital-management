@@ -31,9 +31,11 @@ export interface ValidationResult {
 export abstract class BaseHealthcareUseCase<TRequest, TResponse> implements IUseCase<TRequest, TResponse> {
   /**
    * Execute the use case
-   * Public method that calls the protected executeImpl
+   * Public method that validates request then calls the protected executeImpl
+   * Can be overridden by subclasses for custom validation handling
    */
   public async execute(request: TRequest): Promise<TResponse> {
+    // Execute business logic - validation is handled in executeImpl
     return this.executeImpl(request);
   }
 

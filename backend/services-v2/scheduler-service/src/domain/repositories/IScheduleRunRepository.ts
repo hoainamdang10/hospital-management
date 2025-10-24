@@ -1,6 +1,19 @@
 import { ScheduleRun, ScheduleRunStatus } from '../entities/ScheduleRun.entity';
 import { TenantId } from '../value-objects/TenantId';
 
+export interface ExecuteRunTransactionalParams {
+  runId: string;
+  workerId: string;
+  topicOrCommand: string;
+  payloadJson: any;
+  headersJson: any;
+}
+
+export interface ExecuteRunTransactionalResult {
+  success: boolean;
+  errorMessage?: string;
+}
+
 export interface IScheduleRunRepository {
   save(run: ScheduleRun): Promise<void>;
 
@@ -31,6 +44,18 @@ export interface IScheduleRunRepository {
     graceWindowMs?: number,
     leaseTtlMs?: number
   ): Promise<ScheduleRun[]>;
+
+  /**
+   * Atomically execute run and create outbox entry in single transaction
+   *
+   * Implements Transactional Outbox Pattern to ensure data consistency.
+   * All steps (RUNNING → EMITTING → EMITTED → SUCCEEDED) + outbox creation are atomic.
+   * On error, run is marked as FAILED and transaction is rolled back.
+   *
+   * @param params - Execution parameters
+   * @returns Result with success flag and optional error message
+   */
+  executeRunTransactional(params: ExecuteRunTransactionalParams): Promise<ExecuteRunTransactionalResult>;
 
   findByStatus(status: ScheduleRunStatus, limit?: number): Promise<ScheduleRun[]>;
 

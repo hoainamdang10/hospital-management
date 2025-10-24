@@ -8,6 +8,11 @@
 export * from './RabbitMQEventPublisher';
 export * from './RabbitMQStaffEventHandler';
 export * from './IntegrationEvents';
-export * from './SupabaseEventBus';
+// SupabaseEventBus is in messaging folder
+// export * from './SupabaseEventBus';
 export * from './StaffDomainEventHandler';
+export * from './UserCreatedEventHandler';
+export * from './UserDeactivatedEventHandler';
+export * from './UserRoleChangedEventHandler';
+export * from './IdentityEventConsumer';
 

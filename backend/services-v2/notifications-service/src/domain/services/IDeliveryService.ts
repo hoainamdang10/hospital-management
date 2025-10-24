@@ -32,6 +32,7 @@ export interface DeliveryRequest {
 export interface DeliveryResult {
   notificationId: string;
   channel: string;
+  success: boolean;
   status: DeliveryStatus;
   deliveredAt?: Date;
   failureReason?: string;

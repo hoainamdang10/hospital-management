@@ -8,7 +8,7 @@
  */
 
 export class NotificationId {
-  private readonly value: string;
+  public readonly value: string;
 
   private constructor(value: string) {
     this.value = value;

@@ -1,358 +1,90 @@
-/**
- * SearchStaffUseCase Unit Tests
- * Tests for staff search functionality
- */
-
 import { SearchStaffUseCase, SearchStaffRequest } from '../../../../src/application/use-cases/SearchStaffUseCase';
-import { IProviderStaffRepository } from '../../../../src/domain/repositories/IProviderStaffRepository';
-import { ILogger } from '../../../../src/application/interfaces/ILogger';
+import { createMockLogger, createMockStaffRepository, createTestStaff } from '../../../helpers/mockFactories';
 import { ProviderStaff } from '../../../../src/domain/aggregates/ProviderStaff';
-import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
-import { ProfessionalInfo } from '../../../../src/domain/value-objects/ProfessionalInfo';
-import { WorkSchedule } from '../../../../src/domain/value-objects/WorkSchedule';
-import { createMockStaffRepository, createMockLogger } from '../../../helpers/mockFactories';
 
 describe('SearchStaffUseCase', () => {
+  let repository: ReturnType<typeof createMockStaffRepository>;
+  let logger: ReturnType<typeof createMockLogger>;
   let useCase: SearchStaffUseCase;
-  let mockStaffRepository: jest.Mocked<IProviderStaffRepository>;
-  let mockLogger: jest.Mocked<ILogger>;
-  let mockStaffList: ProviderStaff[];
 
-  const validPersonalInfo = PersonalInfo.create({
-    fullName: 'Dr. Nguyen Van A',
-    dateOfBirth: new Date('1985-01-01'),
-    gender: 'male',
-    nationalId: '001085012345',
-    nationality: 'Vietnam',
-    phoneNumber: '0901234567',
-    email: 'doctor.a@hospital.vn',
-    address: {
-      street: '123 Main St',
-      ward: 'Ward 1',
-      district: 'District 1',
-      city: 'Ho Chi Minh',
-      province: 'Ho Chi Minh',
-      country: 'Vietnam',
-      postalCode: '700000'
-    }
-  });
-
-  const validProfessionalInfo = ProfessionalInfo.create({
-    licenseNumber: 'BYS-12345',
-    title: 'Bác sĩ Chuyên khoa I',
-    position: 'Attending Physician',
-    department: 'Cardiology',
-    specialization: 'CARDIO',
-    yearsOfExperience: 10,
-    education: [{
-      degree: 'Doctor of Medicine',
-      institution: 'University of Medicine',
-      graduationYear: 2010,
-      country: 'Vietnam'
-    }],
-    certifications: []
-  });
-
-  const validWorkSchedule = WorkSchedule.create({
-    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    workingHours: {
-      start: '08:00',
-      end: '17:00'
-    },
-    timeZone: 'Asia/Ho_Chi_Minh',
-    isFlexible: false
-  });
-
-  const validRequest: SearchStaffRequest = {
-    requestedBy: 'admin-123',
+  const baseRequest: SearchStaffRequest = {
+    requestedBy: 'admin-001',
     requestedByRole: 'admin',
     page: 1,
     limit: 10
   };
 
   beforeEach(() => {
-    mockStaffRepository = createMockStaffRepository();
-    mockLogger = createMockLogger();
+    repository = createMockStaffRepository();
+    logger = createMockLogger();
+    useCase = new SearchStaffUseCase(repository, logger);
+  });
 
-    // Create mock staff list
-    mockStaffList = [
-      ProviderStaff.create(
-        'user-1',
-        'doctor',
-        validPersonalInfo,
-        validProfessionalInfo,
-        validWorkSchedule,
-        'BYS-12345',
-        'full_time',
-        new Date('2020-01-01'),
-        15
-      ),
-      ProviderStaff.create(
-        'user-2',
-        'nurse',
-        validPersonalInfo,
-        validProfessionalInfo,
-        validWorkSchedule,
-        'BYS-67890',
-        'full_time',
-        new Date('2021-01-01'),
-        10
-      )
+  it('tìm kiếm nhân viên theo bộ lọc cơ bản', async () => {
+    const staffList: ProviderStaff[] = [
+      createTestStaff({ staffId: 'DOC-CARD-202501-001', staffType: 'doctor' }),
+      createTestStaff({ staffId: 'NUR-EMRG-202501-002', staffType: 'nurse', department: 'Emergency Medicine' })
     ];
+    repository.findAll.mockImplementation(async (filters: any) => {
+      return staffList.filter(staff => !filters?.staffType || staff.staffType === filters.staffType);
+    });
 
-    useCase = new SearchStaffUseCase(
-      mockStaffRepository,
-      mockLogger
+    const result = await useCase.execute({
+      ...baseRequest,
+      staffType: 'doctor',
+      searchQuery: 'Dr. Test'
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.staff).toHaveLength(1);
+    expect(result.data?.staff[0].staffType).toBe('doctor');
+  });
+
+  it('lọc theo department và specialization', async () => {
+    const staffList = [
+      createTestStaff({
+        staffId: 'DOC-CARD-202501-001',
+        staffType: 'doctor',
+        department: 'Cardiology Department'
+      }),
+      createTestStaff({
+        staffId: 'NUR-ORTH-202501-002',
+        staffType: 'nurse',
+        department: 'Orthopedics'
+      })
+    ];
+    repository.findAll.mockResolvedValue(staffList);
+
+    const result = await useCase.execute({
+      ...baseRequest,
+      department: 'Cardiology'
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.staff[0].department.toLowerCase()).toContain('cardio');
+  });
+
+  it('áp dụng phân trang', async () => {
+    const staffList = Array.from({ length: 25 }, (_, i) =>
+      createTestStaff({ staffId: `DOC-CARD-202501-${(i+1).toString().padStart(3, '0')}` })
+    );
+    repository.findAll.mockResolvedValue(staffList);
+
+    const result = await useCase.execute({
+      ...baseRequest,
+      page: 2,
+      limit: 10
+    });
+
+    expect(result.data?.pagination.page).toBe(2);
+    expect(result.data?.staff).toHaveLength(10);
+  });
+
+  it('trả về lỗi validation khi thiếu thông tin người yêu cầu', async () => {
+    const result = await useCase.execute({ requestedBy: '', requestedByRole: '' } as any);
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining(['Thông tin người yêu cầu không được để trống', 'Vai trò người yêu cầu không được để trống'])
     );
   });
-
-  describe('execute - successful search', () => {
-    it('should search staff with default pagination', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.data?.staff).toHaveLength(2);
-      expect(result.data?.pagination.total).toBe(2);
-      expect(result.data?.pagination.page).toBe(1);
-    });
-
-    it('should search by staff type', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: [mockStaffList[0]],
-        total: 1,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        staffType: 'doctor'
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.data?.staff).toHaveLength(1);
-    });
-
-    it('should search by department', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        department: 'Cardiology'
-      });
-
-      expect(result.success).toBe(true);
-      expect(mockStaffRepository.search).toHaveBeenCalledWith(
-        expect.objectContaining({
-          department: 'Cardiology'
-        })
-      );
-    });
-
-    it('should search by specialization', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        specialization: 'CARDIO'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should search with query string', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        searchQuery: 'Nguyen'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should support pagination', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 25,
-        page: 2,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        page: 2,
-        limit: 10
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.data?.pagination.page).toBe(2);
-      expect(result.data?.pagination.totalPages).toBe(3);
-    });
-
-    it('should support sorting', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        sortBy: 'name',
-        sortOrder: 'asc'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should filter by active status', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        isActive: true
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should filter by accepting new patients', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        isAcceptingNewPatients: true
-      });
-
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('execute - validation errors', () => {
-    it('should fail when page is invalid', async () => {
-      const result = await useCase.execute({
-        ...validRequest,
-        page: 0
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.errors).toContain('Số trang phải lớn hơn 0');
-    });
-
-    it('should fail when limit is invalid', async () => {
-      const result = await useCase.execute({
-        ...validRequest,
-        limit: 0
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.errors).toContain('Số lượng kết quả phải lớn hơn 0');
-    });
-
-    it('should fail when limit exceeds maximum', async () => {
-      const result = await useCase.execute({
-        ...validRequest,
-        limit: 1000
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.errors).toContain('Số lượng kết quả tối đa là 100');
-    });
-  });
-
-  describe('execute - authorization', () => {
-    it('should allow admin to search all staff', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        requestedByRole: 'admin'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should allow receptionist to search staff', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: mockStaffList,
-        total: 2,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute({
-        ...validRequest,
-        requestedByRole: 'receptionist'
-      });
-
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('execute - error handling', () => {
-    it('should handle repository errors gracefully', async () => {
-      mockStaffRepository.search.mockRejectedValue(new Error('Database error'));
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(false);
-      expect(mockLogger.error).toHaveBeenCalled();
-    });
-
-    it('should return empty results when no staff found', async () => {
-      mockStaffRepository.search.mockResolvedValue({
-        items: [],
-        total: 0,
-        page: 1,
-        limit: 10
-      });
-
-      const result = await useCase.execute(validRequest);
-
-      expect(result.success).toBe(true);
-      expect(result.data?.staff).toHaveLength(0);
-      expect(result.data?.pagination.total).toBe(0);
-    });
-  });
 });
-

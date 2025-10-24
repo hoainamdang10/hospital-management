@@ -21,7 +21,11 @@ import { GetStaffProfileUseCase } from './application/use-cases/GetStaffProfileU
 import { StaffCommandHandlers } from './application/handlers/StaffCommandHandlers';
 import { StaffQueryHandlers } from './application/handlers/StaffQueryHandlers';
 import { RabbitMQEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
-// import { RabbitMQStaffEventHandler } from './infrastructure/events/RabbitMQStaffEventHandler';
+import { IdentityEventConsumer } from './infrastructure/events/IdentityEventConsumer';
+import { AppointmentsEventConsumer } from './infrastructure/events/AppointmentsEventConsumer';
+import { PatientEventConsumer } from './infrastructure/events/PatientEventConsumer';
+import { RabbitMQStaffEventHandler } from './infrastructure/events/RabbitMQStaffEventHandler';
+import { IEventBus } from '@shared/events/event-bus.interface';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -33,10 +37,12 @@ const SERVICE_PATTERNS = ['Aggregate', 'Event Sourcing', 'Saga'];
 // Setup dependencies
 const container = setupDependencies();
 
-// Initialize RabbitMQ Event Publisher
+// Initialize RabbitMQ Event Publisher and Consumers
 let eventPublisher: RabbitMQEventPublisher | null = null;
-// Event handler will be used when domain event subscription is implemented
-// let _eventHandler: RabbitMQStaffEventHandler | null = null;
+let identityEventConsumer: IdentityEventConsumer | null = null;
+let appointmentsEventConsumer: AppointmentsEventConsumer | null = null;
+let patientEventConsumer: PatientEventConsumer | null = null;
+let staffEventHandler: RabbitMQStaffEventHandler | null = null;
 
 async function initializeEventPublisher() {
   try {
@@ -63,10 +69,29 @@ async function initializeEventPublisher() {
 
     await eventPublisher.connect();
 
-    // Event handler will be initialized when domain event subscription is implemented
-    // _eventHandler = new RabbitMQStaffEventHandler(eventPublisher, logger);
+    // Initialize Staff Event Handler to publish domain events to RabbitMQ
+    staffEventHandler = new RabbitMQStaffEventHandler(eventPublisher, logger);
 
-    logger.info('RabbitMQ Event Publisher initialized successfully');
+    // Subscribe staff event handler to domain events from SupabaseEventBus
+    const eventBus = container.resolve(ServiceTokens.EVENT_BUS) as IEventBus;
+    await eventBus.subscribe('StaffRegistered', staffEventHandler);
+    await eventBus.subscribe('StaffCredentialVerified', staffEventHandler);
+    await eventBus.subscribe('StaffScheduleUpdated', staffEventHandler);
+    await eventBus.subscribe('StaffStatusChanged', staffEventHandler);
+    await eventBus.subscribe('StaffEmploymentStatusUpdated', staffEventHandler);
+    await eventBus.subscribe('StaffUpdated', staffEventHandler);
+    await eventBus.subscribe('DoctorAvailabilityChanged', staffEventHandler);
+
+    // Subscribe StaffDomainEventHandler for audit logging and integration events
+    const staffDomainEventHandler = container.resolve(ServiceTokens.STAFF_DOMAIN_EVENT_HANDLER) as any;
+    await eventBus.subscribe('StaffRegistered', staffDomainEventHandler);
+    await eventBus.subscribe('StaffCredentialVerified', staffDomainEventHandler);
+    await eventBus.subscribe('StaffScheduleUpdated', staffDomainEventHandler);
+    await eventBus.subscribe('StaffStatusChanged', staffDomainEventHandler);
+    await eventBus.subscribe('StaffEmploymentStatusUpdated', staffDomainEventHandler);
+    await eventBus.subscribe('StaffUpdated', staffDomainEventHandler);
+
+    logger.info('RabbitMQ Event Publisher and Staff Event Handler initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize RabbitMQ Event Publisher', {
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -75,8 +100,53 @@ async function initializeEventPublisher() {
   }
 }
 
-// Initialize event publisher (non-blocking)
+// Initialize Identity Event Consumer
+async function initializeIdentityEventConsumer() {
+  try {
+    identityEventConsumer = container.resolve<IdentityEventConsumer>(ServiceTokens.IDENTITY_EVENT_CONSUMER);
+    await identityEventConsumer.connect();
+    logger.info('Identity Event Consumer initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize Identity Event Consumer', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    logger.warn('Continuing without Identity event consumption');
+  }
+}
+
+// Initialize Appointments Event Consumer
+async function initializeAppointmentsEventConsumer() {
+  try {
+    appointmentsEventConsumer = container.resolve<AppointmentsEventConsumer>(ServiceTokens.APPOINTMENTS_EVENT_CONSUMER);
+    await appointmentsEventConsumer.connect();
+    logger.info('Appointments Event Consumer initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize Appointments Event Consumer', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    logger.warn('Continuing without Appointments event consumption');
+  }
+}
+
+// Initialize Patient Event Consumer
+async function initializePatientEventConsumer() {
+  try {
+    patientEventConsumer = container.resolve<PatientEventConsumer>(ServiceTokens.PATIENT_EVENT_CONSUMER);
+    await patientEventConsumer.connect();
+    logger.info('Patient Event Consumer initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize Patient Event Consumer', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    logger.warn('Continuing without Patient event consumption');
+  }
+}
+
+// Initialize event publisher and consumers (non-blocking)
 initializeEventPublisher();
+initializeIdentityEventConsumer();
+initializeAppointmentsEventConsumer();
+initializePatientEventConsumer();
 
 // Middleware
 app.use(helmet());
@@ -99,8 +169,23 @@ setupRoutes(
   app,
   registerStaffUseCase,
   getStaffProfileUseCase,
+  container.resolve(ServiceTokens.ASSIGN_STAFF_TO_DEPARTMENT_USE_CASE),
   staffCommandHandlers,
-  staffQueryHandlers
+  staffQueryHandlers,
+  container.resolve(ServiceTokens.ADD_STAFF_CREDENTIAL_USE_CASE),
+  container.resolve(ServiceTokens.REMOVE_STAFF_CREDENTIAL_USE_CASE),
+  container.resolve(ServiceTokens.RENEW_STAFF_CREDENTIAL_USE_CASE),
+  container.resolve(ServiceTokens.GET_EXPIRING_CREDENTIALS_USE_CASE),
+  container.resolve(ServiceTokens.ACTIVATE_STAFF_USE_CASE),
+  container.resolve(ServiceTokens.SUSPEND_STAFF_USE_CASE),
+  container.resolve(ServiceTokens.REACTIVATE_STAFF_USE_CASE),
+  container.resolve(ServiceTokens.TERMINATE_STAFF_USE_CASE),
+  container.resolve(ServiceTokens.UPDATE_EMPLOYMENT_STATUS_USE_CASE),
+  container.resolve(ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE),
+  // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
+  container.resolve(ServiceTokens.GET_STAFF_SPECIALIZATIONS_USE_CASE),
+  container.resolve(ServiceTokens.ADD_STAFF_SPECIALIZATION_USE_CASE),
+  container.resolve(ServiceTokens.REMOVE_STAFF_SPECIALIZATION_USE_CASE)
 );
 
 // Health check
@@ -108,6 +193,7 @@ app.get('/health', async (_req, res) => {
   try {
     const healthStatus = await container.getServiceHealth();
     const rabbitmqStatus = eventPublisher?.isReady() ? 'connected' : 'disconnected';
+    const identityConsumerStatus = identityEventConsumer?.isHealthy() ? 'connected' : 'disconnected';
 
     res.json({
       service: SERVICE_NAME,
@@ -119,8 +205,15 @@ app.get('/health', async (_req, res) => {
       patterns: SERVICE_PATTERNS,
       services: healthStatus,
       rabbitmq: {
-        status: rabbitmqStatus,
-        exchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events'
+        publisher: {
+          status: rabbitmqStatus,
+          exchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events'
+        },
+        identityConsumer: {
+          status: identityConsumerStatus,
+          queue: 'provider-staff-service.identity-events',
+          routingKeys: ['user.created', 'user.deactivated', 'user.role-changed']
+        }
       }
     });
   } catch (error) {
@@ -147,6 +240,20 @@ const server = app.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM signal received: closing HTTP server');
+  
+  // Disconnect Event Consumers
+  if (identityEventConsumer) {
+    await identityEventConsumer.disconnect();
+    logger.info('Identity Event Consumer disconnected');
+  }
+  if (appointmentsEventConsumer) {
+    await appointmentsEventConsumer.disconnect();
+    logger.info('Appointments Event Consumer disconnected');
+  }
+  if (patientEventConsumer) {
+    await patientEventConsumer.disconnect();
+    logger.info('Patient Event Consumer disconnected');
+  }
 
   // Disconnect RabbitMQ
   if (eventPublisher) {
@@ -162,6 +269,20 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT signal received: closing HTTP server');
+
+  // Disconnect Event Consumers
+  if (identityEventConsumer) {
+    await identityEventConsumer.disconnect();
+    logger.info('Identity Event Consumer disconnected');
+  }
+  if (appointmentsEventConsumer) {
+    await appointmentsEventConsumer.disconnect();
+    logger.info('Appointments Event Consumer disconnected');
+  }
+  if (patientEventConsumer) {
+    await patientEventConsumer.disconnect();
+    logger.info('Patient Event Consumer disconnected');
+  }
 
   // Disconnect RabbitMQ
   if (eventPublisher) {

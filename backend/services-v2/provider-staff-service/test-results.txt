@@ -1,0 +1,3469 @@
+﻿node.exe : npm warn Unknown cli config "--testPathPattern". This will stop 
+working in the next major version of npm.
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:St 
+   ring) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm warn Unknown cli config "--testPathIgnorePatterns". This will stop working in 
+the next major version of npm.
+npm warn Unknown cli config "--coverage". This will stop working in the next 
+major version of npm.
+
+> provider-staff-service@1.0.0 test
+> jest
+
+(node:70688) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. 
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+FAIL tests/integration/events/event-publishing.integration.test.ts
+  ● Event Publishing Integration Tests › RabbitMQ Connection › should connect to 
+RabbitMQ successfully
+
+    connect ECONNREFUSED ::1:5673
+
+
+
+  ● Event Publishing Integration Tests › Event Publishing › should publish 
+StaffUpdated event
+
+    connect ECONNREFUSED ::1:5673
+
+
+
+  ● Event Publishing Integration Tests › Event Publishing › should publish 
+multiple events
+
+    connect ECONNREFUSED ::1:5673
+
+
+
+
+  ● Test suite failed to run
+
+    TypeError: cleanup is not a function
+
+    [0m [90m 22 |[39m
+     [90m 23 |[39m   afterAll([36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 24 |[39m     [36mawait[39m cleanup()[33m;[39m
+     [90m    |[39m           [31m[1m^[22m[39m
+     [90m 25 |[39m   })[33m;[39m
+     [90m 26 |[39m
+     [90m 27 |[39m   describe([32m'RabbitMQ Connection'[39m[33m,[39m () 
+[33m=>[39m {[0m
+
+      at Object.<anonymous> 
+(tests/integration/events/event-publishing.integration.test.ts:24:11)
+
+(node:70688) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment 
+variable to '0' makes TLS connections and HTTPS requests insecure by disabling 
+certificate verification.
+FAIL tests/integration/rls/staff-rls-policies.test.ts
+  RLS Policy Integration Tests
+    RLS Policy: ADMIN Full Access
+      × should allow ADMIN to register new staff (1 ms)
+      × should allow ADMIN to view all staff profiles
+      × should allow ADMIN to update any staff profile (1 ms)
+      × should allow ADMIN to search all staff (1 ms)
+    RLS Policy: DOCTOR View Doctors Only
+      × should allow DOCTOR to view other doctors
+      × should NOT allow DOCTOR to register new staff (1 ms)
+      × should NOT allow DOCTOR to update other staff profiles
+    RLS Policy: NURSE View Active Staff Only
+      × should allow NURSE to view active staff (1 ms)
+      × should NOT allow NURSE to register new staff
+      × should NOT allow NURSE to update other staff profiles
+    RLS Policy: Unauthorized Access
+      × should block access without authentication token (1 ms)
+      × should block access with invalid token
+      × should block POST operations without ADMIN role (1 ms)
+    RLS Policy: Self-Management
+      × should allow staff to view own profile (1 ms)
+
+  ● RLS Policy Integration Tests › RLS Policy: ADMIN Full Access › should allow 
+ADMIN to register new staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: ADMIN Full Access › should allow 
+ADMIN to view all staff profiles
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: ADMIN Full Access › should allow 
+ADMIN to update any staff profile
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: ADMIN Full Access › should allow 
+ADMIN to search all staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: DOCTOR View Doctors Only › should 
+allow DOCTOR to view other doctors
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: DOCTOR View Doctors Only › should 
+NOT allow DOCTOR to register new staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: DOCTOR View Doctors Only › should 
+NOT allow DOCTOR to update other staff profiles
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: NURSE View Active Staff Only › 
+should allow NURSE to view active staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: NURSE View Active Staff Only › 
+should NOT allow NURSE to register new staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: NURSE View Active Staff Only › 
+should NOT allow NURSE to update other staff profiles
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: Unauthorized Access › should block 
+access without authentication token
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: Unauthorized Access › should block 
+access with invalid token
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: Unauthorized Access › should block 
+POST operations without ADMIN role
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+  ● RLS Policy Integration Tests › RLS Policy: Self-Management › should allow 
+staff to view own profile
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at createTestUsersForRoles (tests/helpers/testHelpers.ts:154:17)
+      at Object.<anonymous> 
+(tests/integration/rls/staff-rls-policies.test.ts:43:19)
+
+FAIL tests/integration/api/credential-management.test.ts
+  Credential Management API Integration Tests
+    POST /api/v1/staff/:staffId/credentials - Add Credential
+      Happy Path
+        × should add credential successfully with valid data (1 ms)
+      Validation Errors
+        × should fail when staffId is invalid format (1 ms)
+        × should fail when credentialNumber is empty
+        × should fail when credentialType is invalid
+        × should fail when issueDate is in future
+      Business Rules
+        × should fail when staff not found
+        × should fail when credential already exists (1 ms)
+      Authentication
+        × should fail without JWT token
+        × should fail with invalid JWT token
+    DELETE /api/v1/staff/:staffId/credentials/:credentialNumber - Remove 
+Credential
+      Happy Path
+        × should remove credential successfully
+      Validation Errors
+        × should fail when staffId is invalid format
+        × should fail when credentialNumber is empty
+      Business Rules
+        × should fail when staff not found
+        × should fail when credential not found
+      Authentication
+        × should fail without JWT token
+    PUT /api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew 
+Credential
+      Happy Path
+        × should renew credential successfully
+      Validation Errors
+        × should fail when staffId is invalid format
+        × should fail when newExpiryDate is in past
+        × should fail when newExpiryDate is missing
+      Business Rules
+        × should fail when staff not found
+        × should fail when credential not found
+      Authentication
+        × should fail without JWT token
+    GET /api/v1/staff/credentials/expiring - Get Expiring Credentials
+      Happy Path
+        × should get expiring credentials with default threshold (30 days)
+        × should filter by daysThreshold
+        × should filter by staffType
+      Validation Errors
+        × should fail when daysThreshold is less than 1
+        × should fail when daysThreshold is greater than 365
+        × should fail when staffType is invalid
+      Authentication
+        × should fail without JWT token
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Happy Path › should add 
+credential successfully with valid data
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Validation Errors › should 
+fail when staffId is invalid format
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Validation Errors › should 
+fail when credentialNumber is empty
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Validation Errors › should 
+fail when credentialType is invalid
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Validation Errors › should 
+fail when issueDate is in future
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Business Rules › should 
+fail when staff not found
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Business Rules › should 
+fail when credential already exists
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Authentication › should 
+fail without JWT token
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › POST 
+/api/v1/staff/:staffId/credentials - Add Credential › Authentication › should 
+fail with invalid JWT token
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › DELETE 
+/api/v1/staff/:staffId/credentials/:credentialNumber - Remove Credential › Happy 
+Path › should remove credential successfully
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › DELETE 
+/api/v1/staff/:staffId/credentials/:credentialNumber - Remove Credential › 
+Validation Errors › should fail when staffId is invalid format
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › DELETE 
+/api/v1/staff/:staffId/credentials/:credentialNumber - Remove Credential › 
+Validation Errors › should fail when credentialNumber is empty
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › DELETE 
+/api/v1/staff/:staffId/credentials/:credentialNumber - Remove Credential › 
+Business Rules › should fail when staff not found
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › DELETE 
+/api/v1/staff/:staffId/credentials/:credentialNumber - Remove Credential › 
+Business Rules › should fail when credential not found
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › DELETE 
+/api/v1/staff/:staffId/credentials/:credentialNumber - Remove Credential › 
+Authentication › should fail without JWT token
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › PUT 
+/api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew Credential › 
+Happy Path › should renew credential successfully
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › PUT 
+/api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew Credential › 
+Validation Errors › should fail when staffId is invalid format
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › PUT 
+/api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew Credential › 
+Validation Errors › should fail when newExpiryDate is in past
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › PUT 
+/api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew Credential › 
+Validation Errors › should fail when newExpiryDate is missing
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › PUT 
+/api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew Credential › 
+Business Rules › should fail when staff not found
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › PUT 
+/api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew Credential › 
+Business Rules › should fail when credential not found
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › PUT 
+/api/v1/staff/:staffId/credentials/:credentialNumber/renew - Renew Credential › 
+Authentication › should fail without JWT token
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › GET 
+/api/v1/staff/credentials/expiring - Get Expiring Credentials › Happy Path › 
+should get expiring credentials with default threshold (30 days)
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › GET 
+/api/v1/staff/credentials/expiring - Get Expiring Credentials › Happy Path › 
+should filter by daysThreshold
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › GET 
+/api/v1/staff/credentials/expiring - Get Expiring Credentials › Happy Path › 
+should filter by staffType
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › GET 
+/api/v1/staff/credentials/expiring - Get Expiring Credentials › Validation Errors 
+› should fail when daysThreshold is less than 1
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › GET 
+/api/v1/staff/credentials/expiring - Get Expiring Credentials › Validation Errors 
+› should fail when daysThreshold is greater than 365
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › GET 
+/api/v1/staff/credentials/expiring - Get Expiring Credentials › Validation Errors 
+› should fail when staffType is invalid
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+  ● Credential Management API Integration Tests › GET 
+/api/v1/staff/credentials/expiring - Get Expiring Credentials › Authentication › 
+should fail without JWT token
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/credential-management.test.ts:38:31)
+
+PASS tests/unit/infrastructure/events/RabbitMQEventPublisher.test.ts
+  RabbitMQEventPublisher
+    connect
+      √ should connect to RabbitMQ successfully (7 ms)
+      √ should throw error if connection fails (9 ms)
+      √ should not connect twice (1 ms)
+    disconnect
+      √ should disconnect from RabbitMQ successfully (1 ms)
+      √ should handle disconnect when not connected (1 ms)
+      √ should handle disconnect errors gracefully (1 ms)
+    publish
+      √ should publish event successfully (2 ms)
+      √ should throw error if not connected (11 ms)
+      √ should retry on publish failure (221 ms)
+      √ should throw error after max retries (327 ms)
+      √ should serialize event data correctly (3 ms)
+    publishAll
+      √ should publish multiple events successfully (2 ms)
+      √ should handle empty array (3 ms)
+      √ should continue publishing even if one fails (113 ms)
+    isReady
+      √ should return false when not connected (1 ms)
+      √ should return true when connected (1 ms)
+      √ should return false after disconnect (2 ms)
+    routing key generation
+      √ should use eventType as routing key (1 ms)
+      √ should handle different event types (2 ms)
+
+FAIL tests/integration/api/staff-status-management.test.ts
+  Staff Status Management Integration Tests
+    POST /api/v1/staff/:staffId/activate
+      × should activate suspended staff successfully (1 ms)
+      × should return 404 for non-existent staff (1 ms)
+      × should require ADMIN role
+    POST /api/v1/staff/:staffId/suspend
+      × should suspend active staff with reason (1 ms)
+      × should require suspension reason
+    POST /api/v1/staff/:staffId/terminate
+      × should terminate staff with reason
+      × should require termination reason
+    PATCH /api/v1/staff/:staffId/employment-status
+      × should update employment status
+
+  ● Staff Status Management Integration Tests › POST 
+/api/v1/staff/:staffId/activate › should activate suspended staff successfully
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+  ● Staff Status Management Integration Tests › POST 
+/api/v1/staff/:staffId/activate › should return 404 for non-existent staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+  ● Staff Status Management Integration Tests › POST 
+/api/v1/staff/:staffId/activate › should require ADMIN role
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+  ● Staff Status Management Integration Tests › POST 
+/api/v1/staff/:staffId/suspend › should suspend active staff with reason
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+  ● Staff Status Management Integration Tests › POST 
+/api/v1/staff/:staffId/suspend › should require suspension reason
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+  ● Staff Status Management Integration Tests › POST 
+/api/v1/staff/:staffId/terminate › should terminate staff with reason
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+  ● Staff Status Management Integration Tests › POST 
+/api/v1/staff/:staffId/terminate › should require termination reason
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+  ● Staff Status Management Integration Tests › PATCH 
+/api/v1/staff/:staffId/employment-status › should update employment status
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-status-management.test.ts:36:23)
+
+FAIL tests/integration/api/staff-schedule-management.test.ts
+  Staff Schedule Management Integration Tests
+    PUT /api/v1/staff/:staffId/schedule
+      × should update staff work schedule successfully (1 ms)
+      × should validate working hours format
+      × should validate working days
+      × should require ADMIN role
+    GET /api/v1/staff/:staffId/schedule
+      × should retrieve staff schedule (1 ms)
+      × should return 404 for non-existent staff
+      × should allow authenticated users to view schedules
+
+  ● Staff Schedule Management Integration Tests › PUT 
+/api/v1/staff/:staffId/schedule › should update staff work schedule successfully
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-schedule-management.test.ts:36:23)
+
+  ● Staff Schedule Management Integration Tests › PUT 
+/api/v1/staff/:staffId/schedule › should validate working hours format
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-schedule-management.test.ts:36:23)
+
+  ● Staff Schedule Management Integration Tests › PUT 
+/api/v1/staff/:staffId/schedule › should validate working days
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-schedule-management.test.ts:36:23)
+
+  ● Staff Schedule Management Integration Tests › PUT 
+/api/v1/staff/:staffId/schedule › should require ADMIN role
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-schedule-management.test.ts:36:23)
+
+  ● Staff Schedule Management Integration Tests › GET 
+/api/v1/staff/:staffId/schedule › should retrieve staff schedule
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-schedule-management.test.ts:36:23)
+
+  ● Staff Schedule Management Integration Tests › GET 
+/api/v1/staff/:staffId/schedule › should return 404 for non-existent staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-schedule-management.test.ts:36:23)
+
+  ● Staff Schedule Management Integration Tests › GET 
+/api/v1/staff/:staffId/schedule › should allow authenticated users to view 
+schedules
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-schedule-management.test.ts:36:23)
+
+FAIL tests/integration/api/staff-department-assignment.test.ts
+  Staff Department Assignment Integration Tests
+    POST /api/v1/staff/:staffId/departments
+      × should assign staff to department successfully
+      × should validate department data
+      × should return 404 for non-existent staff (1 ms)
+      × should require ADMIN role
+      × should handle multiple department assignments
+      × should prevent duplicate department assignments (1 ms)
+
+  ● Staff Department Assignment Integration Tests › POST 
+/api/v1/staff/:staffId/departments › should assign staff to department 
+successfully
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-department-assignment.test.ts:36:23)
+
+  ● Staff Department Assignment Integration Tests › POST 
+/api/v1/staff/:staffId/departments › should validate department data
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-department-assignment.test.ts:36:23)
+
+  ● Staff Department Assignment Integration Tests › POST 
+/api/v1/staff/:staffId/departments › should return 404 for non-existent staff
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-department-assignment.test.ts:36:23)
+
+  ● Staff Department Assignment Integration Tests › POST 
+/api/v1/staff/:staffId/departments › should require ADMIN role
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-department-assignment.test.ts:36:23)
+
+  ● Staff Department Assignment Integration Tests › POST 
+/api/v1/staff/:staffId/departments › should handle multiple department assignments
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-department-assignment.test.ts:36:23)
+
+  ● Staff Department Assignment Integration Tests › POST 
+/api/v1/staff/:staffId/departments › should prevent duplicate department 
+assignments
+
+    Failed to create test user: Password should be at least 12 characters.
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m   [36mif[39m (signUpError [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39muser [33m||[39m 
+[33m![39msignUpData[33m?[39m[33m.[39msession) {
+    [31m[1m>[22m[39m[90m 107 |[39m     [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m`Failed to create test user: ${signUpError?.message || 
+'Unknown error'}`[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m
+     [90m 110 |[39m   [90m// Assign role in auth_schema.user_roles 
+table[39m[0m
+
+      at getOrCreateTestUser (tests/helpers/testHelpers.ts:107:11)
+      at Object.<anonymous> 
+(tests/integration/api/staff-department-assignment.test.ts:36:23)
+
+FAIL tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts
+  UpdateStaffProfileUseCase
+    execute - successful update
+      × should update staff profile with valid data (2 ms)
+      × should update personal info correctly (1 ms)
+      × should update professional info correctly (1 ms)
+      × should allow partial update (only personal info)
+      × should allow partial update (only professional info)
+    execute - validation errors
+      × should fail when staff not found
+      × should fail when staff ID is invalid (1 ms)
+      × should fail when no update data provided (1 ms)
+    execute - authorization
+      × should allow ADMIN to update any staff (1 ms)
+      × should allow staff to update their own profile (1 ms)
+      × should fail when non-admin tries to update other staff
+    execute - error handling
+      × should handle repository errors gracefully
+    HIPAA audit logging
+      × should log staff profile update for audit (4 ms)
+
+  ● UpdateStaffProfileUseCase › execute - successful update › should update staff 
+profile with valid data
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - successful update › should update 
+personal info correctly
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - successful update › should update 
+professional info correctly
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - successful update › should allow 
+partial update (only personal info)
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - successful update › should allow 
+partial update (only professional info)
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - validation errors › should fail when 
+staff not found
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - validation errors › should fail when 
+staff ID is invalid
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - validation errors › should fail when no 
+update data provided
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - authorization › should allow ADMIN to 
+update any staff
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - authorization › should allow staff to 
+update their own profile
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - authorization › should fail when 
+non-admin tries to update other staff
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › execute - error handling › should handle 
+repository errors gracefully
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+  ● UpdateStaffProfileUseCase › HIPAA audit logging › should log staff profile 
+update for audit
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffProfileUseCase.test.ts:117:35)
+
+FAIL tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts
+  RemoveStaffCertificationUseCase
+    execute - successful removal
+      × should remove certification with valid data (1 ms)
+      × should log removal for audit (1 ms)
+    execute - validation errors
+      × should fail when staff not found
+      × should fail when staffId is invalid
+      × should fail when certificationId is empty (1 ms)
+      × should fail when certification not found (1 ms)
+      × should fail when reason is empty (1 ms)
+    execute - authorization
+      × should allow admin to remove certification
+      × should fail when non-admin tries to remove certification
+    execute - error handling
+      × should handle repository errors gracefully (1 ms)
+    HIPAA audit logging
+      × should log certification removal for HIPAA compliance (1 ms)
+
+  ● RemoveStaffCertificationUseCase › execute - successful removal › should 
+remove certification with valid data
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - successful removal › should log 
+removal for audit
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - validation errors › should fail 
+when staff not found
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - validation errors › should fail 
+when staffId is invalid
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - validation errors › should fail 
+when certificationId is empty
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - validation errors › should fail 
+when certification not found
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - validation errors › should fail 
+when reason is empty
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - authorization › should allow 
+admin to remove certification
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - authorization › should fail when 
+non-admin tries to remove certification
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › execute - error handling › should handle 
+repository errors gracefully
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+  ● RemoveStaffCertificationUseCase › HIPAA audit logging › should log 
+certification removal for HIPAA compliance
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffCertificationUseCase.test.ts:68:35)
+
+FAIL tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts
+  RemoveStaffFromDepartmentUseCase
+    execute - successful removal
+      × should remove staff from department with valid data (2 ms)
+      × should remove with immediate effect when no end date (1 ms)
+      × should log removal for audit (1 ms)
+    execute - validation errors
+      × should fail when staff not found (1 ms)
+      × should fail when staffId is invalid (1 ms)
+      × should fail when departmentId is empty (2 ms)
+      × should fail when department assignment not found (1 ms)
+      × should fail when reason is empty (1 ms)
+      × should fail when endDate is invalid (2 ms)
+      × should fail when endDate is in the past (1 ms)
+    execute - authorization
+      × should allow admin to remove staff from department (1 ms)
+      × should fail when non-admin tries to remove staff (1 ms)
+    execute - error handling
+      × should handle repository errors gracefully
+    HIPAA audit logging
+      × should log department removal for HIPAA compliance (1 ms)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - successful removal › should 
+remove staff from department with valid data
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - successful removal › should 
+remove with immediate effect when no end date
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - successful removal › should log 
+removal for audit
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - validation errors › should fail 
+when staff not found
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - validation errors › should fail 
+when staffId is invalid
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - validation errors › should fail 
+when departmentId is empty
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - validation errors › should fail 
+when department assignment not found
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - validation errors › should fail 
+when reason is empty
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - validation errors › should fail 
+when endDate is invalid
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - validation errors › should fail 
+when endDate is in the past
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - authorization › should allow 
+admin to remove staff from department
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - authorization › should fail when 
+non-admin tries to remove staff
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › execute - error handling › should handle 
+repository errors gracefully
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+  ● RemoveStaffFromDepartmentUseCase › HIPAA audit logging › should log 
+department removal for HIPAA compliance
+
+    Bác sĩ phải có ít nhất một chuyên khoa
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mif[39m (staffType [33m===[39m 
+[32m'doctor'[39m [33m&&[39m specializations[33m.[39mlength [33m===[39m 
+[35m0[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Bác sĩ phải có ít nhất một chuyên khoa'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m     }
+     [90m 118 |[39m
+     [90m 119 |[39m     [36mconst[39m staff [33m=[39m [36mnew[39m 
+[33mProviderStaff[39m({[0m
+
+      at Function.create (src/domain/aggregates/ProviderStaff.ts:116:13)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/RemoveStaffFromDepartmentUseCase.test.ts:69:35)
+
+FAIL tests/unit/application/use-cases/VerifyStaffCredentialUseCase.test.ts
+  VerifyStaffCredentialUseCase
+    execute
+      × should verify credential successfully (1 ms)
+      × should fail when staff not found (4 ms)
+      × should fail when credential not found (1 ms)
+      × should fail when credential already verified (3 ms)
+      × should fail when credential is expired (1 ms)
+      √ should fail when user role is not authorized (1 ms)
+      √ should fail when staffId is empty (1 ms)
+      √ should fail when credentialId is empty (1 ms)
+      √ should handle repository errors gracefully (2 ms)
+
+  ● VerifyStaffCredentialUseCase › execute › should verify credential successfully
+
+    TypeError: Cannot set property id of #<Entity> which has only a getter
+
+    [0m [90m 77 |[39m         expiryDate[33m:[39m [36mnew[39m 
+[33mDate[39m([32m'2030-01-01'[39m)
+     [90m 78 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 79 |[39m       (mockCredential [36mas[39m 
+any)[33m.[39mid [33m=[39m credentialId[33m;[39m
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 80 |[39m       (mockCredential [36mas[39m 
+any)[33m.[39mprops[33m.[39misValid [33m=[39m [36mfalse[39m[33m;[39m
+     [90m 81 |[39m
+     [90m 82 |[39m       [36mconst[39m mockStaff [33m=[39m {[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/VerifyStaffCredentialUseCase.test.ts:79:33)
+
+  ● VerifyStaffCredentialUseCase › execute › should fail when staff not found
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Không tìm thấy nhân viên"
+    Received: "Lỗi khi xác thực chứng chỉ nhân viên"
+
+    [0m [90m 120 |[39m       [90m// Assert[39m
+     [90m 121 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 122 |[39m       
+expect(result[33m.[39mmessage)[33m.[39mtoBe([32m'Không tìm thấy nhân 
+viên'[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 123 |[39m       expect(result[33m.[39merrors)[33m.[39mtoContain([
+32m'STAFF_NOT_FOUND'[39m)[33m;[39m
+     [90m 124 |[39m     })[33m;[39m
+     [90m 125 |[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/VerifyStaffCredentialUseCase.test.ts:122:30)
+
+  ● VerifyStaffCredentialUseCase › execute › should fail when credential not found
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Không tìm thấy chứng chỉ"
+    Received: "Lỗi khi xác thực chứng chỉ nhân viên"
+
+    [0m [90m 145 |[39m       [90m// Assert[39m
+     [90m 146 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 147 |[39m       
+expect(result[33m.[39mmessage)[33m.[39mtoBe([32m'Không tìm thấy chứng 
+chỉ'[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 148 |[39m       expect(result[33m.[39merrors)[33m.[39mtoContain([
+32m'CREDENTIAL_NOT_FOUND'[39m)[33m;[39m
+     [90m 149 |[39m     })[33m;[39m
+     [90m 150 |[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/VerifyStaffCredentialUseCase.test.ts:147:30)
+
+  ● VerifyStaffCredentialUseCase › execute › should fail when credential already 
+verified
+
+    TypeError: Cannot set property id of #<Entity> which has only a getter
+
+    [0m [90m 158 |[39m         expiryDate[33m:[39m [36mnew[39m 
+[33mDate[39m([32m'2030-01-01'[39m)
+     [90m 159 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 160 |[39m       (mockCredential [36mas[39m 
+any)[33m.[39mid [33m=[39m [32m'cred-456'[39m[33m;[39m
+     [90m     |[39m                                 [31m[1m^[22m[39m
+     [90m 161 |[39m       [90m// isValid is already true by default from 
+create()[39m
+     [90m 162 |[39m
+     [90m 163 |[39m       [36mconst[39m mockStaff [33m=[39m {[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/VerifyStaffCredentialUseCase.test.ts:160:33)
+
+  ● VerifyStaffCredentialUseCase › execute › should fail when credential is 
+expired
+
+    TypeError: Cannot set property id of #<Entity> which has only a getter
+
+    [0m [90m 191 |[39m         expiryDate[33m:[39m [36mnew[39m 
+[33mDate[39m([32m'2020-01-01'[39m) [90m// Expired[39m
+     [90m 192 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 193 |[39m       (mockCredential [36mas[39m 
+any)[33m.[39mid [33m=[39m [32m'cred-456'[39m[33m;[39m
+     [90m     |[39m                                 [31m[1m^[22m[39m
+     [90m 194 |[39m       (mockCredential [36mas[39m 
+any)[33m.[39mprops[33m.[39misValid [33m=[39m [36mfalse[39m[33m;[39m
+     [90m 195 |[39m
+     [90m 196 |[39m       [36mconst[39m mockStaff [33m=[39m {[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/VerifyStaffCredentialUseCase.test.ts:193:33)
+
+FAIL tests/unit/application/use-cases/UpdateStaffScheduleUseCase.test.ts
+  UpdateStaffScheduleUseCase
+    execute - successful update
+      × should update schedule with valid data (2 ms)
+      × should update schedule with effective date (1 ms)
+      × should support flexible schedule (1 ms)
+      √ should log schedule update for audit (1 ms)
+    execute - validation errors
+      × should fail when staff not found (1 ms)
+      √ should fail when staffId is invalid (1 ms)
+      √ should fail when working days are empty (1 ms)
+      √ should fail when working hours are invalid (1 ms)
+      √ should fail when timezone is invalid (1 ms)
+    execute - authorization
+      × should allow admin to update schedule (5 ms)
+      × should fail when non-admin tries to update schedule (1 ms)
+    execute - error handling
+      √ should handle repository errors gracefully (1 ms)
+
+  ● UpdateStaffScheduleUseCase › execute - successful update › should update 
+schedule with valid data
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m  99 |[39m       [36mconst[39m result [33m=[39m 
+[36mawait[39m useCase[33m.[39mexecute(validRequest)[33m;[39m
+     [90m 100 |[39m
+    [31m[1m>[22m[39m[90m 101 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 102 |[39m       
+expect(result[33m.[39mmessage)[33m.[39mtoContain([32m'thành 
+công'[39m)[33m;[39m
+     [90m 103 |[39m       
+expect(result[33m.[39mdata)[33m.[39mtoBeDefined()[33m;[39m
+     [90m 104 |[39m       expect(result[33m.[39mdata[33m?[39m[33m.[39mstaf
+fId)[33m.[39mtoBe(validRequest[33m.[39mstaffId)[33m;[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffScheduleUseCase.test.ts:101:30)
+
+  ● UpdateStaffScheduleUseCase › execute - successful update › should update 
+schedule with effective date
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m 117 |[39m       [36mconst[39m result [33m=[39m 
+[36mawait[39m useCase[33m.[39mexecute(requestWithDate)[33m;[39m
+     [90m 118 |[39m
+    [31m[1m>[22m[39m[90m 119 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 120 |[39m       expect(result[33m.[39mdata[33m?[39m[33m.[39meffe
+ctiveDate)[33m.[39mtoBe([32m'2025-02-01'[39m)[33m;[39m
+     [90m 121 |[39m     })[33m;[39m
+     [90m 122 |[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffScheduleUseCase.test.ts:119:30)
+
+  ● UpdateStaffScheduleUseCase › execute - successful update › should support 
+flexible schedule
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m 135 |[39m       [36mconst[39m result [33m=[39m 
+[36mawait[39m useCase[33m.[39mexecute(flexibleRequest)[33m;[39m
+     [90m 136 |[39m
+    [31m[1m>[22m[39m[90m 137 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 138 |[39m     })[33m;[39m
+     [90m 139 |[39m
+     [90m 140 |[39m     it([32m'should log schedule update for 
+audit'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffScheduleUseCase.test.ts:137:30)
+
+  ● UpdateStaffScheduleUseCase › execute - validation errors › should fail when 
+staff not found
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "không tìm thấy"
+    Received string:    "Lỗi hệ thống khi cập nhật lịch làm việc"
+
+    [0m [90m 160 |[39m
+     [90m 161 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 162 |[39m       
+expect(result[33m.[39mmessage)[33m.[39mtoContain([32m'không tìm 
+thấy'[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 163 |[39m       expect(mockStaffRepository[33m.[39msave)[33m.[39mn
+ot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 164 |[39m     })[33m;[39m
+     [90m 165 |[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffScheduleUseCase.test.ts:162:30)
+
+  ● UpdateStaffScheduleUseCase › execute - authorization › should allow admin to 
+update schedule
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m 233 |[39m       })[33m;[39m
+     [90m 234 |[39m
+    [31m[1m>[22m[39m[90m 235 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 236 |[39m     })[33m;[39m
+     [90m 237 |[39m
+     [90m 238 |[39m     it([32m'should fail when non-admin tries to update 
+schedule'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffScheduleUseCase.test.ts:235:30)
+
+  ● UpdateStaffScheduleUseCase › execute - authorization › should fail when 
+non-admin tries to update schedule
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "quyền"
+    Received string:    "Lỗi hệ thống khi cập nhật lịch làm việc"
+
+    [0m [90m 245 |[39m
+     [90m 246 |[39m       
+expect(result[33m.[39msuccess)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 247 |[39m       
+expect(result[33m.[39mmessage)[33m.[39mtoContain([32m'quyền'[39m)[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 248 |[39m     })[33m;[39m
+     [90m 249 |[39m   })[33m;[39m
+     [90m 250 |[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/UpdateStaffScheduleUseCase.test.ts:247:30)
+
+FAIL tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts
+  RabbitMQStaffEventHandler
+    handleStaffRegistered
+      × should publish StaffRegistered integration event (2 ms)
+      × should include all required data in integration event (1 ms)
+      × should publish events to Identity, Scheduling, and Clinical services (1 
+ms)
+      × should handle errors gracefully (5 ms)
+    handleStaffUpdated
+      × should publish StaffUpdated integration event (1 ms)
+      × should notify Scheduling Service when work schedule changes (1 ms)
+      × should notify Billing Service when consultation fee changes (1 ms)
+      × should include updated fields in event data (1 ms)
+    handleDoctorAvailabilityChanged
+      × should publish DoctorAvailabilityChanged integration event (1 ms)
+      × should set high priority for availability changes (1 ms)
+      × should notify Scheduling Service
+    handleStaffStatusChanged
+      × should publish StaffStatusChanged integration event (1 ms)
+      × should set high priority for status changes (1 ms)
+    handle
+      × should route StaffRegisteredEvent to handleStaffRegistered (2 ms)
+      × should route StaffUpdatedEvent to handleStaffUpdated (5 ms)
+      × should route DoctorAvailabilityChangedEvent to 
+handleDoctorAvailabilityChanged (1 ms)
+      × should log warning for unknown event types (1 ms)
+
+  ● RabbitMQStaffEventHandler › handleStaffRegistered › should publish 
+StaffRegistered integration event
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 34 |[39m   [36masync[39m handleStaffRegistered(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 35 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 36 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m    |[39m                               [31m[1m^[22m[39m
+     [90m 37 |[39m
+     [90m 38 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffRegistered 
+event'[39m[33m,[39m {
+     [90m 39 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffRegistered] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:36:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:38:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffRegistered › should include all 
+required data in integration event
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 34 |[39m   [36masync[39m handleStaffRegistered(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 35 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 36 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m    |[39m                               [31m[1m^[22m[39m
+     [90m 37 |[39m
+     [90m 38 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffRegistered 
+event'[39m[33m,[39m {
+     [90m 39 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffRegistered] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:36:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:68:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffRegistered › should publish events to 
+Identity, Scheduling, and Clinical services
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 34 |[39m   [36masync[39m handleStaffRegistered(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 35 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 36 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m    |[39m                               [31m[1m^[22m[39m
+     [90m 37 |[39m
+     [90m 38 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffRegistered 
+event'[39m[33m,[39m {
+     [90m 39 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffRegistered] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:36:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:91:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffRegistered › should handle errors 
+gracefully
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Publish failed"
+    Received message:   "event.getEventData is not a function"
+
+        [0m [90m 34 |[39m   [36masync[39m 
+handleStaffRegistered(event[33m:[39m [33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+         [90m 35 |[39m     [36mtry[39m {
+        [31m[1m>[22m[39m[90m 36 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+         [90m    |[39m                               [31m[1m^[22m[39m
+         [90m 37 |[39m
+         [90m 38 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffRegistered 
+event'[39m[33m,[39m {
+         [90m 39 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffRegistered] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:36:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:108:33)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:108:77)
+
+  ● RabbitMQStaffEventHandler › handleStaffUpdated › should publish StaffUpdated 
+integration event
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 133 |[39m   [36masync[39m handleStaffUpdated(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 134 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 135 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 136 |[39m       [36mconst[39m updatedData [33m=[39m 
+eventData[33m.[39mupdatedData [33m||[39m {}[33m;[39m
+     [90m 137 |[39m
+     [90m 138 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffUpdated 
+event'[39m[33m,[39m {[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffUpdated] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:135:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:123:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffUpdated › should notify Scheduling 
+Service when work schedule changes
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 133 |[39m   [36masync[39m handleStaffUpdated(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 134 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 135 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 136 |[39m       [36mconst[39m updatedData [33m=[39m 
+eventData[33m.[39mupdatedData [33m||[39m {}[33m;[39m
+     [90m 137 |[39m
+     [90m 138 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffUpdated 
+event'[39m[33m,[39m {[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffUpdated] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:135:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:143:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffUpdated › should notify Billing 
+Service when consultation fee changes
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 133 |[39m   [36masync[39m handleStaffUpdated(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 134 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 135 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 136 |[39m       [36mconst[39m updatedData [33m=[39m 
+eventData[33m.[39mupdatedData [33m||[39m {}[33m;[39m
+     [90m 137 |[39m
+     [90m 138 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffUpdated 
+event'[39m[33m,[39m {[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffUpdated] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:135:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:161:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffUpdated › should include updated 
+fields in event data
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 133 |[39m   [36masync[39m handleStaffUpdated(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 134 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 135 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 136 |[39m       [36mconst[39m updatedData [33m=[39m 
+eventData[33m.[39mupdatedData [33m||[39m {}[33m;[39m
+     [90m 137 |[39m
+     [90m 138 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffUpdated 
+event'[39m[33m,[39m {[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffUpdated] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:135:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:180:26)
+
+  ● RabbitMQStaffEventHandler › handleDoctorAvailabilityChanged › should publish 
+DoctorAvailabilityChanged integration event
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 208 |[39m   [36masync[39m 
+handleDoctorAvailabilityChanged(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 209 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 210 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 211 |[39m
+     [90m 212 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling 
+DoctorAvailabilityChanged event'[39m[33m,[39m {
+     [90m 213 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as 
+handleDoctorAvailabilityChanged] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:210:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:197:26)
+
+  ● RabbitMQStaffEventHandler › handleDoctorAvailabilityChanged › should set high 
+priority for availability changes
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 208 |[39m   [36masync[39m 
+handleDoctorAvailabilityChanged(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 209 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 210 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 211 |[39m
+     [90m 212 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling 
+DoctorAvailabilityChanged event'[39m[33m,[39m {
+     [90m 213 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as 
+handleDoctorAvailabilityChanged] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:210:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:221:26)
+
+  ● RabbitMQStaffEventHandler › handleDoctorAvailabilityChanged › should notify 
+Scheduling Service
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 208 |[39m   [36masync[39m 
+handleDoctorAvailabilityChanged(event[33m:[39m 
+[33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 209 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 210 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 211 |[39m
+     [90m 212 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling 
+DoctorAvailabilityChanged event'[39m[33m,[39m {
+     [90m 213 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as 
+handleDoctorAvailabilityChanged] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:210:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:234:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffStatusChanged › should publish 
+StaffStatusChanged integration event
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 262 |[39m   [36masync[39m 
+handleStaffStatusChanged(event[33m:[39m [33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 263 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 264 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 265 |[39m
+     [90m 266 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffStatusChanged 
+event'[39m[33m,[39m {
+     [90m 267 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffStatusChanged] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:264:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:254:26)
+
+  ● RabbitMQStaffEventHandler › handleStaffStatusChanged › should set high 
+priority for status changes
+
+    TypeError: event.getEventData is not a function
+
+    [0m [90m 262 |[39m   [36masync[39m 
+handleStaffStatusChanged(event[33m:[39m [33mDomainEvent[39m)[33m:[39m 
+[33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {
+     [90m 263 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 264 |[39m       [36mconst[39m eventData 
+[33m=[39m event[33m.[39mgetEventData()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 265 |[39m
+     [90m 266 |[39m       
+[36mthis[39m[33m.[39mlogger[33m.[39minfo([32m'Handling StaffStatusChanged 
+event'[39m[33m,[39m {
+     [90m 267 |[39m         eventId[33m:[39m 
+event[33m.[39meventId[33m,[39m[0m
+
+      at RabbitMQStaffEventHandler.getEventData [as handleStaffStatusChanged] 
+(src/infrastructure/events/RabbitMQStaffEventHandler.ts:264:31)
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:282:26)
+
+  ● RabbitMQStaffEventHandler › handle › should route StaffRegisteredEvent to 
+handleStaffRegistered
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"aggregateId": "STF-202501-001", "aggregateType": "Staff", 
+"eventData": {"aggregateId": "STF-202501-001"}, "eventId": "evt-1761252719179", 
+"eventType": "StaffRegisteredEvent", "occurredAt": 2025-10-23T20:51:59.179Z}
+
+    Number of calls: 0
+
+    [0m [90m 298 |[39m       [36mawait[39m 
+eventHandler[33m.[39mhandle(domainEvent)[33m;[39m
+     [90m 299 |[39m
+    [31m[1m>[22m[39m[90m 300 |[39m       
+expect(spy)[33m.[39mtoHaveBeenCalledWith(domainEvent)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 301 |[39m     })[33m;[39m
+     [90m 302 |[39m
+     [90m 303 |[39m     it([32m'should route StaffUpdatedEvent to 
+handleStaffUpdated'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:300:19)
+
+  ● RabbitMQStaffEventHandler › handle › should route StaffUpdatedEvent to 
+handleStaffUpdated
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"aggregateId": "STF-202501-001", "aggregateType": "Staff", 
+"eventData": {"aggregateId": "STF-202501-001"}, "eventId": "evt-1761252719184", 
+"eventType": "StaffUpdatedEvent", "occurredAt": 2025-10-23T20:51:59.184Z}
+
+    Number of calls: 0
+
+    [0m [90m 310 |[39m       [36mawait[39m 
+eventHandler[33m.[39mhandle(domainEvent)[33m;[39m
+     [90m 311 |[39m
+    [31m[1m>[22m[39m[90m 312 |[39m       
+expect(spy)[33m.[39mtoHaveBeenCalledWith(domainEvent)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 313 |[39m     })[33m;[39m
+     [90m 314 |[39m
+     [90m 315 |[39m     it([32m'should route DoctorAvailabilityChangedEvent to 
+handleDoctorAvailabilityChanged'[39m[33m,[39m [36masync[39m () [33m=>[39m 
+{[0m
+
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:312:19)
+
+  ● RabbitMQStaffEventHandler › handle › should route 
+DoctorAvailabilityChangedEvent to handleDoctorAvailabilityChanged
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"aggregateId": "STF-202501-001", "aggregateType": "Staff", 
+"eventData": {"aggregateId": "STF-202501-001"}, "eventId": "evt-1761252719186", 
+"eventType": "DoctorAvailabilityChangedEvent", "occurredAt": 
+2025-10-23T20:51:59.186Z}
+
+    Number of calls: 0
+
+    [0m [90m 322 |[39m       [36mawait[39m 
+eventHandler[33m.[39mhandle(domainEvent)[33m;[39m
+     [90m 323 |[39m
+    [31m[1m>[22m[39m[90m 324 |[39m       
+expect(spy)[33m.[39mtoHaveBeenCalledWith(domainEvent)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 325 |[39m     })[33m;[39m
+     [90m 326 |[39m
+     [90m 327 |[39m     it([32m'should log warning for unknown event 
+types'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:324:19)
+
+  ● RabbitMQStaffEventHandler › handle › should log warning for unknown event 
+types
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: StringContaining "Unknown event type"
+    Received: "Unknown event type", {"eventId": "evt-1761252719187", "eventType": 
+"UnknownEvent"}
+
+    Number of calls: 1
+
+    [0m [90m 332 |[39m       [36mawait[39m 
+eventHandler[33m.[39mhandle(domainEvent)[33m;[39m
+     [90m 333 |[39m
+    [31m[1m>[22m[39m[90m 334 |[39m       
+expect(mockLogger[33m.[39mwarn)[33m.[39mtoHaveBeenCalledWith(
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 335 |[39m         expect[33m.[39mstringContaining([32m'Unknown 
+event type'[39m)
+     [90m 336 |[39m       )[33m;[39m
+     [90m 337 |[39m     })[33m;[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/infrastructure/events/RabbitMQStaffEventHandler.test.ts:334:31)
+
+FAIL tests/unit/application/use-cases/SuspendStaffUseCase.test.ts
+  SuspendStaffUseCase
+    Happy Path
+      × should suspend active staff successfully (10 ms)
+    Validation
+      × should fail when staffId is empty (16 ms)
+      × should fail when staffId is invalid format (3 ms)
+      × should fail when reason is empty (4 ms)
+      × should fail when reason is too short (1 ms)
+      × should fail when requestedBy is empty (1 ms)
+    Business Rules
+      × should fail when staff not found (2 ms)
+      √ should fail when staff is not active (21 ms)
+      √ should fail when staff is already suspended (2 ms)
+
+  ● SuspendStaffUseCase › Happy Path › should suspend active staff successfully
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "DOC-CARD-202501-001"
+    Received: "00000000-0000-0000-0000-000000000000"
+
+    [0m [90m 37 |[39m       })[33m;[39m
+     [90m 38 |[39m
+    [31m[1m>[22m[39m[90m 39 |[39m       expect(result[33m.[39mstaffId)[33
+m.[39mtoBe([32m'DOC-CARD-202501-001'[39m)[33m;[39m
+     [90m    |[39m                              [31m[1m^[22m[39m
+     [90m 40 |[39m       
+expect(result[33m.[39mstatus)[33m.[39mtoBe([32m'suspended'[39m)[33m;[39m
+     [90m 41 |[39m       
+expect(result[33m.[39misActive)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 42 |[39m       
+expect(result[33m.[39mreason)[33m.[39mtoBe([32m'Violation of hospital 
+policy'[39m)[33m;[39m[0m
+
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:39:30)
+
+  ● SuspendStaffUseCase › Validation › should fail when staffId is empty
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "ID nhân viên không được để trống"
+    Received message:   "Mã nhân viên không được để trống"
+
+        [0m [90m 23 |[39m   [36mprotected[39m validateFormat()[33m:[39m 
+[36mvoid[39m {
+         [90m 24 |[39m     [36mif[39m 
+([33m![39m[36mthis[39m[33m.[39mprops[33m.[39mvalue [33m||[39m 
+[36mthis[39m[33m.[39mprops[33m.[39mvalue[33m.[39mtrim()[33m.[39mlength 
+[33m===[39m [35m0[39m) {
+        [31m[1m>[22m[39m[90m 25 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Mã nhân viên không được để trống'[39m)[33m;[39m
+         [90m    |[39m             [31m[1m^[22m[39m
+         [90m 26 |[39m     }
+         [90m 27 |[39m
+         [90m 28 |[39m     [36mif[39m ([33m![39m[33mStaffId[39m[33m.[39m
+isValidStaffId([36mthis[39m[33m.[39mprops[33m.[39mvalue)) {[0m
+
+      at StaffId.validateFormat (src/domain/value-objects/StaffId.ts:25:13)
+      at new ValueObject (../shared/domain/base/value-object.ts:18:10)
+      at new StaffId (src/domain/value-objects/StaffId.ts:20:5)
+      at Function.create (src/domain/value-objects/StaffId.ts:35:12)
+      at Function.create [as fromString] 
+(src/domain/value-objects/StaffId.ts:52:20)
+      at SuspendStaffUseCase.fromString [as executeImpl] 
+(src/application/use-cases/SuspendStaffUseCase.ts:87:35)
+      at SuspendStaffUseCase.execute 
+(../shared/application/base/base-healthcare-use-case.ts:39:17)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:50:28)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:55:19)
+
+  ● SuspendStaffUseCase › Validation › should fail when staffId is invalid format
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "ID nhân viên không hợp lệ"
+    Received message:   "Mã nhân viên không đúng định dạng 
+({TYPE}-{DEPT}-YYYYMM-XXX)"
+
+        [0m [90m 27 |[39m
+         [90m 28 |[39m     [36mif[39m ([33m![39m[33mStaffId[39m[33m.[39m
+isValidStaffId([36mthis[39m[33m.[39mprops[33m.[39mvalue)) {
+        [31m[1m>[22m[39m[90m 29 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Mã nhân viên không đúng định dạng 
+({TYPE}-{DEPT}-YYYYMM-XXX)'[39m)[33m;[39m
+         [90m    |[39m             [31m[1m^[22m[39m
+         [90m 30 |[39m     }
+         [90m 31 |[39m   }
+         [90m 32 |[39m[0m
+
+      at StaffId.validateFormat (src/domain/value-objects/StaffId.ts:29:13)
+      at new ValueObject (../shared/domain/base/value-object.ts:18:10)
+      at new StaffId (src/domain/value-objects/StaffId.ts:20:5)
+      at Function.create (src/domain/value-objects/StaffId.ts:35:12)
+      at Function.create [as fromString] 
+(src/domain/value-objects/StaffId.ts:52:20)
+      at SuspendStaffUseCase.fromString [as executeImpl] 
+(src/application/use-cases/SuspendStaffUseCase.ts:87:35)
+      at SuspendStaffUseCase.execute 
+(../shared/application/base/base-healthcare-use-case.ts:39:17)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:59:28)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:64:19)
+
+  ● SuspendStaffUseCase › Validation › should fail when reason is empty
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Lý do tạm ngưng không được để trống"
+    Received message:   "Không tìm thấy nhân viên"
+
+        [0m [90m 90 |[39m     [36mconst[39m staff [33m=[39m 
+[36mawait[39m [36mthis[39m[33m.[39mstaffRepository[33m.[39mfindById(parsed
+StaffId)[33m;[39m
+         [90m 91 |[39m     [36mif[39m ([33m![39mstaff) {
+        [31m[1m>[22m[39m[90m 92 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Không tìm thấy nhân viên'[39m)[33m;[39m
+         [90m    |[39m             [31m[1m^[22m[39m
+         [90m 93 |[39m     }
+         [90m 94 |[39m
+         [90m 95 |[39m     [90m// Suspend staff (domain logic will validate 
+business rules)[39m[0m
+
+      at SuspendStaffUseCase.executeImpl 
+(src/application/use-cases/SuspendStaffUseCase.ts:92:13)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:73:19)
+
+  ● SuspendStaffUseCase › Validation › should fail when reason is too short
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Lý do tạm ngưng phải có ít nhất 10 ký tự"
+    Received message:   "Không tìm thấy nhân viên"
+
+        [0m [90m 90 |[39m     [36mconst[39m staff [33m=[39m 
+[36mawait[39m [36mthis[39m[33m.[39mstaffRepository[33m.[39mfindById(parsed
+StaffId)[33m;[39m
+         [90m 91 |[39m     [36mif[39m ([33m![39mstaff) {
+        [31m[1m>[22m[39m[90m 92 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Không tìm thấy nhân viên'[39m)[33m;[39m
+         [90m    |[39m             [31m[1m^[22m[39m
+         [90m 93 |[39m     }
+         [90m 94 |[39m
+         [90m 95 |[39m     [90m// Suspend staff (domain logic will validate 
+business rules)[39m[0m
+
+      at SuspendStaffUseCase.executeImpl 
+(src/application/use-cases/SuspendStaffUseCase.ts:92:13)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:82:19)
+
+  ● SuspendStaffUseCase › Validation › should fail when requestedBy is empty
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Người yêu cầu không được để trống"
+    Received message:   "Không tìm thấy nhân viên"
+
+        [0m [90m 90 |[39m     [36mconst[39m staff [33m=[39m 
+[36mawait[39m [36mthis[39m[33m.[39mstaffRepository[33m.[39mfindById(parsed
+StaffId)[33m;[39m
+         [90m 91 |[39m     [36mif[39m ([33m![39mstaff) {
+        [31m[1m>[22m[39m[90m 92 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Không tìm thấy nhân viên'[39m)[33m;[39m
+         [90m    |[39m             [31m[1m^[22m[39m
+         [90m 93 |[39m     }
+         [90m 94 |[39m
+         [90m 95 |[39m     [90m// Suspend staff (domain logic will validate 
+business rules)[39m[0m
+
+      at SuspendStaffUseCase.executeImpl 
+(src/application/use-cases/SuspendStaffUseCase.ts:92:13)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:91:19)
+
+  ● SuspendStaffUseCase › Business Rules › should fail when staff not found
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Không tìm thấy nhân viên"
+    Received message:   "Mã nhân viên không đúng định dạng 
+({TYPE}-{DEPT}-YYYYMM-XXX)"
+
+        [0m [90m 27 |[39m
+         [90m 28 |[39m     [36mif[39m ([33m![39m[33mStaffId[39m[33m.[39m
+isValidStaffId([36mthis[39m[33m.[39mprops[33m.[39mvalue)) {
+        [31m[1m>[22m[39m[90m 29 |[39m       [36mthrow[39m [36mnew[39m 
+[33mError[39m([32m'Mã nhân viên không đúng định dạng 
+({TYPE}-{DEPT}-YYYYMM-XXX)'[39m)[33m;[39m
+         [90m    |[39m             [31m[1m^[22m[39m
+         [90m 30 |[39m     }
+         [90m 31 |[39m   }
+         [90m 32 |[39m[0m
+
+      at StaffId.validateFormat (src/domain/value-objects/StaffId.ts:29:13)
+      at new ValueObject (../shared/domain/base/value-object.ts:18:10)
+      at new StaffId (src/domain/value-objects/StaffId.ts:20:5)
+      at Function.create (src/domain/value-objects/StaffId.ts:35:12)
+      at Function.create [as fromString] 
+(src/domain/value-objects/StaffId.ts:52:20)
+      at SuspendStaffUseCase.fromString [as executeImpl] 
+(src/application/use-cases/SuspendStaffUseCase.ts:87:35)
+      at SuspendStaffUseCase.execute 
+(../shared/application/base/base-healthcare-use-case.ts:39:17)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:99:28)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> 
+(tests/unit/application/use-cases/SuspendStaffUseCase.test.ts:104:19)
+
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+Error: connect ECONNREFUSED ::1:5673
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1615:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '::1',
+  port: 5673
+}
+
+Node.js v22.12.0

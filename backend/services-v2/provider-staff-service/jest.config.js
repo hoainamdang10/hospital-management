@@ -25,7 +25,8 @@ module.exports = {
     '^@infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1',
     '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
     '^@shared/(.*)$': '<rootDir>/../shared/$1',
-    '^@tests/(.*)$': '<rootDir>/tests/$1'
+    '^@tests/(.*)$': '<rootDir>/tests/$1',
+    '^uuid$': require.resolve('uuid')
   },
   
   moduleFileExtensions: [
@@ -79,6 +80,8 @@ module.exports = {
   
   testTimeout: 10000,
   
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  
   errorOnDeprecated: true,
   
   automock: false,
@@ -96,7 +99,7 @@ module.exports = {
   maxWorkers: '50%',
   
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$))'
+    'node_modules/(?!uuid)'
   ],
   
   watchPathIgnorePatterns: [
@@ -105,4 +108,3 @@ module.exports = {
     '<rootDir>/coverage/'
   ]
 };
-

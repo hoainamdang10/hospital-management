@@ -10,6 +10,8 @@
 import { NotificationTemplate, TemplateType, TemplatePriority } from '../value-objects/NotificationTemplate';
 import { NotificationContent } from '../value-objects/NotificationContent';
 
+export { TemplateType, TemplatePriority };
+
 export interface TemplateSearchCriteria {
   templateType?: TemplateType;
   language?: 'vi' | 'en';

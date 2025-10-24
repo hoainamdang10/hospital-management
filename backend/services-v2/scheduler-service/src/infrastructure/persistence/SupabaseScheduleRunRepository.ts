@@ -1,5 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { IScheduleRunRepository } from '../../domain/repositories/IScheduleRunRepository';
+import {
+  IScheduleRunRepository,
+  ExecuteRunTransactionalParams,
+  ExecuteRunTransactionalResult
+} from '../../domain/repositories/IScheduleRunRepository';
 import { ScheduleRun, ScheduleRunStatus } from '../../domain/entities/ScheduleRun.entity';
 import { TenantId } from '../../domain/value-objects/TenantId';
 
@@ -119,6 +123,41 @@ export class SupabaseScheduleRunRepository implements IScheduleRunRepository {
     } catch (error) {
       console.error('Error acquiring due runs:', error);
       throw error;
+    }
+  }
+
+  async executeRunTransactional(params: ExecuteRunTransactionalParams): Promise<ExecuteRunTransactionalResult> {
+    try {
+      const { data, error } = await this.supabase.rpc('execute_run_transactional', {
+        p_run_id: params.runId,
+        p_worker_id: params.workerId,
+        p_topic_or_command: params.topicOrCommand,
+        p_payload_json: params.payloadJson,
+        p_headers_json: params.headersJson
+      });
+
+      if (error) {
+        throw new Error(`Failed to execute run transactionally: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        return {
+          success: false,
+          errorMessage: 'No result returned from execute_run_transactional'
+        };
+      }
+
+      const result = data[0];
+      return {
+        success: result.success,
+        errorMessage: result.error_message || undefined
+      };
+    } catch (error) {
+      console.error('Error executing run transactionally:', error);
+      return {
+        success: false,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 

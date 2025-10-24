@@ -7,8 +7,7 @@
  * @compliance Event-Driven Architecture, Clean Architecture
  */
 
-import * as amqp from 'amqplib';
-import { DomainEvent } from '../../domain/events/DomainEvent';
+import amqp, { Channel, Connection } from 'amqplib';
 import { ILogger } from '../../application/interfaces/ILogger';
 
 export interface RabbitMQConfig {
@@ -48,8 +47,8 @@ export interface IntegrationEvent {
  * RabbitMQ Event Publisher
  */
 export class RabbitMQEventPublisher {
-  private connection: amqp.Connection | null = null;
-  private channel: amqp.Channel | null = null;
+  private connection: Connection | null = null;
+  private channel: Channel | null = null;
   private isConnected: boolean = false;
   private intentionallyClosed: boolean = false;
 
@@ -63,6 +62,11 @@ export class RabbitMQEventPublisher {
    * Initialize connection to RabbitMQ
    */
   async connect(): Promise<void> {
+    if (this.isConnected && this.channel) {
+      this.logger.warn('RabbitMQ connection already established, skipping reconnect attempt');
+      return;
+    }
+
     try {
       this.logger.info('Connecting to RabbitMQ...', {
         url: this.config.url.replace(/\/\/.*@/, '//***@'), // Hide credentials
@@ -73,19 +77,19 @@ export class RabbitMQEventPublisher {
       this.intentionallyClosed = false;
 
       // Create connection
-      this.connection = await amqp.connect(this.config.url);
+      this.connection = await amqp.connect(this.config.url) as any;
 
       // Handle connection errors
-      this.connection.on('error', (err: Error) => {
+      (this.connection as any).on('error', (err: Error) => {
         this.logger.error('RabbitMQ connection error', { error: err.message });
         this.isConnected = false;
       });
 
       // Handle connection close
-      this.connection.on('close', () => {
+      (this.connection as any).on('close', () => {
         this.logger.warn('RabbitMQ connection closed');
         this.isConnected = false;
-        
+
         // Auto-reconnect if not intentionally closed
         if (!this.intentionallyClosed) {
           this.logger.info('Attempting to reconnect to RabbitMQ...');
@@ -94,10 +98,10 @@ export class RabbitMQEventPublisher {
       });
 
       // Create channel
-      this.channel = await this.connection.createChannel();
+      this.channel = await (this.connection as any).createChannel();
 
       // Declare exchange
-      await this.channel.assertExchange(
+      await this.channel!.assertExchange(
         this.config.exchange,
         this.config.exchangeType,
         {
@@ -131,45 +135,15 @@ export class RabbitMQEventPublisher {
    */
   async publish(event: IntegrationEvent): Promise<void> {
     if (!this.isConnected || !this.channel) {
-      this.logger.warn('RabbitMQ not connected, skipping event publish', {
+      const error = new Error('Not connected to RabbitMQ');
+      this.logger.error('Cannot publish event: RabbitMQ not connected', {
         eventType: event.eventType
       });
-      return;
+      throw error;
     }
 
     try {
-      const routingKey = this.getRoutingKey(event);
-      const message = this.serializeEvent(event);
-
-      const published = this.channel.publish(
-        this.config.exchange,
-        routingKey,
-        Buffer.from(message),
-        {
-          persistent: true,
-          contentType: 'application/json',
-          timestamp: Date.now(),
-          messageId: event.eventId,
-          type: event.eventType,
-          headers: {
-            aggregateId: event.aggregateId,
-            occurredAt: event.occurredAt.toISOString()
-          }
-        }
-      );
-
-      if (!published) {
-        throw new Error('Failed to publish event - channel buffer full');
-      }
-
-      if (this.publisherConfig.enableLogging) {
-        this.logger.info('Event published', {
-          eventType: event.eventType,
-          eventId: event.eventId,
-          routingKey
-        });
-      }
-
+      await this.attemptPublish(event);
     } catch (error) {
       this.logger.error('Failed to publish event', {
         eventType: event.eventType,
@@ -202,9 +176,9 @@ export class RabbitMQEventPublisher {
       this.logger.error('Max retries exceeded for event', {
         eventType: event.eventType,
         eventId: event.eventId,
-        attempts: attempt
+        attempts: attempt - 1
       });
-      throw new Error(`Failed to publish event after ${attempt} attempts`);
+      throw new Error(`Failed to publish event after ${this.publisherConfig.maxRetries} attempts`);
     }
 
     this.logger.warn('Retrying event publish', {
@@ -213,13 +187,61 @@ export class RabbitMQEventPublisher {
       maxRetries: this.publisherConfig.maxRetries
     });
 
-    await new Promise(resolve => setTimeout(resolve, this.publisherConfig.retryDelayMs));
+    await this.delay(this.publisherConfig.retryDelayMs);
 
     try {
-      await this.publish(event);
+      await this.attemptPublish(event);
     } catch (error) {
       await this.retryPublish(event, attempt + 1);
     }
+  }
+
+  /**
+   * Attempt to publish without handling retry logic
+   */
+  private async attemptPublish(event: IntegrationEvent): Promise<void> {
+    if (!this.channel) {
+      throw new Error('RabbitMQ channel not available');
+    }
+
+    const routingKey = this.getRoutingKey(event);
+    const message = this.serializeEvent(event);
+
+    const published = this.channel.publish(
+      this.config.exchange,
+      routingKey,
+      Buffer.from(message),
+      {
+        persistent: true,
+        contentType: 'application/json',
+        timestamp: Date.now(),
+        messageId: event.eventId,
+        type: event.eventType,
+        headers: {
+          aggregateId: event.aggregateId,
+          occurredAt: event.occurredAt.toISOString()
+        }
+      }
+    );
+
+    if (!published) {
+      throw new Error('Failed to publish event - channel buffer full');
+    }
+
+    if (this.publisherConfig.enableLogging) {
+      this.logger.info('Event published', {
+        eventType: event.eventType,
+        eventId: event.eventId,
+        routingKey
+      });
+    }
+  }
+
+  /**
+   * Delay helper for retries
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
@@ -255,7 +277,7 @@ export class RabbitMQEventPublisher {
       }
 
       if (this.connection) {
-        await this.connection.close();
+        await (this.connection as any).close();
         this.connection = null;
       }
 

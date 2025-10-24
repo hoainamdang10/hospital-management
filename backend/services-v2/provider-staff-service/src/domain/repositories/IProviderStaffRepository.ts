@@ -53,19 +53,25 @@ export interface IProviderStaffRepository {
   findBySpecialization(specializationCode: string): Promise<ProviderStaff[]>;
 
   /**
-   * Find available staff for scheduling
+   * Find available staff by type and department
+   * NOTE: Runtime availability (date/time filtering) belongs to Appointments Service
+   * This method only filters by static properties (staffType, departmentId)
    */
   findAvailableStaff(filters: {
     staffType?: string;
     departmentId?: string;
-    date?: Date;
-    timeSlot?: string;
+    // REMOVED: date, timeSlot - Belongs to Scheduling/Appointment Service
   }): Promise<ProviderStaff[]>;
 
   /**
    * Save staff (create or update)
    */
   save(staff: ProviderStaff): Promise<void>;
+
+  /**
+   * Update existing staff
+   */
+  update(staff: ProviderStaff): Promise<void>;
 
   /**
    * Delete staff (soft delete)

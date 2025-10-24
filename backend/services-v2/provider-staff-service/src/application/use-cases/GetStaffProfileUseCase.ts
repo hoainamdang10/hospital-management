@@ -8,15 +8,16 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ProviderStaff, StaffType } from '../../domain/aggregates/ProviderStaff';
 import { StaffId } from '../../domain/value-objects/StaffId';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
+import { ILogger } from '../interfaces/ILogger';
 
 export interface GetStaffProfileRequest {
   staffId?: string;
   userId?: string; // Alternative lookup by user ID
+  licenseNumber?: string; // Alternative lookup by license number
   requestedBy: string;
   requestedByRole: string;
   includeFullSchedule?: boolean;
@@ -125,7 +126,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
       });
 
       // 1. Validate request
-      const validationResult = this.validateRequest(request);
+      const validationResult = await this.validateRequest(request);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -142,6 +143,8 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
         staff = await this.staffRepository.findById(staffId);
       } else if (request.userId) {
         staff = await this.staffRepository.findByUserId(request.userId);
+      } else if (request.licenseNumber) {
+        staff = await this.staffRepository.findByLicenseNumber(request.licenseNumber);
       }
 
       if (!staff) {
@@ -155,7 +158,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
       const authResult = this.checkAuthorization(staff, request);
       if (!authResult.authorized) {
         this.logger.warn('Unauthorized staff profile access attempt', {
-          staffId: staff.id.value,
+          staffId: staff.id,
           requestedBy: request.requestedBy,
           requestedByRole: request.requestedByRole,
           reason: authResult.reason
@@ -174,7 +177,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
       await this.auditStaffAccess(staff, request, authResult.accessLevel);
 
       this.logger.info('Staff profile retrieved successfully', {
-        staffId: staff.id.value,
+        staffId: staff.id,
         requestedBy: request.requestedBy,
         accessLevel: authResult.accessLevel
       });
@@ -205,7 +208,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
   /**
    * Validate request
    */
-  private validateRequest(request: GetStaffProfileRequest): { isValid: boolean; errors: string[] } {
+  protected override async validateRequest(request: GetStaffProfileRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Must have either staffId or userId
@@ -270,9 +273,10 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
     }
 
     // Default: no access
-    return { 
-      authorized: false, 
-      reason: `Role ${requestedByRole} not authorized for staff data access` 
+    return {
+      authorized: false,
+      accessLevel: 'basic',
+      reason: `Role ${requestedByRole} not authorized for staff data access`
     };
   }
 
@@ -281,7 +285,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
    */
   private prepareStaffData(staff: ProviderStaff, request: GetStaffProfileRequest, accessLevel: string): any {
     const baseData = {
-      id: staff.id.value,
+      id: staff.id,
       userId: staff.userId,
       staffType: staff.staffType,
       personalInfo: {
@@ -306,7 +310,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
       employmentInfo: {
         employmentType: staff.employmentType,
         hireDate: staff.hireDate.toISOString(),
-        contractEndDate: staff.props.contractEndDate?.toISOString(),
+        contractEndDate: staff.contractEndDate?.toISOString(),
         yearsOfExperience: staff.getTotalExperience(),
         status: staff.status,
         isActive: staff.isActive
@@ -342,17 +346,16 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
           expiryDate: cred.expiryDate?.toISOString().split('T')[0]
         })) : undefined,
         performanceInfo: {
-          rating: staff.getAverageRating(),
-          totalPatients: staff.props.totalPatients,
-          isAcceptingNewPatients: staff.props.isAcceptingNewPatients,
-          consultationFee: staff.props.consultationFee
+          // REMOVED: rating, totalPatients, isAcceptingNewPatients - Belong to other services
+          // These should be fetched from Review Service and Scheduling Service via API Gateway
+          consultationFee: staff.consultationFee
         },
         registrationInfo: {
           ...baseData.registrationInfo,
-          vietnameseHealthcareLicense: staff.props.vietnameseHealthcareLicense ? 
-            this.maskString(staff.props.vietnameseHealthcareLicense) : undefined,
-          mohRegistrationNumber: staff.props.mohRegistrationNumber ? 
-            this.maskString(staff.props.mohRegistrationNumber) : undefined
+          vietnameseHealthcareLicense: staff.vietnameseHealthcareLicense ?
+            this.maskString(staff.vietnameseHealthcareLicense) : undefined,
+          mohRegistrationNumber: staff.mohRegistrationNumber ?
+            this.maskString(staff.mohRegistrationNumber) : undefined
         }
       };
     }
@@ -366,9 +369,8 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
           email: this.maskEmail(staff.personalInfo.email)
         },
         performanceInfo: {
-          rating: staff.getAverageRating(),
-          isAcceptingNewPatients: staff.props.isAcceptingNewPatients,
-          consultationFee: staff.props.consultationFee
+          // REMOVED: rating, isAcceptingNewPatients - Belong to other services
+          consultationFee: staff.consultationFee
         }
       };
     }
@@ -408,7 +410,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
   private async auditStaffAccess(staff: ProviderStaff, request: GetStaffProfileRequest, accessLevel: string): Promise<void> {
     this.logger.info('HIPAA Audit: Staff profile access', {
       action: 'STAFF_PROFILE_ACCESS',
-      staffId: staff.id.value,
+      staffId: staff.id,
       requestedBy: request.requestedBy,
       requestedByRole: request.requestedByRole,
       accessLevel,

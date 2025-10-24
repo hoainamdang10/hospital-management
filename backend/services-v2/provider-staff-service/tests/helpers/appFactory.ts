@@ -15,14 +15,29 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // Infrastructure
 import { SupabaseProviderStaffRepository } from '../../src/infrastructure/repositories/SupabaseProviderStaffRepository';
 import { RabbitMQEventPublisher } from '../../src/infrastructure/events/RabbitMQEventPublisher';
-import { RabbitMQStaffEventHandler } from '../../src/infrastructure/events/RabbitMQStaffEventHandler';
 import { SupabaseEventBus } from '../../src/infrastructure/messaging/SupabaseEventBus';
 
 // Application
 import { RegisterStaffUseCase } from '../../src/application/use-cases/RegisterStaffUseCase';
 import { GetStaffProfileUseCase } from '../../src/application/use-cases/GetStaffProfileUseCase';
+import { AssignStaffToDepartmentUseCase } from '../../src/application/use-cases/AssignStaffToDepartmentUseCase';
+import { AddStaffCredentialUseCase } from '../../src/application/use-cases/AddStaffCredentialUseCase';
+import { RemoveStaffCredentialUseCase } from '../../src/application/use-cases/RemoveStaffCredentialUseCase';
+import { RenewStaffCredentialUseCase } from '../../src/application/use-cases/RenewStaffCredentialUseCase';
+import { GetExpiringCredentialsUseCase } from '../../src/application/use-cases/GetExpiringCredentialsUseCase';
+import { ActivateStaffUseCase } from '../../src/application/use-cases/ActivateStaffUseCase';
+import { SuspendStaffUseCase } from '../../src/application/use-cases/SuspendStaffUseCase';
+import { ReactivateStaffUseCase } from '../../src/application/use-cases/ReactivateStaffUseCase';
+import { TerminateStaffUseCase } from '../../src/application/use-cases/TerminateStaffUseCase';
+import { UpdateEmploymentStatusUseCase } from '../../src/application/use-cases/UpdateEmploymentStatusUseCase';
+import { UpdateStaffProfileUseCase } from '../../src/application/use-cases/UpdateStaffProfileUseCase';
+import { UpdateStaffScheduleUseCase } from '../../src/application/use-cases/UpdateStaffScheduleUseCase';
+import { GetStaffSpecializationsUseCase } from '../../src/application/use-cases/GetStaffSpecializationsUseCase';
+import { AddStaffSpecializationUseCase } from '../../src/application/use-cases/AddStaffSpecializationUseCase';
+import { RemoveStaffSpecializationUseCase } from '../../src/application/use-cases/RemoveStaffSpecializationUseCase';
 import { StaffCommandHandlers } from '../../src/application/handlers/StaffCommandHandlers';
 import { StaffQueryHandlers } from '../../src/application/handlers/StaffQueryHandlers';
+import { SearchStaffUseCase } from '../../src/application/use-cases/SearchStaffUseCase';
 
 // Presentation
 import { StaffController } from '../../src/presentation/controllers/StaffController';
@@ -39,7 +54,8 @@ const createTestLogger = (): ILogger => ({
   info: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {}
+  fatal: () => {},
+  log: () => {}
 });
 
 /**
@@ -51,6 +67,8 @@ export interface AppFactoryConfig {
   rabbitmqUrl?: string;
   enableRabbitMQ?: boolean;
   logger?: ILogger;
+  useMockSupabase?: boolean;
+  useMockRabbitMQ?: boolean;
 }
 
 /**
@@ -70,14 +88,28 @@ export interface AppFactoryResult {
 export async function createTestApp(config: AppFactoryConfig): Promise<AppFactoryResult> {
   const logger = config.logger || createTestLogger();
 
-  // Create Supabase client
-  const supabaseClient = createClient(config.supabaseUrl, config.supabaseKey);
+  // Create Supabase client (mock or real)
+  let supabaseClient: SupabaseClient;
+  if (config.useMockSupabase) {
+    // Mock Supabase client for unit tests
+    supabaseClient = {
+      from: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: null, error: null })
+      })
+    } as any;
+  } else {
+    supabaseClient = createClient(config.supabaseUrl, config.supabaseKey);
+  }
 
   // Create event publisher (optional)
   let eventPublisher: RabbitMQEventPublisher | undefined;
-  let eventHandler: RabbitMQStaffEventHandler | undefined;
 
-  if (config.enableRabbitMQ && config.rabbitmqUrl) {
+  if (config.enableRabbitMQ && config.rabbitmqUrl && !config.useMockRabbitMQ) {
     eventPublisher = new RabbitMQEventPublisher(
       {
         url: config.rabbitmqUrl,
@@ -96,8 +128,6 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     );
 
     await eventPublisher.connect();
-
-    eventHandler = new RabbitMQStaffEventHandler(eventPublisher, logger);
   }
 
   // Create event bus (fallback)
@@ -134,14 +164,47 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger
   );
 
+  const searchStaffUseCase = new SearchStaffUseCase(
+    staffRepository,
+    logger
+  );
+
+  const assignStaffToDepartmentUseCase = new AssignStaffToDepartmentUseCase(
+    staffRepository,
+    logger
+  );
+
+  const addStaffCredentialUseCase = new AddStaffCredentialUseCase(staffRepository, logger);
+  const removeStaffCredentialUseCase = new RemoveStaffCredentialUseCase(staffRepository, logger);
+  const renewStaffCredentialUseCase = new RenewStaffCredentialUseCase(staffRepository, logger);
+  const getExpiringCredentialsUseCase = new GetExpiringCredentialsUseCase(staffRepository, logger);
+  const activateStaffUseCase = new ActivateStaffUseCase(staffRepository, logger);
+  const suspendStaffUseCase = new SuspendStaffUseCase(staffRepository, logger);
+  const reactivateStaffUseCase = new ReactivateStaffUseCase(staffRepository, logger);
+  const terminateStaffUseCase = new TerminateStaffUseCase(staffRepository, logger);
+  const updateEmploymentStatusUseCase = new UpdateEmploymentStatusUseCase(staffRepository, logger);
+  const updateStaffProfileUseCase = new UpdateStaffProfileUseCase(staffRepository, logger);
+  const updateStaffScheduleUseCase = new UpdateStaffScheduleUseCase(staffRepository, logger);
+  const getStaffSpecializationsUseCase = new GetStaffSpecializationsUseCase(staffRepository, logger);
+  const addStaffSpecializationUseCase = new AddStaffSpecializationUseCase(staffRepository, logger);
+  const removeStaffSpecializationUseCase = new RemoveStaffSpecializationUseCase(staffRepository, logger);
+
   // Create handlers
   const staffCommandHandlers = new StaffCommandHandlers(
     registerStaffUseCase,
+    updateStaffProfileUseCase,
+    activateStaffUseCase,
+    suspendStaffUseCase,
+    terminateStaffUseCase,
+    addStaffCredentialUseCase,
+    assignStaffToDepartmentUseCase,
+    updateStaffScheduleUseCase,
     logger
   );
 
   const staffQueryHandlers = new StaffQueryHandlers(
     getStaffProfileUseCase,
+    searchStaffUseCase,
     staffRepository,
     logger
   );
@@ -151,8 +214,23 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger,
     registerStaffUseCase,
     getStaffProfileUseCase,
+    assignStaffToDepartmentUseCase,
     staffCommandHandlers,
-    staffQueryHandlers
+    staffQueryHandlers,
+    addStaffCredentialUseCase,
+    removeStaffCredentialUseCase,
+    renewStaffCredentialUseCase,
+    getExpiringCredentialsUseCase,
+    activateStaffUseCase,
+    suspendStaffUseCase,
+    reactivateStaffUseCase,
+    terminateStaffUseCase,
+    updateEmploymentStatusUseCase,
+    updateStaffScheduleUseCase,
+    // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
+    getStaffSpecializationsUseCase,
+    addStaffSpecializationUseCase,
+    removeStaffSpecializationUseCase
   );
 
   // Create Express app
@@ -166,7 +244,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   app.use(express.urlencoded({ extended: true }));
 
   // Health check
-  app.get('/health', (req, res) => {
+  app.get('/health', (_req, res) => {
     res.json({
       service: 'provider-staff-service',
       status: 'healthy',
@@ -178,7 +256,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   app.use('/api/v1/staff', createStaffRoutes(staffController));
 
   // Error handler
-  app.use((err: any, req: any, res: any, next: any) => {
+  app.use((err: any, _req: any, res: any, _next: any) => {
     logger.error('Unhandled error', { error: err.message, stack: err.stack });
     res.status(500).json({
       success: false,

@@ -9,9 +9,9 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { IEventBus } from '../../../../shared/events/event-bus.interface';
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
+import { IEventBus } from '@shared/events/event-bus.interface';
+import { DomainEvent } from '@shared/domain/base/domain-event';
+import { ILogger } from '@shared/infrastructure/logging/logger.interface';
 import { CircuitBreakerFactory } from '../resilience/CircuitBreaker';
 
 export interface IEventHandler<T extends DomainEvent> {
@@ -45,6 +45,20 @@ export class SupabaseEventBus implements IEventBus {
     }) as any;
 
     this.logger = logger;
+  }
+
+  /**
+   * Connect to event bus (no-op for Supabase)
+   */
+  public async connect(): Promise<void> {
+    this.logger.info('SupabaseEventBus connected (using Supabase as event store)');
+  }
+
+  /**
+   * Disconnect from event bus (no-op for Supabase)
+   */
+  public async disconnect(): Promise<void> {
+    this.logger.info('SupabaseEventBus disconnected');
   }
 
   /**
@@ -107,10 +121,11 @@ export class SupabaseEventBus implements IEventBus {
   /**
    * Subscribe to an event type
    */
-  subscribe<T extends DomainEvent>(
+  async subscribe<T extends DomainEvent>(
     eventType: string,
-    handler: IEventHandler<T>
-  ): void {
+    handler: IEventHandler<T>,
+    _queueName?: string
+  ): Promise<void> {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, []);
     }
@@ -291,7 +306,7 @@ export class SupabaseEventBus implements IEventBus {
       event_type: event.eventType,
       aggregate_id: event.aggregateId,
       aggregate_type: event.aggregateType,
-      occurred_at: event.timestamp.toISOString(),
+      occurred_at: (event as any).timestamp ? new Date((event as any).timestamp).toISOString() : new Date().toISOString(),
       event_data: JSON.stringify(event),
       metadata: event.metadata || {}
     };

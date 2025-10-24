@@ -1,0 +1,20 @@
+/**
+ * Availability Routes - Presentation Layer
+ * V2 Clean Architecture + DDD Implementation
+ *
+ * Routes for provider availability queries
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, RESTful API, Vietnamese Healthcare Standards
+ */
+import { Router } from 'express';
+/**
+ * Create availability routes
+ *
+ * Routes:
+ * - GET /api/appointments/providers/:providerId/available-slots
+ * - GET /api/appointments/providers/:providerId/schedule
+ */
+export declare function createAvailabilityRoutes(): Router;
+//# sourceMappingURL=availability.routes.d.ts.map

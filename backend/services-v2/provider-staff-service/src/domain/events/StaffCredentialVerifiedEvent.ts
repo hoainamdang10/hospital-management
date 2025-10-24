@@ -5,13 +5,14 @@
  * @version 2.0.0
  */
 
-import { DomainEvent } from '../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { StaffId } from '../value-objects/StaffId';
 
 export class StaffCredentialVerifiedEvent extends DomainEvent {
   constructor(
     public readonly staffId: StaffId,
     public readonly credentialNumber: string,
+    public readonly credentialType: string,
     public readonly issuingAuthority: string,
     correlationId?: string,
     causationId?: string,
@@ -24,6 +25,7 @@ export class StaffCredentialVerifiedEvent extends DomainEvent {
       {
         staffId: staffId.value,
         credentialNumber,
+        credentialType,
         issuingAuthority
       },
       1,
@@ -37,6 +39,7 @@ export class StaffCredentialVerifiedEvent extends DomainEvent {
     return {
       staffId: this.staffId.value,
       credentialNumber: this.credentialNumber,
+      credentialType: this.credentialType,
       issuingAuthority: this.issuingAuthority,
       occurredAt: this.occurredAt.toISOString()
     };

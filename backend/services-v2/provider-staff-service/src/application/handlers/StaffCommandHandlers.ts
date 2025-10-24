@@ -9,8 +9,15 @@
  */
 
 import { RegisterStaffUseCase, RegisterStaffRequest, RegisterStaffResponse } from '../use-cases/RegisterStaffUseCase';
+import { UpdateStaffProfileUseCase } from '../use-cases/UpdateStaffProfileUseCase';
+import { ActivateStaffUseCase } from '../use-cases/ActivateStaffUseCase';
+import { SuspendStaffUseCase } from '../use-cases/SuspendStaffUseCase';
+import { TerminateStaffUseCase } from '../use-cases/TerminateStaffUseCase';
+import { AddStaffCredentialUseCase } from '../use-cases/AddStaffCredentialUseCase';
+import { AssignStaffToDepartmentUseCase } from '../use-cases/AssignStaffToDepartmentUseCase';
+import { UpdateStaffScheduleUseCase } from '../use-cases/UpdateStaffScheduleUseCase';
 import { ILogger } from '../interfaces/ILogger';
-import { StaffType, EmploymentType, StaffStatus } from '../../domain/aggregates/ProviderStaff';
+import { StaffStatus } from '../../domain/aggregates/ProviderStaff';
 
 // Command interfaces
 export interface RegisterStaffCommand {
@@ -130,6 +137,13 @@ export type StaffCommand =
 export class StaffCommandHandlers {
   constructor(
     private readonly registerStaffUseCase: RegisterStaffUseCase,
+    private readonly updateStaffProfileUseCase: UpdateStaffProfileUseCase,
+    private readonly activateStaffUseCase: ActivateStaffUseCase,
+    private readonly suspendStaffUseCase: SuspendStaffUseCase,
+    private readonly terminateStaffUseCase: TerminateStaffUseCase,
+    private readonly addStaffCredentialUseCase: AddStaffCredentialUseCase,
+    private readonly assignStaffToDepartmentUseCase: AssignStaffToDepartmentUseCase,
+    private readonly updateStaffScheduleUseCase: UpdateStaffScheduleUseCase,
     private readonly logger: ILogger
   ) {}
 
@@ -196,16 +210,25 @@ export class StaffCommandHandlers {
         };
       }
 
-      // TODO: Implement update staff info use case
-      // For now, return success
+      // Execute UpdateStaffProfileUseCase
+      const result = await this.updateStaffProfileUseCase.execute({
+        staffId: command.data.staffId,
+        personalInfo: command.data.updates.personalInfo,
+        professionalInfo: command.data.updates.professionalInfo,
+        consultationFee: command.data.updates.consultationFee,
+        updatedBy: command.data.requestedBy,
+        updatedByRole: command.data.requestedByRole
+      });
+
       this.logger.info('UpdateStaffInfo command processed', {
         commandId: command.commandId,
+        success: result.success,
         staffId: command.data.staffId
       });
 
       return {
-        success: true,
-        message: 'Cập nhật thông tin nhân viên thành công'
+        success: result.success,
+        message: result.message
       };
 
     } catch (error) {
@@ -241,8 +264,39 @@ export class StaffCommandHandlers {
         };
       }
 
-      // TODO: Implement update staff status use case
-      // For now, return success
+      // Execute appropriate use case based on new status
+      switch (command.data.newStatus) {
+        case 'active':
+          await this.activateStaffUseCase.execute({
+            staffId: command.data.staffId,
+            requestedBy: command.data.requestedBy,
+            requestedByRole: command.data.requestedByRole
+          });
+          break;
+        case 'suspended':
+          await this.suspendStaffUseCase.execute({
+            staffId: command.data.staffId,
+            reason: command.data.reason || 'Suspended by admin',
+            requestedBy: command.data.requestedBy,
+            requestedByRole: command.data.requestedByRole
+          });
+          break;
+        case 'terminated':
+          await this.terminateStaffUseCase.execute({
+            staffId: command.data.staffId,
+            reason: command.data.reason || 'Terminated',
+            terminationDate: new Date().toISOString(),
+            requestedBy: command.data.requestedBy,
+            requestedByRole: command.data.requestedByRole
+          });
+          break;
+        default:
+          return {
+            success: false,
+            message: `Trạng thái không hợp lệ: ${command.data.newStatus}`
+          };
+      }
+
       this.logger.info('UpdateStaffStatus command processed', {
         commandId: command.commandId,
         staffId: command.data.staffId,
@@ -286,16 +340,27 @@ export class StaffCommandHandlers {
         };
       }
 
-      // TODO: Implement add staff credential use case
-      // For now, return success
+      // Execute AddStaffCredentialUseCase
+      const result = await this.addStaffCredentialUseCase.execute({
+        staffId: command.data.staffId,
+        credentialNumber: command.data.credential.credentialNumber,
+        credentialType: command.data.credential.credentialType,
+        issuingAuthority: command.data.credential.issuingAuthority,
+        issueDate: command.data.credential.issueDate,
+        expiryDate: command.data.credential.expiryDate,
+        requestedBy: command.data.requestedBy,
+        requestedByRole: command.data.requestedByRole
+      });
+
       this.logger.info('AddStaffCredential command processed', {
         commandId: command.commandId,
-        staffId: command.data.staffId
+        staffId: command.data.staffId,
+        success: result.success
       });
 
       return {
-        success: true,
-        message: 'Thêm chứng chỉ nhân viên thành công'
+        success: result.success,
+        message: result.message
       };
 
     } catch (error) {
@@ -331,17 +396,28 @@ export class StaffCommandHandlers {
         };
       }
 
-      // TODO: Implement assign staff to department use case
-      // For now, return success
+      // Execute AssignStaffToDepartmentUseCase
+      const result = await this.assignStaffToDepartmentUseCase.execute({
+        staffId: command.data.staffId,
+        departmentId: command.data.departmentAssignment.departmentId,
+        departmentName: command.data.departmentAssignment.departmentName,
+        role: command.data.departmentAssignment.role,
+        isPrimary: command.data.departmentAssignment.isActive,
+        startDate: command.data.departmentAssignment.startDate ? new Date(command.data.departmentAssignment.startDate) : undefined,
+        assignedBy: command.data.requestedBy,
+        assignedByRole: command.data.requestedByRole
+      });
+
       this.logger.info('AssignStaffToDepartment command processed', {
         commandId: command.commandId,
         staffId: command.data.staffId,
-        departmentId: command.data.departmentAssignment.departmentId
+        departmentId: command.data.departmentAssignment.departmentId,
+        success: result.success
       });
 
       return {
-        success: true,
-        message: 'Phân công nhân viên thành công'
+        success: result.success,
+        message: result.message
       };
 
     } catch (error) {
@@ -376,16 +452,23 @@ export class StaffCommandHandlers {
         };
       }
 
-      // TODO: Implement update staff schedule use case
-      // For now, return success
+      // Execute UpdateStaffScheduleUseCase
+      const result = await this.updateStaffScheduleUseCase.execute({
+        staffId: command.data.staffId,
+        workSchedule: command.data.workSchedule,
+        updatedBy: command.data.requestedBy,
+        updatedByRole: command.data.requestedByRole
+      });
+
       this.logger.info('UpdateStaffSchedule command processed', {
         commandId: command.commandId,
-        staffId: command.data.staffId
+        staffId: command.data.staffId,
+        success: result.success
       });
 
       return {
-        success: true,
-        message: 'Cập nhật lịch làm việc thành công'
+        success: result.success,
+        message: result.message
       };
 
     } catch (error) {
@@ -427,7 +510,7 @@ export class StaffCommandHandlers {
       default:
         this.logger.warn('Unknown command type', {
           commandType: (command as any).commandType,
-          commandId: command.commandId
+          commandId: (command as any).commandId
         });
         
         return {

@@ -11,30 +11,31 @@
 import {
   OptimizedSupabaseClient,
   OptimizedSupabaseClientConfig,
-} from "../../../../shared/infrastructure/database/optimized-supabase-client";
+} from "@shared/infrastructure/database/optimized-supabase-client";
 import {
   DIContainer,
   ServiceLifetime,
-} from "../../../../shared/infrastructure/di/container";
-import { ILogger } from "../../../../shared/infrastructure/logging/logger.interface";
-import { IAuditService } from "../../../../shared/application/services/audit.service.interface";
-import { ConsoleLogger } from "../../../../shared/infrastructure/logging/console-logger";
-import { AuditService } from "../../../../shared/infrastructure/services/audit.service";
+} from "@shared/infrastructure/di/container";
+// import { ILogger } from "@shared/infrastructure/logging/logger.interface";
+// import { IAuditService } from "@shared/application/services/audit.service.interface";
+// import { ConsoleLogger } from "@shared/infrastructure/logging/console-logger";
+// import { AuditService } from "@shared/infrastructure/services/audit.service";
 
 // Application Layer
 import { NotificationApplicationService } from "../../application/services/NotificationApplicationService";
-import { ScheduleNotificationUseCase } from "../../application/use-cases/ScheduleNotificationUseCase";
+// import { ScheduleNotificationUseCase } from "../../application/use-cases/ScheduleNotificationUseCase";
 import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
-import { ProcessNotificationQueueUseCase } from "../../application/use-cases/ProcessNotificationQueueUseCase";
-import { NotificationCommandHandlers } from "../../application/handlers/NotificationCommandHandlers";
-import { NotificationQueryHandlers } from "../../application/handlers/NotificationQueryHandlers";
+// import { ProcessNotificationQueueUseCase } from "../../application/use-cases/ProcessNotificationQueueUseCase";
+// import { NotificationCommandHandlers } from "../../application/handlers/NotificationCommandHandlers";
+// import { NotificationQueryHandlers } from "../../application/handlers/NotificationQueryHandlers";
 
 // Infrastructure Layer
 import { SupabaseNotificationRepository } from "../persistence/SupabaseNotificationRepository";
+import { SupabaseInboxRepository } from "../persistence/SupabaseInboxRepository";
 import { MultiChannelDeliveryService } from "../delivery/MultiChannelDeliveryService";
 import { VietnameseTemplateService } from "../templates/VietnameseTemplateService";
 import { RealTimeNotificationService } from "../realtime/RealTimeNotificationService";
-import { SupabaseEventBus } from "../messaging/SupabaseEventBus";
+// import { SupabaseEventBus } from "../messaging/SupabaseEventBus";
 import { NotificationEventHandlers } from "../events/NotificationEventHandlers";
 
 // Service Tokens
@@ -47,6 +48,7 @@ export const ServiceTokens = {
 
   // Repositories
   NOTIFICATION_REPOSITORY: "NotificationRepository",
+  INBOX_REPOSITORY: "InboxRepository",
 
   // External Services
   DELIVERY_SERVICE: "DeliveryService",
@@ -71,23 +73,30 @@ export const ServiceTokens = {
 
 export function setupDependencies(container: DIContainer): void {
   // Register infrastructure services
-  container.register(
+  container.registerFactory(
     ServiceTokens.LOGGER,
-    () => new ConsoleLogger('notifications-service'),
+    () => ({
+      debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta),
+      info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta),
+      warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta),
+      error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta),
+      fatal: (message: string, meta?: any) => console.error(`[FATAL] ${message}`, meta),
+    }),
     ServiceLifetime.SINGLETON
   );
 
-  container.register(
-    ServiceTokens.AUDIT_SERVICE,
-    (container) => {
-      const logger = container.resolve(ServiceTokens.LOGGER);
-      return new AuditService({ logger });
-    },
-    ServiceLifetime.SINGLETON
-  );
+  // Comment out AuditService - not needed for now
+  // container.registerFactory(
+  //   ServiceTokens.AUDIT_SERVICE,
+  //   (container) => {
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //     return new AuditService({ logger });
+  //   },
+  //   ServiceLifetime.SINGLETON
+  // );
 
   // Register Supabase client
-  container.register(
+  container.registerFactory(
     ServiceTokens.SUPABASE_CLIENT,
     () => {
       const config: OptimizedSupabaseClientConfig = {
@@ -102,29 +111,27 @@ export function setupDependencies(container: DIContainer): void {
     ServiceLifetime.SINGLETON
   );
 
-  // Register event bus
-  container.register(
-    ServiceTokens.EVENT_BUS,
-    (container) => {
-      const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
-      const logger = container.resolve(ServiceTokens.LOGGER);
-      return new SupabaseEventBus({ supabase: supabaseClient, logger });
-    },
-    ServiceLifetime.SCOPED
-  );
+  // Comment out EventBus - not needed for now
+  // container.registerFactory(
+  //   ServiceTokens.EVENT_BUS,
+  //   (container) => {
+  //     const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //     return new SupabaseEventBus({ supabase: supabaseClient, logger });
+  //   },
+  //   ServiceLifetime.SCOPED
+  // );
 
   // Register repositories
-  container.register(
+  container.registerFactory(
     ServiceTokens.NOTIFICATION_REPOSITORY,
     (container) => {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
       const logger = container.resolve(ServiceTokens.LOGGER);
-      const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
       return new SupabaseNotificationRepository({
         supabase: supabaseClient,
         logger,
-        auditService,
         schema: 'notifications_schema',
         tableName: 'notifications'
       });
@@ -132,194 +139,160 @@ export function setupDependencies(container: DIContainer): void {
     ServiceLifetime.SCOPED
   );
 
-  // Register external services
-  container.register(
-    ServiceTokens.DELIVERY_SERVICE,
-    (container) => {
-      const logger = container.resolve(ServiceTokens.LOGGER);
-      const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
-
-      return new MultiChannelDeliveryService({
-        logger,
-        auditService,
-        emailConfig: {
-          provider: process.env.EMAIL_PROVIDER || 'smtp',
-          smtpHost: process.env.SMTP_HOST || '',
-          smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
-          smtpUser: process.env.SMTP_USER || '',
-          smtpPassword: process.env.SMTP_PASSWORD || ''
-        },
-        smsConfig: {
-          provider: process.env.SMS_PROVIDER || 'twilio',
-          apiKey: process.env.SMS_API_KEY || '',
-          apiSecret: process.env.SMS_API_SECRET || ''
-        }
-      });
-    },
-    ServiceLifetime.SINGLETON
-  );
-
-  container.register(
-    ServiceTokens.TEMPLATE_SERVICE,
-    (container) => {
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new VietnameseTemplateService({
-        logger,
-        templatesPath: process.env.TEMPLATES_PATH || './templates',
-        defaultLanguage: 'vi'
-      });
-    },
-    ServiceLifetime.SINGLETON
-  );
-
-  container.register(
-    ServiceTokens.REALTIME_SERVICE,
+  container.registerFactory(
+    ServiceTokens.INBOX_REPOSITORY,
     (container) => {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
-      const logger = container.resolve(ServiceTokens.LOGGER);
+      return new SupabaseInboxRepository(supabaseClient);
+    },
+    ServiceLifetime.SCOPED
+  );
 
-      return new RealTimeNotificationService({
-        supabase: supabaseClient,
-        logger,
-        channelName: 'notifications'
-      });
+  // Register external services
+  container.registerFactory(
+    ServiceTokens.DELIVERY_SERVICE,
+    () => {
+      return new MultiChannelDeliveryService();
     },
     ServiceLifetime.SINGLETON
   );
 
-  // Register use cases
-  container.register(
-    ServiceTokens.SCHEDULE_NOTIFICATION_USE_CASE,
-    (container) => {
-      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
-      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
-      const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new ScheduleNotificationUseCase(
-        notificationRepository,
-        templateService,
-        eventBus,
-        logger
-      );
+  container.registerFactory(
+    ServiceTokens.TEMPLATE_SERVICE,
+    () => {
+      return new VietnameseTemplateService();
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.SINGLETON
   );
 
-  container.register(
+  // Comment out RealTimeService - not needed for now
+  // container.registerFactory(
+  //   ServiceTokens.REALTIME_SERVICE,
+  //   (container) => {
+  //     const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //
+  //     return new RealTimeNotificationService({
+  //       supabase: supabaseClient,
+  //       logger,
+  //       channelName: 'notifications'
+  //     });
+  //   },
+  //   ServiceLifetime.SINGLETON
+  // );
+
+  // Register use cases
+  // Comment out ScheduleNotificationUseCase - not needed (use Scheduler Service instead)
+  // container.registerFactory(
+  //   ServiceTokens.SCHEDULE_NOTIFICATION_USE_CASE,
+  //   (container) => {
+  //     const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+  //     const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+  //     const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //
+  //     return new ScheduleNotificationUseCase(
+  //       notificationRepository,
+  //       templateService,
+  //       eventBus,
+  //       logger
+  //     );
+  //   },
+  //   ServiceLifetime.TRANSIENT
+  // );
+
+  container.registerFactory(
     ServiceTokens.SEND_NOTIFICATION_USE_CASE,
     (container) => {
       const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
       const deliveryService = container.resolve(ServiceTokens.DELIVERY_SERVICE);
-      const realtimeService = container.resolve(ServiceTokens.REALTIME_SERVICE);
-      const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
-      const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new SendNotificationUseCase(
         notificationRepository,
-        deliveryService,
-        realtimeService,
-        eventBus,
-        logger
+        templateService,
+        deliveryService
       );
     },
     ServiceLifetime.TRANSIENT
   );
 
-  container.register(
-    ServiceTokens.PROCESS_NOTIFICATION_QUEUE_USE_CASE,
-    (container) => {
-      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
-      const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
-      const logger = container.resolve(ServiceTokens.LOGGER);
+  // Comment out ProcessNotificationQueueUseCase - not needed
+  // container.registerFactory(
+  //   ServiceTokens.PROCESS_NOTIFICATION_QUEUE_USE_CASE,
+  //   (container) => {
+  //     const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+  //     const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //
+  //     return new ProcessNotificationQueueUseCase(
+  //       notificationRepository,
+  //       sendNotificationUseCase,
+  //       logger
+  //     );
+  //   },
+  //   ServiceLifetime.TRANSIENT
+  // );
 
-      return new ProcessNotificationQueueUseCase(
-        notificationRepository,
-        sendNotificationUseCase,
-        logger
-      );
-    },
-    ServiceLifetime.TRANSIENT
-  );
+  // Comment out handlers - not needed for now
+  // container.registerFactory(
+  //   ServiceTokens.NOTIFICATION_COMMAND_HANDLERS,
+  //   (container) => {
+  //     const scheduleUseCase = container.resolve(ServiceTokens.SCHEDULE_NOTIFICATION_USE_CASE);
+  //     const sendUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+  //     const processQueueUseCase = container.resolve(ServiceTokens.PROCESS_NOTIFICATION_QUEUE_USE_CASE);
+  //     const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //
+  //     return new NotificationCommandHandlers(
+  //       scheduleUseCase,
+  //       sendUseCase,
+  //       processQueueUseCase,
+  //       notificationRepository,
+  //       logger
+  //     );
+  //   },
+  //   ServiceLifetime.SCOPED
+  // );
 
-  // Register handlers
-  container.register(
-    ServiceTokens.NOTIFICATION_COMMAND_HANDLERS,
-    (container) => {
-      const scheduleUseCase = container.resolve(ServiceTokens.SCHEDULE_NOTIFICATION_USE_CASE);
-      const sendUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
-      const processQueueUseCase = container.resolve(ServiceTokens.PROCESS_NOTIFICATION_QUEUE_USE_CASE);
-      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new NotificationCommandHandlers(
-        scheduleUseCase,
-        sendUseCase,
-        processQueueUseCase,
-        notificationRepository,
-        logger
-      );
-    },
-    ServiceLifetime.SCOPED
-  );
-
-  container.register(
-    ServiceTokens.NOTIFICATION_QUERY_HANDLERS,
-    (container) => {
-      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new NotificationQueryHandlers(
-        notificationRepository,
-        logger
-      );
-    },
-    ServiceLifetime.SCOPED
-  );
-
-  // Register event handlers
-  container.register(
-    ServiceTokens.NOTIFICATION_EVENT_HANDLERS,
-    (container) => {
-      const scheduleUseCase = container.resolve(ServiceTokens.SCHEDULE_NOTIFICATION_USE_CASE);
-      const sendUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new NotificationEventHandlers(
-        scheduleUseCase,
-        sendUseCase,
-        logger
-      );
-    },
-    ServiceLifetime.SCOPED
-  );
+  // container.registerFactory(
+  //   ServiceTokens.NOTIFICATION_QUERY_HANDLERS,
+  //   (container) => {
+  //     const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //
+  //     return new NotificationQueryHandlers(
+  //       notificationRepository,
+  //       logger
+  //     );
+  //   },
+  //   ServiceLifetime.SCOPED
+  // );
 
   // Register application services
-  container.register(
+  container.registerFactory(
     ServiceTokens.NOTIFICATION_APPLICATION_SERVICE,
     (container) => {
-      const scheduleUseCase = container.resolve(ServiceTokens.SCHEDULE_NOTIFICATION_USE_CASE);
       const sendUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
-      const processQueueUseCase = container.resolve(ServiceTokens.PROCESS_NOTIFICATION_QUEUE_USE_CASE);
-      const commandHandlers = container.resolve(ServiceTokens.NOTIFICATION_COMMAND_HANDLERS);
-      const queryHandlers = container.resolve(ServiceTokens.NOTIFICATION_QUERY_HANDLERS);
-      const deliveryService = container.resolve(ServiceTokens.DELIVERY_SERVICE);
-      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
-      const realtimeService = container.resolve(ServiceTokens.REALTIME_SERVICE);
-      const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new NotificationApplicationService({
-        scheduleNotificationUseCase: scheduleUseCase,
-        sendNotificationUseCase: sendUseCase,
-        processNotificationQueueUseCase: processQueueUseCase,
-        commandHandlers,
-        queryHandlers,
-        deliveryService,
-        templateService,
-        realtimeService,
-        logger
-      });
+      return new NotificationApplicationService(sendUseCase);
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  // Register event handlers (after application service to avoid circular dependency)
+  container.registerFactory(
+    ServiceTokens.NOTIFICATION_EVENT_HANDLERS,
+    (container) => {
+      const notificationService = container.resolve(ServiceTokens.NOTIFICATION_APPLICATION_SERVICE);
+      const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
+      const sendUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+
+      return new NotificationEventHandlers(
+        notificationService,
+        inboxRepo,
+        sendUseCase
+      );
     },
     ServiceLifetime.SCOPED
   );
