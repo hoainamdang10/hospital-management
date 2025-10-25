@@ -1,7 +1,7 @@
 /**
  * Bootstrap Module Exports
  * Centralized exports for all bootstrap modules
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -16,12 +16,15 @@ export { createLogger, getLogger, resetLogger } from './logger';
 export { buildExpressApp, createMetricsAuth } from './app-builder';
 
 // Server
-export { 
-  startServer, 
-  setupGracefulShutdown, 
+export {
+  startServer,
+  setupGracefulShutdown,
   createCleanupFunction,
-  type CleanupFunction 
+  type CleanupFunction
 } from './server';
+
+// Dependency Container
+export { buildContainer, DependencyContainer } from './dependency-container';
 
 // Legacy exports (for backward compatibility)
 export { AppBuilder } from './AppBuilder';
