@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
  */
 
-import { ValueObject } from '../../../shared/domain/ValueObject';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 interface RecordIdProps {
   value: string;
@@ -16,6 +16,9 @@ interface RecordIdProps {
 export class RecordId extends ValueObject<RecordIdProps> {
   private constructor(props: RecordIdProps) {
     super(props);
+  }
+
+  protected validateFormat(): void {
     this.validate();
   }
 
@@ -151,7 +154,7 @@ export class RecordId extends ValueObject<RecordIdProps> {
   /**
    * Convert to string
    */
-  public toString(): string {
+  override toString(): string {
     return this.props.value;
   }
 

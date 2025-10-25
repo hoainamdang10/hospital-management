@@ -15,6 +15,8 @@ import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { VerifyMFAUseCase } from './VerifyMFAUseCase';
 import { UserId } from '../../domain/value-objects/UserId';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { MFADisabledEvent } from '../../domain/events/MFADisabledEvent';
 
 export interface DisableMFARequest {
   userId: string;
@@ -40,7 +42,8 @@ export class DisableMFAUseCase implements IUseCase<DisableMFARequest, DisableMFA
     private mfaService: IMFAService,
     private verifyMFAUseCase: VerifyMFAUseCase,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: DisableMFARequest): Promise<DisableMFAResponse> {
@@ -103,6 +106,30 @@ export class DisableMFAUseCase implements IUseCase<DisableMFARequest, DisableMFA
       await this.mfaService.disableMFA(request.userId);
 
       this.logger.info('MFA disabled successfully', { userId: request.userId });
+
+      // Publish MFADisabledEvent
+      if (this.eventPublisher) {
+        try {
+          const event = new MFADisabledEvent(
+            userId,
+            request.userId, // disabledBy (user disables their own MFA)
+            user.email.value,
+            user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+          );
+
+          await this.eventPublisher.publishDomainEvents([event]);
+
+          this.logger.info('MFADisabledEvent published', {
+            userId: request.userId
+          });
+        } catch (error) {
+          this.logger.error('Failed to publish MFADisabledEvent', {
+            userId: request.userId,
+            error: getErrorMessage(error)
+          });
+          // Don't fail MFA disable if event publishing fails
+        }
+      }
 
       return {
         success: true,

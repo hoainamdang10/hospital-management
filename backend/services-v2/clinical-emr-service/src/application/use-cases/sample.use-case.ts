@@ -5,7 +5,7 @@
  * @version 2.0.0
  */
 
-import { BaseHealthcareUseCase } from '../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
 
 export interface SampleRequest {
   // Define request structure

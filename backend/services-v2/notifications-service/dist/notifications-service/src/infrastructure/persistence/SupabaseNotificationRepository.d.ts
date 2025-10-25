@@ -1,36 +1,23 @@
 /**
  * SupabaseNotificationRepository - Infrastructure Repository Implementation
  * V2 Clean Architecture + DDD Implementation
- * Supabase implementation of notification repository with Vietnamese healthcare context
+ * Complete Supabase implementation matching new database schema
  *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, DDD, Repository Pattern, Vietnamese Healthcare Standards, HIPAA
+ * @compliance Clean Architecture, DDD, Repository Pattern, HIPAA
  */
-import { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
-import { INotificationRepository, NotificationSearchCriteria, NotificationStatus } from '../../domain/repositories/INotificationRepository';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { INotificationRepository, NotificationSearchCriteria, NotificationStatistics, DeliveryMetrics, NotificationStatus, NotificationPriority } from '../../domain/repositories/INotificationRepository';
 import { Notification } from '../../domain/aggregates/Notification';
 import { NotificationId } from '../../domain/value-objects/NotificationId';
-import { ILogger } from '@shared/infrastructure/logging/logger.interface';
-import { IAuditService } from '@shared/application/services/audit.service.interface';
-export interface SupabaseNotificationRepositoryConfig {
-    supabase: OptimizedSupabaseClient;
-    logger: ILogger;
-    auditService: IAuditService;
-    schema: string;
-    tableName: string;
-}
 /**
  * Supabase Notification Repository
- * Implements notification repository with Vietnamese healthcare compliance
+ * Implements full INotificationRepository interface
  */
 export declare class SupabaseNotificationRepository implements INotificationRepository {
-    private readonly supabaseClient;
-    private readonly logger;
-    private readonly auditService;
-    private readonly schema;
-    private readonly tableName;
-    constructor(config: SupabaseNotificationRepositoryConfig);
+    private readonly supabase;
+    constructor(supabase: SupabaseClient);
     /**
      * Save notification aggregate
      */
@@ -52,13 +39,17 @@ export declare class SupabaseNotificationRepository implements INotificationRepo
      */
     findByCriteria(criteria: NotificationSearchCriteria): Promise<Notification[]>;
     /**
-     * Find scheduled notifications ready for processing
+     * Find scheduled notifications ready for processing (using database function)
      */
-    findScheduledForProcessing(beforeTime?: Date, limit?: number): Promise<Notification[]>;
+    findScheduledForProcessing(_beforeTime?: Date, limit?: number): Promise<Notification[]>;
     /**
-     * Find failed notifications eligible for retry
+     * Find failed notifications eligible for retry (using database function)
      */
-    findFailedForRetry(beforeTime?: Date, maxAttempts?: number, limit?: number): Promise<Notification[]>;
+    findFailedForRetry(_beforeTime?: Date, _maxAttempts?: number, limit?: number): Promise<Notification[]>;
+    /**
+     * Helper: Find notifications by IDs
+     */
+    private findByNotificationIds;
     /**
      * Find notifications by status
      */
@@ -76,57 +67,80 @@ export declare class SupabaseNotificationRepository implements INotificationRepo
         appointmentId?: string;
         medicalRecordId?: string;
     }, limit?: number): Promise<Notification[]>;
-    /**
-     * Map sort column names
-     */
-    private mapSortColumn;
-    /**
-     * Map notification aggregate to database record
-     */
-    private mapToRecord;
-    /**
-     * Map database record to notification aggregate
-     */
-    private mapToAggregate;
-    /**
-     * Find notifications by template type
-     */
     findByTemplateType(templateType: string, limit?: number, offset?: number): Promise<Notification[]>;
-    /**
-     * Find notifications by channel
-     */
     findByChannel(channel: string, limit?: number, offset?: number): Promise<Notification[]>;
-    /**
-     * Find notifications by date range
-     */
     findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<Notification[]>;
-    /**
-     * Find duplicate notifications
-     */
-    findDuplicates(recipientId: string, templateType: string, contentHash: string, withinHours?: number): Promise<Notification[]>;
-    /**
-     * Count notifications by criteria
-     */
+    findDuplicates(recipientId: string, templateType: string, _contentHash: string, withinHours?: number): Promise<Notification[]>;
     countByCriteria(criteria: NotificationSearchCriteria): Promise<number>;
-    /**
-     * Count notifications by status
-     */
     countByStatus(status: NotificationStatus): Promise<number>;
-    /**
-     * Count notifications by recipient
-     */
     countByRecipient(recipientId: string): Promise<number>;
-    /**
-     * Delete notification by ID
-     */
     delete(id: NotificationId): Promise<void>;
-    /**
-     * Delete old notifications
-     */
     deleteOlderThan(date: Date): Promise<number>;
-    /**
-     * Check if notification exists
-     */
+    deleteByCriteria(criteria: NotificationSearchCriteria): Promise<number>;
     exists(id: NotificationId): Promise<boolean>;
+    getStatistics(dateRange?: {
+        start: Date;
+        end: Date;
+    }): Promise<NotificationStatistics>;
+    getDeliveryMetrics(criteria?: NotificationSearchCriteria): Promise<DeliveryMetrics[]>;
+    getNotificationsRequiringAttention(): Promise<Notification[]>;
+    getRecipientHistory(recipientId: string, limit?: number, offset?: number): Promise<Notification[]>;
+    getRecentNotifications(limit?: number): Promise<Notification[]>;
+    findByCorrelationId(correlationId: string): Promise<Notification[]>;
+    findOverdueNotifications(overdueThreshold?: number): Promise<Notification[]>;
+    findHighRetryNotifications(minRetryCount?: number): Promise<Notification[]>;
+    findByPriorityAndStatus(priority: NotificationPriority, status: NotificationStatus, limit?: number): Promise<Notification[]>;
+    updateStatus(id: NotificationId, status: NotificationStatus): Promise<void>;
+    updateRetryInfo(id: NotificationId, retryCount: number, nextRetryAt?: Date): Promise<void>;
+    markAsProcessed(id: NotificationId, _processedAt: Date, deliveryResults: any[]): Promise<void>;
+    markAsFailed(id: NotificationId, failureReason: string, _failedAt: Date): Promise<void>;
+    bulkUpdate(ids: NotificationId[], updates: Partial<{
+        status: NotificationStatus;
+        retryCount: number;
+        nextRetryAt: Date;
+        processedAt: Date;
+    }>): Promise<void>;
+    getQueueSize(priority?: NotificationPriority): Promise<number>;
+    getAverageProcessingTime(_templateType?: string, channel?: string): Promise<number>;
+    getFailureRateByChannel(dateRange?: {
+        start: Date;
+        end: Date;
+    }): Promise<Record<string, number>>;
+    getSuccessRateByTemplateType(dateRange?: {
+        start: Date;
+        end: Date;
+    }): Promise<Record<string, number>>;
+    getPeakUsageHours(): Promise<Record<number, number>>;
+    getNotificationTrends(days: number): Promise<Array<{
+        date: Date;
+        total: number;
+        successful: number;
+        failed: number;
+    }>>;
+    archiveOldNotifications(olderThanDays: number): Promise<number>;
+    getHealthCheck(): Promise<{
+        isHealthy: boolean;
+        pendingNotifications: number;
+        failedNotifications: number;
+        overdueNotifications: number;
+        lastProcessedAt?: Date;
+        averageResponseTime: number;
+    }>;
+    optimize(): Promise<void>;
+    getRepositoryStats(): Promise<{
+        totalRecords: number;
+        indexHealth: Record<string, any>;
+        queryPerformance: Record<string, number>;
+        storageSize: number;
+    }>;
+    private mapSortColumn;
+    private mapToRecord;
+    private mapToAggregate;
+    private groupByStatus;
+    private groupByPriority;
+    private groupByChannel;
+    private groupByTemplateType;
+    private calculateSuccessRate;
+    private calculateAvgDeliveryTime;
 }
 //# sourceMappingURL=SupabaseNotificationRepository.d.ts.map

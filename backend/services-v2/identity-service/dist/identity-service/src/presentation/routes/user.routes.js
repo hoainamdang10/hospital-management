@@ -9,7 +9,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUserRoutes = createUserRoutes;
 const express_1 = require("express");
-const Logger_1 = require("../../infrastructure/logging/Logger");
 function getErrorMessage(error) {
     if (error instanceof Error)
         return error.message;
@@ -17,6 +16,7 @@ function getErrorMessage(error) {
 }
 function createUserRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps;
     // Get current user profile (PROTECTED)
     router.get('/me', deps.authMiddleware.authenticate(), async (req, res) => {
         try {
@@ -26,7 +26,7 @@ function createUserRoutes(deps) {
             });
         }
         catch (error) {
-            Logger_1.logger.error('Get user profile error', { error: getErrorMessage(error) });
+            logger.error('Get user profile error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to get user profile'
@@ -48,7 +48,7 @@ function createUserRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Get user error', { error: getErrorMessage(error) });
+            logger.error('Get user error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to get user'
@@ -69,7 +69,7 @@ function createUserRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('List users error', { error: getErrorMessage(error) });
+            logger.error('List users error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to list users'
@@ -92,7 +92,7 @@ function createUserRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Update user error', { error: getErrorMessage(error) });
+            logger.error('Update user error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to update user'
@@ -112,7 +112,7 @@ function createUserRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Delete user error', { error: getErrorMessage(error) });
+            logger.error('Delete user error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to delete user'
@@ -131,7 +131,7 @@ function createUserRoutes(deps) {
             return middleware(req, res, next);
         }
         catch (error) {
-            Logger_1.logger.error('Change password authorization error', { error: getErrorMessage(error) });
+            logger.error('Change password authorization error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Xác thực quyền thất bại'
@@ -149,7 +149,7 @@ function createUserRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Change password error', { error: getErrorMessage(error) });
+            logger.error('Change password error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Đổi mật khẩu thất bại'
@@ -169,7 +169,7 @@ function createUserRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Lock account error', { error: getErrorMessage(error) });
+            logger.error('Lock account error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Khóa tài khoản thất bại'
@@ -188,7 +188,7 @@ function createUserRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Unlock account error', { error: getErrorMessage(error) });
+            logger.error('Unlock account error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Mở khóa tài khoản thất bại'
@@ -208,7 +208,7 @@ function createUserRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Assign role error', { error: getErrorMessage(error) });
+            logger.error('Assign role error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Gán vai trò thất bại'

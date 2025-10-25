@@ -42,6 +42,11 @@ function createPatientRoutes(controller) {
      */
     router.get('/search', ValidationMiddleware_1.validateSearchPatients, asyncHandler(controller.searchPatients.bind(controller)));
     /**
+     * Get patient list with pagination
+     * GET /api/v1/patients?page=1&limit=20
+     */
+    router.get('/', ValidationMiddleware_1.validateGetPatientList, asyncHandler(controller.getPatientList.bind(controller)));
+    /**
      * Match patients (PMI)
      * POST /api/v1/patients/match
      */

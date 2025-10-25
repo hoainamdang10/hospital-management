@@ -23,9 +23,17 @@ import { ClinicalEMRConfig } from './infrastructure/config/clinical-emr-config';
 import { createMedicalRecordRoutes } from './presentation/routes/medical-record.routes';
 
 // Middleware
-import { errorHandlingMiddleware } from '../../shared/presentation/middleware/error-handling.middleware';
-import { requestLoggingMiddleware } from '../../shared/presentation/middleware/request-logging.middleware';
-import { healthCheckMiddleware } from '../../shared/presentation/middleware/health-check.middleware';
+import { errorHandlingMiddleware } from './presentation/middleware/error-handling.middleware';
+import { requestLoggingMiddleware } from './presentation/middleware/request-logging.middleware';
+import { healthCheckMiddleware } from './presentation/middleware/health-check.middleware';
+
+// Events
+import { EventSubscriptions, createEventSubscriptions } from './infrastructure/events/EventSubscriptions';
+import { ClinicalEMREventHandler } from './infrastructure/events/ClinicalEMREventHandler';
+import { MedicalRecordDomainEventHandler } from './infrastructure/events/MedicalRecordDomainEventHandler';
+
+// Store event subscriptions globally for cleanup
+let eventSubscriptions: EventSubscriptions | null = null;
 
 /**
  * Create and configure Express application
@@ -140,6 +148,8 @@ export async function createApp(): Promise<Application> {
   app.use('/health', healthCheckMiddleware);
   
   app.get('/health', (req: Request, res: Response) => {
+    const eventStatus = getEventSubscriptionsStatus();
+    
     res.status(200).json({
       service: 'clinical-emr-service',
       version: '2.0.0',
@@ -147,7 +157,16 @@ export async function createApp(): Promise<Application> {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: config.environment,
-      port: config.port
+      port: config.port,
+      eventBus: eventStatus,
+      features: {
+        medicalRecords: true,
+        diagnoses: true,
+        medications: true,
+        vitalSigns: true,
+        fhirExport: true,
+        eventDriven: eventStatus.enabled
+      }
     });
   });
 
@@ -286,16 +305,23 @@ export async function createApp(): Promise<Application> {
  */
 async function gracefulShutdown(): Promise<void> {
   try {
-    console.log('Starting graceful shutdown...');
+    console.log('🛑 Starting graceful shutdown...');
+    
+    // Disconnect event subscriptions first
+    console.log('📡 Disconnecting event subscriptions...');
+    await cleanupEventSubscriptions();
+    console.log('✅ Event subscriptions disconnected');
     
     // Cleanup container
+    console.log('🧹 Cleaning up DI container...');
     const { cleanupContainer } = await import('./infrastructure/di/container');
     await cleanupContainer();
+    console.log('✅ Container cleaned up');
     
-    console.log('Graceful shutdown completed');
+    console.log('✅ Graceful shutdown completed');
     process.exit(0);
   } catch (error) {
-    console.error('Error during graceful shutdown:', error);
+    console.error('❌ Error during graceful shutdown:', error);
     process.exit(1);
   }
 }
@@ -305,22 +331,85 @@ async function gracefulShutdown(): Promise<void> {
  */
 export async function initializeApp(): Promise<Application> {
   try {
-    console.log('Initializing Clinical EMR Service...');
+    console.log('🏥 Initializing Clinical EMR Service...');
     
     // Initialize container
+    console.log('📦 Initializing DI Container...');
     const { success, errors } = await initializeContainer();
     if (!success) {
       throw new Error(`Container initialization failed: ${errors.join(', ')}`);
     }
+    console.log('✅ DI Container initialized');
     
     // Create Express app
+    console.log('🚀 Creating Express application...');
     const app = await createApp();
+    console.log('✅ Express app created');
     
-    console.log('Clinical EMR Service initialized successfully');
+    // Initialize event subscriptions
+    console.log('📡 Initializing event subscriptions...');
+    await initializeEventSubscriptions();
+    console.log('✅ Event subscriptions initialized');
+    
+    console.log('✅ Clinical EMR Service initialized successfully');
     return app;
     
   } catch (error) {
-    console.error('Failed to initialize Clinical EMR Service:', error);
+    console.error('💥 Failed to initialize Clinical EMR Service:', error);
     throw error;
   }
+}
+
+/**
+ * Initialize event subscriptions and connect to RabbitMQ
+ */
+async function initializeEventSubscriptions(): Promise<void> {
+  try {
+    // Get event handlers from DI container
+    const clinicalEMRHandler = container.get<ClinicalEMREventHandler>(TYPES.ClinicalEMREventHandler);
+    const domainEventHandler = container.get<MedicalRecordDomainEventHandler>(TYPES.MedicalRecordDomainEventHandler);
+    const logger = container.get(TYPES.Logger) as import('@shared/infrastructure/logging/logger.interface').ILogger;
+
+    // Create event subscriptions
+    eventSubscriptions = createEventSubscriptions(
+      clinicalEMRHandler,
+      domainEventHandler,
+      logger
+    );
+
+    // Connect to event bus
+    await eventSubscriptions.connect();
+
+    console.log('✅ Event bus connected and listening for events');
+  } catch (error) {
+    console.error('⚠️  Event subscriptions failed to initialize:', error);
+    console.warn('⚠️  Service will run without event handling capabilities');
+    // Don't throw - allow service to run without events in development
+  }
+}
+
+/**
+ * Cleanup event subscriptions
+ */
+export async function cleanupEventSubscriptions(): Promise<void> {
+  if (eventSubscriptions) {
+    await eventSubscriptions.disconnect();
+    eventSubscriptions = null;
+  }
+}
+
+/**
+ * Get event subscriptions status
+ */
+export function getEventSubscriptionsStatus(): any {
+  if (!eventSubscriptions) {
+    return {
+      enabled: false,
+      message: 'Event subscriptions not initialized'
+    };
+  }
+  return {
+    enabled: true,
+    ...eventSubscriptions.getStatus()
+  };
 }

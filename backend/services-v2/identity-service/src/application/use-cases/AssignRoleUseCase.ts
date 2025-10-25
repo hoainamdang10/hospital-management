@@ -13,6 +13,9 @@ import { IPermissionRepository } from '../../domain/repositories/IPermissionRepo
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { UserId } from '../../domain/value-objects/UserId';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { UserRoleChangedEvent } from '../../domain/events/UserRoleChangedEvent';
+import { HealthcareRole } from '../../domain/entities/HealthcareRole';
 
 export interface AssignRoleRequest {
   userId: string; // User to assign role to
@@ -44,7 +47,8 @@ export class AssignRoleUseCase
     private userRepository: IUserRepository,
     private permissionRepository: IPermissionRepository,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: AssignRoleRequest): Promise<AssignRoleResponse> {
@@ -142,6 +146,34 @@ export class AssignRoleUseCase
         assignedBy: request.assignedBy,
         reason: request.reason
       });
+
+      // 10. Publish UserRoleChangedEvent
+      if (this.eventPublisher) {
+        try {
+          const oldRole = HealthcareRole.fromRoleType(previousRoleType);
+          const newRole = HealthcareRole.fromRoleType(request.roleType);
+          const event = new UserRoleChangedEvent(
+            userIdVO,
+            oldRole,
+            newRole,
+            request.assignedBy
+          );
+
+          await this.eventPublisher.publishDomainEvents([event]);
+
+          this.logger.info('UserRoleChangedEvent published', {
+            userId: request.userId,
+            previousRole: previousRoleType,
+            newRole: request.roleType
+          });
+        } catch (error) {
+          this.logger.error('Failed to publish UserRoleChangedEvent', {
+            userId: request.userId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          // Don't fail role assignment if event publishing fails
+        }
+      }
 
       return {
         success: true,

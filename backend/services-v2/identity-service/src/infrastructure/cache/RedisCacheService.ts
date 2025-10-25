@@ -1,13 +1,14 @@
 /**
  * Redis Cache Service
  * Provides caching functionality using Redis for improved performance
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
 import { createClient, RedisClientType } from 'redis';
 import { ILogger } from '../../application/services/ILogger';
+import { ICacheService } from '../../application/services/ICacheService';
 
 export interface CacheOptions {
   ttl?: number; // Time to live in seconds
@@ -27,7 +28,7 @@ export interface CacheStats {
  * Redis Cache Service for Identity Service
  * Implements caching with TTL, invalidation, and pattern-based deletion
  */
-export class RedisCacheService {
+export class RedisCacheService implements ICacheService {
   private client: RedisClientType;
   private isConnected: boolean = false;
   private readonly keyPrefix: string;
@@ -323,4 +324,20 @@ export class RedisCacheService {
     this.stats.hitRate = total > 0 ? this.stats.hits / total : 0;
   }
 }
+
+// Simple logger for singleton instance
+const simpleLogger = {
+  info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta || ''),
+  warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta || ''),
+  error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta || ''),
+  debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta || ''),
+  fatal: (message: string, meta?: any) => console.error(`[FATAL] ${message}`, meta || '')
+};
+
+// Export singleton instance for middleware usage
+export const redisCacheService = new RedisCacheService(
+  process.env.REDIS_URL || 'redis://localhost:6379',
+  simpleLogger,
+  'identity:'
+);
 

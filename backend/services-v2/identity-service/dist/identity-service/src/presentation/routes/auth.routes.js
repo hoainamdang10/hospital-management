@@ -9,7 +9,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAuthRoutes = createAuthRoutes;
 const express_1 = require("express");
-const Logger_1 = require("../../infrastructure/logging/Logger");
 function getErrorMessage(error) {
     if (error instanceof Error)
         return error.message;
@@ -17,6 +16,7 @@ function getErrorMessage(error) {
 }
 function createAuthRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps; // Get logger from dependencies
     // Login endpoint (PUBLIC)
     router.post('/login', async (req, res) => {
         try {
@@ -37,7 +37,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Authentication endpoint error', { error: getErrorMessage(error) });
+            logger.error('Authentication endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -64,7 +64,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Registration endpoint error', { error: getErrorMessage(error) });
+            logger.error('Registration endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -82,7 +82,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Forgot password endpoint error', { error: getErrorMessage(error) });
+            logger.error('Forgot password endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -103,7 +103,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Reset password endpoint error', { error: getErrorMessage(error) });
+            logger.error('Reset password endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -131,7 +131,7 @@ function createAuthRoutes(deps) {
             return res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Verify email GET endpoint error', { error: getErrorMessage(error) });
+            logger.error('Verify email GET endpoint error', { error: getErrorMessage(error) });
             return res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -177,7 +177,7 @@ function createAuthRoutes(deps) {
             return res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Verify email POST endpoint error', { error: getErrorMessage(error) });
+            logger.error('Verify email POST endpoint error', { error: getErrorMessage(error) });
             return res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -203,7 +203,7 @@ function createAuthRoutes(deps) {
             return res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Resend verification email endpoint error', { error: getErrorMessage(error) });
+            logger.error('Resend verification email endpoint error', { error: getErrorMessage(error) });
             return res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -226,7 +226,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Accept staff invitation endpoint error', { error: getErrorMessage(error) });
+            logger.error('Accept staff invitation endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -254,7 +254,7 @@ function createAuthRoutes(deps) {
             res.status(200).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Logout endpoint error', { error: getErrorMessage(error) });
+            logger.error('Logout endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -274,7 +274,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Refresh token endpoint error', { error: getErrorMessage(error) });
+            logger.error('Refresh token endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -295,7 +295,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Enable MFA endpoint error', { error: getErrorMessage(error) });
+            logger.error('Enable MFA endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -318,7 +318,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Verify MFA endpoint error', { error: getErrorMessage(error) });
+            logger.error('Verify MFA endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -337,7 +337,7 @@ function createAuthRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Disable MFA endpoint error', { error: getErrorMessage(error) });
+            logger.error('Disable MFA endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'

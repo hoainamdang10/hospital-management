@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PatientMapper = exports.SupabasePatientRepository = void 0;
+exports.IdentityUserUpdatedEventHandler = exports.IdentityUserDeletedEventHandler = exports.IdentityUserCreatedEventHandler = exports.IdentityEventConsumer = exports.RabbitMQEventPublisher = exports.PatientMapper = exports.SupabasePatientRepository = void 0;
 // Repositories
 var SupabasePatientRepository_1 = require("./repositories/SupabasePatientRepository");
 Object.defineProperty(exports, "SupabasePatientRepository", { enumerable: true, get: function () { return SupabasePatientRepository_1.SupabasePatientRepository; } });
@@ -19,8 +19,16 @@ Object.defineProperty(exports, "PatientMapper", { enumerable: true, get: functio
 // Import from application layer instead:
 // import { PatientMatchingService } from '../application/services/PatientMatchingService';
 // import { InsuranceValidationService } from '../application/services/InsuranceValidationService';
+// Event Infrastructure
+var RabbitMQEventPublisher_1 = require("./events/RabbitMQEventPublisher");
+Object.defineProperty(exports, "RabbitMQEventPublisher", { enumerable: true, get: function () { return RabbitMQEventPublisher_1.RabbitMQEventPublisher; } });
+var IdentityEventConsumer_1 = require("./events/IdentityEventConsumer");
+Object.defineProperty(exports, "IdentityEventConsumer", { enumerable: true, get: function () { return IdentityEventConsumer_1.IdentityEventConsumer; } });
 // Event Handlers
-// TODO: Re-enable when event infrastructure is ready
-// export { PatientDomainEventHandler } from './events/PatientDomainEventHandler';
-// export type { PatientDomainEventHandlerConfig } from './events/PatientDomainEventHandler';
+var IdentityUserCreatedEventHandler_1 = require("./events/handlers/IdentityUserCreatedEventHandler");
+Object.defineProperty(exports, "IdentityUserCreatedEventHandler", { enumerable: true, get: function () { return IdentityUserCreatedEventHandler_1.IdentityUserCreatedEventHandler; } });
+var IdentityUserDeletedEventHandler_1 = require("./events/handlers/IdentityUserDeletedEventHandler");
+Object.defineProperty(exports, "IdentityUserDeletedEventHandler", { enumerable: true, get: function () { return IdentityUserDeletedEventHandler_1.IdentityUserDeletedEventHandler; } });
+var IdentityUserUpdatedEventHandler_1 = require("./events/handlers/IdentityUserUpdatedEventHandler");
+Object.defineProperty(exports, "IdentityUserUpdatedEventHandler", { enumerable: true, get: function () { return IdentityUserUpdatedEventHandler_1.IdentityUserUpdatedEventHandler; } });
 //# sourceMappingURL=index.js.map

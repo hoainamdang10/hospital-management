@@ -12,6 +12,7 @@ import { IMFAService } from '../services/IMFAService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { VerifyMFAUseCase } from './VerifyMFAUseCase';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface DisableMFARequest {
     userId: string;
     verificationCode: string;
@@ -34,7 +35,8 @@ export declare class DisableMFAUseCase implements IUseCase<DisableMFARequest, Di
     private verifyMFAUseCase;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, mfaService: IMFAService, verifyMFAUseCase: VerifyMFAUseCase, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(userRepository: IUserRepository, mfaService: IMFAService, verifyMFAUseCase: VerifyMFAUseCase, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: DisableMFARequest): Promise<DisableMFAResponse>;
     private executeImpl;
     /**

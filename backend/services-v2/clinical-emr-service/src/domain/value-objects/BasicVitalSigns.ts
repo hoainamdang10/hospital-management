@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
  */
 
-import { ValueObject } from '../../../shared/domain/ValueObject';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 interface BasicVitalSignsProps {
   temperature?: number;      // Celsius (35.0 - 42.0)
@@ -20,6 +20,9 @@ interface BasicVitalSignsProps {
 export class BasicVitalSigns extends ValueObject<BasicVitalSignsProps> {
   private constructor(props: BasicVitalSignsProps) {
     super(props);
+  }
+
+  protected validateFormat(): void {
     this.validate();
   }
 

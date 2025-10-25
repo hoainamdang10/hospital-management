@@ -3,18 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DisableMFAUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
 const UserId_1 = require("../../domain/value-objects/UserId");
+const MFADisabledEvent_1 = require("../../domain/events/MFADisabledEvent");
 /**
  * Disable MFA Use Case - Refactored
  * Requires verification before disabling MFA
  * Uses IMFAService interface for infrastructure independence
  */
 class DisableMFAUseCase {
-    constructor(userRepository, mfaService, verifyMFAUseCase, logger, circuitBreaker) {
+    constructor(userRepository, mfaService, verifyMFAUseCase, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    ) {
         this.userRepository = userRepository;
         this.mfaService = mfaService;
         this.verifyMFAUseCase = verifyMFAUseCase;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
+        this.eventPublisher = eventPublisher;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -66,6 +69,24 @@ class DisableMFAUseCase {
             // 4. Disable MFA via service
             await this.mfaService.disableMFA(request.userId);
             this.logger.info('MFA disabled successfully', { userId: request.userId });
+            // Publish MFADisabledEvent
+            if (this.eventPublisher) {
+                try {
+                    const event = new MFADisabledEvent_1.MFADisabledEvent(userId, request.userId, // disabledBy (user disables their own MFA)
+                    user.email.value, user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN');
+                    await this.eventPublisher.publishDomainEvents([event]);
+                    this.logger.info('MFADisabledEvent published', {
+                        userId: request.userId
+                    });
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish MFADisabledEvent', {
+                        userId: request.userId,
+                        error: (0, error_helper_1.getErrorMessage)(error)
+                    });
+                    // Don't fail MFA disable if event publishing fails
+                }
+            }
             return {
                 success: true,
                 message: 'MFA đã được tắt thành công'

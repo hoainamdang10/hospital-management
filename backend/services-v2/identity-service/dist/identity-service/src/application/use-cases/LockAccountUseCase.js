@@ -10,6 +10,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LockAccountUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
+const UserAccountLockedEvent_1 = require("../../domain/events/UserAccountLockedEvent");
 /**
  * Lock Account Use Case
  * Allows administrators to manually lock user accounts
@@ -17,11 +18,13 @@ const UserId_1 = require("../../domain/value-objects/UserId");
  * Records audit trail
  */
 class LockAccountUseCase {
-    constructor(userRepository, sessionRepository, logger, circuitBreaker) {
+    constructor(userRepository, sessionRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    ) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
+        this.eventPublisher = eventPublisher;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -60,8 +63,16 @@ class LockAccountUseCase {
                     error: 'USER_NOT_FOUND'
                 };
             }
-            // 4. Check if user is already locked
-            if (!user.isActive) {
+            // 4. Check if user is permanently deactivated
+            if (user.accountStatus === 'deactivated') {
+                return {
+                    success: false,
+                    message: 'Không thể khóa tài khoản đã bị vô hiệu hóa vĩnh viễn',
+                    error: 'PERMANENTLY_DEACTIVATED'
+                };
+            }
+            // 5. Check if user is already locked
+            if (user.accountStatus === 'locked') {
                 return {
                     success: false,
                     message: 'Tài khoản đã bị khóa trước đó',
@@ -76,8 +87,8 @@ class LockAccountUseCase {
                     error: 'CANNOT_LOCK_SELF'
                 };
             }
-            // 6. Lock account
-            user.deactivate();
+            // 6. Lock account temporarily
+            user.lock(request.lockedBy, request.reason);
             await this.userRepository.save(user);
             // 7. Terminate all sessions if requested (default: true)
             const terminateSessions = request.terminateSessions !== false;
@@ -94,6 +105,23 @@ class LockAccountUseCase {
                 reason: request.reason,
                 terminatedSessions: terminateSessions
             });
+            // 8. Publish UserAccountLockedEvent
+            if (this.eventPublisher) {
+                try {
+                    const event = new UserAccountLockedEvent_1.UserAccountLockedEvent(userIdVO, request.lockedBy, request.reason, terminateSessions, user.email.value, user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN');
+                    await this.eventPublisher.publishDomainEvents([event]);
+                    this.logger.info('UserAccountLockedEvent published', {
+                        userId: request.userId
+                    });
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish UserAccountLockedEvent', {
+                        userId: request.userId,
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                    // Don't fail lock operation if event publishing fails
+                }
+            }
             return {
                 success: true,
                 message: `Tài khoản đã bị khóa. Lý do: ${request.reason}`

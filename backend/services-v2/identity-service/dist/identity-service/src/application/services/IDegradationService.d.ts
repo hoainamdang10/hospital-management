@@ -66,5 +66,20 @@ export interface IDegradationService {
      * @returns Cached authentication result or null
      */
     getCachedAuthentication(email: string): Promise<AuthResult | null>;
+    /**
+     * Get current service status
+     * @returns Service status with mode, degradation time, cache size, config
+     */
+    getStatus(): {
+        mode: ServiceMode;
+        degradationStartTime?: Date;
+        cacheSize: number;
+        config: any;
+    };
+    /**
+     * Force recovery to full service mode
+     * Used for manual recovery or testing
+     */
+    forceRecovery(): void;
 }
 //# sourceMappingURL=IDegradationService.d.ts.map

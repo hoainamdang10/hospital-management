@@ -10,8 +10,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createHealthRoutes = createHealthRoutes;
 const express_1 = require("express");
 const CircuitBreaker_1 = require("../../infrastructure/resilience/CircuitBreaker");
-const Logger_1 = require("../../infrastructure/logging/Logger");
-const config_1 = require("../../infrastructure/config");
+const config_1 = require("../../bootstrap/config");
+const config = (0, config_1.loadConfig)();
 function getErrorMessage(error) {
     if (error instanceof Error)
         return error.message;
@@ -19,6 +19,7 @@ function getErrorMessage(error) {
 }
 function createHealthRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps;
     // Health check endpoint
     router.get('/health', async (_req, res) => {
         try {
@@ -43,7 +44,7 @@ function createHealthRoutes(deps) {
             res.status(statusCode).json(health);
         }
         catch (error) {
-            Logger_1.logger.error('Health check failed', { error: getErrorMessage(error) });
+            logger.error('Health check failed', { error: getErrorMessage(error) });
             res.status(503).json({
                 overall: 'UNHEALTHY',
                 error: getErrorMessage(error),
@@ -54,9 +55,9 @@ function createHealthRoutes(deps) {
     // Service info endpoint
     router.get('/info', (_req, res) => {
         res.json({
-            service: config_1.config.serviceName,
-            version: config_1.config.version,
-            environment: config_1.config.nodeEnv,
+            service: config.serviceName,
+            version: config.version,
+            environment: config.nodeEnv,
             timestamp: new Date(),
             uptime: process.uptime(),
             mode: deps.degradationService.getStatus().mode
@@ -69,7 +70,7 @@ function createHealthRoutes(deps) {
             res.json(status);
         }
         catch (error) {
-            Logger_1.logger.error('Failed to get circuit breaker status', { error: getErrorMessage(error) });
+            logger.error('Failed to get circuit breaker status', { error: getErrorMessage(error) });
             res.status(500).json({ error: 'Failed to get circuit breaker status' });
         }
     });

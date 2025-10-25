@@ -262,9 +262,15 @@ class RabbitMQEventPublisher {
      * Get routing key for event
      */
     getRoutingKey(event) {
-        // Format: service.aggregate.event
-        // Example: patient-registry.patient.registered
-        return `patient-registry.patient.${event.eventType.toLowerCase()}`;
+        // Format: entity.action (matching EventBusConfiguration)
+        // Example: patient.registered, patient.updated, patient.deleted
+        // Convert PascalCase eventType to dot.notation
+        // PatientRegistered -> patient.registered
+        const eventName = event.eventType
+            .replace(/([A-Z])/g, '.$1')
+            .toLowerCase()
+            .substring(1);
+        return eventName;
     }
     /**
      * Serialize event to JSON

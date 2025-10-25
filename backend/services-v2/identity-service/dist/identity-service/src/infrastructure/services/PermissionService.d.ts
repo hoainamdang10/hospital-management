@@ -19,10 +19,12 @@ import { IPermissionRepository } from '../../domain/repositories/IPermissionRepo
 import { UserId } from '../../domain/value-objects/UserId';
 import { Permission } from '../../domain/value-objects/Permission';
 import { PermissionCache } from '../cache/PermissionCache';
+import { ILogger } from '../../application/services/ILogger';
 export declare class PermissionService implements IPermissionService {
     private readonly permissionRepository;
     private readonly cache;
-    constructor(permissionRepository: IPermissionRepository, cache: PermissionCache);
+    private readonly logger;
+    constructor(permissionRepository: IPermissionRepository, cache: PermissionCache, logger: ILogger);
     /**
      * Check if user has a specific permission
      *

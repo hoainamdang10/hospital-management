@@ -20,11 +20,13 @@ import { IPermissionRepository } from '../../domain/repositories/IPermissionRepo
 import { UserId } from '../../domain/value-objects/UserId';
 import { Permission } from '../../domain/value-objects/Permission';
 import { PermissionCache } from '../cache/PermissionCache';
+import { ILogger } from '../../application/services/ILogger';
 
 export class PermissionService implements IPermissionService {
   constructor(
     private readonly permissionRepository: IPermissionRepository,
-    private readonly cache: PermissionCache
+    private readonly cache: PermissionCache,
+    private readonly logger: ILogger
   ) {}
 
   /**
@@ -74,7 +76,12 @@ export class PermissionService implements IPermissionService {
 
       return false;
     } catch (error) {
-      console.error('[PermissionService] Error checking permission', error);
+      this.logger.error('[PermissionService] Error checking permission', {
+        userId: userId.value,
+        permission: permissionOrResource,
+        action,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -126,7 +133,12 @@ export class PermissionService implements IPermissionService {
       // (This enforces ownership check - user can only access their own resources)
       return false;
     } catch (error) {
-      console.error('[PermissionService] Error checking permission with ownership', error);
+      this.logger.error('[PermissionService] Error checking permission with ownership', {
+        userId: userId.value,
+        permission,
+        resourceOwnerId,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -164,7 +176,11 @@ export class PermissionService implements IPermissionService {
 
       return false;
     } catch (error) {
-      console.error('[PermissionService] Error checking any permission', error);
+      this.logger.error('Error checking any permission', {
+        userId,
+        permissions,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return false;
     }
   }
@@ -189,7 +205,11 @@ export class PermissionService implements IPermissionService {
       // Check if all permissions match
       return permissions.every((p) => userPermissions.includes(p));
     } catch (error) {
-      console.error('[PermissionService] Error checking all permissions', error);
+      this.logger.error('[PermissionService] Error checking all permissions', {
+        userId: userId.value,
+        permissions,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -202,7 +222,10 @@ export class PermissionService implements IPermissionService {
       // Delegate to repository (which uses cache)
       return await this.permissionRepository.getUserPermissions(userId);
     } catch (error) {
-      console.error('[PermissionService] Error getting effective permissions', error);
+      this.logger.error('Error getting effective permissions', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return [];
     }
   }
@@ -215,7 +238,10 @@ export class PermissionService implements IPermissionService {
       const permissions = await this.getEffectivePermissions(userId);
       return permissions.map((p) => Permission.fromString(p));
     } catch (error) {
-      console.error('[PermissionService] Error getting permissions as objects', error);
+      this.logger.error('Error getting permissions as objects', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return [];
     }
   }
@@ -254,7 +280,10 @@ export class PermissionService implements IPermissionService {
       // Check wildcard (legacy support, deprecated)
       return permissions.includes('*');
     } catch (error) {
-      console.error('[PermissionService] Error checking admin status', error);
+      this.logger.error('Error checking admin status', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return false;
     }
   }
@@ -286,7 +315,10 @@ export class PermissionService implements IPermissionService {
 
       return grouped;
     } catch (error) {
-      console.error('[PermissionService] Error grouping permissions', error);
+      this.logger.error('Error grouping permissions', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return new Map();
     }
   }
@@ -299,7 +331,10 @@ export class PermissionService implements IPermissionService {
       // Force load permissions into cache
       await this.getEffectivePermissions(userId);
     } catch (error) {
-      console.error('[PermissionService] Error warming up cache', error);
+      this.logger.error('Error warming up cache', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 
@@ -334,7 +369,10 @@ export class PermissionService implements IPermissionService {
     try {
       return await this.permissionRepository.getUserRoles(userId);
     } catch (error) {
-      console.error('[PermissionService] Error getting user roles', error);
+      this.logger.error('Error getting user roles', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return []; // Return empty array on error (fail-safe)
     }
   }
@@ -347,7 +385,11 @@ export class PermissionService implements IPermissionService {
       const userRoles = await this.getUserRoles(userId);
       return userRoles.includes(role);
     } catch (error) {
-      console.error('[PermissionService] Error checking role', error);
+      this.logger.error('Error checking role', {
+        userId,
+        role,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return false;
     }
   }
@@ -360,7 +402,11 @@ export class PermissionService implements IPermissionService {
       const userRoles = await this.getUserRoles(userId);
       return roles.some(role => userRoles.includes(role));
     } catch (error) {
-      console.error('[PermissionService] Error checking any role', error);
+      this.logger.error('Error checking any role', {
+        userId,
+        roles,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return false;
     }
   }
@@ -373,7 +419,11 @@ export class PermissionService implements IPermissionService {
       const userRoles = await this.getUserRoles(userId);
       return roles.every(role => userRoles.includes(role));
     } catch (error) {
-      console.error('[PermissionService] Error checking all roles', error);
+      this.logger.error('Error checking all roles', {
+        userId,
+        roles,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       return false;
     }
   }

@@ -13,7 +13,15 @@ import { UserAuthenticatedEvent } from '../../domain/events/UserAuthenticatedEve
 import { UserRoleChangedEvent } from '../../domain/events/UserRoleChangedEvent';
 import { UserLoggedOutEvent } from '../../domain/events/UserLoggedOutEvent';
 import { UserActivatedEvent } from '../../domain/events/UserActivatedEvent';
+import { UserDeletedEvent } from '../../domain/events/UserDeletedEvent';
+import { UserUpdatedEvent } from '../../domain/events/UserUpdatedEvent';
+import { UserDeactivatedEvent } from '../../domain/events/UserDeactivatedEvent';
 import { StaffInvitationCreatedEvent } from '../../domain/events/StaffInvitationCreatedEvent';
+import { PasswordChangedEvent } from '../../domain/events/PasswordChangedEvent';
+import { UserAccountLockedEvent } from '../../domain/events/UserAccountLockedEvent';
+import { UserAccountUnlockedEvent } from '../../domain/events/UserAccountUnlockedEvent';
+import { MFAEnabledEvent } from '../../domain/events/MFAEnabledEvent';
+import { MFADisabledEvent } from '../../domain/events/MFADisabledEvent';
 
 export class DomainEventMapper {
   /**
@@ -88,6 +96,48 @@ export class DomainEventMapper {
       };
     }
 
+    if (domainEvent instanceof UserDeletedEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          deletedBy: domainEvent.deletedBy,
+          deletionType: domainEvent.deletionType,
+          reason: domainEvent.reason,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          deletedAt: domainEvent.occurredAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof UserUpdatedEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          updatedBy: domainEvent.updatedBy,
+          updatedFields: domainEvent.updatedFields,
+          changes: domainEvent.changes,
+          updatedAt: domainEvent.occurredAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof UserDeactivatedEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          deactivatedBy: domainEvent.deactivatedBy,
+          reason: domainEvent.reason,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          deactivatedAt: domainEvent.occurredAt
+        }
+      };
+    }
+
     if (domainEvent instanceof StaffInvitationCreatedEvent) {
       return {
         ...baseEvent,
@@ -98,6 +148,76 @@ export class DomainEventMapper {
           invitedBy: domainEvent.invitedBy,
           invitationToken: domainEvent.invitationToken,
           expiresAt: domainEvent.expiresAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof PasswordChangedEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          changedBy: domainEvent.changedBy,
+          invalidatedSessions: domainEvent.invalidatedSessions,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          changedAt: domainEvent.occurredAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof UserAccountLockedEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          lockedBy: domainEvent.lockedBy,
+          reason: domainEvent.reason,
+          terminatedSessions: domainEvent.terminatedSessions,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          lockedAt: domainEvent.occurredAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof UserAccountUnlockedEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          unlockedBy: domainEvent.unlockedBy,
+          reason: domainEvent.reason,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          unlockedAt: domainEvent.occurredAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof MFAEnabledEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          method: domainEvent.method,
+          enabledBy: domainEvent.enabledBy,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          enabledAt: domainEvent.occurredAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof MFADisabledEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          disabledBy: domainEvent.disabledBy,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          disabledAt: domainEvent.occurredAt
         }
       };
     }

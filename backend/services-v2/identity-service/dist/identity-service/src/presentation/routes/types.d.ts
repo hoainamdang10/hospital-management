@@ -48,14 +48,18 @@ import { CheckPermissionUseCase } from '../../application/use-cases/CheckPermiss
 import { CheckPermissionsUseCase } from '../../application/use-cases/CheckPermissionsUseCase';
 import { CheckRoleUseCase } from '../../application/use-cases/CheckRoleUseCase';
 import { CheckRolesUseCase } from '../../application/use-cases/CheckRolesUseCase';
-import { IdentityServiceHealthCheck } from '../../infrastructure/monitoring/HealthChecks';
-import { IdentityServiceDegradation } from '../../infrastructure/resilience/GracefulDegradation';
-import { PermissionService } from '../../infrastructure/services/PermissionService';
+import { IHealthCheckService } from '../../application/services/IHealthCheckService';
+import { IDegradationService } from '../../application/services/IDegradationService';
+import { IPermissionService } from '../../domain/services/IPermissionService';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
+import { ILogger } from '../../application/services/ILogger';
+import { ICacheService } from '../../application/services/ICacheService';
 /**
  * All dependencies needed by route handlers
  */
 export interface RouteDependencies {
+    logger: ILogger;
+    cacheService: ICacheService | null;
     authMiddleware: AuthenticationMiddleware;
     permissionMiddleware: PermissionMiddleware;
     authenticateUserUseCase: AuthenticateUserUseCase;
@@ -99,9 +103,9 @@ export interface RouteDependencies {
     checkPermissionsUseCase: CheckPermissionsUseCase;
     checkRoleUseCase: CheckRoleUseCase;
     checkRolesUseCase: CheckRolesUseCase;
-    healthCheck: IdentityServiceHealthCheck;
-    degradationService: IdentityServiceDegradation;
-    permissionService: PermissionService;
+    healthCheck: IHealthCheckService;
+    degradationService: IDegradationService;
+    permissionService: IPermissionService;
     sessionRepository: ISessionRepository;
 }
 //# sourceMappingURL=types.d.ts.map

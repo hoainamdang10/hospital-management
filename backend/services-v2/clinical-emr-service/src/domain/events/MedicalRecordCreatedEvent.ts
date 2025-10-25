@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { DomainEvent } from '../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 
 export interface MedicalRecordCreatedEventData {
   recordId: string;
@@ -47,14 +47,15 @@ export class MedicalRecordCreatedEvent extends DomainEvent {
         createdBy: data.createdBy,
         createdAt: data.createdAt.toISOString()
       },
+      1, // eventVersion
+      undefined, // correlationId
+      undefined, // causationId
+      data.createdBy, // userId
       {
         priority: 'high',
-        complianceLevel: 'hipaa',
-        containsPHI: true,
-        patientId: data.patientId,
-        eventCategory: 'clinical',
-        eventSubcategory: 'medical_record',
-        vietnameseDescription: 'Hồ sơ bệnh án mới được tạo'
+        source: 'healthcare-domain',
+        complianceLevel: 'HIPAA',
+        retryable: true
       }
     );
 
@@ -66,6 +67,27 @@ export class MedicalRecordCreatedEvent extends DomainEvent {
     this.symptoms = data.symptoms;
     this.diagnosis = data.diagnosis;
     this.createdBy = data.createdBy;
+  }
+
+  getEventData(): any {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      appointmentId: this.appointmentId,
+      visitDate: this.visitDate.toISOString(),
+      symptoms: this.symptoms,
+      diagnosis: this.diagnosis,
+      createdBy: this.createdBy
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**

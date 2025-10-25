@@ -18,6 +18,12 @@ import { createAvailabilityRoutes } from './presentation/routes/availability.rou
 import { getContainer } from './infrastructure/di/container';
 import { idempotencyMiddleware } from './presentation/middleware/IdempotencyMiddleware';
 import { redisCacheService } from './infrastructure/cache/RedisCacheService';
+import {
+  rateLimitMiddleware,
+  sanitizeRequest,
+  requestSizeLimitMiddleware,
+  validateContentType,
+} from './presentation/middleware/ValidationMiddleware';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3024;
@@ -28,21 +34,57 @@ console.log('[Main] Initializing DI Container...');
 const container = getContainer();
 console.log('[Main] DI Container initialized successfully');
 
-// Middleware
-app.use(helmet());
+// Security Middleware - Order matters!
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+}));
+
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key'],
+  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
 }));
+
+// Request logging
 app.use(morgan('combined'));
+
+// Rate limiting - Apply globally
+app.use(rateLimitMiddleware(
+  15 * 60 * 1000, // 15 minutes window
+  100 // 100 requests per window
+));
+
+// Request size limit
+app.use(requestSizeLimitMiddleware(10 * 1024 * 1024)); // 10MB
+
+// Content type validation (for POST/PUT/PATCH)
+app.use(validateContentType(['application/json']));
+
+// Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Sanitize all requests
+app.use(sanitizeRequest);
 
 // Connect Redis (best-effort)
 redisCacheService.connect().catch(() => console.warn('[Main] Redis not connected, idempotency will be in fail-open mode'));
 
-// Idempotency for write endpoints
-app.use(idempotencyMiddleware);
+// Idempotency for write endpoints (applied per-route, not globally)
 
 // Request logging
 app.use((req: Request, res: Response, next: NextFunction) => {

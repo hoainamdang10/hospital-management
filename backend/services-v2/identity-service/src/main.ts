@@ -18,12 +18,16 @@ import path from 'path';
 // Bootstrap modules
 import {
   loadConfig,
+  validateConfig,
+  ValidationMode,
   createLogger,
   buildExpressApp,
   buildContainer,
   startServer,
   setupGracefulShutdown,
-  createCleanupFunction
+  createCleanupFunction,
+  createMetricsAuth,
+  registerErrorHandlers
 } from './bootstrap';
 
 // Routes
@@ -52,7 +56,7 @@ declare global {
  * Orchestrates service initialization using modular bootstrap architecture
  */
 async function bootstrap() {
-  // Step 1: Load and validate configuration
+  // Step 1: Load configuration
   const config = loadConfig();
 
   // Step 2: Create logger
@@ -64,33 +68,34 @@ async function bootstrap() {
   });
 
   try {
-    // Step 3: Build dependency container
+    // Step 3: Validate configuration (fail-fast)
+    logger.info('Validating configuration...');
+    const validationMode = config.nodeEnv === 'production'
+      ? ValidationMode.STRICT
+      : ValidationMode.DEVELOPMENT;
+    validateConfig(logger, validationMode);
+    logger.info('Configuration validated successfully', { mode: validationMode });
+    // Step 4: Build dependency container
     logger.info('Building dependency container...');
     const container = await buildContainer(config, logger);
     logger.info('Dependency container built successfully');
 
-    // Step 4: Build Express application
+    // Step 5: Build Express application
     logger.info('Building Express application...');
     const app = buildExpressApp(config, logger, container.cache);
     logger.info('Express application built successfully');
 
-    // Step 5: Register API routes
+    // Step 6: Register API routes
     logger.info('Registering API routes...');
     const routeDependencies = container.getRouteDependencies();
     registerRoutes(app, routeDependencies);
     logger.info('API routes registered successfully');
 
-    // Step 6: Register Swagger documentation
-    try {
-      const swaggerDocument = YAML.load(path.join(__dirname, '../docs/swagger.yaml'));
-      app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-      logger.info('Swagger documentation registered at /api-docs');
-    } catch (error) {
-      logger.warn('Failed to load Swagger documentation', { error });
-    }
+    // Step 7: Register protected endpoints (metrics & docs)
+    const metricsAuth = createMetricsAuth(config, logger);
 
-    // Step 7: Register Prometheus metrics endpoint
-    app.get('/metrics', async (_req, res) => {
+    // Prometheus metrics endpoint (protected)
+    app.get('/metrics', metricsAuth, async (_req, res) => {
       try {
         res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
         const metrics = await prometheusMetrics.getMetrics();
@@ -100,19 +105,32 @@ async function bootstrap() {
         res.status(500).send('Failed to generate metrics');
       }
     });
-    logger.info('Prometheus metrics endpoint registered at /metrics');
+    logger.info('Prometheus metrics endpoint registered at /metrics (protected)');
 
-    // Step 8: Start HTTP server
+    // Swagger documentation (protected)
+    try {
+      const swaggerDocument = YAML.load(path.join(__dirname, '../docs/swagger.yaml'));
+      app.use('/api-docs', metricsAuth, swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+      logger.info('Swagger documentation registered at /api-docs (protected)');
+    } catch (error) {
+      logger.warn('Failed to load Swagger documentation', { error });
+    }
+
+    // Step 8: Register error handlers (MUST be last)
+    logger.info('Registering error handlers...');
+    registerErrorHandlers(app, logger);
+
+    // Step 9: Start HTTP server
     logger.info('Starting HTTP server...');
     const server = await startServer(app, config.port, logger);
     logger.info(`Identity Service started successfully on port ${config.port}`);
 
-    // Step 9: Start event consumers
+    // Step 10: Start event consumers
     logger.info('Starting event consumers...');
     await container.startEventConsumers();
     logger.info('Event consumers started successfully');
 
-    // Step 10: Setup graceful shutdown
+    // Step 11: Setup graceful shutdown
     logger.info('Setting up graceful shutdown...');
     const cleanup = createCleanupFunction([
       {
@@ -136,8 +154,8 @@ async function bootstrap() {
       port: config.port,
       environment: config.nodeEnv,
       healthCheck: `http://localhost:${config.port}/health`,
-      apiDocs: `http://localhost:${config.port}/api-docs`,
-      metrics: `http://localhost:${config.port}/metrics`
+      apiDocs: `http://localhost:${config.port}/api-docs (protected)`,
+      metrics: `http://localhost:${config.port}/metrics (protected)`
     });
 
   } catch (error) {

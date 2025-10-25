@@ -11,6 +11,7 @@ import { IUserRepository } from '../repositories/IUserRepository';
 import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface AssignRoleRequest {
     userId: string;
     roleType: string;
@@ -34,8 +35,9 @@ export declare class AssignRoleUseCase implements IUseCase<AssignRoleRequest, As
     private permissionRepository;
     private logger;
     private circuitBreaker;
+    private eventPublisher?;
     private readonly VALID_ROLES;
-    constructor(userRepository: IUserRepository, permissionRepository: IPermissionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    constructor(userRepository: IUserRepository, permissionRepository: IPermissionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: AssignRoleRequest): Promise<AssignRoleResponse>;
     private executeImpl;
     private validateRequest;

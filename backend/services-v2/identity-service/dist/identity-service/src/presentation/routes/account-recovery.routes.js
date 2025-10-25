@@ -9,7 +9,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAccountRecoveryRoutes = createAccountRecoveryRoutes;
 const express_1 = require("express");
-const Logger_1 = require("../../infrastructure/logging/Logger");
 function getErrorMessage(error) {
     if (error instanceof Error)
         return error.message;
@@ -17,6 +16,7 @@ function getErrorMessage(error) {
 }
 function createAccountRecoveryRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps;
     // Get recovery methods (PROTECTED)
     router.get('/methods', deps.authMiddleware.authenticate(), async (req, res) => {
         try {
@@ -26,7 +26,7 @@ function createAccountRecoveryRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Get recovery methods error', { error: getErrorMessage(error) });
+            logger.error('Get recovery methods error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to get recovery methods'
@@ -43,7 +43,7 @@ function createAccountRecoveryRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Update recovery methods error', { error: getErrorMessage(error) });
+            logger.error('Update recovery methods error', { error: getErrorMessage(error) });
             res.status(400).json({
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to update recovery methods'
@@ -62,7 +62,7 @@ function createAccountRecoveryRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Request password reset error', { error: getErrorMessage(error) });
+            logger.error('Request password reset error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to request password reset'
@@ -80,7 +80,7 @@ function createAccountRecoveryRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Verify reset token error', { error: getErrorMessage(error) });
+            logger.error('Verify reset token error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to verify reset token'
@@ -100,7 +100,7 @@ function createAccountRecoveryRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Reset password with token error', { error: getErrorMessage(error) });
+            logger.error('Reset password with token error', { error: getErrorMessage(error) });
             res.status(400).json({
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to reset password'
@@ -120,7 +120,7 @@ function createAccountRecoveryRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Get recovery history error', { error: getErrorMessage(error) });
+            logger.error('Get recovery history error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to get recovery history'

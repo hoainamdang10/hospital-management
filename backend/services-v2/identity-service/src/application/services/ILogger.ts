@@ -53,5 +53,12 @@ export interface ILogger {
    * @param meta Optional metadata
    */
   fatal(message: string, meta?: LogMetadata): void;
+
+  /**
+   * Create child logger with additional context
+   * Used for request-scoped logging with requestId
+   * @param bindings Additional context to include in all logs
+   */
+  child?(bindings: Record<string, unknown>): ILogger;
 }
 

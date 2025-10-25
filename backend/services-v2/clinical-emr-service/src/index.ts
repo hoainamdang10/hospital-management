@@ -12,7 +12,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { DIContainer } from '../shared/infrastructure/di/container';
+import { DIContainer } from '@shared/infrastructure/di/container';
 import { setupDependencies } from './infrastructure/di/setup';
 import { setupRoutes } from './presentation/routes';
 import { logger } from './infrastructure/logging/logger';
@@ -73,9 +73,9 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
 
 // Start server
 app.listen(PORT, () => {
-  logger.info(`🏥 ${serviceName} started on port ${PORT}`);
-  logger.info(`📋 Features: ${config.features.join(', ')}`);
-  logger.info(`🎯 Patterns: ${config.patterns.join(', ')}`);
+  logger.info(`🏥 Clinical EMR Service started on port ${PORT}`);
+  logger.info('📋 Features: Medical Records, Encounters, Diagnoses, Prescriptions');
+  logger.info('🎯 Patterns: Medical Workflow, FHIR Compliance, Audit Trail');
 });
 
 export default app;

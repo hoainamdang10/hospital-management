@@ -368,6 +368,93 @@ export class PatientController {
   }
 
   /**
+   * Get patient list with pagination
+   * GET /api/v1/patients
+   */
+  async getPatientList(req: Request, res: Response): Promise<void> {
+    try {
+      const { 
+        page = '1', 
+        limit = '20', 
+        isActive, 
+        hasInsurance,
+        city,
+        province,
+        sortField = 'created_at',
+        sortDirection = 'desc'
+      } = req.query;
+      const requestedBy = getUserId(req);
+      const requestedByRole = getUserRole(req);
+
+      this.logger.info('Getting patient list', { page, limit });
+
+      const parsedPage = Number(page);
+      const parsedLimit = Number(limit);
+      const parsedIsActive =
+        typeof isActive === 'string'
+          ? isActive === 'true'
+            ? true
+            : isActive === 'false'
+              ? false
+              : undefined
+          : undefined;
+      const parsedHasInsurance =
+        typeof hasInsurance === 'string'
+          ? hasInsurance === 'true'
+            ? true
+            : hasInsurance === 'false'
+              ? false
+              : undefined
+          : undefined;
+
+      const query = {
+        queryId: randomUUID(),
+        queryType: 'GetPatientList' as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          filters: {
+            isActive: parsedIsActive,
+            hasInsurance: parsedHasInsurance,
+            city: city as string | undefined,
+            province: province as string | undefined
+          },
+          pagination: {
+            page: Number.isNaN(parsedPage) ? 1 : parsedPage,
+            limit: Number.isNaN(parsedLimit) ? 20 : parsedLimit
+          },
+          sorting: {
+            field: sortField as string,
+            direction: sortDirection as 'asc' | 'desc'
+          },
+          requestedBy,
+          requestedByRole
+        }
+      };
+
+      const result = await this.patientQueryHandlers.handleGetPatientList(query);
+
+      if (!result.success) {
+        throw new DomainError(result.message);
+      }
+
+      ResponseHelper.paginated(
+        res,
+        result.data.patients,
+        result.data.pagination.page,
+        result.data.pagination.limit,
+        result.data.pagination.total
+      );
+
+    } catch (error) {
+      this.logger.error('Error getting patient list', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Search patients
    * GET /api/v1/patients/search?searchTerm=...
    */

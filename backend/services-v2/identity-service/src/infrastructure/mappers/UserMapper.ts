@@ -14,6 +14,7 @@ import { User } from '../../domain/aggregates/User';
 import { Email } from '../../domain/value-objects/Email';
 import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
 import { HealthcareRole } from '../../domain/entities/HealthcareRole';
+import { AccountStatus } from '../../domain/value-objects/AccountStatus';
 import { getErrorMessage } from '../../utils/error-helper';
 
 /**
@@ -27,8 +28,12 @@ export interface UserRecord {
   phone_number?: string;
   avatar_url?: string;
   role_type: string;
-  is_active: boolean;
+  is_active: boolean; // Deprecated - use account_status
+  account_status?: string; // New field: 'active' | 'locked' | 'deactivated' | 'suspended'
   is_verified: boolean;
+  deactivation_reason?: string; // Reason for deactivation/lock
+  deactivated_at?: string; // When account was deactivated
+  deactivated_by?: string; // Who deactivated the account
   citizen_id?: string;
   date_of_birth?: string;
   gender?: string;
@@ -84,13 +89,25 @@ export class UserMapper {
         ? roleTypes.map(roleType => HealthcareRole.fromRoleType(roleType))
         : [HealthcareRole.fromRoleType('patient')]; // Default to patient if no roles
 
+      // Map account_status from database or fallback to is_active
+      let accountStatus: AccountStatus;
+      if (record.account_status) {
+        accountStatus = record.account_status as AccountStatus;
+      } else {
+        // Backward compatibility: map is_active to AccountStatus
+        accountStatus = (record.is_active ?? true) ? AccountStatus.ACTIVE : AccountStatus.LOCKED;
+      }
+
       return User.reconstitute(
         record.id,
         email,
         personalInfo,
         healthcareRoles, // Multiple roles
-        record.is_active ?? true,
+        accountStatus,
         record.is_verified ?? false,
+        record.deactivation_reason,
+        record.deactivated_at ? new Date(record.deactivated_at) : undefined,
+        record.deactivated_by,
         undefined, // lastLoginAt - will be set from user_sessions if needed
         new Date(record.created_at),
         new Date(record.updated_at)
@@ -126,8 +143,12 @@ export class UserMapper {
       phone_number: user.personalInfo.phoneNumber,
       emergency_contact_name: user.personalInfo.emergencyContactName,
       emergency_contact_phone: user.personalInfo.emergencyContactPhone,
-      is_active: user.isActive,
+      account_status: user.accountStatus,
+      is_active: user.isActive, // Backward compatibility
       is_verified: user.isEmailVerified,
+      deactivation_reason: user.deactivationReason,
+      deactivated_at: user.deactivatedAt?.toISOString(),
+      deactivated_by: user.deactivatedBy,
       created_at: user.createdAt.toISOString(),
       updated_at: user.updatedAt.toISOString()
     };

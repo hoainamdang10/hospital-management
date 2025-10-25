@@ -7,14 +7,14 @@
  * @compliance Event-Driven Architecture, Vietnamese Healthcare Standards, FHIR R4
  */
 
-import { BaseEventHandler, EventProcessingResult } from '../../../shared/events/BaseEventHandler';
-import { IntegrationEvent } from '../../../shared/events/EventBusConfiguration';
+import { BaseEventHandler, EventProcessingResult } from '@shared/events/BaseEventHandler';
+import { IntegrationEvent } from '@shared/events/EventBusConfiguration';
 import {
   AppointmentCompletedEvent,
   PatientRegisteredEvent,
   DiagnosisConfirmedEvent,
   VietnameseHealthcareEventFactory
-} from '../../../shared/events/VietnameseHealthcareEvents';
+} from '@shared/events/VietnameseHealthcareEvents';
 import { CreateMedicalRecordUseCase } from '../../application/use-cases/CreateMedicalRecordUseCase';
 import { UpdateMedicalRecordUseCase } from '../../application/use-cases/UpdateMedicalRecordUseCase';
 import { GenerateMedicalReportUseCase } from '../../application/use-cases/GenerateMedicalReportUseCase';

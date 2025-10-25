@@ -345,6 +345,68 @@ export const checkAvailabilitySchema = Joi.object({
   });
 
 /**
+ * V3 API Validation Schemas (Clean Architecture - Only IDs)
+ */
+
+// Confirm Appointment Schema
+export const confirmAppointmentSchema = Joi.object({
+  confirmedBy: Joi.string().optional(), // Will be set from auth context
+}).options({
+  abortEarly: false,
+  allowUnknown: false,
+  stripUnknown: true
+});
+
+// Cancel Appointment Schema
+export const cancelAppointmentSchema = Joi.object({
+  cancellationReason: Joi.string()
+    .min(3)
+    .max(500)
+    .required()
+    .message('Lý do hủy phải có từ 3-500 ký tự'),
+  cancelledBy: Joi.string().optional(), // Will be set from auth context
+}).options({
+  abortEarly: false,
+  allowUnknown: false,
+  stripUnknown: true
+});
+
+// Get Appointment Schema (params)
+export const getAppointmentSchema = Joi.object({
+  id: Joi.string()
+    .required()
+    .message('Mã cuộc hẹn là bắt buộc'),
+}).options({
+  abortEarly: false,
+  allowUnknown: false,
+  stripUnknown: true
+});
+
+// List Appointments Schema (query)
+export const listAppointmentsSchema = Joi.object({
+  patientId: Joi.string().optional(),
+  doctorId: Joi.string().optional(),
+  startDate: Joi.date().optional(),
+  endDate: Joi.date()
+    .when('startDate', {
+      is: Joi.exist(),
+      then: Joi.date().greater(Joi.ref('startDate')),
+      otherwise: Joi.date()
+    })
+    .optional()
+    .message('Ngày kết thúc phải sau ngày bắt đầu'),
+  status: Joi.string()
+    .valid('SCHEDULED', 'CONFIRMED', 'ARRIVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW')
+    .optional(),
+  limit: Joi.number().integer().min(1).max(100).optional().default(50),
+  offset: Joi.number().integer().min(0).optional().default(0),
+}).options({
+  abortEarly: false,
+  allowUnknown: false,
+  stripUnknown: true
+});
+
+/**
  * Common validation options
  */
 export const validationOptions = {

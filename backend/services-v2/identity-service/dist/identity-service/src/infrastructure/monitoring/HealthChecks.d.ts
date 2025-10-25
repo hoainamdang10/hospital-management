@@ -7,41 +7,13 @@
  * @compliance Production-Ready, HIPAA-Compliant Monitoring
  */
 import { ILogger } from '../../application/services/ILogger';
-export declare enum HealthStatus {
-    HEALTHY = "HEALTHY",
-    DEGRADED = "DEGRADED",
-    UNHEALTHY = "UNHEALTHY",
-    UNKNOWN = "UNKNOWN"
-}
-export interface HealthCheckResult {
-    status: HealthStatus;
-    timestamp: Date;
-    responseTime: number;
-    details?: Record<string, unknown>;
-    error?: string;
-}
-export interface ServiceHealth {
-    overall: HealthStatus;
-    components: {
-        database: HealthCheckResult;
-        authentication: HealthCheckResult;
-        authorization: HealthCheckResult;
-        sessions: HealthCheckResult;
-        audit: HealthCheckResult;
-        circuitBreakers: HealthCheckResult;
-    };
-    metadata: {
-        version: string;
-        uptime: number;
-        environment: string;
-        timestamp: Date;
-    };
-}
+import { IHealthCheckService, HealthStatus, HealthCheckResult, ServiceHealth } from '../../application/services/IHealthCheckService';
+export { HealthStatus, HealthCheckResult, ServiceHealth };
 /**
  * Health Check Service for Identity Service
  * Provides comprehensive monitoring of all service components
  */
-export declare class IdentityServiceHealthCheck {
+export declare class IdentityServiceHealthCheck implements IHealthCheckService {
     private logger;
     private supabaseClient;
     private startTime;

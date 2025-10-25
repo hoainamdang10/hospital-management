@@ -132,7 +132,7 @@ const loggingMiddleware = (req, res, next) => {
     // Override res.end to capture response details
     const originalEnd = res.end;
     let responseBody = '';
-    res.end = function (chunk, encoding) {
+    res.end = function (chunk, encoding, callback) {
         if (chunk) {
             responseBody += chunk;
         }

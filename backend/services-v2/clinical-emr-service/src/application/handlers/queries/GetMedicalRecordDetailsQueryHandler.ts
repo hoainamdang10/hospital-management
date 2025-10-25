@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/use-cases/base/use-case.interface';
 import { IMedicalRecordRepository } from '../../../domain/repositories/IMedicalRecordRepository';
 import { RecordId } from '../../../domain/value-objects/RecordId';
 import { MedicalRecordAggregate } from '../../../domain/aggregates/clinical.aggregate';
@@ -388,7 +388,7 @@ export class GetMedicalRecordDetailsQueryHandler extends BaseHealthcareUseCase<G
   /**
    * Validate query
    */
-  async validate(query: GetMedicalRecordDetailsQuery): Promise<ValidationResult> {
+  override async validate(query: GetMedicalRecordDetailsQuery): Promise<ValidationResult> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
     // Required fields validation

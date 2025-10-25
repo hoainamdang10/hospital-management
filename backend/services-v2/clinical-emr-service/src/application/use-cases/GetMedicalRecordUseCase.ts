@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/use-cases/base/use-case.interface';
 import { IMedicalRecordRepository, MedicalRecordNotFoundError } from '../../domain/repositories/IMedicalRecordRepository';
 import { RecordId } from '../../domain/value-objects/RecordId';
 import { MedicalRecordStatus } from '../../domain/aggregates/clinical.aggregate';
@@ -23,6 +23,24 @@ export class GetMedicalRecordUseCase extends BaseHealthcareUseCase<GetMedicalRec
     private readonly medicalRecordRepository: IMedicalRecordRepository
   ) {
     super();
+  }
+
+  /**
+   * Public execute method - required by BaseHealthcareUseCase
+   */
+  public override async execute(request: GetMedicalRecordRequest): Promise<GetMedicalRecordResponse> {
+    // Validate
+    const validation = await this.validate(request);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        message: 'Validation failed',
+        errors: validation.errors
+      };
+    }
+    
+    // Execute
+    return await this.executeInternal(request);
   }
 
   /**
@@ -122,7 +140,7 @@ export class GetMedicalRecordUseCase extends BaseHealthcareUseCase<GetMedicalRec
   /**
    * Validate request
    */
-  async validate(request: GetMedicalRecordRequest): Promise<ValidationResult> {
+  override async validate(request: GetMedicalRecordRequest): Promise<ValidationResult> {
     const errors = validateGetMedicalRecordRequest(request);
     
     return {

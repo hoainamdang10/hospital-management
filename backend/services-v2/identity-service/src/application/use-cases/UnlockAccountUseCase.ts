@@ -12,6 +12,8 @@ import { IUserRepository } from '../repositories/IUserRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { UserId } from '../../domain/value-objects/UserId';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { UserAccountUnlockedEvent } from '../../domain/events/UserAccountUnlockedEvent';
 
 export interface UnlockAccountRequest {
   userId: string; // User to unlock
@@ -36,7 +38,8 @@ export class UnlockAccountUseCase
   constructor(
     private userRepository: IUserRepository,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: UnlockAccountRequest): Promise<UnlockAccountResponse> {
@@ -84,8 +87,17 @@ export class UnlockAccountUseCase
         };
       }
 
-      // 3. Check if user is already unlocked
-      if (user.isActive) {
+      // 3. Check if user is permanently deactivated
+      if (user.accountStatus === 'deactivated') {
+        return {
+          success: false,
+          message: 'Không thể mở khóa tài khoản đã bị vô hiệu hóa vĩnh viễn',
+          error: 'PERMANENTLY_DEACTIVATED'
+        };
+      }
+
+      // 4. Check if user is already active
+      if (user.accountStatus === 'active') {
         return {
           success: false,
           message: 'Tài khoản đã được mở khóa trước đó',
@@ -93,8 +105,8 @@ export class UnlockAccountUseCase
         };
       }
 
-      // 4. Unlock account
-      user.activate();
+      // 4. Unlock account (activate from LOCKED status)
+      user.activate(request.unlockedBy, request.reason);
       await this.userRepository.save(user);
 
       // 5. Log audit trail
@@ -103,6 +115,31 @@ export class UnlockAccountUseCase
         unlockedBy: request.unlockedBy,
         reason: request.reason
       });
+
+      // 6. Publish UserAccountUnlockedEvent
+      if (this.eventPublisher) {
+        try {
+          const event = new UserAccountUnlockedEvent(
+            userIdVO,
+            request.unlockedBy,
+            request.reason,
+            user.email.value,
+            user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+          );
+
+          await this.eventPublisher.publishDomainEvents([event]);
+
+          this.logger.info('UserAccountUnlockedEvent published', {
+            userId: request.userId
+          });
+        } catch (error) {
+          this.logger.error('Failed to publish UserAccountUnlockedEvent', {
+            userId: request.userId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          // Don't fail unlock operation if event publishing fails
+        }
+      }
 
       return {
         success: true,

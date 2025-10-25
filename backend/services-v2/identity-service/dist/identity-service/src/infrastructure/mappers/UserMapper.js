@@ -16,6 +16,7 @@ const User_1 = require("../../domain/aggregates/User");
 const Email_1 = require("../../domain/value-objects/Email");
 const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
 const HealthcareRole_1 = require("../../domain/entities/HealthcareRole");
+const AccountStatus_1 = require("../../domain/value-objects/AccountStatus");
 const error_helper_1 = require("../../utils/error-helper");
 /**
  * User Mapper
@@ -55,8 +56,17 @@ class UserMapper {
             const healthcareRoles = roleTypes.length > 0
                 ? roleTypes.map(roleType => HealthcareRole_1.HealthcareRole.fromRoleType(roleType))
                 : [HealthcareRole_1.HealthcareRole.fromRoleType('patient')]; // Default to patient if no roles
+            // Map account_status from database or fallback to is_active
+            let accountStatus;
+            if (record.account_status) {
+                accountStatus = record.account_status;
+            }
+            else {
+                // Backward compatibility: map is_active to AccountStatus
+                accountStatus = (record.is_active ?? true) ? AccountStatus_1.AccountStatus.ACTIVE : AccountStatus_1.AccountStatus.LOCKED;
+            }
             return User_1.User.reconstitute(record.id, email, personalInfo, healthcareRoles, // Multiple roles
-            record.is_active ?? true, record.is_verified ?? false, undefined, // lastLoginAt - will be set from user_sessions if needed
+            accountStatus, record.is_verified ?? false, record.deactivation_reason, record.deactivated_at ? new Date(record.deactivated_at) : undefined, record.deactivated_by, undefined, // lastLoginAt - will be set from user_sessions if needed
             new Date(record.created_at), new Date(record.updated_at));
         }
         catch (error) {
@@ -88,8 +98,12 @@ class UserMapper {
             phone_number: user.personalInfo.phoneNumber,
             emergency_contact_name: user.personalInfo.emergencyContactName,
             emergency_contact_phone: user.personalInfo.emergencyContactPhone,
-            is_active: user.isActive,
+            account_status: user.accountStatus,
+            is_active: user.isActive, // Backward compatibility
             is_verified: user.isEmailVerified,
+            deactivation_reason: user.deactivationReason,
+            deactivated_at: user.deactivatedAt?.toISOString(),
+            deactivated_by: user.deactivatedBy,
             created_at: user.createdAt.toISOString(),
             updated_at: user.updatedAt.toISOString()
         };

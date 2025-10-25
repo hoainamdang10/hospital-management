@@ -6,6 +6,7 @@
  * @version 2.0.0
  */
 import { ILogger } from '../../application/services/ILogger';
+import { ICacheService } from '../../application/services/ICacheService';
 export interface CacheOptions {
     ttl?: number;
     prefix?: string;
@@ -22,7 +23,7 @@ export interface CacheStats {
  * Redis Cache Service for Identity Service
  * Implements caching with TTL, invalidation, and pattern-based deletion
  */
-export declare class RedisCacheService {
+export declare class RedisCacheService implements ICacheService {
     private logger;
     private client;
     private isConnected;
@@ -90,4 +91,5 @@ export declare class RedisCacheService {
      */
     private updateHitRate;
 }
+export declare const redisCacheService: RedisCacheService;
 //# sourceMappingURL=RedisCacheService.d.ts.map

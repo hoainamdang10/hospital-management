@@ -21,9 +21,9 @@ import { UpdateMedicalRecordUseCase } from '../../application/use-cases/UpdateMe
 
 // Infrastructure
 import { SupabaseMedicalRecordRepository } from '../persistence/SupabaseMedicalRecordRepository';
-import { OptimizedSupabaseClient } from '../../../shared/infrastructure/database/optimized-supabase-client';
-import { IDomainEventPublisher } from '../../../shared/domain/events/IDomainEventPublisher';
-import { InMemoryDomainEventPublisher } from '../../../shared/infrastructure/events/InMemoryDomainEventPublisher';
+import { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
+import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
+import { InMemoryDomainEventPublisher } from '@shared/infrastructure/events/InMemoryDomainEventPublisher';
 
 // Configuration
 import { ClinicalEMRConfig } from '../config/clinical-emr-config';
@@ -48,19 +48,11 @@ export function createContainer(): Container {
     .toDynamicValue((context) => {
       const config = context.container.get<ClinicalEMRConfig>(TYPES.Config);
       return new OptimizedSupabaseClient({
-        url: config.supabaseUrl,
-        serviceRoleKey: config.supabaseServiceRoleKey,
-        schema: 'clinical_schema',
-        poolConfig: {
-          min: 2,
-          max: 10,
-          acquireTimeoutMillis: 30000,
-          createTimeoutMillis: 30000,
-          destroyTimeoutMillis: 5000,
-          idleTimeoutMillis: 30000,
-          reapIntervalMillis: 1000,
-          createRetryIntervalMillis: 200
-        }
+        supabaseUrl: config.supabaseUrl,
+        supabaseServiceKey: config.supabaseServiceRoleKey,
+        serviceName: 'clinical-emr-service',
+        schemaName: 'medical_records_schema',
+        enableOptimizations: process.env.NODE_ENV !== 'test'
       });
     })
     .inSingletonScope();

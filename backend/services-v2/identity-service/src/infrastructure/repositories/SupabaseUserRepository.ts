@@ -23,6 +23,7 @@ import { UserId } from '../../domain/value-objects/UserId';
 import { Email } from '../../domain/value-objects/Email';
 import { UserSession } from '../../domain/entities/UserSession';
 import { ILogger } from '../../application/services/ILogger';
+import { IEventPublisher } from '../../application/services/IEventPublisher';
 
 // Request/Response types
 export interface CreateUserRequest {
@@ -107,6 +108,7 @@ export class SupabaseUserRepository implements IUserRepository {
   private circuitBreaker = CircuitBreakerFactory.getBreaker('user-repository');
   private cacheService?: RedisCacheService;
   private permissionRepository?: IPermissionRepository;
+  private eventPublisher?: IEventPublisher;
 
   // Cache TTL constants (in seconds)
   private readonly CACHE_TTL = {
@@ -121,7 +123,8 @@ export class SupabaseUserRepository implements IUserRepository {
     supabaseKey: string,
     private logger: ILogger,
     cacheService?: RedisCacheService,
-    permissionRepository?: IPermissionRepository
+    permissionRepository?: IPermissionRepository,
+    eventPublisher?: IEventPublisher
   ) {
     // Configure Supabase client with auth_schema
     // Note: TypeScript will infer the correct schema type from createClient options
@@ -142,6 +145,7 @@ export class SupabaseUserRepository implements IUserRepository {
 
     this.cacheService = cacheService;
     this.permissionRepository = permissionRepository;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
@@ -556,6 +560,47 @@ export class SupabaseUserRepository implements IUserRepository {
     }
     // Invalidate caches
     await this.invalidateUserCache(record.id!, record.email!);
+    
+    // Publish domain events
+    await this.publishDomainEvents(user);
+  }
+
+  /**
+   * Publish domain events from aggregate
+   */
+  private async publishDomainEvents(user: User): Promise<void> {
+    if (!this.eventPublisher) {
+      this.logger.debug('Event publisher not configured, skipping event publishing');
+      return;
+    }
+
+    const events = user.getUncommittedEvents();
+    if (events.length === 0) {
+      return;
+    }
+
+    try {
+      // Publish events in batch
+      await this.eventPublisher.publishDomainEvents(events);
+
+      // Mark events as committed after successful publishing
+      user.markEventsAsCommitted();
+
+      this.logger.info('Domain events published', {
+        userId: user.id,
+        eventCount: events.length,
+        eventTypes: events.map((event) => event.eventType)
+      });
+    } catch (error) {
+      this.logger.error('Failed to publish domain events', {
+        userId: user.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        eventCount: events.length
+      });
+
+      // Don't throw - event publishing failure shouldn't fail the transaction
+      // Events will be retried on next save or can be published via outbox pattern
+    }
   }
 
   /**

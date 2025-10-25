@@ -10,7 +10,6 @@
 import { Request, Response } from 'express';
 import { NotificationApplicationService } from '../../application/services/NotificationApplicationService';
 import { SendNotificationCommand } from '../../application/use-cases/SendNotificationUseCase';
-import { ScheduleNotificationCommand } from '../../application/use-cases/ScheduleNotificationUseCase';
 import { ProcessQueueCommand } from '../../application/use-cases/ProcessNotificationQueueUseCase';
 
 export class NotificationController {
@@ -31,14 +30,13 @@ export class NotificationController {
         templateData: req.body.templateData || {},
         channels: req.body.channels,
         priority: req.body.priority || 'NORMAL',
-        scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt) : undefined,
-        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
         metadata: {
           ...req.body.metadata,
           userId: req.user?.id,
-          sessionId: req.sessionID,
           source: 'API',
-          requestId: req.headers['x-request-id'] as string
+          requestId: req.headers['x-request-id'] as string,
+          scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt) : undefined,
+          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined
         }
       };
 
@@ -50,9 +48,7 @@ export class NotificationController {
         data: {
           notificationId: result.notificationId,
           status: result.status,
-          channels: result.channels,
-          deliveryResults: result.deliveryResults,
-          estimatedDeliveryTime: result.estimatedDeliveryTime
+          deliveryResults: result.deliveryResults
         },
         timestamp: new Date().toISOString()
       });
@@ -73,22 +69,21 @@ export class NotificationController {
    */
   public async scheduleNotification(req: Request, res: Response): Promise<void> {
     try {
-      const command: ScheduleNotificationCommand = {
+      const command: SendNotificationCommand = {
         recipientId: req.body.recipientId,
         recipientType: req.body.recipientType,
         templateType: req.body.templateType,
         templateData: req.body.templateData || {},
         channels: req.body.channels,
         priority: req.body.priority || 'NORMAL',
-        scheduledAt: new Date(req.body.scheduledAt),
-        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
-        recurrence: req.body.recurrence,
         metadata: {
           ...req.body.metadata,
           userId: req.user?.id,
-          sessionId: req.sessionID,
           source: 'API',
-          requestId: req.headers['x-request-id'] as string
+          requestId: req.headers['x-request-id'] as string,
+          scheduledAt: new Date(req.body.scheduledAt),
+          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
+          recurrence: req.body.recurrence
         }
       };
 
@@ -98,12 +93,9 @@ export class NotificationController {
         success: true,
         message: 'Thông báo đã được lên lịch thành công',
         data: {
-          notificationId: result.notificationId,
-          scheduledAt: result.scheduledAt,
-          status: result.status,
-          channels: result.channels,
-          recurrence: result.recurrence,
-          nextScheduledNotifications: result.nextScheduledNotifications
+          notificationId: result.notificationId || result.notificationId,
+          scheduledAt: req.body.scheduledAt,
+          status: result.status
         },
         timestamp: new Date().toISOString()
       });
@@ -316,7 +308,6 @@ export class NotificationController {
         metadata: {
           ...req.body.metadata,
           userId: req.user?.id,
-          sessionId: req.sessionID,
           source: 'API',
           requestId: req.headers['x-request-id'] as string
         }
@@ -430,7 +421,7 @@ export class NotificationController {
    * Get dashboard summary
    * GET /api/v1/notifications/dashboard
    */
-  public async getDashboard(req: Request, res: Response): Promise<void> {
+  public async getDashboard(_req: Request, res: Response): Promise<void> {
     try {
       const dashboard = await this.notificationService.getDashboardSummary();
 
@@ -455,7 +446,7 @@ export class NotificationController {
    * Get service health
    * GET /api/v1/notifications/health
    */
-  public async getHealth(req: Request, res: Response): Promise<void> {
+  public async getHealth(_req: Request, res: Response): Promise<void> {
     try {
       const health = await this.notificationService.getHealthStatus();
 

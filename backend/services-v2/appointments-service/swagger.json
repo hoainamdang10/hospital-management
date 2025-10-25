@@ -1,0 +1,484 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Appointments Service API",
+    "version": "3.0.0",
+    "description": "Hospital Management System - Appointments Service with CQRS, Event-Driven Architecture, and Clean Architecture patterns",
+    "contact": {
+      "name": "Hospital Management Team",
+      "email": "api@hospital.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3024",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.hospital.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Appointments (Commands)",
+      "description": "Write operations - Schedule, confirm, cancel appointments"
+    },
+    {
+      "name": "Appointments (Queries)",
+      "description": "Read operations - Get appointments with denormalized data"
+    },
+    {
+      "name": "Queue Management",
+      "description": "Patient queue operations"
+    },
+    {
+      "name": "Recurring Appointments",
+      "description": "Manage recurring appointment series"
+    },
+    {
+      "name": "Availability",
+      "description": "Check doctor availability and find time slots"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": { "type": "string" },
+                    "status": { "type": "string" },
+                    "version": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments": {
+      "post": {
+        "summary": "Schedule a new appointment",
+        "tags": ["Appointments (Commands)"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleAppointmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Appointment scheduled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      },
+      "get": {
+        "summary": "List appointments (legacy - use V2 for better performance)",
+        "tags": ["Appointments (Commands)"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "doctorId",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of appointments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "appointments": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Appointment" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{id}": {
+      "get": {
+        "summary": "Get appointment by ID",
+        "tags": ["Appointments (Commands)"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{id}/confirm": {
+      "post": {
+        "summary": "Confirm appointment",
+        "tags": ["Appointments (Commands)"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{id}/cancel": {
+      "post": {
+        "summary": "Cancel appointment",
+        "tags": ["Appointments (Commands)"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cancellationReason"],
+                "properties": {
+                  "cancellationReason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Appointment cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/appointments": {
+      "get": {
+        "summary": "List appointments with denormalized data (CQRS Read Model)",
+        "tags": ["Appointments (Queries)"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "doctorId",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["SCHEDULED", "CONFIRMED", "ARRIVED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50, "maximum": 100 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of appointments with patient/doctor info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "appointments": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/AppointmentReadModel" }
+                    },
+                    "totalCount": { "type": "integer" },
+                    "hasMore": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/appointments/{id}": {
+      "get": {
+        "summary": "Get appointment with denormalized data",
+        "tags": ["Appointments (Queries)"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment details with patient/doctor info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentReadModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ScheduleAppointmentRequest": {
+        "type": "object",
+        "required": ["patientId", "doctorId", "appointmentDate", "appointmentTime", "durationMinutes", "type", "priority", "consultationFee", "createdBy"],
+        "properties": {
+          "patientId": { "type": "string", "example": "PAT-202510-001" },
+          "doctorId": { "type": "string", "example": "DOC-202510-001" },
+          "appointmentDate": { "type": "string", "format": "date", "example": "2025-11-30" },
+          "appointmentTime": { "type": "string", "format": "time", "example": "10:00:00" },
+          "durationMinutes": { "type": "integer", "minimum": 15, "maximum": 480, "example": 30 },
+          "type": {
+            "type": "string",
+            "enum": ["CONSULTATION", "FOLLOW_UP", "EMERGENCY", "SURGERY", "PROCEDURE"],
+            "example": "CONSULTATION"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["LOW", "NORMAL", "URGENT", "EMERGENCY"],
+            "example": "NORMAL"
+          },
+          "reason": { "type": "string", "example": "Routine checkup" },
+          "consultationFee": { "type": "number", "example": 200000 },
+          "createdBy": { "type": "string", "example": "user-123" }
+        }
+      },
+      "ScheduleAppointmentResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "appointmentId": { "type": "string" },
+          "message": { "type": "string" },
+          "appointment": { "$ref": "#/components/schemas/Appointment" }
+        }
+      },
+      "Appointment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "appointmentId": { "type": "string" },
+          "patientId": { "type": "string" },
+          "doctorId": { "type": "string" },
+          "appointmentDate": { "type": "string", "format": "date" },
+          "appointmentTime": { "type": "string", "format": "time" },
+          "durationMinutes": { "type": "integer" },
+          "type": { "type": "string" },
+          "priority": { "type": "string" },
+          "status": { "type": "string" },
+          "consultationFee": { "type": "number" },
+          "paymentStatus": { "type": "string" }
+        }
+      },
+      "AppointmentReadModel": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "appointmentId": { "type": "string" },
+          "patientId": { "type": "string" },
+          "patientName": { "type": "string" },
+          "patientPhone": { "type": "string" },
+          "patientEmail": { "type": "string" },
+          "doctorId": { "type": "string" },
+          "doctorName": { "type": "string" },
+          "doctorSpecialization": { "type": "string" },
+          "appointmentDate": { "type": "string", "format": "date" },
+          "appointmentTime": { "type": "string", "format": "time" },
+          "status": { "type": "string" }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" },
+          "errors": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request - Invalid input",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - Invalid or missing JWT token",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden - Insufficient permissions",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Not found - Resource does not exist",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Too many requests - Rate limit exceeded",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    }
+  }
+}
+

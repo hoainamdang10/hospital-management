@@ -11,8 +11,8 @@
 import { MedicalRecordAggregate } from '../../domain/aggregates/clinical.aggregate';
 import { Diagnosis } from '../../domain/value-objects/Diagnosis';
 import { Medication } from '../../domain/value-objects/Medication';
-import { ILogger } from '../../../shared/infrastructure/logging/logger.interface';
-import { IAuditService } from '../../../shared/application/services/audit.service.interface';
+import { ILogger } from '@shared/infrastructure/logging/logger.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
 
 /**
  * FHIR Export Options

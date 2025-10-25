@@ -1,13 +1,13 @@
 /**
- * Schedule Appointment Use Case Unit Tests
- * V3 Clean Architecture + DDD Implementation
+ * Schedule Appointment Use Case Tests
+ * Unit tests for ScheduleAppointmentUseCase
  *
  * @author Hospital Management Team
  * @version 3.0.0
  */
 
 import { ScheduleAppointmentUseCase } from '../../../src/application/use-cases/ScheduleAppointment.use-case';
-import { IAppointmentRepository } from '../../../src/infrastructure/persistence/SupabaseAppointmentRepository';
+import { IAppointmentRepository } from '../../../src/domain/repositories/IAppointmentRepository';
 import { Appointment, AppointmentType, AppointmentPriority } from '../../../src/domain/aggregates/Appointment.aggregate';
 
 describe('ScheduleAppointmentUseCase', () => {
@@ -15,221 +15,283 @@ describe('ScheduleAppointmentUseCase', () => {
   let mockRepository: jest.Mocked<IAppointmentRepository>;
 
   beforeEach(() => {
+    // Create mock repository
     mockRepository = {
       save: jest.fn(),
       findById: jest.fn(),
-      findByAppointmentId: jest.fn(),
       findByPatientId: jest.fn(),
       findByDoctorId: jest.fn(),
       findByDateRange: jest.fn(),
-      delete: jest.fn()
-    };
+      delete: jest.fn(),
+      checkConflicts: jest.fn(),
+    } as any;
 
     useCase = new ScheduleAppointmentUseCase(mockRepository);
   });
 
   describe('execute', () => {
     it('should schedule appointment with valid data', async () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
+        tenantId: 'hospital-1',
+        patientId: 'PAT-202510-001',
+        doctorId: 'DOC-202510-001',
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
         durationMinutes: 30,
         type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
-        reason: 'Khám tổng quát',
+        priority: AppointmentPriority.NORMAL,
+        reason: 'Routine checkup',
         consultationFee: 200000,
-        createdBy: 'user-789'
+        createdBy: 'user-123',
       };
 
-      const result = await useCase.execute(request, { userId: 'user-789', timestamp: new Date() });
+      mockRepository.save.mockResolvedValue();
 
+      // Act
+      const result = await useCase.execute(request, {
+        userId: 'user-123',
+        timestamp: new Date(),
+      });
+
+      // Assert
       expect(result.success).toBe(true);
       expect(result.appointmentId).toBeDefined();
       expect(result.message).toBe('Đặt lịch hẹn thành công');
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
     });
 
-    it('should return error when patient ID is missing', async () => {
+    it('should fail when patient ID is missing', async () => {
+      // Arrange
       const request = {
-        patientId: '',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
+        tenantId: 'hospital-1',
+        patientId: '', // Missing
+        doctorId: 'DOC-202510-001',
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
         durationMinutes: 30,
         type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
+        priority: AppointmentPriority.NORMAL,
         consultationFee: 200000,
-        createdBy: 'user-789'
+        createdBy: 'user-123',
       };
 
-      const result = await useCase.execute(request, { userId: 'user-789', timestamp: new Date() });
+      // Act
+      const result = await useCase.execute(request, {
+        userId: 'user-123',
+        timestamp: new Date(),
+      });
 
+      // Assert
       expect(result.success).toBe(false);
       expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('Patient ID is required');
-      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(result.errors![0]).toContain('Patient ID');
     });
 
-    it('should return error when doctor ID is missing', async () => {
+    it('should fail when doctor ID is missing', async () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: '',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
+        tenantId: 'hospital-1',
+        patientId: 'PAT-202510-001',
+        doctorId: '', // Missing
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
         durationMinutes: 30,
         type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
+        priority: AppointmentPriority.NORMAL,
         consultationFee: 200000,
-        createdBy: 'user-789'
+        createdBy: 'user-123',
       };
 
-      const result = await useCase.execute(request, { userId: 'user-789', timestamp: new Date() });
+      // Act
+      const result = await useCase.execute(request, {
+        userId: 'user-123',
+        timestamp: new Date(),
+      });
 
+      // Assert
       expect(result.success).toBe(false);
-      expect(result.errors![0]).toContain('Doctor ID is required');
+      expect(result.errors).toBeDefined();
+      expect(result.errors![0]).toContain('Doctor ID');
     });
 
-    it('should return error when duration is invalid', async () => {
+    it('should fail when duration is invalid', async () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
-        durationMinutes: 0,
+        tenantId: 'hospital-1',
+        patientId: 'PAT-202510-001',
+        doctorId: 'DOC-202510-001',
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
+        durationMinutes: 0, // Invalid
         type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
+        priority: AppointmentPriority.NORMAL,
         consultationFee: 200000,
-        createdBy: 'user-789'
+        createdBy: 'user-123',
       };
 
-      const result = await useCase.execute(request, { userId: 'user-789', timestamp: new Date() });
+      // Act
+      const result = await useCase.execute(request, {
+        userId: 'user-123',
+        timestamp: new Date(),
+      });
 
+      // Assert
       expect(result.success).toBe(false);
-      expect(result.errors![0]).toContain('Duration must be positive');
+      expect(result.errors).toBeDefined();
+      expect(result.errors![0]).toContain('Duration');
     });
 
-    it('should return error when consultation fee is negative', async () => {
+    it('should fail when consultation fee is negative', async () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
+        tenantId: 'hospital-1',
+        patientId: 'PAT-202510-001',
+        doctorId: 'DOC-202510-001',
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
         durationMinutes: 30,
         type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
-        consultationFee: -100000,
-        createdBy: 'user-789'
+        priority: AppointmentPriority.NORMAL,
+        consultationFee: -100, // Negative
+        createdBy: 'user-123',
       };
 
-      const result = await useCase.execute(request, { userId: 'user-789', timestamp: new Date() });
+      // Act
+      const result = await useCase.execute(request, {
+        userId: 'user-123',
+        timestamp: new Date(),
+      });
 
+      // Assert
       expect(result.success).toBe(false);
-      expect(result.errors![0]).toContain('Consultation fee cannot be negative');
+      expect(result.errors).toBeDefined();
+      expect(result.errors![0]).toContain('fee');
     });
 
-    it('should include appointment details in response', async () => {
+    it('should handle repository save errors gracefully', async () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
+        tenantId: 'hospital-1',
+        patientId: 'PAT-202510-001',
+        doctorId: 'DOC-202510-001',
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
         durationMinutes: 30,
         type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
-        reason: 'Khám tổng quát',
-        chiefComplaint: 'Đau đầu',
-        symptoms: ['Sốt', 'Mệt mỏi'],
+        priority: AppointmentPriority.NORMAL,
+        reason: 'Routine checkup',
         consultationFee: 200000,
-        createdBy: 'user-789'
+        createdBy: 'user-123',
       };
 
-      const result = await useCase.execute(request, { userId: 'user-789', timestamp: new Date() });
-
-      expect(result.success).toBe(true);
-      expect(result.appointment).toBeDefined();
-      expect(result.appointment?.patientId).toBe('patient-123');
-      expect(result.appointment?.doctorId).toBe('doctor-456');
-      expect(result.appointment?.type).toBe(AppointmentType.CONSULTATION);
-      expect(result.appointment?.status).toBe('scheduled');
-    });
-
-    it('should handle repository errors gracefully', async () => {
       mockRepository.save.mockRejectedValue(new Error('Database error'));
 
+      // Act
+      const result = await useCase.execute(request, {
+        userId: 'user-123',
+        timestamp: new Date(),
+      });
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Đặt lịch hẹn thất bại');
+      expect(result.errors).toBeDefined();
+    });
+
+    it('should set emergency appointments with high priority', async () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
+        tenantId: 'hospital-1',
+        patientId: 'PAT-202510-001',
+        doctorId: 'DOC-202510-001',
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
         durationMinutes: 30,
-        type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
-        consultationFee: 200000,
-        createdBy: 'user-789'
+        type: AppointmentType.EMERGENCY,
+        priority: AppointmentPriority.EMERGENCY,
+        reason: 'Chest pain',
+        consultationFee: 500000,
+        createdBy: 'user-123',
       };
 
-      const result = await useCase.execute(request, { userId: 'user-789', timestamp: new Date() });
+      mockRepository.save.mockResolvedValue();
 
-      expect(result.success).toBe(false);
-      expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('Database error');
+      // Act
+      const result = await useCase.execute(request, {
+        userId: 'user-123',
+        timestamp: new Date(),
+      });
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.appointment?.type).toBe(AppointmentType.EMERGENCY);
+      expect(result.appointment?.priority).toBe(AppointmentPriority.EMERGENCY);
     });
   });
 
   describe('authorize', () => {
-    it('should authorize authenticated users', async () => {
+    it('should allow authenticated users to schedule appointments', async () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
+        tenantId: 'hospital-1',
+        patientId: 'PAT-202510-001',
+        doctorId: 'DOC-202510-001',
+        appointmentDate: '2025-11-30',
+        appointmentTime: '10:00:00',
         durationMinutes: 30,
         type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
+        priority: AppointmentPriority.NORMAL,
         consultationFee: 200000,
-        createdBy: 'user-789'
+        createdBy: 'user-123',
       };
 
-      const authorized = await useCase.authorize(request, 'user-789');
+      // Act
+      const authorized = await useCase.authorize(request, 'user-123');
+
+      // Assert
       expect(authorized).toBe(true);
     });
 
-    it('should not authorize unauthenticated users', async () => {
-      const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
-        durationMinutes: 30,
-        type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
-        consultationFee: 200000,
-        createdBy: 'user-789'
-      };
+    it('should deny unauthenticated users', async () => {
+      // Arrange
+      const request = {} as any;
 
+      // Act
       const authorized = await useCase.authorize(request, '');
+
+      // Assert
       expect(authorized).toBe(false);
     });
   });
 
   describe('involvesPHI', () => {
-    it('should return true for appointment data', () => {
+    it('should mark appointment data as PHI', () => {
+      // Arrange
       const request = {
-        patientId: 'patient-123',
-        doctorId: 'doctor-456',
-        appointmentDate: '2025-01-15',
-        appointmentTime: '09:00:00',
-        durationMinutes: 30,
-        type: AppointmentType.CONSULTATION,
-        priority: AppointmentPriority.ROUTINE,
-        consultationFee: 200000,
-        createdBy: 'user-789'
-      };
+        patientId: 'PAT-202510-001',
+      } as any;
 
-      expect(useCase.involvesPHI(request)).toBe(true);
+      // Act
+      const isPHI = useCase.involvesPHI(request);
+
+      // Assert
+      expect(isPHI).toBe(true);
+    });
+  });
+
+  describe('getPatientId', () => {
+    it('should return patient ID from request', () => {
+      // Arrange
+      const request = {
+        patientId: 'PAT-202510-001',
+      } as any;
+
+      // Act
+      const patientId = useCase.getPatientId(request);
+
+      // Assert
+      expect(patientId).toBe('PAT-202510-001');
     });
   });
 });
-

@@ -7,9 +7,9 @@
  * @compliance Clean Architecture, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/use-cases/base/use-case.interface';
 import { IMedicalRecordRepository } from '../../../domain/repositories/IMedicalRecordRepository';
-import { IDomainEventPublisher } from '../../../../shared/domain/events/IDomainEventPublisher';
+import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
 import { RecordId } from '../../../domain/value-objects/RecordId';
 import { 
   Medication, 
@@ -297,7 +297,7 @@ export class AddMedicationCommandHandler extends BaseHealthcareUseCase<AddMedica
   /**
    * Validate command
    */
-  async validate(command: AddMedicationCommand): Promise<ValidationResult> {
+  override async validate(command: AddMedicationCommand): Promise<ValidationResult> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
     // Required fields validation

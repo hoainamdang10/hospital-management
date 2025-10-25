@@ -19,9 +19,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PermissionService = void 0;
 const Permission_1 = require("../../domain/value-objects/Permission");
 class PermissionService {
-    constructor(permissionRepository, cache) {
+    constructor(permissionRepository, cache, logger) {
         this.permissionRepository = permissionRepository;
         this.cache = cache;
+        this.logger = logger;
     }
     /**
      * Check if user has a specific permission
@@ -61,7 +62,12 @@ class PermissionService {
             return false;
         }
         catch (error) {
-            console.error('[PermissionService] Error checking permission', error);
+            this.logger.error('[PermissionService] Error checking permission', {
+                userId: userId.value,
+                permission: permissionOrResource,
+                action,
+                error: error instanceof Error ? error.message : String(error)
+            });
             return false;
         }
     }
@@ -104,7 +110,12 @@ class PermissionService {
             return false;
         }
         catch (error) {
-            console.error('[PermissionService] Error checking permission with ownership', error);
+            this.logger.error('[PermissionService] Error checking permission with ownership', {
+                userId: userId.value,
+                permission,
+                resourceOwnerId,
+                error: error instanceof Error ? error.message : String(error)
+            });
             return false;
         }
     }
@@ -137,7 +148,11 @@ class PermissionService {
             return false;
         }
         catch (error) {
-            console.error('[PermissionService] Error checking any permission', error);
+            this.logger.error('Error checking any permission', {
+                userId,
+                permissions,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return false;
         }
     }
@@ -159,7 +174,11 @@ class PermissionService {
             return permissions.every((p) => userPermissions.includes(p));
         }
         catch (error) {
-            console.error('[PermissionService] Error checking all permissions', error);
+            this.logger.error('[PermissionService] Error checking all permissions', {
+                userId: userId.value,
+                permissions,
+                error: error instanceof Error ? error.message : String(error)
+            });
             return false;
         }
     }
@@ -172,7 +191,10 @@ class PermissionService {
             return await this.permissionRepository.getUserPermissions(userId);
         }
         catch (error) {
-            console.error('[PermissionService] Error getting effective permissions', error);
+            this.logger.error('Error getting effective permissions', {
+                userId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return [];
         }
     }
@@ -185,7 +207,10 @@ class PermissionService {
             return permissions.map((p) => Permission_1.Permission.fromString(p));
         }
         catch (error) {
-            console.error('[PermissionService] Error getting permissions as objects', error);
+            this.logger.error('Error getting permissions as objects', {
+                userId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return [];
         }
     }
@@ -221,7 +246,10 @@ class PermissionService {
             return permissions.includes('*');
         }
         catch (error) {
-            console.error('[PermissionService] Error checking admin status', error);
+            this.logger.error('Error checking admin status', {
+                userId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return false;
         }
     }
@@ -248,7 +276,10 @@ class PermissionService {
             return grouped;
         }
         catch (error) {
-            console.error('[PermissionService] Error grouping permissions', error);
+            this.logger.error('Error grouping permissions', {
+                userId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return new Map();
         }
     }
@@ -261,7 +292,10 @@ class PermissionService {
             await this.getEffectivePermissions(userId);
         }
         catch (error) {
-            console.error('[PermissionService] Error warming up cache', error);
+            this.logger.error('Error warming up cache', {
+                userId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     }
     /**
@@ -289,7 +323,10 @@ class PermissionService {
             return await this.permissionRepository.getUserRoles(userId);
         }
         catch (error) {
-            console.error('[PermissionService] Error getting user roles', error);
+            this.logger.error('Error getting user roles', {
+                userId,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return []; // Return empty array on error (fail-safe)
         }
     }
@@ -302,7 +339,11 @@ class PermissionService {
             return userRoles.includes(role);
         }
         catch (error) {
-            console.error('[PermissionService] Error checking role', error);
+            this.logger.error('Error checking role', {
+                userId,
+                role,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return false;
         }
     }
@@ -315,7 +356,11 @@ class PermissionService {
             return roles.some(role => userRoles.includes(role));
         }
         catch (error) {
-            console.error('[PermissionService] Error checking any role', error);
+            this.logger.error('Error checking any role', {
+                userId,
+                roles,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return false;
         }
     }
@@ -328,7 +373,11 @@ class PermissionService {
             return roles.every(role => userRoles.includes(role));
         }
         catch (error) {
-            console.error('[PermissionService] Error checking all roles', error);
+            this.logger.error('Error checking all roles', {
+                userId,
+                roles,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
             return false;
         }
     }

@@ -9,8 +9,9 @@
 import { Router } from 'express';
 import { RouteDependencies } from './types';
 import { CircuitBreakerFactory } from '../../infrastructure/resilience/CircuitBreaker';
-import { logger } from '../../infrastructure/logging/Logger';
-import { config } from '../../infrastructure/config';
+import { loadConfig } from '../../bootstrap/config';
+
+const config = loadConfig();
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -19,6 +20,7 @@ function getErrorMessage(error: unknown): string {
 
 export function createHealthRoutes(deps: RouteDependencies): Router {
   const router = Router();
+  const { logger } = deps;
 
   // Health check endpoint
   router.get('/health', async (_req, res) => {

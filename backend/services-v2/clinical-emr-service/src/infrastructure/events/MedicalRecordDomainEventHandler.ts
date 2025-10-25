@@ -7,13 +7,13 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { DomainEvent } from '../../../shared/domain/base/domain-event';
-import { IEventHandler } from '../../../shared/events/event-handler.interface';
+import { DomainEvent } from '@shared/domain/base/domain-event';
+import { IEventHandler } from '@shared/events/event-handler.interface';
 import { MedicalRecordCreatedEvent } from '../../domain/events/MedicalRecordCreatedEvent';
 import { MedicalRecordUpdatedEvent } from '../../domain/events/MedicalRecordUpdatedEvent';
-import { ILogger } from '../../../shared/infrastructure/logging/logger.interface';
-import { IAuditService } from '../../../shared/application/services/audit.service.interface';
-import { IEventBus } from '../../../shared/events/event-bus.interface';
+import { ILogger } from '@shared/infrastructure/logging/logger.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
+import { IEventBus } from '@shared/events/event-bus.interface';
 
 export interface MedicalRecordDomainEventHandlerConfig {
   logger: ILogger;

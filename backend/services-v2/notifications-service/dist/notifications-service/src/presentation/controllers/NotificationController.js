@@ -26,14 +26,13 @@ class NotificationController {
                 templateData: req.body.templateData || {},
                 channels: req.body.channels,
                 priority: req.body.priority || 'NORMAL',
-                scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt) : undefined,
-                expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
                 metadata: {
                     ...req.body.metadata,
                     userId: req.user?.id,
-                    sessionId: req.sessionID,
                     source: 'API',
-                    requestId: req.headers['x-request-id']
+                    requestId: req.headers['x-request-id'],
+                    scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt) : undefined,
+                    expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined
                 }
             };
             const result = await this.notificationService.sendNotification(command);
@@ -43,9 +42,7 @@ class NotificationController {
                 data: {
                     notificationId: result.notificationId,
                     status: result.status,
-                    channels: result.channels,
-                    deliveryResults: result.deliveryResults,
-                    estimatedDeliveryTime: result.estimatedDeliveryTime
+                    deliveryResults: result.deliveryResults
                 },
                 timestamp: new Date().toISOString()
             });
@@ -72,15 +69,14 @@ class NotificationController {
                 templateData: req.body.templateData || {},
                 channels: req.body.channels,
                 priority: req.body.priority || 'NORMAL',
-                scheduledAt: new Date(req.body.scheduledAt),
-                expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
-                recurrence: req.body.recurrence,
                 metadata: {
                     ...req.body.metadata,
                     userId: req.user?.id,
-                    sessionId: req.sessionID,
                     source: 'API',
-                    requestId: req.headers['x-request-id']
+                    requestId: req.headers['x-request-id'],
+                    scheduledAt: new Date(req.body.scheduledAt),
+                    expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
+                    recurrence: req.body.recurrence
                 }
             };
             const result = await this.notificationService.scheduleNotification(command);
@@ -88,12 +84,9 @@ class NotificationController {
                 success: true,
                 message: 'Thông báo đã được lên lịch thành công',
                 data: {
-                    notificationId: result.notificationId,
-                    scheduledAt: result.scheduledAt,
-                    status: result.status,
-                    channels: result.channels,
-                    recurrence: result.recurrence,
-                    nextScheduledNotifications: result.nextScheduledNotifications
+                    notificationId: result.notificationId || result.notificationId,
+                    scheduledAt: req.body.scheduledAt,
+                    status: result.status
                 },
                 timestamp: new Date().toISOString()
             });
@@ -290,7 +283,6 @@ class NotificationController {
                 metadata: {
                     ...req.body.metadata,
                     userId: req.user?.id,
-                    sessionId: req.sessionID,
                     source: 'API',
                     requestId: req.headers['x-request-id']
                 }
@@ -394,7 +386,7 @@ class NotificationController {
      * Get dashboard summary
      * GET /api/v1/notifications/dashboard
      */
-    async getDashboard(req, res) {
+    async getDashboard(_req, res) {
         try {
             const dashboard = await this.notificationService.getDashboardSummary();
             res.status(200).json({
@@ -417,7 +409,7 @@ class NotificationController {
      * Get service health
      * GET /api/v1/notifications/health
      */
-    async getHealth(req, res) {
+    async getHealth(_req, res) {
         try {
             const health = await this.notificationService.getHealthStatus();
             const statusCode = health.isHealthy ? 200 : 503;

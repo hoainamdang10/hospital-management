@@ -9,7 +9,6 @@
 import { Router } from 'express';
 import { RouteDependencies } from './types';
 import { AuthenticatedRequest } from '../middleware/AuthenticationMiddleware';
-import { logger } from '../../infrastructure/logging/Logger';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -18,6 +17,7 @@ function getErrorMessage(error: unknown): string {
 
 export function createPasswordPolicyRoutes(deps: RouteDependencies): Router {
   const router = Router();
+  const { logger } = deps;
 
   // Get current password policy (PUBLIC)
   router.get('/', async (_req, res) => {

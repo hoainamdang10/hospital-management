@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+Luôn trả lời bằng tiếng việt, các từ kỹ thuật chuyên ngành thì giữ Tiếng Anh, không được tạo emote khi sinh code
+Luôn dùng đường dẫn dầy đủ khi dùng filesystem mcp
+Luôn check id project khi kết nối với supabase để đảm bảo id project là đúng
+TUYỆT ĐỐI KHÔNG TẠO MARKDOWN CHANGELOG HOẶC PHÂN TÍCH, REPORT, kế hoạch chi tiết, báo cáo chi tiết khi thực hiện xong task. CHỈ CẦN PHẢI HỒI VỚI USER TRONG CHAT ĐỂ USER ĐỌC LÀ ĐỦ RỒI. 
+CÁC FILE CODE DEBUG THÌ SAU KHI THỰC HIỆN XONG NHIỆM VỤ CẦN CLEANUP ĐỂ TRÁNH LOÃNG VỚI CÁC FILE CODE TEST CỦA HỆ THỐNG NHƯ UNIT HAY INTEGRATION.
+No yapping.
+Hãy tận dụng các mcp mà tôi đã config.
+---

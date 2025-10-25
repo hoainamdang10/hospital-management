@@ -10,6 +10,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChangePasswordUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
+const PasswordChangedEvent_1 = require("../../domain/events/PasswordChangedEvent");
 /**
  * Change Password Use Case
  * Allows authenticated users to change their password
@@ -17,13 +18,15 @@ const UserId_1 = require("../../domain/value-objects/UserId");
  * Optionally invalidates all other sessions
  */
 class ChangePasswordUseCase {
-    constructor(authService, userRepository, passwordPolicyRepository, sessionRepository, logger, circuitBreaker) {
+    constructor(authService, userRepository, passwordPolicyRepository, sessionRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    ) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.passwordPolicyRepository = passwordPolicyRepository;
         this.sessionRepository = sessionRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
+        this.eventPublisher = eventPublisher;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -106,6 +109,25 @@ class ChangePasswordUseCase {
                 userId: request.userId,
                 invalidatedSessions: invalidateOtherSessions
             });
+            // Publish PasswordChangedEvent
+            if (this.eventPublisher) {
+                try {
+                    const userIdVO = UserId_1.UserId.fromString(request.userId);
+                    const event = new PasswordChangedEvent_1.PasswordChangedEvent(userIdVO, request.userId, // changedBy (user changes their own password)
+                    invalidateOtherSessions, user.email.value, user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN');
+                    await this.eventPublisher.publishDomainEvents([event]);
+                    this.logger.info('PasswordChangedEvent published', {
+                        userId: request.userId
+                    });
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish PasswordChangedEvent', {
+                        userId: request.userId,
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                    // Don't fail password change if event publishing fails
+                }
+            }
             return {
                 success: true,
                 message: invalidateOtherSessions

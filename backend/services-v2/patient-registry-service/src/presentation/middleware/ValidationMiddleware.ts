@@ -112,6 +112,45 @@ export const validateRegisterPatient = [
 ];
 
 /**
+ * Validate get patient list request
+ */
+export const validateGetPatientList = [
+  query('page')
+    .optional()
+    .isInt({ min: 1 }).withMessage('Page phải là số nguyên dương'),
+
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 }).withMessage('Limit phải từ 1-100'),
+
+  query('isActive')
+    .optional()
+    .isBoolean().withMessage('isActive phải là boolean'),
+
+  query('hasInsurance')
+    .optional()
+    .isBoolean().withMessage('hasInsurance phải là boolean'),
+
+  query('city')
+    .optional()
+    .isString().withMessage('City phải là chuỗi'),
+
+  query('province')
+    .optional()
+    .isString().withMessage('Province phải là chuỗi'),
+
+  query('sortField')
+    .optional()
+    .isIn(['created_at', 'full_name', 'date_of_birth']).withMessage('sortField không hợp lệ'),
+
+  query('sortDirection')
+    .optional()
+    .isIn(['asc', 'desc']).withMessage('sortDirection phải là asc hoặc desc'),
+
+  handleValidationErrors
+];
+
+/**
  * Validate update patient request
  */
 export const validateUpdatePatient = [

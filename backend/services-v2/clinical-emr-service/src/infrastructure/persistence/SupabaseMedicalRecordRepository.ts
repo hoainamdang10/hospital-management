@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { OptimizedSupabaseClient } from "../../../shared/infrastructure/database/optimized-supabase-client";
+import { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
 import {
   MedicalRecordAggregate,
   MedicalRecordStatus,
@@ -27,8 +27,8 @@ import { BasicVitalSigns } from "../../domain/value-objects/BasicVitalSigns";
 import { RecordId } from "../../domain/value-objects/RecordId";
 import { Diagnosis } from "../../domain/value-objects/Diagnosis";
 import { Medication } from "../../domain/value-objects/Medication";
-import { ILogger } from "../../../shared/infrastructure/logging/logger.interface";
-import { IAuditService } from "../../../shared/application/services/audit.service.interface";
+import { ILogger } from "@shared/infrastructure/logging/logger.interface";
+import { IAuditService } from "@shared/application/services/audit.service.interface";
 
 export interface SupabaseMedicalRecordRepositoryConfig {
   supabase: OptimizedSupabaseClient;
@@ -1385,6 +1385,52 @@ export class SupabaseMedicalRecordRepository implements IMedicalRecordRepository
       vitalSigns = BasicVitalSigns.create(dbRecord.vital_signs);
     }
 
+    // Parse diagnoses from JSON
+    let diagnoses: Diagnosis[] = [];
+    if (dbRecord.diagnoses_json) {
+      try {
+        const diagnosesData = typeof dbRecord.diagnoses_json === 'string' 
+          ? JSON.parse(dbRecord.diagnoses_json)
+          : dbRecord.diagnoses_json;
+        
+        diagnoses = diagnosesData.map((d: any) => Diagnosis.create(
+          d.code,
+          d.display,
+          d.category,
+          d.severity,
+          d.status,
+          d.recorded_by || dbRecord.created_by
+        ));
+      } catch (e) {
+        diagnoses = [];
+      }
+    }
+
+    // Parse medications from JSON  
+    let medications: Medication[] = [];
+    if (dbRecord.medications_json) {
+      try {
+        const medicationsData = typeof dbRecord.medications_json === 'string'
+          ? JSON.parse(dbRecord.medications_json)
+          : dbRecord.medications_json;
+        
+        medications = medicationsData.map((m: any) => Medication.create(
+          m.code,
+          m.name,
+          m.strength,
+          m.dosage_form,
+          m.route,
+          m.dosage,
+          m.frequency,
+          m.frequency_unit,
+          m.instructions,
+          m.prescribed_by || dbRecord.created_by
+        ));
+      } catch (e) {
+        medications = [];
+      }
+    }
+
     return MedicalRecordAggregate.reconstitute({
       recordId,
       patientId: dbRecord.patient_id,
@@ -1395,14 +1441,25 @@ export class SupabaseMedicalRecordRepository implements IMedicalRecordRepository
       examinationNotes: dbRecord.examination_notes,
       diagnosis: dbRecord.diagnosis,
       treatment: dbRecord.treatment,
-      medications: dbRecord.medications,
+      medicationsLegacy: dbRecord.medications,
       notes: dbRecord.notes,
       vitalSigns,
+      diagnoses,
+      medications,
+      fhirResourceId: dbRecord.fhir_resource_id,
+      fhirVersion: dbRecord.fhir_version,
+      fhirProfile: dbRecord.fhir_profile,
+      vietnameseMedicalCode: dbRecord.vietnamese_medical_code,
+      specialtyCode: dbRecord.specialty_code,
+      hospitalCode: dbRecord.hospital_code,
       status: dbRecord.status,
       createdAt: new Date(dbRecord.created_at),
       updatedAt: new Date(dbRecord.updated_at),
       createdBy: dbRecord.created_by,
       updatedBy: dbRecord.updated_by,
+      accessLog: dbRecord.access_log_json ? JSON.parse(dbRecord.access_log_json) : [],
+      lastAccessedAt: dbRecord.last_accessed_at ? new Date(dbRecord.last_accessed_at) : undefined,
+      lastAccessedBy: dbRecord.last_accessed_by
     });
   }
 
@@ -1563,5 +1620,72 @@ export class SupabaseMedicalRecordRepository implements IMedicalRecordRepository
 
       version: medicalRecord.version || 0
     };
+  }
+
+  /**
+   * Find recent medical records
+   */
+  async findRecent(
+    limit: number = 20,
+    status?: MedicalRecordStatus
+  ): Promise<MedicalRecordAggregate[]> {
+    try {
+      const client = await this.supabaseClient.getConnection();
+
+      let query = client
+        .schema(this.schema)
+        .from(this.tableName)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new MedicalRecordRepositoryError(
+          `Failed to find recent records: ${error.message}`,
+          'FIND_RECENT_FAILED'
+        );
+      }
+
+      return data.map(record => this.mapDatabaseToAggregate(record));
+    } catch (error) {
+      throw new MedicalRecordRepositoryError(
+        `Repository error during findRecent: ${error instanceof Error ? error.message : 'Unknown'}`,
+        'REPOSITORY_ERROR'
+      );
+    }
+  }
+
+  /**
+   * Bulk save medical records
+   */
+  async bulkSave(medicalRecords: MedicalRecordAggregate[]): Promise<void> {
+    try {
+      const client = await this.supabaseClient.getConnection();
+
+      const records = medicalRecords.map(mr => this.toPersistence(mr));
+
+      const { error } = await client
+        .schema(this.schema)
+        .from(this.tableName)
+        .upsert(records, { onConflict: 'record_id' });
+
+      if (error) {
+        throw new MedicalRecordRepositoryError(
+          `Bulk save failed: ${error.message}`,
+          'BULK_SAVE_FAILED'
+        );
+      }
+    } catch (error) {
+      throw new MedicalRecordRepositoryError(
+        `Repository error during bulkSave: ${error instanceof Error ? error.message : 'Unknown'}`,
+        'REPOSITORY_ERROR'
+      );
+    }
   }
 }

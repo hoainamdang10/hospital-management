@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, Vietnamese Healthcare Standards
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateGrantConsent = exports.validateAddEmergencyContact = exports.validateLinkPatients = exports.validateMergePatients = exports.validateMatchPatients = exports.validateFilterPatients = exports.validateSearchPatients = exports.validateBHYTNumber = exports.validateNationalId = exports.validateUserId = exports.validatePatientId = exports.validateUpdatePatient = exports.validateRegisterPatient = exports.handleValidationErrors = void 0;
+exports.validateGrantConsent = exports.validateAddEmergencyContact = exports.validateLinkPatients = exports.validateMergePatients = exports.validateMatchPatients = exports.validateFilterPatients = exports.validateSearchPatients = exports.validateBHYTNumber = exports.validateNationalId = exports.validateUserId = exports.validatePatientId = exports.validateUpdatePatient = exports.validateGetPatientList = exports.validateRegisterPatient = exports.handleValidationErrors = void 0;
 const express_validator_1 = require("express-validator");
 /**
  * Handle validation errors
@@ -87,6 +87,36 @@ exports.validateRegisterPatient = [
     (0, express_validator_1.body)('insurance.validTo')
         .optional()
         .isISO8601().withMessage('Ngày kết thúc bảo hiểm phải là ngày hợp lệ'),
+    exports.handleValidationErrors
+];
+/**
+ * Validate get patient list request
+ */
+exports.validateGetPatientList = [
+    (0, express_validator_1.query)('page')
+        .optional()
+        .isInt({ min: 1 }).withMessage('Page phải là số nguyên dương'),
+    (0, express_validator_1.query)('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 }).withMessage('Limit phải từ 1-100'),
+    (0, express_validator_1.query)('isActive')
+        .optional()
+        .isBoolean().withMessage('isActive phải là boolean'),
+    (0, express_validator_1.query)('hasInsurance')
+        .optional()
+        .isBoolean().withMessage('hasInsurance phải là boolean'),
+    (0, express_validator_1.query)('city')
+        .optional()
+        .isString().withMessage('City phải là chuỗi'),
+    (0, express_validator_1.query)('province')
+        .optional()
+        .isString().withMessage('Province phải là chuỗi'),
+    (0, express_validator_1.query)('sortField')
+        .optional()
+        .isIn(['created_at', 'full_name', 'date_of_birth']).withMessage('sortField không hợp lệ'),
+    (0, express_validator_1.query)('sortDirection')
+        .optional()
+        .isIn(['asc', 'desc']).withMessage('sortDirection phải là asc hoặc desc'),
     exports.handleValidationErrors
 ];
 /**

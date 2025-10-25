@@ -3,12 +3,13 @@
  * REST API routes for appointment queries (CQRS Read Model)
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0
  * @compliance Clean Architecture, CQRS, REST API
  */
 
 import { Router } from 'express';
 import { getContainer } from '../../infrastructure/di/container';
+import { authenticate } from '../middleware/AuthMiddleware';
 
 /**
  * Create appointment query routes
@@ -25,6 +26,7 @@ export function createAppointmentQueryRoutes(): Router {
    */
   router.get(
     '/appointments/:id',
+    authenticate,
     (req, res) => controller.getAppointmentDetails(req, res)
   );
 
@@ -34,6 +36,7 @@ export function createAppointmentQueryRoutes(): Router {
    */
   router.get(
     '/appointments',
+    authenticate,
     (req, res) => controller.listAppointments(req, res)
   );
 
@@ -43,6 +46,7 @@ export function createAppointmentQueryRoutes(): Router {
    */
   router.get(
     '/patients/:patientId/appointments',
+    authenticate,
     (req, res) => controller.getPatientAppointments(req, res)
   );
 
@@ -52,6 +56,7 @@ export function createAppointmentQueryRoutes(): Router {
    */
   router.get(
     '/doctors/:doctorId/appointments',
+    authenticate,
     (req, res) => controller.getDoctorAppointments(req, res)
   );
 

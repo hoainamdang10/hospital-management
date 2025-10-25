@@ -11,15 +11,15 @@
 import {
   OptimizedSupabaseClient,
   OptimizedSupabaseClientConfig,
-} from "../../../shared/infrastructure/database/optimized-supabase-client";
+} from "@shared/infrastructure/database/optimized-supabase-client";
 import {
   DIContainer,
   ServiceLifetime,
-} from "../../../shared/infrastructure/di/container";
-import { ILogger } from "../../../shared/infrastructure/logging/logger.interface";
-import { IAuditService } from "../../../shared/application/services/audit.service.interface";
-import { ConsoleLogger } from "../../../shared/infrastructure/logging/console-logger";
-import { AuditService } from "../../../shared/infrastructure/services/audit.service";
+} from "@shared/infrastructure/di/container";
+import { ILogger } from "@shared/infrastructure/logging/logger.interface";
+import { IAuditService } from "@shared/application/services/audit.service.interface";
+import { ConsoleLogger } from "@shared/infrastructure/logging/console-logger";
+import { AuditService } from "@shared/infrastructure/services/audit.service";
 
 // Application Layer
 import { ClinicalEMRApplicationService } from "../../application/services/ClinicalEMRApplicationService";

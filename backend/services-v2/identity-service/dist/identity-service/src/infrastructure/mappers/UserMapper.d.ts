@@ -22,7 +22,11 @@ export interface UserRecord {
     avatar_url?: string;
     role_type: string;
     is_active: boolean;
+    account_status?: string;
     is_verified: boolean;
+    deactivation_reason?: string;
+    deactivated_at?: string;
+    deactivated_by?: string;
     citizen_id?: string;
     date_of_birth?: string;
     gender?: string;

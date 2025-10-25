@@ -18,9 +18,12 @@ import { UserId } from '../value-objects/UserId';
 import { Email } from '../value-objects/Email';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { HealthcareRole } from '../entities/HealthcareRole';
+import { AccountStatus, AccountStatusHelper } from '../value-objects/AccountStatus';
 import { UserCreatedEvent } from '../events/UserCreatedEvent';
 import { UserAuthenticatedEvent } from '../events/UserAuthenticatedEvent';
 import { UserRoleChangedEvent } from '../events/UserRoleChangedEvent';
+import { UserDeactivatedEvent } from '../events/UserDeactivatedEvent';
+import { UserActivatedEvent } from '../events/UserActivatedEvent';
 
 export interface UserProps {
   id: UserId;
@@ -28,8 +31,11 @@ export interface UserProps {
   personalInfo: PersonalInfo;
   // passwordHash removed - handled by Supabase Auth
   healthcareRoles: HealthcareRole[]; // Changed from single role to multiple roles
-  isActive: boolean;
+  accountStatus: AccountStatus; // Replaces isActive for better state management
   isEmailVerified: boolean;
+  deactivationReason?: string; // Reason for deactivation/lock
+  deactivatedAt?: Date; // When account was deactivated
+  deactivatedBy?: string; // Who deactivated the account
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -74,7 +80,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         email,
         personalInfo,
         healthcareRoles,
-        isActive: true,
+        accountStatus: AccountStatus.ACTIVE,
         isEmailVerified: false,
         createdAt: now,
         updatedAt: now
@@ -107,8 +113,11 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     email: Email,
     personalInfo: PersonalInfo,
     healthcareRoles: HealthcareRole[],
-    isActive: boolean,
+    accountStatus: AccountStatus,
     isEmailVerified: boolean,
+    deactivationReason: string | undefined,
+    deactivatedAt: Date | undefined,
+    deactivatedBy: string | undefined,
     lastLoginAt: Date | undefined,
     createdAt: Date,
     updatedAt: Date
@@ -118,8 +127,11 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       email,
       personalInfo,
       healthcareRoles,
-      isActive,
+      accountStatus,
       isEmailVerified,
+      deactivationReason,
+      deactivatedAt,
+      deactivatedBy,
       lastLoginAt,
       createdAt,
       updatedAt
@@ -170,8 +182,28 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     return this.props.healthcareRoles[0];
   }
 
+  public get accountStatus(): AccountStatus {
+    return this.props.accountStatus;
+  }
+
+  /**
+   * Backward compatibility getter
+   * @deprecated Use accountStatus instead
+   */
   public get isActive(): boolean {
-    return this.props.isActive;
+    return this.props.accountStatus === AccountStatus.ACTIVE;
+  }
+
+  public get deactivationReason(): string | undefined {
+    return this.props.deactivationReason;
+  }
+
+  public get deactivatedAt(): Date | undefined {
+    return this.props.deactivatedAt;
+  }
+
+  public get deactivatedBy(): string | undefined {
+    return this.props.deactivatedBy;
   }
 
   public get isEmailVerified(): boolean {
@@ -187,8 +219,8 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * This method is called AFTER successful authentication via SupabaseAuthService
    */
   public recordAuthentication(ipAddress: string, userAgent: string): void {
-    if (!this.props.isActive) {
-      throw new Error('Tài khoản đã bị vô hiệu hóa');
+    if (this.props.accountStatus !== AccountStatus.ACTIVE) {
+      throw new Error(`Tài khoản đã bị vô hiệu hóa: ${this.props.accountStatus}`);
     }
 
     // Update last login
@@ -351,7 +383,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     }
 
     // Personal info validation for active users
-    if (this.props.isActive && !this.props.personalInfo.isComplete()) {
+    if (this.props.accountStatus === AccountStatus.ACTIVE && !this.props.personalInfo.isComplete()) {
       errors.push('Thông tin cá nhân phải đầy đủ cho người dùng đang hoạt động');
     }
 
@@ -412,7 +444,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   public isHIPAACompliant(): boolean {
     try {
       return (
-        this.props.isActive &&
+        this.props.accountStatus === AccountStatus.ACTIVE &&
         this.props.isEmailVerified &&
         this.props.healthcareRoles[0].hasHIPAATraining() &&
         this.props.personalInfo.isComplete()
@@ -445,7 +477,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       return {
         userId: this.props.id.value,
         role: this.props.healthcareRoles[0].name, // Primary role
-        isActive: this.props.isActive,
+        accountStatus: this.props.accountStatus,
         isEmailVerified: this.props.isEmailVerified,
         lastLoginAt: this.props.lastLoginAt?.toISOString(),
         createdAt: this.props.createdAt.toISOString()
@@ -476,27 +508,87 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   }
 
   /**
-   * Deactivate user with audit
+   * Deactivate user permanently (irreversible)
+   * Used for deceased patients or permanent account closure
    */
-  public deactivate(): void {
+  public deactivate(deactivatedBy: string, reason: string): void {
     try {
-      this.props.isActive = false;
-      this.props.updatedAt = new Date();
+      // Validate transition
+      if (!AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus.DEACTIVATED)) {
+        throw new Error(`Cannot deactivate account with status: ${this.props.accountStatus}`);
+      }
+
+      const now = new Date();
+      this.props.accountStatus = AccountStatus.DEACTIVATED;
+      this.props.deactivationReason = reason;
+      this.props.deactivatedAt = now;
+      this.props.deactivatedBy = deactivatedBy;
+      this.props.updatedAt = now;
+
+      // Emit domain event
+      this.addDomainEvent(new UserDeactivatedEvent(
+        this.props.id,
+        deactivatedBy,
+        reason,
+        this.props.email.value,
+        this.roleTypes[0] || 'UNKNOWN'
+      ));
     } catch (error) {
       throw new Error(`Failed to deactivate user: ${getErrorMessage(error)}`);
     }
   }
 
   /**
-   * Activate user with validation
+   * Lock account temporarily (can be unlocked by admin)
    */
-  public activate(): void {
+  public lock(lockedBy: string, reason: string): void {
     try {
-      this.props.isActive = true;
-      this.props.updatedAt = new Date();
-      
+      if (!AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus.LOCKED)) {
+        throw new Error(`Cannot lock account with status: ${this.props.accountStatus}`);
+      }
+
+      const now = new Date();
+      this.props.accountStatus = AccountStatus.LOCKED;
+      this.props.deactivationReason = reason;
+      this.props.deactivatedAt = now;
+      this.props.deactivatedBy = lockedBy;
+      this.props.updatedAt = now;
+    } catch (error) {
+      throw new Error(`Failed to lock user: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
+   * Activate user (only from LOCKED or SUSPENDED status)
+   */
+  public activate(_activatedBy: string, _reason?: string): void {
+    try {
+      // Prevent activation of permanently deactivated accounts
+      if (AccountStatusHelper.isPermanent(this.props.accountStatus)) {
+        throw new Error('Cannot activate permanently deactivated account');
+      }
+
+      // Validate transition
+      if (!AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus.ACTIVE)) {
+        throw new Error(`Cannot activate account with status: ${this.props.accountStatus}`);
+      }
+
+      const now = new Date();
+      this.props.accountStatus = AccountStatus.ACTIVE;
+      this.props.deactivationReason = undefined;
+      this.props.deactivatedAt = undefined;
+      this.props.deactivatedBy = undefined;
+      this.props.updatedAt = now;
+
       // Re-validate business invariants when activating
       this.validateBusinessInvariants();
+
+      // Emit domain event
+      this.addDomainEvent(new UserActivatedEvent(
+        this.props.id.value,
+        this.props.email.value,
+        now
+      ));
     } catch (error) {
       throw new Error(`Failed to activate user: ${getErrorMessage(error)}`);
     }
@@ -558,7 +650,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         type: r.type,
         name: r.name
       })),
-      isActive: props.isActive,
+      accountStatus: props.accountStatus,
       isEmailVerified: props.isEmailVerified,
       lastLoginAt: props.lastLoginAt,
       createdAt: props.createdAt,

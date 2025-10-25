@@ -14,6 +14,8 @@ import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { UserUpdatedEvent, UserFieldChange } from '../../domain/events/UserUpdatedEvent';
 
 export interface UpdateUserRequest {
   userId: string;
@@ -51,7 +53,8 @@ export class UpdateUserUseCase implements IUseCase<UpdateUserRequest, UpdateUser
   constructor(
     private userRepository: IUserRepository,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: UpdateUserRequest): Promise<UpdateUserResponse> {
@@ -107,6 +110,13 @@ export class UpdateUserUseCase implements IUseCase<UpdateUserRequest, UpdateUser
           message: 'Không tìm thấy người dùng'
         };
       }
+
+      // Capture old values BEFORE making any changes
+      const oldValues = {
+        fullName: user.personalInfo.fullName,
+        phoneNumber: user.personalInfo.phoneNumber,
+        isActive: user.accountStatus === 'active'
+      };
 
       // Note: Email updates are not supported in this version
       // Email is immutable after registration for security and audit reasons
@@ -182,11 +192,15 @@ export class UpdateUserUseCase implements IUseCase<UpdateUserRequest, UpdateUser
       // Update active status if provided
       if (updates.isActive !== undefined) {
         if (updates.isActive) {
-          user.activate();
+          user.activate(request.requesterId, 'User activated via update');
         } else {
-          user.deactivate();
+          user.lock(request.requesterId, 'User locked via update');
         }
       }
+
+      // Track changes for event (using captured old values)
+      const updatedFields = Object.keys(updates);
+      const changes = this.buildChangesList(oldValues, updates);
 
       // Save updated user
       // Repository accepts full User aggregate
@@ -196,9 +210,17 @@ export class UpdateUserUseCase implements IUseCase<UpdateUserRequest, UpdateUser
       this.logger.info('User information updated', {
         userId,
         requesterId,
-        updatedFields: Object.keys(updates),
+        updatedFields,
         timestamp: new Date().toISOString()
       });
+
+      // Publish UserUpdatedEvent
+      await this.publishUserUpdatedEvent(
+        userIdVO,
+        requesterId,
+        updatedFields,
+        changes
+      );
 
       return {
         success: true,
@@ -224,6 +246,85 @@ export class UpdateUserUseCase implements IUseCase<UpdateUserRequest, UpdateUser
         error: getErrorMessage(error),
         message: 'Lỗi khi cập nhật thông tin người dùng'
       };
+    }
+  }
+
+  /**
+   * Build list of field changes for event
+   * @param oldValues - Captured old values BEFORE changes
+   * @param updates - New values from request
+   */
+  private buildChangesList(
+    oldValues: { fullName: string; phoneNumber?: string; isActive: boolean },
+    updates: UpdateUserRequest['updates']
+  ): UserFieldChange[] {
+    const changes: UserFieldChange[] = [];
+
+    // Note: We don't include old/new values for sensitive fields like passwords
+    // Only track which fields were updated
+    if (updates.fullName !== undefined) {
+      changes.push({
+        field: 'fullName',
+        oldValue: oldValues.fullName,
+        newValue: updates.fullName
+      });
+    }
+
+    if (updates.phoneNumber !== undefined) {
+      changes.push({
+        field: 'phoneNumber',
+        oldValue: oldValues.phoneNumber,
+        newValue: updates.phoneNumber
+      });
+    }
+
+    if (updates.isActive !== undefined) {
+      changes.push({
+        field: 'isActive',
+        oldValue: oldValues.isActive,
+        newValue: updates.isActive
+      });
+    }
+
+    // Add other fields as needed (excluding sensitive data)
+    return changes;
+  }
+
+  /**
+   * Publish UserUpdatedEvent
+   */
+  private async publishUserUpdatedEvent(
+    userIdVO: UserId,
+    updatedBy: string,
+    updatedFields: string[],
+    changes: UserFieldChange[]
+  ): Promise<void> {
+    if (!this.eventPublisher) {
+      this.logger.debug('Event publisher not configured, skipping event publication');
+      return;
+    }
+
+    try {
+      const event = new UserUpdatedEvent(
+        userIdVO,
+        updatedBy,
+        updatedFields,
+        changes
+      );
+
+      await this.eventPublisher.publishDomainEvents([event]);
+
+      this.logger.info('UserUpdatedEvent published', {
+        userId: userIdVO.value,
+        updatedFields,
+        updatedBy
+      });
+    } catch (error) {
+      this.logger.error('Failed to publish UserUpdatedEvent', {
+        userId: userIdVO.value,
+        error: getErrorMessage(error)
+      });
+      // Don't fail update if event publishing fails
     }
   }
 }

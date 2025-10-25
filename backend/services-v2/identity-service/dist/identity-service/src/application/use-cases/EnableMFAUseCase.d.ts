@@ -11,6 +11,7 @@ import { IUserRepository } from '../repositories/IUserRepository';
 import { IMFAService } from '../services/IMFAService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface EnableMFARequest {
     userId: string;
     method: '2fa_app' | 'sms' | 'email';
@@ -35,7 +36,8 @@ export declare class EnableMFAUseCase implements IUseCase<EnableMFARequest, Enab
     private mfaService;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, mfaService: IMFAService, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(userRepository: IUserRepository, mfaService: IMFAService, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: EnableMFARequest): Promise<EnableMFAResponse>;
     private executeImpl;
     /**

@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, Event-Driven Architecture, HIPAA
  */
 
-import { IntegrationEvent } from '../../../../shared/domain/events/IntegrationEvent';
+import { IntegrationEvent } from '@shared/domain/base/domain-event';
 
 /**
  * Medical Record Notification Event
@@ -57,9 +57,43 @@ export class MedicalRecordNotificationEvent extends IntegrationEvent {
     public readonly triggeredBy: string,
     public readonly triggeredAt: Date = new Date()
   ) {
+    const vietnameseNotificationType = (() => {
+      switch (notificationType) {
+        case 'record_completed': return 'Hồ sơ hoàn thành';
+        case 'critical_findings': return 'Phát hiện quan trọng';
+        case 'medication_alert': return 'Cảnh báo thuốc';
+        case 'follow_up_reminder': return 'Nhắc nhở tái khám';
+        case 'test_results_available': return 'Kết quả xét nghiệm có sẵn';
+        default: return 'Không xác định';
+      }
+    })();
+
+    const vietnamesePriority = (() => {
+      switch (notificationContent.priority) {
+        case 'critical': return 'Khẩn cấp';
+        case 'high': return 'Cao';
+        case 'medium': return 'Trung bình';
+        case 'low': return 'Thấp';
+        default: return 'Không xác định';
+      }
+    })();
+
+    const vietnameseCategory = (() => {
+      switch (notificationContent.category) {
+        case 'medical': return 'Y tế';
+        case 'administrative': return 'Hành chính';
+        case 'billing': return 'Thanh toán';
+        case 'appointment': return 'Lịch hẹn';
+        case 'emergency': return 'Cấp cứu';
+        default: return 'Không xác định';
+      }
+    })();
+
     super(
-      'clinical-emr.notification.medical-record',
+      'notification.medical-record',
+      'clinical-emr-service',
       `${recordId}-${notificationType}`,
+      'MedicalRecord',
       {
         recordId,
         patientId,
@@ -77,12 +111,37 @@ export class MedicalRecordNotificationEvent extends IntegrationEvent {
         triggeredBy,
         triggeredAt: triggeredAt.toISOString(),
         vietnameseMetadata: {
-          notificationType: this.getVietnameseNotificationType(),
-          priority: this.getVietnamesePriority(),
-          category: this.getVietnameseCategory()
+          notificationType: vietnameseNotificationType,
+          priority: vietnamesePriority,
+          category: vietnameseCategory
         }
-      }
+      },
+      'notifications-service',
+      undefined,
+      triggeredBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      notificationType: this.notificationType,
+      recipients: this.recipients,
+      notificationContent: this.notificationContent,
+      medicalContext: this.medicalContext,
+      triggeredBy: this.triggeredBy,
+      triggeredAt: this.triggeredAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -223,9 +282,31 @@ export class CriticalAlertNotificationEvent extends IntegrationEvent {
     public readonly triggeredBy: string,
     public readonly triggeredAt: Date = new Date()
   ) {
+    const vietnameseAlertType = (() => {
+      switch (alertDetails.type) {
+        case 'critical_diagnosis': return 'Chẩn đoán nghiêm trọng';
+        case 'drug_interaction': return 'Tương tác thuốc';
+        case 'allergy_alert': return 'Cảnh báo dị ứng';
+        case 'vital_signs_critical': return 'Dấu hiệu sinh tồn nguy kịch';
+        case 'lab_results_critical': return 'Kết quả xét nghiệm nguy kịch';
+        default: return 'Không xác định';
+      }
+    })();
+
+    const vietnameseSeverity = (() => {
+      switch (alertDetails.severity) {
+        case 'life_threatening': return 'Đe dọa tính mạng';
+        case 'critical': return 'Nghiêm trọng';
+        case 'high': return 'Cao';
+        default: return 'Không xác định';
+      }
+    })();
+
     super(
-      'clinical-emr.notification.critical-alert',
+      'notification.critical-alert',
+      'clinical-emr-service',
       alertId,
+      'Alert',
       {
         alertId,
         recordId,
@@ -237,12 +318,37 @@ export class CriticalAlertNotificationEvent extends IntegrationEvent {
         triggeredBy,
         triggeredAt: triggeredAt.toISOString(),
         vietnameseMetadata: {
-          alertType: this.getVietnameseAlertType(),
-          severity: this.getVietnameseSeverity(),
+          alertType: vietnameseAlertType,
+          severity: vietnameseSeverity,
           urgency: 'Cần xử lý ngay lập tức'
         }
-      }
+      },
+      'notifications-service',
+      undefined,
+      triggeredBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      alertId: this.alertId,
+      recordId: this.recordId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      alertDetails: this.alertDetails,
+      medicalData: this.medicalData,
+      escalationChain: this.escalationChain,
+      triggeredBy: this.triggeredBy,
+      triggeredAt: this.triggeredAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -358,9 +464,24 @@ export class MedicationReminderNotificationEvent extends IntegrationEvent {
     public readonly createdBy: string,
     public readonly createdAt: Date = new Date()
   ) {
+    const vietnameseReminderType = (() => {
+      switch (reminderType) {
+        case 'dose_reminder': return 'Nhắc nhở uống thuốc';
+        case 'refill_reminder': return 'Nhắc nhở mua thuốc';
+        case 'missed_dose_alert': return 'Cảnh báo quên uống thuốc';
+        case 'medication_review': return 'Đánh giá thuốc';
+        case 'side_effects_check': return 'Kiểm tra tác dụng phụ';
+        default: return 'Không xác định';
+      }
+    })();
+
+    const vietnameseNextDose = new Date(medicationDetails.nextDoseTime).toLocaleString('vi-VN');
+
     super(
-      'clinical-emr.notification.medication-reminder',
+      'notification.medication-reminder',
+      'clinical-emr-service',
       `${recordId}-${medicationDetails.medicationCode}-${scheduledFor.getTime()}`,
+      'Medication',
       {
         recordId,
         patientId,
@@ -377,12 +498,37 @@ export class MedicationReminderNotificationEvent extends IntegrationEvent {
         createdBy,
         createdAt: createdAt.toISOString(),
         vietnameseMetadata: {
-          reminderType: this.getVietnameseReminderType(),
+          reminderType: vietnameseReminderType,
           medicationName: medicationDetails.medicationName,
-          nextDose: this.getVietnameseNextDoseTime()
+          nextDose: vietnameseNextDose
         }
-      }
+      },
+      'notifications-service',
+      undefined,
+      createdBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      medicationDetails: this.medicationDetails,
+      reminderType: this.reminderType,
+      patientContact: this.patientContact,
+      reminderContent: this.reminderContent,
+      scheduledFor: this.scheduledFor,
+      createdBy: this.createdBy,
+      createdAt: this.createdAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -510,9 +656,22 @@ export class TestResultsNotificationEvent extends IntegrationEvent {
     public readonly releasedBy: string,
     public readonly releasedAt: Date = new Date()
   ) {
+    const vietnameseOverallStatus = (() => {
+      switch (resultSummary.overallAssessment) {
+        case 'normal': return 'Bình thường';
+        case 'requires_attention': return 'Cần chú ý';
+        case 'critical': return 'Nghiêm trọng';
+        default: return 'Không xác định';
+      }
+    })();
+
+    const vietnameseSummary = `${resultSummary.totalTests} xét nghiệm: ${resultSummary.normalResults} bình thường, ${resultSummary.abnormalResults} bất thường, ${resultSummary.criticalResults} nghiêm trọng`;
+
     super(
-      'clinical-emr.notification.test-results',
+      'notification.test-results',
+      'clinical-emr-service',
       `${recordId}-test-results`,
+      'TestResults',
       {
         recordId,
         patientId,
@@ -529,11 +688,35 @@ export class TestResultsNotificationEvent extends IntegrationEvent {
         vietnameseMetadata: {
           totalTests: testResults.length,
           criticalCount: testResults.filter(t => t.status === 'critical').length,
-          overallStatus: this.getVietnameseOverallStatus(),
-          summary: this.getVietnameseSummary()
+          overallStatus: vietnameseOverallStatus,
+          summary: vietnameseSummary
         }
-      }
+      },
+      'notifications-service',
+      undefined,
+      releasedBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      testResults: this.testResults,
+      notificationTargets: this.notificationTargets,
+      resultSummary: this.resultSummary,
+      releasedBy: this.releasedBy,
+      releasedAt: this.releasedAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**

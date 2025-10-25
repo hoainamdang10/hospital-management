@@ -7,8 +7,8 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
  */
 
-import { HealthcareAggregateRoot } from "../../../shared/domain/base/aggregate-root";
-import { DomainEvent } from "../../../shared/domain/base/domain-event";
+import { HealthcareAggregateRoot } from "@shared/domain/base/aggregate-root";
+import { DomainEvent } from "@shared/domain/base/domain-event";
 import { MedicalRecordCreatedEvent } from "../events/MedicalRecordCreatedEvent";
 import { MedicalRecordUpdatedEvent } from "../events/MedicalRecordUpdatedEvent";
 import { BasicVitalSigns } from "../value-objects/BasicVitalSigns";
@@ -184,12 +184,8 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
         visitDate,
         symptoms: options.symptoms,
         diagnosis: options.diagnosis,
-        diagnosesCount: options.diagnoses?.length || 0,
-        medicationsCount: options.medications?.length || 0,
         createdBy,
-        createdAt: props.createdAt,
-        fhirResourceId: props.fhirResourceId,
-        specialtyCode: options.specialtyCode,
+        createdAt: props.createdAt
       })
     );
 
@@ -256,6 +252,41 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
     }
   }
 
+  public toPersistence(): any {
+    return {
+      id: this.id,
+      record_id: this.props.recordId.value,
+      patient_id: this.props.patientId,
+      doctor_id: this.props.doctorId,
+      appointment_id: this.props.appointmentId,
+      visit_date: this.props.visitDate.toISOString(),
+      symptoms: this.props.symptoms,
+      examination_notes: this.props.examinationNotes,
+      diagnosis: this.props.diagnosis,
+      treatment: this.props.treatment,
+      medications: this.props.medicationsLegacy,
+      notes: this.props.notes,
+      diagnoses_json: JSON.stringify(this.props.diagnoses.map(d => d.toJSON())),
+      medications_json: JSON.stringify(this.props.medications.map(m => m.toJSON())),
+      vital_signs_json: this.props.vitalSigns ? JSON.stringify(this.props.vitalSigns.toJSON()) : null,
+      fhir_resource_id: this.props.fhirResourceId,
+      fhir_version: this.props.fhirVersion,
+      fhir_profile: this.props.fhirProfile,
+      vietnamese_medical_code: this.props.vietnameseMedicalCode,
+      specialty_code: this.props.specialtyCode,
+      hospital_code: this.props.hospitalCode,
+      status: this.props.status,
+      created_at: this.props.createdAt.toISOString(),
+      updated_at: this.props.updatedAt.toISOString(),
+      created_by: this.props.createdBy,
+      updated_by: this.props.updatedBy,
+      access_log_json: JSON.stringify(this.props.accessLog || []),
+      last_accessed_at: this.props.lastAccessedAt?.toISOString(),
+      last_accessed_by: this.props.lastAccessedBy,
+      version: this.version || 0
+    };
+  }
+
   protected applyEvent(event: DomainEvent): void {
     switch (event.eventType) {
       case "MedicalRecordCreated":
@@ -270,8 +301,12 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
     }
   }
 
-  getPatientId(): string | null {
+  override getPatientId(): string | null {
     return this.props.patientId;
+  }
+
+  override containsPHI(): boolean {
+    return true;
   }
 
   /**
@@ -607,8 +642,8 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
     return this.props.treatment;
   }
 
-  public get medications(): string | undefined {
-    return this.props.medications;
+  public get medicationsLegacy(): string | undefined {
+    return this.props.medicationsLegacy;
   }
 
   public get notes(): string | undefined {
@@ -623,11 +658,11 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
     return this.props.status;
   }
 
-  public get createdAt(): Date {
+  override get createdAt(): Date {
     return this.props.createdAt;
   }
 
-  public get updatedAt(): Date {
+  override get updatedAt(): Date {
     return this.props.updatedAt;
   }
 
@@ -669,7 +704,7 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
   }
 
   public hasMedications(): boolean {
-    return !!this.props.medications && this.props.medications.trim() !== "";
+    return !!this.props.medicationsLegacy && this.props.medicationsLegacy.trim() !== "";
   }
 
   public isFromCurrentMonth(): boolean {
@@ -998,12 +1033,36 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
     return this.props.fhirResourceId;
   }
 
+  public get fhirVersion(): string | undefined {
+    return this.props.fhirVersion;
+  }
+
+  public get fhirProfile(): string | undefined {
+    return this.props.fhirProfile;
+  }
+
+  public get vietnameseMedicalCode(): string | undefined {
+    return this.props.vietnameseMedicalCode;
+  }
+
   public get specialtyCode(): string | undefined {
     return this.props.specialtyCode;
   }
 
+  public get hospitalCode(): string | undefined {
+    return this.props.hospitalCode;
+  }
+
   public get accessLog(): MedicalRecordAccess[] | undefined {
     return this.props.accessLog ? [...this.props.accessLog] : undefined;
+  }
+
+  public get lastAccessedAt(): Date | undefined {
+    return this.props.lastAccessedAt;
+  }
+
+  public get lastAccessedBy(): string | undefined {
+    return this.props.lastAccessedBy;
   }
 
   // Enhanced business logic methods

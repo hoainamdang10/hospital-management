@@ -17,13 +17,17 @@ import { UserId } from '../value-objects/UserId';
 import { Email } from '../value-objects/Email';
 import { PersonalInfo } from '../value-objects/PersonalInfo';
 import { HealthcareRole } from '../entities/HealthcareRole';
+import { AccountStatus } from '../value-objects/AccountStatus';
 export interface UserProps {
     id: UserId;
     email: Email;
     personalInfo: PersonalInfo;
     healthcareRoles: HealthcareRole[];
-    isActive: boolean;
+    accountStatus: AccountStatus;
     isEmailVerified: boolean;
+    deactivationReason?: string;
+    deactivatedAt?: Date;
+    deactivatedBy?: string;
     lastLoginAt?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -56,7 +60,7 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      * Note: Validation is relaxed for reconstitution to handle legacy data
      * that may not meet current business rules (e.g., incomplete personal info)
      */
-    static reconstitute(id: string, email: Email, personalInfo: PersonalInfo, healthcareRoles: HealthcareRole[], isActive: boolean, isEmailVerified: boolean, lastLoginAt: Date | undefined, createdAt: Date, updatedAt: Date): User;
+    static reconstitute(id: string, email: Email, personalInfo: PersonalInfo, healthcareRoles: HealthcareRole[], accountStatus: AccountStatus, isEmailVerified: boolean, deactivationReason: string | undefined, deactivatedAt: Date | undefined, deactivatedBy: string | undefined, lastLoginAt: Date | undefined, createdAt: Date, updatedAt: Date): User;
     get id(): string;
     get userId(): UserId;
     get email(): Email;
@@ -73,7 +77,15 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      * @deprecated Use healthcareRoles instead for Pure RBAC
      */
     get healthcareRole(): HealthcareRole;
+    get accountStatus(): AccountStatus;
+    /**
+     * Backward compatibility getter
+     * @deprecated Use accountStatus instead
+     */
     get isActive(): boolean;
+    get deactivationReason(): string | undefined;
+    get deactivatedAt(): Date | undefined;
+    get deactivatedBy(): string | undefined;
     get isEmailVerified(): boolean;
     get lastLoginAt(): Date | undefined;
     /**
@@ -173,13 +185,18 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      */
     verifyEmail(): void;
     /**
-     * Deactivate user with audit
+     * Deactivate user permanently (irreversible)
+     * Used for deceased patients or permanent account closure
      */
-    deactivate(): void;
+    deactivate(deactivatedBy: string, reason: string): void;
     /**
-     * Activate user with validation
+     * Lock account temporarily (can be unlocked by admin)
      */
-    activate(): void;
+    lock(lockedBy: string, reason: string): void;
+    /**
+     * Activate user (only from LOCKED or SUSPENDED status)
+     */
+    activate(_activatedBy: string, _reason?: string): void;
     /**
      * Get patient ID (User is not a patient)
      */

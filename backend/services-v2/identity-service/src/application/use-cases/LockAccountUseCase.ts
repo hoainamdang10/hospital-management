@@ -13,6 +13,8 @@ import { ISessionRepository } from '../../domain/repositories/ISessionRepository
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { UserId } from '../../domain/value-objects/UserId';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { UserAccountLockedEvent } from '../../domain/events/UserAccountLockedEvent';
 
 export interface LockAccountRequest {
   userId: string; // User to lock
@@ -40,7 +42,8 @@ export class LockAccountUseCase
     private userRepository: IUserRepository,
     private sessionRepository: ISessionRepository,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: LockAccountRequest): Promise<LockAccountResponse> {
@@ -88,8 +91,17 @@ export class LockAccountUseCase
         };
       }
 
-      // 4. Check if user is already locked
-      if (!user.isActive) {
+      // 4. Check if user is permanently deactivated
+      if (user.accountStatus === 'deactivated') {
+        return {
+          success: false,
+          message: 'Không thể khóa tài khoản đã bị vô hiệu hóa vĩnh viễn',
+          error: 'PERMANENTLY_DEACTIVATED'
+        };
+      }
+
+      // 5. Check if user is already locked
+      if (user.accountStatus === 'locked') {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa trước đó',
@@ -106,8 +118,8 @@ export class LockAccountUseCase
         };
       }
 
-      // 6. Lock account
-      user.deactivate();
+      // 6. Lock account temporarily
+      user.lock(request.lockedBy, request.reason);
       await this.userRepository.save(user);
 
       // 7. Terminate all sessions if requested (default: true)
@@ -126,6 +138,32 @@ export class LockAccountUseCase
         reason: request.reason,
         terminatedSessions: terminateSessions
       });
+
+      // 8. Publish UserAccountLockedEvent
+      if (this.eventPublisher) {
+        try {
+          const event = new UserAccountLockedEvent(
+            userIdVO,
+            request.lockedBy,
+            request.reason,
+            terminateSessions,
+            user.email.value,
+            user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+          );
+
+          await this.eventPublisher.publishDomainEvents([event]);
+
+          this.logger.info('UserAccountLockedEvent published', {
+            userId: request.userId
+          });
+        } catch (error) {
+          this.logger.error('Failed to publish UserAccountLockedEvent', {
+            userId: request.userId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          // Don't fail lock operation if event publishing fails
+        }
+      }
 
       return {
         success: true,

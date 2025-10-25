@@ -13,6 +13,7 @@ import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPo
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface ChangePasswordRequest {
     userId: string;
     currentPassword: string;
@@ -38,7 +39,8 @@ export declare class ChangePasswordUseCase implements IUseCase<ChangePasswordReq
     private sessionRepository;
     private logger;
     private circuitBreaker;
-    constructor(authService: IAuthenticationService, userRepository: IUserRepository, passwordPolicyRepository: IPasswordPolicyRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(authService: IAuthenticationService, userRepository: IUserRepository, passwordPolicyRepository: IPasswordPolicyRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: ChangePasswordRequest): Promise<ChangePasswordResponse>;
     private executeImpl;
     private validateRequest;

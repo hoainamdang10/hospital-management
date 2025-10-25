@@ -12,15 +12,18 @@ exports.UpdateUserUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
 const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
 const error_helper_1 = require("../../utils/error-helper");
+const UserUpdatedEvent_1 = require("../../domain/events/UserUpdatedEvent");
 /**
  * Update User Use Case
  * Updates user information with validation and audit logging
  */
 class UpdateUserUseCase {
-    constructor(userRepository, logger, circuitBreaker) {
+    constructor(userRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    ) {
         this.userRepository = userRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
+        this.eventPublisher = eventPublisher;
     }
     async execute(request) {
         try {
@@ -70,6 +73,12 @@ class UpdateUserUseCase {
                     message: 'Không tìm thấy người dùng'
                 };
             }
+            // Capture old values BEFORE making any changes
+            const oldValues = {
+                fullName: user.personalInfo.fullName,
+                phoneNumber: user.personalInfo.phoneNumber,
+                isActive: user.accountStatus === 'active'
+            };
             // Note: Email updates are not supported in this version
             // Email is immutable after registration for security and audit reasons
             if (updates.email && updates.email !== user.email.value) {
@@ -140,12 +149,15 @@ class UpdateUserUseCase {
             // Update active status if provided
             if (updates.isActive !== undefined) {
                 if (updates.isActive) {
-                    user.activate();
+                    user.activate(request.requesterId, 'User activated via update');
                 }
                 else {
-                    user.deactivate();
+                    user.lock(request.requesterId, 'User locked via update');
                 }
             }
+            // Track changes for event (using captured old values)
+            const updatedFields = Object.keys(updates);
+            const changes = this.buildChangesList(oldValues, updates);
             // Save updated user
             // Repository accepts full User aggregate
             await this.userRepository.update(user);
@@ -153,9 +165,11 @@ class UpdateUserUseCase {
             this.logger.info('User information updated', {
                 userId,
                 requesterId,
-                updatedFields: Object.keys(updates),
+                updatedFields,
                 timestamp: new Date().toISOString()
             });
+            // Publish UserUpdatedEvent
+            await this.publishUserUpdatedEvent(userIdVO, requesterId, updatedFields, changes);
             return {
                 success: true,
                 user: {
@@ -179,6 +193,64 @@ class UpdateUserUseCase {
                 error: (0, error_helper_1.getErrorMessage)(error),
                 message: 'Lỗi khi cập nhật thông tin người dùng'
             };
+        }
+    }
+    /**
+     * Build list of field changes for event
+     * @param oldValues - Captured old values BEFORE changes
+     * @param updates - New values from request
+     */
+    buildChangesList(oldValues, updates) {
+        const changes = [];
+        // Note: We don't include old/new values for sensitive fields like passwords
+        // Only track which fields were updated
+        if (updates.fullName !== undefined) {
+            changes.push({
+                field: 'fullName',
+                oldValue: oldValues.fullName,
+                newValue: updates.fullName
+            });
+        }
+        if (updates.phoneNumber !== undefined) {
+            changes.push({
+                field: 'phoneNumber',
+                oldValue: oldValues.phoneNumber,
+                newValue: updates.phoneNumber
+            });
+        }
+        if (updates.isActive !== undefined) {
+            changes.push({
+                field: 'isActive',
+                oldValue: oldValues.isActive,
+                newValue: updates.isActive
+            });
+        }
+        // Add other fields as needed (excluding sensitive data)
+        return changes;
+    }
+    /**
+     * Publish UserUpdatedEvent
+     */
+    async publishUserUpdatedEvent(userIdVO, updatedBy, updatedFields, changes) {
+        if (!this.eventPublisher) {
+            this.logger.debug('Event publisher not configured, skipping event publication');
+            return;
+        }
+        try {
+            const event = new UserUpdatedEvent_1.UserUpdatedEvent(userIdVO, updatedBy, updatedFields, changes);
+            await this.eventPublisher.publishDomainEvents([event]);
+            this.logger.info('UserUpdatedEvent published', {
+                userId: userIdVO.value,
+                updatedFields,
+                updatedBy
+            });
+        }
+        catch (error) {
+            this.logger.error('Failed to publish UserUpdatedEvent', {
+                userId: userIdVO.value,
+                error: (0, error_helper_1.getErrorMessage)(error)
+            });
+            // Don't fail update if event publishing fails
         }
     }
 }

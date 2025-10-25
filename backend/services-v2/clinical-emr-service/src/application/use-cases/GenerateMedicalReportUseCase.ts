@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/use-cases/base/use-case.interface';
 import { IMedicalRecordRepository } from '../../domain/repositories/IMedicalRecordRepository';
 import { RecordId } from '../../domain/value-objects/RecordId';
 import { MedicalRecordAggregate } from '../../domain/aggregates/clinical.aggregate';
@@ -115,6 +115,24 @@ export class GenerateMedicalReportUseCase extends BaseHealthcareUseCase<Generate
     private readonly medicalRecordRepository: IMedicalRecordRepository
   ) {
     super();
+  }
+
+  /**
+   * Public execute method - required by BaseHealthcareUseCase
+   */
+  public override async execute(request: GenerateMedicalReportRequest): Promise<GenerateMedicalReportResponse> {
+    // Validate
+    const validation = await this.validate(request);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        message: 'Validation failed',
+        errors: validation.errors
+      };
+    }
+    
+    // Execute
+    return await this.executeInternal(request);
   }
 
   /**
@@ -669,7 +687,7 @@ export class GenerateMedicalReportUseCase extends BaseHealthcareUseCase<Generate
   /**
    * Validate request
    */
-  async validate(request: GenerateMedicalReportRequest): Promise<ValidationResult> {
+  override async validate(request: GenerateMedicalReportRequest): Promise<ValidationResult> {
     const errors: Array<{ field: string; message: string; code: string }> = [];
 
     // Required fields validation

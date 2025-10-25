@@ -13,12 +13,12 @@ import { TYPES } from '../../infrastructure/di/types';
 import { MedicalRecordController } from '../controllers/MedicalRecordController';
 
 // Middleware
-import { authenticationMiddleware } from '../../../shared/presentation/middleware/authentication.middleware';
-import { authorizationMiddleware } from '../../../shared/presentation/middleware/authorization.middleware';
-import { validationMiddleware } from '../../../shared/presentation/middleware/validation.middleware';
-import { auditMiddleware } from '../../../shared/presentation/middleware/audit.middleware';
-import { rateLimitMiddleware } from '../../../shared/presentation/middleware/rate-limit.middleware';
-import { errorHandlingMiddleware } from '../../../shared/presentation/middleware/error-handling.middleware';
+import { authenticationMiddleware } from '../middleware/authentication.middleware';
+import { authorizationMiddleware } from '../middleware/authorization.middleware';
+import { validationMiddleware } from '../middleware/validation.middleware';
+import { auditMiddleware } from '../middleware/audit.middleware';
+import { rateLimitMiddleware } from '../middleware/rate-limit.middleware';
+import { errorHandlingMiddleware } from '../middleware/error-handling.middleware';
 
 // Validation schemas
 import { 
@@ -197,6 +197,162 @@ export function createMedicalRecordRoutes(): Router {
   );
 
   // =====================================================
+  // DELETE OPERATIONS
+  // =====================================================
+
+  /**
+   * Delete medical record
+   * DELETE /api/v2/clinical-emr/medical-records/:recordId
+   */
+  router.delete(
+    '/medical-records/:recordId',
+    authorizationMiddleware(['admin']),
+    async (req, res) => {
+      await controller.deleteMedicalRecord(req, res);
+    }
+  );
+
+  // =====================================================
+  // DIAGNOSIS MANAGEMENT
+  // =====================================================
+
+  /**
+   * Add diagnosis to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/diagnoses
+   */
+  router.post(
+    '/medical-records/:recordId/diagnoses',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.addDiagnosis(req, res);
+    }
+  );
+
+  /**
+   * Remove diagnosis from medical record
+   * DELETE /api/v2/clinical-emr/medical-records/:recordId/diagnoses/:diagnosisCode
+   */
+  router.delete(
+    '/medical-records/:recordId/diagnoses/:diagnosisCode',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.removeDiagnosis(req, res);
+    }
+  );
+
+  // =====================================================
+  // MEDICATION MANAGEMENT
+  // =====================================================
+
+  /**
+   * Add medication to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/medications
+   */
+  router.post(
+    '/medical-records/:recordId/medications',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.addMedication(req, res);
+    }
+  );
+
+  /**
+   * Remove medication from medical record
+   * DELETE /api/v2/clinical-emr/medical-records/:recordId/medications/:medicationCode
+   */
+  router.delete(
+    '/medical-records/:recordId/medications/:medicationCode',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.removeMedication(req, res);
+    }
+  );
+
+  // =====================================================
+  // VITAL SIGNS MANAGEMENT
+  // =====================================================
+
+  /**
+   * Update vital signs
+   * PUT /api/v2/clinical-emr/medical-records/:recordId/vital-signs
+   */
+  router.put(
+    '/medical-records/:recordId/vital-signs',
+    authorizationMiddleware(['doctor', 'nurse', 'admin']),
+    async (req, res) => {
+      await controller.updateVitalSigns(req, res);
+    }
+  );
+
+  // =====================================================
+  // FHIR OPERATIONS
+  // =====================================================
+
+  /**
+   * Export medical record to FHIR
+   * GET /api/v2/clinical-emr/medical-records/:recordId/fhir
+   */
+  router.get(
+    '/medical-records/:recordId/fhir',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.exportToFHIR(req, res);
+    }
+  );
+
+  /**
+   * Validate FHIR compliance
+   * GET /api/v2/clinical-emr/medical-records/:recordId/fhir/validate
+   */
+  router.get(
+    '/medical-records/:recordId/fhir/validate',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.validateFHIRCompliance(req, res);
+    }
+  );
+
+  // =====================================================
+  // ACCESS CONTROL
+  // =====================================================
+
+  /**
+   * Grant access to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/access/grant
+   */
+  router.post(
+    '/medical-records/:recordId/access/grant',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.grantAccess(req, res);
+    }
+  );
+
+  /**
+   * Revoke access to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/access/revoke
+   */
+  router.post(
+    '/medical-records/:recordId/access/revoke',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.revokeAccess(req, res);
+    }
+  );
+
+  /**
+   * Audit access history
+   * GET /api/v2/clinical-emr/medical-records/:recordId/access/audit
+   */
+  router.get(
+    '/medical-records/:recordId/access/audit',
+    authorizationMiddleware(['doctor', 'admin']),
+    async (req, res) => {
+      await controller.auditAccessHistory(req, res);
+    }
+  );
+
+  // =====================================================
   // HEALTH AND MONITORING ROUTES
   // =====================================================
 
@@ -273,83 +429,49 @@ export const routeConfig = {
   service: 'clinical-emr',
   description: 'Clinical EMR Service API Routes',
   endpoints: [
-    {
-      method: 'POST',
-      path: '/medical-records',
-      description: 'Create new medical record',
-      roles: ['doctor', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'GET',
-      path: '/medical-records/:recordId',
-      description: 'Get medical record by ID',
-      roles: ['doctor', 'patient', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'PUT',
-      path: '/medical-records/:recordId',
-      description: 'Update medical record',
-      roles: ['doctor', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'POST',
-      path: '/medical-records/:recordId/archive',
-      description: 'Archive medical record',
-      roles: ['doctor', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'POST',
-      path: '/medical-records/:recordId/restore',
-      description: 'Restore archived medical record',
-      roles: ['doctor', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'GET',
-      path: '/patients/:patientId/medical-records',
-      description: 'Get patient medical records',
-      roles: ['doctor', 'patient', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'GET',
-      path: '/doctors/:doctorId/medical-records',
-      description: 'Get doctor medical records',
-      roles: ['doctor', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'GET',
-      path: '/statistics',
-      description: 'Get medical record statistics',
-      roles: ['doctor', 'admin'],
-      rateLimit: '100/15min'
-    },
-    {
-      method: 'GET',
-      path: '/health',
-      description: 'Health check endpoint',
-      roles: ['public'],
-      rateLimit: '1000/15min'
-    },
-    {
-      method: 'GET',
-      path: '/ready',
-      description: 'Readiness check endpoint',
-      roles: ['public'],
-      rateLimit: '1000/15min'
-    },
-    {
-      method: 'GET',
-      path: '/live',
-      description: 'Liveness check endpoint',
-      roles: ['public'],
-      rateLimit: '1000/15min'
-    }
+    // CRUD Operations
+    { method: 'POST', path: '/medical-records', description: 'Create new medical record', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'GET', path: '/medical-records/:recordId', description: 'Get medical record by ID', roles: ['doctor', 'patient', 'admin'], rateLimit: '100/15min' },
+    { method: 'PUT', path: '/medical-records/:recordId', description: 'Update medical record', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'DELETE', path: '/medical-records/:recordId', description: 'Delete medical record', roles: ['admin'], rateLimit: '100/15min' },
+    
+    // Archive/Restore
+    { method: 'POST', path: '/medical-records/:recordId/archive', description: 'Archive medical record', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'POST', path: '/medical-records/:recordId/restore', description: 'Restore archived medical record', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    
+    // Patient Routes
+    { method: 'GET', path: '/patients/:patientId/medical-records', description: 'Get patient medical records', roles: ['doctor', 'patient', 'admin'], rateLimit: '100/15min' },
+    
+    // Doctor Routes
+    { method: 'GET', path: '/doctors/:doctorId/medical-records', description: 'Get doctor medical records', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    
+    // Diagnosis Management
+    { method: 'POST', path: '/medical-records/:recordId/diagnoses', description: 'Add diagnosis', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'DELETE', path: '/medical-records/:recordId/diagnoses/:diagnosisCode', description: 'Remove diagnosis', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    
+    // Medication Management
+    { method: 'POST', path: '/medical-records/:recordId/medications', description: 'Add medication', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'DELETE', path: '/medical-records/:recordId/medications/:medicationCode', description: 'Remove medication', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    
+    // Vital Signs
+    { method: 'PUT', path: '/medical-records/:recordId/vital-signs', description: 'Update vital signs', roles: ['doctor', 'nurse', 'admin'], rateLimit: '100/15min' },
+    
+    // FHIR Operations
+    { method: 'GET', path: '/medical-records/:recordId/fhir', description: 'Export to FHIR', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'GET', path: '/medical-records/:recordId/fhir/validate', description: 'Validate FHIR compliance', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    
+    // Access Control
+    { method: 'POST', path: '/medical-records/:recordId/access/grant', description: 'Grant access', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'POST', path: '/medical-records/:recordId/access/revoke', description: 'Revoke access', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    { method: 'GET', path: '/medical-records/:recordId/access/audit', description: 'Audit access history', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    
+    // Statistics
+    { method: 'GET', path: '/statistics', description: 'Get medical record statistics', roles: ['doctor', 'admin'], rateLimit: '100/15min' },
+    
+    // Health Checks
+    { method: 'GET', path: '/health', description: 'Health check endpoint', roles: ['public'], rateLimit: '1000/15min' },
+    { method: 'GET', path: '/ready', description: 'Readiness check endpoint', roles: ['public'], rateLimit: '1000/15min' },
+    { method: 'GET', path: '/live', description: 'Liveness check endpoint', roles: ['public'], rateLimit: '1000/15min' }
   ]
 };
 

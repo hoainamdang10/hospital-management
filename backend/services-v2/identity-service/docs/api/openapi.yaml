@@ -1,0 +1,883 @@
+openapi: 3.0.3
+info:
+  title: Identity Service API
+  description: |
+    Hospital Management System V2 - Identity Service
+    
+    Provides authentication, authorization, user management, and RBAC for the hospital system.
+    
+    **Features:**
+    - JWT-based authentication with MFA support
+    - Role-Based Access Control (RBAC) with 5 core roles
+    - Session management
+    - Password policies & validation
+    - Account recovery mechanisms
+    - Staff provisioning workflow
+    - Event-driven architecture integration
+    
+    **Security:**
+    - HIPAA-compliant audit logging
+    - Rate limiting (100 requests/15min per IP)
+    - Password complexity enforcement
+    - Account lockout after failed attempts
+    - Row Level Security (RLS) on database
+  version: 2.0.0
+  contact:
+    name: Hospital Management Team
+    email: dev@hospital.com
+  license:
+    name: Proprietary
+    
+servers:
+  - url: http://localhost:3021
+    description: Local development
+  - url: https://api-staging.hospital.com
+    description: Staging environment
+  - url: https://api.hospital.com
+    description: Production environment
+
+tags:
+  - name: Authentication
+    description: Login, registration, password management
+  - name: Users
+    description: User CRUD operations
+  - name: MFA
+    description: Multi-factor authentication
+  - name: Sessions
+    description: Session management
+  - name: Password Policies
+    description: Password policy configuration
+  - name: Account Recovery
+    description: Account recovery mechanisms
+  - name: Staff Provisioning
+    description: Staff account provisioning workflow
+  - name: Pending Registrations
+    description: Verify-first registration flow
+  - name: Permissions
+    description: Permission checks
+  - name: Health
+    description: Service health checks
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticate user with email and password. Returns JWT tokens.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: patient@hospital.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+                mfaCode:
+                  type: string
+                  description: Required if MFA is enabled
+                  example: "123456"
+                platform:
+                  type: string
+                  example: web
+                browser:
+                  type: string
+                  example: Chrome
+                version:
+                  type: string
+                  example: "120.0"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  accessToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  refreshToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/User'
+                  requiresMFA:
+                    type: boolean
+                    example: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Patient self-registration
+      description: Register new patient account. Only PATIENT role allowed for security.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, fullName, phoneNumber, citizenId, dateOfBirth, gender]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: newpatient@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+                fullName:
+                  type: string
+                  example: Nguyễn Văn A
+                phoneNumber:
+                  type: string
+                  pattern: '^[0-9]{10}$'
+                  example: "0901234567"
+                citizenId:
+                  type: string
+                  pattern: '^[0-9]{12}$'
+                  example: "001234567890"
+                dateOfBirth:
+                  type: string
+                  format: date
+                  example: "1990-01-01"
+                gender:
+                  type: string
+                  enum: [MALE, FEMALE, OTHER]
+                  example: MALE
+                address:
+                  type: string
+                  example: "123 Đường ABC, Quận 1, TP.HCM"
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  userId:
+                    type: string
+                    format: uuid
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  message:
+                    type: string
+                    example: Đăng ký thành công
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      description: Logout user and invalidate session
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Đăng xuất thành công
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  accessToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      description: Send password reset email to user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@hospital.com
+      responses:
+        '200':
+          description: Reset email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Email khôi phục mật khẩu đã được gửi
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password with token
+      description: Reset password using token from email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                  example: abc123def456
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: NewSecurePass123!
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/auth/verify-email:
+    post:
+      tags: [Authentication]
+      summary: Verify email address
+      description: Verify user email with verification token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  example: verify-token-123
+      responses:
+        '200':
+          description: Email verified successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ==================== USERS ====================
+  /api/users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      description: Retrieve user details by user ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags: [Users]
+      summary: Update user
+      description: Update user information
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName:
+                  type: string
+                phoneNumber:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '200':
+          description: User updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags: [Users]
+      summary: Delete user
+      description: Soft delete user account
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List users
+      description: Get paginated list of users with filters
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [SUPER_ADMIN, ADMIN, DOCTOR, NURSE, PATIENT]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, LOCKED]
+      responses:
+        '200':
+          description: Users list retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+  /api/users/{userId}/permissions:
+    get:
+      tags: [Permissions]
+      summary: Check user permissions
+      description: Get user's permissions and roles
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Permissions retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                  permissions:
+                    type: array
+                    items:
+                      type: string
+
+  # ==================== MFA ====================
+  /api/mfa/enable:
+    post:
+      tags: [MFA]
+      summary: Enable MFA
+      description: Enable multi-factor authentication for user
+      responses:
+        '200':
+          description: MFA enabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  qrCode:
+                    type: string
+                    description: Base64 encoded QR code
+                  secret:
+                    type: string
+                    description: TOTP secret
+
+  /api/mfa/verify:
+    post:
+      tags: [MFA]
+      summary: Verify MFA code
+      description: Verify MFA code during setup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: MFA verified successfully
+
+  /api/mfa/disable:
+    post:
+      tags: [MFA]
+      summary: Disable MFA
+      description: Disable multi-factor authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: MFA disabled successfully
+
+  # ==================== SESSIONS ====================
+  /api/sessions:
+    get:
+      tags: [Sessions]
+      summary: List active sessions
+      description: Get all active sessions for current user
+      responses:
+        '200':
+          description: Sessions retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+
+  /api/sessions/{sessionId}:
+    delete:
+      tags: [Sessions]
+      summary: Terminate session
+      description: Terminate specific session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session terminated
+
+  /api/sessions/terminate-all:
+    post:
+      tags: [Sessions]
+      summary: Terminate all sessions
+      description: Terminate all sessions except current
+      responses:
+        '200':
+          description: All sessions terminated
+
+  # ==================== PASSWORD POLICIES ====================
+  /api/password-policies:
+    get:
+      tags: [Password Policies]
+      summary: Get password policy
+      description: Get current password policy configuration
+      responses:
+        '200':
+          description: Password policy retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordPolicy'
+    
+    put:
+      tags: [Password Policies]
+      summary: Update password policy
+      description: Update password policy (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordPolicy'
+      responses:
+        '200':
+          description: Password policy updated
+
+  /api/password-policies/validate:
+    post:
+      tags: [Password Policies]
+      summary: Validate password
+      description: Check if password meets policy requirements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+  # ==================== HEALTH ====================
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Check service health status
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  service:
+                    type: string
+                    example: identity-service
+                  version:
+                    type: string
+                    example: 2.0.0
+                  timestamp:
+                    type: string
+                    format: date-time
+                  components:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        enum: [HEALTHY, DEGRADED, UNHEALTHY]
+                      cache:
+                        type: string
+                        enum: [HEALTHY, DEGRADED, UNHEALTHY]
+                      eventBus:
+                        type: string
+                        enum: [HEALTHY, DEGRADED, UNHEALTHY]
+
+  /metrics:
+    get:
+      tags: [Health]
+      summary: Prometheus metrics
+      description: Get Prometheus metrics for monitoring
+      security: []
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+# ==================== COMPONENTS ====================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token from /api/auth/login
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [SUPER_ADMIN, ADMIN, DOCTOR, NURSE, PATIENT]
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, LOCKED]
+        emailVerified:
+          type: boolean
+        mfaEnabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        deviceInfo:
+          type: object
+          properties:
+            platform:
+              type: string
+            browser:
+              type: string
+            version:
+              type: string
+        ipAddress:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    PasswordPolicy:
+      type: object
+      properties:
+        minLength:
+          type: integer
+          minimum: 8
+          example: 8
+        requireUppercase:
+          type: boolean
+          example: true
+        requireLowercase:
+          type: boolean
+          example: true
+        requireNumbers:
+          type: boolean
+          example: true
+        requireSpecialChars:
+          type: boolean
+          example: true
+        maxAge:
+          type: integer
+          description: Password expiry in days
+          example: 90
+        preventReuse:
+          type: integer
+          description: Number of previous passwords to prevent reuse
+          example: 5
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Yêu cầu không hợp lệ
+            message: Email không đúng định dạng
+            timestamp: "2025-01-07T10:00:00Z"
+            requestId: req-123
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Không có quyền truy cập
+            message: Token không hợp lệ hoặc đã hết hạn
+            timestamp: "2025-01-07T10:00:00Z"
+            requestId: req-123
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Bị cấm
+            message: Bạn không có quyền thực hiện hành động này
+            timestamp: "2025-01-07T10:00:00Z"
+            requestId: req-123
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Không tìm thấy
+            message: Người dùng không tồn tại
+            timestamp: "2025-01-07T10:00:00Z"
+            requestId: req-123
+
+    TooManyRequests:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Quá nhiều yêu cầu
+            message: Vui lòng thử lại sau 15 phút
+            timestamp: "2025-01-07T10:00:00Z"
+            requestId: req-123
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Lỗi hệ thống
+            message: Đã xảy ra lỗi không xác định
+            timestamp: "2025-01-07T10:00:00Z"
+            requestId: req-123

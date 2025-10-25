@@ -12,13 +12,8 @@ exports.IdentityServiceHealthCheck = exports.HealthStatus = void 0;
 const supabase_js_1 = require("@supabase/supabase-js");
 const CircuitBreaker_1 = require("../resilience/CircuitBreaker");
 const error_helper_1 = require("../../utils/error-helper");
-var HealthStatus;
-(function (HealthStatus) {
-    HealthStatus["HEALTHY"] = "HEALTHY";
-    HealthStatus["DEGRADED"] = "DEGRADED";
-    HealthStatus["UNHEALTHY"] = "UNHEALTHY";
-    HealthStatus["UNKNOWN"] = "UNKNOWN";
-})(HealthStatus || (exports.HealthStatus = HealthStatus = {}));
+const IHealthCheckService_1 = require("../../application/services/IHealthCheckService");
+Object.defineProperty(exports, "HealthStatus", { enumerable: true, get: function () { return IHealthCheckService_1.HealthStatus; } });
 /**
  * Health Check Service for Identity Service
  * Provides comprehensive monitoring of all service components
@@ -67,7 +62,7 @@ class IdentityServiceHealthCheck {
         catch (error) {
             this.logger.error('Health check failed', { error: (0, error_helper_1.getErrorMessage)(error) });
             return {
-                overall: HealthStatus.UNHEALTHY,
+                overall: IHealthCheckService_1.HealthStatus.UNHEALTHY,
                 components: {
                     database: this.createErrorResult(error),
                     authentication: this.createErrorResult(error),
@@ -101,12 +96,12 @@ class IdentityServiceHealthCheck {
             }
             const responseTime = Date.now() - startTime;
             // Check response time thresholds
-            let status = HealthStatus.HEALTHY;
+            let status = IHealthCheckService_1.HealthStatus.HEALTHY;
             if (responseTime > 1000) {
-                status = HealthStatus.DEGRADED;
+                status = IHealthCheckService_1.HealthStatus.DEGRADED;
             }
             if (responseTime > 5000) {
-                status = HealthStatus.UNHEALTHY;
+                status = IHealthCheckService_1.HealthStatus.UNHEALTHY;
             }
             return {
                 status,
@@ -121,7 +116,7 @@ class IdentityServiceHealthCheck {
         }
         catch (error) {
             return {
-                status: HealthStatus.UNHEALTHY,
+                status: IHealthCheckService_1.HealthStatus.UNHEALTHY,
                 timestamp: new Date(),
                 responseTime: Date.now() - startTime,
                 error: (0, error_helper_1.getErrorMessage)(error)
@@ -147,7 +142,7 @@ class IdentityServiceHealthCheck {
             const responseTime = Date.now() - startTime;
             // Increased threshold from 500ms to 1000ms for consistency
             return {
-                status: responseTime < 1000 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
+                status: responseTime < 1000 ? IHealthCheckService_1.HealthStatus.HEALTHY : IHealthCheckService_1.HealthStatus.DEGRADED,
                 timestamp: new Date(),
                 responseTime,
                 details: {
@@ -159,7 +154,7 @@ class IdentityServiceHealthCheck {
         }
         catch (error) {
             return {
-                status: HealthStatus.UNHEALTHY,
+                status: IHealthCheckService_1.HealthStatus.UNHEALTHY,
                 timestamp: new Date(),
                 responseTime: Date.now() - startTime,
                 error: (0, error_helper_1.getErrorMessage)(error)
@@ -183,7 +178,7 @@ class IdentityServiceHealthCheck {
             const responseTime = Date.now() - startTime;
             // Increased threshold from 500ms to 1000ms for consistency
             return {
-                status: responseTime < 1000 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
+                status: responseTime < 1000 ? IHealthCheckService_1.HealthStatus.HEALTHY : IHealthCheckService_1.HealthStatus.DEGRADED,
                 timestamp: new Date(),
                 responseTime,
                 details: {
@@ -194,7 +189,7 @@ class IdentityServiceHealthCheck {
         }
         catch (error) {
             return {
-                status: HealthStatus.UNHEALTHY,
+                status: IHealthCheckService_1.HealthStatus.UNHEALTHY,
                 timestamp: new Date(),
                 responseTime: Date.now() - startTime,
                 error: (0, error_helper_1.getErrorMessage)(error)
@@ -217,7 +212,7 @@ class IdentityServiceHealthCheck {
             }
             const responseTime = Date.now() - startTime;
             return {
-                status: responseTime < 500 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
+                status: responseTime < 500 ? IHealthCheckService_1.HealthStatus.HEALTHY : IHealthCheckService_1.HealthStatus.DEGRADED,
                 timestamp: new Date(),
                 responseTime,
                 details: {
@@ -228,7 +223,7 @@ class IdentityServiceHealthCheck {
         }
         catch (error) {
             return {
-                status: HealthStatus.UNHEALTHY,
+                status: IHealthCheckService_1.HealthStatus.UNHEALTHY,
                 timestamp: new Date(),
                 responseTime: Date.now() - startTime,
                 error: (0, error_helper_1.getErrorMessage)(error)
@@ -257,7 +252,7 @@ class IdentityServiceHealthCheck {
             // Increased threshold from 500ms to 1000ms for audit logs
             // Audit logs can be slower due to table size
             return {
-                status: responseTime < 1000 ? HealthStatus.HEALTHY : HealthStatus.DEGRADED,
+                status: responseTime < 1000 ? IHealthCheckService_1.HealthStatus.HEALTHY : IHealthCheckService_1.HealthStatus.DEGRADED,
                 timestamp: new Date(),
                 responseTime,
                 details: {
@@ -269,7 +264,7 @@ class IdentityServiceHealthCheck {
         }
         catch (error) {
             return {
-                status: HealthStatus.UNHEALTHY,
+                status: IHealthCheckService_1.HealthStatus.UNHEALTHY,
                 timestamp: new Date(),
                 responseTime: Date.now() - startTime,
                 error: (0, error_helper_1.getErrorMessage)(error)
@@ -286,9 +281,9 @@ class IdentityServiceHealthCheck {
             const responseTime = Date.now() - startTime;
             // Check if any breakers are open
             const openBreakers = Object.values(breakerStatus).filter((breaker) => breaker.state === 'OPEN');
-            let status = HealthStatus.HEALTHY;
+            let status = IHealthCheckService_1.HealthStatus.HEALTHY;
             if (openBreakers.length > 0) {
-                status = HealthStatus.DEGRADED;
+                status = IHealthCheckService_1.HealthStatus.DEGRADED;
             }
             return {
                 status,
@@ -303,7 +298,7 @@ class IdentityServiceHealthCheck {
         }
         catch (error) {
             return {
-                status: HealthStatus.UNHEALTHY,
+                status: IHealthCheckService_1.HealthStatus.UNHEALTHY,
                 timestamp: new Date(),
                 responseTime: Date.now() - startTime,
                 error: (0, error_helper_1.getErrorMessage)(error)
@@ -323,7 +318,7 @@ class IdentityServiceHealthCheck {
     }
     createErrorResult(error) {
         return {
-            status: HealthStatus.UNHEALTHY,
+            status: IHealthCheckService_1.HealthStatus.UNHEALTHY,
             timestamp: new Date(),
             responseTime: 0,
             error: (0, error_helper_1.getErrorMessage)(error) || 'Unknown error'
@@ -331,16 +326,16 @@ class IdentityServiceHealthCheck {
     }
     calculateOverallHealth(components) {
         const statuses = Object.values(components).map((comp) => comp.status);
-        if (statuses.every(status => status === HealthStatus.HEALTHY)) {
-            return HealthStatus.HEALTHY;
+        if (statuses.every(status => status === IHealthCheckService_1.HealthStatus.HEALTHY)) {
+            return IHealthCheckService_1.HealthStatus.HEALTHY;
         }
-        if (statuses.some(status => status === HealthStatus.UNHEALTHY)) {
-            return HealthStatus.UNHEALTHY;
+        if (statuses.some(status => status === IHealthCheckService_1.HealthStatus.UNHEALTHY)) {
+            return IHealthCheckService_1.HealthStatus.UNHEALTHY;
         }
-        if (statuses.some(status => status === HealthStatus.DEGRADED)) {
-            return HealthStatus.DEGRADED;
+        if (statuses.some(status => status === IHealthCheckService_1.HealthStatus.DEGRADED)) {
+            return IHealthCheckService_1.HealthStatus.DEGRADED;
         }
-        return HealthStatus.UNKNOWN;
+        return IHealthCheckService_1.HealthStatus.UNKNOWN;
     }
 }
 exports.IdentityServiceHealthCheck = IdentityServiceHealthCheck;

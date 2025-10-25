@@ -13,7 +13,7 @@ export { loadConfig, validateConfig, ValidationMode, type AppConfig } from './co
 export { createLogger, getLogger, resetLogger } from './logger';
 
 // Application Builder
-export { buildExpressApp, createMetricsAuth } from './app-builder';
+export { buildExpressApp, createMetricsAuth, registerErrorHandlers } from './app-builder';
 
 // Server
 export {

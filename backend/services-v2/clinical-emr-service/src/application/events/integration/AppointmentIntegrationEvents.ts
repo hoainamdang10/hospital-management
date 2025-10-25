@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, Event-Driven Architecture, HIPAA
  */
 
-import { IntegrationEvent } from '../../../../shared/domain/events/IntegrationEvent';
+import { IntegrationEvent } from '@shared/domain/base/domain-event';
 
 /**
  * Appointment Completed Event
@@ -50,9 +50,34 @@ export class AppointmentCompletedEvent extends IntegrationEvent {
     public readonly completedBy: string,
     public readonly completedAt: Date = new Date()
   ) {
+    // Calculate Vietnamese metadata before super() call
+    const vietnameseAppointmentType = (() => {
+      switch (appointmentDetails.appointmentType) {
+        case 'consultation': return 'Khám tư vấn';
+        case 'follow_up': return 'Tái khám';
+        case 'emergency': return 'Cấp cứu';
+        case 'procedure': return 'Thủ thuật';
+        default: return 'Không xác định';
+      }
+    })();
+    
+    const vietnameseCompletionStatus = (() => {
+      switch (completionDetails.status) {
+        case 'completed': return 'Hoàn thành';
+        case 'completed_with_follow_up': return 'Hoàn thành - Cần tái khám';
+        case 'partially_completed': return 'Hoàn thành một phần';
+        default: return 'Không xác định';
+      }
+    })();
+    
+    const duration = Math.floor((appointmentDetails.actualEndTime.getTime() - appointmentDetails.actualStartTime.getTime()) / (1000 * 60));
+    const vietnameseSummary = `Cuộc hẹn ${appointmentId} đã hoàn thành sau ${duration} phút với ${medicalSummary.diagnosisCount} chẩn đoán và ${medicalSummary.medicationCount} thuốc được kê.`;
+    
     super(
-      'clinical-emr.appointment.completed',
+      'appointment.completed',
+      'clinical-emr-service',
       appointmentId,
+      'Appointment',
       {
         appointmentId,
         recordId,
@@ -72,12 +97,37 @@ export class AppointmentCompletedEvent extends IntegrationEvent {
         completedBy,
         completedAt: completedAt.toISOString(),
         vietnameseMetadata: {
-          appointmentType: this.getVietnameseAppointmentType(),
-          completionStatus: this.getVietnameseCompletionStatus(),
-          summary: this.getVietnameseSummary()
+          appointmentType: vietnameseAppointmentType,
+          completionStatus: vietnameseCompletionStatus,
+          summary: vietnameseSummary
         }
-      }
+      },
+      'appointments-service',
+      undefined,
+      completedBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      appointmentId: this.appointmentId,
+      recordId: this.recordId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      appointmentDetails: this.appointmentDetails,
+      completionDetails: this.completionDetails,
+      medicalSummary: this.medicalSummary,
+      completedBy: this.completedBy,
+      completedAt: this.completedAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -186,9 +236,32 @@ export class FollowUpAppointmentRequiredEvent extends IntegrationEvent {
     public readonly requestedBy: string,
     public readonly requestedAt: Date = new Date()
   ) {
+    const vietnameseFollowUpType = (() => {
+      switch (followUpDetails.type) {
+        case 'routine': return 'Tái khám định kỳ';
+        case 'urgent': return 'Tái khám khẩn cấp';
+        case 'monitoring': return 'Theo dõi';
+        case 'test_results': return 'Xem kết quả xét nghiệm';
+        case 'medication_review': return 'Đánh giá thuốc';
+        default: return 'Không xác định';
+      }
+    })();
+
+    const vietnamesePriority = (() => {
+      switch (followUpDetails.priority) {
+        case 'critical': return 'Khẩn cấp';
+        case 'high': return 'Cao';
+        case 'medium': return 'Trung bình';
+        case 'low': return 'Thấp';
+        default: return 'Không xác định';
+      }
+    })();
+
     super(
-      'clinical-emr.follow-up.required',
+      'follow-up.required',
+      'clinical-emr-service',
       `${originalAppointmentId}-follow-up`,
+      'Appointment',
       {
         originalAppointmentId,
         originalRecordId,
@@ -202,12 +275,36 @@ export class FollowUpAppointmentRequiredEvent extends IntegrationEvent {
         requestedBy,
         requestedAt: requestedAt.toISOString(),
         vietnameseMetadata: {
-          followUpType: this.getVietnameseFollowUpType(),
-          priority: this.getVietnamesePriority(),
-          reason: this.getVietnameseReason()
+          followUpType: vietnameseFollowUpType,
+          priority: vietnamesePriority,
+          reason: `Yêu cầu ${vietnameseFollowUpType} với độ ưu tiên ${vietnamesePriority}`
         }
-      }
+      },
+      'appointments-service',
+      undefined,
+      requestedBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      originalAppointmentId: this.originalAppointmentId,
+      originalRecordId: this.originalRecordId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      followUpDetails: this.followUpDetails,
+      clinicalReason: this.clinicalReason,
+      requestedBy: this.requestedBy,
+      requestedAt: this.requestedAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -312,9 +409,37 @@ export class ReferralRequiredEvent extends IntegrationEvent {
     public readonly referredBy: string,
     public readonly referredAt: Date = new Date()
   ) {
+    const specialtyMap: Record<string, string> = {
+      'cardiology': 'Tim mạch',
+      'neurology': 'Thần kinh',
+      'orthopedics': 'Chấn thương chỉnh hình',
+      'dermatology': 'Da liễu',
+      'gastroenterology': 'Tiêu hóa',
+      'pulmonology': 'Hô hấp',
+      'endocrinology': 'Nội tiết',
+      'oncology': 'Ung bướu',
+      'psychiatry': 'Tâm thần',
+      'ophthalmology': 'Mắt',
+      'ent': 'Tai mũi họng',
+      'urology': 'Tiết niệu',
+      'gynecology': 'Phụ khoa'
+    };
+    const vietnameseSpecialty = specialtyMap[referralDetails.targetSpecialty.toLowerCase()] || referralDetails.targetSpecialty;
+
+    const vietnameseUrgency = (() => {
+      switch (referralDetails.urgency) {
+        case 'emergency': return 'Cấp cứu';
+        case 'urgent': return 'Khẩn cấp';
+        case 'routine': return 'Thường quy';
+        default: return 'Không xác định';
+      }
+    })();
+
     super(
-      'clinical-emr.referral.required',
+      'referral.required',
+      'clinical-emr-service',
       `${originalAppointmentId}-referral`,
+      'Appointment',
       {
         originalAppointmentId,
         originalRecordId,
@@ -334,12 +459,36 @@ export class ReferralRequiredEvent extends IntegrationEvent {
         referredBy,
         referredAt: referredAt.toISOString(),
         vietnameseMetadata: {
-          specialty: this.getVietnameseSpecialty(),
-          urgency: this.getVietnameseUrgency(),
-          reason: this.getVietnameseReason()
+          specialty: vietnameseSpecialty,
+          urgency: vietnameseUrgency,
+          reason: `Chuyển khoa ${vietnameseSpecialty} với mức độ ${vietnameseUrgency}`
         }
-      }
+      },
+      'appointments-service',
+      undefined,
+      referredBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      originalAppointmentId: this.originalAppointmentId,
+      originalRecordId: this.originalRecordId,
+      patientId: this.patientId,
+      referringDoctorId: this.referringDoctorId,
+      referralDetails: this.referralDetails,
+      diagnosticInfo: this.diagnosticInfo,
+      referredBy: this.referredBy,
+      referredAt: this.referredAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -471,9 +620,31 @@ export class AppointmentNoShowEvent extends IntegrationEvent {
     public readonly recordedBy: string,
     public readonly recordedAt: Date = new Date()
   ) {
+    const vietnameseNoShowReason = (() => {
+      switch (noShowDetails.reason) {
+        case 'no_contact': return 'Không liên lạc được';
+        case 'patient_cancelled_late': return 'Bệnh nhân hủy muộn';
+        case 'emergency': return 'Cấp cứu';
+        case 'unknown': return 'Không rõ lý do';
+        default: return 'Không xác định';
+      }
+    })();
+
+    const vietnameseImpact = (() => {
+      switch (impactAssessment.clinicalImpact) {
+        case 'high': return 'Ảnh hưởng cao đến sức khỏe';
+        case 'medium': return 'Ảnh hưởng trung bình';
+        case 'low': return 'Ảnh hưởng thấp';
+        case 'none': return 'Không ảnh hưởng';
+        default: return 'Không xác định';
+      }
+    })();
+
     super(
-      'clinical-emr.appointment.no-show',
+      'appointment.no-show',
+      'clinical-emr-service',
       appointmentId,
+      'Appointment',
       {
         appointmentId,
         patientId,
@@ -489,11 +660,35 @@ export class AppointmentNoShowEvent extends IntegrationEvent {
         recordedAt: recordedAt.toISOString(),
         vietnameseMetadata: {
           status: 'Bệnh nhân không đến',
-          reason: this.getVietnameseNoShowReason(),
-          impact: this.getVietnameseImpact()
+          reason: vietnameseNoShowReason,
+          impact: vietnameseImpact
         }
-      }
+      },
+      'appointments-service',
+      undefined,
+      recordedBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      appointmentId: this.appointmentId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      scheduledDate: this.scheduledDate,
+      noShowDetails: this.noShowDetails,
+      impactAssessment: this.impactAssessment,
+      recordedBy: this.recordedBy,
+      recordedAt: this.recordedAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**

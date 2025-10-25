@@ -170,7 +170,7 @@ export const loggingMiddleware = (req: Request, res: Response, next: NextFunctio
   const originalEnd = res.end;
   let responseBody = '';
 
-  res.end = function(chunk?: any, encoding?: any) {
+  res.end = function(chunk?: any, encoding?: any, callback?: any) {
     if (chunk) {
       responseBody += chunk;
     }

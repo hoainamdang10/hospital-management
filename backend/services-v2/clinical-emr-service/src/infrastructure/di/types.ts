@@ -25,6 +25,8 @@ export const TYPES = {
   DomainEventPublisher: Symbol.for('DomainEventPublisher'),
   EventBus: Symbol.for('EventBus'),
   EventStore: Symbol.for('EventStore'),
+  ClinicalEMREventHandler: Symbol.for('ClinicalEMREventHandler'),
+  MedicalRecordDomainEventHandler: Symbol.for('MedicalRecordDomainEventHandler'),
 
   // =====================================================
   // INFRASTRUCTURE - REPOSITORIES

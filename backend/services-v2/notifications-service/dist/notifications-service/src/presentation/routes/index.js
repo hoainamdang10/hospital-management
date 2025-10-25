@@ -7,9 +7,9 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupRoutes = setupRoutes;
-function setupRoutes(app, container) {
+function setupRoutes(app, _container) {
     // Setup API routes
-    app.get('/api/sample', (req, res) => {
+    app.get('/api/sample', (_req, res) => {
         res.json({
             message: 'Notifications Service API',
             features: ["Email", "SMS", "Push Notifications", "Templates"],

@@ -9,7 +9,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSessionRoutes = createSessionRoutes;
 const express_1 = require("express");
-const Logger_1 = require("../../infrastructure/logging/Logger");
 function getErrorMessage(error) {
     if (error instanceof Error)
         return error.message;
@@ -17,6 +16,7 @@ function getErrorMessage(error) {
 }
 function createSessionRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps;
     // List active sessions for current user (PROTECTED)
     router.get('/:userId/sessions', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requirePermission({
         permissions: ['sessions:read', '*'],
@@ -88,7 +88,7 @@ function createSessionRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('List active sessions error', { error: getErrorMessage(error) });
+            logger.error('List active sessions error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to list active sessions'
@@ -109,7 +109,7 @@ function createSessionRoutes(deps) {
             return res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Terminate session error', { error: getErrorMessage(error) });
+            logger.error('Terminate session error', { error: getErrorMessage(error) });
             if (error instanceof Error) {
                 if (error.message.includes('not found')) {
                     return res.status(404).json({
@@ -201,7 +201,7 @@ function createSessionRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Terminate all sessions error', { error: getErrorMessage(error) });
+            logger.error('Terminate all sessions error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to terminate all sessions'

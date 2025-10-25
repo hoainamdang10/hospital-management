@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/use-cases/base/use-case.interface';
 import { IMedicalRecordRepository, MedicalRecordNotFoundError } from '../../domain/repositories/IMedicalRecordRepository';
 import { RecordId } from '../../domain/value-objects/RecordId';
 import { BasicVitalSigns } from '../../domain/value-objects/BasicVitalSigns';
@@ -18,7 +18,7 @@ import {
   extractUpdateFields,
   hasVitalSignsUpdate
 } from '../dto/UpdateMedicalRecordRequest';
-import { IDomainEventPublisher } from '../../../shared/domain/events/IDomainEventPublisher';
+import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
 
 export class UpdateMedicalRecordUseCase extends BaseHealthcareUseCase<UpdateMedicalRecordRequest, UpdateMedicalRecordResponse> {
   constructor(
@@ -26,6 +26,24 @@ export class UpdateMedicalRecordUseCase extends BaseHealthcareUseCase<UpdateMedi
     private readonly eventPublisher: IDomainEventPublisher
   ) {
     super();
+  }
+
+  /**
+   * Public execute method - required by BaseHealthcareUseCase
+   */
+  public override async execute(request: UpdateMedicalRecordRequest): Promise<UpdateMedicalRecordResponse> {
+    // Validate
+    const validation = await this.validate(request);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        message: 'Validation failed',
+        errors: validation.errors
+      };
+    }
+    
+    // Execute
+    return await this.executeInternal(request);
   }
 
   /**
@@ -165,7 +183,7 @@ export class UpdateMedicalRecordUseCase extends BaseHealthcareUseCase<UpdateMedi
   /**
    * Validate request
    */
-  async validate(request: UpdateMedicalRecordRequest): Promise<ValidationResult> {
+  override async validate(request: UpdateMedicalRecordRequest): Promise<ValidationResult> {
     const errors = validateUpdateMedicalRecordRequest(request);
     
     // Additional business validation

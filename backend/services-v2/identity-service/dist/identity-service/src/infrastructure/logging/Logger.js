@@ -1,28 +1,16 @@
 "use strict";
 /**
  * Logger Module
- * Centralized logging for the Identity Service
+ * Production-ready structured logging using Pino
  *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logger = void 0;
-exports.logger = {
-    debug: (message, meta) => {
-        console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`, meta || '');
-    },
-    info: (message, meta) => {
-        console.log(`[INFO] ${new Date().toISOString()} - ${message}`, meta || '');
-    },
-    warn: (message, meta) => {
-        console.warn(`[WARN] ${new Date().toISOString()} - ${message}`, meta || '');
-    },
-    error: (message, meta) => {
-        console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, meta || '');
-    },
-    fatal: (message, meta) => {
-        console.error(`[FATAL] ${new Date().toISOString()} - ${message}`, meta || '');
-    }
-};
+exports.PinoLoggerAdapter = exports.createProductionLogger = exports.logger = void 0;
+// Re-export from PinoLogger for backward compatibility
+var PinoLogger_1 = require("./PinoLogger");
+Object.defineProperty(exports, "logger", { enumerable: true, get: function () { return PinoLogger_1.logger; } });
+Object.defineProperty(exports, "createProductionLogger", { enumerable: true, get: function () { return PinoLogger_1.createProductionLogger; } });
+Object.defineProperty(exports, "PinoLoggerAdapter", { enumerable: true, get: function () { return PinoLogger_1.PinoLoggerAdapter; } });
 //# sourceMappingURL=Logger.js.map

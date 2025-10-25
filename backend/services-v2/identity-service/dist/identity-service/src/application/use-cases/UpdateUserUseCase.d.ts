@@ -10,6 +10,7 @@ import { IUseCase } from '../../../../shared/application/use-cases/base/use-case
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface UpdateUserRequest {
     userId: string;
     requesterId: string;
@@ -44,8 +45,19 @@ export declare class UpdateUserUseCase implements IUseCase<UpdateUserRequest, Up
     private userRepository;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: UpdateUserRequest): Promise<UpdateUserResponse>;
     private updateUserInternal;
+    /**
+     * Build list of field changes for event
+     * @param oldValues - Captured old values BEFORE changes
+     * @param updates - New values from request
+     */
+    private buildChangesList;
+    /**
+     * Publish UserUpdatedEvent
+     */
+    private publishUserUpdatedEvent;
 }
 //# sourceMappingURL=UpdateUserUseCase.d.ts.map

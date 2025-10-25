@@ -9,7 +9,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAdminRoutes = createAdminRoutes;
 const express_1 = require("express");
-const Logger_1 = require("../../infrastructure/logging/Logger");
 const UserId_1 = require("../../domain/value-objects/UserId");
 function getErrorMessage(error) {
     if (error instanceof Error)
@@ -18,6 +17,7 @@ function getErrorMessage(error) {
 }
 function createAdminRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps;
     // All admin routes require authentication and admin role
     router.use(deps.authMiddleware.authenticate());
     router.use(deps.permissionMiddleware.requireAdmin());
@@ -36,7 +36,7 @@ function createAdminRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Provision staff endpoint error', { error: getErrorMessage(error) });
+            logger.error('Provision staff endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -59,7 +59,7 @@ function createAdminRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('List staff invitations endpoint error', { error: getErrorMessage(error) });
+            logger.error('List staff invitations endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -78,7 +78,7 @@ function createAdminRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Get staff invitation endpoint error', { error: getErrorMessage(error) });
+            logger.error('Get staff invitation endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -98,7 +98,7 @@ function createAdminRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Cancel staff invitation endpoint error', { error: getErrorMessage(error) });
+            logger.error('Cancel staff invitation endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -117,7 +117,7 @@ function createAdminRoutes(deps) {
             res.status(statusCode).json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Resend staff invitation endpoint error', { error: getErrorMessage(error) });
+            logger.error('Resend staff invitation endpoint error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Lỗi hệ thống, vui lòng thử lại sau'
@@ -146,7 +146,7 @@ function createAdminRoutes(deps) {
             });
         }
         catch (error) {
-            Logger_1.logger.error('Invalidate cache error', { error: getErrorMessage(error) });
+            logger.error('Invalidate cache error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to invalidate cache'
@@ -164,7 +164,7 @@ function createAdminRoutes(deps) {
             });
         }
         catch (error) {
-            Logger_1.logger.error('Invalidate role cache error', { error: getErrorMessage(error) });
+            logger.error('Invalidate role cache error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to invalidate role cache'

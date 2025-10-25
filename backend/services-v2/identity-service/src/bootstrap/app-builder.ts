@@ -58,9 +58,6 @@ export function buildExpressApp(
   // 5. Request logging
   setupRequestLogging(app, logger);
 
-  // 6. Error handling (must be last)
-  setupErrorHandling(app, logger);
-
   logger.info('Express application built successfully', {
     middleware: [
       'body-parser',
@@ -70,8 +67,7 @@ export function buildExpressApp(
       'rate-limiting',
       'request-id',
       cacheService ? 'idempotency' : null,
-      'request-logging',
-      'error-handling'
+      'request-logging'
     ].filter(Boolean)
   });
 
@@ -195,9 +191,10 @@ function setupRequestLogging(app: Application, logger: ILogger): void {
 }
 
 /**
- * Setup error handling middleware
+ * Register error handling middleware
+ * MUST be called AFTER all routes are registered
  */
-function setupErrorHandling(app: Application, logger: ILogger): void {
+export function registerErrorHandlers(app: Application, logger: ILogger): void {
   // 404 handler
   app.use((req: Request, res: Response) => {
     logger.warn('Route not found', {
@@ -226,14 +223,14 @@ function setupErrorHandling(app: Application, logger: ILogger): void {
 
     res.status(500).json({
       error: 'Internal Server Error',
-      message: process.env.NODE_ENV === 'production' 
-        ? 'An unexpected error occurred' 
+      message: process.env.NODE_ENV === 'production'
+        ? 'An unexpected error occurred'
         : err.message,
       requestId: (req as any).requestId
     });
   });
 
-  logger.debug('Error handling configured');
+  logger.info('Error handlers registered');
 }
 
 /**

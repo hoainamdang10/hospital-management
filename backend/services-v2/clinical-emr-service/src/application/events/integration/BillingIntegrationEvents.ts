@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, Event-Driven Architecture, HIPAA
  */
 
-import { IntegrationEvent } from '../../../../shared/domain/events/IntegrationEvent';
+import { IntegrationEvent } from '@shared/domain/base/domain-event';
 
 /**
  * Medical Record Completed Event
@@ -53,8 +53,10 @@ export class MedicalRecordCompletedEvent extends IntegrationEvent {
     public readonly completedAt: Date = new Date()
   ) {
     super(
-      'clinical-emr.medical-record.completed',
+      'medical-record.completed',
+      'clinical-emr-service',
       recordId,
+      'MedicalRecord',
       {
         recordId,
         patientId,
@@ -67,14 +69,40 @@ export class MedicalRecordCompletedEvent extends IntegrationEvent {
         billingInfo,
         completedBy,
         completedAt: completedAt.toISOString(),
-        // Vietnamese metadata
         vietnameseMetadata: {
           recordType: 'Hồ sơ bệnh án',
           status: 'Hoàn thành',
           billingRequired: 'Cần thanh toán'
         }
-      }
+      },
+      'billing-service',
+      undefined,
+      completedBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      appointmentId: this.appointmentId,
+      visitDate: this.visitDate,
+      diagnoses: this.diagnoses,
+      medications: this.medications,
+      procedures: this.procedures,
+      billingInfo: this.billingInfo,
+      completedBy: this.completedBy,
+      completedAt: this.completedAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -156,8 +184,10 @@ export class MedicalRecordUpdatedForBillingEvent extends IntegrationEvent {
     public readonly updatedAt: Date = new Date()
   ) {
     super(
-      'clinical-emr.medical-record.updated-for-billing',
+      'medical-record.updated-for-billing',
+      'clinical-emr-service',
       recordId,
+      'MedicalRecord',
       {
         recordId,
         patientId,
@@ -170,8 +200,30 @@ export class MedicalRecordUpdatedForBillingEvent extends IntegrationEvent {
           billingImpact: billingImpact.costChange > 0 ? 'Tăng chi phí' : 
                         billingImpact.costChange < 0 ? 'Giảm chi phí' : 'Không thay đổi chi phí'
         }
-      }
+      },
+      'billing-service',
+      undefined,
+      updatedBy
     );
+  }
+
+  getEventData(): any {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      changes: this.changes,
+      billingImpact: this.billingImpact,
+      updatedBy: this.updatedBy,
+      updatedAt: this.updatedAt
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 
   /**
@@ -224,6 +276,36 @@ export class InsuranceVerificationRequiredEvent extends IntegrationEvent {
     public readonly requestedBy: string,
     public readonly requestedAt: Date = new Date()
   ) {
+    // Calculate Vietnamese metadata before super() call
+    const vietnameseInsuranceType = (() => {
+      switch (insuranceInfo.type) {
+        case 'BHYT': return 'Bảo hiểm y tế';
+        case 'BHTN': return 'Bảo hiểm tai nạn';
+        case 'Private': return 'Bảo hiểm tư nhân';
+        default: return 'Không xác định';
+      }
+    })();
+    
+    const vietnameseVerificationReason = (() => {
+      switch (verificationReason) {
+        case 'new_record': return 'Hồ sơ mới';
+        case 'expired_coverage': return 'Hết hạn bảo hiểm';
+        case 'coverage_dispute': return 'Tranh chấp bảo hiểm';
+        case 'high_cost_treatment': return 'Điều trị chi phí cao';
+        default: return 'Không xác định';
+      }
+    })();
+    
+    const vietnameseUrgency = (() => {
+      switch (urgency) {
+        case 'critical': return 'Khẩn cấp';
+        case 'high': return 'Cao';
+        case 'medium': return 'Trung bình';
+        case 'low': return 'Thấp';
+        default: return 'Không xác định';
+      }
+    })();
+    
     super(
       'clinical-emr.insurance.verification-required',
       `${recordId}-${insuranceInfo.number}`,
@@ -240,9 +322,9 @@ export class InsuranceVerificationRequiredEvent extends IntegrationEvent {
         requestedBy,
         requestedAt: requestedAt.toISOString(),
         vietnameseMetadata: {
-          insuranceType: this.getVietnameseInsuranceType(),
-          verificationReason: this.getVietnameseVerificationReason(),
-          urgencyLevel: this.getVietnameseUrgency()
+          insuranceType: vietnameseInsuranceType,
+          verificationReason: vietnameseVerificationReason,
+          urgencyLevel: vietnameseUrgency
         }
       }
     );
@@ -338,6 +420,23 @@ export class PaymentRequiredEvent extends IntegrationEvent {
     public readonly generatedBy: string,
     public readonly generatedAt: Date = new Date()
   ) {
+    // Calculate Vietnamese metadata before super() call
+    const formatVietnameseCurrency = (amount: number): string => {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(amount);
+    };
+    
+    const vietnamesePriority = (() => {
+      switch (priority) {
+        case 'immediate': return 'Ngay lập tức';
+        case 'urgent': return 'Khẩn cấp';
+        case 'routine': return 'Thường quy';
+        default: return 'Không xác định';
+      }
+    })();
+    
     super(
       'clinical-emr.payment.required',
       `${recordId}-payment`,
@@ -353,10 +452,10 @@ export class PaymentRequiredEvent extends IntegrationEvent {
         generatedBy,
         generatedAt: generatedAt.toISOString(),
         vietnameseMetadata: {
-          totalAmountVND: this.formatVietnameseCurrency(paymentInfo.totalAmount),
-          patientResponsibleVND: this.formatVietnameseCurrency(paymentInfo.patientResponsible),
+          totalAmountVND: formatVietnameseCurrency(paymentInfo.totalAmount),
+          patientResponsibleVND: formatVietnameseCurrency(paymentInfo.patientResponsible),
           paymentStatus: 'Cần thanh toán',
-          priority: this.getVietnamesePriority()
+          priority: vietnamesePriority
         }
       }
     );

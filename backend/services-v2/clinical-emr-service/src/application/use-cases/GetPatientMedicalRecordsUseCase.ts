@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/use-cases/base/use-case.interface';
 import { IMedicalRecordRepository } from '../../domain/repositories/IMedicalRecordRepository';
 import { MedicalRecordAggregate } from '../../domain/aggregates/clinical.aggregate';
 import { 
@@ -24,6 +24,46 @@ export class GetPatientMedicalRecordsUseCase extends BaseHealthcareUseCase<GetPa
     private readonly medicalRecordRepository: IMedicalRecordRepository
   ) {
     super();
+  }
+
+  /**
+   * Public execute method - required by BaseHealthcareUseCase
+   */
+  public override async execute(request: GetPatientMedicalRecordsRequest): Promise<GetPatientMedicalRecordsResponse> {
+    // Validate
+    const validation = await this.validate(request);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        message: 'Validation failed',
+        data: {
+          records: [],
+          pagination: {
+            totalCount: 0,
+            page: 1,
+            pageSize: 20,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false
+          },
+          statistics: {
+            totalRecords: 0,
+            activeRecords: 0,
+            archivedRecords: 0,
+            recordsWithDiagnosis: 0,
+            recordsWithTreatment: 0,
+            recordsWithVitalSigns: 0,
+            recordsWithCompleteVitalSigns: 0,
+            uniqueDoctors: 0,
+            dateRange: {}
+          }
+        },
+        errors: validation.errors
+      };
+    }
+    
+    // Execute
+    return await this.executeInternal(request);
   }
 
   /**
@@ -185,7 +225,7 @@ export class GetPatientMedicalRecordsUseCase extends BaseHealthcareUseCase<GetPa
   /**
    * Validate request
    */
-  async validate(request: GetPatientMedicalRecordsRequest): Promise<ValidationResult> {
+  override async validate(request: GetPatientMedicalRecordsRequest): Promise<ValidationResult> {
     const errors = validateGetPatientMedicalRecordsRequest(request);
     
     return {
@@ -287,7 +327,7 @@ export class GetPatientMedicalRecordsUseCase extends BaseHealthcareUseCase<GetPa
   /**
    * Get audit information for this use case execution
    */
-  getAuditInfo(request: GetPatientMedicalRecordsRequest) {
+  override getAuditInfo(request: GetPatientMedicalRecordsRequest) {
     const baseAuditInfo = super.getAuditInfo(request);
     
     return {

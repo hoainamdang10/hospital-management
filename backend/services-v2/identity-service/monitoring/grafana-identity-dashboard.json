@@ -1,0 +1,235 @@
+{
+  "dashboard": {
+    "title": "Identity Service - Event-Driven Monitoring",
+    "tags": ["identity", "microservices", "event-driven"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Event Consumption Rate",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(identity_events_consumed_total[5m])",
+            "legendFormat": "{{event_type}} from {{source_service}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "label": "Events/sec", "format": "short" },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Event Processing Latency (p50, p95, p99)",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(identity_events_processed_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(identity_events_processed_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(identity_events_processed_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          { "label": "Seconds", "format": "s" },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate by Event Type",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(identity_events_failed_total[5m])",
+            "legendFormat": "{{event_type}} - {{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "label": "Errors/sec", "format": "short" },
+          { "show": false }
+        ],
+        "alert": {
+          "name": "High Event Failure Rate",
+          "conditions": [
+            {
+              "evaluator": { "params": [0.05], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "message": "Event failure rate exceeded 5% threshold",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Inbox Queue Depth",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "identity_inbox_size{status=\"pending\"}",
+            "legendFormat": "Pending Events",
+            "refId": "A"
+          },
+          {
+            "expr": "identity_inbox_size{status=\"failed\"}",
+            "legendFormat": "Failed Events",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "label": "Count", "format": "short" },
+          { "show": false }
+        ],
+        "alert": {
+          "name": "Inbox Queue Growing",
+          "conditions": [
+            {
+              "evaluator": { "params": [100], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "last" },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "message": "Inbox queue has more than 100 pending events",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Use Case Performance",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(identity_use_case_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{use_case}} - p95",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "label": "Seconds", "format": "s" },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "API Request Rate + Latency",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(identity_api_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}} - {{status_code}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(identity_api_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 latency",
+            "refId": "B",
+            "yAxisIndex": 1
+          }
+        ],
+        "yaxes": [
+          { "label": "Requests/sec", "format": "short" },
+          { "label": "Latency (s)", "format": "s" }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Cache Hit Rate",
+        "type": "singlestat",
+        "gridPos": { "x": 0, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "identity_cache_hit_rate",
+            "refId": "A"
+          }
+        ],
+        "format": "percentunit",
+        "valueName": "current",
+        "thresholds": "0.7,0.9",
+        "colors": ["#d44a3a", "#e0b400", "#299c46"]
+      },
+      {
+        "id": 8,
+        "title": "Circuit Breaker Status",
+        "type": "table",
+        "gridPos": { "x": 6, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "identity_circuit_breaker_state",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "breaker_name": "Circuit Breaker",
+                "Value": "State (0=CLOSED, 1=OPEN, 2=HALF_OPEN)"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "System Resources",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "process_cpu_user_seconds_total",
+            "legendFormat": "CPU User",
+            "refId": "A"
+          },
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "Memory (MB)",
+            "refId": "B",
+            "yAxisIndex": 1
+          }
+        ],
+        "yaxes": [
+          { "label": "CPU Seconds", "format": "short" },
+          { "label": "Memory (MB)", "format": "short" }
+        ]
+      }
+    ]
+  }
+}

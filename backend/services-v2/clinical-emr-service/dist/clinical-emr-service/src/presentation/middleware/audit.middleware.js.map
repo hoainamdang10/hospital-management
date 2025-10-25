@@ -1,0 +1,1 @@
+{"version":3,"file":"audit.middleware.js","sourceRoot":"","sources":["../../../../../src/presentation/middleware/audit.middleware.ts"],"names":[],"mappings":";;AAEA,0CAIC;AAJD,SAAgB,eAAe,CAAC,GAAY,EAAE,GAAa,EAAE,IAAkB;IAC7E,wBAAwB;IACxB,OAAO,CAAC,GAAG,CAAC,WAAW,GAAG,CAAC,MAAM,IAAI,GAAG,CAAC,IAAI,OAAO,GAAG,CAAC,OAAO,CAAC,WAAW,CAAC,EAAE,CAAC,CAAC;IAChF,IAAI,EAAE,CAAC;AACT,CAAC"}

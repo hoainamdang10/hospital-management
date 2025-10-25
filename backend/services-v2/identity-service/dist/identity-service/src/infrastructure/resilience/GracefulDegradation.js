@@ -59,6 +59,10 @@ class IdentityServiceDegradation {
                 });
             }
         }, this.CACHE_CLEANUP_INTERVAL);
+        // Tránh giữ tiến trình Jest/Node mở khi chỉ còn interval
+        if (typeof this.cleanupIntervalId.unref === 'function') {
+            this.cleanupIntervalId.unref();
+        }
     }
     /**
      * Authenticate user with graceful degradation

@@ -7,8 +7,8 @@
  * @compliance Clean Architecture, Event-Driven Architecture, HIPAA
  */
 
-import { IDomainEventHandler } from '../../../../shared/domain/events/IDomainEventHandler';
-import { IDomainEventPublisher } from '../../../../shared/domain/events/IDomainEventPublisher';
+import { IDomainEventHandler } from '@shared/domain/events/IDomainEventHandler';
+import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
 import { IMedicalRecordRepository } from '../../domain/repositories/IMedicalRecordRepository';
 
 // Integration Events

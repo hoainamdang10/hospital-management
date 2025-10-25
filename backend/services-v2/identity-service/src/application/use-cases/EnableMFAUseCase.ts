@@ -14,6 +14,8 @@ import { IMFAService } from '../services/IMFAService';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { UserId } from '../../domain/value-objects/UserId';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { MFAEnabledEvent } from '../../domain/events/MFAEnabledEvent';
 
 export interface EnableMFARequest {
   userId: string;
@@ -41,7 +43,8 @@ export class EnableMFAUseCase implements IUseCase<EnableMFARequest, EnableMFARes
     private userRepository: IUserRepository,
     private mfaService: IMFAService,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: EnableMFARequest): Promise<EnableMFAResponse> {
@@ -102,6 +105,31 @@ export class EnableMFAUseCase implements IUseCase<EnableMFARequest, EnableMFARes
       );
 
       this.logger.info('MFA setup completed successfully', { userId: request.userId });
+
+      // Publish MFAEnabledEvent
+      if (this.eventPublisher) {
+        try {
+          const event = new MFAEnabledEvent(
+            userId,
+            request.method,
+            request.userId, // enabledBy (user enables their own MFA)
+            user.email.value,
+            user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+          );
+
+          await this.eventPublisher.publishDomainEvents([event]);
+
+          this.logger.info('MFAEnabledEvent published', {
+            userId: request.userId
+          });
+        } catch (error) {
+          this.logger.error('Failed to publish MFAEnabledEvent', {
+            userId: request.userId,
+            error: getErrorMessage(error)
+          });
+          // Don't fail MFA setup if event publishing fails
+        }
+      }
 
       return {
         success: true,

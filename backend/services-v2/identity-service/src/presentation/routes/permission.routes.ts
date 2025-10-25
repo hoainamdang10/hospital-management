@@ -9,7 +9,6 @@
 import { Router } from 'express';
 import { RouteDependencies } from './types';
 import { AuthenticatedRequest } from '../middleware/AuthenticationMiddleware';
-import { logger } from '../../infrastructure/logging/Logger';
 import { UserId } from '../../domain/value-objects/UserId';
 
 function getErrorMessage(error: unknown): string {
@@ -19,6 +18,7 @@ function getErrorMessage(error: unknown): string {
 
 export function createPermissionRoutes(deps: RouteDependencies): Router {
   const router = Router();
+  const { logger } = deps;
 
   // Get user permissions (PROTECTED - self or admin)
   router.get('/:userId',

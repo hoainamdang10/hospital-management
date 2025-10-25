@@ -103,6 +103,11 @@ export declare class PatientController {
      */
     updatePatient(req: Request, res: Response): Promise<void>;
     /**
+     * Get patient list with pagination
+     * GET /api/v1/patients
+     */
+    getPatientList(req: Request, res: Response): Promise<void>;
+    /**
      * Search patients
      * GET /api/v1/patients/search?searchTerm=...
      */

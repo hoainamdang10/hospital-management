@@ -9,7 +9,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPasswordPolicyRoutes = createPasswordPolicyRoutes;
 const express_1 = require("express");
-const Logger_1 = require("../../infrastructure/logging/Logger");
 function getErrorMessage(error) {
     if (error instanceof Error)
         return error.message;
@@ -17,6 +16,7 @@ function getErrorMessage(error) {
 }
 function createPasswordPolicyRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps;
     // Get current password policy (PUBLIC)
     router.get('/', async (_req, res) => {
         try {
@@ -24,7 +24,7 @@ function createPasswordPolicyRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Get password policy error', { error: getErrorMessage(error) });
+            logger.error('Get password policy error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to get password policy'
@@ -47,7 +47,7 @@ function createPasswordPolicyRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Update password policy error', { error: getErrorMessage(error) });
+            logger.error('Update password policy error', { error: getErrorMessage(error) });
             res.status(400).json({
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to update password policy'
@@ -63,7 +63,7 @@ function createPasswordPolicyRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Validate password error', { error: getErrorMessage(error) });
+            logger.error('Validate password error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to validate password'

@@ -5,9 +5,9 @@ Appointments microservice for Hospital Management System.
 ## 🏗️ Architecture
 
 - **Clean Architecture** with DDD patterns
-- **Port**: 3004
+- **Port**: 3024
 - **Schema**: appointments_schema
-- **Patterns**: Command, Event-Driven, Workflow
+- **Patterns**: CQRS, Event-Driven, Clean Architecture
 
 ## 🚀 Features
 

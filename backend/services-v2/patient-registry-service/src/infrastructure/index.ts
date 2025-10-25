@@ -25,8 +25,16 @@ export type {
 // import { PatientMatchingService } from '../application/services/PatientMatchingService';
 // import { InsuranceValidationService } from '../application/services/InsuranceValidationService';
 
+// Event Infrastructure
+export { RabbitMQEventPublisher } from './events/RabbitMQEventPublisher';
+export { IdentityEventConsumer } from './events/IdentityEventConsumer';
+export type { IdentityEventConsumerConfig } from './events/IdentityEventConsumer';
+
 // Event Handlers
-// TODO: Re-enable when event infrastructure is ready
-// export { PatientDomainEventHandler } from './events/PatientDomainEventHandler';
-// export type { PatientDomainEventHandlerConfig } from './events/PatientDomainEventHandler';
+export { IdentityUserCreatedEventHandler } from './events/handlers/IdentityUserCreatedEventHandler';
+export { IdentityUserDeletedEventHandler } from './events/handlers/IdentityUserDeletedEventHandler';
+export { IdentityUserUpdatedEventHandler } from './events/handlers/IdentityUserUpdatedEventHandler';
+export type { IdentityUserCreatedEventData } from './events/handlers/IdentityUserCreatedEventHandler';
+export type { IdentityUserDeletedEventData } from './events/handlers/IdentityUserDeletedEventHandler';
+export type { IdentityUserUpdatedEventData } from './events/handlers/IdentityUserUpdatedEventHandler';
 

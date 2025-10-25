@@ -13,6 +13,8 @@ import { UserId } from '../../domain/value-objects/UserId';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { UserDeletedEvent } from '../../domain/events/UserDeletedEvent';
 
 export interface DeleteUserRequest {
   userId: string;
@@ -39,7 +41,8 @@ export class DeleteUserUseCase implements IUseCase<DeleteUserRequest, DeleteUser
   constructor(
     private userRepository: IUserRepository,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher // Optional for backward compatibility
   ) {}
 
   async execute(request: DeleteUserRequest): Promise<DeleteUserResponse> {
@@ -121,6 +124,16 @@ export class DeleteUserUseCase implements IUseCase<DeleteUserRequest, DeleteUser
           severity: 'CRITICAL'
         });
 
+        // Publish UserDeletedEvent
+        await this.publishUserDeletedEvent(
+          userIdVO,
+          requesterId,
+          'hard',
+          reason || 'No reason provided',
+          user.email.value,
+          user.healthcareRole.type
+        );
+
         return {
           success: true,
           message: 'Người dùng đã được xóa vĩnh viễn',
@@ -128,8 +141,8 @@ export class DeleteUserUseCase implements IUseCase<DeleteUserRequest, DeleteUser
         };
 
       } else {
-        // Soft delete - deactivate user
-        user.deactivate();
+        // Soft delete - deactivate user permanently
+        user.deactivate(request.requesterId, request.reason || 'User account deleted');
         await this.userRepository.update(user);
 
         // Log soft deletion for audit
@@ -140,6 +153,16 @@ export class DeleteUserUseCase implements IUseCase<DeleteUserRequest, DeleteUser
           userEmail: user.email.value,
           timestamp: new Date().toISOString()
         });
+
+        // Publish UserDeletedEvent (soft delete)
+        await this.publishUserDeletedEvent(
+          userIdVO,
+          requesterId,
+          'soft',
+          reason || 'No reason provided',
+          user.email.value,
+          user.healthcareRole.type
+        );
 
         return {
           success: true,
@@ -161,6 +184,48 @@ export class DeleteUserUseCase implements IUseCase<DeleteUserRequest, DeleteUser
         error: getErrorMessage(error),
         message: 'Lỗi khi xóa người dùng'
       };
+    }
+  }
+
+  /**
+   * Publish UserDeletedEvent
+   */
+  private async publishUserDeletedEvent(
+    userIdVO: UserId,
+    deletedBy: string,
+    deletionType: 'soft' | 'hard',
+    reason: string,
+    userEmail: string,
+    userRole: string
+  ): Promise<void> {
+    if (!this.eventPublisher) {
+      this.logger.debug('Event publisher not configured, skipping event publication');
+      return;
+    }
+
+    try {
+      const event = new UserDeletedEvent(
+        userIdVO,
+        deletedBy,
+        deletionType,
+        reason,
+        userEmail,
+        userRole
+      );
+
+      await this.eventPublisher.publishDomainEvents([event]);
+
+      this.logger.info('UserDeletedEvent published', {
+        userId: userIdVO.value,
+        deletionType,
+        deletedBy
+      });
+    } catch (error) {
+      this.logger.error('Failed to publish UserDeletedEvent', {
+        userId: userIdVO.value,
+        error: getErrorMessage(error)
+      });
+      // Don't fail deletion if event publishing fails
     }
   }
 }

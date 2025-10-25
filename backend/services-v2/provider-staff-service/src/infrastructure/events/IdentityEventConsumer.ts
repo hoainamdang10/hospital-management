@@ -171,15 +171,17 @@ export class IdentityEventConsumer {
 
       // Route to appropriate handler based on event type
       switch (event.eventType) {
-        case 'UserCreated':
+        case 'UserCreatedEvent':
           await this.handleUserCreated(event);
           break;
 
-        case 'UserDeactivated':
+        case 'UserDeletedEvent':
+        case 'UserDeactivatedEvent':
+          // Handle both UserDeletedEvent (soft delete) and UserDeactivatedEvent
           await this.handleUserDeactivated(event);
           break;
 
-        case 'UserRoleChanged':
+        case 'UserRoleChangedEvent':
           await this.handleUserRoleChanged(event);
           break;
 
@@ -204,13 +206,14 @@ export class IdentityEventConsumer {
    * Handle UserCreated event
    */
   private async handleUserCreated(eventData: any): Promise<void> {
+    const payload = eventData.payload || eventData;
     const event = new UserCreatedEvent(
-      eventData.userId || eventData.aggregateId,
-      eventData.email || eventData.eventData?.email,
-      eventData.fullName || eventData.eventData?.fullName,
-      eventData.roleType || eventData.eventData?.roleType || eventData.eventData?.role,
-      eventData.citizenId || eventData.eventData?.citizenId,
-      eventData.phoneNumber || eventData.eventData?.phoneNumber
+      payload.userId || eventData.aggregateId,
+      payload.email,
+      payload.fullName || '',
+      payload.role || payload.roleType,
+      payload.citizenId,
+      payload.phoneNumber
     );
 
     await this.userCreatedHandler.handle(event);
@@ -220,11 +223,12 @@ export class IdentityEventConsumer {
    * Handle UserDeactivated event
    */
   private async handleUserDeactivated(eventData: any): Promise<void> {
+    const payload = eventData.payload || eventData;
     const event = new UserDeactivatedEvent(
-      eventData.userId || eventData.aggregateId,
-      eventData.email || eventData.eventData?.email,
-      eventData.reason || eventData.eventData?.reason || 'User deactivated',
-      eventData.deactivatedBy || eventData.eventData?.deactivatedBy || 'system'
+      payload.userId || eventData.aggregateId,
+      payload.email,
+      payload.reason || 'User deactivated',
+      payload.deactivatedBy || payload.deletedBy || 'system'
     );
 
     await this.userDeactivatedHandler.handle(event);
@@ -234,12 +238,13 @@ export class IdentityEventConsumer {
    * Handle UserRoleChanged event
    */
   private async handleUserRoleChanged(eventData: any): Promise<void> {
+    const payload = eventData.payload || eventData;
     const event = new UserRoleChangedEvent(
-      eventData.userId || eventData.aggregateId,
-      eventData.oldRole || eventData.eventData?.oldRole,
-      eventData.newRole || eventData.eventData?.newRole,
-      eventData.changedBy || eventData.eventData?.changedBy || 'system',
-      eventData.reason || eventData.eventData?.reason
+      payload.userId || eventData.aggregateId,
+      payload.oldRole,
+      payload.newRole,
+      payload.changedBy || 'system',
+      payload.reason
     );
 
     await this.userRoleChangedHandler.handle(event);

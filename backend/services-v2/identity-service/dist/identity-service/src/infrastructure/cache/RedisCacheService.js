@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RedisCacheService = void 0;
+exports.redisCacheService = exports.RedisCacheService = void 0;
 const redis_1 = require("redis");
 /**
  * Redis Cache Service for Identity Service
@@ -280,4 +280,14 @@ class RedisCacheService {
     }
 }
 exports.RedisCacheService = RedisCacheService;
+// Simple logger for singleton instance
+const simpleLogger = {
+    info: (message, meta) => console.log(`[INFO] ${message}`, meta || ''),
+    warn: (message, meta) => console.warn(`[WARN] ${message}`, meta || ''),
+    error: (message, meta) => console.error(`[ERROR] ${message}`, meta || ''),
+    debug: (message, meta) => console.debug(`[DEBUG] ${message}`, meta || ''),
+    fatal: (message, meta) => console.error(`[FATAL] ${message}`, meta || '')
+};
+// Export singleton instance for middleware usage
+exports.redisCacheService = new RedisCacheService(process.env.REDIS_URL || 'redis://localhost:6379', simpleLogger, 'identity:');
 //# sourceMappingURL=RedisCacheService.js.map

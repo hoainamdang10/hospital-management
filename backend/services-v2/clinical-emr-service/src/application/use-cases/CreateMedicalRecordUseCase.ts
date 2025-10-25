@@ -7,13 +7,13 @@
  * @compliance Clean Architecture, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../shared/application/use-cases/base/use-case.interface';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/use-cases/base/use-case.interface';
 import { IMedicalRecordRepository } from '../../domain/repositories/IMedicalRecordRepository';
 import { MedicalRecordAggregate } from '../../domain/aggregates/clinical.aggregate';
 import { RecordId } from '../../domain/value-objects/RecordId';
 import { BasicVitalSigns } from '../../domain/value-objects/BasicVitalSigns';
 import { CreateMedicalRecordRequest, CreateMedicalRecordResponse, validateCreateMedicalRecordRequest } from '../dto/CreateMedicalRecordRequest';
-import { IDomainEventPublisher } from '../../../shared/domain/events/IDomainEventPublisher';
+import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
 
 export class CreateMedicalRecordUseCase extends BaseHealthcareUseCase<CreateMedicalRecordRequest, CreateMedicalRecordResponse> {
   constructor(
@@ -21,6 +21,25 @@ export class CreateMedicalRecordUseCase extends BaseHealthcareUseCase<CreateMedi
     private readonly eventPublisher: IDomainEventPublisher
   ) {
     super();
+  }
+
+  /**
+   * Public execute method - required by BaseHealthcareUseCase
+   */
+  override async execute(request: CreateMedicalRecordRequest): Promise<CreateMedicalRecordResponse> {
+    // Validate
+    const validation = await this.validate(request);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        recordId: '',
+        message: 'Validation failed',
+        errors: validation.errors
+      };
+    }
+    
+    // Execute
+    return await this.executeInternal(request);
   }
 
   /**
@@ -50,14 +69,16 @@ export class CreateMedicalRecordUseCase extends BaseHealthcareUseCase<CreateMedi
         request.doctorId,
         new Date(request.visitDate),
         request.createdBy,
-        request.appointmentId,
-        request.symptoms,
-        request.examinationNotes,
-        request.diagnosis,
-        request.treatment,
-        request.medications,
-        request.notes,
-        vitalSigns
+        {
+          appointmentId: request.appointmentId,
+          symptoms: request.symptoms,
+          examinationNotes: request.examinationNotes,
+          diagnosis: request.diagnosis,
+          treatment: request.treatment,
+          medicationsLegacy: request.medications,
+          notes: request.notes,
+          vitalSigns: vitalSigns
+        }
       );
 
       // Save to repository
@@ -123,7 +144,7 @@ export class CreateMedicalRecordUseCase extends BaseHealthcareUseCase<CreateMedi
   /**
    * Validate request
    */
-  async validate(request: CreateMedicalRecordRequest): Promise<ValidationResult> {
+  override async validate(request: CreateMedicalRecordRequest): Promise<ValidationResult> {
     const errors = validateCreateMedicalRecordRequest(request);
     
     // Additional business validation
@@ -275,7 +296,7 @@ export class CreateMedicalRecordUseCase extends BaseHealthcareUseCase<CreateMedi
   /**
    * Get audit information for this use case execution
    */
-  getAuditInfo(request: CreateMedicalRecordRequest) {
+  override getAuditInfo(request: CreateMedicalRecordRequest) {
     const baseAuditInfo = super.getAuditInfo(request);
     
     return {

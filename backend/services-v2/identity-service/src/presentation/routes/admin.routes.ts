@@ -9,7 +9,6 @@
 import { Router } from 'express';
 import { RouteDependencies } from './types';
 import { AuthenticatedRequest } from '../middleware/AuthenticationMiddleware';
-import { logger } from '../../infrastructure/logging/Logger';
 import { UserId } from '../../domain/value-objects/UserId';
 
 function getErrorMessage(error: unknown): string {
@@ -19,6 +18,7 @@ function getErrorMessage(error: unknown): string {
 
 export function createAdminRoutes(deps: RouteDependencies): Router {
   const router = Router();
+  const { logger } = deps;
 
   // All admin routes require authentication and admin role
   router.use(deps.authMiddleware.authenticate());

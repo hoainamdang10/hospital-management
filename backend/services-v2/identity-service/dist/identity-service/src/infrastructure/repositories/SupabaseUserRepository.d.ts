@@ -15,6 +15,7 @@ import { UserId } from '../../domain/value-objects/UserId';
 import { Email } from '../../domain/value-objects/Email';
 import { UserSession } from '../../domain/entities/UserSession';
 import { ILogger } from '../../application/services/ILogger';
+import { IEventPublisher } from '../../application/services/IEventPublisher';
 export interface CreateUserRequest {
     email: string;
     fullName: string;
@@ -56,8 +57,9 @@ export declare class SupabaseUserRepository implements IUserRepository {
     private circuitBreaker;
     private cacheService?;
     private permissionRepository?;
+    private eventPublisher?;
     private readonly CACHE_TTL;
-    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger, cacheService?: RedisCacheService, permissionRepository?: IPermissionRepository);
+    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger, cacheService?: RedisCacheService, permissionRepository?: IPermissionRepository, eventPublisher?: IEventPublisher);
     /**
      * Find user by ID with circuit breaker protection and caching
      * Returns Domain aggregate, not DTO
@@ -97,6 +99,10 @@ export declare class SupabaseUserRepository implements IUserRepository {
      * Save user (create or update) - minimal implementation for schema-per-service
      */
     save(user: User): Promise<void>;
+    /**
+     * Publish domain events from aggregate
+     */
+    private publishDomainEvents;
     /**
      * Soft delete user
      */

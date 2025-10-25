@@ -1,0 +1,138 @@
+groups:
+  - name: identity_service_alerts
+    interval: 30s
+    rules:
+      # High Event Failure Rate
+      - alert: HighEventFailureRate
+        expr: |
+          (
+            rate(identity_events_failed_total[5m]) 
+            / 
+            rate(identity_events_consumed_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: identity
+          component: event_processing
+        annotations:
+          summary: "High event failure rate detected"
+          description: "Event failure rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/high-event-failure-rate"
+
+      # Inbox Queue Growing
+      - alert: InboxQueueGrowing
+        expr: identity_inbox_size{status="pending"} > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: identity
+          component: event_inbox
+        annotations:
+          summary: "Inbox queue has too many pending events"
+          description: "Inbox has {{ $value }} pending events (threshold: 100)"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/inbox-queue-growing"
+
+      # Circuit Breaker Open
+      - alert: CircuitBreakerOpen
+        expr: identity_circuit_breaker_state == 1
+        for: 2m
+        labels:
+          severity: critical
+          service: identity
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker {{ $labels.breaker_name }} is OPEN"
+          description: "Circuit breaker {{ $labels.breaker_name }} has been open for 2 minutes"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/circuit-breaker-open"
+
+      # High API Error Rate
+      - alert: HighAPIErrorRate
+        expr: |
+          (
+            sum(rate(identity_api_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(identity_api_requests_total[5m]))
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+          service: identity
+          component: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/high-api-error-rate"
+
+      # Slow Event Processing
+      - alert: SlowEventProcessing
+        expr: |
+          histogram_quantile(0.95, 
+            rate(identity_events_processed_duration_seconds_bucket[5m])
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: identity
+          component: event_processing
+        annotations:
+          summary: "Event processing is slow"
+          description: "p95 event processing latency is {{ $value }}s (threshold: 2s)"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/slow-event-processing"
+
+      # Low Cache Hit Rate
+      - alert: LowCacheHitRate
+        expr: identity_cache_hit_rate < 0.70
+        for: 15m
+        labels:
+          severity: warning
+          service: identity
+          component: cache
+        annotations:
+          summary: "Cache hit rate is low"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 70%)"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/low-cache-hit-rate"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="identity-service"} 
+            / 
+            1024 / 1024 / 1024
+          ) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          service: identity
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}GB (threshold: 1.5GB)"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/high-memory-usage"
+
+      # Service Down
+      - alert: IdentityServiceDown
+        expr: up{job="identity-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: identity
+          component: availability
+        annotations:
+          summary: "Identity Service is down"
+          description: "Identity Service has been down for 1 minute"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/service-down"
+
+      # Dead Letter Queue Growing
+      - alert: DeadLetterQueueGrowing
+        expr: identity_inbox_size{status="failed"} > 50
+        for: 30m
+        labels:
+          severity: warning
+          service: identity
+          component: event_inbox
+        annotations:
+          summary: "Dead letter queue has too many failed events"
+          description: "DLQ has {{ $value }} failed events (threshold: 50)"
+          runbook_url: "https://docs.hospital.com/runbooks/identity/dlq-growing"

@@ -11,6 +11,7 @@ import { IUserRepository } from '../repositories/IUserRepository';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface LockAccountRequest {
     userId: string;
     lockedBy: string;
@@ -33,7 +34,8 @@ export declare class LockAccountUseCase implements IUseCase<LockAccountRequest, 
     private sessionRepository;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(userRepository: IUserRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: LockAccountRequest): Promise<LockAccountResponse>;
     private executeImpl;
     private validateRequest;

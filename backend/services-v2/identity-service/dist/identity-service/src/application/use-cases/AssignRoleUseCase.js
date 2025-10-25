@@ -10,17 +10,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AssignRoleUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
+const UserRoleChangedEvent_1 = require("../../domain/events/UserRoleChangedEvent");
+const HealthcareRole_1 = require("../../domain/entities/HealthcareRole");
 /**
  * Assign Role Use Case
  * Allows administrators to assign/change user roles
  * Validates role type, records audit trail
  */
 class AssignRoleUseCase {
-    constructor(userRepository, permissionRepository, logger, circuitBreaker) {
+    constructor(userRepository, permissionRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    ) {
         this.userRepository = userRepository;
         this.permissionRepository = permissionRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
+        this.eventPublisher = eventPublisher;
         // Valid role types (5 core roles)
         this.VALID_ROLES = ['ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST', 'PATIENT'];
     }
@@ -102,6 +106,27 @@ class AssignRoleUseCase {
                 assignedBy: request.assignedBy,
                 reason: request.reason
             });
+            // 10. Publish UserRoleChangedEvent
+            if (this.eventPublisher) {
+                try {
+                    const oldRole = HealthcareRole_1.HealthcareRole.fromRoleType(previousRoleType);
+                    const newRole = HealthcareRole_1.HealthcareRole.fromRoleType(request.roleType);
+                    const event = new UserRoleChangedEvent_1.UserRoleChangedEvent(userIdVO, oldRole, newRole, request.assignedBy);
+                    await this.eventPublisher.publishDomainEvents([event]);
+                    this.logger.info('UserRoleChangedEvent published', {
+                        userId: request.userId,
+                        previousRole: previousRoleType,
+                        newRole: request.roleType
+                    });
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish UserRoleChangedEvent', {
+                        userId: request.userId,
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                    // Don't fail role assignment if event publishing fails
+                }
+            }
             return {
                 success: true,
                 message: `Vai trò đã được thay đổi từ ${previousRoleType} sang ${request.roleType}. Lý do: ${request.reason}`,

@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, FHIR, Vietnamese Medical Standards
  */
 
-import { ValueObject } from '../../../shared/domain/base/value-object';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 /**
  * Diagnosis Severity Levels (Vietnamese Medical Standards)
@@ -81,6 +81,9 @@ export class Diagnosis extends ValueObject<DiagnosisProps> {
   
   private constructor(props: DiagnosisProps) {
     super(props);
+  }
+
+  protected validateFormat(): void {
     this.validate();
   }
 

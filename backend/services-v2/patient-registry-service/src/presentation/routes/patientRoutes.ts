@@ -21,7 +21,8 @@ import {
   validateSearchPatients,
   validateMatchPatients,
   validateMergePatients,
-  validateLinkPatients
+  validateLinkPatients,
+  validateGetPatientList
 } from '../middleware/ValidationMiddleware';
 
 /**
@@ -71,6 +72,16 @@ export function createPatientRoutes(controller: PatientController): Router {
     '/search',
     validateSearchPatients,
     asyncHandler(controller.searchPatients.bind(controller))
+  );
+
+  /**
+   * Get patient list with pagination
+   * GET /api/v1/patients?page=1&limit=20
+   */
+  router.get(
+    '/',
+    validateGetPatientList,
+    asyncHandler(controller.getPatientList.bind(controller))
   );
 
   /**

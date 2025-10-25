@@ -8,14 +8,27 @@
  */
 
 import { Request, Response } from 'express';
-import { injectable, inject } from 'inversify';
-import { TYPES } from '../../infrastructure/di/types';
 
 // Use Cases
 import { CreateMedicalRecordUseCase } from '../../application/use-cases/CreateMedicalRecordUseCase';
 import { GetMedicalRecordUseCase } from '../../application/use-cases/GetMedicalRecordUseCase';
 import { GetPatientMedicalRecordsUseCase } from '../../application/use-cases/GetPatientMedicalRecordsUseCase';
 import { UpdateMedicalRecordUseCase } from '../../application/use-cases/UpdateMedicalRecordUseCase';
+import { DeleteMedicalRecordUseCase } from '../../application/use-cases/DeleteMedicalRecordUseCase';
+import { ArchiveMedicalRecordUseCase } from '../../application/use-cases/ArchiveMedicalRecordUseCase';
+import { RestoreMedicalRecordUseCase } from '../../application/use-cases/RestoreMedicalRecordUseCase';
+import { AddDiagnosisUseCase } from '../../application/use-cases/AddDiagnosisUseCase';
+import { RemoveDiagnosisUseCase } from '../../application/use-cases/RemoveDiagnosisUseCase';
+import { AddMedicationUseCase } from '../../application/use-cases/AddMedicationUseCase';
+import { RemoveMedicationUseCase } from '../../application/use-cases/RemoveMedicationUseCase';
+import { UpdateVitalSignsUseCase } from '../../application/use-cases/UpdateVitalSignsUseCase';
+import { ExportToFHIRUseCase } from '../../application/use-cases/ExportToFHIRUseCase';
+import { ValidateFHIRComplianceUseCase } from '../../application/use-cases/ValidateFHIRComplianceUseCase';
+import { GetDoctorMedicalRecordsUseCase } from '../../application/use-cases/GetDoctorMedicalRecordsUseCase';
+import { GetMedicalRecordStatisticsUseCase } from '../../application/use-cases/GetMedicalRecordStatisticsUseCase';
+import { GrantAccessUseCase } from '../../application/use-cases/GrantAccessUseCase';
+import { RevokeAccessUseCase } from '../../application/use-cases/RevokeAccessUseCase';
+import { AuditAccessHistoryUseCase } from '../../application/use-cases/AuditAccessHistoryUseCase';
 
 // DTOs
 import { CreateMedicalRecordRequest } from '../../application/dto/CreateMedicalRecordRequest';
@@ -24,22 +37,29 @@ import { GetPatientMedicalRecordsRequest } from '../../application/dto/GetPatien
 import { UpdateMedicalRecordRequest } from '../../application/dto/UpdateMedicalRecordRequest';
 
 // Base Controller
-import { BaseHealthcareController } from '../../../shared/presentation/controllers/BaseHealthcareController';
+import { BaseController } from './BaseController';
 
-@injectable()
-export class MedicalRecordController extends BaseHealthcareController {
+export class MedicalRecordController extends BaseController {
   constructor(
-    @inject(TYPES.CreateMedicalRecordUseCase)
     private readonly createMedicalRecordUseCase: CreateMedicalRecordUseCase,
-    
-    @inject(TYPES.GetMedicalRecordUseCase)
     private readonly getMedicalRecordUseCase: GetMedicalRecordUseCase,
-    
-    @inject(TYPES.GetPatientMedicalRecordsUseCase)
     private readonly getPatientMedicalRecordsUseCase: GetPatientMedicalRecordsUseCase,
-    
-    @inject(TYPES.UpdateMedicalRecordUseCase)
-    private readonly updateMedicalRecordUseCase: UpdateMedicalRecordUseCase
+    private readonly updateMedicalRecordUseCase: UpdateMedicalRecordUseCase,
+    private readonly deleteMedicalRecordUseCase: DeleteMedicalRecordUseCase,
+    private readonly archiveMedicalRecordUseCase: ArchiveMedicalRecordUseCase,
+    private readonly restoreMedicalRecordUseCase: RestoreMedicalRecordUseCase,
+    private readonly addDiagnosisUseCase: AddDiagnosisUseCase,
+    private readonly removeDiagnosisUseCase: RemoveDiagnosisUseCase,
+    private readonly addMedicationUseCase: AddMedicationUseCase,
+    private readonly removeMedicationUseCase: RemoveMedicationUseCase,
+    private readonly updateVitalSignsUseCase: UpdateVitalSignsUseCase,
+    private readonly exportToFHIRUseCase: ExportToFHIRUseCase,
+    private readonly validateFHIRComplianceUseCase: ValidateFHIRComplianceUseCase,
+    private readonly getDoctorMedicalRecordsUseCase: GetDoctorMedicalRecordsUseCase,
+    private readonly getMedicalRecordStatisticsUseCase: GetMedicalRecordStatisticsUseCase,
+    private readonly grantAccessUseCase: GrantAccessUseCase,
+    private readonly revokeAccessUseCase: RevokeAccessUseCase,
+    private readonly auditAccessHistoryUseCase: AuditAccessHistoryUseCase
   ) {
     super();
   }
@@ -70,12 +90,8 @@ export class MedicalRecordController extends BaseHealthcareController {
         createdBy: userId
       };
 
-      // Execute use case with role-based authorization
-      const result = await this.createMedicalRecordUseCase.executeWithRoles(
-        createRequest,
-        userId,
-        userRoles
-      );
+      // Execute use case
+      const result = await this.createMedicalRecordUseCase.execute(createRequest);
 
       // Return response
       if (result.success) {
@@ -107,12 +123,8 @@ export class MedicalRecordController extends BaseHealthcareController {
         requestedBy: userId
       };
 
-      // Execute use case with role-based authorization
-      const result = await this.getMedicalRecordUseCase.executeWithRoles(
-        getRequest,
-        userId,
-        userRoles
-      );
+      // Execute use case
+      const result = await this.getMedicalRecordUseCase.execute(getRequest);
 
       // Return response
       if (result.success) {
@@ -156,12 +168,8 @@ export class MedicalRecordController extends BaseHealthcareController {
         requestedBy: userId
       };
 
-      // Execute use case with role-based authorization
-      const result = await this.getPatientMedicalRecordsUseCase.executeWithRoles(
-        getPatientRequest,
-        userId,
-        userRoles
-      );
+      // Execute use case
+      const result = await this.getPatientMedicalRecordsUseCase.execute(getPatientRequest);
 
       // Return response
       if (result.success) {
@@ -199,12 +207,8 @@ export class MedicalRecordController extends BaseHealthcareController {
         updateReason: req.body.updateReason
       };
 
-      // Execute use case with role-based authorization
-      const result = await this.updateMedicalRecordUseCase.executeWithRoles(
-        updateRequest,
-        userId,
-        userRoles
-      );
+      // Execute use case
+      const result = await this.updateMedicalRecordUseCase.execute(updateRequest);
 
       // Return response
       if (result.success) {
@@ -380,6 +384,351 @@ export class MedicalRecordController extends BaseHealthcareController {
 
     } catch (error) {
       this.handleControllerError(res, error, 'Lỗi khi lấy thống kê hồ sơ bệnh án');
+    }
+  }
+
+  /**
+   * Archive medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/archive
+   */
+  public async archiveMedicalRecord(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.archiveMedicalRecordUseCase.execute({
+        recordId: req.params.recordId,
+        archivedBy: userId,
+        reason: req.body.reason
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi lưu trữ hồ sơ');
+    }
+  }
+
+  /**
+   * Restore medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/restore
+   */
+  public async restoreMedicalRecord(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.restoreMedicalRecordUseCase.execute({
+        recordId: req.params.recordId,
+        restoredBy: userId,
+        reason: req.body.reason
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi khôi phục hồ sơ');
+    }
+  }
+
+  /**
+   * Delete medical record
+   * DELETE /api/v2/clinical-emr/medical-records/:recordId
+   */
+  public async deleteMedicalRecord(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.deleteMedicalRecordUseCase.execute({
+        recordId: req.params.recordId,
+        deletedBy: userId,
+        reason: req.body.reason || 'No reason provided'
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi xóa hồ sơ');
+    }
+  }
+
+  /**
+   * Add diagnosis to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/diagnoses
+   */
+  public async addDiagnosis(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.addDiagnosisUseCase.execute({
+        recordId: req.params.recordId,
+        code: req.body.code,
+        display: req.body.display,
+        category: req.body.category,
+        severity: req.body.severity,
+        status: req.body.status,
+        recordedBy: userId
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message, 201);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi thêm chẩn đoán');
+    }
+  }
+
+  /**
+   * Remove diagnosis from medical record
+   * DELETE /api/v2/clinical-emr/medical-records/:recordId/diagnoses/:diagnosisCode
+   */
+  public async removeDiagnosis(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.removeDiagnosisUseCase.execute({
+        recordId: req.params.recordId,
+        diagnosisCode: req.params.diagnosisCode,
+        removedBy: userId,
+        reason: req.body.reason
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi xóa chẩn đoán');
+    }
+  }
+
+  /**
+   * Add medication to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/medications
+   */
+  public async addMedication(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.addMedicationUseCase.execute({
+        recordId: req.params.recordId,
+        code: req.body.code,
+        name: req.body.name,
+        strength: req.body.strength,
+        dosageForm: req.body.dosageForm,
+        route: req.body.route,
+        dosage: req.body.dosage,
+        frequency: req.body.frequency,
+        frequencyUnit: req.body.frequencyUnit,
+        instructions: req.body.instructions,
+        prescribedBy: userId
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message, 201);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi thêm thuốc');
+    }
+  }
+
+  /**
+   * Remove medication from medical record
+   * DELETE /api/v2/clinical-emr/medical-records/:recordId/medications/:medicationCode
+   */
+  public async removeMedication(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.removeMedicationUseCase.execute({
+        recordId: req.params.recordId,
+        medicationCode: req.params.medicationCode,
+        removedBy: userId,
+        reason: req.body.reason
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi xóa thuốc');
+    }
+  }
+
+  /**
+   * Update vital signs
+   * PUT /api/v2/clinical-emr/medical-records/:recordId/vital-signs
+   */
+  public async updateVitalSigns(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.updateVitalSignsUseCase.execute({
+        recordId: req.params.recordId,
+        vitalSigns: req.body.vitalSigns,
+        updatedBy: userId
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi cập nhật sinh hiệu');
+    }
+  }
+
+  /**
+   * Export to FHIR
+   * GET /api/v2/clinical-emr/medical-records/:recordId/fhir
+   */
+  public async exportToFHIR(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.exportToFHIRUseCase.execute({
+        recordId: req.params.recordId,
+        fhirProfile: req.query.fhirProfile as string,
+        includeReferences: req.query.includeReferences === 'true',
+        requestedBy: userId
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi export FHIR');
+    }
+  }
+
+  /**
+   * Validate FHIR compliance
+   * GET /api/v2/clinical-emr/medical-records/:recordId/fhir/validate
+   */
+  public async validateFHIRCompliance(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.validateFHIRComplianceUseCase.execute({
+        recordId: req.params.recordId,
+        requestedBy: userId
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi validate FHIR compliance');
+    }
+  }
+
+  /**
+   * Get statistics (already exists but update to use new use case)
+   * GET /api/v2/clinical-emr/statistics
+   */
+  public async getStatistics(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.getMedicalRecordStatisticsUseCase.execute({
+        requestedBy: userId,
+        patientId: req.query.patientId as string,
+        doctorId: req.query.doctorId as string,
+        dateFrom: req.query.dateFrom as string,
+        dateTo: req.query.dateTo as string
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi lấy thống kê');
+    }
+  }
+
+  /**
+   * Grant access to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/access/grant
+   */
+  public async grantAccess(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.grantAccessUseCase.execute({
+        recordId: req.params.recordId,
+        grantedTo: req.body.grantedTo,
+        grantedBy: userId,
+        accessLevel: req.body.accessLevel,
+        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
+        purpose: req.body.purpose
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message, 201);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi cấp quyền truy cập');
+    }
+  }
+
+  /**
+   * Revoke access to medical record
+   * POST /api/v2/clinical-emr/medical-records/:recordId/access/revoke
+   */
+  public async revokeAccess(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.revokeAccessUseCase.execute({
+        recordId: req.params.recordId,
+        revokedFrom: req.body.revokedFrom,
+        revokedBy: userId,
+        reason: req.body.reason
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi thu hồi quyền truy cập');
+    }
+  }
+
+  /**
+   * Audit access history
+   * GET /api/v2/clinical-emr/medical-records/:recordId/access/audit
+   */
+  public async auditAccessHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = this.extractUserId(req);
+      const result = await this.auditAccessHistoryUseCase.execute({
+        recordId: req.params.recordId,
+        requestedBy: userId,
+        dateFrom: req.query.dateFrom as string,
+        dateTo: req.query.dateTo as string,
+        accessType: req.query.accessType as any,
+        accessedBy: req.query.accessedBy as string
+      });
+
+      if (result.success) {
+        this.sendSuccessResponse(res, result.data, result.message);
+      } else {
+        this.sendErrorResponse(res, result.message, 400, result.errors);
+      }
+    } catch (error) {
+      this.handleControllerError(res, error, 'Lỗi khi kiểm tra lịch sử truy cập');
     }
   }
 

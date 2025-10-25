@@ -65,11 +65,11 @@ export declare class NotificationController {
      * Get dashboard summary
      * GET /api/v1/notifications/dashboard
      */
-    getDashboard(req: Request, res: Response): Promise<void>;
+    getDashboard(_req: Request, res: Response): Promise<void>;
     /**
      * Get service health
      * GET /api/v1/notifications/health
      */
-    getHealth(req: Request, res: Response): Promise<void>;
+    getHealth(_req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=NotificationController.d.ts.map

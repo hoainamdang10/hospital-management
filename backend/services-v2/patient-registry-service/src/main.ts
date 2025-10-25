@@ -67,6 +67,12 @@ import { PatientQueryHandlers } from './application/handlers/PatientQueryHandler
 
 // Infrastructure imports
 import { SupabaseStorageService } from './infrastructure/storage/SupabaseStorageService';
+import { 
+  IdentityEventConsumer,
+  IdentityUserCreatedEventHandler,
+  IdentityUserDeletedEventHandler,
+  IdentityUserUpdatedEventHandler
+} from './infrastructure';
 
 // Presentation imports
 import { PatientController } from './presentation/controllers/PatientController';
@@ -74,6 +80,7 @@ import { CommandController } from './presentation/controllers/CommandController'
 import { createPatientRoutes } from './presentation/routes/patientRoutes';
 import { createCommandRoutes } from './presentation/routes/commandRoutes';
 import { ErrorHandlingMiddleware } from './presentation/middleware/ErrorHandlingMiddleware';
+import { AuthenticationMiddleware } from './presentation/middleware/AuthenticationMiddleware';
 
 // Configuration
 const config = {
@@ -85,7 +92,8 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   serviceName: 'patient-registry-service',
   version: '2.0.0',
-  allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',')
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(','),
+  identityServiceUrl: process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021'
 };
 
 // Logger setup (simplified - in production use Winston or similar)
@@ -123,6 +131,7 @@ class PatientRegistryServiceApp {
   private cacheService!: RedisCacheService | null;
   private patientCache!: PatientCache;
   private degradationService!: PatientRegistryDegradation;
+  private identityEventConsumer!: any; // IdentityEventConsumer
 
   // Use Cases
   private registerPatientUseCase!: RegisterPatientUseCase;
@@ -169,6 +178,7 @@ class PatientRegistryServiceApp {
 
   // Middleware
   private errorHandlingMiddleware!: ErrorHandlingMiddleware;
+  private authMiddleware!: AuthenticationMiddleware;
 
   constructor() {
     this.app = express();
@@ -487,6 +497,47 @@ class PatientRegistryServiceApp {
 
       this.errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
 
+      // Initialize Authentication Middleware
+      this.authMiddleware = new AuthenticationMiddleware({
+        identityServiceUrl: config.identityServiceUrl,
+        logger,
+        skipPaths: ['/health', '/degradation']
+      });
+
+      // Initialize Identity Event Handlers
+      const userCreatedHandler = new IdentityUserCreatedEventHandler(
+        logger,
+        this.patientRepository
+      );
+
+      const userDeletedHandler = new IdentityUserDeletedEventHandler(
+        logger,
+        this.patientRepository
+      );
+
+      const userUpdatedHandler = new IdentityUserUpdatedEventHandler(
+        logger,
+        this.patientRepository
+      );
+
+      // Initialize Identity Event Consumer
+      this.identityEventConsumer = new IdentityEventConsumer(
+        {
+          rabbitmqUrl: config.rabbitmqUrl,
+          queueName: 'patient.identity.queue',
+          exchangeName: 'hospital.events',
+          routingKeys: ['user.user_created_event', 'user.user_deleted_event', 'user.user_updated_event']
+        },
+        logger,
+        userCreatedHandler,
+        userDeletedHandler,
+        userUpdatedHandler
+      );
+
+      // Connect Identity Event Consumer
+      await this.identityEventConsumer.connect();
+      logger.info('Identity event consumer connected');
+
       logger.info('Dependencies initialized successfully');
     } catch (error) {
       logger.fatal('Failed to initialize dependencies', {
@@ -614,13 +665,13 @@ class PatientRegistryServiceApp {
       }
     });
 
-    // API routes
+    // API routes with authentication
     const patientRoutes = createPatientRoutes(this.patientController);
-    this.app.use('/api/v1/patients', patientRoutes);
+    this.app.use('/api/v1/patients', this.authMiddleware.authenticate(), patientRoutes);
 
-    // CQRS Command routes
+    // CQRS Command routes with authentication
     const commandRoutes = createCommandRoutes(this.commandController);
-    this.app.use('/api/v1/commands', commandRoutes);
+    this.app.use('/api/v1/commands', this.authMiddleware.authenticate(), commandRoutes);
 
     // 404 handler
     this.app.use(this.errorHandlingMiddleware.notFound());
@@ -675,6 +726,12 @@ class PatientRegistryServiceApp {
       if (this.eventPublisher) {
         await this.eventPublisher.close();
         logger.info('Event Publisher closed');
+      }
+
+      // Disconnect Identity Event Consumer
+      if (this.identityEventConsumer) {
+        await this.identityEventConsumer.disconnect();
+        logger.info('Identity event consumer disconnected');
       }
 
       // Close Redis connections

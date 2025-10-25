@@ -10,6 +10,7 @@ import { IUseCase } from '../../../../shared/application/use-cases/base/use-case
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface UnlockAccountRequest {
     userId: string;
     unlockedBy: string;
@@ -29,7 +30,8 @@ export declare class UnlockAccountUseCase implements IUseCase<UnlockAccountReque
     private userRepository;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: UnlockAccountRequest): Promise<UnlockAccountResponse>;
     private executeImpl;
     private validateRequest;

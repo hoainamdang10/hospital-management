@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, FHIR, Vietnamese Pharmaceutical Standards
  */
 
-import { ValueObject } from '../../../shared/domain/base/value-object';
+import { ValueObject } from '@shared/domain/base/value-object';
 
 /**
  * Medication Status (FHIR Compliant)
@@ -133,6 +133,9 @@ export class Medication extends ValueObject<MedicationProps> {
   
   private constructor(props: MedicationProps) {
     super(props);
+  }
+
+  protected validateFormat(): void {
     this.validate();
   }
 

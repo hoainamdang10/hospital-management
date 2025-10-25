@@ -16,6 +16,10 @@ export declare const handleValidationErrors: (req: Request, res: Response, next:
  */
 export declare const validateRegisterPatient: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
 /**
+ * Validate get patient list request
+ */
+export declare const validateGetPatientList: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
+/**
  * Validate update patient request
  */
 export declare const validateUpdatePatient: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];

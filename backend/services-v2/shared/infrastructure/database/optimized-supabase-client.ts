@@ -126,7 +126,7 @@ export class OptimizedSupabaseClient {
       }
 
       // Log performance
-      logger.debug(`🔍 Query executed`, {
+      logger.debug(` Query executed`, {
         service: this.config.serviceName,
         schema: this.config.schemaName,
         queryTime,
@@ -137,7 +137,7 @@ export class OptimizedSupabaseClient {
       return result;
     } catch (error) {
       const queryTime = Date.now() - startTime;
-      logger.error(`❌ Query failed`, {
+      logger.error(` Query failed`, {
         service: this.config.serviceName,
         schema: this.config.schemaName,
         queryTime,
@@ -265,6 +265,20 @@ export class OptimizedSupabaseClient {
    */
   getRawClient(): SupabaseClient {
     return this.client;
+  }
+
+  /**
+   * Get database connection (alias for getRawClient for compatibility)
+   */
+  getConnection(): SupabaseClient {
+    return this.client;
+  }
+
+  /**
+   * Cleanup resources (for DI container)
+   */
+  async cleanup(): Promise<void> {
+    await this.close();
   }
 
   /**

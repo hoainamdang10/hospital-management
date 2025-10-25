@@ -1,0 +1,53 @@
+/**
+ * IdentityEventConsumer
+ * Consumes events from Identity Service via RabbitMQ
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, Event-Driven Architecture
+ */
+import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IdentityUserCreatedEventHandler } from './handlers/IdentityUserCreatedEventHandler';
+import { IdentityUserDeletedEventHandler } from './handlers/IdentityUserDeletedEventHandler';
+import { IdentityUserUpdatedEventHandler } from './handlers/IdentityUserUpdatedEventHandler';
+/**
+ * Identity Event Consumer Configuration
+ */
+export interface IdentityEventConsumerConfig {
+    rabbitmqUrl: string;
+    queueName: string;
+    exchangeName: string;
+    routingKeys: string[];
+}
+/**
+ * Identity Event Consumer
+ * Subscribes to identity.* events from Identity Service
+ */
+export declare class IdentityEventConsumer {
+    private config;
+    private logger;
+    private userCreatedHandler;
+    private userDeletedHandler;
+    private userUpdatedHandler;
+    private connection;
+    private channel;
+    private isConnected;
+    constructor(config: IdentityEventConsumerConfig, logger: ILogger, userCreatedHandler: IdentityUserCreatedEventHandler, userDeletedHandler: IdentityUserDeletedEventHandler, userUpdatedHandler: IdentityUserUpdatedEventHandler);
+    /**
+     * Connect to RabbitMQ and start consuming
+     */
+    connect(): Promise<void>;
+    /**
+     * Handle incoming message
+     */
+    private handleMessage;
+    /**
+     * Disconnect from RabbitMQ
+     */
+    disconnect(): Promise<void>;
+    /**
+     * Check if consumer is connected
+     */
+    isActive(): boolean;
+}
+//# sourceMappingURL=IdentityEventConsumer.d.ts.map

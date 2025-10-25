@@ -148,7 +148,7 @@ export class NotificationEventHandlers {
       // Step 3: Send notification immediately
       await this.sendNotificationUseCase.execute({
         recipientId: event.payload.recipient.recipientId,
-        recipientType: event.payload.recipient.recipientType,
+        recipientType: event.payload.recipient.recipientType as any,
         templateType: event.payload.template.templateType as any,
         templateData: event.payload.template.templateData,
         channels: event.payload.channels,
@@ -156,7 +156,6 @@ export class NotificationEventHandlers {
         metadata: {
           correlationId: event.headers.correlation_id || event.payload.metadata?.correlationId,
           source: event.payload.metadata?.source || 'SCHEDULER_SERVICE',
-          tags: event.payload.metadata?.tags || [],
           healthcareContext: event.payload.metadata?.healthcareContext
         }
       });
@@ -212,13 +211,12 @@ export class NotificationEventHandlers {
         priority: 'NORMAL',
         metadata: {
           correlationId: event.metadata?.correlationId,
+          source: 'APPOINTMENT_SERVICE',
           healthcareContext: {
             patientId,
             doctorId,
             appointmentId
-          },
-          tags: ['appointment', 'confirmation'],
-          source: 'APPOINTMENT_SERVICE'
+          }
         }
       });
 
@@ -259,7 +257,6 @@ export class NotificationEventHandlers {
             doctorId,
             appointmentId
           },
-          tags: ['appointment', 'cancellation'],
           source: 'APPOINTMENT_SERVICE'
         }
       });
@@ -307,7 +304,6 @@ export class NotificationEventHandlers {
               doctorId,
               medicalRecordId: recordId
             },
-            tags: ['test-results', 'medical-records'],
             source: 'CLINICAL_EMR_SERVICE'
           }
         });
@@ -336,7 +332,6 @@ export class NotificationEventHandlers {
               doctorId,
               medicalRecordId: recordId
             },
-            tags: ['follow-up', 'medical-records'],
             source: 'CLINICAL_EMR_SERVICE'
           }
         });
@@ -381,12 +376,10 @@ export class NotificationEventHandlers {
         priority: 'NORMAL',
         metadata: {
           correlationId: event.metadata?.correlationId,
+          source: 'BILLING_SERVICE',
           healthcareContext: {
-            patientId,
-            invoiceId
-          },
-          tags: ['invoice', 'billing'],
-          source: 'BILLING_SERVICE'
+            patientId
+          }
         }
       });
 
@@ -427,7 +420,6 @@ export class NotificationEventHandlers {
             invoiceId,
             paymentId
           },
-          tags: ['payment', 'confirmation', 'billing'],
           source: 'BILLING_SERVICE'
         }
       });
@@ -465,10 +457,8 @@ export class NotificationEventHandlers {
         metadata: {
           correlationId: event.metadata?.correlationId,
           healthcareContext: {
-            patientId,
-            alertType
+            patientId
           },
-          tags: ['emergency', 'alert', 'urgent'],
           source: event.metadata?.source || 'EMERGENCY_SYSTEM'
         }
       });
@@ -478,7 +468,7 @@ export class NotificationEventHandlers {
         for (const contact of emergencyContacts) {
           await this.notificationService.sendNotification({
             recipientId: contact.contactId,
-            recipientType: 'FAMILY',
+            recipientType: 'PATIENT' as any, // FAMILY not in type, use PATIENT
             templateType: 'EMERGENCY_ALERT',
             templateData: {
               patientName: event.eventData.patientName || 'Bệnh nhân',
@@ -494,13 +484,10 @@ export class NotificationEventHandlers {
             priority: 'URGENT',
             metadata: {
               correlationId: event.metadata?.correlationId,
-              healthcareContext: {
-                patientId,
-                alertType,
-                emergencyContactId: contact.contactId
-              },
-              tags: ['emergency', 'alert', 'family'],
-              source: event.metadata?.source || 'EMERGENCY_SYSTEM'
+            healthcareContext: {
+              patientId
+            },
+            source: event.metadata?.source || 'EMERGENCY_SYSTEM'
             }
           });
         }
@@ -539,10 +526,8 @@ export class NotificationEventHandlers {
         metadata: {
           correlationId: event.metadata?.correlationId,
           healthcareContext: {
-            patientId,
-            medicationName
+            patientId
           },
-          tags: ['medication', 'reminder', 'healthcare'],
           source: 'MEDICATION_SERVICE'
         }
       });

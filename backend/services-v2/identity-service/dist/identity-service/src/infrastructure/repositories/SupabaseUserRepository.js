@@ -26,7 +26,7 @@ const UserSession_1 = require("../../domain/entities/UserSession");
  * Returns Domain aggregates, not DTOs
  */
 class SupabaseUserRepository {
-    constructor(supabaseUrl, supabaseKey, logger, cacheService, permissionRepository) {
+    constructor(supabaseUrl, supabaseKey, logger, cacheService, permissionRepository, eventPublisher) {
         this.logger = logger;
         this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('user-repository');
         // Cache TTL constants (in seconds)
@@ -54,6 +54,7 @@ class SupabaseUserRepository {
         }); // Type assertion to bypass schema type mismatch
         this.cacheService = cacheService;
         this.permissionRepository = permissionRepository;
+        this.eventPublisher = eventPublisher;
     }
     /**
      * Find user by ID with circuit breaker protection and caching
@@ -401,6 +402,41 @@ class SupabaseUserRepository {
         }
         // Invalidate caches
         await this.invalidateUserCache(record.id, record.email);
+        // Publish domain events
+        await this.publishDomainEvents(user);
+    }
+    /**
+     * Publish domain events from aggregate
+     */
+    async publishDomainEvents(user) {
+        if (!this.eventPublisher) {
+            this.logger.debug('Event publisher not configured, skipping event publishing');
+            return;
+        }
+        const events = user.getUncommittedEvents();
+        if (events.length === 0) {
+            return;
+        }
+        try {
+            // Publish events in batch
+            await this.eventPublisher.publishDomainEvents(events);
+            // Mark events as committed after successful publishing
+            user.markEventsAsCommitted();
+            this.logger.info('Domain events published', {
+                userId: user.id,
+                eventCount: events.length,
+                eventTypes: events.map((event) => event.eventType)
+            });
+        }
+        catch (error) {
+            this.logger.error('Failed to publish domain events', {
+                userId: user.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                eventCount: events.length
+            });
+            // Don't throw - event publishing failure shouldn't fail the transaction
+            // Events will be retried on next save or can be published via outbox pattern
+        }
     }
     /**
      * Soft delete user

@@ -9,7 +9,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPermissionRoutes = createPermissionRoutes;
 const express_1 = require("express");
-const Logger_1 = require("../../infrastructure/logging/Logger");
 const UserId_1 = require("../../domain/value-objects/UserId");
 function getErrorMessage(error) {
     if (error instanceof Error)
@@ -18,6 +17,7 @@ function getErrorMessage(error) {
 }
 function createPermissionRoutes(deps) {
     const router = (0, express_1.Router)();
+    const { logger } = deps;
     // Get user permissions (PROTECTED - self or admin)
     router.get('/:userId', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requirePermission({
         permissions: ['permissions:read', '*'],
@@ -39,7 +39,7 @@ function createPermissionRoutes(deps) {
             });
         }
         catch (error) {
-            Logger_1.logger.error('Get permissions error', { error: getErrorMessage(error) });
+            logger.error('Get permissions error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 error: 'Failed to get permissions'
@@ -56,7 +56,7 @@ function createPermissionRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Check permission error', { error: getErrorMessage(error) });
+            logger.error('Check permission error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 allowed: false,
@@ -75,7 +75,7 @@ function createPermissionRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Check permissions error', { error: getErrorMessage(error) });
+            logger.error('Check permissions error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 allowed: false,
@@ -93,7 +93,7 @@ function createPermissionRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Check role error', { error: getErrorMessage(error) });
+            logger.error('Check role error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 allowed: false,
@@ -112,7 +112,7 @@ function createPermissionRoutes(deps) {
             res.json(result);
         }
         catch (error) {
-            Logger_1.logger.error('Check roles error', { error: getErrorMessage(error) });
+            logger.error('Check roles error', { error: getErrorMessage(error) });
             res.status(500).json({
                 success: false,
                 allowed: false,

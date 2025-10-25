@@ -98,12 +98,14 @@ const PatientCommandHandlers_1 = require("./application/handlers/PatientCommandH
 const PatientQueryHandlers_1 = require("./application/handlers/PatientQueryHandlers");
 // Infrastructure imports
 const SupabaseStorageService_1 = require("./infrastructure/storage/SupabaseStorageService");
+const infrastructure_1 = require("./infrastructure");
 // Presentation imports
 const PatientController_1 = require("./presentation/controllers/PatientController");
 const CommandController_1 = require("./presentation/controllers/CommandController");
 const patientRoutes_1 = require("./presentation/routes/patientRoutes");
 const commandRoutes_1 = require("./presentation/routes/commandRoutes");
 const ErrorHandlingMiddleware_1 = require("./presentation/middleware/ErrorHandlingMiddleware");
+const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
 // Configuration
 const config = {
     port: process.env.PORT || 3023,
@@ -114,7 +116,8 @@ const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     serviceName: 'patient-registry-service',
     version: '2.0.0',
-    allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',')
+    allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(','),
+    identityServiceUrl: process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021'
 };
 // Logger setup (simplified - in production use Winston or similar)
 const logger = {
@@ -258,6 +261,26 @@ class PatientRegistryServiceApp {
             this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.getEmergencyContactsUseCase, this.updateEmergencyContactUseCase, this.removeEmergencyContactUseCase, this.setPrimaryEmergencyContactUseCase, this.grantConsentUseCase, this.getConsentsUseCase, this.getConsentDetailsUseCase, this.revokeConsentUseCase, this.getActiveConsentsUseCase, this.getInsuranceInfoUseCase, this.updateInsuranceInfoUseCase, this.verifyInsuranceUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase, this.getPatientStatisticsUseCase, this.uploadPatientPhotoUseCase, this.getPatientPhotoUseCase, this.deletePatientPhotoUseCase, this.updateCommunicationPreferencesUseCase, this.getCommunicationPreferencesUseCase, this.patientQueryHandlers);
             this.commandController = new CommandController_1.CommandController(logger, this.patientCommandHandlers);
             this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
+            // Initialize Authentication Middleware
+            this.authMiddleware = new AuthenticationMiddleware_1.AuthenticationMiddleware({
+                identityServiceUrl: config.identityServiceUrl,
+                logger,
+                skipPaths: ['/health', '/degradation']
+            });
+            // Initialize Identity Event Handlers
+            const userCreatedHandler = new infrastructure_1.IdentityUserCreatedEventHandler(logger, this.patientRepository);
+            const userDeletedHandler = new infrastructure_1.IdentityUserDeletedEventHandler(logger, this.patientRepository);
+            const userUpdatedHandler = new infrastructure_1.IdentityUserUpdatedEventHandler(logger, this.patientRepository);
+            // Initialize Identity Event Consumer
+            this.identityEventConsumer = new infrastructure_1.IdentityEventConsumer({
+                rabbitmqUrl: config.rabbitmqUrl,
+                queueName: 'patient.identity.queue',
+                exchangeName: 'hospital.events',
+                routingKeys: ['user.user_created_event', 'user.user_deleted_event', 'user.user_updated_event']
+            }, logger, userCreatedHandler, userDeletedHandler, userUpdatedHandler);
+            // Connect Identity Event Consumer
+            await this.identityEventConsumer.connect();
+            logger.info('Identity event consumer connected');
             logger.info('Dependencies initialized successfully');
         }
         catch (error) {
@@ -372,12 +395,12 @@ class PatientRegistryServiceApp {
                 });
             }
         });
-        // API routes
+        // API routes with authentication
         const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(this.patientController);
-        this.app.use('/api/v1/patients', patientRoutes);
-        // CQRS Command routes
+        this.app.use('/api/v1/patients', this.authMiddleware.authenticate(), patientRoutes);
+        // CQRS Command routes with authentication
         const commandRoutes = (0, commandRoutes_1.createCommandRoutes)(this.commandController);
-        this.app.use('/api/v1/commands', commandRoutes);
+        this.app.use('/api/v1/commands', this.authMiddleware.authenticate(), commandRoutes);
         // 404 handler
         this.app.use(this.errorHandlingMiddleware.notFound());
         // Error handling middleware (must be last)
@@ -422,6 +445,11 @@ class PatientRegistryServiceApp {
             if (this.eventPublisher) {
                 await this.eventPublisher.close();
                 logger.info('Event Publisher closed');
+            }
+            // Disconnect Identity Event Consumer
+            if (this.identityEventConsumer) {
+                await this.identityEventConsumer.disconnect();
+                logger.info('Identity event consumer disconnected');
             }
             // Close Redis connections
             if (this.cacheService) {

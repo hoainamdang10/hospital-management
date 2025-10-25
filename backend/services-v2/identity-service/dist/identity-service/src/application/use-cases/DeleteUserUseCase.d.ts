@@ -10,6 +10,7 @@ import { IUseCase } from '../../../../shared/application/use-cases/base/use-case
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
 export interface DeleteUserRequest {
     userId: string;
     requesterId: string;
@@ -33,8 +34,13 @@ export declare class DeleteUserUseCase implements IUseCase<DeleteUserRequest, De
     private userRepository;
     private logger;
     private circuitBreaker;
-    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: DeleteUserRequest): Promise<DeleteUserResponse>;
     private deleteUserInternal;
+    /**
+     * Publish UserDeletedEvent
+     */
+    private publishUserDeletedEvent;
 }
 //# sourceMappingURL=DeleteUserUseCase.d.ts.map
