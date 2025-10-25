@@ -11,45 +11,21 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CircuitBreakerFactory } from '../resilience/CircuitBreaker';
 import { getErrorMessage } from '../../utils/error-helper';
 import { ILogger } from '../../application/services/ILogger';
+import { 
+  IHealthCheckService, 
+  HealthStatus, 
+  HealthCheckResult, 
+  ServiceHealth 
+} from '../../application/services/IHealthCheckService';
 
-export enum HealthStatus {
-  HEALTHY = 'HEALTHY',
-  DEGRADED = 'DEGRADED',
-  UNHEALTHY = 'UNHEALTHY',
-  UNKNOWN = 'UNKNOWN'
-}
-
-export interface HealthCheckResult {
-  status: HealthStatus;
-  timestamp: Date;
-  responseTime: number;
-  details?: Record<string, unknown>;
-  error?: string;
-}
-
-export interface ServiceHealth {
-  overall: HealthStatus;
-  components: {
-    database: HealthCheckResult;
-    authentication: HealthCheckResult;
-    authorization: HealthCheckResult;
-    sessions: HealthCheckResult;
-    audit: HealthCheckResult;
-    circuitBreakers: HealthCheckResult;
-  };
-  metadata: {
-    version: string;
-    uptime: number;
-    environment: string;
-    timestamp: Date;
-  };
-}
+// Re-export types for backward compatibility
+export { HealthStatus, HealthCheckResult, ServiceHealth };
 
 /**
  * Health Check Service for Identity Service
  * Provides comprehensive monitoring of all service components
  */
-export class IdentityServiceHealthCheck {
+export class IdentityServiceHealthCheck implements IHealthCheckService {
   private supabaseClient: SupabaseClient<any, 'auth_schema'>;
   private startTime: Date;
 
