@@ -1,0 +1,1347 @@
+/**
+ * Identity Service Consolidated - Main Application
+ * Production-ready service with enhanced monitoring and resilience
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Production-Ready, HIPAA-Compliant, Anti-Pattern Mitigation
+ */
+
+// Load environment variables first
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+
+// Extend Express Request type to include user
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        email: string;
+        roles: string[];
+        permissions: string[];
+      };
+    }
+  }
+}
+// Infrastructure imports
+import { IdentityServiceHealthCheck } from './infrastructure/monitoring/HealthChecks';
+import { prometheusMetrics } from './infrastructure/monitoring/PrometheusMetrics';
+import { IdentityServiceDegradation } from './infrastructure/resilience/GracefulDegradation';
+import { CircuitBreakerFactory } from './infrastructure/resilience/CircuitBreaker';
+import { SupabaseUserRepository } from './infrastructure/repositories/SupabaseUserRepository';
+import { SupabasePermissionRepository } from './infrastructure/repositories/SupabasePermissionRepository';
+import { SupabaseAuthClient } from './infrastructure/auth/SupabaseAuthClient';
+import { PermissionService } from './infrastructure/services/PermissionService';
+import { SupabaseMFAService } from './infrastructure/services/SupabaseMFAService';
+import { RedisCacheService } from './infrastructure/cache/RedisCacheService';
+import { PermissionCache } from './infrastructure/cache/PermissionCache';
+import { SendGridEmailService } from './infrastructure/email/SendGridEmailService';
+import { MockEmailService } from './infrastructure/email/MockEmailService';
+
+// Middleware imports
+import { AuthenticationMiddleware } from './presentation/middleware/AuthenticationMiddleware';
+import { PermissionMiddleware } from './presentation/middleware/PermissionMiddleware';
+import { createIdempotencyMiddleware } from './presentation/middleware/IdempotencyMiddleware';
+import { createRequestIdMiddleware } from './presentation/middleware/RequestIdMiddleware';
+import { createMetricsAuthMiddleware } from './presentation/middleware/MetricsAuthMiddleware';
+
+// Routes imports
+import { registerRoutes } from './presentation/routes';
+import { RouteDependencies } from './presentation/routes/types';
+
+// Application imports
+import { IAuthenticationService } from './application/services/IAuthenticationService';
+import { ILogger } from './application/services/ILogger';
+import { AuthenticateUserUseCase } from './application/use-cases/AuthenticateUserUseCase';
+import { SupabaseAuthService } from './infrastructure/auth/SupabaseAuthService';
+import { RegisterUserUseCase } from './application/use-cases/RegisterUserUseCase';
+import { ForgotPasswordUseCase } from './application/use-cases/ForgotPasswordUseCase';
+import { ResetPasswordUseCase } from './application/use-cases/ResetPasswordUseCase';
+import { VerifyEmailUseCase } from './application/use-cases/VerifyEmailUseCase';
+import { LogoutUserUseCase } from './application/use-cases/LogoutUserUseCase';
+import { EnableMFAUseCase } from './application/use-cases/EnableMFAUseCase';
+import { VerifyMFAUseCase } from './application/use-cases/VerifyMFAUseCase';
+import { DisableMFAUseCase } from './application/use-cases/DisableMFAUseCase';
+import { GetUserUseCase } from './application/use-cases/GetUserUseCase';
+import { UpdateUserUseCase } from './application/use-cases/UpdateUserUseCase';
+import { DeleteUserUseCase } from './application/use-cases/DeleteUserUseCase';
+import { ListUsersUseCase } from './application/use-cases/ListUsersUseCase';
+import { RefreshTokenUseCase } from './application/use-cases/RefreshTokenUseCase';
+import { ProvisionStaffUseCase } from './application/use-cases/ProvisionStaffUseCase';
+import { AcceptStaffInvitationUseCase } from './application/use-cases/AcceptStaffInvitationUseCase';
+import { ListStaffInvitationsUseCase } from './application/use-cases/ListStaffInvitationsUseCase';
+import { GetStaffInvitationUseCase } from './application/use-cases/GetStaffInvitationUseCase';
+import { CancelStaffInvitationUseCase } from './application/use-cases/CancelStaffInvitationUseCase';
+import { ResendStaffInvitationUseCase } from './application/use-cases/ResendStaffInvitationUseCase';
+import { RabbitMQEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
+import { IEventPublisher } from './application/services/IEventPublisher';
+
+// Session Management imports
+import { ListActiveSessionsUseCase } from './application/use-cases/ListActiveSessionsUseCase';
+import { TerminateSessionUseCase } from './application/use-cases/TerminateSessionUseCase';
+import { TerminateAllSessionsUseCase } from './application/use-cases/TerminateAllSessionsUseCase';
+import { SupabaseSessionRepository } from './infrastructure/repositories/SupabaseSessionRepository';
+
+// Password Policy imports
+import { GetPasswordPolicyUseCase } from './application/use-cases/GetPasswordPolicyUseCase';
+import { UpdatePasswordPolicyUseCase } from './application/use-cases/UpdatePasswordPolicyUseCase';
+import { ValidatePasswordUseCase } from './application/use-cases/ValidatePasswordUseCase';
+import { SupabasePasswordPolicyRepository } from './infrastructure/repositories/SupabasePasswordPolicyRepository';
+
+// Account Recovery imports
+import { GetRecoveryMethodsUseCase } from './application/use-cases/GetRecoveryMethodsUseCase';
+import { UpdateRecoveryMethodsUseCase } from './application/use-cases/UpdateRecoveryMethodsUseCase';
+import { RequestPasswordResetUseCase } from './application/use-cases/RequestPasswordResetUseCase';
+import { VerifyResetTokenUseCase } from './application/use-cases/VerifyResetTokenUseCase';
+import { ResetPasswordWithTokenUseCase } from './application/use-cases/ResetPasswordWithTokenUseCase';
+import { GetRecoveryHistoryUseCase } from './application/use-cases/GetRecoveryHistoryUseCase';
+import { SupabaseRecoveryMethodRepository } from './infrastructure/repositories/SupabaseRecoveryMethodRepository';
+import { SupabaseRecoveryHistoryRepository } from './infrastructure/repositories/SupabaseRecoveryHistoryRepository';
+
+// Email Verification imports
+import { ResendVerificationEmailUseCase } from './application/use-cases/ResendVerificationEmailUseCase';
+import { SupabaseEmailVerificationTokenRepository } from './infrastructure/repositories/SupabaseEmailVerificationTokenRepository';
+// import { ResendEmailService } from './infrastructure/email/ResendEmailService'; // DEPRECATED - Migrated to SendGrid
+// SendGridEmailService and MockEmailService imported at line 49-50
+
+// Pending Registration imports (Verify-First Approach)
+import { SupabasePendingRegistrationRepository } from './infrastructure/repositories/SupabasePendingRegistrationRepository';
+import { PendingRegistrationCleanupJob } from './infrastructure/jobs/PendingRegistrationCleanupJob';
+
+// P1 Features - Account Management imports
+import { ChangePasswordUseCase } from './application/use-cases/ChangePasswordUseCase';
+import { LockAccountUseCase } from './application/use-cases/LockAccountUseCase';
+import { UnlockAccountUseCase } from './application/use-cases/UnlockAccountUseCase';
+import { AssignRoleUseCase } from './application/use-cases/AssignRoleUseCase';
+
+// Permission Check imports (for API Gateway)
+import { CheckPermissionUseCase } from './application/use-cases/CheckPermissionUseCase';
+import { CheckPermissionsUseCase } from './application/use-cases/CheckPermissionsUseCase';
+import { CheckRoleUseCase } from './application/use-cases/CheckRoleUseCase';
+import { CheckRolesUseCase } from './application/use-cases/CheckRolesUseCase';
+
+// Event Consumer imports (PHASE 1 + PHASE 2 + PHASE 3 + PHASE 4 - FINAL)
+import { InboxService } from './infrastructure/inbox/InboxService';
+import { IdentityEventConsumer } from './infrastructure/events/IdentityEventConsumer';
+import { StaffCredentialEventHandler } from './application/event-handlers/StaffCredentialEventHandler';
+import { BillingFraudEventHandler } from './application/event-handlers/BillingFraudEventHandler';
+import { AppointmentAbuseEventHandler } from './application/event-handlers/AppointmentAbuseEventHandler';
+import { ClinicalComplianceEventHandler } from './application/event-handlers/ClinicalComplianceEventHandler';
+import { StaffLifecycleEventHandler } from './application/event-handlers/StaffLifecycleEventHandler';
+import { NotificationEventHandler } from './application/event-handlers/NotificationEventHandler';
+import { PatientLifecycleEventHandler } from './application/event-handlers/PatientLifecycleEventHandler';
+import { ActivateUserUseCase } from './application/use-cases/ActivateUserUseCase';
+import { DeactivateUserUseCase } from './application/use-cases/DeactivateUserUseCase';
+
+/**
+ * Validate required environment variables
+ * Fail fast if critical configuration is missing
+ */
+function validateConfig(): void {
+  const requiredEnvVars = [
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_JWT_SECRET'
+  ];
+
+  const missing = requiredEnvVars.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    logger.error('Missing required environment variables', { missing });
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}. Service cannot start.`);
+  }
+  
+  // Validate URL format
+  if (process.env.SUPABASE_URL && !process.env.SUPABASE_URL.startsWith('http')) {
+    throw new Error('SUPABASE_URL must be a valid HTTP/HTTPS URL');
+  }
+  
+  logger.info('Configuration validated successfully');
+}
+
+// Configuration
+const config = {
+  port: process.env.PORT || 3001,
+  supabaseUrl: process.env.SUPABASE_URL!,
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  jwtSecret: process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET!,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  serviceName: 'identity-service',
+  version: '2.0.0',
+  // Pure RBAC Configuration
+  defaultUserRole: process.env.DEFAULT_USER_ROLE || 'patient', // Default role for new users
+  // Monitoring
+  metricsAuthEnabled: process.env.METRICS_AUTH_ENABLED === 'true',
+  metricsAuthToken: process.env.METRICS_AUTH_TOKEN
+};
+
+// Production-ready Pino Logger
+import { createProductionLogger } from './infrastructure/logging/PinoLogger';
+const logger: ILogger = createProductionLogger('identity-service');
+
+// Helper function to get error message
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+/**
+ * Identity Service Application Class
+ * Implements production-ready patterns and anti-pattern mitigation
+ */
+class IdentityServiceApp {
+  private app: express.Application;
+  private server: any; // HTTP server instance
+  private healthCheckInterval: NodeJS.Timeout | null = null; // Health check interval
+  private supabaseClient!: SupabaseClient;
+  private healthCheck!: IdentityServiceHealthCheck;
+  private degradationService!: IdentityServiceDegradation;
+  private userRepository!: SupabaseUserRepository;
+  private permissionRepository!: SupabasePermissionRepository;
+  private authService!: IAuthenticationService;
+  private authClient!: SupabaseAuthClient;
+  private permissionService!: PermissionService;
+  private permissionCache!: PermissionCache;
+  private mfaService!: SupabaseMFAService;
+  private cacheService!: RedisCacheService | null;
+  private authMiddleware!: AuthenticationMiddleware;
+  private permissionMiddleware!: PermissionMiddleware;
+  private authenticateUserUseCase!: AuthenticateUserUseCase;
+  private registerUserUseCase!: RegisterUserUseCase;
+  private forgotPasswordUseCase!: ForgotPasswordUseCase;
+  private resetPasswordUseCase!: ResetPasswordUseCase;
+  private verifyEmailUseCase!: VerifyEmailUseCase;
+  private logoutUserUseCase!: LogoutUserUseCase;
+  private enableMFAUseCase!: EnableMFAUseCase;
+  private verifyMFAUseCase!: VerifyMFAUseCase;
+  private disableMFAUseCase!: DisableMFAUseCase;
+  private getUserUseCase!: GetUserUseCase;
+  private updateUserUseCase!: UpdateUserUseCase;
+  private deleteUserUseCase!: DeleteUserUseCase;
+  private listUsersUseCase!: ListUsersUseCase;
+  private refreshTokenUseCase!: RefreshTokenUseCase;
+  private provisionStaffUseCase!: ProvisionStaffUseCase;
+  private acceptStaffInvitationUseCase!: AcceptStaffInvitationUseCase;
+  private listStaffInvitationsUseCase!: ListStaffInvitationsUseCase;
+  private getStaffInvitationUseCase!: GetStaffInvitationUseCase;
+  private cancelStaffInvitationUseCase!: CancelStaffInvitationUseCase;
+  private resendStaffInvitationUseCase!: ResendStaffInvitationUseCase;
+  private eventPublisher!: IEventPublisher;
+
+  // Session Management use cases
+  private sessionRepository!: SupabaseSessionRepository;
+  private listActiveSessionsUseCase!: ListActiveSessionsUseCase;
+  private terminateSessionUseCase!: TerminateSessionUseCase;
+  private terminateAllSessionsUseCase!: TerminateAllSessionsUseCase;
+
+  // Password Policy use cases
+  private passwordPolicyRepository!: SupabasePasswordPolicyRepository;
+  private getPasswordPolicyUseCase!: GetPasswordPolicyUseCase;
+  private updatePasswordPolicyUseCase!: UpdatePasswordPolicyUseCase;
+  private validatePasswordUseCase!: ValidatePasswordUseCase;
+
+  // Account Recovery
+  private recoveryMethodRepository!: SupabaseRecoveryMethodRepository;
+  private recoveryHistoryRepository!: SupabaseRecoveryHistoryRepository;
+  private getRecoveryMethodsUseCase!: GetRecoveryMethodsUseCase;
+  private updateRecoveryMethodsUseCase!: UpdateRecoveryMethodsUseCase;
+  private requestPasswordResetUseCase!: RequestPasswordResetUseCase;
+  private verifyResetTokenUseCase!: VerifyResetTokenUseCase;
+  private resetPasswordWithTokenUseCase!: ResetPasswordWithTokenUseCase;
+  private getRecoveryHistoryUseCase!: GetRecoveryHistoryUseCase;
+
+  // Email Verification
+  private emailVerificationTokenRepository!: SupabaseEmailVerificationTokenRepository;
+  private emailService!: SendGridEmailService | MockEmailService;
+  private resendVerificationEmailUseCase!: ResendVerificationEmailUseCase;
+
+  // Pending Registration (Verify-First Approach)
+  private pendingRegistrationRepository!: SupabasePendingRegistrationRepository;
+  private pendingRegistrationCleanupJob!: PendingRegistrationCleanupJob;
+
+  // P1 Features - Account Management
+  private changePasswordUseCase!: ChangePasswordUseCase;
+  private lockAccountUseCase!: LockAccountUseCase;
+  private unlockAccountUseCase!: UnlockAccountUseCase;
+  private assignRoleUseCase!: AssignRoleUseCase;
+
+  // Permission Check Use Cases (for API Gateway)
+  private checkPermissionUseCase!: CheckPermissionUseCase;
+  private checkPermissionsUseCase!: CheckPermissionsUseCase;
+  private checkRoleUseCase!: CheckRoleUseCase;
+  private checkRolesUseCase!: CheckRolesUseCase;
+
+  // Event Consumer (PHASE 1 + PHASE 2 + PHASE 3 + PHASE 4 - FINAL)
+  private inboxService!: InboxService;
+  private identityEventConsumer!: IdentityEventConsumer;
+  private staffCredentialHandler!: StaffCredentialEventHandler;
+  private billingFraudHandler!: BillingFraudEventHandler;
+  private appointmentAbuseHandler!: AppointmentAbuseEventHandler;
+  private clinicalComplianceHandler!: ClinicalComplianceEventHandler;
+  private staffLifecycleHandler!: StaffLifecycleEventHandler;
+  private notificationHandler!: NotificationEventHandler;
+  private patientLifecycleHandler!: PatientLifecycleEventHandler;
+  private activateUserUseCase!: ActivateUserUseCase;
+  private deactivateUserUseCase!: DeactivateUserUseCase;
+
+  constructor() {
+    this.app = express();
+    // Middleware được khởi tạo sau khi hạ tầng sẵn sàng (trong initialize)
+    // setupRoutes() vẫn được gọi sau khi hạ tầng sẵn sàng
+    this.setupErrorHandling();
+  }
+
+  /**
+   * Initialize the application (async wrapper for constructor)
+   */
+  async initialize(): Promise<void> {
+    // Validate configuration first (fail fast)
+    validateConfig();
+    
+    await this.initializeInfrastructure();
+    // Chỉ khởi tạo middleware sau khi cacheService và các phụ thuộc đã sẵn sàng
+    this.setupMiddleware();
+    // Setup routes AFTER infrastructure is initialized
+    this.setupRoutes();
+  }
+
+  /**
+   * Initialize infrastructure components
+   */
+  private async initializeInfrastructure(): Promise<void> {
+    try {
+      // Initialize shared Supabase client
+      this.supabaseClient = createClient(
+        config.supabaseUrl,
+        config.supabaseKey,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          },
+          db: {
+            schema: 'auth_schema'
+          }
+        }
+      ) as any;
+
+      // Initialize health check service
+      this.healthCheck = new IdentityServiceHealthCheck(
+        config.supabaseUrl,
+        config.supabaseKey,
+        logger
+      );
+
+      // Initialize graceful degradation service
+      this.degradationService = new IdentityServiceDegradation(
+        {
+          enableReadOnlyFallback: true,
+          enableCacheFallback: true,
+          enableEmergencyMode: true,
+          maxDegradationTime: 300000 // 5 minutes
+        },
+        {
+          supabaseUrl: config.supabaseUrl,
+          supabaseServiceRoleKey: config.supabaseKey,
+          jwtSecret: config.jwtSecret
+        },
+        logger
+      );
+
+      // Initialize Redis Cache Service (optional)
+      try {
+        this.cacheService = new RedisCacheService(
+          process.env.REDIS_URL || 'redis://localhost:6379',
+          logger
+        );
+        // IMPORTANT: Connect to Redis immediately
+        await this.cacheService.connect();
+        logger.info('Redis cache service initialized and connected');
+      } catch (error) {
+        logger.warn('Redis cache not available, running without cache', { error });
+        this.cacheService = null;
+      }
+
+      // Initialize Event Publisher (RabbitMQ)
+      const rabbitMQUrl = process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673';
+      this.eventPublisher = new RabbitMQEventPublisher(rabbitMQUrl, logger);
+      try {
+        await this.eventPublisher.initialize?.();
+        logger.info('Event Publisher initialized successfully');
+      } catch (error) {
+        logger.error('Failed to initialize Event Publisher', { error: getErrorMessage(error) });
+        logger.warn('Continuing without event publishing');
+      }
+
+      // Initialize Permission Cache (Pure RBAC)
+      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      this.permissionCache = new PermissionCache(redisUrl);
+      try {
+        await this.permissionCache.connect();
+        logger.info('Permission Cache connected successfully');
+      } catch (error) {
+        logger.error('Failed to connect Permission Cache', { error: getErrorMessage(error) });
+        logger.warn('Continuing without permission caching - permissions will be fetched from database');
+        // Service can continue without cache, just slower
+      }
+
+      // Initialize Permission Repository (Pure RBAC)
+      this.permissionRepository = new SupabasePermissionRepository(
+        this.supabaseClient,
+        this.permissionCache
+      );
+
+      // Initialize User Repository (with permissionRepository for Pure RBAC)
+      this.userRepository = new SupabaseUserRepository(
+        config.supabaseUrl,
+        config.supabaseKey,
+        logger,
+        this.cacheService || undefined,
+        this.permissionRepository,
+        this.eventPublisher // Add event publisher for domain events
+      );
+
+      // Initialize Supabase Auth Service with configurable default role
+      this.authService = new SupabaseAuthService(
+        config.supabaseUrl,
+        config.supabaseKey,
+        logger,
+        config.defaultUserRole
+      );
+
+      // Initialize Supabase Auth Client for middleware
+      this.authClient = new SupabaseAuthClient(
+        {
+          supabaseUrl: config.supabaseUrl,
+          supabaseServiceRoleKey: config.supabaseKey,
+          jwtSecret: config.jwtSecret
+        },
+        logger
+      );
+
+      // Initialize Permission Service (Pure RBAC)
+      this.permissionService = new PermissionService(
+        this.permissionRepository,
+        this.permissionCache,
+        logger
+      );
+
+      // Initialize MFA Service
+      this.mfaService = new SupabaseMFAService(
+        this.supabaseClient, // Use shared Supabase client
+        logger
+      );
+
+      // Initialize Email Verification Services
+      this.emailVerificationTokenRepository = new SupabaseEmailVerificationTokenRepository({
+        supabase: this.supabaseClient,
+        logger: logger
+      });
+
+      // Email Service - Use SendGrid or Mock based on configuration
+      const sendgridApiKey = process.env.SENDGRID_API_KEY;
+      const isProduction = config.nodeEnv === 'production';
+
+      if (!sendgridApiKey || sendgridApiKey.trim() === '') {
+        if (isProduction) {
+          // Fail-fast in production
+          logger.error('SENDGRID_API_KEY is required in production');
+          throw new Error('SENDGRID_API_KEY is required in production. Service cannot start without email capability.');
+        } else {
+          // Use mock service in development
+          logger.warn('SENDGRID_API_KEY not configured - using MockEmailService');
+          logger.warn('Emails will be logged but not actually sent');
+          this.emailService = new MockEmailService(logger);
+        }
+      } else {
+        // Use real SendGrid service
+        this.emailService = new SendGridEmailService(
+          {
+            apiKey: sendgridApiKey,
+            fromEmail: process.env.EMAIL_FROM || 'noreply@hospital.com',
+            fromName: process.env.EMAIL_FROM_NAME || 'Hospital Management System',
+            frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
+          },
+          logger
+        );
+      }
+
+      // Initialize Middleware
+      this.authMiddleware = new AuthenticationMiddleware(
+        this.authClient,
+        this.permissionService,
+        logger
+      );
+
+      this.permissionMiddleware = new PermissionMiddleware(
+        this.permissionService,
+        logger
+      );
+
+      // Initialize use cases
+      const authCircuitBreaker = CircuitBreakerFactory.getBreaker('authentication-use-case');
+      this.authenticateUserUseCase = new AuthenticateUserUseCase(
+        this.userRepository,
+        this.authService,
+        this.degradationService,
+        authCircuitBreaker,
+        logger,
+        this.permissionRepository,
+        this.eventPublisher // Add event publisher
+      );
+
+      // Initialize Pending Registration Repository (Verify-First Approach)
+      // Must be initialized BEFORE RegisterUserUseCase and VerifyEmailUseCase
+      this.pendingRegistrationRepository = new SupabasePendingRegistrationRepository({
+        supabase: this.supabaseClient,
+        logger: logger,
+        circuitBreaker: CircuitBreakerFactory.getBreaker('pending-registration-repository')
+      });
+
+      // RegisterUserUseCase - Verify-First Approach (v3.0.0)
+      // Stores pending registration instead of creating user immediately
+      // User created ONLY after email verification
+      this.registerUserUseCase = new RegisterUserUseCase(
+        this.userRepository,
+        this.pendingRegistrationRepository, // Pending registration repository
+        logger,
+        CircuitBreakerFactory.getBreaker('register-user-use-case'),
+        this.emailService, // Email service
+        config.jwtSecret, // JWT secret
+        process.env.FRONTEND_URL || 'http://localhost:3000', // Frontend URL
+        this.eventPublisher // Event publisher (optional, last parameter)
+      );
+
+      this.forgotPasswordUseCase = new ForgotPasswordUseCase(
+        this.authService,
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('forgot-password-use-case')
+      );
+
+      this.resetPasswordUseCase = new ResetPasswordUseCase(
+        this.authService,
+        logger,
+        CircuitBreakerFactory.getBreaker('reset-password-use-case')
+      );
+
+      // VerifyEmailUseCase - Verify-First Approach (v3.0.0)
+      // Creates user from pending registration AFTER email verification
+      this.verifyEmailUseCase = new VerifyEmailUseCase(
+        this.userRepository,
+        this.pendingRegistrationRepository, // NEW: Pending registration repository (replaces emailVerificationTokenRepository)
+        this.emailService,
+        logger,
+        CircuitBreakerFactory.getBreaker('verify-email-use-case'),
+        config.jwtSecret, // JWT secret
+        this.eventPublisher // Event publisher (optional, last parameter)
+      );
+
+      // ResendVerificationEmailUseCase for resending verification emails (supports both V1 and verify-first flows)
+      this.resendVerificationEmailUseCase = new ResendVerificationEmailUseCase(
+        this.userRepository,
+        this.emailVerificationTokenRepository,
+        this.pendingRegistrationRepository,
+        this.emailService,
+        logger,
+        CircuitBreakerFactory.getBreaker('resend-verification-email-use-case'),
+        config.jwtSecret,
+        process.env.FRONTEND_URL || 'http://localhost:3000'
+      );
+
+      this.logoutUserUseCase = new LogoutUserUseCase(
+        this.authService,
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('logout-user-use-case'),
+        this.eventPublisher // Add event publisher
+      );
+
+      this.enableMFAUseCase = new EnableMFAUseCase(
+        this.userRepository,
+        this.mfaService,
+        logger,
+        CircuitBreakerFactory.getBreaker('enable-mfa-use-case')
+      );
+
+      this.verifyMFAUseCase = new VerifyMFAUseCase(
+        this.mfaService,
+        logger,
+        CircuitBreakerFactory.getBreaker('verify-mfa-use-case')
+      );
+
+      this.disableMFAUseCase = new DisableMFAUseCase(
+        this.userRepository,
+        this.mfaService,
+        this.verifyMFAUseCase,
+        logger,
+        CircuitBreakerFactory.getBreaker('disable-mfa-use-case')
+      );
+
+      // Initialize user management use cases
+      this.getUserUseCase = new GetUserUseCase(
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('get-user-use-case')
+      );
+
+      this.updateUserUseCase = new UpdateUserUseCase(
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('update-user-use-case')
+      );
+
+      this.deleteUserUseCase = new DeleteUserUseCase(
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('delete-user-use-case')
+      );
+
+      this.listUsersUseCase = new ListUsersUseCase(
+        this.userRepository,
+        CircuitBreakerFactory.getBreaker('list-users-use-case'),
+        logger
+      );
+
+      this.refreshTokenUseCase = new RefreshTokenUseCase(
+        this.authService,
+        logger
+      );
+
+      this.provisionStaffUseCase = new ProvisionStaffUseCase(
+        this.userRepository,
+        logger,
+        this.emailService,
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        this.eventPublisher // Add event publisher
+      );
+
+      this.acceptStaffInvitationUseCase = new AcceptStaffInvitationUseCase(
+        this.userRepository,
+        logger,
+        this.eventPublisher
+      );
+
+      this.listStaffInvitationsUseCase = new ListStaffInvitationsUseCase(
+        this.userRepository,
+        logger
+      );
+
+      this.getStaffInvitationUseCase = new GetStaffInvitationUseCase(
+        this.userRepository,
+        logger
+      );
+
+      this.cancelStaffInvitationUseCase = new CancelStaffInvitationUseCase(
+        this.userRepository,
+        logger
+      );
+
+      this.resendStaffInvitationUseCase = new ResendStaffInvitationUseCase(
+        this.userRepository,
+        this.emailService,
+        logger,
+        process.env.FRONTEND_URL || 'http://localhost:3000'
+      );
+
+      // Initialize Session Management use cases
+      this.sessionRepository = new SupabaseSessionRepository(this.supabaseClient);
+
+      this.listActiveSessionsUseCase = new ListActiveSessionsUseCase(
+        this.sessionRepository,
+        logger
+      );
+
+      this.terminateSessionUseCase = new TerminateSessionUseCase(
+        this.sessionRepository,
+        logger
+      );
+
+      this.terminateAllSessionsUseCase = new TerminateAllSessionsUseCase(
+        this.sessionRepository,
+        logger
+      );
+
+      // Initialize Password Policy use cases
+      this.passwordPolicyRepository = new SupabasePasswordPolicyRepository(
+        this.supabaseClient,
+        logger
+      );
+
+      this.getPasswordPolicyUseCase = new GetPasswordPolicyUseCase(
+        this.passwordPolicyRepository,
+        logger
+      );
+
+      this.updatePasswordPolicyUseCase = new UpdatePasswordPolicyUseCase(
+        this.passwordPolicyRepository,
+        logger
+      );
+
+      this.validatePasswordUseCase = new ValidatePasswordUseCase(
+        this.passwordPolicyRepository,
+        logger
+      );
+
+      // Initialize Account Recovery use cases
+      this.recoveryMethodRepository = new SupabaseRecoveryMethodRepository(
+        this.supabaseClient,
+        logger
+      );
+
+      this.recoveryHistoryRepository = new SupabaseRecoveryHistoryRepository(
+        this.supabaseClient,
+        logger
+      );
+
+      this.getRecoveryMethodsUseCase = new GetRecoveryMethodsUseCase(
+        this.recoveryMethodRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('get-recovery-methods-use-case')
+      );
+
+      this.updateRecoveryMethodsUseCase = new UpdateRecoveryMethodsUseCase(
+        this.recoveryMethodRepository,
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('update-recovery-methods-use-case')
+      );
+
+      this.requestPasswordResetUseCase = new RequestPasswordResetUseCase(
+        this.authService,
+        this.userRepository,
+        this.recoveryMethodRepository,
+        this.recoveryHistoryRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('request-password-reset-use-case')
+      );
+
+      this.verifyResetTokenUseCase = new VerifyResetTokenUseCase(
+        this.authService,
+        this.recoveryHistoryRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('verify-reset-token-use-case')
+      );
+
+      this.resetPasswordWithTokenUseCase = new ResetPasswordWithTokenUseCase(
+        this.authService,
+        this.passwordPolicyRepository,
+        this.recoveryHistoryRepository,
+        this.sessionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('reset-password-with-token-use-case')
+      );
+
+      this.getRecoveryHistoryUseCase = new GetRecoveryHistoryUseCase(
+        this.recoveryHistoryRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('get-recovery-history-use-case')
+      );
+
+      // Initialize P1 Features - Account Management use cases
+      this.changePasswordUseCase = new ChangePasswordUseCase(
+        this.authService,
+        this.userRepository,
+        this.passwordPolicyRepository,
+        this.sessionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('change-password-use-case')
+      );
+
+      this.lockAccountUseCase = new LockAccountUseCase(
+        this.userRepository,
+        this.sessionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('lock-account-use-case'),
+        this.eventPublisher // Add event publisher for UserAccountLockedEvent
+      );
+
+      this.unlockAccountUseCase = new UnlockAccountUseCase(
+        this.userRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('unlock-account-use-case'),
+        this.eventPublisher // Add event publisher for UserAccountUnlockedEvent
+      );
+
+      this.assignRoleUseCase = new AssignRoleUseCase(
+        this.userRepository,
+        this.permissionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('assign-role-use-case')
+      );
+
+      this.activateUserUseCase = new ActivateUserUseCase(
+        this.userRepository,
+        logger
+      );
+
+      this.deactivateUserUseCase = new DeactivateUserUseCase(
+        this.userRepository,
+        this.sessionRepository,
+        logger,
+        CircuitBreakerFactory.getBreaker('deactivate-user-use-case')
+      );
+
+      this.checkPermissionUseCase = new CheckPermissionUseCase(
+        this.permissionService,
+        logger
+      );
+
+      this.checkPermissionsUseCase = new CheckPermissionsUseCase(
+        this.permissionService,
+        logger
+      );
+
+      this.checkRoleUseCase = new CheckRoleUseCase(
+        this.permissionService,
+        logger
+      );
+
+      this.checkRolesUseCase = new CheckRolesUseCase(
+        this.permissionService,
+        logger
+      );
+
+      // Initialize Pending Registration Cleanup Job (repository already initialized above)
+      this.pendingRegistrationCleanupJob = new PendingRegistrationCleanupJob({
+        pendingRegistrationRepository: this.pendingRegistrationRepository,
+        logger: logger,
+        intervalMinutes: 60 // Run every hour
+      });
+
+      // Start cleanup job
+      this.pendingRegistrationCleanupJob.start();
+      logger.info('Pending registration cleanup job started (runs every 60 minutes)');
+
+      // Initialize Event Consumer (PHASE 1 + PHASE 2 + PHASE 3 + PHASE 4 - FINAL)
+      try {
+        // Initialize InboxService
+        this.inboxService = new InboxService(this.supabaseClient, logger);
+        logger.info('InboxService initialized successfully');
+
+        // Initialize Event Handlers (PHASE 1)
+        this.staffCredentialHandler = new StaffCredentialEventHandler(
+          this.lockAccountUseCase,
+          this.unlockAccountUseCase,
+          this.terminateAllSessionsUseCase,
+          this.inboxService,
+          this.supabaseClient,
+          logger
+        );
+
+        this.billingFraudHandler = new BillingFraudEventHandler(
+          this.lockAccountUseCase,
+          this.inboxService,
+          this.supabaseClient,
+          logger
+        );
+
+        this.appointmentAbuseHandler = new AppointmentAbuseEventHandler(
+          this.inboxService,
+          this.supabaseClient,
+          logger
+        );
+
+        // Initialize Event Handlers (PHASE 2)
+        this.clinicalComplianceHandler = new ClinicalComplianceEventHandler(
+          this.lockAccountUseCase,
+          this.terminateAllSessionsUseCase,
+          this.inboxService,
+          this.supabaseClient,
+          logger
+        );
+
+        this.staffLifecycleHandler = new StaffLifecycleEventHandler(
+          this.activateUserUseCase,
+          this.inboxService,
+          logger
+        );
+
+        // Initialize Event Handlers (PHASE 3)
+        this.notificationHandler = new NotificationEventHandler(
+          this.lockAccountUseCase,
+          this.inboxService,
+          this.supabaseClient,
+          logger
+        );
+
+        // Initialize Event Handlers (PHASE 4)
+        this.patientLifecycleHandler = new PatientLifecycleEventHandler(
+          this.deactivateUserUseCase,
+          this.inboxService,
+          logger
+        );
+
+        logger.info('Event handlers initialized successfully (PHASE 1 + PHASE 2 + PHASE 3 + PHASE 4 - FINAL)');
+
+        // Initialize Event Consumer
+        const rabbitMQUrl = process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673';
+        this.identityEventConsumer = new IdentityEventConsumer(
+          {
+            rabbitmqUrl: rabbitMQUrl,
+            exchange: 'hospital.events',
+            queueName: 'identity-service.events',
+            routingKeys: [
+              // PHASE 1 routing keys (7 events)
+              'staff.credential_verified',
+              'staff.status_changed',
+              'payment.failed',
+              'invoice.overdue',
+              'payment.processed',
+              'appointment.no_show',
+              'appointment.cancelled',
+              // PHASE 2 routing keys (6 events)
+              'staff.credential_expired',
+              'staff.license_revoked',
+              'staff.registered',
+              'billing.dispute_filed',
+              'medical-record.flagged',
+              'prescription.abuse_detected',
+              // PHASE 3 routing keys (6 events)
+              'payment.refunded',
+              'insurance.claim_rejected',
+              'appointment.rescheduled',
+              'appointment.late_arrival',
+              'notification.delivery_failed',
+              'staff.performance_flagged',
+              // PHASE 4 routing keys (4 events - FINAL)
+              'staff.department_changed',
+              'staff.schedule_updated',
+              'appointment.completed',
+              'patient.deceased'
+            ],
+            prefetchCount: 1,
+            retryAttempts: 3,
+            retryDelayMs: 1000
+          },
+          logger,
+          this.staffCredentialHandler,
+          this.billingFraudHandler,
+          this.appointmentAbuseHandler,
+          this.clinicalComplianceHandler,
+          this.staffLifecycleHandler,
+          this.notificationHandler,
+          this.patientLifecycleHandler
+        );
+
+        // Connect to RabbitMQ and start consuming
+        await this.identityEventConsumer.connect();
+        logger.info('Identity Event Consumer connected and started consuming events');
+
+      } catch (error) {
+        logger.error('Failed to initialize Event Consumer', { error: getErrorMessage(error) });
+        logger.warn('Continuing without event consumption - service will only publish events');
+      }
+
+      logger.info('Infrastructure initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize infrastructure', { error: getErrorMessage(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Setup Express middleware with security and monitoring
+   */
+  private setupMiddleware(): void {
+    // Security middleware
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"],
+        },
+      },
+    }));
+
+    // CORS configuration
+    this.app.use(cors({
+      origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    }));
+
+    // Rate limiting
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // limit each IP to 100 requests per windowMs
+      message: {
+        error: 'Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau'
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+    this.app.use(limiter);
+
+    // Compression
+    this.app.use(compression());
+
+    // Body parsing
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    // Request ID middleware (MUST be before request logging)
+    const requestIdMiddleware = createRequestIdMiddleware(logger);
+    this.app.use(requestIdMiddleware);
+
+    // Idempotency middleware (before routes, after body parsing)
+    // Inject cache service via DI
+    const idempotencyMiddleware = createIdempotencyMiddleware(this.cacheService);
+    this.app.use(idempotencyMiddleware);
+
+    // Request logging middleware with Prometheus metrics
+    this.app.use((req, res, next) => {
+      const startTime = Date.now();
+
+      res.on('finish', () => {
+        const duration = Date.now() - startTime;
+        const durationSeconds = duration / 1000;
+
+        // Record Prometheus metrics
+        prometheusMetrics.recordApiRequest(req.method, req.path, res.statusCode);
+        prometheusMetrics.recordApiRequestDuration(req.method, req.path, durationSeconds);
+
+        // Use request-scoped logger with requestId context
+        const requestLogger = req.logger || logger;
+        requestLogger.info('Request completed', {
+          method: req.method,
+          url: req.url,
+          statusCode: res.statusCode,
+          duration,
+          userAgent: req.get('User-Agent')?.substring(0, 100),
+          ip: req.ip
+        });
+      });
+
+      next();
+    });
+  }
+
+  /**
+   * Setup API routes
+   * Routes are now organized in separate modules under presentation/routes/
+   */
+  private setupRoutes(): void {
+    // Create metrics auth middleware
+    const metricsAuthMiddleware = createMetricsAuthMiddleware({
+      enabled: config.metricsAuthEnabled,
+      authToken: config.metricsAuthToken,
+      allowedIPs: ['127.0.0.1', '::1', '::ffff:127.0.0.1'] // localhost
+    }, logger);
+
+    // Prometheus Metrics Endpoint (Protected)
+    this.app.get('/metrics', metricsAuthMiddleware, async (_req, res) => {
+      try {
+        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        const metrics = await prometheusMetrics.getMetrics();
+        res.send(metrics);
+      } catch (error) {
+        logger.error('Failed to generate metrics', { error: getErrorMessage(error) });
+        res.status(500).send('Error generating metrics');
+      }
+    });
+
+    // Swagger UI Documentation (Protected with metrics auth)
+    if (config.nodeEnv !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+      try {
+        const path = require('path');
+        const openapiPath = path.join(__dirname, '../docs/api/openapi.yaml');
+        const swaggerDocument = YAML.load(openapiPath);
+
+        // Protect Swagger UI with metrics auth middleware (not user JWT)
+        this.app.use('/api-docs', metricsAuthMiddleware, swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+          customCss: '.swagger-ui .topbar { display: none }',
+          customSiteTitle: 'Identity Service API Documentation'
+        }));
+
+        const protectionStatus = config.metricsAuthEnabled ? 'PROTECTED (Token/IP)' : 'PUBLIC (Development)';
+        logger.info(`Swagger UI available at /api-docs (${protectionStatus})`, { openapiPath });
+      } catch (error) {
+        logger.warn('Failed to load OpenAPI spec', { error: getErrorMessage(error) });
+      }
+    } else {
+      logger.info('Swagger UI disabled in production');
+    }
+
+    // Prepare dependencies for routes
+    const routeDeps: RouteDependencies = {
+      // Infrastructure (injected via DI)
+      logger: logger,
+      cacheService: this.cacheService,
+      
+      // Middleware
+      authMiddleware: this.authMiddleware,
+      permissionMiddleware: this.permissionMiddleware,
+
+      // Auth Use Cases
+      authenticateUserUseCase: this.authenticateUserUseCase,
+      registerUserUseCase: this.registerUserUseCase,
+      forgotPasswordUseCase: this.forgotPasswordUseCase,
+      resetPasswordUseCase: this.resetPasswordUseCase,
+      verifyEmailUseCase: this.verifyEmailUseCase,
+      resendVerificationEmailUseCase: this.resendVerificationEmailUseCase,
+      logoutUserUseCase: this.logoutUserUseCase,
+      refreshTokenUseCase: this.refreshTokenUseCase,
+
+      // MFA Use Cases
+      enableMFAUseCase: this.enableMFAUseCase,
+      verifyMFAUseCase: this.verifyMFAUseCase,
+      disableMFAUseCase: this.disableMFAUseCase,
+
+      // User Management Use Cases
+      getUserUseCase: this.getUserUseCase,
+      updateUserUseCase: this.updateUserUseCase,
+      deleteUserUseCase: this.deleteUserUseCase,
+      listUsersUseCase: this.listUsersUseCase,
+      changePasswordUseCase: this.changePasswordUseCase,
+      lockAccountUseCase: this.lockAccountUseCase,
+      unlockAccountUseCase: this.unlockAccountUseCase,
+      assignRoleUseCase: this.assignRoleUseCase,
+
+      // Staff Management Use Cases
+      provisionStaffUseCase: this.provisionStaffUseCase,
+      acceptStaffInvitationUseCase: this.acceptStaffInvitationUseCase,
+      listStaffInvitationsUseCase: this.listStaffInvitationsUseCase,
+      getStaffInvitationUseCase: this.getStaffInvitationUseCase,
+      cancelStaffInvitationUseCase: this.cancelStaffInvitationUseCase,
+      resendStaffInvitationUseCase: this.resendStaffInvitationUseCase,
+
+      // Session Management Use Cases
+      listActiveSessionsUseCase: this.listActiveSessionsUseCase,
+      terminateSessionUseCase: this.terminateSessionUseCase,
+      terminateAllSessionsUseCase: this.terminateAllSessionsUseCase,
+
+      // Password Policy Use Cases
+      getPasswordPolicyUseCase: this.getPasswordPolicyUseCase,
+      updatePasswordPolicyUseCase: this.updatePasswordPolicyUseCase,
+      validatePasswordUseCase: this.validatePasswordUseCase,
+
+      // Account Recovery Use Cases
+      getRecoveryMethodsUseCase: this.getRecoveryMethodsUseCase,
+      updateRecoveryMethodsUseCase: this.updateRecoveryMethodsUseCase,
+      requestPasswordResetUseCase: this.requestPasswordResetUseCase,
+      verifyResetTokenUseCase: this.verifyResetTokenUseCase,
+      resetPasswordWithTokenUseCase: this.resetPasswordWithTokenUseCase,
+      getRecoveryHistoryUseCase: this.getRecoveryHistoryUseCase,
+
+      // Permission Check Use Cases
+      checkPermissionUseCase: this.checkPermissionUseCase,
+      checkPermissionsUseCase: this.checkPermissionsUseCase,
+      checkRoleUseCase: this.checkRoleUseCase,
+      checkRolesUseCase: this.checkRolesUseCase,
+
+      // Services
+      healthCheck: this.healthCheck,
+      degradationService: this.degradationService,
+      permissionService: this.permissionService,
+
+      // Repositories
+      sessionRepository: this.sessionRepository
+    };
+
+    // Register all routes
+    registerRoutes(this.app, routeDeps);
+  }
+
+  /**
+   * Setup error handling middleware
+   */
+  private setupErrorHandling(): void {
+    // Global error handler
+    this.app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      logger.error('Unhandled error', {
+        error: getErrorMessage(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        url: req.url,
+        method: req.method
+      });
+
+      res.status(500).json({
+        error: 'Lỗi hệ thống không xác định',
+        timestamp: new Date(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      logger.error('Uncaught exception', { error: getErrorMessage(error), stack: error.stack });
+      process.exit(1);
+    });
+
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled rejection', { reason, promise });
+      process.exit(1);
+    });
+  }
+
+  /**
+   * Start the server
+   */
+  public async start(): Promise<void> {
+    try {
+      // Initialize infrastructure (async)
+      await this.initialize();
+
+      // Perform initial health check
+      const health = await this.healthCheck.checkHealth();
+      if (health.overall === 'UNHEALTHY') {
+        logger.warn('Service starting with unhealthy status', { health });
+      }
+
+      // Start server and store handle for graceful shutdown
+      this.server = this.app.listen(config.port, () => {
+        logger.info('Identity Service Consolidated started', {
+          port: config.port,
+          environment: config.nodeEnv,
+          version: config.version,
+          healthStatus: health.overall
+        });
+      });
+
+      // Setup periodic health checks (store interval for cleanup)
+      this.healthCheckInterval = setInterval(async () => {
+        try {
+          this.degradationService.checkRecovery();
+        } catch (error) {
+          logger.error('Periodic health check failed', { error: getErrorMessage(error) });
+        }
+      }, 30000); // Every 30 seconds
+
+    } catch (error) {
+      logger.error('Failed to start service', { error: getErrorMessage(error) });
+      process.exit(1);
+    }
+  }
+
+  /**
+   * Dừng toàn bộ tài nguyên (dùng cho test)
+   */
+  public async stop(): Promise<void> {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+
+    if (this.server) {
+      await new Promise<void>((resolve, reject) => {
+        this.server.close((err: Error | undefined) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+      this.server = null;
+    }
+
+    this.degradationService?.stop?.();
+    await this.permissionCache?.disconnect?.();
+    await this.cacheService?.disconnect?.();
+  }
+}
+
+// Start the application
+if (require.main === module) {
+  const app = new IdentityServiceApp();
+
+  // Graceful shutdown
+  const shutdown = async (signal: string) => {
+    logger.info(`${signal} received, shutting down gracefully...`);
+
+    try {
+      // Clear health check interval
+      if (app['healthCheckInterval']) {
+        clearInterval(app['healthCheckInterval']);
+        logger.info('Health check interval cleared');
+      }
+
+      // Stop HTTP server (stop accepting new connections)
+      if (app['server']) {
+        await new Promise<void>((resolve, reject) => {
+          app['server'].close((err: Error | undefined) => {
+            if (err) {
+              logger.error('Error closing HTTP server', { error: getErrorMessage(err) });
+              reject(err);
+            } else {
+              logger.info('HTTP server closed');
+              resolve();
+            }
+          });
+        });
+      }
+
+      // Stop pending registration cleanup job
+      if (app['pendingRegistrationCleanupJob']) {
+        app['pendingRegistrationCleanupJob'].stop();
+        logger.info('Pending registration cleanup job stopped');
+      }
+
+      // Disconnect Event Consumer
+      if (app['identityEventConsumer']) {
+        await app['identityEventConsumer'].disconnect();
+        logger.info('Identity Event Consumer disconnected');
+      }
+
+      // Close RabbitMQ Event Publisher
+      if (app['eventPublisher']) {
+        await app['eventPublisher'].close?.();
+        logger.info('Event Publisher closed');
+      }
+
+      // Close Redis connection (Permission Cache)
+      if (app['permissionCache']) {
+        await app['permissionCache'].disconnect();
+        logger.info('Permission Cache disconnected');
+      }
+
+      // Close Redis Cache Service (unified instance)
+      if (app['cacheService']) {
+        await app['cacheService'].disconnect();
+        logger.info('Redis Cache Service disconnected');
+      }
+
+      // Dừng dịch vụ suy giảm để giải phóng interval
+      if (app['degradationService']) {
+        app['degradationService'].stop?.();
+        logger.info('Degradation Service stopped');
+      }
+
+      // Close Supabase client connections
+      // Note: Supabase client doesn't have explicit close method
+      // Connections will be cleaned up automatically
+
+      logger.info('Graceful shutdown complete');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during shutdown', { error: getErrorMessage(error) });
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  app.start().catch((error) => {
+    console.error('Failed to start application:', error);
+    process.exit(1);
+  });
+}
+
+export default IdentityServiceApp;
