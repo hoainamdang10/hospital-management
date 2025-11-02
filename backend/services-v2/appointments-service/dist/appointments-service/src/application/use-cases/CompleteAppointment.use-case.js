@@ -9,10 +9,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompleteAppointmentUseCase = void 0;
 const use_case_interface_1 = require("../../../../shared/application/use-cases/base/use-case.interface");
+const IAuthorizationService_1 = require("../services/IAuthorizationService");
 class CompleteAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
-    constructor(appointmentRepository) {
+    constructor(appointmentRepository, authorizationService) {
         super();
         this.appointmentRepository = appointmentRepository;
+        this.authorizationService = authorizationService;
     }
     async executeInternal(request) {
         try {
@@ -23,6 +25,14 @@ class CompleteAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
                     message: 'Không tìm thấy lịch hẹn',
                     errors: ['Appointment not found']
                 };
+            }
+            // Authorization check - Only doctors/nurses can complete
+            const canComplete = await this.authorizationService.canCompleteAppointment(request.completedBy, request.appointmentId, {
+                patientId: appointment.patientId,
+                doctorId: appointment.doctorId,
+            });
+            if (!canComplete) {
+                throw new IAuthorizationService_1.AuthorizationError('You are not authorized to complete this appointment. Only doctors and nurses can complete appointments.', request.completedBy, 'complete_appointment', request.appointmentId);
             }
             appointment.complete();
             await this.appointmentRepository.save(appointment);

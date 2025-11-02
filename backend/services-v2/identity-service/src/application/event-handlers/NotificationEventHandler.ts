@@ -113,6 +113,8 @@ export class NotificationEventHandler {
         });
       }
 
+      await this.inboxService.markProcessed(event.eventId);
+
       this.logger.info('Successfully processed notification.delivery_failed event', {
         eventId: event.eventId,
         userId: event.userId,
@@ -125,6 +127,10 @@ export class NotificationEventHandler {
         userId: event.userId,
         error: error instanceof Error ? error.message : String(error)
       });
+      await this.inboxService.markFailed(
+        event.eventId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       throw error;
     }
   }

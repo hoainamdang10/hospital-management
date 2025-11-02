@@ -46,6 +46,18 @@ export declare class RabbitMQConsumer {
      */
     private handleMessage;
     /**
+     * Map routing key to event type
+     */
+    private mapRoutingKeyToEventType;
+    /**
+     * Extract aggregate type from routing key
+     */
+    private extractAggregateTypeFromRoutingKey;
+    /**
+     * Extract service name from routing key
+     */
+    private extractServiceFromRoutingKey;
+    /**
      * Determine if message should be retried
      */
     private shouldRetryMessage;

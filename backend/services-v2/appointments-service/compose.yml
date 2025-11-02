@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  appointments-service:
+    build:
+      context: ..
+      dockerfile: appointments-service/Dockerfile
+    container_name: hospital-appointments-service
+    ports:
+      - "3024:3024"
+    env_file:
+      - .env
+    environment:
+      # Supabase Configuration
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      
+      # Service Configuration
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3024
+      - SERVICE_NAME=appointments-service
+      
+      # Security
+      - JWT_SECRET=${JWT_SECRET}
+      
+      # External Services
+      - PATIENT_SERVICE_URL=${PATIENT_SERVICE_URL:-http://patient-registry-service:3023}
+      - PROVIDER_SERVICE_URL=${PROVIDER_SERVICE_URL:-http://provider-staff-service:3022}
+      - SCHEDULER_SERVICE_URL=${SCHEDULER_SERVICE_URL:-http://scheduler-service:3030}
+      - SCHEDULER_API_KEY=${SCHEDULER_API_KEY}
+      - NOTIFICATIONS_SERVICE_URL=${NOTIFICATIONS_SERVICE_URL:-http://notifications-service:3031}
+      - NOTIFICATIONS_API_KEY=${NOTIFICATIONS_API_KEY}
+      
+      # CORS
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000,http://localhost:3101}
+      
+      # RabbitMQ (Event Bus)
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://admin:admin@rabbitmq:5672}
+      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE:-hospital.events}
+      
+      # Redis (Cache & Idempotency)
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_KEY_PREFIX=${REDIS_KEY_PREFIX:-appointments:}
+      
+      # CQRS Read Model
+      - ENABLE_READ_MODEL_SYNC=${ENABLE_READ_MODEL_SYNC:-true}
+      - READ_MODEL_SYNC_TIMEOUT=${READ_MODEL_SYNC_TIMEOUT:-5000}
+      
+      # Outbox Pattern
+      - OUTBOX_POLL_INTERVAL_MS=${OUTBOX_POLL_INTERVAL_MS:-5000}
+      - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-50}
+      - OUTBOX_BASE_DELAY_MS=${OUTBOX_BASE_DELAY_MS:-5000}
+      - OUTBOX_MAX_DELAY_MS=${OUTBOX_MAX_DELAY_MS:-600000}
+      
+      # Tenant
+      - TENANT_ID=${TENANT_ID:-hospital-1}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENABLE_REQUEST_LOGGING=${ENABLE_REQUEST_LOGGING:-true}
+      - ENABLE_ERROR_TRACKING=${ENABLE_ERROR_TRACKING:-true}
+      
+      # Health Check
+      - HEALTH_CHECK_TIMEOUT_MS=${HEALTH_CHECK_TIMEOUT_MS:-5000}
+      - ENABLE_DETAILED_HEALTH_CHECK=${ENABLE_DETAILED_HEALTH_CHECK:-true}
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3024/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    
+    restart: unless-stopped
+    
+    networks:
+      - hospital-network
+
+networks:
+  hospital-network:
+    driver: bridge
+

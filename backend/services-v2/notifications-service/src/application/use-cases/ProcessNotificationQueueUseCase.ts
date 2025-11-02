@@ -9,6 +9,7 @@
 
 import { INotificationRepository } from '../../domain/repositories/INotificationRepository';
 import { IDeliveryService } from '../../domain/services/IDeliveryService';
+import { NotificationId } from '../../domain/value-objects/NotificationId';
 
 export interface ProcessQueueCommand {
   batchSize?: number;
@@ -63,7 +64,7 @@ export class ProcessNotificationQueueUseCase {
           const expiresAt = (notification.metadata as any).expiresAt;
           if (expiresAt && new Date(expiresAt) < new Date()) {
             await this.notificationRepository.updateStatus(
-              new NotificationId(notification.id),
+              NotificationId.fromString(notification.id),
               'EXPIRED'
             );
             expired++;
@@ -144,7 +145,4 @@ export class ProcessNotificationQueueUseCase {
     }
   }
 }
-
-// Import NotificationId from domain
-import { NotificationId } from '../../domain/value-objects/NotificationId';
 

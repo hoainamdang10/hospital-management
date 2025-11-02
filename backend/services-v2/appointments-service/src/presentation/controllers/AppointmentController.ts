@@ -14,6 +14,16 @@ import { ConfirmAppointmentUseCase } from '../../application/use-cases/ConfirmAp
 import { CompleteAppointmentUseCase } from '../../application/use-cases/CompleteAppointment.use-case';
 import { GetAppointmentUseCase } from '../../application/use-cases/GetAppointment.use-case';
 import { ListAppointmentsUseCase } from '../../application/use-cases/ListAppointments.use-case';
+import { RescheduleAppointmentUseCase } from '../../application/use-cases/RescheduleAppointment.use-case';
+import { CheckInAppointmentUseCase } from '../../application/use-cases/CheckInAppointment.use-case';
+import { MarkAsNoShowUseCase } from '../../application/use-cases/MarkAsNoShow.use-case';
+import { StartAppointmentUseCase } from '../../application/use-cases/StartAppointment.use-case';
+import { BulkRescheduleAppointmentsUseCase } from '../../application/use-cases/BulkRescheduleAppointments.use-case';
+import { GetAppointmentHistoryUseCase } from '../../application/use-cases/GetAppointmentHistory.use-case';
+import { GetAppointmentStatisticsUseCase } from '../../application/use-cases/GetAppointmentStatistics.use-case';
+import { CreateEmergencyAppointmentUseCase } from '../../application/use-cases/CreateEmergencyAppointment.use-case';
+import { TransferAppointmentUseCase } from '../../application/use-cases/TransferAppointment.use-case';
+import { CreateRecurringAppointmentSeriesUseCase } from '../../application/use-cases/CreateRecurringAppointmentSeries.use-case';
 
 export class AppointmentController {
   constructor(
@@ -22,7 +32,17 @@ export class AppointmentController {
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private readonly completeAppointmentUseCase: CompleteAppointmentUseCase,
     private readonly getAppointmentUseCase: GetAppointmentUseCase,
-    private readonly listAppointmentsUseCase: ListAppointmentsUseCase
+    private readonly listAppointmentsUseCase: ListAppointmentsUseCase,
+    private readonly rescheduleAppointmentUseCase: RescheduleAppointmentUseCase,
+    private readonly checkInAppointmentUseCase: CheckInAppointmentUseCase,
+    private readonly markAsNoShowUseCase: MarkAsNoShowUseCase,
+    private readonly startAppointmentUseCase: StartAppointmentUseCase,
+    private readonly bulkRescheduleAppointmentsUseCase: BulkRescheduleAppointmentsUseCase,
+    private readonly getAppointmentHistoryUseCase: GetAppointmentHistoryUseCase,
+    private readonly getAppointmentStatisticsUseCase: GetAppointmentStatisticsUseCase,
+    private readonly createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase,
+    private readonly transferAppointmentUseCase: TransferAppointmentUseCase,
+    private readonly createRecurringSeriesUseCase: CreateRecurringAppointmentSeriesUseCase
   ) {}
 
   /**
@@ -40,11 +60,34 @@ export class AppointmentController {
         return;
       }
 
+      // Map nested validation structure to flat use case structure
+      const { patient, provider, appointment, departmentCode } = req.body;
+      
+      console.log('[Controller] Mapping nested structure:', JSON.stringify({ patient, provider, appointment, departmentCode }, null, 2));
+      
+      const startTime = new Date(appointment.startTime);
+      const endTime = new Date(appointment.endTime);
+      const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+
+      const useCaseRequest = {
+        patientId: patient.patientId,
+        doctorId: provider.providerId,
+        appointmentDate: startTime.toISOString().split('T')[0], // YYYY-MM-DD
+        appointmentTime: startTime.toTimeString().split(' ')[0], // HH:MM:SS
+        durationMinutes,
+        type: appointment.appointmentType,
+        priority: appointment.priority,
+        reason: appointment.reason,
+        notes: appointment.notes,
+        consultationFee: appointment.consultationFee || 0,
+        departmentId: departmentCode,
+        createdBy: userId
+      };
+
+      console.log('[Controller] Mapped to use case request:', JSON.stringify(useCaseRequest, null, 2));
+
       const result = await this.scheduleAppointmentUseCase.execute(
-        {
-          ...req.body,
-          createdBy: userId
-        },
+        useCaseRequest,
         { userId, timestamp: new Date() }
       );
 
@@ -175,7 +218,8 @@ export class AppointmentController {
 
       const result = await this.completeAppointmentUseCase.execute(
         {
-          appointmentId: req.params.id
+          appointmentId: req.params.id,
+          completedBy: userId
         },
         { userId, timestamp: new Date() }
       );
@@ -304,6 +348,321 @@ export class AppointmentController {
       res.status(200).json({ success: true, appointmentId: appt.appointmentId, previews });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Internal server error', errors: [error instanceof Error ? error.message : 'Unknown error'] });
+    }
+  }
+
+  /**
+   * POST /api/appointments/:id/reschedule
+   * Reschedule an appointment
+   */
+  async rescheduleAppointment(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.rescheduleAppointmentUseCase.execute(
+        {
+          appointmentId: req.params.id,
+          ...req.body,
+          rescheduledBy: userId
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/:id/check-in
+   * Check in patient for appointment
+   */
+  async checkInAppointment(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.checkInAppointmentUseCase.execute(
+        {
+          appointmentId: req.params.id,
+          checkedInBy: userId,
+          ...req.body
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/:id/no-show
+   * Mark appointment as no-show
+   */
+  async markAsNoShow(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.markAsNoShowUseCase.execute(
+        {
+          appointmentId: req.params.id,
+          markedBy: userId,
+          ...req.body
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/:id/start
+   * Start appointment (doctor begins consultation)
+   */
+  async startAppointment(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.startAppointmentUseCase.execute(
+        {
+          appointmentId: req.params.id,
+          startedBy: userId,
+          ...req.body
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/bulk-reschedule
+   * Bulk reschedule appointments (doctor unavailable)
+   */
+  async bulkRescheduleAppointments(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.bulkRescheduleAppointmentsUseCase.execute(
+        {
+          ...req.body,
+          rescheduledBy: userId
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * GET /api/appointments/history
+   * Get appointment history
+   */
+  async getAppointmentHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.getAppointmentHistoryUseCase.execute(
+        {
+          patientId: req.query.patientId as string,
+          doctorId: req.query.doctorId as string,
+          startDate: req.query.startDate as string,
+          endDate: req.query.endDate as string,
+          status: req.query.status ? (req.query.status as string).split(',') : undefined,
+          limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+          offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
+          requestedBy: userId
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * GET /api/appointments/statistics
+   * Get appointment statistics
+   */
+  async getAppointmentStatistics(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.getAppointmentStatisticsUseCase.execute(
+        {
+          doctorId: req.query.doctorId as string,
+          departmentId: req.query.departmentId as string,
+          startDate: req.query.startDate as string,
+          endDate: req.query.endDate as string,
+          groupBy: req.query.groupBy as 'day' | 'week' | 'month',
+          requestedBy: userId
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/emergency
+   * Create emergency appointment
+   */
+  async createEmergencyAppointment(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.createEmergencyAppointmentUseCase.execute(
+        {
+          ...req.body,
+          createdBy: userId
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/:id/transfer
+   * Transfer appointment to another doctor
+   */
+  async transferAppointment(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const result = await this.transferAppointmentUseCase.execute(
+        {
+          appointmentId: req.params.id,
+          ...req.body,
+          transferredBy: userId
+        },
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/recurring
+   * Create a recurring appointment series
+   */
+  async createRecurringAppointmentSeries(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized'
+        });
+        return;
+      }
+
+      const result = await this.createRecurringSeriesUseCase.execute(
+        req.body,
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
     }
   }
 }

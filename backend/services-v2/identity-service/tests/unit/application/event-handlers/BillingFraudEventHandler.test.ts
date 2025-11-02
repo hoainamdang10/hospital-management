@@ -10,14 +10,14 @@
 import { BillingFraudEventHandler } from '@application/event-handlers/BillingFraudEventHandler';
 import { LockAccountUseCase } from '@application/use-cases/LockAccountUseCase';
 import { InboxService } from '@infrastructure/inbox/InboxService';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('BillingFraudEventHandler', () => {
   let handler: BillingFraudEventHandler;
   let mockLockAccountUseCase: jest.Mocked<LockAccountUseCase>;
   let mockInboxService: jest.Mocked<InboxService>;
-  let mockSupabaseClient: jest.Mocked<SupabaseClient>;
+  let mockSupabaseClient: any;
   let mockLogger: any;
+  let mockGte: jest.Mock; // Declare at module level
 
   beforeEach(() => {
     mockLockAccountUseCase = { execute: jest.fn() } as any;
@@ -28,15 +28,27 @@ describe('BillingFraudEventHandler', () => {
       markFailed: jest.fn()
     } as any;
 
-    const mockSingle = jest.fn();
+    mockGte = jest.fn();
+    const mockEq = jest.fn().mockReturnThis();
+    const mockIn = jest.fn().mockReturnThis();
+    
     mockSupabaseClient = {
       schema: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnValue({ single: mockSingle }),
-      single: mockSingle
+      insert: jest.fn().mockResolvedValue({ error: null }),
+      update: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          in: jest.fn(() => ({
+            eq: jest.fn().mockResolvedValue({ error: null })
+          }))
+        }))
+      })),
+      eq: mockEq,
+      in: mockIn,
+      contains: jest.fn().mockReturnThis(),
+      gte: mockGte,
+      single: jest.fn()
     } as any;
 
     mockLogger = {
@@ -78,8 +90,8 @@ describe('BillingFraudEventHandler', () => {
       });
 
       // Mock count query - 3 failures
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 3 },
+      mockSupabaseClient.gte.mockResolvedValue({
+        count: 3,
         error: null
       });
 
@@ -200,6 +212,12 @@ describe('BillingFraudEventHandler', () => {
         status: 'PENDING'
       });
 
+      // Mock dispute count query
+      mockGte.mockResolvedValue({
+        count: 2,
+        error: null
+      });
+
       await handler.handleBillingDisputeFiled(mockEvent);
 
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-204');
@@ -228,8 +246,8 @@ describe('BillingFraudEventHandler', () => {
       });
 
       // Mock count query - 5 refunds
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 5 },
+      mockSupabaseClient.gte.mockResolvedValue({
+        count: 5,
         error: null
       });
 
@@ -237,6 +255,7 @@ describe('BillingFraudEventHandler', () => {
 
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-205');
       expect(mockLogger.warn).toHaveBeenCalled();
+      expect(mockInboxService.markFailed).not.toHaveBeenCalled();
     });
   });
 
@@ -260,17 +279,16 @@ describe('BillingFraudEventHandler', () => {
       });
 
       // Mock count query - 3 rejections
-      (mockSupabaseClient.gte as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: { count: 3 },
-          error: null
-        })
+      mockSupabaseClient.gte.mockResolvedValue({
+        count: 3,
+        error: null
       });
 
       await handler.handleInsuranceClaimRejected(mockEvent);
 
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-206');
       expect(mockLogger.warn).toHaveBeenCalled();
+      expect(mockInboxService.markFailed).not.toHaveBeenCalled();
     });
   });
 });

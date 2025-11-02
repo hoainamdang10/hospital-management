@@ -57,6 +57,13 @@ export interface AppConfig {
   // Monitoring
   metricsAuthEnabled: boolean;
   metricsAuthToken?: string;
+  metricsAllowedIPs: string[];
+
+  // Internal service authentication
+  internalAuthEnabled: boolean;
+  internalServiceTokens: string[];
+  internalAuthHeaderName: string;
+  internalAuthAllowedIPs: string[];
 }
 
 /**
@@ -134,11 +141,29 @@ export function validateConfig(logger: ILogger, mode: ValidationMode = Validatio
     logger.warn('FRONTEND_URL not configured - using default', { defaultUrl });
   }
 
+  // Internal service authentication
+  const internalAuthEnabled = process.env.INTERNAL_AUTH_ENABLED !== 'false';
+  const internalTokens = (process.env.INTERNAL_SERVICE_TOKENS || process.env.INTERNAL_SERVICE_TOKEN || '')
+    .split(',')
+    .map(token => token.trim())
+    .filter(token => token.length > 0);
+
+  if (internalAuthEnabled && internalTokens.length === 0) {
+    const message = 'INTERNAL_SERVICE_TOKEN(S) required when internal auth is enabled';
+    if (mode === ValidationMode.STRICT) {
+      logger.error(message);
+      throw new Error(message);
+    }
+    logger.warn(message);
+  }
+
   logger.info('Configuration validated successfully', {
     mode,
     redisEnabled: !!process.env.REDIS_URL,
     rabbitmqEnabled: !!process.env.RABBITMQ_URL,
-    emailEnabled: !!process.env.SENDGRID_API_KEY
+    emailEnabled: !!process.env.SENDGRID_API_KEY,
+    internalAuthEnabled,
+    internalTokenConfigured: internalTokens.length > 0
   });
 }
 
@@ -189,6 +214,20 @@ export function loadConfig(): AppConfig {
 
     // Monitoring
     metricsAuthEnabled: process.env.METRICS_AUTH_ENABLED === 'true',
-    metricsAuthToken: process.env.METRICS_AUTH_TOKEN
+    metricsAuthToken: process.env.METRICS_AUTH_TOKEN,
+    metricsAllowedIPs: process.env.METRICS_ALLOWED_IPS
+      ? process.env.METRICS_ALLOWED_IPS.split(',').map(ip => ip.trim()).filter(Boolean)
+      : ['127.0.0.1', '::1', '::ffff:127.0.0.1'],
+
+    // Internal service authentication
+    internalAuthEnabled: process.env.INTERNAL_AUTH_ENABLED !== 'false',
+    internalServiceTokens: (process.env.INTERNAL_SERVICE_TOKENS || process.env.INTERNAL_SERVICE_TOKEN || '')
+      .split(',')
+      .map(token => token.trim())
+      .filter(token => token.length > 0),
+    internalAuthHeaderName: (process.env.INTERNAL_AUTH_HEADER || 'x-internal-token').toLowerCase(),
+    internalAuthAllowedIPs: process.env.INTERNAL_ALLOWED_IPS
+      ? process.env.INTERNAL_ALLOWED_IPS.split(',').map(ip => ip.trim()).filter(Boolean)
+      : []
   };
 }

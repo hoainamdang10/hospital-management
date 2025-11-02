@@ -16,14 +16,15 @@ const domain_event_1 = require("../../../../shared/domain/base/domain-event");
  * Triggered when an appointment is rescheduled to a new time
  */
 class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, patientId, providerId, originalStartTime, originalEndTime, newStartTime, newEndTime, rescheduleReason, rescheduledBy, correlationId, causationId, userId) {
+    constructor(appointmentId, patientId, doctorId, // Changed from providerId to doctorId
+    originalStartTime, originalEndTime, newStartTime, newEndTime, rescheduleReason, rescheduledBy, correlationId, causationId, userId) {
         const now = new Date();
         const hoursNotice = Math.max(0, (originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
         const reschedulePolicy = AppointmentRescheduledEvent.calculateReschedulePolicy(hoursNotice);
         const eventData = {
             appointmentId,
             patientId,
-            providerId,
+            doctorId, // Changed from providerId to doctorId
             originalStartTime,
             originalEndTime,
             newStartTime,
@@ -35,113 +36,115 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
             reschedulePolicy,
             integrationEvents: {
                 providerScheduleUpdate: {
-                    providerId,
+                    doctorId, // Changed from providerId to doctorId
                     releaseTimeSlot: {
-                        timeSlotId: `${providerId}-${originalStartTime.getTime()}`,
+                        timeSlotId: `${doctorId}-${originalStartTime.getTime()}`,
                         startTime: originalStartTime,
                         endTime: originalEndTime,
-                        status: 'available'
+                        status: "available",
                     },
                     bookTimeSlot: {
-                        timeSlotId: `${providerId}-${newStartTime.getTime()}`,
+                        timeSlotId: `${doctorId}-${newStartTime.getTime()}`,
                         startTime: newStartTime,
                         endTime: newEndTime,
-                        status: 'booked',
-                        appointmentId
+                        status: "booked",
+                        appointmentId,
                     },
-                    updatedAt: now
+                    updatedAt: now,
                 },
                 patientAppointmentHistory: {
                     patientId,
                     appointmentId,
-                    status: 'rescheduled',
+                    status: "rescheduled",
                     originalDate: originalStartTime,
                     newDate: newStartTime,
                     rescheduleReason,
                     rescheduledAt: now,
-                    feeApplied: reschedulePolicy.feeApplied
+                    feeApplied: reschedulePolicy.feeApplied,
                 },
                 notificationRequests: {
                     patientNotification: {
                         patientId,
-                        type: 'appointment_rescheduled',
+                        type: "appointment_rescheduled",
                         channels: AppointmentRescheduledEvent.getPatientNotificationChannels(hoursNotice),
                         templateData: {
                             appointmentId,
-                            originalDate: originalStartTime.toLocaleDateString('vi-VN'),
-                            originalTime: originalStartTime.toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit'
+                            originalDate: originalStartTime.toLocaleDateString("vi-VN"),
+                            originalTime: originalStartTime.toLocaleTimeString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
                             }),
-                            newDate: newStartTime.toLocaleDateString('vi-VN'),
-                            newTime: newStartTime.toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit'
+                            newDate: newStartTime.toLocaleDateString("vi-VN"),
+                            newTime: newStartTime.toLocaleTimeString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
                             }),
                             rescheduleReason,
-                            feeInfo: reschedulePolicy.feeApplied ?
-                                `Phí đổi lịch: ${reschedulePolicy.rescheduleAmount?.toLocaleString('vi-VN')} VNĐ` :
-                                'Đổi lịch miễn phí',
-                            preparationInstructions: 'Vui lòng có mặt đúng giờ hẹn mới'
+                            feeInfo: reschedulePolicy.feeApplied
+                                ? `Phí đổi lịch: ${reschedulePolicy.rescheduleAmount?.toLocaleString("vi-VN")} VNĐ`
+                                : "Đổi lịch miễn phí",
+                            preparationInstructions: "Vui lòng có mặt đúng giờ hẹn mới",
                         },
-                        priority: hoursNotice < 4 ? 'high' : 'normal'
+                        priority: hoursNotice < 4 ? "high" : "normal",
                     },
                     providerNotification: {
-                        providerId,
-                        type: 'appointment_rescheduled',
-                        channels: ['email', 'push'],
+                        doctorId, // Changed from providerId to doctorId
+                        type: "appointment_rescheduled",
+                        channels: ["email", "push"],
                         templateData: {
                             appointmentId,
-                            patientName: 'Bệnh nhân', // Would be populated by handler
-                            originalDate: originalStartTime.toLocaleDateString('vi-VN'),
-                            originalTime: originalStartTime.toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit'
+                            patientName: "Bệnh nhân", // Would be populated by handler
+                            originalDate: originalStartTime.toLocaleDateString("vi-VN"),
+                            originalTime: originalStartTime.toLocaleTimeString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
                             }),
-                            newDate: newStartTime.toLocaleDateString('vi-VN'),
-                            newTime: newStartTime.toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit'
+                            newDate: newStartTime.toLocaleDateString("vi-VN"),
+                            newTime: newStartTime.toLocaleTimeString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
                             }),
                             rescheduleReason,
-                            hoursNotice: Math.round(hoursNotice * 100) / 100
+                            hoursNotice: Math.round(hoursNotice * 100) / 100,
                         },
-                        priority: 'normal'
+                        priority: "normal",
                     },
                     reminderNotifications: {
                         patientId,
                         appointmentId,
-                        reminders: AppointmentRescheduledEvent.generateReminderSchedule(newStartTime)
+                        reminders: AppointmentRescheduledEvent.generateReminderSchedule(newStartTime),
+                    },
+                },
+                billingUpdate: reschedulePolicy.feeApplied
+                    ? {
+                        patientId,
+                        appointmentId,
+                        action: "reschedule_fee",
+                        amount: reschedulePolicy.rescheduleAmount,
+                        reason: rescheduleReason,
+                        processedAt: now,
                     }
-                },
-                billingUpdate: reschedulePolicy.feeApplied ? {
-                    patientId,
-                    appointmentId,
-                    action: 'reschedule_fee',
-                    amount: reschedulePolicy.rescheduleAmount,
-                    reason: rescheduleReason,
-                    processedAt: now
-                } : {
-                    patientId,
-                    appointmentId,
-                    action: 'no_charge',
-                    reason: 'Free reschedule within policy',
-                    processedAt: now
-                },
+                    : {
+                        patientId,
+                        appointmentId,
+                        action: "no_charge",
+                        reason: "Free reschedule within policy",
+                        processedAt: now,
+                    },
                 clinicalUpdate: {
                     patientId,
-                    providerId,
+                    doctorId, // Changed from providerId to doctorId
                     appointmentId,
                     updateMedicalRecord: true,
-                    rescheduleNote: `Cuộc hẹn được đổi lịch: ${rescheduleReason}. Từ ${originalStartTime.toLocaleString('vi-VN')} sang ${newStartTime.toLocaleString('vi-VN')}.`,
-                    newAppointmentTime: newStartTime
-                }
-            }
+                    rescheduleNote: `Cuộc hẹn được đổi lịch: ${rescheduleReason}. Từ ${originalStartTime.toLocaleString("vi-VN")} sang ${newStartTime.toLocaleString("vi-VN")}.`,
+                    newAppointmentTime: newStartTime,
+                },
+            },
         };
-        super('AppointmentRescheduled', appointmentId, 'Appointment', eventData, 1, correlationId, causationId, userId);
+        super("AppointmentRescheduled", appointmentId, "Appointment", eventData, 1, correlationId, causationId, userId);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
-        this.providerId = providerId;
+        this.doctorId = doctorId;
         this.originalStartTime = originalStartTime;
         this.originalEndTime = originalEndTime;
         this.newStartTime = newStartTime;
@@ -159,7 +162,7 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
         return {
             appointmentId: this.appointmentId,
             patientId: this.patientId,
-            providerId: this.providerId,
+            doctorId: this.doctorId, // Changed from providerId to doctorId
             originalStartTime: this.originalStartTime,
             originalEndTime: this.originalEndTime,
             newStartTime: this.newStartTime,
@@ -173,8 +176,8 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
                 providerScheduleUpdate: this.getProviderScheduleUpdate(),
                 patientAppointmentHistory: this.getPatientAppointmentHistory(),
                 notificationRequests: this.getNotificationRequests(),
-                billingUpdate: this.getBillingUpdate()
-            }
+                billingUpdate: this.getBillingUpdate(),
+            },
         };
     }
     /**
@@ -201,7 +204,7 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
             return {
                 feeApplied: false,
                 freeRescheduleUsed: true,
-                remainingFreeReschedules: remainingFreeReschedules - 1
+                remainingFreeReschedules: remainingFreeReschedules - 1,
             };
         }
         else if (hoursNotice >= 4) {
@@ -210,7 +213,7 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
                 feeApplied: true,
                 freeRescheduleUsed: false,
                 remainingFreeReschedules,
-                rescheduleAmount: 30000 // 30,000 VNĐ
+                rescheduleAmount: 30000, // 30,000 VNĐ
             };
         }
         else {
@@ -219,7 +222,7 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
                 feeApplied: true,
                 freeRescheduleUsed: false,
                 remainingFreeReschedules,
-                rescheduleAmount: 50000 // 50,000 VNĐ
+                rescheduleAmount: 50000, // 50,000 VNĐ
             };
         }
     }
@@ -229,11 +232,11 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
     static getPatientNotificationChannels(hoursNotice) {
         if (hoursNotice < 4) {
             // Last minute reschedule - use immediate channels
-            return ['sms', 'push'];
+            return ["sms", "push"];
         }
         else {
             // Normal reschedule
-            return ['email', 'push'];
+            return ["email", "push"];
         }
     }
     /**
@@ -245,18 +248,18 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
         const reminder24h = new Date(newAppointmentTime.getTime() - 24 * 60 * 60 * 1000);
         if (reminder24h > new Date()) {
             reminders.push({
-                type: '24h',
+                type: "24h",
                 scheduledFor: reminder24h,
-                channels: ['email', 'push']
+                channels: ["email", "push"],
             });
         }
         // 2 hours before new appointment
         const reminder2h = new Date(newAppointmentTime.getTime() - 2 * 60 * 60 * 1000);
         if (reminder2h > new Date()) {
             reminders.push({
-                type: '2h',
+                type: "2h",
                 scheduledFor: reminder2h,
-                channels: ['push']
+                channels: ["push"],
             });
         }
         return reminders;
@@ -269,10 +272,10 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
             return `Đổi lịch miễn phí (còn ${policy.remainingFreeReschedules} lần miễn phí)`;
         }
         else if (policy.feeApplied && hoursNotice >= 4) {
-            return `Phí đổi lịch: ${policy.rescheduleAmount?.toLocaleString('vi-VN')} VNĐ`;
+            return `Phí đổi lịch: ${policy.rescheduleAmount?.toLocaleString("vi-VN")} VNĐ`;
         }
         else {
-            return `Phí đổi lịch gấp: ${policy.rescheduleAmount?.toLocaleString('vi-VN')} VNĐ`;
+            return `Phí đổi lịch gấp: ${policy.rescheduleAmount?.toLocaleString("vi-VN")} VNĐ`;
         }
     }
     /**
@@ -281,16 +284,16 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
     getIntegrationEventsForService(serviceName) {
         const eventData = this.getEventData();
         switch (serviceName.toLowerCase()) {
-            case 'provider-staff':
-            case 'provider':
+            case "provider-staff":
+            case "provider":
                 return eventData.integrationEvents.providerScheduleUpdate;
-            case 'patient-registry':
-            case 'patient':
+            case "patient-registry":
+            case "patient":
                 return eventData.integrationEvents.patientAppointmentHistory;
-            case 'notification':
-            case 'notifications':
+            case "notification":
+            case "notifications":
                 return eventData.integrationEvents.notificationRequests;
-            case 'billing':
+            case "billing":
                 return eventData.integrationEvents.billingUpdate;
             default:
                 return null;
@@ -302,21 +305,21 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
     getProviderScheduleUpdate() {
         const now = new Date();
         return {
-            providerId: this.providerId,
+            doctorId: this.doctorId, // Changed from providerId to doctorId
             releaseTimeSlot: {
-                timeSlotId: `${this.providerId}-${this.originalStartTime.getTime()}`,
+                timeSlotId: `${this.doctorId}-${this.originalStartTime.getTime()}`,
                 startTime: this.originalStartTime,
                 endTime: this.originalEndTime,
-                status: 'available'
+                status: "available",
             },
             bookTimeSlot: {
-                timeSlotId: `${this.providerId}-${this.newStartTime.getTime()}`,
+                timeSlotId: `${this.doctorId}-${this.newStartTime.getTime()}`,
                 startTime: this.newStartTime,
                 endTime: this.newEndTime,
-                status: 'booked',
-                appointmentId: this.appointmentId
+                status: "booked",
+                appointmentId: this.appointmentId,
             },
-            updatedAt: now
+            updatedAt: now,
         };
     }
     getPatientAppointmentHistory() {
@@ -326,12 +329,12 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
         return {
             patientId: this.patientId,
             appointmentId: this.appointmentId,
-            status: 'rescheduled',
+            status: "rescheduled",
             originalDate: this.originalStartTime,
             newDate: this.newStartTime,
             rescheduleReason: this.rescheduleReason,
             rescheduledAt: now,
-            feeApplied: reschedulePolicy.feeApplied
+            feeApplied: reschedulePolicy.feeApplied,
         };
     }
     getNotificationRequests() {
@@ -341,53 +344,54 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
         return {
             patientNotification: {
                 patientId: this.patientId,
-                type: 'appointment_rescheduled',
+                type: "appointment_rescheduled",
                 channels: AppointmentRescheduledEvent.getPatientNotificationChannels(hoursNotice),
                 templateData: {
                     appointmentId: this.appointmentId,
-                    originalDate: this.originalStartTime.toLocaleDateString('vi-VN'),
-                    originalTime: this.originalStartTime.toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                    originalDate: this.originalStartTime.toLocaleDateString("vi-VN"),
+                    originalTime: this.originalStartTime.toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                     }),
-                    newDate: this.newStartTime.toLocaleDateString('vi-VN'),
-                    newTime: this.newStartTime.toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                    newDate: this.newStartTime.toLocaleDateString("vi-VN"),
+                    newTime: this.newStartTime.toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                     }),
                     rescheduleReason: this.rescheduleReason,
-                    feeInfo: reschedulePolicy.feeApplied ?
-                        `Phí đổi lịch: ${reschedulePolicy.rescheduleAmount?.toLocaleString('vi-VN')} VNĐ` : undefined
+                    feeInfo: reschedulePolicy.feeApplied
+                        ? `Phí đổi lịch: ${reschedulePolicy.rescheduleAmount?.toLocaleString("vi-VN")} VNĐ`
+                        : undefined,
                 },
-                priority: hoursNotice < 4 ? 'high' : 'normal'
+                priority: hoursNotice < 4 ? "high" : "normal",
             },
             providerNotification: {
-                providerId: this.providerId,
-                type: 'appointment_rescheduled',
-                channels: ['email', 'push'],
+                doctorId: this.doctorId, // Changed from providerId to doctorId
+                type: "appointment_rescheduled",
+                channels: ["email", "push"],
                 templateData: {
                     appointmentId: this.appointmentId,
-                    patientName: 'Bệnh nhân',
-                    originalDate: this.originalStartTime.toLocaleDateString('vi-VN'),
-                    originalTime: this.originalStartTime.toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                    patientName: "Bệnh nhân",
+                    originalDate: this.originalStartTime.toLocaleDateString("vi-VN"),
+                    originalTime: this.originalStartTime.toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                     }),
-                    newDate: this.newStartTime.toLocaleDateString('vi-VN'),
-                    newTime: this.newStartTime.toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                    newDate: this.newStartTime.toLocaleDateString("vi-VN"),
+                    newTime: this.newStartTime.toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                     }),
                     rescheduleReason: this.rescheduleReason,
-                    hoursNotice: Math.round(hoursNotice * 100) / 100
+                    hoursNotice: Math.round(hoursNotice * 100) / 100,
                 },
-                priority: 'normal'
+                priority: "normal",
             },
             reminderNotifications: {
                 patientId: this.patientId,
                 appointmentId: this.appointmentId,
-                reminders: AppointmentRescheduledEvent.generateReminderSchedule(this.newStartTime)
-            }
+                reminders: AppointmentRescheduledEvent.generateReminderSchedule(this.newStartTime),
+            },
         };
     }
     getBillingUpdate() {
@@ -400,12 +404,12 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
         return {
             patientId: this.patientId,
             appointmentId: this.appointmentId,
-            action: 'reschedule_fee',
+            action: "reschedule_fee",
             amount: reschedulePolicy.rescheduleAmount,
             reason: this.rescheduleReason,
             processedAt: now,
             newAppointmentDate: this.newStartTime,
-            newAppointmentTime: this.newStartTime
+            newAppointmentTime: this.newStartTime,
         };
     }
 }

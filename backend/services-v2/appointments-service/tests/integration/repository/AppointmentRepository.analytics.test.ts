@@ -157,7 +157,7 @@ describe('AppointmentRepository - Analytics Methods Integration Tests', () => {
           appointment.cancel('Test', 'test-user');
         } else if (statuses[i] === AppointmentStatus.NO_SHOW) {
           appointment.confirm('test-user');
-          appointment.markAsNoShow();
+          appointment.markAsNoShow('staff-001');
         }
 
         if (statuses[i] !== AppointmentStatus.SCHEDULED) {
@@ -236,7 +236,7 @@ describe('AppointmentRepository - Analytics Methods Integration Tests', () => {
           appointment.cancel('Test', 'test-user');
         } else if (statuses[i] === AppointmentStatus.NO_SHOW) {
           appointment.confirm('test-user');
-          appointment.markAsNoShow();
+          appointment.markAsNoShow('staff-001');
         }
 
         if (statuses[i] !== AppointmentStatus.SCHEDULED) {

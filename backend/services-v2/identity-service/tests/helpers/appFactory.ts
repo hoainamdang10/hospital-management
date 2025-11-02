@@ -32,6 +32,7 @@ import { IEmailService } from '../../src/application/services/IEmailService';
 // Middleware
 import { AuthenticationMiddleware } from '../../src/presentation/middleware/AuthenticationMiddleware';
 import { PermissionMiddleware } from '../../src/presentation/middleware/PermissionMiddleware';
+import { createInternalServiceAuthMiddleware } from '../../src/presentation/middleware/InternalServiceAuthMiddleware';
 
 // Routes
 import { registerRoutes } from '../../src/presentation/routes';
@@ -187,6 +188,9 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     getStats: jest.fn().mockReturnValue({ l1Hits: 0, l1Misses: 0, l2Hits: 0, l2Misses: 0, invalidations: 0 })
   } as any;
 
+  // Set logger for CircuitBreakerFactory (required for all repositories)
+  CircuitBreakerFactory.setLogger(logger);
+
   // Initialize Permission Repository
   const permissionRepository = new SupabasePermissionRepository(
     supabaseClient as any,
@@ -223,7 +227,8 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
   // Initialize Permission Service
   const permissionService = new PermissionService(
     permissionRepository,
-    permissionCache
+    permissionCache,
+    logger
   );
 
   // Initialize MFA Service
@@ -524,8 +529,10 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     passwordPolicyRepository,
     recoveryHistoryRepository,
     sessionRepository,
+    userRepository,
     logger,
-    CircuitBreakerFactory.getBreaker('reset-password-with-token-use-case')
+    CircuitBreakerFactory.getBreaker('reset-password-with-token-use-case'),
+    undefined // eventPublisher not needed in tests
   );
 
   const getRecoveryHistoryUseCase = new GetRecoveryHistoryUseCase(
@@ -585,11 +592,23 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     logger
   );
 
+  // Create Internal Service Auth Middleware (for test environment - disabled)
+  const internalServiceAuthMiddleware = createInternalServiceAuthMiddleware(
+    {
+      enabled: false, // Disabled in test environment
+      tokens: [],
+      headerName: 'x-internal-token',
+      allowedIPs: []
+    },
+    logger
+  );
+
   // Create dependencies
   const dependencies: RouteDependencies = {
     // Middleware
     authMiddleware,
     permissionMiddleware,
+    internalServiceAuthMiddleware,
 
     // Auth Use Cases
     authenticateUserUseCase,
@@ -654,6 +673,8 @@ export async function createTestApp(config?: TestAppConfig): Promise<{
     healthCheck,
     degradationService,
     permissionService,
+    logger,
+    cacheService: null,
 
     // Repositories
     sessionRepository

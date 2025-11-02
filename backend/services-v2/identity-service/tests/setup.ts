@@ -8,6 +8,27 @@
 
 import { config } from 'dotenv';
 
+// Mock SendGrid to avoid hitting external API during tests
+jest.mock('@sendgrid/mail', () => {
+  const sendMock = jest.fn().mockResolvedValue([
+    {
+      statusCode: 202,
+      headers: { 'x-message-id': 'test-id' }
+    }
+  ]);
+  const setApiKeyMock = jest.fn();
+
+  return {
+    __esModule: true,
+    default: {
+      setApiKey: setApiKeyMock,
+      send: sendMock
+    },
+    setApiKey: setApiKeyMock,
+    send: sendMock
+  };
+});
+
 // Load test environment variables
 config({ path: '.env.test' });
 
@@ -31,6 +52,30 @@ if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'test_jwt_secret';
 }
 
+if (!process.env.SENDGRID_API_KEY) {
+  process.env.SENDGRID_API_KEY = 'SG.test-api-key';
+}
+
+if (!process.env.SENDGRID_FROM_EMAIL) {
+  process.env.SENDGRID_FROM_EMAIL = 'test@hospital.com';
+}
+
+if (!process.env.SENDGRID_FROM_NAME) {
+  process.env.SENDGRID_FROM_NAME = 'Hospital Management System';
+}
+
+if (!process.env.SUPABASE_TEST_THROTTLE_MS) {
+  process.env.SUPABASE_TEST_THROTTLE_MS = '400';
+}
+
+if (!process.env.SUPABASE_TEST_BACKOFF_MS) {
+  process.env.SUPABASE_TEST_BACKOFF_MS = '600';
+}
+
+if (!process.env.SUPABASE_TEST_MAX_RETRIES) {
+  process.env.SUPABASE_TEST_MAX_RETRIES = '5';
+}
+
 // Redis test configuration
 process.env.REDIS_URL = process.env.TEST_REDIS_URL || 'redis://localhost:6380/1';
 
@@ -48,8 +93,8 @@ global.console = {
   error: console.error,
 };
 
-// Global test timeout
-jest.setTimeout(30000);
+// Global test timeout (increased for integration tests with rate limiting)
+jest.setTimeout(60000);
 
 // Don't mock Date for integration tests - causes issues with Supabase client
 // Mock Date for consistent testing (DISABLED for integration tests)
@@ -274,4 +319,3 @@ export class TestDataFactory {
 
 // Export for use in tests
 export { mockDate };
-

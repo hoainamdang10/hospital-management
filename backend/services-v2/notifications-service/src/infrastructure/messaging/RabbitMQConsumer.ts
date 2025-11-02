@@ -143,11 +143,12 @@ export class RabbitMQConsumer {
   private async handleMessage(msg: amqp.Message): Promise<void> {
     const startTime = Date.now();
     const headers = msg.properties.headers as MessageHeaders;
-    const idempotencyKey = headers.idempotency_key || msg.properties.messageId || 'unknown';
+    const routingKey = msg.fields.routingKey;
+    const idempotencyKey = headers.idempotency_key || msg.properties.messageId || `${routingKey}-${Date.now()}`;
 
     try {
       console.log('📥 Received message', {
-        routingKey: msg.fields.routingKey,
+        routingKey,
         idempotencyKey,
         timestamp: new Date().toISOString()
       });
@@ -155,22 +156,50 @@ export class RabbitMQConsumer {
       // Parse message payload
       const payload = JSON.parse(msg.content.toString());
 
-      // Construct ScheduleRunDueEvent
-      const event: ScheduleRunDueEvent = {
-        type: 'schedule.run.due',
-        payload: payload,
-        headers: {
-          idempotency_key: idempotencyKey,
-          schedule_id: headers.schedule_id || '',
-          run_id: headers.run_id || '',
-          correlation_id: headers.correlation_id,
-          causation_id: headers.causation_id,
-          tenant_id: headers.tenant_id
-        }
-      };
+      // Route to appropriate handler based on routing key
+      if (routingKey === 'scheduler.schedule.run.due') {
+        // Handle ScheduleRunDueEvent from Scheduler Service (CRITICAL PATH)
+        const event: ScheduleRunDueEvent = {
+          type: 'schedule.run.due',
+          payload: payload,
+          headers: {
+            idempotency_key: idempotencyKey,
+            schedule_id: headers.schedule_id || '',
+            run_id: headers.run_id || '',
+            correlation_id: headers.correlation_id,
+            causation_id: headers.causation_id,
+            tenant_id: headers.tenant_id
+          }
+        };
+        await this.eventHandlers.handleScheduleRunDue(event);
+      } else {
+        // Handle Integration Events from other services
+        const integrationEvent = {
+          eventId: payload.eventId || idempotencyKey,
+          eventType: this.mapRoutingKeyToEventType(routingKey),
+          aggregateId: payload.aggregateId || payload.id || '',
+          aggregateType: this.extractAggregateTypeFromRoutingKey(routingKey),
+          eventData: payload,
+          occurredAt: payload.occurredAt ? new Date(payload.occurredAt) : new Date(),
+          version: payload.version || 1,
+          metadata: {
+            correlationId: headers.correlation_id,
+            causationId: headers.causation_id,
+            userId: payload.userId,
+            source: this.extractServiceFromRoutingKey(routingKey)
+          },
+          serviceName: this.extractServiceFromRoutingKey(routingKey),
+          eventVersion: '1.0',
+          headers: {
+            idempotency_key: idempotencyKey,
+            correlation_id: headers.correlation_id,
+            causation_id: headers.causation_id,
+            tenant_id: headers.tenant_id
+          }
+        };
 
-      // Process event (idempotent via Inbox Pattern)
-      await this.eventHandlers.handleScheduleRunDue(event);
+        await this.eventHandlers.handleEvent(integrationEvent);
+      }
 
       // Acknowledge message
       if (this.channel) {
@@ -179,6 +208,7 @@ export class RabbitMQConsumer {
 
       const processingTime = Date.now() - startTime;
       console.log('✅ Message processed successfully', {
+        routingKey,
         idempotencyKey,
         processingTime: `${processingTime}ms`
       });
@@ -186,6 +216,7 @@ export class RabbitMQConsumer {
     } catch (error) {
       const processingTime = Date.now() - startTime;
       console.error('❌ Error processing message', {
+        routingKey,
         idempotencyKey,
         error: error instanceof Error ? error.message : 'Unknown error',
         processingTime: `${processingTime}ms`
@@ -208,6 +239,57 @@ export class RabbitMQConsumer {
         console.log('💀 Message sent to dead letter queue', { idempotencyKey });
       }
     }
+  }
+
+  /**
+   * Map routing key to event type
+   */
+  private mapRoutingKeyToEventType(routingKey: string): string {
+    // Map routing keys to event types
+    const routingKeyMap: Record<string, string> = {
+      'appointments.appointment.scheduled': 'AppointmentScheduled',
+      'appointments.appointment.cancelled': 'AppointmentCancelled',
+      'billing.invoice.generated': 'InvoiceGenerated',
+      'billing.payment.completed': 'PaymentCompleted',
+      'clinical.medical_record_updated': 'MedicalRecordUpdated',
+      'emergency.alert': 'EmergencyAlert',
+      'user.user_created': 'UserCreated',
+      'user.user_activated': 'UserActivated',
+      'user.user_role_changed': 'UserRoleChanged',
+      'user.password_reset': 'PasswordReset',
+      'staffinvitation.staff_invitation_created': 'StaffInvitationCreated',
+      'patient.patient_registered': 'PatientRegistered',
+      'patient.patient_updated': 'PatientUpdated',
+      'patient.patient_deactivated': 'PatientDeactivated',
+      'patient.patient_consent_granted': 'PatientConsentGranted'
+    };
+
+    return routingKeyMap[routingKey] || routingKey;
+  }
+
+  /**
+   * Extract aggregate type from routing key
+   */
+  private extractAggregateTypeFromRoutingKey(routingKey: string): string {
+    const parts = routingKey.split('.');
+    return parts[1] || 'unknown';
+  }
+
+  /**
+   * Extract service name from routing key
+   */
+  private extractServiceFromRoutingKey(routingKey: string): string {
+    const parts = routingKey.split('.');
+    const serviceMap: Record<string, string> = {
+      'appointments': 'APPOINTMENT_SERVICE',
+      'billing': 'BILLING_SERVICE',
+      'clinical': 'CLINICAL_EMR_SERVICE',
+      'emergency': 'EMERGENCY_SERVICE',
+      'user': 'IDENTITY_SERVICE',
+      'staffinvitation': 'IDENTITY_SERVICE',
+      'patient': 'PATIENT_REGISTRY_SERVICE'
+    };
+    return serviceMap[parts[0]] || parts[0].toUpperCase() + '_SERVICE';
   }
 
   /**

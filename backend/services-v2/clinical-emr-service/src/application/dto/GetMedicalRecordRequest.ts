@@ -139,7 +139,7 @@ export function validateGetMedicalRecordRequest(
 /**
  * Helper function to map MedicalRecordAggregate to DTO
  */
-export function mapMedicalRecordToDto(medicalRecord: any): MedicalRecordDto {
+export function mapMedicalRecordToDto(medicalRecord: any, includeVitalSigns: boolean = true): MedicalRecordDto {
   const vitalSigns = medicalRecord.vitalSigns;
   
   return {
@@ -156,16 +156,19 @@ export function mapMedicalRecordToDto(medicalRecord: any): MedicalRecordDto {
     medications: medicalRecord.medications,
     notes: medicalRecord.notes,
     
-    vitalSigns: vitalSigns ? {
-      temperature: vitalSigns.temperature,
-      bloodPressure: vitalSigns.bloodPressure,
-      heartRate: vitalSigns.heartRate,
-      weight: vitalSigns.weight,
-      height: vitalSigns.height,
-      bmi: vitalSigns.calculateBMI(),
-      bmiCategory: vitalSigns.getBMICategory(),
-      summary: vitalSigns.getSummary()
-    } : undefined,
+    // Conditionally include vital signs using spread operator
+    ...(includeVitalSigns && vitalSigns ? {
+      vitalSigns: {
+        temperature: vitalSigns.temperature,
+        bloodPressure: vitalSigns.bloodPressure,
+        heartRate: vitalSigns.heartRate,
+        weight: vitalSigns.weight,
+        height: vitalSigns.height,
+        bmi: vitalSigns.calculateBMI(),
+        bmiCategory: vitalSigns.getBMICategory(),
+        summary: vitalSigns.getSummary()
+      }
+    } : {}),
     
     status: medicalRecord.status,
     createdAt: medicalRecord.createdAt.toISOString(),

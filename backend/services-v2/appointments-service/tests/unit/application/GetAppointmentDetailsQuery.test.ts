@@ -52,7 +52,6 @@ describe('GetAppointmentDetailsQuery', () => {
         priority: 'normal',
         status: 'scheduled',
         consultationFee: 500000,
-        paymentStatus: 'pending',
         
         patientFullName: 'Nguyen Van A',
         patientPhone: '0901234567',
@@ -108,7 +107,6 @@ describe('GetAppointmentDetailsQuery', () => {
         symptoms: ['chest pain', 'shortness of breath'],
         
         consultationFee: 500000,
-        paymentStatus: 'pending',
         
         createdAt: expect.any(String),
         updatedAt: expect.any(String)
@@ -139,7 +137,6 @@ describe('GetAppointmentDetailsQuery', () => {
         priority: 'normal',
         status: 'scheduled',
         consultationFee: 500000,
-        paymentStatus: 'pending',
         
         // No patient/doctor denormalized data
         

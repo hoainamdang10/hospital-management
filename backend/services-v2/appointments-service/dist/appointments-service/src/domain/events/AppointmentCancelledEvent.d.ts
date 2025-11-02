@@ -7,11 +7,11 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, Vietnamese Healthcare Standards
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
 export interface AppointmentCancelledEventData {
     appointmentId: string;
     patientId: string;
-    providerId: string;
+    doctorId: string;
     originalStartTime: Date;
     originalEndTime: Date;
     cancellationReason: string;
@@ -27,18 +27,18 @@ export interface AppointmentCancelledEventData {
     };
     integrationEvents: {
         providerScheduleUpdate: {
-            providerId: string;
+            doctorId: string;
             timeSlotId: string;
             startTime: Date;
             endTime: Date;
-            status: 'available';
+            status: "available";
             releasedAppointmentId: string;
             releasedAt: Date;
         };
         patientAppointmentHistory: {
             patientId: string;
             appointmentId: string;
-            status: 'cancelled';
+            status: "cancelled";
             cancellationReason: string;
             cancelledAt: Date;
             penaltyApplied: boolean;
@@ -46,8 +46,8 @@ export interface AppointmentCancelledEventData {
         notificationRequests: {
             patientNotification: {
                 patientId: string;
-                type: 'appointment_cancelled';
-                channels: ('sms' | 'email' | 'push')[];
+                type: "appointment_cancelled";
+                channels: ("sms" | "email" | "push")[];
                 templateData: {
                     appointmentId: string;
                     originalDate: string;
@@ -56,12 +56,12 @@ export interface AppointmentCancelledEventData {
                     penaltyInfo?: string;
                     rescheduleInfo?: string;
                 };
-                priority: 'normal' | 'high';
+                priority: "normal" | "high";
             };
             providerNotification: {
-                providerId: string;
-                type: 'appointment_cancelled';
-                channels: ('email' | 'push')[];
+                doctorId: string;
+                type: "appointment_cancelled";
+                channels: ("email" | "push")[];
                 templateData: {
                     appointmentId: string;
                     patientName: string;
@@ -70,20 +70,20 @@ export interface AppointmentCancelledEventData {
                     cancellationReason: string;
                     hoursNotice: number;
                 };
-                priority: 'normal';
+                priority: "normal";
             };
         };
         billingUpdate?: {
             patientId: string;
             appointmentId: string;
-            action: 'refund' | 'penalty' | 'no_action';
+            action: "refund" | "penalty" | "no_action";
             amount?: number;
             reason: string;
             processedAt: Date;
         };
         clinicalUpdate?: {
             patientId: string;
-            providerId: string;
+            doctorId: string;
             appointmentId: string;
             updateMedicalRecord: boolean;
             cancellationNote: string;
@@ -97,12 +97,13 @@ export interface AppointmentCancelledEventData {
 export declare class AppointmentCancelledEvent extends DomainEvent {
     readonly appointmentId: string;
     readonly patientId: string;
-    readonly providerId: string;
+    readonly doctorId: string;
     readonly originalStartTime: Date;
     readonly cancellationReason: string;
     readonly cancelledBy: string;
     readonly originalEndTime?: Date | undefined;
-    constructor(appointmentId: string, patientId: string, providerId: string, originalStartTime: Date, cancellationReason: string, cancelledBy: string, originalEndTime?: Date | undefined, correlationId?: string, causationId?: string, userId?: string);
+    constructor(appointmentId: string, patientId: string, doctorId: string, // Changed from providerId to doctorId
+    originalStartTime: Date, cancellationReason: string, cancelledBy: string, originalEndTime?: Date | undefined, correlationId?: string, causationId?: string, userId?: string);
     /**
      * Get event data payload (required by DomainEvent base class)
      */

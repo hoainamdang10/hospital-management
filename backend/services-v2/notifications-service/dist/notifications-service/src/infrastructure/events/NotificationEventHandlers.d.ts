@@ -142,6 +142,42 @@ export declare class NotificationEventHandlers {
      */
     handleMedicationReminder(event: IntegrationEvent): Promise<void>;
     /**
+     * Handle user created event from Identity Service
+     */
+    handleUserCreated(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle user activated event from Identity Service
+     */
+    handleUserActivated(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle password reset event from Identity Service
+     */
+    handlePasswordReset(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle user role changed event from Identity Service
+     */
+    handleUserRoleChanged(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle staff invitation created event from Identity Service
+     */
+    handleStaffInvitationCreated(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle patient registered event from Patient Registry Service
+     */
+    handlePatientRegistered(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle patient updated event from Patient Registry Service
+     */
+    handlePatientUpdated(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle patient deactivated event from Patient Registry Service
+     */
+    handlePatientDeactivated(event: IntegrationEvent): Promise<void>;
+    /**
+     * Handle patient consent granted event from Patient Registry Service
+     */
+    handlePatientConsentGranted(event: IntegrationEvent): Promise<void>;
+    /**
      * Generic event handler dispatcher
      */
     handleEvent(event: IntegrationEvent | ScheduleRunDueEvent): Promise<void>;

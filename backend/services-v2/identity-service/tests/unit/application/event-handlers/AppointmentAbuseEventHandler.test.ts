@@ -9,12 +9,11 @@
 
 import { AppointmentAbuseEventHandler } from '@application/event-handlers/AppointmentAbuseEventHandler';
 import { InboxService } from '@infrastructure/inbox/InboxService';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('AppointmentAbuseEventHandler', () => {
   let handler: AppointmentAbuseEventHandler;
   let mockInboxService: jest.Mocked<InboxService>;
-  let mockSupabaseClient: jest.Mocked<SupabaseClient>;
+  let mockSupabaseClient: any;
   let mockLogger: any;
 
   beforeEach(() => {
@@ -25,15 +24,18 @@ describe('AppointmentAbuseEventHandler', () => {
       markFailed: jest.fn()
     } as any;
 
+    const mockGte = jest.fn();
     mockSupabaseClient = {
       schema: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockResolvedValue({ error: null }),
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
+      in: jest.fn().mockResolvedValue({ error: null }),
+      contains: jest.fn().mockReturnThis(),
+      gte: mockGte,
       single: jest.fn()
     } as any;
 
@@ -75,8 +77,8 @@ describe('AppointmentAbuseEventHandler', () => {
       });
 
       // Mock count query - 3 no-shows
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 3 },
+      mockSupabaseClient.gte.mockResolvedValue({
+        count: 3,
         error: null
       });
 
@@ -125,16 +127,24 @@ describe('AppointmentAbuseEventHandler', () => {
         status: 'PENDING'
       });
 
-      // Mock count query - 5 late cancellations
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 5 },
+      // Mock count query - 5 late cancellations with < 24 hours notice
+      mockSupabaseClient.gte.mockResolvedValue({
+        data: Array(5).fill({ 
+          payload_json: { 
+            patientId: 'patient-123',
+            hoursNotice: 2 // < 24 hours
+          }
+        }),
         error: null
       });
 
       await handler.handleAppointmentCancelled(mockEvent);
 
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-302');
-      expect(mockLogger.warn).toHaveBeenCalled();
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('User flagged for review'),
+        expect.any(Object)
+      );
     });
   });
 
@@ -158,16 +168,29 @@ describe('AppointmentAbuseEventHandler', () => {
         status: 'PENDING'
       });
 
-      // Mock count query - 3 reschedules
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 3 },
+      // Mock count query - 3 reschedules (handler uses select with count)
+      mockSupabaseClient.gte.mockResolvedValue({
+        count: 3,
         error: null
       });
 
       await handler.handleAppointmentRescheduled(mockEvent);
 
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Restricting booking'),
+        expect.any(Object)
+      );
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-303');
-      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it('should mark event as failed when storeEvent throws', async () => {
+      mockInboxService.checkProcessed.mockResolvedValue(false);
+      mockInboxService.storeEvent.mockRejectedValue(new Error('DB error'));
+
+      await expect(handler.handleAppointmentRescheduled(mockEvent)).rejects.toThrow('DB error');
+
+      expect(mockInboxService.markFailed).toHaveBeenCalledWith('evt-303', 'DB error');
+      expect(mockInboxService.markProcessed).not.toHaveBeenCalled();
     });
   });
 
@@ -191,15 +214,18 @@ describe('AppointmentAbuseEventHandler', () => {
       });
 
       // Mock count query - 3 late arrivals
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 3 },
+      mockSupabaseClient.gte.mockResolvedValue({
+        count: 3,
         error: null
       });
 
       await handler.handleAppointmentLateArrival(mockEvent);
 
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Flagging account'),
+        expect.any(Object)
+      );
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-304');
-      expect(mockLogger.warn).toHaveBeenCalled();
     });
   });
 
@@ -223,15 +249,27 @@ describe('AppointmentAbuseEventHandler', () => {
         status: 'PENDING'
       });
 
-      // Mock has active restrictions
-      mockSupabaseClient.single
-        .mockResolvedValueOnce({ data: { count: 1 }, error: null }) // has restrictions
-        .mockResolvedValueOnce({ data: { count: 3 }, error: null }); // good behavior count
+      const hasActiveRestrictionsSpy = jest
+        .spyOn(handler as any, 'hasActiveRestrictions')
+        .mockResolvedValue(true);
+      const getGoodBehaviorCountSpy = jest
+        .spyOn(handler as any, 'getGoodBehaviorCount')
+        .mockResolvedValue(3);
+      const resetBookingRestrictionsSpy = jest
+        .spyOn(handler as any, 'resetBookingRestrictions')
+        .mockResolvedValue(undefined);
 
       await handler.handleAppointmentCompleted(mockEvent);
 
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Booking restrictions reset'),
+        expect.any(Object)
+      );
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-305');
-      expect(mockLogger.info).toHaveBeenCalled();
+
+      hasActiveRestrictionsSpy.mockRestore();
+      getGoodBehaviorCountSpy.mockRestore();
+      resetBookingRestrictionsSpy.mockRestore();
     });
   });
 });

@@ -79,6 +79,16 @@ export declare class MedicalRecordController extends BaseController {
      */
     getMedicalRecordStatistics(req: Request, res: Response): Promise<void>;
     /**
+     * Archive medical record
+     * POST /api/v2/clinical-emr/medical-records/:recordId/archive
+     */
+    archiveMedicalRecord(req: Request, res: Response): Promise<void>;
+    /**
+     * Restore medical record
+     * POST /api/v2/clinical-emr/medical-records/:recordId/restore
+     */
+    restoreMedicalRecord(req: Request, res: Response): Promise<void>;
+    /**
      * Delete medical record
      * DELETE /api/v2/clinical-emr/medical-records/:recordId
      */

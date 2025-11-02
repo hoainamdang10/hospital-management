@@ -27,8 +27,11 @@ export interface SearchCriteria {
   visitDateTo?: string;
   createdDateFrom?: string;
   createdDateTo?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
   
   // Text search
+  searchText?: string;
   symptoms?: string;
   diagnosisText?: string;
   medicationText?: string;
@@ -268,7 +271,10 @@ export class SearchMedicalRecordsUseCase extends BaseHealthcareUseCase<SearchMed
     request: SearchMedicalRecordsRequest
   ): Promise<SearchResults> {
     // Get all medical records that match criteria
-    const allRecords = await this.medicalRecordRepository.search(criteria, sort);
+    const searchResult = await this.medicalRecordRepository.search(criteria as any);
+
+    // Extract records from search result
+    const allRecords = Array.isArray(searchResult) ? searchResult : searchResult.records;
 
     // Apply access control if requested
     const accessibleRecords = request.respectAccessControl !== false 
@@ -289,7 +295,7 @@ export class SearchMedicalRecordsUseCase extends BaseHealthcareUseCase<SearchMed
 
     // Convert to summary format
     const recordSummaries = await Promise.all(
-      paginatedRecords.map(record => this.convertToSummary(record, request))
+      paginatedRecords.map((record: MedicalRecordAggregate) => this.convertToSummary(record, request))
     );
 
     return {

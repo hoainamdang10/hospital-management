@@ -1,1 +1,1 @@
-{"version":3,"file":"ScheduleDTO.d.ts","sourceRoot":"","sources":["../../../src/presentation/dto/ScheduleDTO.ts"],"names":[],"mappings":"AAAA,OAAO,GAAG,MAAM,KAAK,CAAC;AAItB,eAAO,MAAM,oBAAoB,uBA8C/B,CAAC;AAEH,eAAO,MAAM,oBAAoB,uBAO/B,CAAC"}
+{"version":3,"file":"ScheduleDTO.d.ts","sourceRoot":"","sources":["../../../src/presentation/dto/ScheduleDTO.ts"],"names":[],"mappings":"AAAA,OAAO,GAAG,MAAM,KAAK,CAAC;AAEtB;;;GAGG;AACH,eAAO,MAAM,oBAAoB,uBA0D/B,CAAC;AAEH,eAAO,MAAM,oBAAoB,uBAO/B,CAAC"}

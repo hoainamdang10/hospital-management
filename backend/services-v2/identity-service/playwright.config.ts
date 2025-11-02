@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from parent directory
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 /**
  * Playwright Configuration for Identity Service E2E Tests

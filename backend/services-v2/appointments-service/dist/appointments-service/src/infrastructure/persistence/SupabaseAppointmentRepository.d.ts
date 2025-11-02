@@ -10,19 +10,25 @@
 import { Appointment } from '../../domain/aggregates/Appointment.aggregate';
 import { AppointmentId } from '../../domain/value-objects/AppointmentId.vo';
 import { IAppointmentRepository, AppointmentSearchCriteria, AppointmentSearchResult, AppointmentConflictCheck, AppointmentStatistics } from '../../domain/repositories/IAppointmentRepository';
+import { IDomainEventPublisher } from '../../../../shared/domain/events/IDomainEventPublisher';
 /**
  * Supabase Appointment Repository
  * Implements persistence for Appointment aggregate
  */
 export declare class SupabaseAppointmentRepository implements IAppointmentRepository {
+    private readonly eventPublisher?;
     private readonly supabase;
     private readonly schema;
     private readonly tableName;
-    constructor(supabaseUrl: string, supabaseKey: string);
+    constructor(supabaseUrl: string, supabaseKey: string, eventPublisher?: IDomainEventPublisher | undefined);
     /**
      * Save appointment (create or update)
      */
     save(appointment: Appointment): Promise<void>;
+    /**
+     * Publish domain events from aggregate
+     */
+    private publishDomainEvents;
     /**
      * Find appointment by AppointmentId
      */
@@ -40,6 +46,11 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
      */
     findByDoctorId(doctorId: string, limit?: number, offset?: number): Promise<Appointment[]>;
     /**
+     * Find appointments by doctor ID and specific date
+     * Convenience method that wraps findByTimeSlot for a full day
+     */
+    findByDoctorAndDate(doctorId: string, date: Date): Promise<Appointment[]>;
+    /**
      * Find appointments by date range
      */
     findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<Appointment[]>;
@@ -47,7 +58,7 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
      * Delete appointment
      */
     delete(appointmentId: AppointmentId): Promise<void>;
-    findByIdString(appointmentId: string): Promise<Appointment | null>;
+    findByIdString(id: string): Promise<Appointment | null>;
     findByProviderId(providerId: string, limit?: number, offset?: number): Promise<Appointment[]>;
     search(criteria: AppointmentSearchCriteria): Promise<AppointmentSearchResult>;
     checkConflicts(providerId: string, startTime: Date, endTime: Date, excludeAppointmentId?: string): Promise<AppointmentConflictCheck>;
@@ -91,6 +102,14 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
         startTime: Date;
         endTime: Date;
     }[]>;
+    /**
+     * Parse time string (HH:MM) on a specific date
+     */
+    private parseTimeOnDate;
+    /**
+     * Merge overlapping time intervals
+     */
+    private mergeIntervals;
     getUtilizationRate(providerId?: string, department?: string, dateFrom?: Date, dateTo?: Date): Promise<{
         totalSlots: number;
         bookedSlots: number;

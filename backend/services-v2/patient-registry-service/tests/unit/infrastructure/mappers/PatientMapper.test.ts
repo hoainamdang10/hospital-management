@@ -133,7 +133,8 @@ describe('PatientMapper', () => {
       patient_id: 'PAT-202510-001',
       other_patient_id: 'PAT-202510-002',
       link_type: 'seealso',
-      created_at: '2024-01-01T00:00:00.000Z'
+      created_at: '2024-01-01T00:00:00.000Z',
+      created_by: 'system-test'
     }];
 
     // Create test patient domain object
@@ -300,7 +301,7 @@ describe('PatientMapper', () => {
       const links = result.getProps().links;
       expect(links).toHaveLength(1);
       expect(links[0].otherPatientId.getValue()).toBe('PAT-202510-002');
-      expect(links[0].linkType).toBe('see-also');
+      expect(links[0].linkType).toBe('seealso');
     });
 
     it('should map communication preference correctly', () => {
@@ -421,7 +422,7 @@ describe('PatientMapper', () => {
       expect(result.insuranceRecord!.group_number).toBe('GRP001');
       expect(result.insuranceRecord!.valid_from).toBe('2024-01-01');
       expect(result.insuranceRecord!.valid_to).toBe('2024-12-31');
-      expect(result.insuranceRecord!.coverage_type).toBe('full');
+      expect(result.insuranceRecord!.coverage_type).toBe('BHYT');
       expect(result.insuranceRecord!.is_vietnamese_insurance).toBe(true);
       expect(result.insuranceRecord!.bhyt_number).toBe('BHYT123456789');
       expect(result.insuranceRecord!.is_primary).toBe(true);
@@ -507,7 +508,7 @@ describe('PatientMapper', () => {
       // Assert
       expect(result.linkRecords).toHaveLength(1);
       expect(result.linkRecords[0].other_patient_id).toBe('PAT-202510-002');
-      expect(result.linkRecords[0].link_type).toBe('see-also');
+      expect(result.linkRecords[0].link_type).toBe('seealso');
     });
 
     it('should handle patient without optional fields', () => {
@@ -519,9 +520,9 @@ describe('PatientMapper', () => {
       expect(result.emergencyContactRecords).toHaveLength(0);
       expect(result.consentRecords).toHaveLength(0);
       expect(result.linkRecords).toHaveLength(0);
-      expect(result.patientRecord.photo_url).toBeUndefined();
-      expect(result.patientRecord.communication_preference).toBeUndefined();
-      expect(result.patientRecord.merged_into).toBeUndefined();
+      expect(result.patientRecord.photo_url).toBeNull();
+      expect(result.patientRecord.communication_preference).toBeNull();
+      expect(result.patientRecord.merged_into).toBeNull();
     });
 
     it('should format dates correctly', () => {
@@ -559,14 +560,14 @@ describe('PatientMapper', () => {
 
     it('should map merged patient correctly', () => {
       // Arrange
-      const masterPatientId = PatientId.create('PAT-202510-MASTER');
+      const masterPatientId = PatientId.create('PAT-202510-999');
       testPatient.mergeInto(masterPatientId, 'Duplicate patient', 'admin-user');
 
       // Act
       const result = PatientMapper.toPersistence(testPatient);
 
       // Assert
-      expect(result.patientRecord.merged_into).toBe('PAT-202510-MASTER');
+      expect(result.patientRecord.merged_into).toBe('PAT-202510-999');
       expect(result.patientRecord.status).toBe('merged');
     });
   });

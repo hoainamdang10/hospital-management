@@ -7,20 +7,38 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Twilio Integration
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SMSProvider = void 0;
+const twilio_1 = __importDefault(require("twilio"));
 class SMSProvider {
     constructor(config) {
         this.config = config;
         this.isConfigured = false;
         this.MAX_SMS_LENGTH = 160;
-        this.isConfigured = !!config.accountSid && !!config.authToken;
+        this.twilioClient = null;
+        this.isConfigured = !!config.accountSid && !!config.authToken && config.enabled;
+        if (this.isConfigured) {
+            try {
+                this.twilioClient = (0, twilio_1.default)(config.accountSid, config.authToken);
+                console.log('[SMSProvider] ✅ Twilio initialized successfully');
+            }
+            catch (error) {
+                console.error('[SMSProvider] ❌ Failed to initialize Twilio:', error);
+                this.twilioClient = null;
+            }
+        }
+        else {
+            console.warn('[SMSProvider] ⚠️ Twilio not configured - SMS delivery disabled');
+        }
     }
     getType() {
         return 'SMS';
     }
     async isAvailable() {
-        return this.isConfigured;
+        return this.isConfigured && this.twilioClient !== null;
     }
     async deliver(request) {
         try {
@@ -83,26 +101,50 @@ class SMSProvider {
         };
     }
     /**
-     * Send via Twilio (mock implementation)
+     * Send via Twilio (real implementation)
      */
     async sendViaTwilio(smsData) {
-        // In production, use Twilio SDK:
-        // const twilio = require('twilio');
-        // const client = twilio(this.config.accountSid, this.config.authToken);
-        // const message = await client.messages.create(smsData);
-        // return message;
-        // Mock implementation
-        await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
-        return {
-            sid: `SM${Math.random().toString(36).substr(2, 32)}`,
-            status: 'queued',
-            to: smsData.to,
-            from: smsData.from,
-            body: smsData.body,
-            dateCreated: new Date(),
-            price: '-0.00750', // $0.0075 per SMS
-            priceUnit: 'USD'
-        };
+        if (!this.twilioClient) {
+            console.warn('[SMSProvider] Twilio not ready, using mock mode');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            return {
+                sid: `SM${Math.random().toString(36).substr(2, 32)}`,
+                status: 'queued',
+                to: smsData.to,
+                from: smsData.from,
+                body: smsData.body,
+                dateCreated: new Date(),
+                price: '-0.00750',
+                priceUnit: 'USD'
+            };
+        }
+        try {
+            // Real Twilio API call
+            const message = await this.twilioClient.messages.create(smsData);
+            console.log('[SMSProvider] ✅ SMS sent successfully', {
+                sid: message.sid,
+                status: message.status,
+                to: message.to
+            });
+            return {
+                sid: message.sid,
+                status: message.status,
+                to: message.to,
+                from: message.from,
+                body: message.body,
+                dateCreated: message.dateCreated,
+                price: message.price,
+                priceUnit: message.priceUnit
+            };
+        }
+        catch (error) {
+            console.error('[SMSProvider] ❌ Twilio API error:', {
+                code: error.code,
+                message: error.message,
+                moreInfo: error.moreInfo
+            });
+            throw new Error(`Twilio failed: ${error.message}`);
+        }
     }
     /**
      * Validate Vietnamese phone number format
@@ -116,7 +158,7 @@ class SMSProvider {
     /**
      * Normalize phone number to E.164 format (+84...)
      */
-    normalizePhoneNumber(phone) {
+    _normalizePhoneNumber(phone) {
         let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
         if (cleanPhone.startsWith('0')) {
             cleanPhone = '+84' + cleanPhone.substring(1);
@@ -129,7 +171,7 @@ class SMSProvider {
     /**
      * Remove Vietnamese diacritics for SMS compatibility (optional)
      */
-    normalizeVietnameseText(text) {
+    _normalizeVietnameseText(text) {
         // Keep Vietnamese diacritics by default
         // Only normalize if carrier doesn't support UTF-8
         return text;
@@ -137,7 +179,7 @@ class SMSProvider {
     /**
      * Estimate SMS segments (Vietnamese chars count differently)
      */
-    estimateSMSSegments(text) {
+    _estimateSMSSegments(text) {
         // Vietnamese SMS: ~70 chars per segment (UCS-2 encoding)
         const hasVietnamese = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text);
         if (hasVietnamese) {

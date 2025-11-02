@@ -238,6 +238,9 @@ export declare class InsuranceVerificationRequiredEvent extends IntegrationEvent
      * Get maximum verification time (in hours)
      */
     getMaxVerificationTime(): number;
+    getEventData(): Record<string, any>;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 /**
  * Payment Required Event
@@ -309,5 +312,8 @@ export declare class PaymentRequiredEvent extends IntegrationEvent {
         count: number;
         total: number;
     }>;
+    getEventData(): Record<string, any>;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
 }
 //# sourceMappingURL=BillingIntegrationEvents.d.ts.map

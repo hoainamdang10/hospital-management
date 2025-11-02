@@ -15,6 +15,8 @@ exports.rateLimitMiddleware = rateLimitMiddleware;
 exports.requestSizeLimitMiddleware = requestSizeLimitMiddleware;
 exports.validateContentType = validateContentType;
 const ErrorHandlingMiddleware_1 = require("./ErrorHandlingMiddleware");
+const Logger_1 = require("../../infrastructure/logging/Logger");
+const logger = (0, Logger_1.createLogger)('ValidationMiddleware');
 /**
  * Validation Middleware Factory
  */
@@ -35,6 +37,10 @@ function validateRequest(schema, source = 'body') {
                 message: translateValidationMessage(detail.message, detail.type),
                 code: detail.type
             }));
+            console.error('[ValidationMiddleware] Validation failed:', {
+                validationErrors,
+                receivedData: JSON.stringify(dataToValidate, null, 2)
+            });
             const validationError = new ErrorHandlingMiddleware_1.ValidationError('Dữ liệu đầu vào không hợp lệ', validationErrors);
             return next(validationError);
         }
@@ -157,10 +163,18 @@ function sanitizeValue(value) {
 }
 /**
  * Rate Limiting Middleware
+ * Uses environment variables: RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS
  */
-function rateLimitMiddleware(windowMs = 15 * 60 * 1000, // 15 minutes
-maxRequests = 100 // 100 requests per window
-) {
+function rateLimitMiddleware(windowMs, maxRequests) {
+    // Read from environment variables or use defaults
+    const effectiveWindowMs = windowMs
+        ?? parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10); // 15 minutes default
+    const effectiveMaxRequests = maxRequests
+        ?? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10); // 100 requests default
+    logger.info('Rate limit initialized', {
+        maxRequests: effectiveMaxRequests,
+        windowMs: effectiveWindowMs
+    });
     const requests = new Map();
     return (req, res, next) => {
         const clientId = req.ip || req.connection.remoteAddress || 'unknown';
@@ -176,12 +190,12 @@ maxRequests = 100 // 100 requests per window
         if (!clientData || now > clientData.resetTime) {
             clientData = {
                 count: 0,
-                resetTime: now + windowMs
+                resetTime: now + effectiveWindowMs
             };
             requests.set(clientId, clientData);
         }
         // Check rate limit
-        if (clientData.count >= maxRequests) {
+        if (clientData.count >= effectiveMaxRequests) {
             return res.status(429).json({
                 success: false,
                 message: 'Quá nhiều yêu cầu, vui lòng thử lại sau',
@@ -197,8 +211,8 @@ maxRequests = 100 // 100 requests per window
         clientData.count++;
         // Add rate limit headers
         res.set({
-            'X-RateLimit-Limit': maxRequests.toString(),
-            'X-RateLimit-Remaining': (maxRequests - clientData.count).toString(),
+            'X-RateLimit-Limit': effectiveMaxRequests.toString(),
+            'X-RateLimit-Remaining': (effectiveMaxRequests - clientData.count).toString(),
             'X-RateLimit-Reset': new Date(clientData.resetTime).toISOString()
         });
         return next();

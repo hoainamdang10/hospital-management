@@ -58,7 +58,7 @@ export declare class VoiceProvider implements ChannelProvider {
     /**
      * Validate phone number format
      */
-    private isValidVietnamesePhone;
+    private _isValidVietnamesePhone;
 }
 export {};
 //# sourceMappingURL=VoiceProvider.d.ts.map

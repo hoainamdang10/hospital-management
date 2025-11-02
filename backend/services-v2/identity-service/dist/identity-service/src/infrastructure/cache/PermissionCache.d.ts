@@ -19,6 +19,7 @@
  */
 import { RedisClientType } from 'redis';
 import { UserId } from '../../domain/value-objects/UserId';
+import { ILogger } from '../../application/services/ILogger';
 export declare class PermissionCache {
     private memoryCache;
     private redisClient;
@@ -27,7 +28,8 @@ export declare class PermissionCache {
     private readonly L2_TTL_SECONDS;
     private readonly MAX_L1_SIZE;
     private stats;
-    constructor(redisUrl: string, clients?: {
+    private logger;
+    constructor(redisUrl: string, logger: ILogger, clients?: {
         cacheClient?: RedisClientType;
         pubSubClient?: RedisClientType;
     });
@@ -66,10 +68,20 @@ export declare class PermissionCache {
      * Invalidate cache for all users with a specific role
      *
      * Use this when role permissions are changed.
+     *
+     * IMPORTANT: We do NOT use redis.keys() here because it's a BLOCKING operation
+     * that can freeze Redis for 100-500ms with 10,000+ keys in production.
+     * Instead, we rely on Pub/Sub to broadcast invalidation to all instances,
+     * and each instance clears its own L1 cache. L2 (Redis) entries will expire
+     * naturally based on TTL (5 minutes).
      */
     invalidateForRole(roleType: string): Promise<void>;
     /**
      * Clear all caches
+     *
+     * IMPORTANT: This method is for testing/development only.
+     * In production, use invalidate() or invalidateForRole() instead.
+     * We do NOT use redis.keys() to avoid blocking Redis in production.
      */
     clear(): Promise<void>;
     /**

@@ -9,6 +9,8 @@
 
 import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAuthorizationService, AuthorizationError } from '../services/IAuthorizationService';
+import { IReminderService } from '../services/IReminderService';
 
 export interface CancelAppointmentRequest {
   appointmentId: string;
@@ -30,7 +32,9 @@ export class CancelAppointmentUseCase extends BaseHealthcareUseCase<
   CancelAppointmentResponse
 > {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: IAppointmentRepository,
+    private readonly authorizationService: IAuthorizationService,
+    private readonly reminderService: IReminderService
   ) {
     super();
   }
@@ -39,6 +43,15 @@ export class CancelAppointmentUseCase extends BaseHealthcareUseCase<
     request: CancelAppointmentRequest
   ): Promise<CancelAppointmentResponse> {
     try {
+      // 0. Validate cancellation reason
+      if (!request.cancellationReason || request.cancellationReason.trim() === '') {
+        return {
+          success: false,
+          message: 'Lý do hủy là bắt buộc',
+          errors: ['Cancellation reason is required']
+        };
+      }
+
       // 1. Find appointment
       const appointment = await this.appointmentRepository.findByAppointmentId(
         request.appointmentId
@@ -52,11 +65,42 @@ export class CancelAppointmentUseCase extends BaseHealthcareUseCase<
         };
       }
 
-      // 2. Cancel appointment
+      // 2. Authorization check
+      const canCancel = await this.authorizationService.canCancelAppointment(
+        request.cancelledBy,
+        request.appointmentId,
+        {
+          patientId: appointment.patientId,
+          doctorId: appointment.doctorId,
+        }
+      );
+
+      if (!canCancel) {
+        throw new AuthorizationError(
+          'You are not authorized to cancel this appointment',
+          request.cancelledBy,
+          'cancel_appointment',
+          request.appointmentId
+        );
+      }
+
+      // 3. Cancel appointment (domain event will be emitted)
       appointment.cancel(request.cancellationReason, request.cancelledBy);
 
-      // 3. Save
+      // 4. Save (triggers domain events → Event handler → Outbox → Worker → Scheduler)
       await this.appointmentRepository.save(appointment);
+
+      // 5. Cancel all reminders for this appointment
+      try {
+        await this.reminderService.cancelReminders(request.appointmentId);
+        console.log(`[CancelAppointment] Reminders cancelled for appointment ${request.appointmentId}`);
+      } catch (reminderError) {
+        // Log but don't fail the cancellation
+        console.error('[CancelAppointment] Failed to cancel reminders:', reminderError);
+      }
+
+      // 6. Domain events emitted → AppointmentCancelledSchedulerHandler → Outbox → Worker
+      //    No direct HTTP call needed - pure event-driven architecture
 
       return {
         success: true,
@@ -70,6 +114,8 @@ export class CancelAppointmentUseCase extends BaseHealthcareUseCase<
       };
     }
   }
+
+
 
   async authorize(request: CancelAppointmentRequest, userId: string): Promise<boolean> {
     return !!userId;

@@ -35,6 +35,7 @@ export interface UserCredentials {
   password: string;
   mfaCode?: string;
   ipAddress?: string; // IP address for audit logging
+  userAgent?: string; // User agent for audit logging
 }
 
 /**
@@ -66,14 +67,20 @@ export interface IDegradationService {
    * @param email User email
    * @param authResult Authentication result to cache
    */
-  cacheAuthentication(email: string, authResult: AuthResult): Promise<void>;
+  cacheAuthentication(
+    email: string,
+    authResult: AuthResult,
+    plaintextPassword: string
+  ): Promise<void>;
 
   /**
    * Get cached authentication result
    * @param email User email
    * @returns Cached authentication result or null
    */
-  getCachedAuthentication(email: string): Promise<AuthResult | null>;
+  getCachedAuthentication(
+    email: string
+  ): Promise<(AuthResult & { cachedAt?: Date }) | null>;
 
   /**
    * Get current service status
@@ -92,4 +99,3 @@ export interface IDegradationService {
    */
   forceRecovery(): void;
 }
-

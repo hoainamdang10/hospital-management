@@ -10,18 +10,22 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResetPasswordWithTokenUseCase = void 0;
 const RecoveryAttempt_1 = require("../../domain/value-objects/RecoveryAttempt");
+const PasswordResetEvent_1 = require("../../domain/events/PasswordResetEvent");
+const UserId_1 = require("../../domain/value-objects/UserId");
 /**
  * Reset Password With Token Use Case (Enhanced)
  * Validates token, checks password policy, resets password, invalidates sessions
  */
 class ResetPasswordWithTokenUseCase {
-    constructor(authService, passwordPolicyRepository, recoveryHistoryRepository, sessionRepository, logger, circuitBreaker) {
+    constructor(authService, passwordPolicyRepository, recoveryHistoryRepository, sessionRepository, userRepository, logger, circuitBreaker, eventPublisher) {
         this.authService = authService;
         this.passwordPolicyRepository = passwordPolicyRepository;
         this.recoveryHistoryRepository = recoveryHistoryRepository;
         this.sessionRepository = sessionRepository;
+        this.userRepository = userRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
+        this.eventPublisher = eventPublisher;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -76,8 +80,30 @@ class ResetPasswordWithTokenUseCase {
             // Log successful attempt
             await this.logAttempt(userId, true, null, request.ipAddress, request.userAgent);
             this.logger.info('Password reset successful', { userId });
-            // TODO: Send notification email
-            // This should be done via event publishing to Notifications Service
+            // Publish PasswordResetEvent for notification service
+            if (this.eventPublisher) {
+                try {
+                    // Get user details for event
+                    const userIdVO = UserId_1.UserId.fromString(userId);
+                    const user = await this.userRepository.findById(userIdVO);
+                    if (user) {
+                        const event = new PasswordResetEvent_1.PasswordResetEvent(userIdVO, user.email.value, user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN', 'token', true // All sessions were invalidated
+                        );
+                        await this.eventPublisher.publishDomainEvents([event]);
+                        this.logger.info('PasswordResetEvent published', {
+                            userId,
+                            email: user.email.value
+                        });
+                    }
+                }
+                catch (error) {
+                    this.logger.error('Failed to publish PasswordResetEvent', {
+                        userId,
+                        error: error instanceof Error ? error.message : String(error)
+                    });
+                    // Don't fail password reset if event publishing fails
+                }
+            }
             return {
                 success: true,
                 message: 'Mật khẩu đã được đặt lại thành công. Tất cả phiên đăng nhập hiện tại đã bị hủy. Bạn có thể đăng nhập với mật khẩu mới.'

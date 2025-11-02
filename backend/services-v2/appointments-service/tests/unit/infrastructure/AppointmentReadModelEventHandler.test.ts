@@ -74,7 +74,6 @@ describe('AppointmentReadModelEventHandler', () => {
         priority: 'normal',
         status: 'scheduled',
         consultationFee: 500000,
-        paymentStatus: 'pending',
         occurredAt: new Date()
       };
 
@@ -132,7 +131,6 @@ describe('AppointmentReadModelEventHandler', () => {
         priority: 'normal',
         status: 'scheduled',
         consultationFee: 500000,
-        paymentStatus: 'pending',
         occurredAt: new Date()
       };
 
@@ -176,7 +174,6 @@ describe('AppointmentReadModelEventHandler', () => {
         priority: 'normal',
         status: 'scheduled',
         consultationFee: 500000,
-        paymentStatus: 'pending',
         occurredAt: new Date()
       };
 

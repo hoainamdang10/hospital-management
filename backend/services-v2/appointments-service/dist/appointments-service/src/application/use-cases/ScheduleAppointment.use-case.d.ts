@@ -10,6 +10,9 @@
 import { BaseHealthcareUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { AppointmentType, AppointmentPriority } from '../../domain/aggregates/Appointment.aggregate';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IConflictResolutionService, TimeSlotSuggestion } from '../services/IConflictResolutionService';
+import { IAuthorizationService } from '../services/IAuthorizationService';
+import { IReminderService } from '../services/IReminderService';
 export interface ScheduleAppointmentRequest {
     tenantId?: string;
     patientId: string;
@@ -48,6 +51,11 @@ export interface ScheduleAppointmentResponse {
         consultationFee: number;
     };
     errors?: string[];
+    conflictInfo?: {
+        hasConflicts: boolean;
+        message: string;
+        suggestions?: TimeSlotSuggestion[];
+    };
 }
 /**
  * Schedule Appointment Use Case
@@ -55,7 +63,10 @@ export interface ScheduleAppointmentResponse {
  */
 export declare class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<ScheduleAppointmentRequest, ScheduleAppointmentResponse> {
     private readonly appointmentRepository;
-    constructor(appointmentRepository: IAppointmentRepository);
+    private readonly conflictResolutionService;
+    private readonly authorizationService;
+    private readonly reminderService;
+    constructor(appointmentRepository: IAppointmentRepository, conflictResolutionService: IConflictResolutionService, authorizationService: IAuthorizationService, reminderService: IReminderService);
     /**
      * Execute use case
      */

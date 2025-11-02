@@ -337,8 +337,7 @@ export class AdvancedSearchService {
 
       // Active medications filter
       if (criteria.hasActiveMedications) {
-        const hasActive = record.getActiveMedications().length > 0;
-        if (!hasActive) return false;
+        if (!record.hasActiveMedications()) return false;
       }
 
       // Vital signs filter

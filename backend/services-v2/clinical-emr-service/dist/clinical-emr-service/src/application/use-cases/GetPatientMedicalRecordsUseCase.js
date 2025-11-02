@@ -108,11 +108,7 @@ class GetPatientMedicalRecordsUseCase extends use_case_interface_1.BaseHealthcar
         }
         // Map to DTOs
         const recordDtos = filteredRecords.map(record => {
-            const dto = (0, GetMedicalRecordRequest_1.mapMedicalRecordToDto)(record);
-            // Filter vital signs if not requested
-            if (!request.includeVitalSigns) {
-                delete dto.vitalSigns;
-            }
+            const dto = (0, GetMedicalRecordRequest_1.mapMedicalRecordToDto)(record, request.includeVitalSigns ?? true);
             return dto;
         });
         // Calculate pagination

@@ -238,19 +238,143 @@ export class SupabasePatientRepository implements IPatientRepository {
         });
 
         if (error) {
-          throw new Error(`Failed to save patient: ${error.message}`);
+          if (this.shouldUseDirectPersistence(error)) {
+            await this.savePatientFallback(
+              patientRecord,
+              insuranceRecord,
+              emergencyContactRecords,
+              consentRecords,
+              linkRecords
+            );
+            this.logger.warn('save_patient_transaction RPC failed, used fallback persistence', {
+              patientId: patientIdValue,
+              error: error.message
+            });
+          } else {
+            throw new Error(`Failed to save patient: ${error.message}`);
+          }
+        } else {
+          this.logger.info('Patient saved successfully (transaction)', {
+            patientId: patientIdValue,
+            result: data
+          });
         }
-
-        this.logger.info('Patient saved successfully (transaction)', {
-          patientId: patientIdValue,
-          result: data
-        });
 
         // Publish domain events
         await this.publishDomainEvents(patient);
       }
     );
   }
+
+  private shouldUseDirectPersistence(error: { message?: string }): boolean {
+    if (!error?.message) {
+      return false;
+    }
+
+    const normalized = error.message.toLowerCase();
+    return normalized.includes('contact_id') || normalized.includes('save_patient_transaction');
+  }
+
+  private async savePatientFallback(
+    patientRecord: Partial<PatientRecord>,
+    insuranceRecord: Partial<InsuranceRecord> | undefined,
+    emergencyContactRecords: Partial<EmergencyContactRecord>[],
+    consentRecords: Partial<PatientConsentRecord>[],
+    linkRecords: Partial<PatientLinkRecord>[]
+  ): Promise<void> {
+    const schemaClient = this.supabaseClient.schema('patient_schema');
+
+    const patientResult = await schemaClient
+      .from('patients')
+      .upsert(patientRecord, { onConflict: 'patient_id' });
+
+    if (patientResult.error) {
+      throw new Error(`Fallback save failed (patients): ${patientResult.error.message}`);
+    }
+
+    const profileRecord = {
+      id: patientRecord.id,
+      patient_id: patientRecord.patient_id,
+      user_id: patientRecord.user_id,
+      full_name: patientRecord.personal_info?.fullName,
+      date_of_birth: patientRecord.personal_info?.dateOfBirth,
+      gender: patientRecord.personal_info?.gender,
+      national_id: patientRecord.personal_info?.nationalId,
+      nationality: patientRecord.personal_info?.nationality,
+      ethnicity: patientRecord.personal_info?.ethnicity,
+      occupation: patientRecord.personal_info?.occupation,
+      marital_status: patientRecord.personal_info?.maritalStatus,
+      primary_phone: patientRecord.contact_info?.primaryPhone,
+      secondary_phone: patientRecord.contact_info?.secondaryPhone,
+      email: patientRecord.contact_info?.email,
+      preferred_contact_method: patientRecord.contact_info?.preferredContactMethod,
+      street: patientRecord.contact_info?.address?.street,
+      ward: patientRecord.contact_info?.address?.ward,
+      district: patientRecord.contact_info?.address?.district,
+      city: patientRecord.contact_info?.address?.city,
+      province: patientRecord.contact_info?.address?.province,
+      postal_code: patientRecord.contact_info?.address?.postalCode || null,
+      country: patientRecord.contact_info?.address?.country,
+      blood_type: patientRecord.basic_medical_info?.bloodType,
+      known_allergies: patientRecord.basic_medical_info?.knownAllergies || [],
+      emergency_medical_info: patientRecord.basic_medical_info?.emergencyMedicalInfo || null,
+      status: patientRecord.status,
+      merged_into_patient_id: patientRecord.merged_into,
+      created_at: patientRecord.created_at,
+      updated_at: patientRecord.updated_at,
+      created_by: patientRecord.created_by,
+      updated_by: patientRecord.updated_by
+    };
+
+    const profileResult = await schemaClient
+      .from('patient_profiles')
+      .upsert(profileRecord, { onConflict: 'patient_id' });
+
+    if (profileResult.error) {
+      throw new Error(`Fallback save failed (patient_profiles): ${profileResult.error.message}`);
+    }
+
+    if (insuranceRecord) {
+      const insuranceResult = await schemaClient
+        .from('insurance_info')
+        .upsert(insuranceRecord, { onConflict: 'id' });
+
+      if (insuranceResult.error) {
+        throw new Error(`Fallback save failed (insurance_info): ${insuranceResult.error.message}`);
+      }
+    }
+
+    if (emergencyContactRecords.length > 0) {
+      const contactsResult = await schemaClient
+        .from('emergency_contacts')
+        .upsert(emergencyContactRecords, { onConflict: 'id' });
+
+      if (contactsResult.error) {
+        throw new Error(`Fallback save failed (emergency_contacts): ${contactsResult.error.message}`);
+      }
+    }
+
+    if (consentRecords.length > 0) {
+      const consentsResult = await schemaClient
+        .from('patient_consents')
+        .upsert(consentRecords, { onConflict: 'id' });
+
+      if (consentsResult.error) {
+        throw new Error(`Fallback save failed (patient_consents): ${consentsResult.error.message}`);
+      }
+    }
+
+    if (linkRecords.length > 0) {
+      const linksResult = await schemaClient
+        .from('patient_links')
+        .upsert(linkRecords, { onConflict: 'id' });
+
+      if (linksResult.error) {
+        throw new Error(`Fallback save failed (patient_links): ${linksResult.error.message}`);
+      }
+    }
+  }
+
 
   /**
    * Delete patient (soft delete)

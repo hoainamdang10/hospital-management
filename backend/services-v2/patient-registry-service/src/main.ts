@@ -67,6 +67,7 @@ import { PatientQueryHandlers } from './application/handlers/PatientQueryHandler
 
 // Infrastructure imports
 import { SupabaseStorageService } from './infrastructure/storage/SupabaseStorageService';
+import { AuditService } from './infrastructure/audit/AuditService';
 import { 
   IdentityEventConsumer,
   IdentityUserCreatedEventHandler,
@@ -131,6 +132,7 @@ class PatientRegistryServiceApp {
   private cacheService!: RedisCacheService | null;
   private patientCache!: PatientCache;
   private degradationService!: PatientRegistryDegradation;
+  private auditService!: AuditService;
   private identityEventConsumer!: any; // IdentityEventConsumer
 
   // Use Cases
@@ -194,6 +196,9 @@ class PatientRegistryServiceApp {
       // Validate configuration
       this.validateConfiguration();
 
+      // Lazy load Supabase client once for audit and storage integrations
+      const { createClient } = await import('@supabase/supabase-js');
+
       // Initialize Event Publisher
       this.eventPublisher = new RabbitMQEventPublisher(
         {
@@ -201,7 +206,8 @@ class PatientRegistryServiceApp {
           exchange: 'patient-registry-events',
           exchangeType: 'topic',
           durable: true,
-          autoDelete: false
+          autoDelete: false,
+          serviceName: 'patient-registry'
         },
         {
           enableRetry: true,
@@ -265,6 +271,16 @@ class PatientRegistryServiceApp {
         config.supabaseKey,
         this.degradationService
       );
+
+      // Initialize Audit Service
+      const auditSupabaseClient = createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+      this.auditService = new AuditService(auditSupabaseClient as any, logger);
+      logger.info('Audit service initialized', {});
 
       // Initialize Infrastructure Layer (inject services + event publisher)
       this.patientRepository = new SupabasePatientRepository(
@@ -406,7 +422,6 @@ class PatientRegistryServiceApp {
       );
 
       // Initialize Storage Service
-      const { createClient } = await import('@supabase/supabase-js');
       const storageClient = createClient(config.supabaseUrl, config.supabaseKey, {
         auth: {
           autoRefreshToken: false,
@@ -520,13 +535,16 @@ class PatientRegistryServiceApp {
         this.patientRepository
       );
 
-      // Initialize Identity Event Consumer
+      // Initialize Identity Event Consumer with DLQ support
       this.identityEventConsumer = new IdentityEventConsumer(
         {
           rabbitmqUrl: config.rabbitmqUrl,
           queueName: 'patient.identity.queue',
           exchangeName: 'hospital.events',
-          routingKeys: ['user.user_created_event', 'user.user_deleted_event', 'user.user_updated_event']
+          routingKeys: ['user.user_created_event', 'user.user_deleted_event', 'user.user_updated_event'],
+          deadLetterExchange: 'hospital.events.dlx',
+          deadLetterQueue: 'patient.identity.queue.dlq',
+          maxRetries: 3
         },
         logger,
         userCreatedHandler,

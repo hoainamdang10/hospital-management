@@ -216,7 +216,7 @@ class InsuranceVerificationRequiredEvent extends domain_event_1.IntegrationEvent
                 default: return 'Không xác định';
             }
         })();
-        super('clinical-emr.insurance.verification-required', `${recordId}-${insuranceInfo.number}`, {
+        super('insurance.verification-required', 'clinical-emr', `${recordId}-${insuranceInfo.number}`, 'insurance-verification', {
             recordId,
             patientId,
             insuranceInfo: {
@@ -298,6 +298,24 @@ class InsuranceVerificationRequiredEvent extends domain_event_1.IntegrationEvent
             default: return 24;
         }
     }
+    getEventData() {
+        return {
+            recordId: this.recordId,
+            patientId: this.patientId,
+            insuranceInfo: this.insuranceInfo,
+            verificationReason: this.verificationReason,
+            estimatedCost: this.estimatedCost,
+            urgency: this.urgency,
+            requestedBy: this.requestedBy,
+            requestedAt: this.requestedAt.toISOString(),
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId;
+    }
 }
 exports.InsuranceVerificationRequiredEvent = InsuranceVerificationRequiredEvent;
 /**
@@ -321,7 +339,7 @@ class PaymentRequiredEvent extends domain_event_1.IntegrationEvent {
                 default: return 'Không xác định';
             }
         })();
-        super('clinical-emr.payment.required', `${recordId}-payment`, {
+        super('payment.required', 'clinical-emr', `${recordId}-payment`, 'payment', {
             recordId,
             patientId,
             paymentInfo: {
@@ -404,6 +422,26 @@ class PaymentRequiredEvent extends domain_event_1.IntegrationEvent {
             breakdown[charge.category].total += charge.totalPrice;
         });
         return breakdown;
+    }
+    getEventData() {
+        return {
+            recordId: this.recordId,
+            patientId: this.patientId,
+            paymentInfo: {
+                ...this.paymentInfo,
+                dueDate: this.paymentInfo.dueDate.toISOString(),
+            },
+            itemizedCharges: this.itemizedCharges,
+            priority: this.priority,
+            generatedBy: this.generatedBy,
+            generatedAt: this.generatedAt.toISOString(),
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId;
     }
 }
 exports.PaymentRequiredEvent = PaymentRequiredEvent;

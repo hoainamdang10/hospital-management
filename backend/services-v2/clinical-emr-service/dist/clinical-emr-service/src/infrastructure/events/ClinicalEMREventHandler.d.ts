@@ -17,6 +17,10 @@ export declare class ClinicalEMREventHandler extends BaseEventHandler {
     private generateMedicalReportUseCase;
     constructor(createMedicalRecordUseCase: CreateMedicalRecordUseCase, updateMedicalRecordUseCase: UpdateMedicalRecordUseCase, generateMedicalReportUseCase: GenerateMedicalReportUseCase, logger?: any);
     /**
+     * Public wrapper for external event handling
+     */
+    handleEvent(event: IntegrationEvent): Promise<EventProcessingResult>;
+    /**
      * Process integration events
      */
     protected processEvent(event: IntegrationEvent): Promise<EventProcessingResult>;

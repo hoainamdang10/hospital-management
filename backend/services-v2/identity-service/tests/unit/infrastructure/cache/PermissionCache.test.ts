@@ -1,5 +1,6 @@
 import { PermissionCache } from '../../../../src/infrastructure/cache/PermissionCache';
 import { UserId } from '../../../../src/domain/value-objects/UserId';
+import { ILogger } from '../../../../src/application/services/ILogger';
 import type { RedisClientType } from 'redis';
 
 interface MockRedisClient extends Partial<RedisClientType> {
@@ -27,12 +28,20 @@ const createMockClient = (): MockRedisClient => ({
 const asRedisClient = (client: MockRedisClient): RedisClientType =>
   client as unknown as RedisClientType;
 
+const createMockLogger = (): jest.Mocked<ILogger> => ({
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+} as any);
+
 describe('PermissionCache', () => {
   it('does not subscribe before connect is called', () => {
     const cacheClient = createMockClient();
     const pubSubClient = createMockClient();
+    const logger = createMockLogger();
 
-    new PermissionCache('redis://test', {
+    new PermissionCache('redis://test', logger, {
       cacheClient: asRedisClient(cacheClient),
       pubSubClient: asRedisClient(pubSubClient)
     });
@@ -43,8 +52,9 @@ describe('PermissionCache', () => {
   it('subscribes to channels after connect and only once', async () => {
     const cacheClient = createMockClient();
     const pubSubClient = createMockClient();
+    const logger = createMockLogger();
 
-    const cache = new PermissionCache('redis://test', {
+    const cache = new PermissionCache('redis://test', logger, {
       cacheClient: asRedisClient(cacheClient),
       pubSubClient: asRedisClient(pubSubClient)
     });
@@ -69,8 +79,9 @@ describe('PermissionCache', () => {
   it('handles invalidate calls even when not connected yet', async () => {
     const cacheClient = createMockClient();
     const pubSubClient = createMockClient();
+    const logger = createMockLogger();
 
-    const cache = new PermissionCache('redis://test', {
+    const cache = new PermissionCache('redis://test', logger, {
       cacheClient: asRedisClient(cacheClient),
       pubSubClient: asRedisClient(pubSubClient)
     });

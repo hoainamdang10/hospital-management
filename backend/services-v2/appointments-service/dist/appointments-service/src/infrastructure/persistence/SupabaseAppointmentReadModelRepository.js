@@ -13,7 +13,7 @@ const supabase_js_1 = require("@supabase/supabase-js");
 class SupabaseAppointmentReadModelRepository {
     constructor(supabaseUrl, supabaseKey) {
         this.tableName = 'appointment_read_model';
-        this.schema = 'scheduling_schema';
+        this.schema = 'appointments_schema';
         this.client = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
             db: { schema: this.schema }
         });
@@ -34,9 +34,7 @@ class SupabaseAppointmentReadModelRepository {
             status: data.status,
             room_id: data.roomId,
             department_id: data.departmentId,
-            consultation_fee: data.consultationFee,
-            additional_fees: data.additionalFees,
-            payment_status: data.paymentStatus,
+            consultation_fee: data.consultationFee, // Billing reference only
             // Patient data
             patient_full_name: data.patientData?.patientFullName,
             patient_phone: data.patientData?.patientPhone,
@@ -299,9 +297,7 @@ class SupabaseAppointmentReadModelRepository {
             status: record.status,
             roomId: record.room_id,
             departmentId: record.department_id,
-            consultationFee: parseFloat(record.consultation_fee),
-            additionalFees: record.additional_fees ? parseFloat(record.additional_fees) : undefined,
-            paymentStatus: record.payment_status,
+            consultationFee: parseFloat(record.consultation_fee), // Billing reference only
             patientFullName: record.patient_full_name,
             patientPhone: record.patient_phone,
             patientEmail: record.patient_email,

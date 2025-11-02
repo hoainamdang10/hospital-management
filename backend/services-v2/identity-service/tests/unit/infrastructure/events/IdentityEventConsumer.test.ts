@@ -138,10 +138,13 @@ describe('IdentityEventConsumer.handleMessage', () => {
     });
 
     await expect((consumer as any).handleMessage(message)).rejects.toThrow('handler failed');
-    expect(logger.error).toHaveBeenCalledWith('Error parsing or handling message', {
-      error: 'handler failed',
-      routingKey: 'staff.credential_verified',
-      messageId: 'msg-001'
-    });
+    expect(logger.error).toHaveBeenCalledWith('Error parsing or handling message', 
+      expect.objectContaining({
+        error: 'handler failed',
+        routingKey: 'staff.credential_verified',
+        messageId: 'msg-001',
+        duration: expect.any(String)
+      })
+    );
   });
 });

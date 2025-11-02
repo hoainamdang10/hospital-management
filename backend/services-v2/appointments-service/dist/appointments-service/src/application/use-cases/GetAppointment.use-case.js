@@ -43,8 +43,7 @@ class GetAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
                     symptoms: appointment.details.symptoms,
                     notes: appointment.details.notes,
                     specialInstructions: appointment.details.specialInstructions,
-                    consultationFee: appointment.consultationFee,
-                    paymentStatus: appointment.paymentStatus
+                    consultationFee: appointment.consultationFee // Billing reference only
                 }
             };
         }

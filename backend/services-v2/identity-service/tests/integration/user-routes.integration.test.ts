@@ -25,6 +25,8 @@ import {
   cleanupTestUsers,
   getUserFromDb
 } from '../helpers/integrationHelpers';
+import { TestUserPool } from '../helpers/test-user-pool';
+import { testUserPoolCache } from '../helpers/test-user-pool-cache';
 
 describe('User Routes Integration Tests', () => {
   let app: Application;
@@ -32,10 +34,8 @@ describe('User Routes Integration Tests', () => {
   let cleanup: () => Promise<void>;
   const testEmails: string[] = [];
 
-  // Test users
-  let patientUser: { userId: string; email: string; password: string; accessToken: string };
-  let adminUser: { userId: string; email: string; password: string; accessToken: string };
-  let passwordChangeUser: { userId: string; email: string; password: string; accessToken: string };
+  // Sử dụng User Pool Cache (seeds once for all tests)
+  let userPool: TestUserPool;
 
   // Helper to generate unique test email
   const generateTestEmail = (prefix: string): string => {
@@ -62,136 +62,19 @@ describe('User Routes Integration Tests', () => {
     app = result.app;
     cleanup = result.cleanup;
 
-    // Create test patient user
-    const patientEmail = generateTestEmail('patient-user');
-    const patientPassword = 'PatientPassword123!';
-    testEmails.push(patientEmail);
-
-    const patient = await createTestUser(
-      supabaseClient,
-      patientEmail,
-      patientPassword,
-      'PATIENT',
-      {
-        fullName: 'Test Patient User',
-        phoneNumber: '0901234580',
-        address: '123 Test Street, Hanoi, Vietnam',
-        dateOfBirth: '1990-01-01',
-        gender: 'male',
-        citizenId: generateUniqueCitizenId()
-      }
-    );
-
-    // Login to get access token
-    const patientLoginResponse = await request(app)
-      .post('/auth/login')
-      .send({
-        email: patientEmail,
-        password: patientPassword
-      });
-
-    console.log('Patient login response:', {
-      status: patientLoginResponse.status,
-      body: patientLoginResponse.body
-    });
-
-    if (!patientLoginResponse.body.accessToken) {
-      throw new Error('Failed to get access token for patient user');
-    }
-
-    patientUser = {
-      userId: patient.userId,
-      email: patientEmail,
-      password: patientPassword,
-      accessToken: patientLoginResponse.body.accessToken
-    };
-
-    // Create test admin user
-    const adminEmail = generateTestEmail('admin-user');
-    const adminPassword = 'AdminPassword123!';
-    testEmails.push(adminEmail);
-
-    const admin = await createTestUser(
-      supabaseClient,
-      adminEmail,
-      adminPassword,
-      'ADMIN',
-      {
-        fullName: 'Test Admin User',
-        phoneNumber: '0901234581',
-        address: '456 Test Street, Hanoi, Vietnam',
-        dateOfBirth: '1985-05-05',
-        gender: 'female',
-        citizenId: generateUniqueCitizenId()
-      }
-    );
-
-    // Login to get access token
-    const adminLoginResponse = await request(app)
-      .post('/auth/login')
-      .send({
-        email: adminEmail,
-        password: adminPassword
-      });
-
-    console.log('Admin login response:', {
-      status: adminLoginResponse.status,
-      body: adminLoginResponse.body
-    });
-
-    if (!adminLoginResponse.body.accessToken) {
-      throw new Error('Failed to get access token for admin user');
-    }
-
-    adminUser = {
-      userId: admin.userId,
-      email: adminEmail,
-      password: adminPassword,
-      accessToken: adminLoginResponse.body.accessToken
-    };
-
-    // Create dedicated user for password change tests
-    const passwordChangeEmail = generateTestEmail('password-change-user');
-    const passwordChangePassword = 'PasswordChange123!';
-    testEmails.push(passwordChangeEmail);
-
-    const passwordChangeUserData = await createTestUser(
-      supabaseClient,
-      passwordChangeEmail,
-      passwordChangePassword,
-      'PATIENT',
-      {
-        fullName: 'Test Password Change User',
-        phoneNumber: '0901234582',
-        address: '789 Test Street, Hanoi, Vietnam',
-        dateOfBirth: '1992-03-03',
-        gender: 'male',
-        citizenId: generateUniqueCitizenId()
-      }
-    );
-
-    // Login to get access token
-    const passwordChangeLoginResponse = await request(app)
-      .post('/auth/login')
-      .send({
-        email: passwordChangeEmail,
-        password: passwordChangePassword
-      });
-
-    if (!passwordChangeLoginResponse.body.accessToken) {
-      throw new Error('Failed to get access token for password change user');
-    }
-
-    passwordChangeUser = {
-      userId: passwordChangeUserData.userId,
-      email: passwordChangeEmail,
-      password: passwordChangePassword,
-      accessToken: passwordChangeLoginResponse.body.accessToken
-    };
-  }, 60000); // 60 second timeout for setup
+    // Get cached test user pool (seeds once, reuses for all tests)
+    userPool = await testUserPoolCache.getPool(supabaseClient);
+    
+    console.log('✅ Test setup complete with user pool');
+    console.log('DEBUG - Admin token:', userPool.admin.token ? `${userPool.admin.token.substring(0, 20)}...` : 'NO TOKEN');
+    console.log('DEBUG - Patient token:', userPool.patient.token ? `${userPool.patient.token.substring(0, 20)}...` : 'NO TOKEN');
+  }, 90000); // 90 second timeout for setup
 
   afterAll(async () => {
-    // Cleanup all test users
+    // Note: User pool is cached and will be cleaned up in global teardown
+    // We only cleanup additional test users created during tests
+
+    // Cleanup any additional test users created in tests
     if (testEmails.length > 0) {
       await cleanupTestUsers(supabaseClient, testEmails);
     }
@@ -206,12 +89,12 @@ describe('User Routes Integration Tests', () => {
     it('should get current user profile with valid token', async () => {
       const response = await request(app)
         .get('/api/v1/users/me')
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .set('Authorization', `Bearer ${userPool.patient.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.user).toBeDefined();
-      expect(response.body.user.userId).toBe(patientUser.userId);
+      expect(response.body.user.userId).toBe(userPool.patient.userId);
     });
 
     it('should fail without authentication token', async () => {
@@ -225,30 +108,30 @@ describe('User Routes Integration Tests', () => {
   describe('GET /api/v1/users/:userId', () => {
     it('should allow user to get own profile', async () => {
       const response = await request(app)
-        .get(`/api/v1/users/${patientUser.userId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .get(`/api/v1/users/${userPool.patient.userId}`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.user).toBeDefined();
-      expect(response.body.user.id).toBe(patientUser.userId);
+      expect(response.body.user.id).toBe(userPool.patient.userId);
     });
 
     it('should allow admin to get any user profile', async () => {
       const response = await request(app)
-        .get(`/api/v1/users/${patientUser.userId}`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .get(`/api/v1/users/${userPool.patient.userId}`)
+        .set('Authorization', `Bearer ${userPool.admin.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.user).toBeDefined();
-      expect(response.body.user.id).toBe(patientUser.userId);
+      expect(response.body.user.id).toBe(userPool.patient.userId);
     });
 
     it('should fail when patient tries to get another user profile', async () => {
       const response = await request(app)
-        .get(`/api/v1/users/${adminUser.userId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .get(`/api/v1/users/${userPool.admin.userId}`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`);
 
       expect(response.status).toBe(403);
     });
@@ -256,7 +139,7 @@ describe('User Routes Integration Tests', () => {
     it('should fail with invalid userId', async () => {
       const response = await request(app)
         .get('/api/v1/users/invalid-uuid')
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .set('Authorization', `Bearer ${userPool.admin.token}`);
 
       expect(response.status).toBe(404);
     });
@@ -266,7 +149,7 @@ describe('User Routes Integration Tests', () => {
     it('should allow admin to list all users', async () => {
       const response = await request(app)
         .get('/api/v1/users')
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .set('Authorization', `Bearer ${userPool.admin.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -279,7 +162,7 @@ describe('User Routes Integration Tests', () => {
     it('should support pagination', async () => {
       const response = await request(app)
         .get('/api/v1/users?page=1&limit=5')
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .set('Authorization', `Bearer ${userPool.admin.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.users.length).toBeLessThanOrEqual(5);
@@ -288,7 +171,7 @@ describe('User Routes Integration Tests', () => {
     it('should support filtering by roleType', async () => {
       const response = await request(app)
         .get('/api/v1/users?roleType=PATIENT')
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .set('Authorization', `Bearer ${userPool.admin.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.users).toBeDefined();
@@ -297,7 +180,7 @@ describe('User Routes Integration Tests', () => {
     it('should fail when non-admin tries to list users', async () => {
       const response = await request(app)
         .get('/api/v1/users')
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .set('Authorization', `Bearer ${userPool.patient.token}`);
 
       expect(response.status).toBe(403);
     });
@@ -306,8 +189,8 @@ describe('User Routes Integration Tests', () => {
   describe('PATCH /api/v1/users/:userId', () => {
     it('should allow user to update own profile', async () => {
       const response = await request(app)
-        .patch(`/api/v1/users/${patientUser.userId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`)
+        .patch(`/api/v1/users/${userPool.patient.userId}`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`)
         .send({
           fullName: 'Updated Patient Name',
           phoneNumber: '0909999999'
@@ -317,15 +200,15 @@ describe('User Routes Integration Tests', () => {
       expect(response.body.success).toBe(true);
 
       // Verify changes in database
-      const dbUser = await getUserFromDb(supabaseClient, patientUser.userId);
+      const dbUser = await getUserFromDb(supabaseClient, userPool.patient.userId);
       expect(dbUser.full_name).toBe('Updated Patient Name');
       expect(dbUser.phone_number).toBe('0909999999');
     });
 
     it('should allow admin to update any user profile', async () => {
       const response = await request(app)
-        .patch(`/api/v1/users/${patientUser.userId}`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`)
+        .patch(`/api/v1/users/${userPool.patient.userId}`)
+        .set('Authorization', `Bearer ${userPool.admin.token}`)
         .send({
           fullName: 'Admin Updated Name'
         });
@@ -336,8 +219,8 @@ describe('User Routes Integration Tests', () => {
 
     it('should fail when patient tries to update another user', async () => {
       const response = await request(app)
-        .patch(`/api/v1/users/${adminUser.userId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`)
+        .patch(`/api/v1/users/${userPool.admin.userId}`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`)
         .send({
           fullName: 'Hacked Name'
         });
@@ -347,8 +230,8 @@ describe('User Routes Integration Tests', () => {
 
     it('should fail with invalid data', async () => {
       const response = await request(app)
-        .patch(`/api/v1/users/${patientUser.userId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`)
+        .patch(`/api/v1/users/${userPool.patient.userId}`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`)
         .send({
           email: 'invalid-email' // Invalid email format
         });
@@ -392,7 +275,7 @@ describe('User Routes Integration Tests', () => {
     it('should allow admin to soft delete user', async () => {
       const response = await request(app)
         .delete(`/api/v1/users/${userToDelete.userId}`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`)
+        .set('Authorization', `Bearer ${userPool.admin.token}`)
         .send({
           reason: 'Test deletion'
         });
@@ -408,8 +291,8 @@ describe('User Routes Integration Tests', () => {
 
     it('should fail when non-admin tries to delete user', async () => {
       const response = await request(app)
-        .delete(`/api/v1/users/${adminUser.userId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .delete(`/api/v1/users/${userPool.admin.userId}`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`);
 
       expect(response.status).toBe(403);
     });
@@ -420,10 +303,10 @@ describe('User Routes Integration Tests', () => {
       const newPassword = 'NewPassword123!';
 
       const response = await request(app)
-        .post(`/api/v1/users/${passwordChangeUser.userId}/change-password`)
-        .set('Authorization', `Bearer ${passwordChangeUser.accessToken}`)
+        .post(`/api/v1/users/${userPool.destructive.passwordChange.userId}/change-password`)
+        .set('Authorization', `Bearer ${userPool.destructive.passwordChange.token}`)
         .send({
-          currentPassword: passwordChangeUser.password,
+          currentPassword: 'PasswordChangePool123!',
           newPassword,
           confirmPassword: newPassword
         });
@@ -431,26 +314,14 @@ describe('User Routes Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
 
-      // Update password for future tests
-      passwordChangeUser.password = newPassword;
-
-      // Login again to get new access token after password change
-      const loginResponse = await request(app)
-        .post('/auth/login')
-        .send({
-          email: passwordChangeUser.email,
-          password: newPassword
-        });
-
-      if (loginResponse.body.accessToken) {
-        passwordChangeUser.accessToken = loginResponse.body.accessToken;
-      }
+      // Note: Password đã thay đổi. Nếu cần test thêm với user này, 
+      // sử dụng resetUserPassword() từ test-user-pool helper
     }, 60000); // 60 second timeout for password change with Supabase Auth
 
     it('should fail with incorrect current password', async () => {
       const response = await request(app)
-        .post(`/api/v1/users/${passwordChangeUser.userId}/change-password`)
-        .set('Authorization', `Bearer ${passwordChangeUser.accessToken}`)
+        .post(`/api/v1/users/${userPool.destructive.passwordChange.userId}/change-password`)
+        .set('Authorization', `Bearer ${userPool.destructive.passwordChange.token}`)
         .send({
           currentPassword: 'WrongPassword123!',
           newPassword: 'NewPassword456!',
@@ -463,10 +334,10 @@ describe('User Routes Integration Tests', () => {
 
     it('should fail when passwords do not match', async () => {
       const response = await request(app)
-        .post(`/api/v1/users/${passwordChangeUser.userId}/change-password`)
-        .set('Authorization', `Bearer ${passwordChangeUser.accessToken}`)
+        .post(`/api/v1/users/${userPool.destructive.passwordChange.userId}/change-password`)
+        .set('Authorization', `Bearer ${userPool.destructive.passwordChange.token}`)
         .send({
-          currentPassword: passwordChangeUser.password,
+          currentPassword: 'PasswordChangePool123!',
           newPassword: 'NewPassword789!',
           confirmPassword: 'DifferentPassword789!'
         });
@@ -477,10 +348,10 @@ describe('User Routes Integration Tests', () => {
 
     it('should fail with weak new password', async () => {
       const response = await request(app)
-        .post(`/api/v1/users/${passwordChangeUser.userId}/change-password`)
-        .set('Authorization', `Bearer ${passwordChangeUser.accessToken}`)
+        .post(`/api/v1/users/${userPool.destructive.passwordChange.userId}/change-password`)
+        .set('Authorization', `Bearer ${userPool.destructive.passwordChange.token}`)
         .send({
-          currentPassword: passwordChangeUser.password,
+          currentPassword: 'PasswordChangePool123!',
           newPassword: '123',
           confirmPassword: '123'
         });
@@ -491,40 +362,11 @@ describe('User Routes Integration Tests', () => {
   });
 
   describe('POST /api/v1/users/:userId/lock', () => {
-    let userToLock: { userId: string; email: string; password: string };
-
-    beforeAll(async () => {
-      // Create user to lock
-      const email = generateTestEmail('user-to-lock');
-      const password = 'LockPassword123!';
-      testEmails.push(email);
-
-      const user = await createTestUser(
-        supabaseClient,
-        email,
-        password,
-        'PATIENT',
-        {
-          fullName: 'User To Lock',
-          phoneNumber: '0901234583',
-          address: '101 Test Street, Hanoi, Vietnam',
-          dateOfBirth: '1993-04-04',
-          gender: 'female',
-          citizenId: generateUniqueCitizenId()
-        }
-      );
-
-      userToLock = {
-        userId: user.userId,
-        email,
-        password
-      };
-    });
-
     it('should allow admin to lock user account', async () => {
+      // Sử dụng destructive.lockable user từ pool
       const response = await request(app)
-        .post(`/api/v1/users/${userToLock.userId}/lock`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`)
+        .post(`/api/v1/users/${userPool.destructive.lockable.userId}/lock`)
+        .set('Authorization', `Bearer ${userPool.admin.token}`)
         .send({
           reason: 'Test lock account for integration testing',
           terminateSessions: true
@@ -534,14 +376,14 @@ describe('User Routes Integration Tests', () => {
       expect(response.body.success).toBe(true);
 
       // Verify user is locked in database
-      const dbUser = await getUserFromDb(supabaseClient, userToLock.userId);
+      const dbUser = await getUserFromDb(supabaseClient, userPool.destructive.lockable.userId);
       expect(dbUser.is_active).toBe(false);
     });
 
     it('should fail when non-admin tries to lock user', async () => {
       const response = await request(app)
-        .post(`/api/v1/users/${adminUser.userId}/lock`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .post(`/api/v1/users/${userPool.admin.userId}/lock`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`);
 
       expect(response.status).toBe(403);
     });
@@ -549,11 +391,12 @@ describe('User Routes Integration Tests', () => {
 
   describe('POST /api/v1/users/:userId/unlock', () => {
     it('should allow admin to unlock user account', async () => {
-      // First, get a locked user (from previous test)
+      // Use the user that was locked in the previous test
+      // Query for users with account_status='locked' (not just is_active=false)
       const lockedUsers = await supabaseClient
         .from('user_profiles')
-        .select('id')
-        .eq('is_active', false)
+        .select('id, account_status')
+        .eq('account_status', 'locked')
         .limit(1);
 
       if (lockedUsers.data && lockedUsers.data.length > 0) {
@@ -561,9 +404,9 @@ describe('User Routes Integration Tests', () => {
 
         const response = await request(app)
           .post(`/api/v1/users/${lockedUserId}/unlock`)
-          .set('Authorization', `Bearer ${adminUser.accessToken}`)
+          .set('Authorization', `Bearer ${userPool.admin.token}`)
           .send({
-            reason: 'Test unlock'
+            reason: 'Test unlock for integration testing purposes'
           });
 
         expect(response.status).toBe(200);
@@ -572,13 +415,14 @@ describe('User Routes Integration Tests', () => {
         // Verify user is unlocked in database
         const dbUser = await getUserFromDb(supabaseClient, lockedUserId);
         expect(dbUser.is_active).toBe(true);
+        expect(dbUser.account_status).toBe('active');
       }
     });
 
     it('should fail when non-admin tries to unlock user', async () => {
       const response = await request(app)
-        .post(`/api/v1/users/${adminUser.userId}/unlock`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .post(`/api/v1/users/${userPool.admin.userId}/unlock`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`);
 
       expect(response.status).toBe(403);
     });
@@ -618,7 +462,7 @@ describe('User Routes Integration Tests', () => {
     it('should allow admin to assign role to user', async () => {
       const response = await request(app)
         .post(`/api/v1/users/${userForRoleAssignment.userId}/assign-role`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`)
+        .set('Authorization', `Bearer ${userPool.admin.token}`)
         .send({
           roleType: 'NURSE',
           reason: 'Promoted to nurse'
@@ -640,8 +484,8 @@ describe('User Routes Integration Tests', () => {
 
     it('should fail when non-admin tries to assign role', async () => {
       const response = await request(app)
-        .post(`/api/v1/users/${patientUser.userId}/assign-role`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`)
+        .post(`/api/v1/users/${userPool.patient.userId}/assign-role`)
+        .set('Authorization', `Bearer ${userPool.patient.token}`)
         .send({
           roleType: 'ADMIN'
         });
@@ -652,7 +496,7 @@ describe('User Routes Integration Tests', () => {
     it('should fail with invalid role type', async () => {
       const response = await request(app)
         .post(`/api/v1/users/${userForRoleAssignment.userId}/assign-role`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`)
+        .set('Authorization', `Bearer ${userPool.admin.token}`)
         .send({
           roleType: 'INVALID_ROLE'
         });

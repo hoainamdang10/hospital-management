@@ -116,7 +116,7 @@ export declare function toRepositoryOptions(request: GetPatientMedicalRecordsReq
     status: MedicalRecordStatus | undefined;
     limit: number;
     offset: number;
-    sortBy: "recordId" | "visitDate" | "createdAt" | "updatedAt";
+    sortBy: "visitDate" | "createdAt" | "updatedAt";
     sortOrder: "asc" | "desc";
 };
 //# sourceMappingURL=GetPatientMedicalRecordsRequest.d.ts.map

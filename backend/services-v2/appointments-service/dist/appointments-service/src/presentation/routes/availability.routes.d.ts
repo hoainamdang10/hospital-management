@@ -1,16 +1,17 @@
 /**
  * Availability Routes - Presentation Layer
- * V2 Clean Architecture + DDD Implementation
+ * V3 Clean Architecture + DDD Implementation
  *
  * Routes for provider availability queries
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0
  * @compliance Clean Architecture, RESTful API, Vietnamese Healthcare Standards
  */
 import { Router } from 'express';
 /**
  * Create availability routes
+ * Uses DI container for dependency injection
  *
  * Routes:
  * - GET /api/appointments/providers/:providerId/available-slots

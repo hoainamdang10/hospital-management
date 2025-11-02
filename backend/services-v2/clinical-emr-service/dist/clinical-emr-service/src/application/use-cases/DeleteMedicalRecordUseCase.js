@@ -43,7 +43,7 @@ class DeleteMedicalRecordUseCase extends use_case_interface_1.BaseHealthcareUseC
                 };
             }
             // Soft delete
-            await this.medicalRecordRepository.delete(recordId);
+            await this.medicalRecordRepository.delete(recordId, request.deletedBy);
             return {
                 success: true,
                 message: 'Hồ sơ bệnh án đã được xóa thành công',

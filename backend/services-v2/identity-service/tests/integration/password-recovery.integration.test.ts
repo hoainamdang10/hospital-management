@@ -79,7 +79,8 @@ describe('Password Recovery Flow Integration Tests', () => {
             address: '123 Test Street, Hanoi, Vietnam',
             dateOfBirth: '1990-01-01',
             gender: 'male',
-            citizenId: generateUniqueCitizenId()
+            citizenId: generateUniqueCitizenId(),
+            skipAutoLogin: true // No login needed for forgot password flow
           }
         );
 
@@ -160,15 +161,23 @@ describe('Password Recovery Flow Integration Tests', () => {
             fullName: 'Inactive User',
             phoneNumber: '0901234591',
             address: '456 Test Street, Hanoi, Vietnam',
+            skipAutoLogin: true,
             dateOfBirth: '1991-02-02',
             gender: 'female',
             citizenId: generateUniqueCitizenId()
           }
         );
 
+        // Set account_status to 'deactivated' (not just is_active=false)
+        // User.isActive getter checks account_status === 'active'
         await supabaseClient
           .from('user_profiles')
-          .update({ is_active: false })
+          .update({ 
+            is_active: false,
+            account_status: 'deactivated',
+            deactivation_reason: 'Test deactivation',
+            deactivated_at: new Date().toISOString()
+          })
           .eq('id', user.userId);
 
         const response = await request(app)
@@ -199,6 +208,7 @@ describe('Password Recovery Flow Integration Tests', () => {
             fullName: 'Multiple Requests User',
             phoneNumber: '0901234592',
             address: '789 Test Street, Hanoi, Vietnam',
+            skipAutoLogin: true,
             dateOfBirth: '1992-03-03',
             gender: 'male',
             citizenId: generateUniqueCitizenId()
@@ -236,6 +246,7 @@ describe('Password Recovery Flow Integration Tests', () => {
             fullName: 'Rate Limit Test User',
             phoneNumber: '0901234593',
             address: '111 Test Street, Hanoi, Vietnam',
+            skipAutoLogin: true,
             dateOfBirth: '1993-05-05',
             gender: 'female',
             citizenId: generateUniqueCitizenId()
@@ -477,6 +488,7 @@ describe('Password Recovery Flow Integration Tests', () => {
           fullName: 'E2E Password Recovery User',
           phoneNumber: '0901234593',
           address: '101 Test Street, Hanoi, Vietnam',
+          skipAutoLogin: true,
           dateOfBirth: '1993-04-04',
           gender: 'male',
           citizenId: generateUniqueCitizenId()

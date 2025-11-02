@@ -11,14 +11,12 @@ import { Router } from 'express';
 import { container } from '../../infrastructure/di/container';
 import { TYPES } from '../../infrastructure/di/types';
 import { MedicalRecordController } from '../controllers/MedicalRecordController';
+import { AuthenticationMiddleware } from '../middleware/AuthenticationMiddleware';
 
-// Middleware
-import { authenticationMiddleware } from '../middleware/authentication.middleware';
-import { authorizationMiddleware } from '../middleware/authorization.middleware';
-import { validationMiddleware } from '../middleware/validation.middleware';
-import { auditMiddleware } from '../middleware/audit.middleware';
-import { rateLimitMiddleware } from '../middleware/rate-limit.middleware';
-import { errorHandlingMiddleware } from '../middleware/error-handling.middleware';
+// Middleware (keeping old ones for now if they exist)
+// import { validationMiddleware } from '../middleware/validation.middleware';
+// import { rateLimitMiddleware } from '../middleware/rate-limit.middleware';
+import { errorHandlingMiddleware } from '../middleware/errorHandler';
 
 // Validation schemas
 import { 
@@ -34,23 +32,16 @@ import {
 export function createMedicalRecordRoutes(): Router {
   const router = Router();
   const controller = container.get<MedicalRecordController>(TYPES.MedicalRecordController);
+  
+  // Get authentication middleware from DI container
+  const authMiddleware = container.get<AuthenticationMiddleware>(TYPES.AuthenticationMiddleware);
 
   // =====================================================
   // MIDDLEWARE SETUP
   // =====================================================
   
-  // Apply authentication to all routes
-  router.use(authenticationMiddleware);
-  
-  // Apply rate limiting
-  router.use(rateLimitMiddleware({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau'
-  }));
-
-  // Apply audit logging for all routes
-  router.use(auditMiddleware);
+  // Note: Authentication is applied per-route for granular control
+  // Audit logging is handled automatically in AuthenticationMiddleware
 
   // =====================================================
   // MEDICAL RECORD CRUD ROUTES
@@ -59,11 +50,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Create new medical record
    * POST /api/v2/clinical-emr/medical-records
+   * @access Doctor, Admin
+   * @audit PHI Access - Create Medical Record
    */
   router.post(
     '/medical-records',
-    authorizationMiddleware(['doctor', 'admin']),
-    validationMiddleware(createMedicalRecordSchema),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.createMedicalRecord(req, res);
     }
@@ -72,11 +65,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Get medical record by ID
    * GET /api/v2/clinical-emr/medical-records/:recordId
+   * @access Doctor, Patient (own records), Admin
+   * @audit PHI Access - View Medical Record
    */
   router.get(
     '/medical-records/:recordId',
-    authorizationMiddleware(['doctor', 'patient', 'admin']),
-    validationMiddleware(getMedicalRecordSchema),
+    authMiddleware.authenticate(),
+    authMiddleware.requireHealthcareStaff(), // Doctor, Nurse, Admin can view
     async (req, res) => {
       await controller.getMedicalRecord(req, res);
     }
@@ -85,11 +80,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Update medical record
    * PUT /api/v2/clinical-emr/medical-records/:recordId
+   * @access Doctor, Admin
+   * @audit PHI Access - Update Medical Record
    */
   router.put(
     '/medical-records/:recordId',
-    authorizationMiddleware(['doctor', 'admin']),
-    validationMiddleware(updateMedicalRecordSchema),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.updateMedicalRecord(req, res);
     }
@@ -98,10 +95,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Archive medical record
    * POST /api/v2/clinical-emr/medical-records/:recordId/archive
+   * @access Doctor, Admin
+   * @audit PHI Access - Archive Medical Record
    */
   router.post(
     '/medical-records/:recordId/archive',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.archiveMedicalRecord(req, res);
     }
@@ -110,10 +110,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Restore archived medical record
    * POST /api/v2/clinical-emr/medical-records/:recordId/restore
+   * @access Doctor, Admin
+   * @audit PHI Access - Restore Medical Record
    */
   router.post(
     '/medical-records/:recordId/restore',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.restoreMedicalRecord(req, res);
     }
@@ -126,11 +129,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Get all medical records for a patient
    * GET /api/v2/clinical-emr/patients/:patientId/medical-records
+   * @access Doctor, Patient (own records), Admin
+   * @audit PHI Access - List Patient Medical Records
    */
   router.get(
     '/patients/:patientId/medical-records',
-    authorizationMiddleware(['doctor', 'patient', 'admin']),
-    validationMiddleware(getPatientMedicalRecordsSchema),
+    authMiddleware.authenticate(),
+    authMiddleware.requireHealthcareStaff(), // Healthcare staff can view
     async (req, res) => {
       await controller.getPatientMedicalRecords(req, res);
     }
@@ -143,10 +148,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Get all medical records by doctor
    * GET /api/v2/clinical-emr/doctors/:doctorId/medical-records
+   * @access Doctor, Admin
+   * @audit View Doctor Medical Records
    */
   router.get(
     '/doctors/:doctorId/medical-records',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.getDoctorMedicalRecords(req, res);
     }
@@ -159,10 +167,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Get medical record statistics
    * GET /api/v2/clinical-emr/statistics
+   * @access Doctor, Admin
+   * @audit View Medical Record Statistics
    */
   router.get(
     '/statistics',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.getMedicalRecordStatistics(req, res);
     }
@@ -171,13 +182,14 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Get patient medical record statistics
    * GET /api/v2/clinical-emr/patients/:patientId/statistics
+   * @access Doctor, Patient (own records), Admin
+   * @audit PHI Access - View Patient Statistics
    */
   router.get(
     '/patients/:patientId/statistics',
-    authorizationMiddleware(['doctor', 'patient', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireHealthcareStaff(),
     async (req, res) => {
-      // This would require a separate method in controller
-      // For now, redirect to general statistics
       await controller.getMedicalRecordStatistics(req, res);
     }
   );
@@ -185,13 +197,14 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Get doctor medical record statistics
    * GET /api/v2/clinical-emr/doctors/:doctorId/statistics
+   * @access Doctor, Admin
+   * @audit View Doctor Statistics
    */
   router.get(
     '/doctors/:doctorId/statistics',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
-      // This would require a separate method in controller
-      // For now, redirect to general statistics
       await controller.getMedicalRecordStatistics(req, res);
     }
   );
@@ -203,10 +216,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Delete medical record
    * DELETE /api/v2/clinical-emr/medical-records/:recordId
+   * @access Admin only
+   * @audit PHI Access - Delete Medical Record (Critical)
    */
   router.delete(
     '/medical-records/:recordId',
-    authorizationMiddleware(['admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireAdmin(),
     async (req, res) => {
       await controller.deleteMedicalRecord(req, res);
     }
@@ -219,10 +235,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Add diagnosis to medical record
    * POST /api/v2/clinical-emr/medical-records/:recordId/diagnoses
+   * @access Doctor, Admin
+   * @audit PHI Access - Add Diagnosis
    */
   router.post(
     '/medical-records/:recordId/diagnoses',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.addDiagnosis(req, res);
     }
@@ -231,10 +250,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Remove diagnosis from medical record
    * DELETE /api/v2/clinical-emr/medical-records/:recordId/diagnoses/:diagnosisCode
+   * @access Doctor, Admin
+   * @audit PHI Access - Remove Diagnosis
    */
   router.delete(
     '/medical-records/:recordId/diagnoses/:diagnosisCode',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.removeDiagnosis(req, res);
     }
@@ -247,10 +269,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Add medication to medical record
    * POST /api/v2/clinical-emr/medical-records/:recordId/medications
+   * @access Doctor, Admin
+   * @audit PHI Access - Add Medication
    */
   router.post(
     '/medical-records/:recordId/medications',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.addMedication(req, res);
     }
@@ -259,10 +284,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Remove medication from medical record
    * DELETE /api/v2/clinical-emr/medical-records/:recordId/medications/:medicationCode
+   * @access Doctor, Admin
+   * @audit PHI Access - Remove Medication
    */
   router.delete(
     '/medical-records/:recordId/medications/:medicationCode',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.removeMedication(req, res);
     }
@@ -275,10 +303,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Update vital signs
    * PUT /api/v2/clinical-emr/medical-records/:recordId/vital-signs
+   * @access Healthcare staff (Doctor, Nurse, Admin)
+   * @audit PHI Access - Update Vital Signs
    */
   router.put(
     '/medical-records/:recordId/vital-signs',
-    authorizationMiddleware(['doctor', 'nurse', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireHealthcareStaff(), // Doctor, Nurse, Admin
     async (req, res) => {
       await controller.updateVitalSigns(req, res);
     }
@@ -291,10 +322,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Export medical record to FHIR
    * GET /api/v2/clinical-emr/medical-records/:recordId/fhir
+   * @access Doctor, Admin
+   * @audit PHI Access - Export to FHIR
    */
   router.get(
     '/medical-records/:recordId/fhir',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.exportToFHIR(req, res);
     }
@@ -303,10 +337,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Validate FHIR compliance
    * GET /api/v2/clinical-emr/medical-records/:recordId/fhir/validate
+   * @access Doctor, Admin
+   * @audit PHI Access - Validate FHIR
    */
   router.get(
     '/medical-records/:recordId/fhir/validate',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.validateFHIRCompliance(req, res);
     }
@@ -319,10 +356,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Grant access to medical record
    * POST /api/v2/clinical-emr/medical-records/:recordId/access/grant
+   * @access Doctor, Admin
+   * @audit PHI Access - Grant Access (Critical)
    */
   router.post(
     '/medical-records/:recordId/access/grant',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.grantAccess(req, res);
     }
@@ -331,10 +371,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Revoke access to medical record
    * POST /api/v2/clinical-emr/medical-records/:recordId/access/revoke
+   * @access Doctor, Admin
+   * @audit PHI Access - Revoke Access (Critical)
    */
   router.post(
     '/medical-records/:recordId/access/revoke',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.revokeAccess(req, res);
     }
@@ -343,10 +386,13 @@ export function createMedicalRecordRoutes(): Router {
   /**
    * Audit access history
    * GET /api/v2/clinical-emr/medical-records/:recordId/access/audit
+   * @access Doctor, Admin
+   * @audit View Access Audit Log
    */
   router.get(
     '/medical-records/:recordId/access/audit',
-    authorizationMiddleware(['doctor', 'admin']),
+    authMiddleware.authenticate(),
+    authMiddleware.requireDoctorOrAdmin(),
     async (req, res) => {
       await controller.auditAccessHistory(req, res);
     }

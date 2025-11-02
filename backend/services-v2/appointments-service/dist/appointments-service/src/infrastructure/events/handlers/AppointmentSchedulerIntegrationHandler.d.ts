@@ -36,6 +36,15 @@ export declare class AppointmentScheduledSchedulerHandler implements EventHandle
      */
     private calculateReminderTime;
     /**
+     * Construct Date from appointmentDate (YYYY-MM-DD) and appointmentTime (HH:mm:ss or HH:mm)
+     * Handles both formats: "14:30:00" (from TimeSlot VO) and "14:30" (legacy)
+     */
+    private constructAppointmentDateTime;
+    /**
+     * Map priority to urgency level for reminder policy
+     */
+    private mapPriorityToUrgency;
+    /**
      * Enforce quiet hours: if reminderTime falls within [start, end) local window,
      * shift to the end of quiet hours + 5 minutes.
      * NOTE: For simplicity we use server local time. Replace with timezone-aware logic (e.g., Luxon) if needed.

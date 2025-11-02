@@ -147,13 +147,7 @@ export class GetPatientMedicalRecordsUseCase extends BaseHealthcareUseCase<GetPa
 
     // Map to DTOs
     const recordDtos = filteredRecords.map(record => {
-      const dto = mapMedicalRecordToDto(record);
-      
-      // Filter vital signs if not requested
-      if (!request.includeVitalSigns) {
-        delete dto.vitalSigns;
-      }
-      
+      const dto = mapMedicalRecordToDto(record, request.includeVitalSigns ?? true);
       return dto;
     });
 

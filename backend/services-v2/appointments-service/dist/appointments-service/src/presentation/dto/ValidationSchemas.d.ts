@@ -7,7 +7,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Input Validation, Vietnamese Healthcare Standards
  */
-import Joi from 'joi';
+import Joi from "joi";
 /**
  * Schedule Appointment Request Validation Schema
  */
@@ -20,6 +20,13 @@ export declare const rescheduleAppointmentSchema: Joi.ObjectSchema<any>;
  * Check Availability Request Validation Schema
  */
 export declare const checkAvailabilitySchema: Joi.ObjectSchema<any>;
+/**
+ * V3 API Validation Schemas (Clean Architecture - Only IDs)
+ */
+export declare const confirmAppointmentSchema: Joi.ObjectSchema<any>;
+export declare const cancelAppointmentSchema: Joi.ObjectSchema<any>;
+export declare const getAppointmentSchema: Joi.ObjectSchema<any>;
+export declare const listAppointmentsSchema: Joi.ObjectSchema<any>;
 /**
  * Common validation options
  */

@@ -7,9 +7,9 @@
  * @compliance Clean Architecture, Event-Driven Architecture, HIPAA
  */
 
-import { IDomainEventHandler } from '@shared/domain/events/IDomainEventHandler';
+import { IDomainEventHandler } from '@shared/events/domain-event-handler.interface';
 import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
-import { IMedicalRecordRepository } from '../../domain/repositories/IMedicalRecordRepository';
+import { IMedicalRecordRepository } from '../../../domain/repositories/IMedicalRecordRepository';
 
 // Integration Events
 import { 
@@ -34,10 +34,10 @@ import {
 } from '../integration/NotificationIntegrationEvents';
 
 // Domain Events
-import { MedicalRecordCreatedEvent } from '../../domain/events/MedicalRecordCreatedEvent';
-import { MedicalRecordUpdatedEvent } from '../../domain/events/MedicalRecordUpdatedEvent';
-import { DiagnosisAddedEvent } from '../../domain/events/DiagnosisAddedEvent';
-import { MedicationAddedEvent } from '../../domain/events/MedicationAddedEvent';
+import { MedicalRecordCreatedEvent } from '../../../domain/events/MedicalRecordCreatedEvent';
+import { MedicalRecordUpdatedEvent } from '../../../domain/events/MedicalRecordUpdatedEvent';
+import { DiagnosisAddedEvent } from '../../../domain/events/DiagnosisAddedEvent';
+import { MedicationAddedEvent } from '../../../domain/events/MedicationAddedEvent';
 
 /**
  * Medical Record Created Event Handler
@@ -158,17 +158,28 @@ export class MedicalRecordUpdatedEventHandler implements IDomainEventHandler<Med
         return;
       }
 
+      // Build changes from previousValues and newValues
+      const changes: Record<string, any> = {};
+      if (event.previousValues && event.newValues) {
+        for (const field of event.updatedFields) {
+          changes[field] = {
+            oldValue: event.previousValues[field],
+            newValue: event.newValues[field]
+          };
+        }
+      }
+
       // Check if update affects billing
-      const hasBillingImpact = this.checkBillingImpact(event.changes);
+      const hasBillingImpact = this.checkBillingImpact(changes);
       
       if (hasBillingImpact) {
         const billingUpdateEvent = new MedicalRecordUpdatedForBillingEvent(
           event.recordId,
           event.patientId,
           {
-            statusChange: event.changes.status ? {
-              from: event.changes.status.oldValue,
-              to: event.changes.status.newValue
+            statusChange: changes.status ? {
+              from: changes.status.oldValue,
+              to: changes.status.newValue
             } : undefined
           },
           {
@@ -185,7 +196,7 @@ export class MedicalRecordUpdatedEventHandler implements IDomainEventHandler<Med
       }
 
       // Publish notification for significant updates
-      if (this.isSignificantUpdate(event.changes)) {
+      if (this.isSignificantUpdate(changes)) {
         const notificationEvent = new MedicalRecordNotificationEvent(
           event.recordId,
           event.patientId,
@@ -351,41 +362,41 @@ export class MedicationAddedEventHandler implements IDomainEventHandler<Medicati
         return;
       }
 
-      // Check for drug interactions or allergies
+      // Check for drug interactions or contraindications
       const hasInteractions = medication.interactions && medication.interactions.length > 0;
-      const hasAllergies = medication.allergies && medication.allergies.length > 0;
+      const hasContraindications = medication.contraindications && medication.contraindications.length > 0;
 
-      if (hasInteractions || hasAllergies) {
+      if (hasInteractions || hasContraindications) {
         const criticalAlertEvent = new CriticalAlertNotificationEvent(
           `alert-${event.recordId}-${event.medicationCode}`,
           event.recordId,
           event.patientId,
           event.doctorId,
           {
-            type: hasAllergies ? 'allergy_alert' : 'drug_interaction',
-            severity: hasAllergies ? 'critical' : 'high',
-            description: hasAllergies 
-              ? `Allergy alert for medication: ${medication.name}`
+            type: hasContraindications ? 'allergy_alert' : 'drug_interaction',
+            severity: hasContraindications ? 'critical' : 'high',
+            description: hasContraindications 
+              ? `Contraindication alert for medication: ${medication.name}`
               : `Drug interaction detected for medication: ${medication.name}`,
-            clinicalSignificance: hasAllergies 
-              ? 'Patient has known allergies to this medication'
+            clinicalSignificance: hasContraindications 
+              ? 'Patient has known contraindications to this medication'
               : 'Potential drug interactions detected',
-            recommendedAction: hasAllergies 
+            recommendedAction: hasContraindications 
               ? 'Stop medication immediately and contact physician'
               : 'Review medication interactions and adjust dosage if necessary',
-            timeWindow: hasAllergies ? 5 : 30
+            timeWindow: hasContraindications ? 5 : 30
           },
           {
             relevantMedications: [medication.code],
-            relevantAllergies: medication.allergies
+            relevantAllergies: medication.contraindications || []
           },
           [
             {
               level: 1,
               recipientType: 'attending_doctor',
               recipientId: event.doctorId,
-              contactMethod: hasAllergies ? 'phone_call' : 'sms',
-              timeoutMinutes: hasAllergies ? 2 : 10
+              contactMethod: hasContraindications ? 'phone_call' : 'sms',
+              timeoutMinutes: hasContraindications ? 2 : 10
             }
           ],
           event.prescribedBy,
@@ -401,12 +412,12 @@ export class MedicationAddedEventHandler implements IDomainEventHandler<Medicati
         event.patientId,
         {
           medicationCode: medication.code,
-          medicationName: medication.name,
-          dosage: medication.dosage,
-          frequency: medication.frequency,
-          instructions: medication.instructions,
-          startDate: medication.prescribedDate,
-          endDate: medication.endDate,
+          medicationName: (medication as any).name || medication.toJSON().name,
+          dosage: (medication as any).dosage || medication.toJSON().dosage,
+          frequency: (medication as any).frequency || medication.toJSON().frequency,
+          instructions: (medication as any).instructions || medication.toJSON().instructions,
+          startDate: (medication as any).prescribedDate || medication.toJSON().prescribedDate,
+          endDate: (medication as any).endDate || medication.toJSON().endDate,
           nextDoseTime: this.calculateNextDoseTime(medication),
           missedDoses: 0
         },

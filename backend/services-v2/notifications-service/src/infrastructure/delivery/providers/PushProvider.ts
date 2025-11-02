@@ -16,13 +16,22 @@ interface FirebaseConfig {
   projectId: string;
   privateKey: string;
   clientEmail: string;
+  enabled: boolean;
 }
 
 export class PushProvider implements ChannelProvider {
   private isConfigured: boolean = false;
+  private readonly projectId: string;
 
-  constructor(private readonly config: FirebaseConfig) {
-    this.isConfigured = !!config.projectId;
+  constructor(config: FirebaseConfig) {
+    this.projectId = config.projectId;
+    this.isConfigured = !!config.projectId && config.enabled;
+    
+    if (!this.isConfigured) {
+      console.warn('[PushProvider] ⚠️ Firebase not configured - push notifications disabled');
+    } else {
+      console.log(`[PushProvider] ✅ Firebase configured for project ${this.projectId} (mock mode)`);
+    }
   }
 
   getType(): string {

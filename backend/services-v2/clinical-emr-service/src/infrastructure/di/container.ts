@@ -24,6 +24,17 @@ import { SupabaseMedicalRecordRepository } from '../persistence/SupabaseMedicalR
 import { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
 import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
 import { InMemoryDomainEventPublisher } from '@shared/infrastructure/events/InMemoryDomainEventPublisher';
+import { SupabaseTokenVerifier } from '../services/SupabaseTokenVerifier';
+import { SupabaseAuditLogService } from '../audit/SupabaseAuditLogService';
+import { ILogger } from '@shared/infrastructure/logging/logger.interface';
+import { ConsoleLogger } from '@shared/infrastructure/logging/console-logger';
+
+// Application Services
+import { ITokenVerifier } from '../../application/services/ITokenVerifier';
+import { IAuditLogService } from '../../application/services/IAuditLogService';
+
+// Middleware
+import { AuthenticationMiddleware } from '../../presentation/middleware/AuthenticationMiddleware';
 
 // Configuration
 import { ClinicalEMRConfig } from '../config/clinical-emr-config';
@@ -106,6 +117,39 @@ export function createContainer(): Container {
       return new UpdateMedicalRecordUseCase(repository, eventPublisher);
     })
     .inTransientScope();
+
+  // =====================================================
+  // PHASE 1: AUTHENTICATION & SECURITY
+  // =====================================================
+  
+  // Logger
+  container.bind<ILogger>(TYPES.Logger)
+    .to(ConsoleLogger)
+    .inSingletonScope();
+
+  // Token Verifier
+  container.bind<ITokenVerifier>(TYPES.TokenVerifier)
+    .to(SupabaseTokenVerifier)
+    .inSingletonScope();
+
+  // Audit Log Service
+  container.bind<IAuditLogService>(TYPES.AuditLogService)
+    .toDynamicValue((context) => {
+      const supabaseClient = context.container.get<OptimizedSupabaseClient>(TYPES.SupabaseClient);
+      const logger = context.container.get<ILogger>(TYPES.Logger);
+      return new SupabaseAuditLogService(supabaseClient, logger);
+    })
+    .inSingletonScope();
+
+  // Authentication Middleware
+  container.bind<AuthenticationMiddleware>(TYPES.AuthenticationMiddleware)
+    .toDynamicValue((context) => {
+      const tokenVerifier = context.container.get<ITokenVerifier>(TYPES.TokenVerifier);
+      const auditLogService = context.container.get<IAuditLogService>(TYPES.AuditLogService);
+      const logger = context.container.get<ILogger>(TYPES.Logger);
+      return new AuthenticationMiddleware(tokenVerifier, auditLogService, logger);
+    })
+    .inSingletonScope();
 
   return container;
 }
@@ -204,10 +248,11 @@ export const cleanupContainer = async (): Promise<void> => {
     }
 
     // Cleanup event publisher
-    const eventPublisher = container.get<IDomainEventPublisher>(TYPES.DomainEventPublisher);
-    if (eventPublisher && typeof eventPublisher.cleanup === 'function') {
-      await eventPublisher.cleanup();
-    }
+    // TODO: Add cleanup method to IDomainEventPublisher interface
+    // const eventPublisher = container.get<IDomainEventPublisher>(TYPES.DomainEventPublisher);
+    // if (eventPublisher && typeof eventPublisher.cleanup === 'function') {
+    //   await eventPublisher.cleanup();
+    // }
 
     // Unbind all services
     container.unbindAll();

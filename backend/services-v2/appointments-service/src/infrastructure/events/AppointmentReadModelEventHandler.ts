@@ -29,9 +29,7 @@ export interface AppointmentScheduledEvent {
   status: string;
   roomId?: string;
   departmentId?: string;
-  consultationFee: number;
-  additionalFees?: number;
-  paymentStatus: string;
+  consultationFee: number; // Billing reference only
   reason?: string;
   chiefComplaint?: string;
   symptoms?: string[];
@@ -146,9 +144,7 @@ export class AppointmentReadModelEventHandler {
         status: event.status,
         roomId: event.roomId,
         departmentId: event.departmentId,
-        consultationFee: event.consultationFee,
-        additionalFees: event.additionalFees,
-        paymentStatus: event.paymentStatus,
+        consultationFee: event.consultationFee, // Billing reference only
         patientData,
         doctorData,
         reason: event.reason,
@@ -272,6 +268,63 @@ export class AppointmentReadModelEventHandler {
       console.log(`[ReadModel] Marked appointment as cancelled: ${event.appointmentId}`);
     } catch (error) {
       console.error(`[ReadModel] Failed to handle AppointmentCancelledEvent: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle AppointmentConfirmedEvent
+   * Updates appointment status to confirmed in read model
+   */
+  async handleAppointmentConfirmed(event: {
+    appointmentId: string;
+  }): Promise<void> {
+    try {
+      console.log(`[ReadModel] Processing AppointmentConfirmedEvent: ${event.appointmentId}`);
+
+      await this.readModelRepo.updateStatus(event.appointmentId, 'confirmed');
+
+      console.log(`[ReadModel] Marked appointment as confirmed: ${event.appointmentId}`);
+    } catch (error) {
+      console.error(`[ReadModel] Failed to handle AppointmentConfirmedEvent: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle AppointmentCompletedEvent
+   * Updates appointment status to completed in read model
+   */
+  async handleAppointmentCompleted(event: {
+    appointmentId: string;
+  }): Promise<void> {
+    try {
+      console.log(`[ReadModel] Processing AppointmentCompletedEvent: ${event.appointmentId}`);
+
+      await this.readModelRepo.updateStatus(event.appointmentId, 'completed');
+
+      console.log(`[ReadModel] Marked appointment as completed: ${event.appointmentId}`);
+    } catch (error) {
+      console.error(`[ReadModel] Failed to handle AppointmentCompletedEvent: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle AppointmentNoShowEvent
+   * Updates appointment status to no-show in read model
+   */
+  async handleAppointmentNoShow(event: {
+    appointmentId: string;
+  }): Promise<void> {
+    try {
+      console.log(`[ReadModel] Processing AppointmentNoShowEvent: ${event.appointmentId}`);
+
+      await this.readModelRepo.updateStatus(event.appointmentId, 'no_show');
+
+      console.log(`[ReadModel] Marked appointment as no-show: ${event.appointmentId}`);
+    } catch (error) {
+      console.error(`[ReadModel] Failed to handle AppointmentNoShowEvent: ${error}`);
       throw error;
     }
   }

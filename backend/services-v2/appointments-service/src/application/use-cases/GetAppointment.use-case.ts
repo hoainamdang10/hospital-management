@@ -32,8 +32,7 @@ export interface GetAppointmentResponse {
     symptoms?: string[];
     notes?: string;
     specialInstructions?: string;
-    consultationFee: number;
-    paymentStatus: string;
+    consultationFee: number; // Billing reference only
   };
   errors?: string[];
 }
@@ -83,8 +82,7 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
           symptoms: appointment.details.symptoms,
           notes: appointment.details.notes,
           specialInstructions: appointment.details.specialInstructions,
-          consultationFee: appointment.consultationFee,
-          paymentStatus: appointment.paymentStatus
+          consultationFee: appointment.consultationFee // Billing reference only
         }
       };
     } catch (error) {

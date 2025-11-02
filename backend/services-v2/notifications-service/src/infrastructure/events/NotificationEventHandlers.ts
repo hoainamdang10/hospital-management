@@ -415,12 +415,10 @@ export class NotificationEventHandlers {
         priority: 'NORMAL',
         metadata: {
           correlationId: event.metadata?.correlationId,
+          source: 'BILLING_SERVICE',
           healthcareContext: {
-            patientId,
-            invoiceId,
-            paymentId
-          },
-          source: 'BILLING_SERVICE'
+            patientId
+          }
         }
       });
 
@@ -539,6 +537,346 @@ export class NotificationEventHandlers {
   }
 
   /**
+   * Handle user created event from Identity Service
+   */
+  public async handleUserCreated(event: IntegrationEvent): Promise<void> {
+    try {
+      const { userId, email, firstName, lastName, role } = event.eventData;
+
+      // Send welcome email to new user
+      await this.notificationService.sendNotification({
+        recipientId: userId,
+        recipientType: role === 'PATIENT' ? 'PATIENT' : 'ADMIN',
+        templateType: 'USER_WELCOME',
+        templateData: {
+          userName: `${firstName} ${lastName}`,
+          email: email,
+          role: role,
+          loginUrl: 'https://portal.hospital.com/login',
+          supportEmail: 'support@hospital.com',
+          hospitalName: 'Bệnh viện Đa khoa',
+          contactPhone: '1900-xxxx'
+        },
+        channels: ['EMAIL'],
+        priority: 'NORMAL',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'IDENTITY_SERVICE'
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện user created:', error);
+      throw new Error(`Lỗi xử lý sự kiện user created: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle user activated event from Identity Service
+   */
+  public async handleUserActivated(event: IntegrationEvent): Promise<void> {
+    try {
+      const { userId, email, firstName, lastName } = event.eventData;
+
+      // Send account activation confirmation
+      await this.notificationService.sendNotification({
+        recipientId: userId,
+        recipientType: event.eventData.role === 'PATIENT' ? 'PATIENT' : 'ADMIN',
+        templateType: 'ACCOUNT_ACTIVATED',
+        templateData: {
+          userName: `${firstName} ${lastName}`,
+          email: email,
+          activationDate: new Date().toLocaleDateString('vi-VN'),
+          loginUrl: 'https://portal.hospital.com/login',
+          hospitalName: 'Bệnh viện Đa khoa',
+          supportEmail: 'support@hospital.com'
+        },
+        channels: ['EMAIL', 'SMS'],
+        priority: 'NORMAL',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'IDENTITY_SERVICE'
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện user activated:', error);
+      throw new Error(`Lỗi xử lý sự kiện user activated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle password reset event from Identity Service
+   */
+  public async handlePasswordReset(event: IntegrationEvent): Promise<void> {
+    try {
+      const { userId, email, firstName, lastName, resetToken, resetUrl } = event.eventData;
+
+      // Send password reset confirmation
+      await this.notificationService.sendNotification({
+        recipientId: userId,
+        recipientType: event.eventData.role === 'PATIENT' ? 'PATIENT' : 'ADMIN',
+        templateType: 'PASSWORD_RESET',
+        templateData: {
+          userName: `${firstName} ${lastName}`,
+          email: email,
+          resetUrl: resetUrl || `https://portal.hospital.com/reset-password?token=${resetToken}`,
+          expiryTime: '24 giờ',
+          resetDate: new Date().toLocaleDateString('vi-VN'),
+          supportEmail: 'support@hospital.com',
+          hospitalName: 'Bệnh viện Đa khoa',
+          securityTip: 'Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này và liên hệ với chúng tôi ngay.'
+        },
+        channels: ['EMAIL'],
+        priority: 'HIGH',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'IDENTITY_SERVICE'
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện password reset:', error);
+      throw new Error(`Lỗi xử lý sự kiện password reset: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle user role changed event from Identity Service
+   */
+  public async handleUserRoleChanged(event: IntegrationEvent): Promise<void> {
+    try {
+      const { userId, email, firstName, lastName, oldRole, newRole } = event.eventData;
+
+      // Send role change notification
+      await this.notificationService.sendNotification({
+        recipientId: userId,
+        recipientType: newRole === 'PATIENT' ? 'PATIENT' : 'ADMIN',
+        templateType: 'ROLE_CHANGED',
+        templateData: {
+          userName: `${firstName} ${lastName}`,
+          email: email,
+          oldRole: oldRole,
+          newRole: newRole,
+          changeDate: new Date().toLocaleDateString('vi-VN'),
+          hospitalName: 'Bệnh viện Đa khoa',
+          supportEmail: 'support@hospital.com',
+          loginUrl: 'https://portal.hospital.com/login'
+        },
+        channels: ['EMAIL'],
+        priority: 'NORMAL',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'IDENTITY_SERVICE'
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện user role changed:', error);
+      throw new Error(`Lỗi xử lý sự kiện user role changed: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle staff invitation created event from Identity Service
+   */
+  public async handleStaffInvitationCreated(event: IntegrationEvent): Promise<void> {
+    try {
+      const { invitationId, email, firstName, lastName, role, invitationToken, invitationUrl, expiresAt } = event.eventData;
+
+      // Send staff invitation email
+      await this.notificationService.sendNotification({
+        recipientId: invitationId,
+        recipientType: 'ADMIN',
+        templateType: 'STAFF_INVITATION',
+        templateData: {
+          staffName: `${firstName} ${lastName}`,
+          email: email,
+          role: role,
+          invitationUrl: invitationUrl || `https://portal.hospital.com/accept-invitation?token=${invitationToken}`,
+          expiryDate: expiresAt ? new Date(expiresAt).toLocaleDateString('vi-VN') : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN'),
+          hospitalName: 'Bệnh viện Đa khoa',
+          contactEmail: 'hr@hospital.com',
+          contactPhone: '1900-xxxx'
+        },
+        channels: ['EMAIL'],
+        priority: 'HIGH',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'IDENTITY_SERVICE'
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện staff invitation created:', error);
+      throw new Error(`Lỗi xử lý sự kiện staff invitation created: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle patient registered event from Patient Registry Service
+   */
+  public async handlePatientRegistered(event: IntegrationEvent): Promise<void> {
+    try {
+      const { patientId, personalInfo, contactInfo } = event.eventData;
+      const { firstName, lastName } = personalInfo || {};
+      const { email, phoneNumber } = contactInfo || {};
+
+      // Send welcome email to new patient
+      await this.notificationService.sendNotification({
+        recipientId: patientId,
+        recipientType: 'PATIENT',
+        templateType: 'PATIENT_WELCOME',
+        templateData: {
+          patientName: `${firstName} ${lastName}`,
+          email: email,
+          phoneNumber: phoneNumber,
+          patientId: patientId,
+          loginUrl: 'https://portal.hospital.com/patient/login',
+          bookingUrl: 'https://booking.hospital.com',
+          mobileAppUrl: 'https://app.hospital.com',
+          hospitalName: 'Bệnh viện Đa khoa',
+          contactPhone: '1900-xxxx',
+          emergencyPhone: '115'
+        },
+        channels: ['EMAIL', 'SMS'],
+        priority: 'NORMAL',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'PATIENT_REGISTRY_SERVICE',
+          healthcareContext: {
+            patientId
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện patient registered:', error);
+      throw new Error(`Lỗi xử lý sự kiện patient registered: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle patient updated event from Patient Registry Service
+   */
+  public async handlePatientUpdated(event: IntegrationEvent): Promise<void> {
+    try {
+      const { patientId, personalInfo, updateType } = event.eventData;
+      const { firstName, lastName } = personalInfo || {};
+
+      // Only send notification for significant updates
+      if (updateType === 'CONTACT_INFO' || updateType === 'EMERGENCY_CONTACT') {
+        await this.notificationService.sendNotification({
+          recipientId: patientId,
+          recipientType: 'PATIENT',
+          templateType: 'PATIENT_UPDATED',
+          templateData: {
+            patientName: `${firstName} ${lastName}`,
+            updateType: updateType === 'CONTACT_INFO' ? 'Thông tin liên hệ' : 'Người liên hệ khẩn cấp',
+            updateDate: new Date().toLocaleDateString('vi-VN'),
+            portalUrl: 'https://portal.hospital.com/patient/profile',
+            hospitalName: 'Bệnh viện Đa khoa',
+            supportEmail: 'support@hospital.com'
+          },
+          channels: ['EMAIL'],
+          priority: 'NORMAL',
+          metadata: {
+            correlationId: event.metadata?.correlationId,
+            source: 'PATIENT_REGISTRY_SERVICE',
+            healthcareContext: {
+              patientId
+            }
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện patient updated:', error);
+      throw new Error(`Lỗi xử lý sự kiện patient updated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle patient deactivated event from Patient Registry Service
+   */
+  public async handlePatientDeactivated(event: IntegrationEvent): Promise<void> {
+    try {
+      const { patientId, personalInfo, reason } = event.eventData;
+      const { firstName, lastName } = personalInfo || {};
+
+      // Send account deactivation notification
+      await this.notificationService.sendNotification({
+        recipientId: patientId,
+        recipientType: 'PATIENT',
+        templateType: 'PATIENT_DEACTIVATED',
+        templateData: {
+          patientName: `${firstName} ${lastName}`,
+          reason: reason || 'Theo yêu cầu của bệnh nhân',
+          deactivationDate: new Date().toLocaleDateString('vi-VN'),
+          reactivationUrl: 'https://portal.hospital.com/patient/reactivate',
+          dataRetentionPeriod: '90 ngày',
+          hospitalName: 'Bệnh viện Đa khoa',
+          supportEmail: 'support@hospital.com',
+          contactPhone: '1900-xxxx'
+        },
+        channels: ['EMAIL'],
+        priority: 'HIGH',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'PATIENT_REGISTRY_SERVICE',
+          healthcareContext: {
+            patientId
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện patient deactivated:', error);
+      throw new Error(`Lỗi xử lý sự kiện patient deactivated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
+   * Handle patient consent granted event from Patient Registry Service
+   */
+  public async handlePatientConsentGranted(event: IntegrationEvent): Promise<void> {
+    try {
+      const { patientId, personalInfo, consentType, consentDetails } = event.eventData;
+      const { firstName, lastName } = personalInfo || {};
+
+      // Send consent confirmation
+      await this.notificationService.sendNotification({
+        recipientId: patientId,
+        recipientType: 'PATIENT',
+        templateType: 'CONSENT_GRANTED',
+        templateData: {
+          patientName: `${firstName} ${lastName}`,
+          consentType: consentType || 'Đồng ý sử dụng thông tin',
+          consentDetails: consentDetails || 'Đồng ý cho phép bệnh viện sử dụng thông tin y tế',
+          consentDate: new Date().toLocaleDateString('vi-VN'),
+          revokeUrl: 'https://portal.hospital.com/patient/consents',
+          privacyPolicyUrl: 'https://hospital.com/privacy-policy',
+          hospitalName: 'Bệnh viện Đa khoa',
+          supportEmail: 'privacy@hospital.com'
+        },
+        channels: ['EMAIL'],
+        priority: 'NORMAL',
+        metadata: {
+          correlationId: event.metadata?.correlationId,
+          source: 'PATIENT_REGISTRY_SERVICE',
+          healthcareContext: {
+            patientId
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý sự kiện patient consent granted:', error);
+      throw new Error(`Lỗi xử lý sự kiện patient consent granted: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+    }
+  }
+
+  /**
    * Generic event handler dispatcher
    */
   public async handleEvent(event: IntegrationEvent | ScheduleRunDueEvent): Promise<void> {
@@ -558,6 +896,7 @@ export class NotificationEventHandlers {
       const integrationEvent = event as IntegrationEvent;
 
       switch (integrationEvent.eventType) {
+        // Appointments Service Events
         case 'AppointmentScheduled':
           await this.handleAppointmentScheduled(integrationEvent);
           break;
@@ -566,16 +905,9 @@ export class NotificationEventHandlers {
           await this.handleAppointmentCancelled(integrationEvent);
           break;
 
+        // Clinical EMR Service Events
         case 'MedicalRecordUpdated':
           await this.handleMedicalRecordUpdated(integrationEvent);
-          break;
-
-        case 'InvoiceGenerated':
-          await this.handleInvoiceGenerated(integrationEvent);
-          break;
-
-        case 'PaymentCompleted':
-          await this.handlePaymentCompleted(integrationEvent);
           break;
 
         case 'EmergencyAlert':
@@ -584,6 +916,53 @@ export class NotificationEventHandlers {
 
         case 'MedicationReminder':
           await this.handleMedicationReminder(integrationEvent);
+          break;
+
+        // Billing Service Events
+        case 'InvoiceGenerated':
+          await this.handleInvoiceGenerated(integrationEvent);
+          break;
+
+        case 'PaymentCompleted':
+          await this.handlePaymentCompleted(integrationEvent);
+          break;
+
+        // Identity Service Events - NEW
+        case 'UserCreated':
+          await this.handleUserCreated(integrationEvent);
+          break;
+
+        case 'UserActivated':
+          await this.handleUserActivated(integrationEvent);
+          break;
+
+        case 'PasswordReset':
+          await this.handlePasswordReset(integrationEvent);
+          break;
+
+        case 'UserRoleChanged':
+          await this.handleUserRoleChanged(integrationEvent);
+          break;
+
+        case 'StaffInvitationCreated':
+          await this.handleStaffInvitationCreated(integrationEvent);
+          break;
+
+        // Patient Registry Service Events - NEW
+        case 'PatientRegistered':
+          await this.handlePatientRegistered(integrationEvent);
+          break;
+
+        case 'PatientUpdated':
+          await this.handlePatientUpdated(integrationEvent);
+          break;
+
+        case 'PatientDeactivated':
+          await this.handlePatientDeactivated(integrationEvent);
+          break;
+
+        case 'PatientConsentGranted':
+          await this.handlePatientConsentGranted(integrationEvent);
           break;
 
         default:

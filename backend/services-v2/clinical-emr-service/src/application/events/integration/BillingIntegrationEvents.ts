@@ -307,8 +307,10 @@ export class InsuranceVerificationRequiredEvent extends IntegrationEvent {
     })();
     
     super(
-      'clinical-emr.insurance.verification-required',
+      'insurance.verification-required',
+      'clinical-emr',
       `${recordId}-${insuranceInfo.number}`,
+      'insurance-verification',
       {
         recordId,
         patientId,
@@ -389,6 +391,27 @@ export class InsuranceVerificationRequiredEvent extends IntegrationEvent {
       default: return 24;
     }
   }
+
+  getEventData(): Record<string, any> {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      insuranceInfo: this.insuranceInfo,
+      verificationReason: this.verificationReason,
+      estimatedCost: this.estimatedCost,
+      urgency: this.urgency,
+      requestedBy: this.requestedBy,
+      requestedAt: this.requestedAt.toISOString(),
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
+  }
 }
 
 /**
@@ -438,8 +461,10 @@ export class PaymentRequiredEvent extends IntegrationEvent {
     })();
     
     super(
-      'clinical-emr.payment.required',
+      'payment.required',
+      'clinical-emr',
       `${recordId}-payment`,
+      'payment',
       {
         recordId,
         patientId,
@@ -526,5 +551,28 @@ export class PaymentRequiredEvent extends IntegrationEvent {
     });
     
     return breakdown;
+  }
+
+  getEventData(): Record<string, any> {
+    return {
+      recordId: this.recordId,
+      patientId: this.patientId,
+      paymentInfo: {
+        ...this.paymentInfo,
+        dueDate: this.paymentInfo.dueDate.toISOString(),
+      },
+      itemizedCharges: this.itemizedCharges,
+      priority: this.priority,
+      generatedBy: this.generatedBy,
+      generatedAt: this.generatedAt.toISOString(),
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId;
   }
 }

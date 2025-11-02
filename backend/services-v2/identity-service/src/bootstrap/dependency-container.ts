@@ -49,6 +49,7 @@ import { SupabaseMFAService } from '../infrastructure/services/SupabaseMFAServic
 // Middleware
 import { AuthenticationMiddleware } from '../presentation/middleware/AuthenticationMiddleware';
 import { PermissionMiddleware } from '../presentation/middleware/PermissionMiddleware';
+import { createInternalServiceAuthMiddleware } from '../presentation/middleware/InternalServiceAuthMiddleware';
 
 // Use Cases - Auth
 import { AuthenticateUserUseCase } from '../application/use-cases/AuthenticateUserUseCase';
@@ -110,6 +111,7 @@ import { CheckRolesUseCase } from '../application/use-cases/CheckRolesUseCase';
 // Use Cases - Account Management
 import { ActivateUserUseCase } from '../application/use-cases/ActivateUserUseCase';
 import { DeactivateUserUseCase } from '../application/use-cases/DeactivateUserUseCase';
+import { instrumentUseCaseWithMetrics } from '../application/decorators/WithMetrics';
 
 // Event Consumer
 import { InboxService } from '../infrastructure/inbox/InboxService';
@@ -158,6 +160,7 @@ export class DependencyContainer {
   // Middleware
   private authMiddleware!: AuthenticationMiddleware;
   private permissionMiddleware!: PermissionMiddleware;
+  private internalServiceAuthMiddleware!: ReturnType<typeof createInternalServiceAuthMiddleware>;
 
   // Use Cases - Auth
   private authenticateUserUseCase!: AuthenticateUserUseCase;
@@ -314,7 +317,7 @@ export class DependencyContainer {
     }
 
     // Permission cache
-    this.permissionCache = new PermissionCache(this.config.redisUrl);
+    this.permissionCache = new PermissionCache(this.config.redisUrl, this.logger);
     try {
       await this.permissionCache.connect();
       this.logger.info('Permission cache connected successfully');
@@ -322,6 +325,9 @@ export class DependencyContainer {
       this.logger.error('Failed to connect permission cache', { error });
       this.logger.warn('Continuing without permission caching');
     }
+
+    // Set logger for CircuitBreakerFactory
+    CircuitBreakerFactory.setLogger(this.logger);
 
     // Event publisher (RabbitMQ)
     this.eventPublisher = new RabbitMQEventPublisher(
@@ -476,6 +482,16 @@ export class DependencyContainer {
 
     this.permissionMiddleware = new PermissionMiddleware(
       this.permissionService,
+      this.logger
+    );
+
+    this.internalServiceAuthMiddleware = createInternalServiceAuthMiddleware(
+      {
+        enabled: this.config.internalAuthEnabled,
+        tokens: this.config.internalServiceTokens,
+        headerName: this.config.internalAuthHeaderName,
+        allowedIPs: this.config.internalAuthAllowedIPs
+      },
       this.logger
     );
 
@@ -740,8 +756,10 @@ export class DependencyContainer {
       this.passwordPolicyRepository,
       this.recoveryHistoryRepository,
       this.sessionRepository,
+      this.userRepository,
       this.logger,
-      CircuitBreakerFactory.getBreaker('reset-password-with-token-use-case')
+      CircuitBreakerFactory.getBreaker('reset-password-with-token-use-case'),
+      this.eventPublisher
     );
 
     this.getRecoveryHistoryUseCase = new GetRecoveryHistoryUseCase(
@@ -784,7 +802,65 @@ export class DependencyContainer {
       CircuitBreakerFactory.getBreaker('deactivate-user-use-case')
     );
 
+    this.instrumentUseCasesWithMetrics();
     this.logger.debug('Use cases initialized');
+  }
+
+  private instrumentUseCasesWithMetrics(): void {
+    const useCaseEntries: Array<[string, { execute(request: unknown): Promise<unknown> }]> = [
+      ['AuthenticateUserUseCase', this.authenticateUserUseCase],
+      ['RegisterUserUseCase', this.registerUserUseCase],
+      ['ForgotPasswordUseCase', this.forgotPasswordUseCase],
+      ['ResetPasswordUseCase', this.resetPasswordUseCase],
+      ['VerifyEmailUseCase', this.verifyEmailUseCase],
+      ['ResendVerificationEmailUseCase', this.resendVerificationEmailUseCase],
+      ['LogoutUserUseCase', this.logoutUserUseCase],
+      ['RefreshTokenUseCase', this.refreshTokenUseCase],
+      ['EnableMFAUseCase', this.enableMFAUseCase],
+      ['VerifyMFAUseCase', this.verifyMFAUseCase],
+      ['DisableMFAUseCase', this.disableMFAUseCase],
+      ['GetUserUseCase', this.getUserUseCase],
+      ['UpdateUserUseCase', this.updateUserUseCase],
+      ['DeleteUserUseCase', this.deleteUserUseCase],
+      ['ListUsersUseCase', this.listUsersUseCase],
+      ['ChangePasswordUseCase', this.changePasswordUseCase],
+      ['LockAccountUseCase', this.lockAccountUseCase],
+      ['UnlockAccountUseCase', this.unlockAccountUseCase],
+      ['AssignRoleUseCase', this.assignRoleUseCase],
+      ['ProvisionStaffUseCase', this.provisionStaffUseCase],
+      ['AcceptStaffInvitationUseCase', this.acceptStaffInvitationUseCase],
+      ['ListStaffInvitationsUseCase', this.listStaffInvitationsUseCase],
+      ['GetStaffInvitationUseCase', this.getStaffInvitationUseCase],
+      ['CancelStaffInvitationUseCase', this.cancelStaffInvitationUseCase],
+      ['ResendStaffInvitationUseCase', this.resendStaffInvitationUseCase],
+      ['ListActiveSessionsUseCase', this.listActiveSessionsUseCase],
+      ['TerminateSessionUseCase', this.terminateSessionUseCase],
+      ['TerminateAllSessionsUseCase', this.terminateAllSessionsUseCase],
+      ['GetPasswordPolicyUseCase', this.getPasswordPolicyUseCase],
+      ['UpdatePasswordPolicyUseCase', this.updatePasswordPolicyUseCase],
+      ['ValidatePasswordUseCase', this.validatePasswordUseCase],
+      ['GetRecoveryMethodsUseCase', this.getRecoveryMethodsUseCase],
+      ['UpdateRecoveryMethodsUseCase', this.updateRecoveryMethodsUseCase],
+      ['RequestPasswordResetUseCase', this.requestPasswordResetUseCase],
+      ['VerifyResetTokenUseCase', this.verifyResetTokenUseCase],
+      ['ResetPasswordWithTokenUseCase', this.resetPasswordWithTokenUseCase],
+      ['GetRecoveryHistoryUseCase', this.getRecoveryHistoryUseCase],
+      ['CheckPermissionUseCase', this.checkPermissionUseCase],
+      ['CheckPermissionsUseCase', this.checkPermissionsUseCase],
+      ['CheckRoleUseCase', this.checkRoleUseCase],
+      ['CheckRolesUseCase', this.checkRolesUseCase],
+      ['ActivateUserUseCase', this.activateUserUseCase],
+      ['DeactivateUserUseCase', this.deactivateUserUseCase]
+    ];
+
+    for (const [name, useCase] of useCaseEntries) {
+      if (!useCase || typeof useCase.execute !== 'function') {
+        this.logger.warn('Use case not available for metrics instrumentation', { useCase: name });
+        continue;
+      }
+
+      instrumentUseCaseWithMetrics(useCase, name, this.logger);
+    }
   }
 
   /**
@@ -871,6 +947,10 @@ export class DependencyContainer {
             'staff.onboarded',
             // PHASE 3 routing keys
             'notification.spam_detected',
+            'payment.processed',
+            'billing.dispute_filed',
+            'payment.refunded',
+            'insurance.claim_rejected',
             // PHASE 4 routing keys
             'patient.deceased'
           ]
@@ -999,6 +1079,7 @@ export class DependencyContainer {
       // Middleware
       authMiddleware: this.authMiddleware,
       permissionMiddleware: this.permissionMiddleware,
+      internalServiceAuthMiddleware: this.internalServiceAuthMiddleware,
 
       // Auth Use Cases
       authenticateUserUseCase: this.authenticateUserUseCase,

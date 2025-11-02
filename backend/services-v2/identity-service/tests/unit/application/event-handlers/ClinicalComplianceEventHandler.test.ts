@@ -11,14 +11,13 @@ import { ClinicalComplianceEventHandler } from '@application/event-handlers/Clin
 import { LockAccountUseCase } from '@application/use-cases/LockAccountUseCase';
 import { TerminateAllSessionsUseCase } from '@application/use-cases/TerminateAllSessionsUseCase';
 import { InboxService } from '@infrastructure/inbox/InboxService';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('ClinicalComplianceEventHandler', () => {
   let handler: ClinicalComplianceEventHandler;
   let mockLockAccountUseCase: jest.Mocked<LockAccountUseCase>;
   let mockTerminateAllSessionsUseCase: jest.Mocked<TerminateAllSessionsUseCase>;
   let mockInboxService: jest.Mocked<InboxService>;
-  let mockSupabaseClient: jest.Mocked<SupabaseClient>;
+  let mockSupabaseClient: any;
   let mockLogger: any;
 
   beforeEach(() => {
@@ -80,15 +79,10 @@ describe('ClinicalComplianceEventHandler', () => {
         status: 'PENDING'
       });
 
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { user_id: 'user-123' },
-        error: null
-      });
-
       await handler.handleMedicalRecordFlagged(mockEvent);
 
       expect(mockLockAccountUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-123',
+        userId: 'provider-789',
         lockedBy: 'SYSTEM_AUTO',
         reason: expect.stringContaining('Medical record violation'),
         terminateSessions: true
@@ -98,17 +92,12 @@ describe('ClinicalComplianceEventHandler', () => {
     });
 
     it('should lock account for HIGH severity', async () => {
-      const highSeverityEvent = { ...mockEvent, severity: 'HIGH' };
+      const highSeverityEvent = { ...mockEvent, severity: 'HIGH' as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' };
       mockInboxService.checkProcessed.mockResolvedValue(false);
       mockInboxService.storeEvent.mockResolvedValue({
         isNew: true,
         inboxId: 'inbox-2',
         status: 'PENDING'
-      });
-
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { user_id: 'user-123' },
-        error: null
       });
 
       await handler.handleMedicalRecordFlagged(highSeverityEvent);
@@ -118,17 +107,12 @@ describe('ClinicalComplianceEventHandler', () => {
     });
 
     it('should not lock account for MEDIUM severity', async () => {
-      const mediumSeverityEvent = { ...mockEvent, severity: 'MEDIUM' };
+      const mediumSeverityEvent = { ...mockEvent, severity: 'MEDIUM' as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' };
       mockInboxService.checkProcessed.mockResolvedValue(false);
       mockInboxService.storeEvent.mockResolvedValue({
         isNew: true,
         inboxId: 'inbox-3',
         status: 'PENDING'
-      });
-
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { user_id: 'user-123' },
-        error: null
       });
 
       await handler.handleMedicalRecordFlagged(mediumSeverityEvent);
@@ -165,7 +149,7 @@ describe('ClinicalComplianceEventHandler', () => {
       drugName: 'Oxycodone',
       drugClass: 'CONTROLLED_SUBSTANCE',
       abusePattern: 'Excessive prescribing',
-      severity: 'CRITICAL',
+      severity: 'CRITICAL' as 'CRITICAL' | 'HIGH',
       occurredAt: new Date('2025-01-01T10:00:00Z')
     };
 

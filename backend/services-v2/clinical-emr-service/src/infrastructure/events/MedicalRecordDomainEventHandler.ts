@@ -25,7 +25,7 @@ export interface MedicalRecordDomainEventHandlerConfig {
  * Domain Event Handler for Medical Record Events
  * Follows pattern from SchedulingEventHandler
  */
-export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEvent> {
+export class MedicalRecordDomainEventHandler implements IEventHandler {
   private readonly logger: ILogger;
   private readonly auditService: IAuditService;
   private readonly eventBus: IEventBus;
@@ -34,6 +34,13 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
     this.logger = config.logger;
     this.auditService = config.auditService;
     this.eventBus = config.eventBus;
+  }
+
+  /**
+   * Get event type this handler handles
+   */
+  getEventType(): string {
+    return 'MedicalRecordDomain';
   }
 
   /**
@@ -85,8 +92,9 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
       });
 
       // 1. HIPAA Audit Logging
-      await this.auditService.logMedicalRecordAccess(
+      await this.auditService.logAction(
         'CREATE',
+        'MedicalRecord',
         event.recordId,
         event.createdBy,
         'Medical record created',
@@ -114,8 +122,7 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
           visitDate: event.visitDate,
           symptoms: event.symptoms,
           diagnosis: event.diagnosis,
-          createdBy: event.createdBy,
-          createdAt: event.createdAt
+          createdBy: event.createdBy
         },
         metadata: {
           priority: 'high',
@@ -128,7 +135,7 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
         }
       };
 
-      await this.eventBus.publish(integrationEvent);
+      await this.eventBus.publish(integrationEvent as any);
 
       // 3. Trigger follow-up actions if needed
       if (event.appointmentId) {
@@ -178,8 +185,9 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
       });
 
       // 1. HIPAA Audit Logging
-      await this.auditService.logMedicalRecordAccess(
+      await this.auditService.logAction(
         'UPDATE',
+        'MedicalRecord',
         event.recordId,
         event.updatedBy,
         'Medical record updated',
@@ -208,7 +216,6 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
           previousValues: event.previousValues,
           newValues: event.newValues,
           updatedBy: event.updatedBy,
-          updatedAt: event.updatedAt,
           updateReason: event.updateReason
         },
         metadata: {
@@ -222,7 +229,7 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
         }
       };
 
-      await this.eventBus.publish(integrationEvent);
+      await this.eventBus.publish(integrationEvent as any);
 
       // 3. Check for critical updates that need immediate attention
       const criticalFields = ['diagnosis', 'medications', 'status'];
@@ -249,7 +256,7 @@ export class MedicalRecordDomainEventHandler implements IEventHandler<DomainEven
           }
         };
 
-        await this.eventBus.publish(criticalUpdateEvent);
+        await this.eventBus.publish(criticalUpdateEvent as any);
       }
 
       this.logger.info('MedicalRecordUpdated event processed successfully', {

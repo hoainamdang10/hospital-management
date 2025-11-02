@@ -33,6 +33,7 @@ export interface ReminderSchedule {
   channels: ReminderChannel[];
   scheduledFor: Date;
   status: ReminderStatus;
+  window: string; // e.g., "24h", "2h", "30min"
 }
 
 export interface SendReminderRequest {
@@ -56,19 +57,35 @@ export interface SendReminderResponse {
 }
 
 /**
+ * Custom reminder window configuration
+ */
+export interface CustomReminderWindow {
+  window: string; // e.g., "24h", "2h", "30m"
+  channels: ReminderChannel[];
+}
+
+/**
  * Reminder Service Interface
  * Handles scheduling and sending appointment reminders
  */
 export interface IReminderService {
   /**
    * Schedule reminders for an appointment
-   * Creates reminder tasks for 24h, 2h, and 30min before appointment
+   * Creates reminder tasks for 24h, 2h, and 30min before appointment (default)
+   * or uses custom windows if provided
+   * 
+   * @param appointmentId - Appointment ID
+   * @param patientId - Patient ID
+   * @param appointmentDateTime - Appointment date and time
+   * @param priority - Appointment priority
+   * @param customWindows - Optional custom reminder windows (overrides default policy)
    */
   scheduleReminders(
     appointmentId: string,
     patientId: string,
     appointmentDateTime: Date,
-    priority: string
+    priority: string,
+    customWindows?: CustomReminderWindow[]
   ): Promise<ReminderSchedule[]>;
 
   /**

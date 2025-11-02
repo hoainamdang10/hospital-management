@@ -15,6 +15,7 @@ import {
   FindAlternativeSlotsResponse,
   TimeSlotSuggestion,
 } from '../../application/services/IConflictResolutionService';
+import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
 
 /**
  * Business Hours Configuration
@@ -30,17 +31,30 @@ const BUSINESS_HOURS = {
  * Conflict Resolution Service Implementation
  */
 export class ConflictResolutionService implements IConflictResolutionService {
+  constructor(
+    private readonly appointmentRepository: IAppointmentRepository
+  ) {}
+
   /**
    * Check for scheduling conflicts
    */
   async checkConflicts(
     request: ConflictCheckRequest
   ): Promise<ConflictCheckResponse> {
-    // TODO: Query repository for conflicting appointments
-    const conflicts: ConflictInfo[] = [];
+    const conflictCheck = await this.appointmentRepository.checkConflicts(
+      request.doctorId,
+      request.startTime,
+      request.endTime,
+      request.excludeAppointmentId
+    );
 
-    // Simulate conflict check (replace with actual repository call)
-    console.log(`[ConflictResolution] Checking conflicts for doctor ${request.doctorId}`);
+    const conflicts: ConflictInfo[] = conflictCheck.conflicts.map(conflict => ({
+      appointmentId: conflict.appointmentId,
+      startTime: conflict.startTime,
+      endTime: conflict.endTime,
+      patientName: 'Bệnh nhân khác',
+      reason: conflict.reason,
+    }));
 
     const hasConflicts = conflicts.length > 0;
 
@@ -175,11 +189,25 @@ export class ConflictResolutionService implements IConflictResolutionService {
   ): Promise<TimeSlotSuggestion[]> {
     const suggestions: TimeSlotSuggestion[] = [];
 
-    // TODO: Query repository for doctors in same department
-    // For now, return empty array
-    console.log(
-      `[ConflictResolution] Suggesting alternative doctors in department ${departmentId}`
-    );
+    try {
+      // In production, this would query the provider-staff-service or read model
+      // to get doctors in the same department. For now, we implement basic logic:
+      
+      // Search for available slots with other doctors
+      // This would integrate with Provider Service or read from local read model
+      console.log(
+        `[ConflictResolution] Searching alternative doctors in department ${departmentId} ` +
+        `for ${preferredTime.toISOString()}`
+      );
+
+      // Implementation note: This should call Provider Service API or query local read model
+      // For now, returning empty array but with proper structure
+      // In production: await providerService.getDoctorsByDepartment(departmentId)
+      // Then check availability for each doctor
+      
+    } catch (error) {
+      console.error('[ConflictResolution] Error finding alternative doctors:', error);
+    }
 
     return suggestions;
   }
@@ -275,9 +303,21 @@ export class ConflictResolutionService implements IConflictResolutionService {
     startTime: Date,
     endTime: Date
   ): Promise<boolean> {
-    // TODO: Query repository for conflicting appointments
-    // For now, assume available
-    return true;
+    try {
+      // Check repository for conflicting appointments
+      const conflictCheck = await this.appointmentRepository.checkConflicts(
+        doctorId,
+        startTime,
+        endTime
+      );
+
+      // Slot is available if no conflicts found
+      return conflictCheck.conflicts.length === 0;
+    } catch (error) {
+      console.error('[ConflictResolution] Error checking slot availability:', error);
+      // In case of error, assume slot is NOT available (conservative approach)
+      return false;
+    }
   }
 
   /**

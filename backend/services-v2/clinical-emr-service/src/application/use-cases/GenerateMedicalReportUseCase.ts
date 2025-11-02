@@ -378,7 +378,7 @@ export class GenerateMedicalReportUseCase extends BaseHealthcareUseCase<Generate
 
     // Include access log if requested and authorized
     if (request.includeAccessLog === true) {
-      report.administrativeInformation.accessLog = medicalRecord.accessLog;
+      (report.administrativeInformation as any).accessLog = medicalRecord.accessLog;
     }
 
     return this.formatReport(report, request.format);
@@ -476,12 +476,12 @@ export class GenerateMedicalReportUseCase extends BaseHealthcareUseCase<Generate
         name: m.name,
         genericName: m.genericName,
         strength: m.strength,
-        dosageForm: m.dosageForm,
-        dosage: m.dosage,
-        frequency: m.frequency,
-        duration: m.duration,
-        instructions: m.instructions,
-        specialInstructions: m.specialInstructions,
+        dosageForm: (m as any).dosageForm || m.toJSON().dosageForm,
+        dosage: (m as any).dosage || m.toJSON().dosage,
+        frequency: (m as any).frequency || m.toJSON().frequency,
+        duration: (m as any).duration || m.toJSON().duration,
+        instructions: (m as any).instructions || m.toJSON().instructions,
+        specialInstructions: (m as any).specialInstructions || m.toJSON().specialInstructions,
         vietnameseSummary: m.getVietnameseSummary()
       })),
 

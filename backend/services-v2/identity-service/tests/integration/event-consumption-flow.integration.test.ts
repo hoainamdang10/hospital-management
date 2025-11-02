@@ -117,19 +117,10 @@ describe('Event Consumption Flow Integration Tests', () => {
 
       expect(error).toBeNull();
       expect(data).toHaveLength(1);
-      expect(data[0].status).toBe('PROCESSED');
+      expect(data![0].status).toBe('PROCESSED');
     });
 
     it('should mark event as failed on processing error', async () => {
-      const testEvent = {
-        eventId: 'test-evt-003',
-        staffId: 'test-staff-003',
-        credentialNumber: 'TEST-CRED-003',
-        credentialType: 'MEDICAL_LICENSE',
-        issuingAuthority: 'Test Authority',
-        verifiedAt: new Date()
-      };
-
       // Mock use case to throw error
       lockAccountUseCase.execute = jest.fn().mockRejectedValue(new Error('Test error'));
 
@@ -170,7 +161,7 @@ describe('Event Consumption Flow Integration Tests', () => {
       expect(error).toBeNull();
       expect(data).toBeDefined();
       expect(data.status).toBe('FAILED');
-      expect(data.error_message).toContain('Test error');
+      expect(data.processing_error).toContain('Test error');
     });
   });
 
@@ -198,7 +189,17 @@ describe('Event Consumption Flow Integration Tests', () => {
       expect(data.aggregate_type).toBe('Staff');
       expect(data.source_service).toBe('provider-staff-service');
       expect(data.routing_key).toBe('staff.credential_verified');
-      expect(data.payload_json).toMatchObject(testEvent);
+      
+      // Date objects are serialized to ISO strings in JSON
+      // Compare with ISO string instead of Date object
+      expect(data.payload_json).toMatchObject({
+        eventId: 'test-evt-004',
+        staffId: 'test-staff-004',
+        credentialNumber: 'TEST-CRED-004',
+        credentialType: 'MEDICAL_LICENSE',
+        issuingAuthority: 'Test Authority',
+        verifiedAt: '2025-01-01T10:00:00.000Z'
+      });
     });
   });
 });

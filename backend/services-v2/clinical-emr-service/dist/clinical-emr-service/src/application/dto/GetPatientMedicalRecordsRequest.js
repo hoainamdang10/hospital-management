@@ -225,11 +225,16 @@ function setDefaultValues(request) {
 function toRepositoryOptions(request) {
     const page = request.page || 1;
     const pageSize = request.pageSize || 20;
+    // Map sortBy to repository-accepted values
+    let sortBy = 'visitDate';
+    if (request.sortBy === 'createdAt' || request.sortBy === 'updatedAt') {
+        sortBy = request.sortBy;
+    }
     return {
         status: request.status,
         limit: request.limit || pageSize,
         offset: request.offset || ((page - 1) * pageSize),
-        sortBy: request.sortBy || 'visitDate',
+        sortBy,
         sortOrder: request.sortOrder || 'desc'
     };
 }

@@ -7,8 +7,10 @@
  */
 import { BaseHealthcareUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAuthorizationService } from '../services/IAuthorizationService';
 export interface CompleteAppointmentRequest {
     appointmentId: string;
+    completedBy: string;
 }
 export interface CompleteAppointmentResponse {
     success: boolean;
@@ -17,7 +19,8 @@ export interface CompleteAppointmentResponse {
 }
 export declare class CompleteAppointmentUseCase extends BaseHealthcareUseCase<CompleteAppointmentRequest, CompleteAppointmentResponse> {
     private readonly appointmentRepository;
-    constructor(appointmentRepository: IAppointmentRepository);
+    private readonly authorizationService;
+    constructor(appointmentRepository: IAppointmentRepository, authorizationService: IAuthorizationService);
     protected executeInternal(request: CompleteAppointmentRequest): Promise<CompleteAppointmentResponse>;
     authorize(request: CompleteAppointmentRequest, userId: string): Promise<boolean>;
     involvesPHI(request: CompleteAppointmentRequest): boolean;

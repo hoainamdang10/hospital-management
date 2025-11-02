@@ -9,22 +9,50 @@
 import { SupabaseAppointmentReadModelRepository } from '../../../src/infrastructure/persistence/SupabaseAppointmentReadModelRepository';
 import { CreateAppointmentReadModelData } from '../../../src/domain/read-models/AppointmentReadModel';
 
+// Create chainable mocks with proper forward references
+let mockSingle: jest.Mock;
+let mockSelect: jest.Mock;
+let mockEq: jest.Mock;
+let mockGte: jest.Mock;
+let mockLte: jest.Mock;
+let mockOrder: jest.Mock;
+let mockRange: jest.Mock;
+let mockLimit: jest.Mock;
+let mockInsert: jest.Mock;
+let mockUpdate: jest.Mock;
+let mockFrom: jest.Mock;
+
+// Initialize mocks with proper chaining
+const mockChain: any = {};
+
+mockChain.single = jest.fn();
+mockChain.range = jest.fn(() => mockChain);
+mockChain.limit = jest.fn(() => mockChain);
+mockChain.order = jest.fn(() => mockChain);
+mockChain.lte = jest.fn(() => mockChain);
+mockChain.gte = jest.fn(() => mockChain);
+mockChain.eq = jest.fn(() => mockChain);
+mockChain.select = jest.fn(() => mockChain);
+mockChain.insert = jest.fn(() => mockChain);
+mockChain.update = jest.fn(() => mockChain);
+mockChain.delete = jest.fn(() => mockChain);
+
+mockSingle = mockChain.single;
+mockRange = mockChain.range;
+mockLimit = mockChain.limit;
+mockOrder = mockChain.order;
+mockLte = mockChain.lte;
+mockGte = mockChain.gte;
+mockEq = mockChain.eq;
+mockSelect = mockChain.select;
+mockInsert = mockChain.insert;
+mockUpdate = mockChain.update;
+mockFrom = jest.fn(() => mockChain);
+
 // Mock Supabase client
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      range: jest.fn().mockReturnThis(),
-      single: jest.fn()
-    }))
+    from: mockFrom
   }))
 }));
 
@@ -58,7 +86,6 @@ describe('SupabaseAppointmentReadModelRepository', () => {
         priority: 'normal',
         status: 'scheduled',
         consultationFee: 500000,
-        paymentStatus: 'pending',
         patientData: {
           patientFullName: 'Nguyen Van A',
           patientPhone: '0901234567',
@@ -123,8 +150,7 @@ describe('SupabaseAppointmentReadModelRepository', () => {
         type: 'consultation',
         priority: 'normal',
         status: 'scheduled',
-        consultationFee: 500000,
-        paymentStatus: 'pending'
+        consultationFee: 500000
       };
 
       mockSupabaseClient.from().insert().select().single.mockResolvedValue({
@@ -209,7 +235,7 @@ describe('SupabaseAppointmentReadModelRepository', () => {
         synced_at: new Date().toISOString()
       };
 
-      mockSupabaseClient.from().select().eq().single.mockResolvedValue({
+      mockSingle.mockResolvedValue({
         data: mockResult,
         error: null
       });
@@ -225,7 +251,7 @@ describe('SupabaseAppointmentReadModelRepository', () => {
 
     it('should return null when appointment not found', async () => {
       // Arrange
-      mockSupabaseClient.from().select().eq().single.mockResolvedValue({
+      mockSingle.mockResolvedValue({
         data: null,
         error: { code: 'PGRST116' }
       });
@@ -262,7 +288,7 @@ describe('SupabaseAppointmentReadModelRepository', () => {
         }
       ];
 
-      mockSupabaseClient.from().select().eq().order.mockResolvedValue({
+      mockOrder.mockResolvedValue({
         data: mockResults,
         error: null
       });
@@ -288,7 +314,7 @@ describe('SupabaseAppointmentReadModelRepository', () => {
         offset: 0
       };
 
-      mockSupabaseClient.from().select().eq().eq().gte().lte().order().limit().range.mockResolvedValue({
+      mockRange.mockResolvedValue({
         data: [],
         error: null
       });

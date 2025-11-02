@@ -13,6 +13,16 @@ import { PendingRegistration } from '../../../../src/domain/entities/PendingRegi
 import { Email } from '../../../../src/domain/value-objects/Email';
 import { CircuitBreakerFactory } from '../../../../src/infrastructure/resilience/CircuitBreaker';
 
+// Initialize logger for CircuitBreakerFactory before tests
+const testLogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+  fatal: jest.fn()
+};
+CircuitBreakerFactory.setLogger(testLogger as any);
+
 describe('ResendVerificationEmailUseCase', () => {
   let useCase: ResendVerificationEmailUseCase;
   let mockUserRepository: jest.Mocked<IUserRepository>;

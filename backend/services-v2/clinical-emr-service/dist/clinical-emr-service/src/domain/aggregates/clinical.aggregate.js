@@ -27,6 +27,12 @@ class MedicalRecordAggregate extends aggregate_root_1.HealthcareAggregateRoot {
         super(props, id);
     }
     /**
+     * Validate entity (required by Entity base class)
+     */
+    validate() {
+        this.validateInvariants();
+    }
+    /**
      * Create new medical record with enhanced features
      */
     static create(recordId, patientId, doctorId, visitDate, createdBy, options = {}) {
@@ -698,7 +704,8 @@ class MedicalRecordAggregate extends aggregate_root_1.HealthcareAggregateRoot {
                 diagnosis.toFHIR();
             }
             catch (error) {
-                errors.push(`Chẩn đoán ${index + 1} không tuân thủ FHIR: ${error.message}`);
+                const err = error instanceof Error ? error : new Error(String(error));
+                errors.push(`Chẩn đoán ${index + 1} không tuân thủ FHIR: ${err.message}`);
             }
         });
         // Validate medications FHIR compliance
@@ -707,7 +714,8 @@ class MedicalRecordAggregate extends aggregate_root_1.HealthcareAggregateRoot {
                 medication.toFHIR();
             }
             catch (error) {
-                errors.push(`Thuốc ${index + 1} không tuân thủ FHIR: ${error.message}`);
+                const err = error instanceof Error ? error : new Error(String(error));
+                errors.push(`Thuốc ${index + 1} không tuân thủ FHIR: ${err.message}`);
             }
         });
         return {

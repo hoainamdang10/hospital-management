@@ -8,6 +8,8 @@
  */
 import { BaseHealthcareUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAuthorizationService } from '../services/IAuthorizationService';
+import { IReminderService } from '../services/IReminderService';
 export interface CancelAppointmentRequest {
     appointmentId: string;
     cancellationReason: string;
@@ -23,7 +25,9 @@ export interface CancelAppointmentResponse {
  */
 export declare class CancelAppointmentUseCase extends BaseHealthcareUseCase<CancelAppointmentRequest, CancelAppointmentResponse> {
     private readonly appointmentRepository;
-    constructor(appointmentRepository: IAppointmentRepository);
+    private readonly authorizationService;
+    private readonly reminderService;
+    constructor(appointmentRepository: IAppointmentRepository, authorizationService: IAuthorizationService, reminderService: IReminderService);
     protected executeInternal(request: CancelAppointmentRequest): Promise<CancelAppointmentResponse>;
     authorize(request: CancelAppointmentRequest, userId: string): Promise<boolean>;
     involvesPHI(request: CancelAppointmentRequest): boolean;

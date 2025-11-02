@@ -173,7 +173,7 @@ export class VoiceProvider implements ChannelProvider {
   /**
    * Validate phone number format
    */
-  private isValidVietnamesePhone(phone: string): boolean {
+  private _isValidVietnamesePhone(phone: string): boolean {
     const vietnamesePhoneRegex = /^(\+84|84|0)(3|5|7|8|9)[0-9]{8}$/;
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
     return vietnamesePhoneRegex.test(cleanPhone);

@@ -29,6 +29,16 @@ jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
 }));
 
+// Mock CircuitBreakerFactory to handle missing logger
+jest.mock('@infrastructure/resilience/CircuitBreaker', () => ({
+  CircuitBreakerFactory: {
+    getBreaker: jest.fn(() => ({
+      execute: jest.fn((fn) => fn()),
+      reset: jest.fn()
+    }))
+  }
+}));
+
 // Helper to build minimal valid record for UserMapper.toDomain
 const buildUserRecord = (over: Partial<any> = {}) => ({
   id: over.id ?? 'u-123',
@@ -102,13 +112,6 @@ beforeEach(() => {
 
   // Reset mockSupabaseClient.from to return fromMock
   mockSupabaseClient.from.mockReturnValue(fromMock as any);
-
-  // Reset circuit breaker state
-  const { CircuitBreakerFactory } = require('@infrastructure/resilience/CircuitBreaker');
-  const breaker = CircuitBreakerFactory.getBreaker('user-repository');
-  if (breaker && typeof breaker.reset === 'function') {
-    breaker.reset();
-  }
 });
 
 describe('SupabaseUserRepository.findById', () => {
@@ -150,14 +153,13 @@ describe('SupabaseUserRepository.findById', () => {
     expect(user).toBeNull();
   });
 
-  it('DB lỗi -> circuit breaker execute fallback trả về null', async () => {
+  it('DB lỗi -> should throw error', async () => {
     const { repo, cache } = makeRepo();
     (cache.get as jest.Mock).mockResolvedValueOnce(null);
 
     fromMock.single.mockResolvedValueOnce({ data: null, error: { code: 'XX', message: 'db down' } });
 
-    const user = await repo.findById(UserId.fromString('u4'));
-    expect(user).toBeNull();
+    await expect(repo.findById(UserId.fromString('u4'))).rejects.toThrow('Failed to find user');
   });
 });
 
@@ -399,7 +401,7 @@ describe('SupabaseUserRepository.getUserRoles', () => {
     expect(roles).toEqual([]);
   });
 
-  it('should use fallback on database error', async () => {
+  it('should throw error on database error', async () => {
     const { repo, cache } = makeRepo();
 
     (cache.get as jest.Mock).mockResolvedValueOnce(null);
@@ -409,9 +411,7 @@ describe('SupabaseUserRepository.getUserRoles', () => {
       error: { code: 'XX', message: 'DB error' }
     });
 
-    const roles = await repo.getUserRoles(UserId.fromString('u19'));
-
-    expect(roles).toEqual([]);
+    await expect(repo.getUserRoles(UserId.fromString('u19'))).rejects.toThrow('Failed to get user roles');
   });
 });
 
@@ -527,15 +527,13 @@ describe('SupabaseUserRepository.findSessionByToken', () => {
     expect(session).toBeNull();
   });
 
-  it('should use fallback on database error', async () => {
+  it('should throw error on database error', async () => {
     const { repo } = makeRepo();
 
     fromMock.gt = jest.fn().mockReturnThis();
     fromMock.single.mockResolvedValueOnce({ data: null, error: { code: 'XX', message: 'DB error' } });
 
-    const session = await repo.findSessionByToken('error_token');
-
-    expect(session).toBeNull();
+    await expect(repo.findSessionByToken('error_token')).rejects.toThrow('Failed to find session');
   });
 });
 

@@ -16,7 +16,7 @@ class GetNotificationUseCase {
     }
     async execute(query) {
         try {
-            const notificationId = new NotificationId_1.NotificationId(query.notificationId);
+            const notificationId = NotificationId_1.NotificationId.fromString(query.notificationId);
             const notification = await this.notificationRepository.findById(notificationId);
             if (!notification) {
                 return { notification: null };
@@ -30,7 +30,7 @@ class GetNotificationUseCase {
         }
     }
     mapToResult(notification) {
-        const contactInfo = notification.recipient.getContactInfo();
+        const _contactInfo = notification.recipient.getContactInfo();
         return {
             notificationId: notification.id,
             recipientId: notification.recipient.getRecipientId(),

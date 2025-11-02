@@ -122,7 +122,7 @@
 
 ### Testing
 - **Framework**: Jest
-- **Coverage**: 97.9% (920/940 tests)
+- **Coverage**: Thu thập bằng `npm run test:coverage` (collectCoverage bật mặc định)
 - **Location**: tests/unit, tests/integration
 - **Run**: `npm test`
 
@@ -264,7 +264,7 @@ await apply_migration_supabase({
 2. ✅ Write integration tests for repositories
 3. ✅ Mock external dependencies
 4. ✅ Test error cases
-5. ✅ Aim for >90% coverage
+5. ✅ Aim for >90% coverage (kiểm tra bằng `npm run test:coverage`)
 
 ### Documentation
 1. ✅ Update DATABASE_SCHEMA.md when schema changes
@@ -281,7 +281,7 @@ await apply_migration_supabase({
 - **Type Safety**: Target 97%+ (currently 97%)
 - **ESLint Warnings**: Target <50 (currently 34)
 - **Build Status**: Must be ✅
-- **Test Coverage**: Target >90% (currently 97.9%)
+- **Test Coverage**: Target >90% (kiểm tra bằng kết quả coverage gần nhất)
 
 ### Security
 - **Critical Vulnerabilities**: Target 0 (currently 0)
@@ -347,4 +347,3 @@ await apply_migration_supabase({
 **Last Updated**: 2025-10-07  
 **Verified By**: Supabase MCP  
 **Status**: ✅ Production Ready
-

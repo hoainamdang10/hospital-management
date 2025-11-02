@@ -56,6 +56,11 @@ export declare class Schedule {
     getDedupKey(): DedupKey;
     getStatus(): ScheduleStatus;
     isActive(): boolean;
+    getCreatedAt(): Date;
+    getUpdatedAt(): Date;
+    getPayloadJson(): any;
+    getEndAtUtc(): Date | undefined;
+    getMaxRuns(): number | undefined;
     getProps(): Readonly<ScheduleProps>;
 }
 //# sourceMappingURL=Schedule.aggregate.d.ts.map

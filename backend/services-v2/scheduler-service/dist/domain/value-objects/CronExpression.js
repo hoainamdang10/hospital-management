@@ -19,11 +19,17 @@ class CronExpression {
         return new CronExpression(expression.trim());
     }
     getNextOccurrence(from = new Date()) {
-        const interval = (0, cron_parser_1.parseExpression)(this.expression, { currentDate: from });
+        const interval = (0, cron_parser_1.parseExpression)(this.expression, {
+            currentDate: from,
+            tz: 'UTC'
+        });
         return interval.next().toDate();
     }
     getNextOccurrences(count, from = new Date()) {
-        const interval = (0, cron_parser_1.parseExpression)(this.expression, { currentDate: from });
+        const interval = (0, cron_parser_1.parseExpression)(this.expression, {
+            currentDate: from,
+            tz: 'UTC'
+        });
         const occurrences = [];
         for (let i = 0; i < count; i++) {
             occurrences.push(interval.next().toDate());
@@ -33,7 +39,8 @@ class CronExpression {
     getOccurrencesBetween(startDate, endDate) {
         const interval = (0, cron_parser_1.parseExpression)(this.expression, {
             currentDate: startDate,
-            endDate: endDate
+            endDate: endDate,
+            tz: 'UTC'
         });
         const occurrences = [];
         try {

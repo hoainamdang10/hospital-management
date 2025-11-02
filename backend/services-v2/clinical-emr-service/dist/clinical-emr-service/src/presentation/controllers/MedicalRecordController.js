@@ -241,60 +241,6 @@ class MedicalRecordController extends BaseController_1.BaseController {
         }
     }
     /**
-     * Archive medical record
-     * POST /api/v2/clinical-emr/medical-records/:recordId/archive
-     */
-    async archiveMedicalRecord(req, res) {
-        try {
-            // Extract user information from request
-            const userId = this.extractUserId(req);
-            const userRoles = this.extractUserRoles(req);
-            // Check authorization (only doctors and admins can archive)
-            if (!userRoles.includes('doctor') && !userRoles.includes('admin')) {
-                this.sendErrorResponse(res, 'Bạn không có quyền lưu trữ hồ sơ bệnh án', 403);
-                return;
-            }
-            // For now, return placeholder response
-            // This would require implementing ArchiveMedicalRecordUseCase
-            this.sendSuccessResponse(res, {
-                recordId: req.params.recordId,
-                status: 'archived',
-                archivedBy: userId,
-                archivedAt: new Date().toISOString()
-            }, 'Hồ sơ bệnh án đã được lưu trữ thành công');
-        }
-        catch (error) {
-            this.handleControllerError(res, error, 'Lỗi khi lưu trữ hồ sơ bệnh án');
-        }
-    }
-    /**
-     * Restore archived medical record
-     * POST /api/v2/clinical-emr/medical-records/:recordId/restore
-     */
-    async restoreMedicalRecord(req, res) {
-        try {
-            // Extract user information from request
-            const userId = this.extractUserId(req);
-            const userRoles = this.extractUserRoles(req);
-            // Check authorization (only doctors and admins can restore)
-            if (!userRoles.includes('doctor') && !userRoles.includes('admin')) {
-                this.sendErrorResponse(res, 'Bạn không có quyền khôi phục hồ sơ bệnh án', 403);
-                return;
-            }
-            // For now, return placeholder response
-            // This would require implementing RestoreMedicalRecordUseCase
-            this.sendSuccessResponse(res, {
-                recordId: req.params.recordId,
-                status: 'active',
-                restoredBy: userId,
-                restoredAt: new Date().toISOString()
-            }, 'Hồ sơ bệnh án đã được khôi phục thành công');
-        }
-        catch (error) {
-            this.handleControllerError(res, error, 'Lỗi khi khôi phục hồ sơ bệnh án');
-        }
-    }
-    /**
      * Get medical record statistics
      * GET /api/v2/clinical-emr/statistics
      */

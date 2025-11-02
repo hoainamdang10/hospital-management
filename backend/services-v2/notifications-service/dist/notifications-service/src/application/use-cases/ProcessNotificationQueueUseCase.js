@@ -9,6 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProcessNotificationQueueUseCase = void 0;
+const NotificationId_1 = require("../../domain/value-objects/NotificationId");
 class ProcessNotificationQueueUseCase {
     constructor(notificationRepository, deliveryService) {
         this.notificationRepository = notificationRepository;
@@ -29,7 +30,7 @@ class ProcessNotificationQueueUseCase {
                     // Check if expired
                     const expiresAt = notification.metadata.expiresAt;
                     if (expiresAt && new Date(expiresAt) < new Date()) {
-                        await this.notificationRepository.updateStatus(new NotificationId_1.NotificationId(notification.id), 'EXPIRED');
+                        await this.notificationRepository.updateStatus(NotificationId_1.NotificationId.fromString(notification.id), 'EXPIRED');
                         expired++;
                         details.push({
                             notificationId: notification.id,
@@ -105,6 +106,4 @@ class ProcessNotificationQueueUseCase {
     }
 }
 exports.ProcessNotificationQueueUseCase = ProcessNotificationQueueUseCase;
-// Import NotificationId from domain
-const NotificationId_1 = require("../../domain/value-objects/NotificationId");
 //# sourceMappingURL=ProcessNotificationQueueUseCase.js.map

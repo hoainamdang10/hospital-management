@@ -54,8 +54,7 @@ class ListAppointmentsQuery {
             doctorId: readModel.doctorId,
             doctorFullName: readModel.doctorFullName,
             doctorSpecialization: readModel.doctorSpecialization,
-            consultationFee: readModel.consultationFee,
-            paymentStatus: readModel.paymentStatus,
+            consultationFee: readModel.consultationFee, // Billing reference only
             createdAt: readModel.createdAt.toISOString()
         }));
         // Calculate total pages

@@ -14,10 +14,12 @@ interface SendGridConfig {
     apiKey: string;
     fromEmail: string;
     fromName: string;
+    enabled: boolean;
 }
 export declare class EmailProvider implements ChannelProvider {
     private readonly config;
     private isConfigured;
+    private isSendGridReady;
     constructor(config: SendGridConfig);
     getType(): string;
     isAvailable(): Promise<boolean>;
@@ -39,7 +41,7 @@ export declare class EmailProvider implements ChannelProvider {
         failureReason?: string;
     }>;
     /**
-     * Send via SendGrid (mock implementation)
+     * Send via SendGrid (real implementation)
      */
     private sendViaSendGrid;
     /**

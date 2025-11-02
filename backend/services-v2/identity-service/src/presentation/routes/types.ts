@@ -8,6 +8,7 @@
 
 import { AuthenticationMiddleware } from '../middleware/AuthenticationMiddleware';
 import { PermissionMiddleware } from '../middleware/PermissionMiddleware';
+import { createInternalServiceAuthMiddleware } from '../middleware/InternalServiceAuthMiddleware';
 import { AuthenticateUserUseCase } from '../../application/use-cases/AuthenticateUserUseCase';
 import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase';
 import { ForgotPasswordUseCase } from '../../application/use-cases/ForgotPasswordUseCase';
@@ -66,6 +67,7 @@ export interface RouteDependencies {
   // Middleware
   authMiddleware: AuthenticationMiddleware;
   permissionMiddleware: PermissionMiddleware;
+  internalServiceAuthMiddleware: ReturnType<typeof createInternalServiceAuthMiddleware>;
 
   // Auth Use Cases
   authenticateUserUseCase: AuthenticateUserUseCase;
@@ -132,4 +134,3 @@ export interface RouteDependencies {
   // Repositories
   sessionRepository: ISessionRepository;
 }
-

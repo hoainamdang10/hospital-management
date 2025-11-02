@@ -129,6 +129,45 @@ class AppointmentScheduledSchedulerHandler {
         return new Date(appointmentTime.getTime() - windowMs);
     }
     /**
+     * Construct Date from appointmentDate (YYYY-MM-DD) and appointmentTime (HH:mm:ss or HH:mm)
+     * Handles both formats: "14:30:00" (from TimeSlot VO) and "14:30" (legacy)
+     */
+    constructAppointmentDateTime(appointmentDate, appointmentTime) {
+        // appointmentDate: "2025-01-15"
+        // appointmentTime: "14:30:00" or "14:30"
+        // Normalize time format: ensure HH:MM:SS format
+        let normalizedTime = appointmentTime;
+        // If time is in HH:MM format, add :00 for seconds
+        if (/^\d{2}:\d{2}$/.test(appointmentTime)) {
+            normalizedTime = `${appointmentTime}:00`;
+        }
+        // Validate HH:MM:SS format
+        if (!/^\d{2}:\d{2}:\d{2}$/.test(normalizedTime)) {
+            throw new Error(`Invalid time format: ${appointmentTime}. Expected HH:MM:SS or HH:MM`);
+        }
+        const dateTimeString = `${appointmentDate}T${normalizedTime}`;
+        const date = new Date(dateTimeString);
+        if (isNaN(date.getTime())) {
+            throw new Error(`Invalid appointment date/time: ${appointmentDate} ${appointmentTime}`);
+        }
+        return date;
+    }
+    /**
+     * Map priority to urgency level for reminder policy
+     */
+    mapPriorityToUrgency(priority) {
+        const priorityLower = priority.toLowerCase();
+        if (priorityLower === 'emergency') {
+            return 'emergency';
+        }
+        else if (priorityLower === 'urgent' || priorityLower === 'high') {
+            return 'urgent';
+        }
+        else {
+            return 'routine';
+        }
+    }
+    /**
      * Enforce quiet hours: if reminderTime falls within [start, end) local window,
      * shift to the end of quiet hours + 5 minutes.
      * NOTE: For simplicity we use server local time. Replace with timezone-aware logic (e.g., Luxon) if needed.
@@ -168,13 +207,15 @@ class AppointmentScheduledSchedulerHandler {
         try {
             const eventData = event.eventData;
             console.log(`[SchedulerHandler] Processing AppointmentScheduled: ${eventData.appointmentId}`);
-            const urgencyLevel = eventData.urgencyLevel || 'routine';
+            // Determine urgency level from priority
+            const urgencyLevel = this.mapPriorityToUrgency(eventData.priority);
             const reminderWindows = this.getReminderWindows(urgencyLevel);
             if (reminderWindows.length === 0) {
                 console.log(`[SchedulerHandler] No reminders for urgency level: ${urgencyLevel}`);
                 return;
             }
-            const appointmentTime = new Date(eventData.startTime);
+            // Construct appointment time from date + time
+            const appointmentTime = this.constructAppointmentDateTime(eventData.appointmentDate, eventData.appointmentTime);
             const now = new Date();
             // Create reminder schedules
             for (const reminder of reminderWindows) {
@@ -194,24 +235,32 @@ class AppointmentScheduledSchedulerHandler {
                         dedupKey,
                         payload: {
                             tenantId: this.tenantId,
+                            dedupKey,
                             ownerService: 'appointments',
-                            ownerResourceType: 'appointment',
+                            ownerResourceType: 'APPOINTMENT',
                             ownerResourceId: eventData.appointmentId,
+                            topicOrCommand: `appointments.appointment.reminder.${reminder.window}`,
+                            // Flat structure - matches Scheduler API
                             scheduleType: 'ONCE',
                             startAtUtc: reminderTime.toISOString(),
-                            topicOrCommand: `appointments.appointment.reminder.${reminder.window}`,
+                            timezone: 'UTC',
                             payloadJson: {
                                 appointmentId: eventData.appointmentId,
                                 patientId: eventData.patientId,
-                                providerId: eventData.providerId,
-                                appointmentTime: appointmentTime.toISOString(),
+                                doctorId: eventData.doctorId,
+                                appointmentDate: eventData.appointmentDate,
+                                appointmentTime: eventData.appointmentTime,
+                                appointmentDateTime: appointmentTime.toISOString(),
+                                durationMinutes: eventData.durationMinutes,
+                                type: eventData.type,
+                                priority: eventData.priority,
                                 reminderType: reminder.window,
                                 channels: reminder.channels,
                                 urgencyLevel,
-                                reason: eventData.reason,
-                                department: eventData.department
+                                consultationFee: eventData.consultationFee
                             },
-                            dedupKey,
+                            maxRuns: 1,
+                            jitterMs: 0,
                             retryPolicy: this.policy.retryPolicy ? {
                                 strategy: this.policy.retryPolicy.strategy,
                                 maxAttempts: this.policy.retryPolicy.maxAttempts,
@@ -261,6 +310,7 @@ class AppointmentCancelledSchedulerHandler {
                 payload: {
                     tenantId: this.tenantId,
                     ownerService: 'appointments',
+                    ownerResourceType: 'APPOINTMENT',
                     ownerResourceId: eventData.appointmentId
                 }
             });
@@ -298,6 +348,7 @@ class AppointmentRescheduledSchedulerHandler {
                 payload: {
                     tenantId: this.tenantId,
                     ownerService: 'appointments',
+                    ownerResourceType: 'APPOINTMENT',
                     ownerResourceId: eventData.appointmentId
                 }
             });
@@ -311,17 +362,24 @@ class AppointmentRescheduledSchedulerHandler {
                 dedupKey: `${eventData.appointmentId}:reschedule-create`,
                 payload: {
                     tenantId: this.tenantId,
+                    dedupKey: `${eventData.appointmentId}:reschedule-create`,
                     ownerService: 'appointments',
+                    ownerResourceType: 'APPOINTMENT',
                     ownerResourceId: eventData.appointmentId,
                     topicOrCommand: `appointments.appointment.reminder.rescheduled`,
+                    // Flat structure - matches Scheduler API
+                    scheduleType: 'ONCE',
                     startAtUtc: eventData.newStartTime.toISOString(),
+                    timezone: 'UTC',
                     payloadJson: {
                         appointmentId: eventData.appointmentId,
                         patientId: eventData.patientId,
-                        providerId: eventData.providerId,
+                        doctorId: eventData.doctorId,
                         newStartTime: eventData.newStartTime.toISOString(),
                         reason: eventData.reason || 'Appointment rescheduled'
-                    }
+                    },
+                    maxRuns: 1,
+                    jitterMs: 0
                 }
             });
             console.log(`[SchedulerHandler] ✅ Enqueued reschedule (cancel + create) for ${eventData.appointmentId}`);

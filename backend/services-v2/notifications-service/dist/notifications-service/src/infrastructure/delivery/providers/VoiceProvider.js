@@ -128,7 +128,7 @@ class VoiceProvider {
     /**
      * Validate phone number format
      */
-    isValidVietnamesePhone(phone) {
+    _isValidVietnamesePhone(phone) {
         const vietnamesePhoneRegex = /^(\+84|84|0)(3|5|7|8|9)[0-9]{8}$/;
         const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
         return vietnamesePhoneRegex.test(cleanPhone);

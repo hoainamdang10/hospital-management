@@ -16,6 +16,8 @@ export declare const TYPES: {
     readonly ClinicalEMREventHandler: symbol;
     readonly MedicalRecordDomainEventHandler: symbol;
     readonly MedicalRecordRepository: symbol;
+    readonly BaseMedicalRecordRepository: symbol;
+    readonly OutboxRepository: symbol;
     readonly CreateMedicalRecordUseCase: symbol;
     readonly GetMedicalRecordUseCase: symbol;
     readonly GetPatientMedicalRecordsUseCase: symbol;
@@ -28,6 +30,8 @@ export declare const TYPES: {
     readonly VitalSignsService: symbol;
     readonly DiagnosisService: symbol;
     readonly TreatmentService: symbol;
+    readonly TokenVerifier: symbol;
+    readonly AuditLogService: symbol;
     readonly MedicalRecordController: symbol;
     readonly HealthController: symbol;
     readonly NotificationService: symbol;
@@ -47,6 +51,7 @@ export declare const TYPES: {
     readonly MetricsService: symbol;
     readonly HealthCheckService: symbol;
     readonly PerformanceMonitor: symbol;
+    readonly OutboxPublisherWorker: symbol;
     readonly MedicalRecordDomainService: symbol;
     readonly VitalSignsDomainService: symbol;
     readonly DiagnosisDomainService: symbol;

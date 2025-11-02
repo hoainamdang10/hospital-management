@@ -1,7 +1,10 @@
 /**
  * Reminder Service Implementation - Infrastructure Layer
- * Manages appointment reminders with multi-channel support
- *
+ * Manages appointment reminder SCHEDULING only
+ * 
+ * BOUNDED CONTEXT: This service only schedules reminders via scheduler-service.
+ * Actual notification delivery (email/SMS/push) is handled by notifications-service.
+ * 
  * @author Hospital Management Team
  * @version 3.0.0
  */
@@ -15,6 +18,7 @@ import {
   SendReminderRequest,
   SendReminderResponse,
 } from '../../application/services/IReminderService';
+import { ISchedulerAdapter } from '../adapters/ISchedulerAdapter';
 
 /**
  * Reminder Policy Configuration
@@ -48,25 +52,44 @@ const DEFAULT_POLICY: ReminderPolicy = {
 
 /**
  * Reminder Service Implementation
+ * 
+ * Responsibilities:
+ * - Schedule reminder tasks via scheduler-service
+ * - Cancel reminder tasks via scheduler-service
+ * 
+ * NOT Responsible for:
+ * - Sending actual notifications (notifications-service does this)
+ * - Managing notification templates (notifications-service does this)
+ * - Tracking delivery status (notifications-service does this)
  */
 export class ReminderService implements IReminderService {
   private policy: ReminderPolicy;
+  private schedulerAdapter: ISchedulerAdapter;
 
-  constructor(customPolicy?: ReminderPolicy) {
+  constructor(schedulerAdapter: ISchedulerAdapter, customPolicy?: ReminderPolicy) {
+    this.schedulerAdapter = schedulerAdapter;
     this.policy = customPolicy || DEFAULT_POLICY;
   }
 
   /**
    * Schedule reminders for an appointment
+   * Integrates with scheduler-service to actually schedule the tasks
+   * 
+   * @param customWindows - Optional custom reminder windows (overrides default policy)
    */
   async scheduleReminders(
     appointmentId: string,
     patientId: string,
     appointmentDateTime: Date,
-    priority: string = 'NORMAL'
+    priority: string = 'NORMAL',
+    customWindows?: Array<{ window: string; channels: ReminderChannel[] }>
   ): Promise<ReminderSchedule[]> {
     const schedules: ReminderSchedule[] = [];
-    const policyRules = this.policy[priority.toUpperCase()] || this.policy.NORMAL;
+    
+    // Use custom windows if provided, otherwise use policy
+    const policyRules = customWindows 
+      ? customWindows 
+      : (this.policy[priority.toUpperCase()] || this.policy.NORMAL);
 
     for (const rule of policyRules) {
       const scheduledFor = this.calculateReminderTime(
@@ -82,18 +105,39 @@ export class ReminderService implements IReminderService {
         continue;
       }
 
-      schedules.push({
-        appointmentId,
-        patientId,
-        reminderType: this.windowToReminderType(rule.window),
-        channels: rule.channels,
-        scheduledFor,
-        status: ReminderStatus.SCHEDULED,
-      });
+      const reminderType = this.windowToReminderType(rule.window);
+
+      // Schedule in scheduler-service
+      try {
+        const result = await this.schedulerAdapter.scheduleReminder({
+          appointmentId,
+          patientId,
+          reminderType,
+          scheduledFor,
+          channels: rule.channels,
+        });
+
+        if (result.success) {
+          schedules.push({
+            appointmentId,
+            patientId,
+            reminderType,
+            channels: rule.channels,
+            scheduledFor,
+            status: ReminderStatus.SCHEDULED,
+            window: rule.window,
+          });
+          console.log(`[ReminderService] Scheduled ${reminderType} reminder (${rule.window}) via scheduler-service`);
+        } else {
+          console.error(`[ReminderService] Failed to schedule ${reminderType} reminder:`, result.error);
+        }
+      } catch (error) {
+        console.error(`[ReminderService] Error scheduling ${reminderType} reminder:`, error);
+      }
     }
 
     console.log(
-      `[ReminderService] Scheduled ${schedules.length} reminders for appointment ${appointmentId}`
+      `[ReminderService] Successfully scheduled ${schedules.length} reminders for appointment ${appointmentId}`
     );
 
     return schedules;
@@ -101,42 +145,40 @@ export class ReminderService implements IReminderService {
 
   /**
    * Send a reminder through specified channel
+   * 
+   * NOTE: This method is deprecated and should not be called directly.
+   * Reminders are automatically sent by scheduler-service → notifications-service.
+   * This method exists only for interface compatibility.
    */
   async sendReminder(request: SendReminderRequest): Promise<SendReminderResponse> {
-    try {
-      switch (request.channel) {
-        case ReminderChannel.EMAIL:
-          return await this.sendEmailReminder(request);
-
-        case ReminderChannel.SMS:
-          return await this.sendSmsReminder(request);
-
-        case ReminderChannel.PUSH:
-          return await this.sendPushReminder(request);
-
-        case ReminderChannel.IN_APP:
-          return await this.sendInAppReminder(request);
-
-        default:
-          throw new Error(`Unsupported channel: ${request.channel}`);
-      }
-    } catch (error) {
-      console.error(`[ReminderService] Failed to send reminder:`, error);
-      return {
-        success: false,
-        channel: request.channel,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
+    console.warn('[ReminderService] sendReminder() called directly - this should not happen!');
+    console.warn('[ReminderService] Reminders are handled by scheduler-service → notifications-service');
+    
+    return {
+      success: false,
+      channel: request.channel,
+      error: 'Direct reminder sending not supported. Use scheduleReminders() instead.',
+    };
   }
 
   /**
    * Cancel all reminders for an appointment
+   * Calls scheduler-service to cancel scheduled tasks
    */
   async cancelReminders(appointmentId: string): Promise<void> {
     console.log(`[ReminderService] Cancelling all reminders for appointment ${appointmentId}`);
-    // Implementation: Update reminder status in database
-    // This would typically call a repository method
+    
+    try {
+      const result = await this.schedulerAdapter.cancelReminders(appointmentId);
+      if (result.success) {
+        console.log(`[ReminderService] Successfully cancelled reminders for ${appointmentId}`);
+      } else {
+        console.error(`[ReminderService] Failed to cancel reminders:`, result.error);
+      }
+    } catch (error) {
+      console.error(`[ReminderService] Error cancelling reminders:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -229,142 +271,84 @@ export class ReminderService implements IReminderService {
   }
 
   /**
-   * Send email reminder
+   * Reschedule reminders for a rescheduled appointment
+   * Cancels old reminders and schedules new ones
    */
-  private async sendEmailReminder(
-    request: SendReminderRequest
-  ): Promise<SendReminderResponse> {
-    if (!request.patientEmail) {
+  async rescheduleReminders(
+    appointmentId: string,
+    patientId: string,
+    newAppointmentDateTime: Date,
+    priority: string = 'NORMAL',
+    customWindows?: Array<{ window: string; channels: ReminderChannel[] }>
+  ): Promise<{ success: boolean; newSchedules?: ReminderSchedule[] }> {
+    try {
+      // Cancel old reminders
+      await this.cancelReminders(appointmentId);
+
+      // Schedule new reminders
+      const newSchedules = await this.scheduleReminders(
+        appointmentId,
+        patientId,
+        newAppointmentDateTime,
+        priority,
+        customWindows
+      );
+
       return {
-        success: false,
-        channel: ReminderChannel.EMAIL,
-        error: 'Patient email not provided',
+        success: true,
+        newSchedules
+      };
+    } catch (error) {
+      console.error('[ReminderService] Error rescheduling reminders:', error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Check scheduler service health
+   */
+  async checkSchedulerHealth(): Promise<{ healthy: boolean; message?: string }> {
+    try {
+      const isAvailable = await this.schedulerAdapter.isAvailable();
+      return {
+        healthy: isAvailable,
+        message: isAvailable ? 'Scheduler service available' : 'Scheduler service unavailable'
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        message: `Scheduler service error: ${error}`
       };
     }
-
-    console.log(`[ReminderService] Sending email reminder to ${request.patientEmail}`);
-
-    // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-    // For now, just log
-    const emailContent = this.generateEmailContent(request);
-    console.log('Email content:', emailContent);
-
-    return {
-      success: true,
-      channel: ReminderChannel.EMAIL,
-      sentAt: new Date(),
-    };
   }
 
   /**
-   * Send SMS reminder
+   * Preview reminders without actually scheduling them
+   * Useful for showing users what reminders will be sent
    */
-  private async sendSmsReminder(
-    request: SendReminderRequest
-  ): Promise<SendReminderResponse> {
-    if (!request.patientPhone) {
-      return {
-        success: false,
-        channel: ReminderChannel.SMS,
-        error: 'Patient phone not provided',
-      };
+  async previewReminders(
+    appointmentDateTime: Date,
+    priority: string = 'NORMAL',
+    customWindows?: Array<{ window: string; channels: ReminderChannel[] }>
+  ): Promise<Array<{ window: string; scheduledFor: Date; channels: ReminderChannel[] }>> {
+    const policyRules = customWindows 
+      ? customWindows 
+      : (this.policy[priority.toUpperCase()] || this.policy.NORMAL);
+
+    const previews = [];
+    for (const rule of policyRules) {
+      const scheduledFor = this.calculateReminderTime(appointmentDateTime, rule.window);
+      
+      if (scheduledFor > new Date()) {
+        previews.push({
+          window: rule.window,
+          scheduledFor,
+          channels: rule.channels
+        });
+      }
     }
 
-    console.log(`[ReminderService] Sending SMS reminder to ${request.patientPhone}`);
-
-    // TODO: Integrate with SMS service (Twilio, AWS SNS, etc.)
-    const smsContent = this.generateSmsContent(request);
-    console.log('SMS content:', smsContent);
-
-    return {
-      success: true,
-      channel: ReminderChannel.SMS,
-      sentAt: new Date(),
-    };
-  }
-
-  /**
-   * Send push notification reminder
-   */
-  private async sendPushReminder(
-    request: SendReminderRequest
-  ): Promise<SendReminderResponse> {
-    console.log(`[ReminderService] Sending push reminder for patient ${request.patientId}`);
-
-    // TODO: Integrate with push notification service (Firebase, OneSignal, etc.)
-    const pushContent = this.generatePushContent(request);
-    console.log('Push content:', pushContent);
-
-    return {
-      success: true,
-      channel: ReminderChannel.PUSH,
-      sentAt: new Date(),
-    };
-  }
-
-  /**
-   * Send in-app notification reminder
-   */
-  private async sendInAppReminder(
-    request: SendReminderRequest
-  ): Promise<SendReminderResponse> {
-    console.log(`[ReminderService] Creating in-app reminder for patient ${request.patientId}`);
-
-    // TODO: Store in-app notification in database
-    return {
-      success: true,
-      channel: ReminderChannel.IN_APP,
-      sentAt: new Date(),
-    };
-  }
-
-  /**
-   * Generate email content
-   */
-  private generateEmailContent(request: SendReminderRequest): string {
-    const timeWindow = request.reminderType === ReminderType.BEFORE_24H ? '24 giờ' :
-                       request.reminderType === ReminderType.BEFORE_2H ? '2 giờ' : '30 phút';
-
-    return `
-      Kính gửi ${request.patientName},
-
-      Đây là lời nhắc về cuộc hẹn khám bệnh của bạn trong ${timeWindow} tới:
-
-      📅 Ngày: ${request.appointmentDate}
-      🕐 Giờ: ${request.appointmentTime}
-      👨‍⚕️ Bác sĩ: ${request.doctorName}
-
-      Vui lòng đến đúng giờ. Nếu cần hủy hoặc thay đổi lịch hẹn, vui lòng liên hệ với chúng tôi.
-
-      Trân trọng,
-      Bệnh viện
-    `;
-  }
-
-  /**
-   * Generate SMS content
-   */
-  private generateSmsContent(request: SendReminderRequest): string {
-    const timeWindow = request.reminderType === ReminderType.BEFORE_24H ? '24h' :
-                       request.reminderType === ReminderType.BEFORE_2H ? '2h' : '30 phút';
-
-    return `Nhắc lịch hẹn: ${request.appointmentDate} ${request.appointmentTime} - BS ${request.doctorName}. Còn ${timeWindow}.`;
-  }
-
-  /**
-   * Generate push notification content
-   */
-  private generatePushContent(request: SendReminderRequest): {
-    title: string;
-    body: string;
-  } {
-    const timeWindow = request.reminderType === ReminderType.BEFORE_24H ? '24 giờ' :
-                       request.reminderType === ReminderType.BEFORE_2H ? '2 giờ' : '30 phút';
-
-    return {
-      title: 'Nhắc nhở cuộc hẹn',
-      body: `Cuộc hẹn với ${request.doctorName} sẽ diễn ra trong ${timeWindow}`,
-    };
+    return previews;
   }
 }
 

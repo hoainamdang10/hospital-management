@@ -96,6 +96,7 @@ class ScheduleRun {
         this.props.lockedAtUtc = undefined;
         this.props.startedAtUtc = undefined;
         this.props.finishedAtUtc = undefined;
+        this.props.lastError = undefined; // Clear error on retry
     }
     isDue(now = new Date()) {
         return this.props.status === ScheduleRunStatus.DUE && this.props.dueAtUtc <= now;

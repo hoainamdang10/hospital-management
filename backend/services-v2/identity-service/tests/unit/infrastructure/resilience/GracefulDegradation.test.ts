@@ -106,7 +106,7 @@ describe('IdentityServiceDegradation', () => {
       };
 
       // Test cacheAuthentication method directly
-      await degradationService.cacheAuthentication(credentials.email, authResult);
+      await degradationService.cacheAuthentication(credentials.email, authResult, credentials.password);
 
       // Verify cache was set
       const cached = await degradationService.getCachedAuthentication(credentials.email);
@@ -126,7 +126,7 @@ describe('IdentityServiceDegradation', () => {
       };
 
       // First cache a successful auth
-      await degradationService.cacheAuthentication(credentials.email, authResult);
+      await degradationService.cacheAuthentication(credentials.email, authResult, credentials.password);
 
       // Spy on fallbackAuthentication
       const fallbackSpy = jest.spyOn(degradationService as any, 'fallbackAuthentication')
@@ -157,7 +157,7 @@ describe('IdentityServiceDegradation', () => {
       };
 
       // Prime cache via successful primary authentication
-      await degradationService.cacheAuthentication(credentials.email, authResult);
+      await degradationService.cacheAuthentication(credentials.email, authResult, credentials.password);
 
       const cachedAuth = await degradationService.getCachedAuthentication(credentials.email);
       expect(cachedAuth).toBeDefined();
@@ -200,7 +200,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication('test@example.com', authResult);
+      await degradationService.cacheAuthentication('test@example.com', authResult, 'TestPassword123!');
 
       const cached = await degradationService.getCachedAuthentication('test@example.com');
       expect(cached).toBeDefined();
@@ -213,7 +213,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication('test@example.com', authResult);
+      await degradationService.cacheAuthentication('test@example.com', authResult, 'TestPassword123!');
 
       const cached = await degradationService.getCachedAuthentication('test@example.com');
       expect(cached).toBeNull();
@@ -228,7 +228,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.DEGRADED_SERVICE,
       };
 
-      await degradationService.cacheAuthentication('test@example.com', authResult);
+      await degradationService.cacheAuthentication('test@example.com', authResult, 'TestPassword123!');
 
       const cached = await degradationService.getCachedAuthentication('test@example.com');
       expect(cached).toBeNull();
@@ -243,7 +243,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication('test@example.com', authResult);
+      await degradationService.cacheAuthentication('test@example.com', authResult, 'TestPassword123!');
 
       // Fast-forward 31 minutes
       jest.advanceTimersByTime(1860000);
@@ -268,7 +268,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication('test@example.com', authResult);
+      await degradationService.cacheAuthentication('test@example.com', authResult, 'TestPassword123!');
 
       // Fast-forward 29 minutes
       jest.advanceTimersByTime(1740000);
@@ -287,7 +287,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication('test@example.com', authResult);
+      await degradationService.cacheAuthentication('test@example.com', authResult, 'TestPassword123!');
 
       // Fast-forward 31 minutes
       jest.advanceTimersByTime(1860000);
@@ -385,7 +385,7 @@ describe('IdentityServiceDegradation', () => {
       };
 
       // Cache successful authentication
-      await degradationService.cacheAuthentication(credentials.email, authResult);
+      await degradationService.cacheAuthentication(credentials.email, authResult, credentials.password);
 
       // Disable cache fallback to force read-only path
       config.enableCacheFallback = false;
@@ -429,7 +429,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication(credentials.email, authResult);
+      await degradationService.cacheAuthentication(credentials.email, authResult, credentials.password);
 
       config.enableCacheFallback = false;
       config.enableReadOnlyFallback = true;
@@ -458,7 +458,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication(credentials.email, authResult);
+      await degradationService.cacheAuthentication(credentials.email, authResult, credentials.password);
 
       config.enableCacheFallback = false;
       config.enableReadOnlyFallback = true;
@@ -491,7 +491,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication(credentials.email, authResult);
+      await degradationService.cacheAuthentication(credentials.email, authResult, credentials.password);
 
       // Fast-forward 31 minutes
       jest.advanceTimersByTime(1860000);
@@ -517,15 +517,14 @@ describe('IdentityServiceDegradation', () => {
       };
 
       // Manually set cache with old timestamp (61 minutes ago - > 1 hour for emergency check)
-      // We need to bypass the 30-minute check in getCachedAuthentication
+      // Create a passwordHash for the old cached entry
+      const passwordHash = await require('bcrypt').hash(credentials.password, 12);
       const oldCachedAuth = {
-        ...authResult,
+        auth: authResult,
+        passwordHash,
         cachedAt: new Date(Date.now() - 3660000) // 61 minutes ago
       };
       (degradationService as any).cache.set(`auth:${credentials.email}`, oldCachedAuth);
-
-      // Mock getCachedAuthentication to return the old cache
-      jest.spyOn(degradationService as any, 'getCachedAuthentication').mockResolvedValue(oldCachedAuth);
 
       config.enableEmergencyMode = true;
 
@@ -557,7 +556,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication(nonHealthcareCredentials.email, authResult);
+      await degradationService.cacheAuthentication(nonHealthcareCredentials.email, authResult, nonHealthcareCredentials.password);
 
       config.enableEmergencyMode = true;
 
@@ -587,7 +586,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication(healthcareCredentials.email, authResult);
+      await degradationService.cacheAuthentication(healthcareCredentials.email, authResult, healthcareCredentials.password);
 
       config.enableEmergencyMode = true;
 
@@ -613,7 +612,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication(doctorCredentials.email, authResult);
+      await degradationService.cacheAuthentication(doctorCredentials.email, authResult, doctorCredentials.password);
 
       config.enableEmergencyMode = true;
 
@@ -639,7 +638,7 @@ describe('IdentityServiceDegradation', () => {
         mode: ServiceMode.FULL_SERVICE,
       };
 
-      await degradationService.cacheAuthentication(nurseCredentials.email, authResult);
+      await degradationService.cacheAuthentication(nurseCredentials.email, authResult, nurseCredentials.password);
 
       config.enableEmergencyMode = true;
 

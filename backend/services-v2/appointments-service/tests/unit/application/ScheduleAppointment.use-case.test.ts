@@ -9,10 +9,16 @@
 import { ScheduleAppointmentUseCase } from '../../../src/application/use-cases/ScheduleAppointment.use-case';
 import { IAppointmentRepository } from '../../../src/domain/repositories/IAppointmentRepository';
 import { Appointment, AppointmentType, AppointmentPriority } from '../../../src/domain/aggregates/Appointment.aggregate';
+import { IConflictResolutionService } from '../../../src/application/services/IConflictResolutionService';
+import { IAuthorizationService } from '../../../src/application/services/IAuthorizationService';
+import { IReminderService } from '../../../src/application/services/IReminderService';
 
 describe('ScheduleAppointmentUseCase', () => {
   let useCase: ScheduleAppointmentUseCase;
   let mockRepository: jest.Mocked<IAppointmentRepository>;
+  let mockConflictService: jest.Mocked<IConflictResolutionService>;
+  let mockAuthService: jest.Mocked<IAuthorizationService>;
+  let mockReminderService: jest.Mocked<IReminderService>;
 
   beforeEach(() => {
     // Create mock repository
@@ -26,7 +32,30 @@ describe('ScheduleAppointmentUseCase', () => {
       checkConflicts: jest.fn(),
     } as any;
 
-    useCase = new ScheduleAppointmentUseCase(mockRepository);
+    // Create mock services
+    mockConflictService = {
+      checkConflicts: jest.fn().mockResolvedValue([]),
+    } as any;
+
+    mockAuthService = {
+      canScheduleAppointment: jest.fn().mockResolvedValue(true),
+    } as any;
+
+    mockReminderService = {
+      scheduleReminders: jest.fn().mockResolvedValue([]),
+      cancelReminders: jest.fn().mockResolvedValue(undefined),
+      sendReminder: jest.fn().mockResolvedValue({ success: true }),
+      getPendingReminders: jest.fn().mockResolvedValue([]),
+      markReminderAsSent: jest.fn().mockResolvedValue(undefined),
+      markReminderAsFailed: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
+    useCase = new ScheduleAppointmentUseCase(
+      mockRepository,
+      mockConflictService,
+      mockAuthService,
+      mockReminderService
+    );
   });
 
   describe('execute', () => {

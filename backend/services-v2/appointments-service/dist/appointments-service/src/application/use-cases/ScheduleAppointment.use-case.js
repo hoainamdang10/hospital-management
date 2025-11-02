@@ -16,21 +16,30 @@ const AppointmentId_vo_1 = require("../../domain/value-objects/AppointmentId.vo"
 const TimeSlot_vo_1 = require("../../domain/value-objects/TimeSlot.vo");
 const AppointmentDetails_vo_1 = require("../../domain/value-objects/AppointmentDetails.vo");
 const TenantId_vo_1 = require("../../domain/value-objects/TenantId.vo");
+const IAuthorizationService_1 = require("../services/IAuthorizationService");
 /**
  * Schedule Appointment Use Case
  * Creates a new appointment with proper validation and business rules
  */
 class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
-    constructor(appointmentRepository) {
+    constructor(appointmentRepository, conflictResolutionService, authorizationService, reminderService) {
         super();
         this.appointmentRepository = appointmentRepository;
+        this.conflictResolutionService = conflictResolutionService;
+        this.authorizationService = authorizationService;
+        this.reminderService = reminderService;
     }
     /**
      * Execute use case
      */
     async executeInternal(request) {
         try {
-            // 1. Validate request
+            // 1. Authorization check
+            const canSchedule = await this.authorizationService.canScheduleAppointment(request.createdBy, request.patientId);
+            if (!canSchedule) {
+                throw new IAuthorizationService_1.AuthorizationError('You are not authorized to schedule appointments for this patient', request.createdBy, 'schedule_appointment', request.patientId);
+            }
+            // 2. Validate request
             this.validateRequest(request);
             // 2. Create value objects
             const appointmentId = AppointmentId_vo_1.AppointmentId.generate();
@@ -41,9 +50,68 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
             const details = AppointmentDetails_vo_1.AppointmentDetails.create(request.reason, request.chiefComplaint, request.symptoms, request.notes, request.specialInstructions);
             // 3. Create appointment aggregate
             const appointment = Appointment_aggregate_1.Appointment.create(appointmentId, tenantId, request.patientId, request.doctorId, timeSlot, request.durationMinutes, request.type, request.priority, details, request.consultationFee, request.createdBy, request.roomId, request.departmentId, request.requiredEquipment);
-            // 4. Save to repository
-            await this.appointmentRepository.save(appointment);
-            // 5. Return response
+            // 4. Check for conflicts BEFORE saving
+            const startTime = new Date(`${request.appointmentDate}T${request.appointmentTime}`);
+            const endTime = new Date(startTime.getTime() + request.durationMinutes * 60000);
+            const conflictCheck = await this.conflictResolutionService.checkConflicts({
+                doctorId: request.doctorId,
+                startTime,
+                endTime
+            });
+            if (conflictCheck.hasConflicts) {
+                return {
+                    success: false,
+                    appointmentId: '',
+                    message: 'Không thể đặt lịch: Bác sĩ đã có lịch hẹn vào thời gian này',
+                    errors: ['DOUBLE_BOOKING_DETECTED'],
+                    conflictInfo: {
+                        hasConflicts: true,
+                        message: `Đã tìm thấy ${conflictCheck.conflicts.length} lịch hẹn bị trùng`,
+                        suggestions: conflictCheck.suggestions
+                    }
+                };
+            }
+            // 5. Save to repository (domain events will be emitted automatically)
+            try {
+                await this.appointmentRepository.save(appointment);
+            }
+            catch (saveError) {
+                // Catch PostgreSQL exclusion constraint violation (23P01)
+                if (saveError.code === '23P01' || saveError.message?.includes('exclude_doctor_time_overlap')) {
+                    // Race condition: Another appointment was created between our check and save
+                    // Retry conflict check to get fresh suggestions
+                    const retryConflictCheck = await this.conflictResolutionService.checkConflicts({
+                        doctorId: request.doctorId,
+                        startTime,
+                        endTime
+                    });
+                    return {
+                        success: false,
+                        appointmentId: '',
+                        message: 'Không thể đặt lịch: Bác sĩ đã có lịch hẹn vào thời gian này (race condition)',
+                        errors: ['DOUBLE_BOOKING_DETECTED', 'CONSTRAINT_VIOLATION'],
+                        conflictInfo: {
+                            hasConflicts: true,
+                            message: 'Lịch hẹn bị trùng (đã có người khác đặt trước)',
+                            suggestions: retryConflictCheck.suggestions
+                        }
+                    };
+                }
+                // Re-throw other errors
+                throw saveError;
+            }
+            // 6. Domain events emitted → Event handler → Outbox → Worker → Scheduler Service
+            //    No direct HTTP call needed - pure event-driven architecture
+            // 7. Schedule reminders for the appointment
+            try {
+                await this.reminderService.scheduleReminders(appointmentId.value, request.patientId, startTime, request.priority);
+                console.log(`[ScheduleAppointment] Reminders scheduled for appointment ${appointmentId.value}`);
+            }
+            catch (reminderError) {
+                // Log but don't fail the appointment creation
+                console.error('[ScheduleAppointment] Failed to schedule reminders:', reminderError);
+            }
+            // 8. Return response
             return {
                 success: true,
                 appointmentId: appointmentId.value,
@@ -64,6 +132,7 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
             };
         }
         catch (error) {
+            console.error('[ScheduleAppointmentUseCase] Error:', error);
             return {
                 success: false,
                 appointmentId: '',

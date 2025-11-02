@@ -7,6 +7,7 @@
  * @compliance Production-Ready, Anti-Pattern Mitigation
  */
 import { ICircuitBreaker, CircuitBreakerState } from '../../application/services/ICircuitBreaker';
+import { ILogger } from '../../application/services/ILogger';
 export { CircuitBreakerState };
 export interface CircuitBreakerConfig {
     failureThreshold: number;
@@ -39,7 +40,8 @@ export declare class IdentityServiceCircuitBreaker implements ICircuitBreaker {
     private lastFailureTime?;
     private halfOpenCalls;
     private metrics;
-    constructor(config: CircuitBreakerConfig, serviceName: string);
+    private logger;
+    constructor(config: CircuitBreakerConfig, serviceName: string, logger: ILogger);
     /**
      * Execute operation with circuit breaker protection
      */
@@ -84,7 +86,9 @@ export declare class IdentityServiceCircuitBreaker implements ICircuitBreaker {
  */
 export declare class CircuitBreakerFactory {
     private static breakers;
-    static getBreaker(serviceName: string, config?: Partial<CircuitBreakerConfig>): IdentityServiceCircuitBreaker;
+    private static logger;
+    static setLogger(logger: ILogger): void;
+    static getBreaker(serviceName: string, config?: Partial<CircuitBreakerConfig>, logger?: ILogger): IdentityServiceCircuitBreaker;
     static getAllBreakers(): Map<string, IdentityServiceCircuitBreaker>;
     static getHealthStatus(): Record<string, any>;
     static resetAll(): void;

@@ -18,6 +18,9 @@ export interface IdentityEventConsumerConfig {
     queueName: string;
     exchangeName: string;
     routingKeys: string[];
+    deadLetterExchange?: string;
+    deadLetterQueue?: string;
+    maxRetries?: number;
 }
 /**
  * Identity Event Consumer

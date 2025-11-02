@@ -345,14 +345,23 @@ describe('SupabasePatientRepository Integration Tests', () => {
 
   describe('Transaction support', () => {
     it('should rollback on error', async () => {
-      const invalidPatient = { ...testPatient, id: null } as any;
+      const rollbackPatient = Patient.register(
+        uuidv4(),
+        validPersonalInfo,
+        validContactInfo,
+        validBasicMedicalInfo,
+        undefined,
+        [],
+        uuidv4()
+      );
+
+      const invalidPatient = { ...rollbackPatient, id: null } as any;
 
       await expect(repository.save(invalidPatient)).rejects.toThrow();
 
-      const patientIdObj = testPatient.getPatientIdObject();
+      const patientIdObj = rollbackPatient.getPatientIdObject();
       const found = await repository.findById(patientIdObj);
       expect(found).toBeNull();
     });
   });
 });
-

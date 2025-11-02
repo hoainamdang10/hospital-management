@@ -49,7 +49,7 @@ export class GetNotificationUseCase {
 
   async execute(query: GetNotificationQuery): Promise<GetNotificationResult> {
     try {
-      const notificationId = new NotificationId(query.notificationId);
+      const notificationId = NotificationId.fromString(query.notificationId);
       const notification = await this.notificationRepository.findById(notificationId);
 
       if (!notification) {
@@ -65,7 +65,7 @@ export class GetNotificationUseCase {
   }
 
   private mapToResult(notification: Notification): any {
-    const contactInfo = notification.recipient.getContactInfo();
+    const _contactInfo = notification.recipient.getContactInfo();
     
     return {
       notificationId: notification.id,

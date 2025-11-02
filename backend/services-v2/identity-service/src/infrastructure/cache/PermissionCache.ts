@@ -20,6 +20,7 @@
 
 import { createClient, RedisClientType } from 'redis';
 import { UserId } from '../../domain/value-objects/UserId';
+import { ILogger } from '../../application/services/ILogger';
 
 interface CacheEntry {
   data: string[];
@@ -56,13 +57,18 @@ export class PermissionCache {
     invalidations: 0,
   };
 
+  private logger: ILogger;
+
   constructor(
     redisUrl: string,
+    logger: ILogger,
     clients?: {
       cacheClient?: RedisClientType;
       pubSubClient?: RedisClientType;
     }
   ) {
+    this.logger = logger;
+    
     // Create Redis client for caching
     this.redisClient = clients?.cacheClient ?? createClient({ url: redisUrl });
 
@@ -84,7 +90,7 @@ export class PermissionCache {
     await this.redisPubSub.connect();
     await this.setupInvalidationListener();
     this.hasConnected = true;
-    console.log('[PermissionCache] Connected to Redis');
+    this.logger.info('PermissionCache connected to Redis');
   }
 
   /**
@@ -97,7 +103,7 @@ export class PermissionCache {
 
     await this.redisClient.quit();
     await this.redisPubSub.quit();
-    console.log('[PermissionCache] Disconnected from Redis');
+    this.logger.info('PermissionCache disconnected from Redis');
     this.hasConnected = false;
   }
 
@@ -115,12 +121,14 @@ export class PermissionCache {
 
         this.stats.invalidations++;
 
-        console.log('[PermissionCache] L1 cache invalidated via Pub/Sub', {
+        this.logger.debug('PermissionCache L1 cache invalidated via Pub/Sub', {
           userId,
-          timestamp,
+          timestamp
         });
       } catch (error) {
-        console.error('[PermissionCache] Error processing invalidation message', error);
+        this.logger.error('PermissionCache error processing invalidation message', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     });
 
@@ -134,12 +142,14 @@ export class PermissionCache {
 
         this.stats.invalidations++;
 
-        console.log('[PermissionCache] L1 cache cleared for role via Pub/Sub', {
+        this.logger.debug('PermissionCache L1 cache cleared for role via Pub/Sub', {
           roleType,
-          timestamp,
+          timestamp
         });
       } catch (error) {
-        console.error('[PermissionCache] Error processing role invalidation message', error);
+        this.logger.error('PermissionCache error processing role invalidation message', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     });
   }
@@ -174,7 +184,10 @@ export class PermissionCache {
         return permissions;
       }
     } catch (error) {
-      console.error('[PermissionCache] Error reading from L2 cache', error);
+      this.logger.error('PermissionCache error reading from L2 cache', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: userId.value
+      });
     }
 
     this.stats.l2Misses++;
@@ -200,7 +213,10 @@ export class PermissionCache {
         JSON.stringify(permissions)
       );
     } catch (error) {
-      console.error('[PermissionCache] Error writing to L2 cache', error);
+      this.logger.error('PermissionCache error writing to L2 cache', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: userId.value
+      });
     }
   }
 
@@ -219,7 +235,10 @@ export class PermissionCache {
     try {
       await this.redisClient.del(key);
     } catch (error) {
-      console.error('[PermissionCache] Error deleting from L2 cache', error);
+      this.logger.error('PermissionCache error deleting from L2 cache', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: userId.value
+      });
     }
 
     // Broadcast to other instances (Pub/Sub)
@@ -232,13 +251,16 @@ export class PermissionCache {
         })
       );
     } catch (error) {
-      console.error('[PermissionCache] Error publishing invalidation', error);
+      this.logger.error('PermissionCache error publishing invalidation', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: userId.value
+      });
     }
 
     this.stats.invalidations++;
 
-    console.log('[PermissionCache] Cache invalidated and broadcasted', {
-      userId: userId.value,
+    this.logger.debug('PermissionCache cache invalidated and broadcasted', {
+      userId: userId.value
     });
   }
 
@@ -246,22 +268,20 @@ export class PermissionCache {
    * Invalidate cache for all users with a specific role
    * 
    * Use this when role permissions are changed.
+   * 
+   * IMPORTANT: We do NOT use redis.keys() here because it's a BLOCKING operation
+   * that can freeze Redis for 100-500ms with 10,000+ keys in production.
+   * Instead, we rely on Pub/Sub to broadcast invalidation to all instances,
+   * and each instance clears its own L1 cache. L2 (Redis) entries will expire
+   * naturally based on TTL (5 minutes).
    */
   async invalidateForRole(roleType: string): Promise<void> {
-    // Get all keys matching pattern
     try {
-      const pattern = 'permissions:*';
-      const keys = await this.redisClient.keys(pattern);
-
-      // Delete all matching keys
-      if (keys.length > 0) {
-        await this.redisClient.del(keys);
-      }
-
-      // Clear L1 cache completely
+      // Clear L1 cache completely (local memory)
       this.memoryCache.clear();
 
-      // Broadcast to other instances
+      // Broadcast to other instances via Pub/Sub
+      // Each instance will clear its own L1 cache when receiving this message
       await this.redisClient.publish(
         'permission:invalidate:role',
         JSON.stringify({
@@ -270,34 +290,37 @@ export class PermissionCache {
         })
       );
 
-      console.log('[PermissionCache] Cache invalidated for role', {
+      this.logger.info('PermissionCache cache invalidated for role via Pub/Sub', {
         roleType,
-        keysDeleted: keys.length,
+        note: 'L1 cleared, L2 will expire naturally (TTL: 5min)'
       });
     } catch (error) {
-      console.error('[PermissionCache] Error invalidating for role', error);
+      this.logger.error('PermissionCache error invalidating for role', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        roleType
+      });
     }
   }
 
   /**
    * Clear all caches
+   * 
+   * IMPORTANT: This method is for testing/development only.
+   * In production, use invalidate() or invalidateForRole() instead.
+   * We do NOT use redis.keys() to avoid blocking Redis in production.
    */
   async clear(): Promise<void> {
-    // Clear L1
+    // Clear L1 (local memory)
     this.memoryCache.clear();
 
-    // Clear L2
-    try {
-      const pattern = 'permissions:*';
-      const keys = await this.redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await this.redisClient.del(keys);
-      }
-    } catch (error) {
-      console.error('[PermissionCache] Error clearing L2 cache', error);
-    }
+    // NOTE: We do NOT clear L2 (Redis) here to avoid using redis.keys()
+    // which is a BLOCKING operation. L2 entries will expire naturally
+    // based on TTL (5 minutes). For immediate invalidation, use
+    // invalidate(userId) or invalidateForRole(roleType) instead.
 
-    console.log('[PermissionCache] All caches cleared');
+    this.logger.info('PermissionCache all caches cleared', {
+      note: 'L1 cleared, L2 will expire naturally (TTL: 5min)'
+    });
   }
 
   /**

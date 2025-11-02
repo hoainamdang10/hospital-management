@@ -33,13 +33,32 @@ describe('AppointmentController.previewReminders', () => {
     };
     const listUC: any = { execute: jest.fn() };
 
+    const rescheduleUC: any = { execute: jest.fn() };
+    const checkInUC: any = { execute: jest.fn() };
+    const markAsNoShowUC: any = { execute: jest.fn() };
+    const startUC: any = { execute: jest.fn() };
+    const bulkRescheduleUC: any = { execute: jest.fn() };
+    const getHistoryUC: any = { execute: jest.fn() };
+    const getStatisticsUC: any = { execute: jest.fn() };
+    const createEmergencyUC: any = { execute: jest.fn() };
+    const transferUC: any = { execute: jest.fn() };
+
     const controller = new AppointmentController(
       scheduleUC,
       cancelUC,
       confirmUC,
       completeUC,
       getUC,
-      listUC
+      listUC,
+      rescheduleUC,
+      checkInUC,
+      markAsNoShowUC,
+      startUC,
+      bulkRescheduleUC,
+      getHistoryUC,
+      getStatisticsUC,
+      createEmergencyUC,
+      transferUC
     );
 
     const req: any = { params: { id: 'A-123' }, user: { id: 'U-1' } };

@@ -33,7 +33,7 @@ export class RetryNotificationUseCase {
 
   async execute(command: RetryNotificationCommand): Promise<RetryNotificationResult> {
     try {
-      const notificationId = new NotificationId(command.notificationId);
+      const notificationId = NotificationId.fromString(command.notificationId);
       const notification = await this.notificationRepository.findById(notificationId);
 
       if (!notification) {

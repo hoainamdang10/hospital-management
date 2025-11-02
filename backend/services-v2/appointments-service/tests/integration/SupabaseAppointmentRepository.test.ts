@@ -11,10 +11,13 @@ import { Appointment, AppointmentType, AppointmentPriority } from '../../src/dom
 import { AppointmentId } from '../../src/domain/value-objects/AppointmentId.vo';
 import { TimeSlot } from '../../src/domain/value-objects/TimeSlot.vo';
 import { AppointmentDetails } from '../../src/domain/value-objects/AppointmentDetails.vo';
+import { TenantId } from '../../src/domain/value-objects/TenantId.vo';
+import { AppointmentTestDataBuilder } from '../helpers/AppointmentTestDataBuilder';
 
 describe('SupabaseAppointmentRepository Integration Tests', () => {
   let repository: SupabaseAppointmentRepository;
   let testAppointment: Appointment;
+  const createdAppointments: AppointmentId[] = [];
 
   beforeAll(() => {
     const supabaseUrl = process.env.SUPABASE_URL!;
@@ -28,6 +31,7 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
   });
 
   beforeEach(() => {
+    AppointmentTestDataBuilder.reset();
     testAppointment = createTestAppointment();
   });
 
@@ -35,7 +39,7 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
     it('should save new appointment to database', async () => {
       await repository.save(testAppointment);
 
-      const found = await repository.findById(testAppointment.id);
+      const found = await repository.findByIdString(testAppointment.id);
       expect(found).toBeDefined();
       expect(found?.getAppointmentId().value).toBe(testAppointment.getAppointmentId().value);
     });
@@ -46,7 +50,7 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
       testAppointment.confirm('user-123');
       await repository.save(testAppointment);
 
-      const found = await repository.findById(testAppointment.id);
+      const found = await repository.findByIdString(testAppointment.id);
       expect(found?.getStatus()).toBe('confirmed');
       expect(found?.getConfirmedBy()).toBe('user-123');
     });
@@ -56,7 +60,7 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
     it('should find appointment by UUID', async () => {
       await repository.save(testAppointment);
 
-      const found = await repository.findById(testAppointment.id);
+      const found = await repository.findByIdString(testAppointment.id);
 
       expect(found).toBeDefined();
       expect(found?.id).toBe(testAppointment.id);
@@ -65,7 +69,8 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
     });
 
     it('should return null when appointment not found', async () => {
-      const found = await repository.findById('non-existent-id');
+      const nonExistentId = AppointmentId.generate();
+      const found = await repository.findById(nonExistentId);
       expect(found).toBeNull();
     });
   });
@@ -88,36 +93,44 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
 
   describe('findByPatientId', () => {
     it('should find all appointments for a patient', async () => {
-      const appointment1 = createTestAppointment();
-      const appointment2 = createTestAppointment();
+      const testPatientId = AppointmentTestDataBuilder.generatePatientId();
+      const appointment1 = createTestAppointmentWithData({ patientId: testPatientId });
+      const appointment2 = createTestAppointmentWithData({ patientId: testPatientId, offsetHours: 2 });
       
       await repository.save(appointment1);
+      createdAppointments.push(appointment1.getAppointmentId());
+      
       await repository.save(appointment2);
+      createdAppointments.push(appointment2.getAppointmentId());
 
-      const found = await repository.findByPatientId('patient-123');
+      const found = await repository.findByPatientId(testPatientId);
       
       expect(found.length).toBeGreaterThanOrEqual(2);
-      expect(found.every(apt => apt.patientId === 'patient-123')).toBe(true);
+      expect(found.every(apt => apt.getPatientId() === testPatientId)).toBe(true);
     });
 
     it('should return empty array when no appointments found', async () => {
-      const found = await repository.findByPatientId('non-existent-patient');
+      const found = await repository.findByPatientId('PAT-999999-999');
       expect(found).toEqual([]);
     });
   });
 
   describe('findByDoctorId', () => {
     it('should find all appointments for a doctor', async () => {
-      const appointment1 = createTestAppointment();
-      const appointment2 = createTestAppointment();
+      const testDoctorId = AppointmentTestDataBuilder.generateDoctorId();
+      const appointment1 = createTestAppointmentWithData({ doctorId: testDoctorId });
+      const appointment2 = createTestAppointmentWithData({ doctorId: testDoctorId, offsetHours: 2 });
       
       await repository.save(appointment1);
+      createdAppointments.push(appointment1.getAppointmentId());
+      
       await repository.save(appointment2);
+      createdAppointments.push(appointment2.getAppointmentId());
 
-      const found = await repository.findByDoctorId('doctor-456');
+      const found = await repository.findByDoctorId(testDoctorId);
       
       expect(found.length).toBeGreaterThanOrEqual(2);
-      expect(found.every(apt => apt.doctorId === 'doctor-456')).toBe(true);
+      expect(found.every(apt => apt.getDoctorId() === testDoctorId)).toBe(true);
     });
   });
 
@@ -125,15 +138,25 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
     it('should find appointments within date range', async () => {
       const appointment1 = createTestAppointment();
       await repository.save(appointment1);
+      createdAppointments.push(appointment1.getAppointmentId());
 
-      const found = await repository.findByDateRange('2025-01-01', '2025-01-31');
+      // Use specific date of the appointment as range (UTC midnight)
+      const appointmentDate = new Date(appointment1.getTimeSlot().appointmentDate + 'T00:00:00Z');
+      const startDate = new Date(appointmentDate);
+      startDate.setUTCDate(appointmentDate.getUTCDate() - 1); // Day before
+      const endDate = new Date(appointmentDate);
+      endDate.setUTCDate(appointmentDate.getUTCDate() + 1); // Day after
       
-      expect(found.length).toBeGreaterThanOrEqual(1);
-      expect(found.some(apt => apt.appointmentId.value === appointment1.appointmentId.value)).toBe(true);
+      const found = await repository.findByDateRange(startDate, endDate);
+      
+      // Should find the appointment we just created
+      const match = found.find(apt => apt.getAppointmentId().value === appointment1.getAppointmentId().value);
+      expect(match).toBeDefined();
+      expect(match?.getDoctorId()).toBe(appointment1.getDoctorId());
     });
 
     it('should return empty array when no appointments in range', async () => {
-      const found = await repository.findByDateRange('2030-01-01', '2030-01-31');
+      const found = await repository.findByDateRange(new Date('2030-01-01'), new Date('2030-01-31'));
       expect(found).toEqual([]);
     });
   });
@@ -142,9 +165,9 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
     it('should delete appointment from database', async () => {
       await repository.save(testAppointment);
       
-      await repository.delete(testAppointment.id);
+      await repository.delete(testAppointment.getAppointmentId());
 
-      const found = await repository.findById(testAppointment.id);
+      const found = await repository.findByIdString(testAppointment.id);
       expect(found).toBeNull();
     });
   });
@@ -157,7 +180,7 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
 
       await repository.save(testAppointment);
 
-      const found = await repository.findById(testAppointment.id);
+      const found = await repository.findByIdString(testAppointment.id);
 
       expect(found).toBeDefined();
       expect(found?.getStatus()).toBe('in_progress');
@@ -169,7 +192,7 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
     it('should preserve all value objects', async () => {
       await repository.save(testAppointment);
 
-      const found = await repository.findById(testAppointment.id);
+      const found = await repository.findByIdString(testAppointment.id);
 
       expect(found?.getAppointmentId().value).toBe(testAppointment.getAppointmentId().value);
       expect(found?.getTimeSlot().appointmentDate).toBe(testAppointment.getTimeSlot().appointmentDate);
@@ -179,25 +202,49 @@ describe('SupabaseAppointmentRepository Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Cleanup: delete test appointment
+    // Cleanup: delete all created appointments
+    for (const appointmentId of createdAppointments) {
+      try {
+        await repository.delete(appointmentId);
+      } catch (error) {
+        // Ignore errors during cleanup
+      }
+    }
+    
+    // Also try to delete the main test appointment
     try {
-      await repository.delete(testAppointment.id);
+      await repository.delete(testAppointment.getAppointmentId());
     } catch (error) {
       // Ignore errors during cleanup
     }
+    
+    // Clear the array for next test
+    createdAppointments.length = 0;
   });
 });
 
-// Helper function
-function getFutureDate(daysAhead: number = 1): string {
-  const date = new Date();
-  date.setDate(date.getDate() + daysAhead);
-  return date.toISOString().split('T')[0];
+// Test fixtures - Business format IDs (matching DB schema)
+const TEST_USER_UUID = '00000000-0000-0000-0000-000000000003'; // created_by/last_modified_by: UUID
+
+// Helper functions
+function createTestAppointment(): Appointment {
+  const testData = AppointmentTestDataBuilder.generateNonOverlappingAppointment();
+  return createAppointmentFromData(testData);
 }
 
-function createTestAppointment(): Appointment {
+function createTestAppointmentWithData(options: {
+  doctorId?: string;
+  patientId?: string;
+  offsetHours?: number;
+}): Appointment {
+  const testData = AppointmentTestDataBuilder.generateNonOverlappingAppointment(options);
+  return createAppointmentFromData(testData);
+}
+
+function createAppointmentFromData(data: any): Appointment {
   const appointmentId = AppointmentId.generate();
-  const timeSlot = TimeSlot.create(getFutureDate(), '09:00:00');
+  const tenantId = TenantId.createDefault();
+  const timeSlot = TimeSlot.create(data.appointmentDate, data.appointmentTime);
   const details = AppointmentDetails.create(
     'Khám tổng quát',
     'Đau đầu',
@@ -208,15 +255,19 @@ function createTestAppointment(): Appointment {
 
   return Appointment.create(
     appointmentId,
-    'patient-123',
-    'doctor-456',
+    tenantId,
+    data.patientId,
+    data.doctorId,
     timeSlot,
-    30,
+    data.durationMinutes,
     AppointmentType.CONSULTATION,
-    AppointmentPriority.ROUTINE,
+    AppointmentPriority.NORMAL,
     details,
     200000,
-    'user-789'
+    'test-user', // createdBy
+    undefined, // roomId
+    undefined, // departmentId
+    undefined  // requiredEquipment
   );
 }
 

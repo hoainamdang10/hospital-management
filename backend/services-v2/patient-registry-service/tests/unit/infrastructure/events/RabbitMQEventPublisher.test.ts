@@ -39,7 +39,13 @@ class TestDomainEvent extends DomainEvent {
     aggregateId: string,
     public readonly testData: string
   ) {
-    super(aggregateId, 'Patient', 'TestEvent', 1);
+    super(
+      'TestEvent',
+      aggregateId,
+      'Patient',
+      { testData },
+      1
+    );
   }
 
   override getEventData() {
@@ -91,7 +97,8 @@ describe('RabbitMQEventPublisher', () => {
       exchange: 'patient-registry-events',
       exchangeType: 'topic',
       durable: true,
-      autoDelete: false
+      autoDelete: false,
+      serviceName: 'patient-registry'
     };
 
     publisherConfig = {
@@ -255,8 +262,13 @@ describe('RabbitMQEventPublisher', () => {
         eventId: testEvent.eventId,
         eventType: testEvent.eventType,
         aggregateId: testEvent.aggregateId,
+        aggregateType: testEvent.aggregateType,
+        eventVersion: testEvent.eventVersion,
         occurredAt: testEvent.occurredAt.toISOString(),
-        testData: 'test data'
+        eventData: {
+          testData: testEvent.testData
+        },
+        metadata: testEvent.metadata
       });
     });
 
@@ -627,8 +639,13 @@ describe('RabbitMQEventPublisher', () => {
         eventId: testEvent.eventId,
         eventType: testEvent.eventType,
         aggregateId: testEvent.aggregateId,
+        aggregateType: testEvent.aggregateType,
+        eventVersion: testEvent.eventVersion,
         occurredAt: testEvent.occurredAt.toISOString(),
-        testData: 'test data'
+        eventData: {
+          testData: testEvent.testData
+        },
+        metadata: testEvent.metadata
       });
     });
 
@@ -636,7 +653,13 @@ describe('RabbitMQEventPublisher', () => {
       // Arrange
       const eventWithCamelCase = new (class extends DomainEvent {
         constructor() {
-          super('test-id', 'Patient', 'PatientRegistered', 1);
+          super(
+            'PatientRegistered',
+            'test-id',
+            'Patient',
+            {},
+            1
+          );
         }
         override getEventData() {
           return {};

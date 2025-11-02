@@ -138,5 +138,9 @@ export declare class FHIRExportService {
      * Add Vietnamese healthcare extensions to FHIR composition
      */
     private addVietnameseHealthcareExtensions;
+    /**
+     * Generate narrative text for FHIR resource
+     */
+    private generateNarrative;
 }
 //# sourceMappingURL=FHIRExportService.d.ts.map

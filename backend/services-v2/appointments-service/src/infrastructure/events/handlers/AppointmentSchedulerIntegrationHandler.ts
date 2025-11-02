@@ -11,7 +11,6 @@
 
 import { EventHandler } from '@shared/infrastructure/event-bus/EventBus';
 import { DomainEvent } from '@shared/domain/base/domain-event';
-import { RemoteSchedulerAdapter } from '@hospital/scheduler-client';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -55,21 +54,22 @@ interface ReminderPolicy {
 interface AppointmentScheduledEventData {
   appointmentId: string;
   patientId: string;
-  providerId: string;
-  startTime: Date;
-  endTime: Date;
-  reason: string;
-  appointmentType: string;
+  doctorId: string;
+  appointmentDate: string; // YYYY-MM-DD format
+  appointmentTime: string; // HH:mm format
+  durationMinutes: number;
+  type: string;
   priority: string;
-  department?: string;
-  urgencyLevel?: 'routine' | 'urgent' | 'emergency';
-  scheduledBy: string;
+  status: string;
+  consultationFee: number;
+  createdBy: string;
+  scheduledAt: Date;
 }
 
 interface AppointmentCancelledEventData {
   appointmentId: string;
   patientId: string;
-  providerId: string;
+  doctorId: string;
   cancelledBy: string;
   cancelledAt: Date;
   reason?: string;
@@ -78,7 +78,7 @@ interface AppointmentCancelledEventData {
 interface AppointmentRescheduledEventData {
   appointmentId: string;
   patientId: string;
-  providerId: string;
+  doctorId: string;
   oldStartTime: Date;
   newStartTime: Date;
   newEndTime: Date;
@@ -187,6 +187,52 @@ export class AppointmentScheduledSchedulerHandler implements EventHandler<Domain
   }
 
   /**
+   * Construct Date from appointmentDate (YYYY-MM-DD) and appointmentTime (HH:mm:ss or HH:mm)
+   * Handles both formats: "14:30:00" (from TimeSlot VO) and "14:30" (legacy)
+   */
+  private constructAppointmentDateTime(appointmentDate: string, appointmentTime: string): Date {
+    // appointmentDate: "2025-01-15"
+    // appointmentTime: "14:30:00" or "14:30"
+
+    // Normalize time format: ensure HH:MM:SS format
+    let normalizedTime = appointmentTime;
+
+    // If time is in HH:MM format, add :00 for seconds
+    if (/^\d{2}:\d{2}$/.test(appointmentTime)) {
+      normalizedTime = `${appointmentTime}:00`;
+    }
+
+    // Validate HH:MM:SS format
+    if (!/^\d{2}:\d{2}:\d{2}$/.test(normalizedTime)) {
+      throw new Error(`Invalid time format: ${appointmentTime}. Expected HH:MM:SS or HH:MM`);
+    }
+
+    const dateTimeString = `${appointmentDate}T${normalizedTime}`;
+    const date = new Date(dateTimeString);
+
+    if (isNaN(date.getTime())) {
+      throw new Error(`Invalid appointment date/time: ${appointmentDate} ${appointmentTime}`);
+    }
+
+    return date;
+  }
+
+  /**
+   * Map priority to urgency level for reminder policy
+   */
+  private mapPriorityToUrgency(priority: string): 'routine' | 'urgent' | 'emergency' {
+    const priorityLower = priority.toLowerCase();
+
+    if (priorityLower === 'emergency') {
+      return 'emergency';
+    } else if (priorityLower === 'urgent' || priorityLower === 'high') {
+      return 'urgent';
+    } else {
+      return 'routine';
+    }
+  }
+
+  /**
    * Enforce quiet hours: if reminderTime falls within [start, end) local window,
    * shift to the end of quiet hours + 5 minutes.
    * NOTE: For simplicity we use server local time. Replace with timezone-aware logic (e.g., Luxon) if needed.
@@ -233,7 +279,8 @@ export class AppointmentScheduledSchedulerHandler implements EventHandler<Domain
 
       console.log(`[SchedulerHandler] Processing AppointmentScheduled: ${eventData.appointmentId}`);
 
-      const urgencyLevel = eventData.urgencyLevel || 'routine';
+      // Determine urgency level from priority
+      const urgencyLevel = this.mapPriorityToUrgency(eventData.priority);
       const reminderWindows = this.getReminderWindows(urgencyLevel);
 
       if (reminderWindows.length === 0) {
@@ -241,7 +288,11 @@ export class AppointmentScheduledSchedulerHandler implements EventHandler<Domain
         return;
       }
 
-      const appointmentTime = new Date(eventData.startTime);
+      // Construct appointment time from date + time
+      const appointmentTime = this.constructAppointmentDateTime(
+        eventData.appointmentDate,
+        eventData.appointmentTime
+      );
       const now = new Date();
 
       // Create reminder schedules
@@ -265,24 +316,32 @@ export class AppointmentScheduledSchedulerHandler implements EventHandler<Domain
             dedupKey,
             payload: {
               tenantId: this.tenantId,
+              dedupKey,
               ownerService: 'appointments',
-              ownerResourceType: 'appointment',
+              ownerResourceType: 'APPOINTMENT',
               ownerResourceId: eventData.appointmentId,
+              topicOrCommand: `appointments.appointment.reminder.${reminder.window}`,
+              // Flat structure - matches Scheduler API
               scheduleType: 'ONCE',
               startAtUtc: reminderTime.toISOString(),
-              topicOrCommand: `appointments.appointment.reminder.${reminder.window}`,
+              timezone: 'UTC',
               payloadJson: {
                 appointmentId: eventData.appointmentId,
                 patientId: eventData.patientId,
-                providerId: eventData.providerId,
-                appointmentTime: appointmentTime.toISOString(),
+                doctorId: eventData.doctorId,
+                appointmentDate: eventData.appointmentDate,
+                appointmentTime: eventData.appointmentTime,
+                appointmentDateTime: appointmentTime.toISOString(),
+                durationMinutes: eventData.durationMinutes,
+                type: eventData.type,
+                priority: eventData.priority,
                 reminderType: reminder.window,
                 channels: reminder.channels,
                 urgencyLevel,
-                reason: eventData.reason,
-                department: eventData.department
+                consultationFee: eventData.consultationFee
               },
-              dedupKey,
+              maxRuns: 1,
+              jitterMs: 0,
               retryPolicy: this.policy.retryPolicy ? {
                 strategy: this.policy.retryPolicy.strategy,
                 maxAttempts: this.policy.retryPolicy.maxAttempts,
@@ -342,6 +401,7 @@ export class AppointmentCancelledSchedulerHandler implements EventHandler<Domain
         payload: {
           tenantId: this.tenantId,
           ownerService: 'appointments',
+          ownerResourceType: 'APPOINTMENT',
           ownerResourceId: eventData.appointmentId
         }
       });
@@ -389,6 +449,7 @@ export class AppointmentRescheduledSchedulerHandler implements EventHandler<Doma
         payload: {
           tenantId: this.tenantId,
           ownerService: 'appointments',
+          ownerResourceType: 'APPOINTMENT',
           ownerResourceId: eventData.appointmentId
         }
       });
@@ -403,17 +464,24 @@ export class AppointmentRescheduledSchedulerHandler implements EventHandler<Doma
         dedupKey: `${eventData.appointmentId}:reschedule-create`,
         payload: {
           tenantId: this.tenantId,
+          dedupKey: `${eventData.appointmentId}:reschedule-create`,
           ownerService: 'appointments',
+          ownerResourceType: 'APPOINTMENT',
           ownerResourceId: eventData.appointmentId,
           topicOrCommand: `appointments.appointment.reminder.rescheduled`,
+          // Flat structure - matches Scheduler API
+          scheduleType: 'ONCE',
           startAtUtc: eventData.newStartTime.toISOString(),
+          timezone: 'UTC',
           payloadJson: {
             appointmentId: eventData.appointmentId,
             patientId: eventData.patientId,
-            providerId: eventData.providerId,
+            doctorId: eventData.doctorId,
             newStartTime: eventData.newStartTime.toISOString(),
             reason: eventData.reason || 'Appointment rescheduled'
-          }
+          },
+          maxRuns: 1,
+          jitterMs: 0
         }
       });
 

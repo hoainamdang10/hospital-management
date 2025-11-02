@@ -8,9 +8,11 @@
 
 import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAuthorizationService, AuthorizationError } from '../services/IAuthorizationService';
 
 export interface CompleteAppointmentRequest {
   appointmentId: string;
+  completedBy: string; // Doctor/Nurse ID
 }
 
 export interface CompleteAppointmentResponse {
@@ -24,7 +26,8 @@ export class CompleteAppointmentUseCase extends BaseHealthcareUseCase<
   CompleteAppointmentResponse
 > {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: IAppointmentRepository,
+    private readonly authorizationService: IAuthorizationService
   ) {
     super();
   }
@@ -43,6 +46,25 @@ export class CompleteAppointmentUseCase extends BaseHealthcareUseCase<
           message: 'Không tìm thấy lịch hẹn',
           errors: ['Appointment not found']
         };
+      }
+
+      // Authorization check - Only doctors/nurses can complete
+      const canComplete = await this.authorizationService.canCompleteAppointment(
+        request.completedBy,
+        request.appointmentId,
+        {
+          patientId: appointment.patientId,
+          doctorId: appointment.doctorId,
+        }
+      );
+
+      if (!canComplete) {
+        throw new AuthorizationError(
+          'You are not authorized to complete this appointment. Only doctors and nurses can complete appointments.',
+          request.completedBy,
+          'complete_appointment',
+          request.appointmentId
+        );
       }
 
       appointment.complete();

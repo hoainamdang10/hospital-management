@@ -25,6 +25,7 @@ import { AppConfig } from './config';
 import { createRequestIdMiddleware } from '../presentation/middleware/RequestIdMiddleware';
 import { createIdempotencyMiddleware } from '../presentation/middleware/IdempotencyMiddleware';
 import { createMetricsAuthMiddleware } from '../presentation/middleware/MetricsAuthMiddleware';
+import { createMetricsMiddleware } from '../presentation/middleware/MetricsMiddleware';
 
 /**
  * Build Express application with all middleware
@@ -41,6 +42,9 @@ export function buildExpressApp(
 ): Application {
   const app = express();
 
+  // Respect reverse proxies/load balancers so req.ip reflects the original client
+  app.set('trust proxy', 1);
+
   // 1. Basic middleware
   setupBasicMiddleware(app, logger);
 
@@ -55,7 +59,10 @@ export function buildExpressApp(
     setupIdempotencyMiddleware(app, cacheService, logger);
   }
 
-  // 5. Request logging
+  // 5. Prometheus metrics (before request logging)
+  setupMetricsMiddleware(app, logger);
+
+  // 6. Request logging
   setupRequestLogging(app, logger);
 
   logger.info('Express application built successfully', {
@@ -149,7 +156,7 @@ function setupIdempotencyMiddleware(
   cacheService: ICacheService,
   logger: ILogger
 ): void {
-  const idempotencyMiddleware = createIdempotencyMiddleware(cacheService as any);
+  const idempotencyMiddleware = createIdempotencyMiddleware(cacheService as any, logger);
   
   // Apply to write operations only
   app.use((req, res, next) => {
@@ -161,6 +168,14 @@ function setupIdempotencyMiddleware(
   });
 
   logger.debug('Idempotency middleware configured');
+}
+
+/**
+ * Setup Prometheus metrics middleware
+ */
+function setupMetricsMiddleware(app: Application, logger: ILogger): void {
+  app.use(createMetricsMiddleware(logger));
+  logger.debug('Prometheus metrics middleware configured');
 }
 
 /**
@@ -244,6 +259,6 @@ export function createMetricsAuth(config: AppConfig, logger: ILogger) {
   return createMetricsAuthMiddleware({
     enabled: config.metricsAuthEnabled,
     authToken: config.metricsAuthToken,
-    allowedIPs: ['127.0.0.1', '::1', '::ffff:127.0.0.1'] // localhost
+    allowedIPs: config.metricsAllowedIPs
   }, logger);
 }

@@ -14,6 +14,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { ILogger } from '../../application/services/ILogger';
+import { normalizeIp, isIpAllowed } from './utils/ip-utils';
 
 /**
  * Metrics Auth Middleware Configuration
@@ -40,13 +41,9 @@ export function createMetricsAuthMiddleware(
 
     // Check IP whitelist if configured
     if (config.allowedIPs && config.allowedIPs.length > 0) {
-      const clientIP = req.ip || req.socket.remoteAddress || '';
-      const isAllowedIP = config.allowedIPs.some(allowedIP => {
-        // Support CIDR notation or exact match
-        return clientIP.includes(allowedIP) || allowedIP === clientIP;
-      });
+      const clientIP = normalizeIp(req.ip || req.socket.remoteAddress || '');
 
-      if (isAllowedIP) {
+      if (clientIP && isIpAllowed(clientIP, config.allowedIPs)) {
         return next();
       }
     }
@@ -74,4 +71,3 @@ export function createMetricsAuthMiddleware(
     });
   };
 }
-

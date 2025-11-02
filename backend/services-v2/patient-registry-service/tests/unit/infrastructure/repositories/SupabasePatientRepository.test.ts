@@ -36,7 +36,16 @@ jest.mock('@supabase/supabase-js', () => ({
 jest.mock('../../../../src/infrastructure/resilience/CircuitBreaker', () => ({
   CircuitBreakerFactory: {
     getBreaker: jest.fn(() => ({
-      execute: jest.fn((fn, fallback) => fn()),
+      execute: jest.fn(async (fn, fallback) => {
+        try {
+          return await fn();
+        } catch (error) {
+          if (fallback) {
+            return await fallback(error);
+          }
+          throw error;
+        }
+      }),
       getState: jest.fn(() => 'CLOSED'),
       getMetrics: jest.fn(() => ({ failures: 0, successes: 0 }))
     }))
@@ -89,7 +98,16 @@ describe('SupabasePatientRepository', () => {
 
     // Mock circuit breaker
     mockCircuitBreaker = {
-      execute: jest.fn((fn, fallback) => fn()),
+      execute: jest.fn(async (fn, fallback) => {
+        try {
+          return await fn();
+        } catch (error) {
+          if (fallback) {
+            return await fallback(error);
+          }
+          throw error;
+        }
+      }),
       getState: jest.fn(() => 'CLOSED'),
       getMetrics: jest.fn(() => ({ failures: 0, successes: 0 })),
       getStatus: jest.fn(() => ({ state: 'CLOSED', failures: 0, successes: 0 }))
@@ -255,7 +273,7 @@ describe('SupabasePatientRepository', () => {
       expect(result).toBeNull();
     });
 
-    it('should throw error for database errors', async () => {
+    it('should return null and log fallback for database errors', async () => {
       // Arrange
       const mockQuery = {
         select: jest.fn().mockReturnThis(),
@@ -268,8 +286,15 @@ describe('SupabasePatientRepository', () => {
 
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
-      // Act & Assert
-      await expect(repository.findById(testPatientId)).rejects.toThrow('Failed to find patient: Database error');
+      // Act
+      const result = await repository.findById(testPatientId);
+
+      // Assert
+      expect(result).toBeNull();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Circuit breaker fallback for findById',
+        { patientId: testPatientId.getValue() }
+      );
     });
 
     it('should use circuit breaker for resilience', async () => {
@@ -647,8 +672,18 @@ describe('SupabasePatientRepository', () => {
 
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
-      // Act & Assert
-      await expect(repository.searchPatients(searchTerm)).rejects.toThrow('Failed to search patients: Search failed');
+      // Act
+      const result = await repository.searchPatients(searchTerm);
+
+      // Assert - should return fallback response
+      expect(result).toEqual({
+        patients: [],
+        total: 0
+      });
+      expect(mockLogger.warn).toHaveBeenCalled();
+      expect(
+        mockLogger.warn.mock.calls.some(call => call[0] === 'Circuit breaker fallback for searchPatients')
+      ).toBe(true);
     });
   });
 
@@ -693,62 +728,120 @@ describe('SupabasePatientRepository', () => {
 
       // Assert
       expect(result.status).toBe('unhealthy');
-      expect(result.error).toContain('Connection failed');
+      expect(result.database).toBe('patient_schema');
+      expect(result.circuitBreaker).toEqual({ state: 'CLOSED', failures: 0, successes: 0 });
     });
   });
 
   describe('getStatistics', () => {
     it('should return patient statistics successfully', async () => {
       // Arrange
-      const mockStatsData = {
-        total_patients: 100,
-        male_count: 45,
-        female_count: 50,
-        other_count: 3,
-        unknown_count: 2,
-        age_0_18: 20,
-        age_19_40: 40,
-        age_41_60: 30,
-        age_60_plus: 10,
-        bhyt_count: 60,
-        bhtn_count: 20,
-        private_count: 15,
-        self_pay_count: 5,
-        active_count: 85,
-        inactive_count: 10,
-        deceased_count: 3,
-        merged_count: 2,
-        registration_trend: [
-          { month: '2024-01', count: 10 },
-          { month: '2024-02', count: 15 }
-        ]
-      };
+      const totalCountResponse = { count: 3, error: null };
+      const personalInfoData = [
+        { personal_info: { gender: 'male', dateOfBirth: '2005-01-01' } },
+        { personal_info: { gender: 'female', dateOfBirth: '1980-01-01' } },
+        { personal_info: { gender: 'other', dateOfBirth: '1960-01-01' } }
+      ];
+      const statusData = [
+        { status: 'active' },
+        { status: 'inactive' },
+        { status: 'merged' }
+      ];
+      const insuranceData = [
+        { insurance_type: 'BHYT' },
+        { insurance_type: 'PRIVATE' }
+      ];
+      const trendData = [
+        { created_at: '2024-01-15T00:00:00.000Z' },
+        { created_at: '2024-02-20T00:00:00.000Z' }
+      ];
 
-      mockSupabaseClient.rpc.mockResolvedValue({ data: mockStatsData, error: null });
+      const personalInfoResponses = [
+        { data: personalInfoData, error: null },
+        { data: personalInfoData, error: null }
+      ];
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'patients') {
+          return {
+            select: jest.fn((columns: string, options?: any) => {
+              if (columns === '*' && options?.count === 'exact') {
+                return Promise.resolve(totalCountResponse);
+              }
+              if (columns === 'personal_info') {
+                return Promise.resolve(personalInfoResponses.shift() ?? { data: [], error: null });
+              }
+              if (columns === 'status') {
+                return Promise.resolve({ data: statusData, error: null });
+              }
+              if (columns === 'created_at') {
+                return {
+                  gte: jest.fn(() => Promise.resolve({ data: trendData, error: null }))
+                };
+              }
+              return Promise.resolve({ data: [], error: null });
+            })
+          };
+        }
+
+        if (table === 'insurance_info') {
+          return {
+            select: jest.fn(() => Promise.resolve({ data: insuranceData, error: null }))
+          };
+        }
+
+        return {
+          select: jest.fn(() => Promise.resolve({ data: [], error: null }))
+        };
+      });
 
       // Act
       const result = await repository.getStatistics();
 
       // Assert
-      expect(result.total).toBe(100);
-      expect(result.byGender.male).toBe(45);
-      expect(result.byGender.female).toBe(50);
-      expect(result.byAgeRange['0-18']).toBe(20);
-      expect(result.byInsuranceType.bhyt).toBe(60);
-      expect(result.byStatus.active).toBe(85);
-      expect(result.registrationTrend).toHaveLength(2);
-      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('get_patient_statistics');
+      expect(result.total).toBe(3);
+      expect(result.byGender).toEqual({
+        male: 1,
+        female: 1,
+        other: 1,
+        unknown: 0
+      });
+      expect(result.byAgeRange).toEqual({
+        '0-18': 0,
+        '19-40': 1,
+        '41-60': 1,
+        '60+': 1
+      });
+      expect(result.byInsuranceType).toEqual({
+        bhyt: 1,
+        bhtn: 0,
+        private: 1,
+        selfPay: 1
+      });
+      expect(result.byStatus).toEqual({
+        active: 1,
+        inactive: 1,
+        deceased: 0,
+        merged: 1
+      });
+      expect(result.registrationTrend).toEqual([
+        { month: '2024-01', count: 1 },
+        { month: '2024-02', count: 1 }
+      ]);
+      expect(mockSupabaseClient.rpc).not.toHaveBeenCalled();
     });
 
     it('should handle statistics errors', async () => {
       // Arrange
-      mockSupabaseClient.rpc.mockResolvedValue({
-        data: null,
-        error: { message: 'Statistics query failed' }
-      });
+      mockSupabaseClient.from.mockImplementation(() => ({
+        select: jest.fn(() => Promise.resolve({
+          count: null,
+          error: { message: 'Total failed' }
+        }))
+      }));
 
       // Act & Assert
-      await expect(repository.getStatistics()).rejects.toThrow('Failed to get patient statistics: Statistics query failed');
+      await expect(repository.getStatistics()).rejects.toThrow('Failed to get total count: Total failed');
     });
   });
 

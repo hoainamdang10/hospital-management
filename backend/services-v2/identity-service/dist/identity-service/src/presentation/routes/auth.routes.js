@@ -281,8 +281,12 @@ function createAuthRoutes(deps) {
             });
         }
     });
-    // Enable MFA endpoint (PUBLIC)
-    router.post('/mfa/enable', async (req, res) => {
+    // Enable MFA endpoint (PROTECTED - User can only enable MFA for themselves)
+    router.post('/mfa/enable', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requirePermission({
+        permissions: ['mfa:manage', '*'],
+        checkOwnership: true,
+        getResourceOwnerId: (req) => req.body.userId
+    }), async (req, res) => {
         try {
             const request = {
                 userId: req.body.userId,
@@ -325,8 +329,12 @@ function createAuthRoutes(deps) {
             });
         }
     });
-    // Disable MFA endpoint (PUBLIC)
-    router.post('/mfa/disable', async (req, res) => {
+    // Disable MFA endpoint (PROTECTED - User can only disable MFA for themselves)
+    router.post('/mfa/disable', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requirePermission({
+        permissions: ['mfa:manage', '*'],
+        checkOwnership: true,
+        getResourceOwnerId: (req) => req.body.userId
+    }), async (req, res) => {
         try {
             const request = {
                 userId: req.body.userId,

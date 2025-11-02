@@ -177,6 +177,9 @@ export abstract class BaseHealthcareUseCase<TRequest, TResponse>
       throw new UseCaseAuthorizationError('User context required for healthcare operations');
     }
 
+    // Set context before any operations that need it
+    this.context = context;
+
     // Check authorization
     const authorized = await this.authorize(request, context.userId);
     if (!authorized) {

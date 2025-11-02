@@ -1,19 +1,24 @@
 /**
  * Join Queue Use Case - Application Layer
  * Add patient to waiting queue for their appointment
+ * 
+ * Refactored to use Queue Aggregate for business logic
  *
  * @author Hospital Management Team
  * @version 3.0.0
  */
 
 import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IQueueRepository } from '../../domain/repositories/IQueueRepository';
+import { QueuePriority } from '../../domain/entities/QueueEntry.entity';
 
 export interface JoinQueueRequest {
-  appointmentId: string;
+  appointmentId?: string;
   patientId: string;
   doctorId: string;
   departmentId?: string;
-  priority: number; // 0 = normal, 1 = high, 2 = urgent, 3 = emergency
+  priority: 'EMERGENCY' | 'URGENT' | 'NORMAL' | 'LOW';
+  checkInTime?: Date;
 }
 
 export interface JoinQueueResponse {
@@ -31,11 +36,19 @@ export interface JoinQueueResponse {
 /**
  * Join Queue Use Case
  * Adds a patient to the waiting queue when they check in
+ * 
+ * Business logic delegated to Queue Aggregate
  */
 export class JoinQueueUseCase extends BaseHealthcareUseCase<
   JoinQueueRequest,
   JoinQueueResponse
 > {
+  constructor(
+    private readonly queueRepository: IQueueRepository
+  ) {
+    super();
+  }
+
   protected async executeInternal(
     request: JoinQueueRequest
   ): Promise<JoinQueueResponse> {
@@ -43,32 +56,35 @@ export class JoinQueueUseCase extends BaseHealthcareUseCase<
       // 1. Validate request
       this.validateRequest(request);
 
-      // 2. Check if patient is already in queue
-      // TODO: Implement repository check
-
-      // 3. Get current queue position
-      const currentQueue = await this.getCurrentQueueCount(request.doctorId);
-      const queueNumber = currentQueue + 1;
-
-      // 4. Calculate estimated wait time
-      const estimatedWaitTime = this.calculateEstimatedWaitTime(
-        currentQueue,
-        request.priority
+      // 2. Get or create queue for today
+      const today = request.checkInTime || new Date();
+      const queue = await this.queueRepository.findOrCreateByDoctorAndDate(
+        request.doctorId,
+        today
       );
 
-      // 5. Create queue entry
-      const queueId = `QUEUE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // 3. Add patient to queue (Queue Aggregate handles all business logic)
+      const priority = QueuePriority[request.priority];
+      const entry = queue.addPatient(
+        request.patientId,
+        request.appointmentId,
+        priority,
+        today
+      );
 
-      // TODO: Save to repository
+      // 4. Save queue aggregate (persists all changes)
+      await this.queueRepository.save(queue);
 
+      // 5. Return success response
+      const positionInfo = queue.getPatientPosition(request.patientId);
       return {
         success: true,
         message: 'Đã vào hàng chờ thành công',
         queueEntry: {
-          queueId,
-          queueNumber,
-          estimatedWaitTime,
-          position: queueNumber,
+          queueId: entry.id,
+          queueNumber: entry.queueNumber,
+          estimatedWaitTime: positionInfo?.estimatedWaitMinutes || entry.estimatedWaitMinutes || 0,
+          position: positionInfo?.position || 0,
         },
       };
     } catch (error) {
@@ -83,31 +99,18 @@ export class JoinQueueUseCase extends BaseHealthcareUseCase<
   private validateRequest(request: JoinQueueRequest): void {
     const errors: string[] = [];
 
-    if (!request.appointmentId) errors.push('Appointment ID is required');
     if (!request.patientId) errors.push('Patient ID is required');
     if (!request.doctorId) errors.push('Doctor ID is required');
+    if (!request.priority) errors.push('Priority is required');
+
+    const validPriorities = ['EMERGENCY', 'URGENT', 'NORMAL', 'LOW'];
+    if (request.priority && !validPriorities.includes(request.priority)) {
+      errors.push(`Invalid priority. Must be one of: ${validPriorities.join(', ')}`);
+    }
 
     if (errors.length > 0) {
       throw new Error(errors.join(', '));
     }
-  }
-
-  private async getCurrentQueueCount(doctorId: string): Promise<number> {
-    // TODO: Query repository for current queue count
-    return 0;
-  }
-
-  private calculateEstimatedWaitTime(
-    currentQueueSize: number,
-    priority: number
-  ): number {
-    // Average consultation time: 15 minutes
-    const avgConsultationTime = 15;
-
-    // Priority patients get reduced wait time
-    const priorityMultiplier = priority >= 2 ? 0.5 : 1.0;
-
-    return Math.floor(currentQueueSize * avgConsultationTime * priorityMultiplier);
   }
 
   async authorize(request: JoinQueueRequest, userId: string): Promise<boolean> {

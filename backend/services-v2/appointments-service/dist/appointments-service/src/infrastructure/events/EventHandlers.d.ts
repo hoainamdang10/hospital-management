@@ -48,4 +48,28 @@ export declare class AppointmentCancelledEventHandler implements EventHandler<Do
     constructor(readModelHandler: AppointmentReadModelEventHandler);
     handle(event: DomainEvent): Promise<void>;
 }
+/**
+ * Appointment Confirmed Event Handler
+ */
+export declare class AppointmentConfirmedEventHandler implements EventHandler<DomainEvent> {
+    private readModelHandler;
+    constructor(readModelHandler: AppointmentReadModelEventHandler);
+    handle(event: DomainEvent): Promise<void>;
+}
+/**
+ * Appointment Completed Event Handler
+ */
+export declare class AppointmentCompletedEventHandler implements EventHandler<DomainEvent> {
+    private readModelHandler;
+    constructor(readModelHandler: AppointmentReadModelEventHandler);
+    handle(event: DomainEvent): Promise<void>;
+}
+/**
+ * Appointment No-Show Event Handler
+ */
+export declare class AppointmentNoShowEventHandler implements EventHandler<DomainEvent> {
+    private readModelHandler;
+    constructor(readModelHandler: AppointmentReadModelEventHandler);
+    handle(event: DomainEvent): Promise<void>;
+}
 //# sourceMappingURL=EventHandlers.d.ts.map

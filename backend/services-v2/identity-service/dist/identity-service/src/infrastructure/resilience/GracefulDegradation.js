@@ -7,8 +7,12 @@
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant Fallbacks
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IdentityServiceDegradation = void 0;
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const CircuitBreaker_1 = require("./CircuitBreaker");
 const error_helper_1 = require("../../utils/error-helper");
 const SupabaseAuthClient_1 = require("../auth/SupabaseAuthClient");
@@ -26,7 +30,6 @@ class IdentityServiceDegradation {
         this.MAX_CACHE_SIZE = 1000; // Prevent unbounded growth
         this.CACHE_CLEANUP_INTERVAL = 300000; // 5 minutes
         this.authClient = new SupabaseAuthClient_1.SupabaseAuthClient(authConfig, logger);
-        // Start periodic cache cleanup to prevent memory leaks
         this.startCacheCleanup();
     }
     /**
@@ -36,18 +39,22 @@ class IdentityServiceDegradation {
         this.cleanupIntervalId = setInterval(() => {
             const now = Date.now();
             let cleanedCount = 0;
-            for (const [key, value] of this.cache.entries()) {
-                // Remove expired entries
-                if (value.expiresAt && new Date(value.expiresAt).getTime() < now) {
-                    this.cache.delete(key);
+            for (const [cacheKey, entry] of this.cache.entries()) {
+                const expiresAt = entry.auth.expiresAt?.getTime();
+                if (expiresAt && expiresAt < now) {
+                    this.cache.delete(cacheKey);
+                    cleanedCount++;
+                    continue;
+                }
+                if (now - entry.cachedAt.getTime() > 1800000) {
+                    this.cache.delete(cacheKey);
                     cleanedCount++;
                 }
             }
-            // If cache is still too large, remove oldest entries
             if (this.cache.size > this.MAX_CACHE_SIZE) {
-                const entriesToRemove = this.cache.size - this.MAX_CACHE_SIZE;
+                const overflow = this.cache.size - this.MAX_CACHE_SIZE;
                 const keys = Array.from(this.cache.keys());
-                for (let i = 0; i < entriesToRemove; i++) {
+                for (let i = 0; i < overflow; i++) {
                     this.cache.delete(keys[i]);
                     cleanedCount++;
                 }
@@ -59,7 +66,6 @@ class IdentityServiceDegradation {
                 });
             }
         }, this.CACHE_CLEANUP_INTERVAL);
-        // Tránh giữ tiến trình Jest/Node mở khi chỉ còn interval
         if (typeof this.cleanupIntervalId.unref === 'function') {
             this.cleanupIntervalId.unref();
         }
@@ -70,7 +76,6 @@ class IdentityServiceDegradation {
     async authenticateUser(credentials) {
         const circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('authentication');
         try {
-            // Try primary authentication
             return await circuitBreaker.execute(() => this.primaryAuthentication(credentials), () => this.fallbackAuthentication(credentials));
         }
         catch (error) {
@@ -79,7 +84,6 @@ class IdentityServiceDegradation {
                 error: (0, error_helper_1.getErrorMessage)(error),
                 mode: this.currentMode
             });
-            // Emergency fallback for critical healthcare scenarios
             if (this.config.enableEmergencyMode) {
                 return this.emergencyAuthentication(credentials);
             }
@@ -95,11 +99,9 @@ class IdentityServiceDegradation {
             email: credentials.email,
             mode: IDegradationService_1.ServiceMode.FULL_SERVICE
         });
-        // Use real Supabase authentication
         const authResult = await this.authClient.signInWithPassword(credentials);
-        // Cache successful authentication for fallback
         if (authResult.success) {
-            await this.cacheAuthentication(credentials.email, authResult);
+            await this.cacheAuthentication(credentials.email, authResult, credentials.password);
         }
         return authResult;
     }
@@ -108,18 +110,31 @@ class IdentityServiceDegradation {
      */
     async fallbackAuthentication(credentials) {
         this.enterDegradedMode('Primary authentication failed');
+        const cacheKey = this.getCacheKey(credentials.email);
         if (this.config.enableCacheFallback) {
-            const cachedAuth = await this.getCachedAuthentication(credentials.email);
-            if (cachedAuth) {
-                this.logger.warn('Using cached authentication', {
-                    email: credentials.email,
-                    mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE
-                });
-                return {
-                    ...cachedAuth,
-                    mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
-                    degradationReason: 'Using cached credentials'
-                };
+            const cachedEntry = this.cache.get(cacheKey);
+            if (cachedEntry) {
+                await this.assertPassword(credentials.password, cachedEntry.passwordHash, 'cached authentication');
+                const cachedDuration = Date.now() - cachedEntry.cachedAt.getTime();
+                if (cachedDuration > this.config.maxDegradationTime) {
+                    this.logger.warn('Cached authentication expired', {
+                        email: credentials.email,
+                        cachedDuration
+                    });
+                    this.cache.delete(cacheKey);
+                }
+                else {
+                    this.logger.warn('Using cached authentication', {
+                        email: credentials.email,
+                        cachedAt: cachedEntry.cachedAt,
+                        mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE
+                    });
+                    return {
+                        ...cachedEntry.auth,
+                        mode: IDegradationService_1.ServiceMode.DEGRADED_SERVICE,
+                        degradationReason: 'Using cached credentials'
+                    };
+                }
             }
         }
         if (this.config.enableReadOnlyFallback) {
@@ -136,42 +151,32 @@ class IdentityServiceDegradation {
             email: credentials.email,
             mode: IDegradationService_1.ServiceMode.READ_ONLY
         });
-        // SECURITY FIX: Only allow read-only if we have cached valid credentials
-        // Never grant access based on email format alone
-        const cachedAuth = await this.getCachedAuthentication(credentials.email);
-        if (!cachedAuth) {
+        const entry = this.cache.get(this.getCacheKey(credentials.email));
+        if (!entry) {
             throw new Error('No cached credentials available - authentication failed');
         }
-        // SECURITY FIX: Normalize structure to prevent privilege escalation
-        // Create new object with scrubbed roles and limited permissions
-        // Do NOT spread cachedAuth to avoid leaking privileged roles
+        await this.assertPassword(credentials.password, entry.passwordHash, 'read-only fallback');
         return {
             success: true,
-            userId: cachedAuth.userId,
-            // Scrub roles - only allow 'read_only' role in degraded mode
+            userId: entry.auth.userId,
             roles: ['read_only'],
-            // Strictly limit permissions to read-only operations
             permissions: ['read_own_data'],
             mode: IDegradationService_1.ServiceMode.READ_ONLY,
             degradationReason: 'Database unavailable - using cached read-only access',
-            expiresAt: new Date(Date.now() + 900000) // 15 minutes only
+            expiresAt: new Date(Date.now() + 900000) // 15 minutes
         };
     }
     /**
      * Emergency authentication for critical healthcare scenarios
      * SECURITY: Requires pre-cached successful authentication
-     * Never grants access based on email format alone
      */
     async emergencyAuthentication(credentials) {
         this.logger.error('Emergency mode requested', {
             email: credentials.email,
             mode: IDegradationService_1.ServiceMode.EMERGENCY_MODE
         });
-        // SECURITY FIX: Require pre-cached successful authentication
-        // Never grant emergency access based on email format alone
-        const cachedAuth = await this.getCachedAuthentication(credentials.email);
-        if (!cachedAuth) {
-            // Log security alert for attempted emergency access without cache
+        const entry = this.cache.get(this.getCacheKey(credentials.email));
+        if (!entry) {
             this.logger.error('SECURITY ALERT: Emergency access denied - no cached credentials', {
                 email: credentials.email,
                 timestamp: new Date().toISOString(),
@@ -179,8 +184,8 @@ class IdentityServiceDegradation {
             });
             throw new Error('Emergency access denied - authentication required');
         }
-        // Verify cached auth is recent (within last hour)
-        const cacheAge = Date.now() - new Date(cachedAuth.cachedAt || 0).getTime();
+        await this.assertPassword(credentials.password, entry.passwordHash, 'emergency fallback');
+        const cacheAge = Date.now() - entry.cachedAt.getTime();
         const MAX_CACHE_AGE = 3600000; // 1 hour
         if (cacheAge > MAX_CACHE_AGE) {
             this.logger.error('SECURITY ALERT: Emergency access denied - cached credentials too old', {
@@ -190,60 +195,67 @@ class IdentityServiceDegradation {
             });
             throw new Error('Emergency access denied - cached credentials expired');
         }
-        // Only allow emergency access for healthcare staff with valid cache
         if (!this.isHealthcareStaffEmail(credentials.email)) {
             this.logger.error('SECURITY ALERT: Emergency access denied - not healthcare staff', {
                 email: credentials.email
             });
             throw new Error('Emergency access denied - not authorized');
         }
-        // Log emergency access grant for audit
         this.logger.error('EMERGENCY ACCESS GRANTED', {
             email: credentials.email,
-            userId: cachedAuth.userId,
+            userId: entry.auth.userId,
             timestamp: new Date().toISOString(),
             expiresIn: '5 minutes'
         });
-        // Return minimal emergency access with scrubbed roles
         return {
             success: true,
-            userId: cachedAuth.userId,
-            roles: ['emergency_read_only'], // Minimal role
-            permissions: ['read_own_data', 'read_patient_critical'], // Minimal permissions
+            userId: entry.auth.userId,
+            roles: ['emergency_read_only'],
+            permissions: ['read_own_data', 'read_patient_critical'],
             mode: IDegradationService_1.ServiceMode.EMERGENCY_MODE,
             degradationReason: 'Emergency mode - minimal access for healthcare staff',
-            expiresAt: new Date(Date.now() + 300000) // 5 minutes only
+            expiresAt: new Date(Date.now() + 300000) // 5 minutes
         };
     }
     /**
      * Cache authentication result for fallback
      */
-    async cacheAuthentication(email, authResult) {
-        if (authResult.success && authResult.mode === IDegradationService_1.ServiceMode.FULL_SERVICE) {
-            this.cache.set(`auth:${email}`, {
-                ...authResult,
-                cachedAt: new Date()
-            });
-            // Auto-expire cache after 30 minutes
-            setTimeout(() => {
-                this.cache.delete(`auth:${email}`);
-            }, 1800000);
+    async cacheAuthentication(email, authResult, plaintextPassword) {
+        if (!authResult.success || authResult.mode !== IDegradationService_1.ServiceMode.FULL_SERVICE) {
+            return;
         }
+        if (!plaintextPassword || plaintextPassword.length === 0) {
+            this.logger.warn('Skipping authentication cache due to missing password', { email });
+            return;
+        }
+        const passwordHash = await bcrypt_1.default.hash(plaintextPassword, 12);
+        const cacheKey = this.getCacheKey(email);
+        this.cache.set(cacheKey, {
+            auth: { ...authResult },
+            passwordHash,
+            cachedAt: new Date()
+        });
+        setTimeout(() => {
+            this.cache.delete(cacheKey);
+        }, 1800000);
     }
     /**
-     * Get cached authentication
+     * Get cached authentication (sanitized copy)
      */
     async getCachedAuthentication(email) {
-        const cached = this.cache.get(`auth:${email}`);
-        if (!cached)
-            return null;
-        // Check if cache is still valid (max 30 minutes)
-        const cacheAge = Date.now() - cached.cachedAt.getTime();
-        if (cacheAge > 1800000) {
-            this.cache.delete(`auth:${email}`);
+        const cached = this.cache.get(this.getCacheKey(email));
+        if (!cached) {
             return null;
         }
-        return cached;
+        const cacheAge = Date.now() - cached.cachedAt.getTime();
+        if (cacheAge > 1800000) {
+            this.cache.delete(this.getCacheKey(email));
+            return null;
+        }
+        return {
+            ...cached.auth,
+            cachedAt: cached.cachedAt
+        };
     }
     /**
      * Enter degraded mode
@@ -271,27 +283,17 @@ class IdentityServiceDegradation {
             }
         }
     }
-    /**
-     * IDegradationService - status helpers
-     */
     getCurrentMode() {
         return this.currentMode;
     }
     async isHealthy() {
         return this.currentMode === IDegradationService_1.ServiceMode.FULL_SERVICE;
     }
-    /**
-     * Utility methods
-     */
     isHealthcareStaffEmail(email) {
-        // Check if email belongs to healthcare staff
         const healthcareDomains = ['hospital.vn', 'clinic.vn', 'doctor.vn'];
         const domain = email.split('@')[1];
         return healthcareDomains.includes(domain) || email.includes('doctor') || email.includes('nurse');
     }
-    /**
-     * Get current service status
-     */
     getStatus() {
         return {
             mode: this.currentMode,
@@ -300,22 +302,28 @@ class IdentityServiceDegradation {
             config: this.config
         };
     }
-    /**
-     * Force recovery to full service
-     */
     forceRecovery() {
         this.currentMode = IDegradationService_1.ServiceMode.FULL_SERVICE;
         this.degradationStartTime = undefined;
         this.logger.info('Forced recovery to full service mode');
     }
-    /**
-     * Stop cleanup interval (for testing/shutdown)
-     */
     stop() {
         if (this.cleanupIntervalId) {
             clearInterval(this.cleanupIntervalId);
             this.cleanupIntervalId = undefined;
             this.logger.info('Degradation service stopped');
+        }
+    }
+    getCacheKey(email) {
+        return `auth:${email}`;
+    }
+    async assertPassword(password, passwordHash, context) {
+        if (!password || password.length === 0) {
+            throw new Error(`Password required for ${context}`);
+        }
+        const isValid = await bcrypt_1.default.compare(password, passwordHash);
+        if (!isValid) {
+            throw new Error(`Invalid credentials for ${context}`);
         }
     }
 }

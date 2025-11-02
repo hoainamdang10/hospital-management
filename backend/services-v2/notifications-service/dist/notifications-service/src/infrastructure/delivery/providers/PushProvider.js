@@ -11,9 +11,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PushProvider = void 0;
 class PushProvider {
     constructor(config) {
-        this.config = config;
         this.isConfigured = false;
-        this.isConfigured = !!config.projectId;
+        this.projectId = config.projectId;
+        this.isConfigured = !!config.projectId && config.enabled;
+        if (!this.isConfigured) {
+            console.warn('[PushProvider] ⚠️ Firebase not configured - push notifications disabled');
+        }
+        else {
+            console.log(`[PushProvider] ✅ Firebase configured for project ${this.projectId} (mock mode)`);
+        }
     }
     getType() {
         return 'PUSH';

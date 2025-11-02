@@ -7,20 +7,39 @@
  * @version 2.0.0
  * @compliance Clean Architecture, SendGrid Integration
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailProvider = void 0;
+const mail_1 = __importDefault(require("@sendgrid/mail"));
 class EmailProvider {
     constructor(config) {
         this.config = config;
         this.isConfigured = false;
-        this.isConfigured = !!config.apiKey;
+        this.isSendGridReady = false;
+        this.isConfigured = !!config.apiKey && config.enabled;
+        if (this.isConfigured) {
+            try {
+                mail_1.default.setApiKey(config.apiKey);
+                this.isSendGridReady = true;
+                console.log('[EmailProvider] ✅ SendGrid initialized successfully');
+            }
+            catch (error) {
+                console.error('[EmailProvider] ❌ Failed to initialize SendGrid:', error);
+                this.isSendGridReady = false;
+            }
+        }
+        else {
+            console.warn('[EmailProvider] ⚠️ SendGrid not configured - email delivery disabled');
+        }
     }
     getType() {
         return 'EMAIL';
     }
     async isAvailable() {
         // Check if SendGrid is configured and accessible
-        return this.isConfigured;
+        return this.isConfigured && this.isSendGridReady;
     }
     async deliver(request) {
         try {
@@ -90,25 +109,39 @@ class EmailProvider {
         };
     }
     /**
-     * Send via SendGrid (mock implementation)
+     * Send via SendGrid (real implementation)
      */
     async sendViaSendGrid(emailData) {
-        // In production, use SendGrid SDK:
-        // const sgMail = require('@sendgrid/mail');
-        // sgMail.setApiKey(this.config.apiKey);
-        // const response = await sgMail.send(emailData);
-        // return response;
-        // Mock implementation
-        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network delay
-        return {
-            statusCode: 202,
-            headers: {
-                'x-message-id': emailData.customArgs?.notificationId || 'mock-id'
-            },
-            body: {
-                message: 'Email queued for delivery'
-            }
-        };
+        if (!this.isSendGridReady) {
+            console.warn('[EmailProvider] SendGrid not ready, using mock mode');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return {
+                statusCode: 202,
+                headers: { 'x-message-id': emailData.customArgs?.notificationId || 'mock-id' },
+                body: { message: 'Email queued (mock)' }
+            };
+        }
+        try {
+            // Real SendGrid API call
+            const [response] = await mail_1.default.send(emailData);
+            console.log('[EmailProvider] ✅ Email sent successfully', {
+                statusCode: response.statusCode,
+                messageId: response.headers['x-message-id']
+            });
+            return {
+                statusCode: response.statusCode,
+                headers: response.headers,
+                body: response.body
+            };
+        }
+        catch (error) {
+            console.error('[EmailProvider] ❌ SendGrid API error:', {
+                code: error.code,
+                message: error.message,
+                response: error.response?.body
+            });
+            throw new Error(`SendGrid failed: ${error.message}`);
+        }
     }
     /**
      * Format HTML body with Vietnamese healthcare template

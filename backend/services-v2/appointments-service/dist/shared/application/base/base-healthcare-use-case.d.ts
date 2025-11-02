@@ -29,6 +29,7 @@ export declare abstract class BaseHealthcareUseCase<TRequest, TResponse> impleme
     /**
      * Execute the use case
      * Public method that validates request then calls the protected executeImpl
+     * Can be overridden by subclasses for custom validation handling
      */
     execute(request: TRequest): Promise<TResponse>;
     /**

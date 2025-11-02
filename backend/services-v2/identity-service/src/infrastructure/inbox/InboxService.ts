@@ -139,14 +139,32 @@ export class InboxService {
 
   /**
    * Mark event as failed
+   * Increments retry_count and stores error message
    */
   async markFailed(eventId: string, errorMessage: string): Promise<void> {
+    // First, get current retry_count
+    const { data: currentEvent, error: fetchError } = await this.supabaseClient
+      .schema('auth_schema')
+      .from('event_inbox')
+      .select('retry_count')
+      .eq('event_id', eventId)
+      .single();
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch event for retry count: ${fetchError.message}`);
+    }
+
+    const currentRetryCount = currentEvent?.retry_count || 0;
+
+    // Update status, error message, and increment retry_count
     const { error } = await this.supabaseClient
       .schema('auth_schema')
       .from('event_inbox')
       .update({
         status: 'FAILED',
-        processing_error: errorMessage
+        processing_error: errorMessage,
+        retry_count: currentRetryCount + 1,
+        updated_at: new Date().toISOString()
       })
       .eq('event_id', eventId);
 

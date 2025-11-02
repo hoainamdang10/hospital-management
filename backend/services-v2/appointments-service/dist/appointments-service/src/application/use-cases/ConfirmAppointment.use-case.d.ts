@@ -7,6 +7,7 @@
  */
 import { BaseHealthcareUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAuthorizationService } from '../services/IAuthorizationService';
 export interface ConfirmAppointmentRequest {
     appointmentId: string;
     confirmedBy: string;
@@ -18,7 +19,8 @@ export interface ConfirmAppointmentResponse {
 }
 export declare class ConfirmAppointmentUseCase extends BaseHealthcareUseCase<ConfirmAppointmentRequest, ConfirmAppointmentResponse> {
     private readonly appointmentRepository;
-    constructor(appointmentRepository: IAppointmentRepository);
+    private readonly authorizationService;
+    constructor(appointmentRepository: IAppointmentRepository, authorizationService: IAuthorizationService);
     protected executeInternal(request: ConfirmAppointmentRequest): Promise<ConfirmAppointmentResponse>;
     authorize(request: ConfirmAppointmentRequest, userId: string): Promise<boolean>;
     involvesPHI(request: ConfirmAppointmentRequest): boolean;

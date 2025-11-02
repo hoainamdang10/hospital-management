@@ -279,4 +279,5 @@ export class MedicalRecordUpdatedEvent extends DomainEvent {
       updateReason: eventData.data.updateReason
     });
   }
+
 }

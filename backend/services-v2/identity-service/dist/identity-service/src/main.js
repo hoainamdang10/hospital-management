@@ -11,6 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.bootstrap = bootstrap;
 // Load environment variables first
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -121,12 +122,15 @@ async function bootstrap() {
     }
     catch (error) {
         logger.error('Failed to start Identity Service', { error });
-        process.exit(1);
+        throw error;
     }
 }
-// Start application
-bootstrap().catch((error) => {
-    console.error('Fatal error during bootstrap:', error);
-    process.exit(1);
-});
+exports.default = bootstrap;
+// Start application when executed directly
+if (require.main === module) {
+    bootstrap().catch((error) => {
+        console.error('Fatal error during bootstrap:', error);
+        process.exit(1);
+    });
+}
 //# sourceMappingURL=main.js.map

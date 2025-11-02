@@ -14,10 +14,11 @@ interface FirebaseConfig {
     projectId: string;
     privateKey: string;
     clientEmail: string;
+    enabled: boolean;
 }
 export declare class PushProvider implements ChannelProvider {
-    private readonly config;
     private isConfigured;
+    private readonly projectId;
     constructor(config: FirebaseConfig);
     getType(): string;
     isAvailable(): Promise<boolean>;

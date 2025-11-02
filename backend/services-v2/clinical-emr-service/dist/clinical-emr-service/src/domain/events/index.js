@@ -28,4 +28,21 @@ __exportStar(require("./DiagnosisAddedEvent"), exports);
 __exportStar(require("./MedicationAddedEvent"), exports);
 __exportStar(require("./VitalSignsUpdatedEvent"), exports);
 __exportStar(require("./MedicalRecordArchivedEvent"), exports);
+// Clinical Notes Events
+__exportStar(require("./ClinicalNoteCreatedEvent"), exports);
+__exportStar(require("./ClinicalNoteUpdatedEvent"), exports);
+__exportStar(require("./ClinicalNoteCosignedEvent"), exports);
+// Diagnostic Report Events
+__exportStar(require("./DiagnosticReportCreatedEvent"), exports);
+__exportStar(require("./DiagnosticReportUpdatedEvent"), exports);
+__exportStar(require("./DiagnosticReportFinalizedEvent"), exports);
+// Treatment Plan Events
+__exportStar(require("./TreatmentPlanCreatedEvent"), exports);
+__exportStar(require("./TreatmentPlanUpdatedEvent"), exports);
+__exportStar(require("./TreatmentPlanCompletedEvent"), exports);
+// Prescription Events
+__exportStar(require("./PrescriptionCreatedEvent"), exports);
+__exportStar(require("./PrescriptionUpdatedEvent"), exports);
+__exportStar(require("./PrescriptionDispensedEvent"), exports);
+__exportStar(require("./PrescriptionCompletedEvent"), exports);
 //# sourceMappingURL=index.js.map

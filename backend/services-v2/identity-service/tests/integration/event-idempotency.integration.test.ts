@@ -137,7 +137,7 @@ describe('Event Idempotency Integration Tests', () => {
         .single();
 
       expect(data.status).toBe('FAILED');
-      expect(data.error_message).toBe(errorMessage);
+      expect(data.processing_error).toBe(errorMessage);
       expect(data.retry_count).toBeGreaterThan(0);
     });
 
@@ -202,7 +202,7 @@ describe('Event Idempotency Integration Tests', () => {
         .eq('event_id', eventId)
         .single();
 
-      expect(data.status).toBe('PENDING');
+      expect(data!.status).toBe('PENDING');
 
       // Mark as processed
       await inboxService.markProcessed(eventId);
@@ -214,7 +214,7 @@ describe('Event Idempotency Integration Tests', () => {
         .eq('event_id', eventId)
         .single());
 
-      expect(data.status).toBe('PROCESSED');
+      expect(data!.status).toBe('PROCESSED');
     });
 
     it('should transition from PENDING to FAILED', async () => {
@@ -243,7 +243,7 @@ describe('Event Idempotency Integration Tests', () => {
         .eq('event_id', eventId)
         .single();
 
-      expect(data.status).toBe('FAILED');
+      expect(data!.status).toBe('FAILED');
     });
   });
 });

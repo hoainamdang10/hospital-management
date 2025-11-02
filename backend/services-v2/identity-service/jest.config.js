@@ -7,10 +7,13 @@
  * @compliance Jest Testing Standards, TypeScript Support, Vietnamese Healthcare
  */
 
+const shouldCollectCoverage = process.env.COLLECT_COVERAGE !== 'false';
+
 module.exports = {
   // Test environment
   preset: 'ts-jest',
   testEnvironment: 'node',
+  testTimeout: 30000,
   
   // Root directory
   rootDir: '.',
@@ -55,7 +58,8 @@ module.exports = {
   },
   
   // Coverage configuration
-  collectCoverage: false, // Disabled for faster testing
+  // Collect coverage by default; opt out with COLLECT_COVERAGE=false for local workflows
+  collectCoverage: shouldCollectCoverage,
   coverageDirectory: '<rootDir>/coverage',
   coverageReporters: [
     'text',
@@ -121,7 +125,7 @@ module.exports = {
 
   // Test timeout (default for unit tests)
   // testTimeout: 5000, // Moved to projects config
-  
+
   // Test environment options
   testEnvironmentOptions: {
     NODE_ENV: 'test',
@@ -149,7 +153,6 @@ module.exports = {
     {
       displayName: 'Unit Tests',
       testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
-      timeout: 5000,
       maxWorkers: '100%',
       preset: 'ts-jest',
       testEnvironment: 'node',
@@ -173,7 +176,6 @@ module.exports = {
     {
       displayName: 'Integration Tests',
       testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
-      timeout: 30000,
       maxWorkers: 1, // Run integration tests serially to avoid race conditions
       preset: 'ts-jest',
       testEnvironment: 'node',
@@ -228,4 +230,3 @@ module.exports = {
     'node_modules/(?!(uuid)/)'
   ]
 };
-

@@ -11,6 +11,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from 'path';
@@ -109,9 +110,20 @@ async function bootstrap() {
 
     // Swagger documentation (protected)
     try {
-      const swaggerDocument = YAML.load(path.join(__dirname, '../docs/swagger.yaml'));
+      const swaggerCandidates = [
+        path.join(__dirname, '../docs/api/openapi.yaml'),
+        path.join(__dirname, '../../docs/api/openapi.yaml')
+      ];
+
+      const swaggerPath = swaggerCandidates.find((candidate) => fs.existsSync(candidate));
+
+      if (!swaggerPath) {
+        throw new Error('openapi.yaml not found in expected locations');
+      }
+
+      const swaggerDocument = YAML.load(swaggerPath);
       app.use('/api-docs', metricsAuth, swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-      logger.info('Swagger documentation registered at /api-docs (protected)');
+      logger.info('Swagger documentation registered at /api-docs (protected)', { swaggerPath });
     } catch (error) {
       logger.warn('Failed to load Swagger documentation', { error });
     }
@@ -160,12 +172,16 @@ async function bootstrap() {
 
   } catch (error) {
     logger.error('Failed to start Identity Service', { error });
-    process.exit(1);
+    throw error;
   }
 }
 
-// Start application
-bootstrap().catch((error) => {
-  console.error('Fatal error during bootstrap:', error);
-  process.exit(1);
-});
+export { bootstrap };
+export default bootstrap;
+
+if (require.main === module) {
+  bootstrap().catch((error) => {
+    console.error('Fatal error during bootstrap:', error);
+    process.exit(1);
+  });
+}

@@ -643,6 +643,7 @@ export class SupabaseUserRepository implements IUserRepository {
     return await this.circuitBreaker.execute(
       async () => {
         const sessionRecord = {
+          id: session.id, // Use session ID from domain entity (Supabase session_id)
           user_id: session.userId,
           session_token: session.sessionToken,
           device_info: session.deviceInfo,

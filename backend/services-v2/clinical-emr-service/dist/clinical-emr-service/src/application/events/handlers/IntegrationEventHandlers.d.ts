@@ -6,13 +6,13 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture, HIPAA
  */
-import { IDomainEventHandler } from '@shared/domain/events/IDomainEventHandler';
+import { IDomainEventHandler } from '@shared/events/domain-event-handler.interface';
 import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
-import { IMedicalRecordRepository } from '../../domain/repositories/IMedicalRecordRepository';
-import { MedicalRecordCreatedEvent } from '../../domain/events/MedicalRecordCreatedEvent';
-import { MedicalRecordUpdatedEvent } from '../../domain/events/MedicalRecordUpdatedEvent';
-import { DiagnosisAddedEvent } from '../../domain/events/DiagnosisAddedEvent';
-import { MedicationAddedEvent } from '../../domain/events/MedicationAddedEvent';
+import { IMedicalRecordRepository } from '../../../domain/repositories/IMedicalRecordRepository';
+import { MedicalRecordCreatedEvent } from '../../../domain/events/MedicalRecordCreatedEvent';
+import { MedicalRecordUpdatedEvent } from '../../../domain/events/MedicalRecordUpdatedEvent';
+import { DiagnosisAddedEvent } from '../../../domain/events/DiagnosisAddedEvent';
+import { MedicationAddedEvent } from '../../../domain/events/MedicationAddedEvent';
 /**
  * Medical Record Created Event Handler
  * Handles when a new medical record is created

@@ -48,4 +48,27 @@ __exportStar(require("./GenerateMedicalReportUseCase"), exports);
 __exportStar(require("./GrantAccessUseCase"), exports);
 __exportStar(require("./RevokeAccessUseCase"), exports);
 __exportStar(require("./AuditAccessHistoryUseCase"), exports);
+// Clinical Notes Use Cases
+__exportStar(require("./CreateClinicalNoteUseCase"), exports);
+__exportStar(require("./GetClinicalNoteUseCase"), exports);
+__exportStar(require("./UpdateClinicalNoteUseCase"), exports);
+__exportStar(require("./CosignClinicalNoteUseCase"), exports);
+__exportStar(require("./ListClinicalNotesUseCase"), exports);
+// Diagnostic Reports Use Cases
+__exportStar(require("./CreateDiagnosticReportUseCase"), exports);
+__exportStar(require("./GetDiagnosticReportUseCase"), exports);
+__exportStar(require("./UpdateDiagnosticReportUseCase"), exports);
+__exportStar(require("./FinalizeDiagnosticReportUseCase"), exports);
+__exportStar(require("./ListDiagnosticReportsUseCase"), exports);
+// Treatment Plans Use Cases
+__exportStar(require("./CreateTreatmentPlanUseCase"), exports);
+__exportStar(require("./GetTreatmentPlanUseCase"), exports);
+__exportStar(require("./UpdateTreatmentPlanUseCase"), exports);
+__exportStar(require("./CompleteTreatmentPlanUseCase"), exports);
+__exportStar(require("./ListTreatmentPlansUseCase"), exports);
+// Prescription Use Cases
+__exportStar(require("./CreatePrescriptionUseCase"), exports);
+__exportStar(require("./GetPrescriptionUseCase"), exports);
+__exportStar(require("./DispensePrescriptionUseCase"), exports);
+__exportStar(require("./ListPrescriptionsUseCase"), exports);
 //# sourceMappingURL=index.js.map

@@ -31,9 +31,7 @@ export class AppointmentScheduledEventHandler implements EventHandler<DomainEven
       status: (event as any).status,
       roomId: (event as any).roomId,
       departmentId: (event as any).departmentId,
-      consultationFee: (event as any).consultationFee,
-      additionalFees: (event as any).additionalFees,
-      paymentStatus: (event as any).paymentStatus || 'pending',
+      consultationFee: (event as any).consultationFee, // Billing reference only
       reason: (event as any).reason,
       chiefComplaint: (event as any).chiefComplaint,
       symptoms: (event as any).symptoms,
@@ -127,6 +125,45 @@ export class AppointmentCancelledEventHandler implements EventHandler<DomainEven
 
   async handle(event: DomainEvent): Promise<void> {
     await this.readModelHandler.handleAppointmentCancelled({
+      appointmentId: (event as any).appointmentId
+    });
+  }
+}
+
+/**
+ * Appointment Confirmed Event Handler
+ */
+export class AppointmentConfirmedEventHandler implements EventHandler<DomainEvent> {
+  constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
+
+  async handle(event: DomainEvent): Promise<void> {
+    await this.readModelHandler.handleAppointmentConfirmed({
+      appointmentId: (event as any).appointmentId
+    });
+  }
+}
+
+/**
+ * Appointment Completed Event Handler
+ */
+export class AppointmentCompletedEventHandler implements EventHandler<DomainEvent> {
+  constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
+
+  async handle(event: DomainEvent): Promise<void> {
+    await this.readModelHandler.handleAppointmentCompleted({
+      appointmentId: (event as any).appointmentId
+    });
+  }
+}
+
+/**
+ * Appointment No-Show Event Handler
+ */
+export class AppointmentNoShowEventHandler implements EventHandler<DomainEvent> {
+  constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
+
+  async handle(event: DomainEvent): Promise<void> {
+    await this.readModelHandler.handleAppointmentNoShow({
       appointmentId: (event as any).appointmentId
     });
   }

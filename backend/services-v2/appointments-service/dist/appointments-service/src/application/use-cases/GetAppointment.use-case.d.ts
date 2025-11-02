@@ -30,7 +30,6 @@ export interface GetAppointmentResponse {
         notes?: string;
         specialInstructions?: string;
         consultationFee: number;
-        paymentStatus: string;
     };
     errors?: string[];
 }

@@ -20,6 +20,16 @@ import * as path from 'path';
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+// Initialize logger for CircuitBreakerFactory before any repository creation
+const testLogger: ILogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+  fatal: jest.fn()
+};
+CircuitBreakerFactory.setLogger(testLogger);
+
 describe('Verify-First Registration Flow - Integration Tests', () => {
   let supabaseClient: SupabaseClient;
   let userRepository: SupabaseUserRepository;

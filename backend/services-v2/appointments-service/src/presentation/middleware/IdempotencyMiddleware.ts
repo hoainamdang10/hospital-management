@@ -13,40 +13,82 @@ const DEFAULT_TTL_SECONDS = 60 * 60; // 1 hour
 
 function shouldApplyIdempotency(req: Request): boolean {
   if (req.method !== 'POST') return false;
-  // Only apply to write endpoints in v1 appointments
-  return req.path.startsWith('/api/v1/appointments');
+  const fullPath =
+    `${req.baseUrl || ''}${req.path || ''}` || req.originalUrl || '';
+  return fullPath.startsWith('/api/v1/appointments');
 }
 
-export async function idempotencyMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function idempotencyMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  let cacheKey: string | null = null;
+
   try {
-    if (!shouldApplyIdempotency(req)) return next();
+    if (!shouldApplyIdempotency(req)) {
+      return next();
+    }
 
-    const key = (req.headers['idempotency-key'] || req.headers['Idempotency-Key']) as string | undefined;
-    if (!key) return next();
+    const key = (req.headers['idempotency-key'] ||
+      req.headers['Idempotency-Key']) as string | undefined;
 
-    // Build a cache key from header + method + path
-    const cacheKey = `${IDEMP_PREFIX}${key}`;
+    if (!key) {
+      return next();
+    }
 
-    // Ensure redis connected (no-op if already)
+    cacheKey = `${IDEMP_PREFIX}${key}`;
+
     if (!redisCacheService.isReady()) {
       await redisCacheService.connect().catch(() => undefined);
     }
 
-    const exists = await redisCacheService.exists(cacheKey);
-    if (exists) {
-      return res.status(409).json({
+    const existing = await redisCacheService.get<{
+      status: 'in-progress' | 'completed';
+    }>(cacheKey, { prefix: '' });
+
+    if (existing?.status === 'in-progress' || existing?.status === 'completed') {
+      res.status(409).json({
         success: false,
         message: 'Duplicate request detected (Idempotency-Key)'
       });
+      return;
     }
 
-    // Store a marker; we do not cache response yet (future improvement)
-    await redisCacheService.set(cacheKey, { ts: Date.now(), method: req.method, path: req.path }, { ttl: DEFAULT_TTL_SECONDS, prefix: '' });
+    await redisCacheService.set(
+      cacheKey,
+      {
+        status: 'in-progress',
+        ts: Date.now(),
+        method: req.method,
+        path: req.path
+      },
+      { ttl: DEFAULT_TTL_SECONDS, prefix: '' }
+    );
 
-    return next();
-  } catch (err) {
-    // Fail-open
-    return next();
+    res.on('finish', async () => {
+      const status = res.statusCode;
+      if (status >= 200 && status < 400) {
+        await redisCacheService.set(
+          cacheKey as string,
+          {
+            status: 'completed',
+            ts: Date.now(),
+            method: req.method,
+            path: req.path
+          },
+          { ttl: DEFAULT_TTL_SECONDS, prefix: '' }
+        );
+      } else if (cacheKey) {
+        await redisCacheService.delete(cacheKey, { prefix: '' });
+      }
+    });
+
+    next();
+  } catch (error) {
+    if (cacheKey) {
+      await redisCacheService.delete(cacheKey, { prefix: '' }).catch(() => undefined);
+    }
+    next();
   }
 }
-

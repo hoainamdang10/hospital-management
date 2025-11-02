@@ -286,4 +286,5 @@ export class MedicalRecordCreatedEvent extends DomainEvent {
       createdAt: new Date(eventData.occurredAt)
     });
   }
+
 }

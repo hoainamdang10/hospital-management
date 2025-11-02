@@ -73,9 +73,7 @@ export class GetAppointmentDetailsQuery {
       requiredEquipment: readModel.requiredEquipment,
 
       // Financial
-      consultationFee: readModel.consultationFee,
-      additionalFees: readModel.additionalFees,
-      paymentStatus: readModel.paymentStatus,
+      consultationFee: readModel.consultationFee, // Billing reference only
 
       // Timestamps
       checkedInAt: readModel.checkedInAt?.toISOString(),

@@ -15,6 +15,10 @@ import { ISessionRepository } from '../../domain/repositories/ISessionRepository
 import { RecoveryAttempt } from '../../domain/value-objects/RecoveryAttempt';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { PasswordResetEvent } from '../../domain/events/PasswordResetEvent';
+import { UserId } from '../../domain/value-objects/UserId';
+import { IUserRepository } from '../repositories/IUserRepository';
 
 export interface ResetPasswordWithTokenRequest {
   token: string;
@@ -42,8 +46,10 @@ export class ResetPasswordWithTokenUseCase
     private passwordPolicyRepository: IPasswordPolicyRepository,
     private recoveryHistoryRepository: IRecoveryHistoryRepository,
     private sessionRepository: ISessionRepository,
+    private userRepository: IUserRepository,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker
+    private circuitBreaker: ICircuitBreaker,
+    private eventPublisher?: IEventPublisher
   ) {}
 
   async execute(
@@ -125,8 +131,36 @@ export class ResetPasswordWithTokenUseCase
 
       this.logger.info('Password reset successful', { userId });
 
-      // TODO: Send notification email
-      // This should be done via event publishing to Notifications Service
+      // Publish PasswordResetEvent for notification service
+      if (this.eventPublisher) {
+        try {
+          // Get user details for event
+          const userIdVO = UserId.fromString(userId);
+          const user = await this.userRepository.findById(userIdVO);
+          if (user) {
+            const event = new PasswordResetEvent(
+              userIdVO,
+              user.email.value,
+              user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN',
+              'token',
+              true // All sessions were invalidated
+            );
+
+            await this.eventPublisher.publishDomainEvents([event]);
+
+            this.logger.info('PasswordResetEvent published', {
+              userId,
+              email: user.email.value
+            });
+          }
+        } catch (error) {
+          this.logger.error('Failed to publish PasswordResetEvent', {
+            userId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          // Don't fail password reset if event publishing fails
+        }
+      }
 
       return {
         success: true,

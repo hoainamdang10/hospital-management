@@ -156,6 +156,7 @@ export class FHIRExportService {
 
       // Add validation result if requested
       if (options.validateOutput) {
+        const validation = this.validateFHIRResource(composition);
         result.data!.validationResult = {
           isValid: validation.isValid,
           errors: validation.errors,
@@ -358,38 +359,7 @@ export class FHIRExportService {
     }
   }
 
-  /**
-   * Generate narrative text for FHIR resource
-   */
-  private generateNarrative(medicalRecord: MedicalRecordAggregate, language: 'en' | 'vi'): any {
-    const summary = medicalRecord.getSummary();
-    
-    if (language === 'vi') {
-      return {
-        status: 'generated',
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">
-          <h3>Hồ sơ bệnh án</h3>
-          <p><strong>Mã hồ sơ:</strong> ${medicalRecord.recordId.value}</p>
-          <p><strong>Ngày khám:</strong> ${medicalRecord.visitDate.toLocaleDateString('vi-VN')}</p>
-          <p><strong>Tóm tắt:</strong> ${summary}</p>
-          <p><strong>Số chẩn đoán:</strong> ${medicalRecord.diagnoses.length}</p>
-          <p><strong>Số thuốc:</strong> ${medicalRecord.medications.length}</p>
-        </div>`
-      };
-    } else {
-      return {
-        status: 'generated',
-        div: `<div xmlns="http://www.w3.org/1999/xhtml">
-          <h3>Medical Record</h3>
-          <p><strong>Record ID:</strong> ${medicalRecord.recordId.value}</p>
-          <p><strong>Visit Date:</strong> ${medicalRecord.visitDate.toLocaleDateString('en-US')}</p>
-          <p><strong>Summary:</strong> ${summary}</p>
-          <p><strong>Diagnoses:</strong> ${medicalRecord.diagnoses.length}</p>
-          <p><strong>Medications:</strong> ${medicalRecord.medications.length}</p>
-        </div>`
-      };
-    }
-  }
+
 
   /**
    * Count resources in FHIR structure

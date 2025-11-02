@@ -5,34 +5,48 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cancelScheduleSchema = exports.createScheduleSchema = void 0;
 const joi_1 = __importDefault(require("joi"));
-// MVP: ONCE schedules only
-// TODO: Add CRON and RRULE support in future phases
+/**
+ * Create Schedule DTO Validation
+ * Supports: ONCE, CRON, RRULE schedule types
+ */
 exports.createScheduleSchema = joi_1.default.object({
     tenantId: joi_1.default.string().required(),
     ownerService: joi_1.default.string().required(),
     ownerResourceType: joi_1.default.string().optional(),
     ownerResourceId: joi_1.default.string().optional(),
     policyTag: joi_1.default.string().optional(),
-    // MVP: Only ONCE schedules allowed
-    scheduleType: joi_1.default.string().valid('ONCE').required()
+    // Support all schedule types: ONCE, CRON, RRULE
+    scheduleType: joi_1.default.string().valid('ONCE', 'CRON', 'RRULE').required()
         .messages({
-        'any.only': 'MVP only supports ONCE schedules. CRON and RRULE will be available in future releases.'
+        'any.only': 'scheduleType must be one of: ONCE, CRON, RRULE'
     }),
     timezone: joi_1.default.string().optional().default('UTC'),
     // ONCE schedules require startAtUtc
-    startAtUtc: joi_1.default.string().isoDate().required()
-        .messages({
+    startAtUtc: joi_1.default.string().isoDate().when('scheduleType', {
+        is: 'ONCE',
+        then: joi_1.default.required(),
+        otherwise: joi_1.default.optional()
+    }).messages({
         'any.required': 'ONCE schedules require startAtUtc'
     }),
     endAtUtc: joi_1.default.string().isoDate().optional(),
-    // ONCE schedules cannot have cronExpr or rrule
-    cronExpr: joi_1.default.forbidden()
-        .messages({
-        'any.unknown': 'ONCE schedules cannot have cronExpr'
+    // CRON schedules require cronExpr (e.g., "0 9 * * 1-5" = 9am weekdays)
+    cronExpr: joi_1.default.string().when('scheduleType', {
+        is: 'CRON',
+        then: joi_1.default.required(),
+        otherwise: joi_1.default.forbidden()
+    }).messages({
+        'any.required': 'CRON schedules require cronExpr',
+        'any.unknown': 'Only CRON schedules can have cronExpr'
     }),
-    rrule: joi_1.default.forbidden()
-        .messages({
-        'any.unknown': 'ONCE schedules cannot have rrule'
+    // RRULE schedules require rrule (RFC 5545 format)
+    rrule: joi_1.default.string().when('scheduleType', {
+        is: 'RRULE',
+        then: joi_1.default.required(),
+        otherwise: joi_1.default.forbidden()
+    }).messages({
+        'any.required': 'RRULE schedules require rrule (RFC 5545 format)',
+        'any.unknown': 'Only RRULE schedules can have rrule'
     }),
     topicOrCommand: joi_1.default.string().required(),
     payloadJson: joi_1.default.object().required(),

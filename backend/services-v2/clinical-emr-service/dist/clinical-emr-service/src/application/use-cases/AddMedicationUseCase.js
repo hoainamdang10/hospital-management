@@ -39,7 +39,7 @@ class AddMedicationUseCase extends use_case_interface_1.BaseHealthcareUseCase {
                     errors: [{ field: 'recordId', message: 'Hồ sơ không tồn tại', code: 'NOT_FOUND' }]
                 };
             }
-            const medication = Medication_1.Medication.create(request.code, request.name, request.strength, request.dosageForm, request.route, request.dosage, request.frequency, request.frequencyUnit, request.instructions, request.prescribedBy);
+            const medication = Medication_1.Medication.create(request.code, request.name, request.strength || '', request.dosageForm || Medication_1.DosageForm.TABLET, request.route || Medication_1.RouteOfAdministration.ORAL, request.dosage || '', request.frequency?.toString() || '', request.frequencyUnit || Medication_1.FrequencyUnit.TIMES_PER_DAY, request.instructions || '', request.prescribedBy);
             medicalRecord.addMedication(medication, request.prescribedBy);
             await this.medicalRecordRepository.update(medicalRecord);
             const events = medicalRecord.getUncommittedEvents();

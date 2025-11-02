@@ -13,10 +13,14 @@ import { AppointmentId } from '../../../src/domain/value-objects/AppointmentId.v
 import { TimeSlot } from '../../../src/domain/value-objects/TimeSlot.vo';
 import { AppointmentDetails } from '../../../src/domain/value-objects/AppointmentDetails.vo';
 import { TenantId } from '../../../src/domain/value-objects/TenantId.vo';
+import { IAuthorizationService } from '../../../src/application/services/IAuthorizationService';
+import { IReminderService } from '../../../src/application/services/IReminderService';
 
 describe('CancelAppointmentUseCase', () => {
   let useCase: CancelAppointmentUseCase;
   let mockRepository: jest.Mocked<IAppointmentRepository>;
+  let mockAuthService: jest.Mocked<IAuthorizationService>;
+  let mockReminderService: jest.Mocked<IReminderService>;
 
   beforeEach(() => {
     mockRepository = {
@@ -28,7 +32,24 @@ describe('CancelAppointmentUseCase', () => {
       delete: jest.fn(),
     } as any;
 
-    useCase = new CancelAppointmentUseCase(mockRepository);
+    mockAuthService = {
+      canCancelAppointment: jest.fn().mockResolvedValue(true),
+    } as any;
+
+    mockReminderService = {
+      scheduleReminders: jest.fn().mockResolvedValue([]),
+      cancelReminders: jest.fn().mockResolvedValue(undefined),
+      sendReminder: jest.fn().mockResolvedValue({ success: true }),
+      getPendingReminders: jest.fn().mockResolvedValue([]),
+      markReminderAsSent: jest.fn().mockResolvedValue(undefined),
+      markReminderAsFailed: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
+    useCase = new CancelAppointmentUseCase(
+      mockRepository,
+      mockAuthService,
+      mockReminderService
+    );
   });
 
   const createMockAppointment = (status: AppointmentStatus = AppointmentStatus.SCHEDULED): Appointment => {
@@ -73,7 +94,7 @@ describe('CancelAppointmentUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toBe('Đã hủy lịch hẹn thành công');
+      expect(result.message).toBe('Hủy lịch hẹn thành công');
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
     });
 
@@ -95,13 +116,15 @@ describe('CancelAppointmentUseCase', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.message).toContain('không tìm thấy');
+      expect(result.message).toBe('Không tìm thấy lịch hẹn');
     });
 
     it('should fail when appointment is already completed', async () => {
       // Arrange
       const mockAppointment = createMockAppointment(AppointmentStatus.SCHEDULED);
-      mockAppointment.complete(); // Change to completed
+      mockAppointment.checkIn(); // Check-in first
+      mockAppointment.start(); // Start it
+      mockAppointment.complete(); // Then complete
       mockRepository.findByAppointmentId.mockResolvedValue(mockAppointment);
 
       const request = {
@@ -145,12 +168,9 @@ describe('CancelAppointmentUseCase', () => {
     });
 
     it('should fail when cancellation reason is missing', async () => {
-      // Arrange
-      const mockAppointment = createMockAppointment(AppointmentStatus.SCHEDULED);
-      mockRepository.findByAppointmentId.mockResolvedValue(mockAppointment);
-
+      // Arrange - No need to mock appointment, validation happens first
       const request = {
-        appointmentId: mockAppointment.getAppointmentId().value,
+        appointmentId: 'APT-123',
         cancellationReason: '', // Missing
         cancelledBy: 'user-123',
       };
@@ -163,8 +183,9 @@ describe('CancelAppointmentUseCase', () => {
 
       // Assert
       expect(result.success).toBe(false);
+      expect(result.message).toBe('Lý do hủy là bắt buộc');
       expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('reason');
+      expect(result.errors![0]).toBe('Cancellation reason is required');
     });
 
     it('should handle repository errors gracefully', async () => {
@@ -212,8 +233,9 @@ describe('CancelAppointmentUseCase', () => {
       // Assert
       expect(result.success).toBe(true);
       // Domain event should be published (checked in aggregate)
-      const events = (mockAppointment as any).getDomainEvents();
+      const events = mockAppointment.getUncommittedEvents();
       expect(events).toBeDefined();
+      expect(events.length).toBeGreaterThan(0);
     });
   });
 

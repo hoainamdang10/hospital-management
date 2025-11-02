@@ -50,8 +50,9 @@ describe('StaffLifecycleEventHandler', () => {
       staffId: 'staff-123',
       userId: 'user-456',
       staffType: 'DOCTOR',
-      departmentId: 'dept-789',
-      registeredAt: new Date('2025-01-01T10:00:00Z'),
+      licenseNumber: 'LIC-12345',
+      employmentType: 'FULL_TIME',
+      hireDate: new Date('2025-01-01T10:00:00Z'),
       occurredAt: new Date('2025-01-01T10:00:00Z')
     };
 
@@ -77,7 +78,9 @@ describe('StaffLifecycleEventHandler', () => {
         occurredAt: mockEvent.occurredAt
       });
       expect(mockActivateUserUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-456'
+        userId: 'user-456',
+        activatedBy: 'SYSTEM_AUTO',
+        reason: 'Staff registered: DOCTOR (License: LIC-12345)'
       });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-501');
       expect(mockLogger.info).toHaveBeenCalled();

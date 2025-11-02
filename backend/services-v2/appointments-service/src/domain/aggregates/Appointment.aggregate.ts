@@ -13,6 +13,11 @@ import { DomainEvent } from '@shared/domain/base/domain-event';
 import { AppointmentScheduledEvent } from '../events/AppointmentScheduledEvent';
 import { AppointmentCancelledEvent } from '../events/AppointmentCancelledEvent';
 import { AppointmentRescheduledEvent } from '../events/AppointmentRescheduledEvent';
+import { AppointmentNoShowEvent } from '../events/AppointmentNoShowEvent';
+import { AppointmentCheckedInEvent } from '../events/AppointmentCheckedInEvent';
+import { AppointmentStartedEvent } from '../events/AppointmentStartedEvent';
+import { AppointmentConfirmedEvent } from '../events/AppointmentConfirmedEvent';
+import { AppointmentCompletedEvent } from '../events/AppointmentCompletedEvent';
 import { AppointmentId } from '../value-objects/AppointmentId.vo';
 import { TimeSlot } from '../value-objects/TimeSlot.vo';
 import { AppointmentDetails } from '../value-objects/AppointmentDetails.vo';
@@ -44,13 +49,15 @@ export enum AppointmentStatus {
   NO_SHOW = 'no_show'
 }
 
-export enum PaymentStatus {
-  PENDING = 'pending',
-  PAID = 'paid',
-  PARTIALLY_PAID = 'partially_paid',
-  REFUNDED = 'refunded',
-  CANCELLED = 'cancelled'
-}
+/**
+ * Payment management is NOT the responsibility of appointments-service
+ * Payment state, invoices, and billing are handled by billing-service
+ * 
+ * Appointments service only:
+ * - Stores consultationFee as immutable reference
+ * - Emits AppointmentCompletedEvent with fee info
+ * - Billing-service consumes event and handles payment lifecycle
+ */
 
 export interface AppointmentProps {
   appointmentId: AppointmentId;
@@ -66,10 +73,12 @@ export interface AppointmentProps {
   roomId?: string;
   departmentId?: string;
   requiredEquipment?: string[];
+  
+  // Billing Reference (immutable, for billing-service)
+  // Appointments service does NOT manage payment state
+  // Only stores fee as reference for billing-service to consume via events
   consultationFee: number;
-  additionalFees?: number;
-  paymentStatus: PaymentStatus;
-  paymentMethod?: string;
+  
   checkedInAt?: Date;
   startedAt?: Date;
   completedAt?: Date;
@@ -158,20 +167,12 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     return this.props.requiredEquipment ? [...this.props.requiredEquipment] : undefined;
   }
 
+  /**
+   * Get consultation fee (immutable reference for billing-service)
+   * NOTE: Appointments service does NOT manage payment state
+   */
   public getConsultationFee(): number {
     return this.props.consultationFee;
-  }
-
-  public getAdditionalFees(): number | undefined {
-    return this.props.additionalFees;
-  }
-
-  public getPaymentStatus(): PaymentStatus {
-    return this.props.paymentStatus;
-  }
-
-  public getPaymentMethod(): string | undefined {
-    return this.props.paymentMethod;
   }
 
   public getCheckedInAt(): Date | undefined {
@@ -296,9 +297,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
       roomId,
       departmentId,
       requiredEquipment,
-      consultationFee,
-      additionalFees: 0,
-      paymentStatus: PaymentStatus.PENDING,
+      consultationFee, // Immutable reference for billing-service
       reminderSent: false,
       confirmationRequired: true,
       version: 1,
@@ -370,20 +369,44 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     this.props.updatedAt = new Date();
     this.props.lastModifiedBy = confirmedBy;
 
+    // Domain event
+    this.addDomainEvent(
+      new AppointmentConfirmedEvent(
+        this.props.appointmentId.value,
+        this.props.patientId,
+        this.props.doctorId,
+        this.props.confirmedAt,
+        'manual' // confirmation method
+      )
+    );
+
     this.incrementVersion();
   }
 
   /**
    * Check in patient
    */
-  public checkIn(): void {
-    if (this.props.status !== AppointmentStatus.CONFIRMED) {
-      throw new Error('Only confirmed appointments can be checked in');
+  public checkIn(checkInTime?: Date): void {
+    if (this.props.status !== AppointmentStatus.CONFIRMED &&
+        this.props.status !== AppointmentStatus.SCHEDULED) {
+      throw new Error('Only confirmed or scheduled appointments can be checked in');
     }
 
+    const actualCheckInTime = checkInTime || new Date();
     this.props.status = AppointmentStatus.ARRIVED;
-    this.props.checkedInAt = new Date();
+    this.props.checkedInAt = actualCheckInTime;
     this.props.updatedAt = new Date();
+
+    // Domain event
+    this.addDomainEvent(
+      new AppointmentCheckedInEvent(
+        this.props.appointmentId.value,
+        this.props.patientId,
+        this.props.doctorId,
+        actualCheckInTime,
+        this.props.priority
+      )
+    );
 
     this.incrementVersion();
   }
@@ -391,14 +414,26 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
   /**
    * Start appointment
    */
-  public start(): void {
+  public start(startTime?: Date): void {
     if (this.props.status !== AppointmentStatus.ARRIVED) {
       throw new Error('Patient must be checked in before starting appointment');
     }
 
+    const actualStartTime = startTime || new Date();
     this.props.status = AppointmentStatus.IN_PROGRESS;
-    this.props.startedAt = new Date();
+    this.props.startedAt = actualStartTime;
     this.props.updatedAt = new Date();
+
+    // Domain event
+    this.addDomainEvent(
+      new AppointmentStartedEvent(
+        this.props.appointmentId.value,
+        this.props.patientId,
+        this.props.doctorId,
+        actualStartTime,
+        this.props.roomId
+      )
+    );
 
     this.incrementVersion();
   }
@@ -414,6 +449,25 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     this.props.status = AppointmentStatus.COMPLETED;
     this.props.completedAt = new Date();
     this.props.updatedAt = new Date();
+
+    // Calculate duration
+    const duration = this.props.startedAt && this.props.completedAt
+      ? Math.round((this.props.completedAt.getTime() - this.props.startedAt.getTime()) / 60000)
+      : this.props.durationMinutes;
+
+    // Domain event (includes consultationFee for billing-service to consume)
+    // billing-service will create invoice and handle payment lifecycle
+    this.addDomainEvent(
+      new AppointmentCompletedEvent(
+        this.props.appointmentId.value,
+        this.props.patientId,
+        this.props.doctorId,
+        this.props.completedAt,
+        duration,
+        this.props.details?.notes,
+        this.props.consultationFee // Billing reference
+      )
+    );
 
     this.incrementVersion();
   }
@@ -460,16 +514,71 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
   /**
    * Mark as no-show
    */
-  public markAsNoShow(): void {
-    if (this.props.status !== AppointmentStatus.CONFIRMED && 
+  public markAsNoShow(markedBy: string): void {
+    if (this.props.status !== AppointmentStatus.CONFIRMED &&
         this.props.status !== AppointmentStatus.SCHEDULED) {
       throw new Error('Only scheduled/confirmed appointments can be marked as no-show');
     }
 
     this.props.status = AppointmentStatus.NO_SHOW;
     this.props.updatedAt = new Date();
+    this.props.lastModifiedBy = markedBy;
+
+    // Domain event
+    this.addDomainEvent(
+      new AppointmentNoShowEvent(
+        this.props.appointmentId.value,
+        this.props.patientId,
+        this.props.doctorId,
+        new Date(this.props.timeSlot.appointmentDate),
+        this.props.timeSlot.appointmentTime,
+        new Date()
+      )
+    );
 
     this.incrementVersion();
+  }
+
+  /**
+   * Transfer appointment to another doctor
+   * Business method for changing doctor assignment
+   */
+  public transfer(newDoctorId: string, reason: string, transferredBy: string): void {
+    // Validate state - cannot transfer completed/cancelled appointments
+    if (this.props.status === AppointmentStatus.COMPLETED) {
+      throw new Error('Cannot transfer completed appointment');
+    }
+
+    if (this.props.status === AppointmentStatus.CANCELLED) {
+      throw new Error('Cannot transfer cancelled appointment');
+    }
+
+    if (this.props.status === AppointmentStatus.NO_SHOW) {
+      throw new Error('Cannot transfer no-show appointment');
+    }
+
+    // Store old doctor for event
+    const oldDoctorId = this.props.doctorId;
+
+    // Update doctor assignment
+    this.props.doctorId = newDoctorId;
+    this.props.lastModifiedBy = transferredBy;
+    this.props.updatedAt = new Date();
+
+    // Add transfer note to details
+    const transferNote = `[${new Date().toISOString()}] Transferred from doctor ${oldDoctorId} to ${newDoctorId}. Reason: ${reason}`;
+    const currentNotes = this.props.details.notes || '';
+    const updatedNotes = currentNotes ? `${currentNotes}\n${transferNote}` : transferNote;
+    
+    this.props.details = AppointmentDetails.create(
+      this.props.details.reason,
+      this.props.details.chiefComplaint,
+      this.props.details.symptoms,
+      updatedNotes,
+      this.props.details.specialInstructions
+    );
+
+    this.props.version++;
   }
 
   /**
@@ -524,7 +633,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     this.incrementVersion();
   }
 
-  // Getters
+  // Getters (shorthand accessors)
   get appointmentId(): AppointmentId { return this.props.appointmentId; }
   get patientId(): string { return this.props.patientId; }
   get doctorId(): string { return this.props.doctorId; }
@@ -534,8 +643,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
   get priority(): AppointmentPriority { return this.props.priority; }
   get status(): AppointmentStatus { return this.props.status; }
   get details(): AppointmentDetails { return this.props.details; }
-  get consultationFee(): number { return this.props.consultationFee; }
-  get paymentStatus(): PaymentStatus { return this.props.paymentStatus; }
+  get consultationFee(): number { return this.props.consultationFee; } // Billing reference only
 
   /**
    * Healthcare-specific: Contains PHI

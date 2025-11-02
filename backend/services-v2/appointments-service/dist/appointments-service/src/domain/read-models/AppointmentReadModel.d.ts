@@ -20,8 +20,6 @@ export interface AppointmentReadModel {
     roomId?: string;
     departmentId?: string;
     consultationFee: number;
-    additionalFees?: number;
-    paymentStatus: string;
     patientFullName?: string;
     patientPhone?: string;
     patientEmail?: string;
@@ -84,8 +82,6 @@ export interface CreateAppointmentReadModelData {
     roomId?: string;
     departmentId?: string;
     consultationFee: number;
-    additionalFees?: number;
-    paymentStatus: string;
     patientData?: PatientData;
     doctorData?: DoctorData;
     reason?: string;

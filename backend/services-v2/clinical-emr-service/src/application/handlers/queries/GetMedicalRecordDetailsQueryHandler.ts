@@ -246,7 +246,7 @@ export class GetMedicalRecordDetailsQueryHandler extends BaseHealthcareUseCase<G
     medicalRecord: MedicalRecordAggregate,
     query: GetMedicalRecordDetailsQuery
   ): Promise<any> {
-    const baseData = {
+    const baseData: Record<string, any> = {
       recordId: medicalRecord.recordId.value,
       patientId: medicalRecord.patientId,
       doctorId: medicalRecord.doctorId,

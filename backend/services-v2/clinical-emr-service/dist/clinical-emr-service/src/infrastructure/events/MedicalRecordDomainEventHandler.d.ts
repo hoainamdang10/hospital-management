@@ -20,11 +20,15 @@ export interface MedicalRecordDomainEventHandlerConfig {
  * Domain Event Handler for Medical Record Events
  * Follows pattern from SchedulingEventHandler
  */
-export declare class MedicalRecordDomainEventHandler implements IEventHandler<DomainEvent> {
+export declare class MedicalRecordDomainEventHandler implements IEventHandler {
     private readonly logger;
     private readonly auditService;
     private readonly eventBus;
     constructor(config: MedicalRecordDomainEventHandlerConfig);
+    /**
+     * Get event type this handler handles
+     */
+    getEventType(): string;
     /**
      * Handle domain events
      */

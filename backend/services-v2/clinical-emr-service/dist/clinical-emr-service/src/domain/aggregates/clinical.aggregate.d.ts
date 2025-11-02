@@ -65,6 +65,10 @@ export interface MedicalRecordAccess {
 export declare class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecordProps> {
     private constructor();
     /**
+     * Validate entity (required by Entity base class)
+     */
+    validate(): void;
+    /**
      * Create new medical record with enhanced features
      */
     static create(recordId: RecordId, patientId: string, doctorId: string, visitDate: Date, createdBy: string, options?: {

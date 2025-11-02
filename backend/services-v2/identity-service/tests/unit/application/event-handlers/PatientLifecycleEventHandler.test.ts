@@ -49,9 +49,9 @@ describe('PatientLifecycleEventHandler', () => {
       eventId: 'evt-701',
       patientId: 'patient-123',
       userId: 'user-456',
-      deceasedDate: new Date('2025-01-01T00:00:00Z'),
+      dateOfDeath: new Date('2025-01-01T00:00:00Z'),
       deathCertificateNumber: 'DC-789',
-      recordedBy: 'admin-123',
+      reportedBy: 'admin-123',
       occurredAt: new Date('2025-01-01T10:00:00Z')
     };
 
@@ -78,8 +78,9 @@ describe('PatientLifecycleEventHandler', () => {
       });
       expect(mockDeactivateUserUseCase.execute).toHaveBeenCalledWith({
         userId: 'user-456',
-        reason: expect.stringContaining('Patient deceased'),
-        deactivatedBy: 'admin-123'
+        deactivatedBy: 'SYSTEM_AUTO',
+        reason: 'Patient deceased on 2025-01-01 (Certificate: DC-789)',
+        terminateSessions: true
       });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-701');
       expect(mockLogger.info).toHaveBeenCalled();

@@ -202,40 +202,40 @@ export abstract class BaseRepository<T extends AggregateRoot<any>> implements IH
     return aggregate !== null;
   }
 
-  async count(criteria?: RepositoryCriteria): Promise<number> {
+  async count(_criteria?: RepositoryCriteria): Promise<number> {
     // Implementation depends on database provider
     throw new Error('count method must be implemented by subclasses');
   }
 
   async findWithPagination(
-    criteria?: RepositoryCriteria,
-    pagination?: PaginationOptions
+    _criteria?: RepositoryCriteria,
+    _pagination?: PaginationOptions
   ): Promise<PaginatedResult<T>> {
     // Implementation depends on database provider
     throw new Error('findWithPagination method must be implemented by subclasses');
   }
 
-  async findByPatientId(patientId: string): Promise<T[]> {
+  async findByPatientId(_patientId: string): Promise<T[]> {
     // Implementation depends on aggregate type
     throw new Error('findByPatientId method must be implemented by subclasses');
   }
 
-  async findByUserId(userId: string): Promise<T[]> {
+  async findByUserId(_userId: string): Promise<T[]> {
     // Implementation depends on aggregate type
     throw new Error('findByUserId method must be implemented by subclasses');
   }
 
-  async findByDateRange(startDate: Date, endDate: Date): Promise<T[]> {
+  async findByDateRange(_startDate: Date, _endDate: Date): Promise<T[]> {
     // Implementation depends on aggregate type
     throw new Error('findByDateRange method must be implemented by subclasses');
   }
 
-  async getAuditTrail(aggregateId: string): Promise<AuditTrailEntry[]> {
+  async getAuditTrail(_aggregateId: string): Promise<AuditTrailEntry[]> {
     // Implementation depends on audit system
     throw new Error('getAuditTrail method must be implemented by subclasses');
   }
 
-  async anonymize(aggregateId: string): Promise<void> {
+  async anonymize(_aggregateId: string): Promise<void> {
     // Implementation depends on aggregate type
     throw new Error('anonymize method must be implemented by subclasses');
   }

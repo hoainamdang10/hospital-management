@@ -21,6 +21,11 @@ const UpdateMedicalRecordUseCase_1 = require("../../application/use-cases/Update
 const SupabaseMedicalRecordRepository_1 = require("../persistence/SupabaseMedicalRecordRepository");
 const optimized_supabase_client_1 = require("@shared/infrastructure/database/optimized-supabase-client");
 const InMemoryDomainEventPublisher_1 = require("@shared/infrastructure/events/InMemoryDomainEventPublisher");
+const SupabaseTokenVerifier_1 = require("../services/SupabaseTokenVerifier");
+const SupabaseAuditLogService_1 = require("../audit/SupabaseAuditLogService");
+const console_logger_1 = require("@shared/infrastructure/logging/console-logger");
+// Middleware
+const AuthenticationMiddleware_1 = require("../../presentation/middleware/AuthenticationMiddleware");
 // Configuration
 const clinical_emr_config_1 = require("../config/clinical-emr-config");
 /**
@@ -88,6 +93,34 @@ function createContainer() {
         return new UpdateMedicalRecordUseCase_1.UpdateMedicalRecordUseCase(repository, eventPublisher);
     })
         .inTransientScope();
+    // =====================================================
+    // PHASE 1: AUTHENTICATION & SECURITY
+    // =====================================================
+    // Logger
+    container.bind(types_1.TYPES.Logger)
+        .to(console_logger_1.ConsoleLogger)
+        .inSingletonScope();
+    // Token Verifier
+    container.bind(types_1.TYPES.TokenVerifier)
+        .to(SupabaseTokenVerifier_1.SupabaseTokenVerifier)
+        .inSingletonScope();
+    // Audit Log Service
+    container.bind(types_1.TYPES.AuditLogService)
+        .toDynamicValue((context) => {
+        const supabaseClient = context.container.get(types_1.TYPES.SupabaseClient);
+        const logger = context.container.get(types_1.TYPES.Logger);
+        return new SupabaseAuditLogService_1.SupabaseAuditLogService(supabaseClient, logger);
+    })
+        .inSingletonScope();
+    // Authentication Middleware
+    container.bind(types_1.TYPES.AuthenticationMiddleware)
+        .toDynamicValue((context) => {
+        const tokenVerifier = context.container.get(types_1.TYPES.TokenVerifier);
+        const auditLogService = context.container.get(types_1.TYPES.AuditLogService);
+        const logger = context.container.get(types_1.TYPES.Logger);
+        return new AuthenticationMiddleware_1.AuthenticationMiddleware(tokenVerifier, auditLogService, logger);
+    })
+        .inSingletonScope();
     return container;
 }
 /**
@@ -173,10 +206,11 @@ const cleanupContainer = async () => {
             await supabaseClient.cleanup();
         }
         // Cleanup event publisher
-        const eventPublisher = exports.container.get(types_1.TYPES.DomainEventPublisher);
-        if (eventPublisher && typeof eventPublisher.cleanup === 'function') {
-            await eventPublisher.cleanup();
-        }
+        // TODO: Add cleanup method to IDomainEventPublisher interface
+        // const eventPublisher = container.get<IDomainEventPublisher>(TYPES.DomainEventPublisher);
+        // if (eventPublisher && typeof eventPublisher.cleanup === 'function') {
+        //   await eventPublisher.cleanup();
+        // }
         // Unbind all services
         exports.container.unbindAll();
     }

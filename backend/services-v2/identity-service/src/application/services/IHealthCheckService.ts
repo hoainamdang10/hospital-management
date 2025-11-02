@@ -23,6 +23,7 @@ export interface HealthCheckResult {
 }
 
 export interface ServiceHealth {
+  status: HealthStatus;
   overall: HealthStatus;
   components: {
     database: HealthCheckResult;

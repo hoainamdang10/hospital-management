@@ -1,0 +1,70 @@
+"use strict";
+/**
+ * Clinical Note Routes - RESTful API Endpoints
+ * Presentation Layer - Routes for clinical documentation
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance Clean Architecture, RESTful API, HIPAA
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createClinicalNoteRoutes = createClinicalNoteRoutes;
+const express_1 = require("express");
+const container_1 = require("../../infrastructure/di/container");
+const types_1 = require("../../infrastructure/di/types");
+const errorHandler_1 = require("../middleware/errorHandler");
+/**
+ * Create clinical note routes with authentication and authorization
+ */
+function createClinicalNoteRoutes(controller) {
+    const router = (0, express_1.Router)();
+    // Get authentication middleware from DI container
+    const authMiddleware = container_1.container.get(types_1.TYPES.AuthenticationMiddleware);
+    // =====================================================
+    // CLINICAL NOTE CRUD ROUTES
+    // =====================================================
+    /**
+     * Create new clinical note
+     * POST /api/v2/clinical-emr/clinical-notes
+     * @access Doctor, Nurse, Admin
+     * @audit PHI Access - Create Clinical Note
+     */
+    router.post('/', authMiddleware.authenticate(), authMiddleware.requireHealthcareStaff(), // Doctor, Nurse, Admin can create notes
+    (req, res, next) => controller.createNote(req, res, next));
+    /**
+     * Get clinical note by ID
+     * GET /api/v2/clinical-emr/clinical-notes/:noteId
+     * @access Healthcare Staff (view clinical documentation)
+     * @audit PHI Access - View Clinical Note
+     */
+    router.get('/:noteId', authMiddleware.authenticate(), authMiddleware.requireHealthcareStaff(), (req, res, next) => controller.getNote(req, res, next));
+    /**
+     * Update clinical note
+     * PUT /api/v2/clinical-emr/clinical-notes/:noteId
+     * @access Doctor, Nurse (original author), Admin
+     * @audit PHI Access - Update Clinical Note
+     */
+    router.put('/:noteId', authMiddleware.authenticate(), authMiddleware.requireHealthcareStaff(), (req, res, next) => controller.updateNote(req, res, next));
+    /**
+     * Cosign clinical note (supervisor approval)
+     * POST /api/v2/clinical-emr/clinical-notes/:noteId/cosign
+     * @access Doctor (supervisor), Admin
+     * @audit PHI Access - Cosign Clinical Note (Critical)
+     */
+    router.post('/:noteId/cosign', authMiddleware.authenticate(), authMiddleware.requireDoctorOrAdmin(), // Only doctors and admins can cosign
+    (req, res, next) => controller.cosignNote(req, res, next));
+    /**
+     * List clinical notes with filtering
+     * GET /api/v2/clinical-emr/clinical-notes
+     * @access Healthcare Staff
+     * @audit PHI Access - List Clinical Notes
+     * @query patientId, authorId, type, startDate, endDate
+     */
+    router.get('/', authMiddleware.authenticate(), authMiddleware.requireHealthcareStaff(), (req, res, next) => controller.listNotes(req, res, next));
+    // =====================================================
+    // ERROR HANDLING MIDDLEWARE
+    // =====================================================
+    router.use(errorHandler_1.errorHandlingMiddleware);
+    return router;
+}
+//# sourceMappingURL=clinicalNoteRoutes.js.map

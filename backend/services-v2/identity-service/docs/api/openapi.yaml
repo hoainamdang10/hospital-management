@@ -1,4 +1,4 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
   title: Identity Service API
   description: |
@@ -63,7 +63,7 @@ security:
 
 paths:
   # ==================== AUTHENTICATION ====================
-  /api/auth/login:
+  /auth/login:
     post:
       tags: [Authentication]
       summary: User login
@@ -127,7 +127,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/auth/register:
+  /auth/register:
     post:
       tags: [Authentication]
       summary: Patient self-registration
@@ -195,7 +195,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/auth/logout:
+  /auth/logout:
     post:
       tags: [Authentication]
       summary: User logout
@@ -217,7 +217,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/auth/refresh:
+  /auth/refresh:
     post:
       tags: [Authentication]
       summary: Refresh access token
@@ -251,7 +251,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/auth/forgot-password:
+  /auth/forgot-password:
     post:
       tags: [Authentication]
       summary: Request password reset
@@ -286,7 +286,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/auth/reset-password:
+  /auth/reset-password:
     post:
       tags: [Authentication]
       summary: Reset password with token
@@ -314,7 +314,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/auth/verify-email:
+  /auth/verify-email:
     post:
       tags: [Authentication]
       summary: Verify email address
@@ -338,7 +338,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
 
   # ==================== USERS ====================
-  /api/users/{userId}:
+  /api/v1/users/{userId}:
     get:
       tags: [Users]
       summary: Get user by ID
@@ -409,7 +409,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/users:
+  /api/v1/users:
     get:
       tags: [Users]
       summary: List users
@@ -454,7 +454,7 @@ paths:
                   limit:
                     type: integer
 
-  /api/users/{userId}/permissions:
+  /api/v1/permissions/{userId}:
     get:
       tags: [Permissions]
       summary: Check user permissions
@@ -484,7 +484,7 @@ paths:
                       type: string
 
   # ==================== MFA ====================
-  /api/mfa/enable:
+  /auth/mfa/enable:
     post:
       tags: [MFA]
       summary: Enable MFA
@@ -506,7 +506,7 @@ paths:
                     type: string
                     description: TOTP secret
 
-  /api/mfa/verify:
+  /auth/mfa/verify:
     post:
       tags: [MFA]
       summary: Verify MFA code
@@ -526,7 +526,7 @@ paths:
         '200':
           description: MFA verified successfully
 
-  /api/mfa/disable:
+  /auth/mfa/disable:
     post:
       tags: [MFA]
       summary: Disable MFA
@@ -547,27 +547,63 @@ paths:
           description: MFA disabled successfully
 
   # ==================== SESSIONS ====================
-  /api/sessions:
+  /api/v1/users/{userId}/sessions:
     get:
       tags: [Sessions]
       summary: List active sessions
-      description: Get all active sessions for current user
+      description: Get all active sessions for the specified user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: Sessions retrieved
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Session'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  totalCount:
+                    type: integer
+                    example: 2
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+    delete:
+      tags: [Sessions]
+      summary: Terminate all other sessions
+      description: Terminate all sessions except the current one for a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: All other sessions terminated
 
-  /api/sessions/{sessionId}:
+  /api/v1/users/{userId}/sessions/{sessionId}:
     delete:
       tags: [Sessions]
       summary: Terminate session
-      description: Terminate specific session
+      description: Terminate specific session for a user
       parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
         - name: sessionId
           in: path
           required: true
@@ -578,17 +614,8 @@ paths:
         '200':
           description: Session terminated
 
-  /api/sessions/terminate-all:
-    post:
-      tags: [Sessions]
-      summary: Terminate all sessions
-      description: Terminate all sessions except current
-      responses:
-        '200':
-          description: All sessions terminated
-
   # ==================== PASSWORD POLICIES ====================
-  /api/password-policies:
+  /api/v1/password-policy:
     get:
       tags: [Password Policies]
       summary: Get password policy
@@ -600,7 +627,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PasswordPolicy'
-    
+
     put:
       tags: [Password Policies]
       summary: Update password policy
@@ -615,7 +642,7 @@ paths:
         '200':
           description: Password policy updated
 
-  /api/password-policies/validate:
+  /api/v1/password-policy/validate:
     post:
       tags: [Password Policies]
       summary: Validate password
@@ -662,7 +689,10 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: healthy
+                    example: HEALTHY
+                  overall:
+                    type: string
+                    example: HEALTHY
                   service:
                     type: string
                     example: identity-service
@@ -706,7 +736,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT access token from /api/auth/login
+      description: JWT access token from /auth/login
 
   schemas:
     User:

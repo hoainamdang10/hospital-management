@@ -620,7 +620,7 @@ export class Medication extends ValueObject<MedicationProps> {
       [RouteOfAdministration.INTRAVENOUS]: '47625008',
       [RouteOfAdministration.INTRAMUSCULAR]: '78421000',
       [RouteOfAdministration.SUBCUTANEOUS]: '34206005'
-    };
+    } as Record<RouteOfAdministration, string>;
     return routeMap[this.props.route] || '26643006';
   }
 

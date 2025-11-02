@@ -23,19 +23,17 @@ export interface AppointmentReadModel {
   status: string;
   roomId?: string;
   departmentId?: string;
-  consultationFee: number;
-  additionalFees?: number;
-  paymentStatus: string;
+  consultationFee: number; // Billing reference only - billing-service owns payment lifecycle
   
-  // Denormalized Patient Data
+  // Denormalized Patient Data (from patient-service for display only)
   patientFullName?: string;
   patientPhone?: string;
   patientEmail?: string;
   patientDateOfBirth?: Date;
   patientGender?: string;
   patientNationalId?: string;
-  patientInsuranceNumber?: string;
-  patientInsuranceType?: string;
+  patientInsuranceNumber?: string; // Reference only - billing-service validates insurance
+  patientInsuranceType?: string; // Reference only - billing-service validates insurance
   patientAddress?: string;
   
   // Denormalized Doctor Data
@@ -74,8 +72,8 @@ export interface PatientData {
   patientDateOfBirth?: Date;
   patientGender?: string;
   patientNationalId?: string;
-  patientInsuranceNumber?: string;
-  patientInsuranceType?: string;
+  patientInsuranceNumber?: string; // Reference only - billing-service validates insurance
+  patientInsuranceType?: string; // Reference only - billing-service validates insurance
   patientAddress?: string;
 }
 
@@ -100,9 +98,7 @@ export interface CreateAppointmentReadModelData {
   status: string;
   roomId?: string;
   departmentId?: string;
-  consultationFee: number;
-  additionalFees?: number;
-  paymentStatus: string;
+  consultationFee: number; // Billing reference only - billing-service owns payment lifecycle
   
   // Patient data (fetched from Patient Service)
   patientData?: PatientData;

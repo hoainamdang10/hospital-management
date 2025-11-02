@@ -36,13 +36,15 @@ export declare enum AppointmentStatus {
     CANCELLED = "cancelled",
     NO_SHOW = "no_show"
 }
-export declare enum PaymentStatus {
-    PENDING = "pending",
-    PAID = "paid",
-    PARTIALLY_PAID = "partially_paid",
-    REFUNDED = "refunded",
-    CANCELLED = "cancelled"
-}
+/**
+ * Payment management is NOT the responsibility of appointments-service
+ * Payment state, invoices, and billing are handled by billing-service
+ *
+ * Appointments service only:
+ * - Stores consultationFee as immutable reference
+ * - Emits AppointmentCompletedEvent with fee info
+ * - Billing-service consumes event and handles payment lifecycle
+ */
 export interface AppointmentProps {
     appointmentId: AppointmentId;
     tenantId: TenantId;
@@ -58,9 +60,6 @@ export interface AppointmentProps {
     departmentId?: string;
     requiredEquipment?: string[];
     consultationFee: number;
-    additionalFees?: number;
-    paymentStatus: PaymentStatus;
-    paymentMethod?: string;
     checkedInAt?: Date;
     startedAt?: Date;
     completedAt?: Date;
@@ -102,10 +101,11 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
     getRoomId(): string | undefined;
     getDepartmentId(): string | undefined;
     getRequiredEquipment(): string[] | undefined;
+    /**
+     * Get consultation fee (immutable reference for billing-service)
+     * NOTE: Appointments service does NOT manage payment state
+     */
     getConsultationFee(): number;
-    getAdditionalFees(): number | undefined;
-    getPaymentStatus(): PaymentStatus;
-    getPaymentMethod(): string | undefined;
     getCheckedInAt(): Date | undefined;
     getStartedAt(): Date | undefined;
     getCompletedAt(): Date | undefined;
@@ -144,11 +144,11 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
     /**
      * Check in patient
      */
-    checkIn(): void;
+    checkIn(checkInTime?: Date): void;
     /**
      * Start appointment
      */
-    start(): void;
+    start(startTime?: Date): void;
     /**
      * Complete appointment
      */
@@ -160,7 +160,12 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
     /**
      * Mark as no-show
      */
-    markAsNoShow(): void;
+    markAsNoShow(markedBy: string): void;
+    /**
+     * Transfer appointment to another doctor
+     * Business method for changing doctor assignment
+     */
+    transfer(newDoctorId: string, reason: string, transferredBy: string): void;
     /**
      * Reschedule appointment
      */
@@ -175,7 +180,6 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
     get status(): AppointmentStatus;
     get details(): AppointmentDetails;
     get consultationFee(): number;
-    get paymentStatus(): PaymentStatus;
     /**
      * Healthcare-specific: Contains PHI
      */

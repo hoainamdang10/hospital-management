@@ -55,7 +55,7 @@ export class GetNotificationAnalyticsUseCase {
       return {
         summary: {
           totalNotifications: statistics.totalNotifications,
-          sentNotifications: (statistics.byStatus['SENT'] || 0) + (statistics.byStatus['DELIVERED'] || 0),
+          sentNotifications: (statistics.byStatus['SENT'] || 0),
           failedNotifications: statistics.byStatus['FAILED'] || 0,
           deliveryRate: statistics.successRate,
           averageDeliveryTime: statistics.averageDeliveryTime

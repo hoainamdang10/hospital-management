@@ -19,7 +19,7 @@ export interface AppointmentDetailsDTO {
   roomId?: string;
   departmentId?: string;
   
-  // Patient Information
+  // Patient Information (denormalized from patient-service for display)
   patient: {
     patientId: string;
     fullName?: string;
@@ -28,8 +28,8 @@ export interface AppointmentDetailsDTO {
     dateOfBirth?: string;
     gender?: string;
     nationalId?: string;
-    insuranceNumber?: string;
-    insuranceType?: string;
+    insuranceNumber?: string; // Reference only - billing-service validates insurance
+    insuranceType?: string; // Reference only - billing-service validates insurance
     address?: string;
   };
   
@@ -53,9 +53,7 @@ export interface AppointmentDetailsDTO {
   requiredEquipment?: string[];
   
   // Financial
-  consultationFee: number;
-  additionalFees?: number;
-  paymentStatus: string;
+  consultationFee: number; // Billing reference only - billing-service owns payment lifecycle
   
   // Timestamps
   checkedInAt?: string;
@@ -84,8 +82,7 @@ export interface AppointmentListItemDTO {
   doctorFullName?: string;
   doctorSpecialization?: string;
   
-  consultationFee: number;
-  paymentStatus: string;
+  consultationFee: number; // Billing reference only
   
   createdAt: string;
 }

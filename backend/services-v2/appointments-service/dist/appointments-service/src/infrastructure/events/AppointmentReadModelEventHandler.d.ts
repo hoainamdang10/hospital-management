@@ -27,8 +27,6 @@ export interface AppointmentScheduledEvent {
     roomId?: string;
     departmentId?: string;
     consultationFee: number;
-    additionalFees?: number;
-    paymentStatus: string;
     reason?: string;
     chiefComplaint?: string;
     symptoms?: string[];
@@ -104,6 +102,27 @@ export declare class AppointmentReadModelEventHandler {
      * Updates appointment status to cancelled in read model
      */
     handleAppointmentCancelled(event: {
+        appointmentId: string;
+    }): Promise<void>;
+    /**
+     * Handle AppointmentConfirmedEvent
+     * Updates appointment status to confirmed in read model
+     */
+    handleAppointmentConfirmed(event: {
+        appointmentId: string;
+    }): Promise<void>;
+    /**
+     * Handle AppointmentCompletedEvent
+     * Updates appointment status to completed in read model
+     */
+    handleAppointmentCompleted(event: {
+        appointmentId: string;
+    }): Promise<void>;
+    /**
+     * Handle AppointmentNoShowEvent
+     * Updates appointment status to no-show in read model
+     */
+    handleAppointmentNoShow(event: {
         appointmentId: string;
     }): Promise<void>;
 }

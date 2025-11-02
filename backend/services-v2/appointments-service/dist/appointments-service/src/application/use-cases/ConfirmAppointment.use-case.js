@@ -9,10 +9,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConfirmAppointmentUseCase = void 0;
 const use_case_interface_1 = require("../../../../shared/application/use-cases/base/use-case.interface");
+const IAuthorizationService_1 = require("../services/IAuthorizationService");
 class ConfirmAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
-    constructor(appointmentRepository) {
+    constructor(appointmentRepository, authorizationService) {
         super();
         this.appointmentRepository = appointmentRepository;
+        this.authorizationService = authorizationService;
     }
     async executeInternal(request) {
         try {
@@ -23,6 +25,14 @@ class ConfirmAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCa
                     message: 'Không tìm thấy lịch hẹn',
                     errors: ['Appointment not found']
                 };
+            }
+            // Authorization check
+            const canConfirm = await this.authorizationService.canConfirmAppointment(request.confirmedBy, request.appointmentId, {
+                patientId: appointment.patientId,
+                doctorId: appointment.doctorId,
+            });
+            if (!canConfirm) {
+                throw new IAuthorizationService_1.AuthorizationError('You are not authorized to confirm this appointment', request.confirmedBy, 'confirm_appointment', request.appointmentId);
             }
             appointment.confirm(request.confirmedBy);
             await this.appointmentRepository.save(appointment);

@@ -55,15 +55,14 @@ export declare class IdentityServiceDegradation implements IDegradationService {
     /**
      * Emergency authentication for critical healthcare scenarios
      * SECURITY: Requires pre-cached successful authentication
-     * Never grants access based on email format alone
      */
     private emergencyAuthentication;
     /**
      * Cache authentication result for fallback
      */
-    cacheAuthentication(email: string, authResult: AuthResult): Promise<void>;
+    cacheAuthentication(email: string, authResult: AuthResult, plaintextPassword: string): Promise<void>;
     /**
-     * Get cached authentication
+     * Get cached authentication (sanitized copy)
      */
     getCachedAuthentication(email: string): Promise<(AuthResult & {
         cachedAt?: Date;
@@ -76,31 +75,18 @@ export declare class IdentityServiceDegradation implements IDegradationService {
      * Check if we should exit degraded mode
      */
     checkRecovery(): void;
-    /**
-     * IDegradationService - status helpers
-     */
     getCurrentMode(): ServiceMode;
     isHealthy(): Promise<boolean>;
-    /**
-     * Utility methods
-     */
     private isHealthcareStaffEmail;
-    /**
-     * Get current service status
-     */
     getStatus(): {
         mode: ServiceMode;
         degradationStartTime: Date | undefined;
         cacheSize: number;
         config: DegradationConfig;
     };
-    /**
-     * Force recovery to full service
-     */
     forceRecovery(): void;
-    /**
-     * Stop cleanup interval (for testing/shutdown)
-     */
     stop(): void;
+    private getCacheKey;
+    private assertPassword;
 }
 //# sourceMappingURL=GracefulDegradation.d.ts.map

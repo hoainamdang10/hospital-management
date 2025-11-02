@@ -160,6 +160,7 @@ describe('Email Verification Flow Integration Tests', () => {
             fullName: 'Invalid Token Test User',
             phoneNumber: '0901234594',
             address: '123 Test Street, Hanoi, Vietnam',
+            skipAutoLogin: true,
             dateOfBirth: '1990-01-01',
             gender: 'male',
             citizenId: generateUniqueCitizenId()
@@ -190,6 +191,7 @@ describe('Email Verification Flow Integration Tests', () => {
             fullName: 'Expired Token Test User',
             phoneNumber: '0901234595',
             address: '456 Test Street, Hanoi, Vietnam',
+            skipAutoLogin: true,
             dateOfBirth: '1991-02-02',
             gender: 'female',
             citizenId: generateUniqueCitizenId()
@@ -223,6 +225,7 @@ describe('Email Verification Flow Integration Tests', () => {
             fullName: 'User 1',
             phoneNumber: '0901234596',
             address: '789 Test Street, Hanoi, Vietnam',
+            skipAutoLogin: true,
             dateOfBirth: '1992-03-03',
             gender: 'male',
             citizenId: generateUniqueCitizenId()
@@ -238,6 +241,7 @@ describe('Email Verification Flow Integration Tests', () => {
             fullName: 'User 2',
             phoneNumber: '0901234597',
             address: '101 Test Street, Hanoi, Vietnam',
+            skipAutoLogin: true,
             dateOfBirth: '1993-04-04',
             gender: 'female',
             citizenId: generateUniqueCitizenId()
@@ -364,7 +368,8 @@ describe('Email Verification Flow Integration Tests', () => {
             address: '505 Test Street, Hanoi, Vietnam',
             dateOfBirth: '1997-08-08',
             gender: 'female',
-            citizenId: generateUniqueCitizenId()
+            citizenId: generateUniqueCitizenId(),
+            skipAutoLogin: true
           }
         );
 

@@ -5,9 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rateLimitMiddleware = void 0;
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+// Read from environment variables or use defaults
+const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10); // 15 minutes default
+const maxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10); // 100 requests default
+console.log(`[RateLimit] Initialized: ${maxRequests} requests per ${windowMs}ms window`);
 exports.rateLimitMiddleware = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
+    windowMs,
+    max: maxRequests,
     message: {
         success: false,
         error: 'Too many requests from this IP, please try again later'

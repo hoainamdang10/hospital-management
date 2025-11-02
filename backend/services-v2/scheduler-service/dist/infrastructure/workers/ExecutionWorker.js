@@ -1,14 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExecutionWorker = void 0;
-const Outbox_entity_1 = require("../../domain/entities/Outbox.entity");
 const Logger_1 = require("../observability/Logger");
 const MetricsCollector_1 = require("../observability/MetricsCollector");
 class ExecutionWorker {
-    constructor(scheduleRepo, runRepo, outboxRepo, config) {
+    constructor(scheduleRepo, runRepo, config) {
         this.scheduleRepo = scheduleRepo;
         this.runRepo = runRepo;
-        this.outboxRepo = outboxRepo;
         this.config = config;
         this.isRunning = false;
         this.intervalId = null;
@@ -96,30 +94,36 @@ class ExecutionWorker {
                 this.logger.warn(`Run ${run.getRunId()} locked by different worker: ${runProps.lockedBy}`);
                 return;
             }
-            run.start(this.config.workerId);
-            await this.runRepo.update(run);
             this.logger.logWorkerRunStart(this.config.workerId, run.getRunId(), run.getScheduleId());
             const schedule = await this.scheduleRepo.findById(run.getScheduleId());
             if (!schedule) {
                 throw new Error(`Schedule ${run.getScheduleId()} not found`);
             }
             const scheduleProps = schedule.getProps();
-            run.markAsEmitting();
-            await this.runRepo.update(run);
-            const outbox = Outbox_entity_1.Outbox.create(run.getRunId(), scheduleProps.topicOrCommand, scheduleProps.payloadJson, {
-                correlation_id: crypto.randomUUID(),
-                causation_id: schedule.getScheduleId(),
-                schedule_id: schedule.getScheduleId(),
-                run_id: run.getRunId(),
-                tenant_id: schedule.getTenantId().getValue(),
-                idempotency_key: `sched:${schedule.getScheduleId()}:${run.getRunId()}`,
-                emitted_at: new Date().toISOString()
+            // ✅ NEW: Use transactional execution
+            // This atomically executes: RUNNING → EMITTING → EMITTED → SUCCEEDED + Outbox creation
+            // All in a single database transaction
+            const result = await this.runRepo.executeRunTransactional({
+                runId: run.getRunId(),
+                workerId: this.config.workerId,
+                topicOrCommand: scheduleProps.topicOrCommand,
+                payloadJson: scheduleProps.payloadJson,
+                headersJson: {
+                    correlation_id: crypto.randomUUID(),
+                    causation_id: schedule.getScheduleId(),
+                    schedule_id: schedule.getScheduleId(),
+                    run_id: run.getRunId(),
+                    tenant_id: schedule.getTenantId().getValue(),
+                    idempotency_key: `sched:${schedule.getScheduleId()}:${run.getRunId()}`,
+                    emitted_at: new Date().toISOString(),
+                    timestamp: new Date().toISOString(),
+                    schema_version: '1.0',
+                    event_type: scheduleProps.topicOrCommand
+                }
             });
-            await this.outboxRepo.save(outbox);
-            run.markAsEmitted(scheduleProps.topicOrCommand);
-            await this.runRepo.update(run);
-            run.markAsSucceeded();
-            await this.runRepo.update(run);
+            if (!result.success) {
+                throw new Error(result.errorMessage || 'Transactional execution failed');
+            }
             const duration = (Date.now() - startTime) / 1000;
             // Record success metrics
             this.metrics.workerRunsExecuted.inc({
@@ -140,13 +144,8 @@ class ExecutionWorker {
                 worker_id: this.config.workerId,
                 status: 'failed'
             });
-            try {
-                run.markAsFailed(error instanceof Error ? error.message : 'Unknown error');
-                await this.runRepo.update(run);
-            }
-            catch (updateError) {
-                this.logger.error('Failed to update run status', updateError);
-            }
+            // Note: No need to update run status here
+            // The transactional function already marked it as FAILED on error
         }
         finally {
             this.activeExecutions--;

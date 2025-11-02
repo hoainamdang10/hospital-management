@@ -7,6 +7,8 @@
  */
 import { IEventBus, EventBusConfig } from '../../../../shared/infrastructure/event-bus/EventBus';
 import { AppointmentReadModelEventHandler } from './AppointmentReadModelEventHandler';
+import { PatientEventConsumer } from './PatientEventConsumer';
+import { ProviderEventConsumer } from './ProviderEventConsumer';
 /**
  * Setup event subscriptions for Scheduling Service
  */
@@ -17,7 +19,9 @@ export declare class EventSubscriptions {
     private isConnected;
     private schedulerHandlers;
     private staffScheduleUpdatedHandler;
-    constructor(readModelHandler: AppointmentReadModelEventHandler, config: EventBusConfig);
+    private patientEventConsumer;
+    private providerEventConsumer;
+    constructor(readModelHandler: AppointmentReadModelEventHandler, config: EventBusConfig, patientEventConsumer: PatientEventConsumer, providerEventConsumer: ProviderEventConsumer);
     /**
      * Connect to event bus and setup subscriptions
      */
@@ -42,5 +46,5 @@ export declare class EventSubscriptions {
 /**
  * Create event subscriptions instance
  */
-export declare function createEventSubscriptions(readModelHandler: AppointmentReadModelEventHandler): EventSubscriptions;
+export declare function createEventSubscriptions(readModelHandler: AppointmentReadModelEventHandler, patientEventConsumer?: PatientEventConsumer, providerEventConsumer?: ProviderEventConsumer): EventSubscriptions;
 //# sourceMappingURL=EventSubscriptions.d.ts.map

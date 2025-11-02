@@ -7,7 +7,7 @@
  * @version 3.0.0
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AppointmentCancelledEventHandler = exports.AppointmentStatusChangedEventHandler = exports.DoctorUpdatedEventHandler = exports.PatientUpdatedEventHandler = exports.AppointmentScheduledEventHandler = void 0;
+exports.AppointmentNoShowEventHandler = exports.AppointmentCompletedEventHandler = exports.AppointmentConfirmedEventHandler = exports.AppointmentCancelledEventHandler = exports.AppointmentStatusChangedEventHandler = exports.DoctorUpdatedEventHandler = exports.PatientUpdatedEventHandler = exports.AppointmentScheduledEventHandler = void 0;
 /**
  * Appointment Scheduled Event Handler
  */
@@ -30,9 +30,7 @@ class AppointmentScheduledEventHandler {
             status: event.status,
             roomId: event.roomId,
             departmentId: event.departmentId,
-            consultationFee: event.consultationFee,
-            additionalFees: event.additionalFees,
-            paymentStatus: event.paymentStatus || 'pending',
+            consultationFee: event.consultationFee, // Billing reference only
             reason: event.reason,
             chiefComplaint: event.chiefComplaint,
             symptoms: event.symptoms,
@@ -132,4 +130,46 @@ class AppointmentCancelledEventHandler {
     }
 }
 exports.AppointmentCancelledEventHandler = AppointmentCancelledEventHandler;
+/**
+ * Appointment Confirmed Event Handler
+ */
+class AppointmentConfirmedEventHandler {
+    constructor(readModelHandler) {
+        this.readModelHandler = readModelHandler;
+    }
+    async handle(event) {
+        await this.readModelHandler.handleAppointmentConfirmed({
+            appointmentId: event.appointmentId
+        });
+    }
+}
+exports.AppointmentConfirmedEventHandler = AppointmentConfirmedEventHandler;
+/**
+ * Appointment Completed Event Handler
+ */
+class AppointmentCompletedEventHandler {
+    constructor(readModelHandler) {
+        this.readModelHandler = readModelHandler;
+    }
+    async handle(event) {
+        await this.readModelHandler.handleAppointmentCompleted({
+            appointmentId: event.appointmentId
+        });
+    }
+}
+exports.AppointmentCompletedEventHandler = AppointmentCompletedEventHandler;
+/**
+ * Appointment No-Show Event Handler
+ */
+class AppointmentNoShowEventHandler {
+    constructor(readModelHandler) {
+        this.readModelHandler = readModelHandler;
+    }
+    async handle(event) {
+        await this.readModelHandler.handleAppointmentNoShow({
+            appointmentId: event.appointmentId
+        });
+    }
+}
+exports.AppointmentNoShowEventHandler = AppointmentNoShowEventHandler;
 //# sourceMappingURL=EventHandlers.js.map

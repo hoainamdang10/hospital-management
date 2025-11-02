@@ -8,11 +8,13 @@ import { IPermissionRepository } from '@domain/repositories/IPermissionRepositor
 import { PermissionCache } from '@infrastructure/cache/PermissionCache';
 import { UserId } from '@domain/value-objects/UserId';
 import { Permission } from '@application/services/IPermissionService';
+import { ILogger } from '@application/services/ILogger';
 
 describe('PermissionService', () => {
   let permissionService: PermissionService;
   let mockPermissionRepository: jest.Mocked<IPermissionRepository>;
   let mockCacheService: jest.Mocked<PermissionCache>;
+  let mockLogger: jest.Mocked<ILogger>;
 
   const testUserId = 'u-123';
   const testUserIdVO = UserId.fromString(testUserId);
@@ -44,9 +46,18 @@ describe('PermissionService', () => {
       invalidateForRole: jest.fn(),
     } as any;
 
+    // Mock Logger
+    mockLogger = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as any;
+
     permissionService = new PermissionService(
       mockPermissionRepository,
-      mockCacheService
+      mockCacheService,
+      mockLogger
     );
   });
 

@@ -11,6 +11,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 export interface TestUser {
   userId: string;
   email: string;
+  password: string;
   token: string;
   refreshToken: string;
   role: string;
@@ -26,15 +27,182 @@ export interface CreateTestUserOptions {
   address?: string;
   isActive?: boolean;
   isVerified?: boolean;
+  skipAutoLogin?: boolean; // Skip auto-login to avoid double login in auth tests
 }
 
 /**
- * Create test user in real Supabase database
+ * Create staff user (ADMIN, DOCTOR, NURSE, RECEPTIONIST) - simulating admin creation
+ * Staff users bypass self-registration and are created directly by admin
+ * 
+ * @param supabaseClient - Supabase client instance with service_role
+ * @param email - User email
+ * @param password - User password
+ * @param role - Staff role (ADMIN, DOCTOR, NURSE, RECEPTIONIST)
+ * @param options - Additional user data
+ * @returns Test user with credentials
+ */
+export async function createStaffUser(
+  supabaseClient: SupabaseClient,
+  email: string,
+  password: string,
+  role: string,
+  options: CreateTestUserOptions = {}
+): Promise<TestUser> {
+  try {
+    // Normalize role to lowercase
+    const normalizedRole = role.toLowerCase();
+    
+    // Validate staff roles only
+    const validStaffRoles = ['admin', 'doctor', 'nurse', 'receptionist'];
+    if (!validStaffRoles.includes(normalizedRole)) {
+      throw new Error(`Invalid staff role: ${role}. Use 'admin', 'doctor', 'nurse', or 'receptionist'`);
+    }
+
+    // 0. Cleanup orphaned profiles with this email (from previous failed tests)
+    try {
+      await supabaseClient
+        .from('user_profiles')
+        .delete()
+        .eq('email', email);
+    } catch (cleanupError) {
+      console.log(`ℹ️  Cleanup orphaned profile for ${email} (if exists)`);
+    }
+
+    // 1. Create auth user via Admin API (service_role bypass)
+    const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirm for staff
+      user_metadata: {
+        full_name: options.fullName || `Staff ${normalizedRole}`,
+        role_type: normalizedRole
+      }
+    });
+
+    if (authError) {
+      throw new Error(`Failed to create auth user: ${authError.message}`);
+    }
+
+    // 2. Create user_profiles EXPLICITLY (admin-created users)
+    const uniqueCitizenId = options.citizenId || `${Date.now()}${Math.floor(Math.random() * 1000000)}`.slice(-12);
+    
+    const profileRecord = {
+      id: authData.user.id,
+      email,
+      full_name: options.fullName || `Staff ${normalizedRole}`,
+      role_type: normalizedRole,
+      phone_number: options.phoneNumber,
+      citizen_id: uniqueCitizenId,
+      date_of_birth: options.dateOfBirth,
+      gender: options.gender,
+      address: options.address,
+      is_active: options.isActive ?? true,
+      is_verified: options.isVerified ?? true, // Staff auto-verified
+      subscription_tier: 'free',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Create user_profiles (bypassing constraints with service_role)
+    const insertResult = await supabaseClient
+      .from('user_profiles')
+      .insert(profileRecord);
+
+    if (insertResult.error && insertResult.error.code === '23505') {
+      console.log(`⚠️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
+      await supabaseClient
+        .from('user_profiles')
+        .delete()
+        .eq('id', authData.user.id);
+
+      const retryResult = await supabaseClient
+        .from('user_profiles')
+        .insert(profileRecord);
+
+      if (retryResult.error) {
+        await supabaseClient.auth.admin.deleteUser(authData.user.id);
+        throw new Error(`Failed to create user profile after retry: ${retryResult.error.message} (code: ${retryResult.error.code})`);
+      }
+    } else if (insertResult.error) {
+      await supabaseClient.auth.admin.deleteUser(authData.user.id);
+      throw new Error(`Failed to create user profile: ${insertResult.error.message} (code: ${insertResult.error.code})`);
+    }
+
+    // 3. Assign role in user_roles table
+    const { error: roleError } = await supabaseClient
+      .from('user_roles')
+      .insert({
+        user_id: authData.user.id,
+        role_name: normalizedRole,
+        assigned_by: 'system',
+        assigned_at: new Date().toISOString()
+      });
+
+    if (roleError) {
+      await supabaseClient.from('user_profiles').delete().eq('id', authData.user.id);
+      await supabaseClient.auth.admin.deleteUser(authData.user.id);
+      throw new Error(`Failed to assign role: ${roleError.message} (code: ${roleError.code})`);
+    }
+
+    // 4. Get JWT token by signing in (optional - can be skipped to avoid double login)
+    if (options.skipAutoLogin) {
+      // Return user without tokens - test will handle login via API
+      return {
+        userId: authData.user.id,
+        email,
+        password,
+        token: '', // Empty token - test should login via API
+        refreshToken: '',
+        role: role.toUpperCase(),
+        fullName: options.fullName || `Staff ${normalizedRole}`
+      };
+    }
+
+    // Auto-login to get JWT tokens (with delay to avoid rate limiting)
+    await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+    
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (sessionError || !sessionData?.session) {
+      await supabaseClient.from('user_roles').delete().eq('user_id', authData.user.id);
+      await supabaseClient.from('user_profiles').delete().eq('id', authData.user.id);
+      await supabaseClient.auth.admin.deleteUser(authData.user.id);
+      throw new Error(`Failed to sign in: ${sessionError?.message || 'No session returned'}`);
+    }
+
+    // Reset client back to Service Role context
+    try {
+      await supabaseClient.auth.signOut();
+    } catch (_) {
+      // ignore signOut errors in tests
+    }
+
+    return {
+      userId: authData.user.id,
+      email,
+      password,
+      token: sessionData.session.access_token,
+      refreshToken: sessionData.session.refresh_token,
+      role: role.toUpperCase(), // Return uppercase for test expectations
+      fullName: options.fullName || `Staff ${normalizedRole}`
+    };
+  } catch (error) {
+    console.error(`Error creating staff user ${email}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Create test user in real Supabase database (PATIENT ONLY - self-registration)
+ * For staff users (ADMIN, DOCTOR, NURSE, RECEPTIONIST), use createStaffUser() instead
  * 
  * @param supabaseClient - Supabase client instance
  * @param email - User email
  * @param password - User password
- * @param role - User role (ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT)
+ * @param role - User role (should be 'PATIENT' for self-registration)
  * @param options - Additional user data
  * @returns Test user with credentials
  */
@@ -46,9 +214,15 @@ export async function createTestUser(
   options: CreateTestUserOptions = {}
 ): Promise<TestUser> {
   try {
+    // Normalize role to lowercase to match database constraint
+    const normalizedRole = role.toLowerCase();
+    
+    // Warn if creating non-patient user (should use createStaffUser)
+    if (normalizedRole !== 'patient') {
+      console.warn(`⚠️  Creating non-patient user '${normalizedRole}' via createTestUser(). Consider using createStaffUser() instead.`);
+    }
+
     // 0. Cleanup orphaned profiles with this email (from previous failed tests)
-    // This prevents duplicate key errors when auth user is created with new ID
-    // but old profile still exists
     try {
       await supabaseClient
         .from('user_profiles')
@@ -65,8 +239,8 @@ export async function createTestUser(
       password,
       email_confirm: true,
       user_metadata: {
-        full_name: options.fullName || `Test ${role}`,
-        role_type: role
+        full_name: options.fullName || `Test ${normalizedRole}`,
+        role_type: normalizedRole
       }
     });
 
@@ -75,16 +249,13 @@ export async function createTestUser(
     }
 
     // 2. Create user_profiles EXPLICITLY (NO TRIGGER DEPENDENCY)
-    // This matches the production code in SupabaseUserRepository.createAuthUser()
-    // Generate unique citizen ID if not provided
-    // Use timestamp + large random number to avoid collisions in parallel tests
     const uniqueCitizenId = options.citizenId || `${Date.now()}${Math.floor(Math.random() * 1000000)}`.slice(-12);
     
     const profileRecord = {
       id: authData.user.id, // Use auth user ID
       email,
-      full_name: options.fullName || `Test ${role}`,
-      role_type: role.toLowerCase(), // Normalize to lowercase for database constraint
+      full_name: options.fullName || `Test ${normalizedRole}`,
+      role_type: normalizedRole, // Use normalized lowercase role
       phone_number: options.phoneNumber,
       citizen_id: uniqueCitizenId,
       date_of_birth: options.dateOfBirth,
@@ -97,26 +268,12 @@ export async function createTestUser(
       updated_at: new Date().toISOString()
     };
 
-    // Create user_profiles explicitly (no trigger dependency)
-    // IMPORTANT: RLS Behavior with Service Role Key:
-    // - Service role key ALWAYS bypasses RLS (confirmed by Supabase official docs)
-    // - If you get error 42501 (permission denied), it means:
-    //   1. User session is overriding service_role key in Authorization header, OR
-    //   2. Client is not using service_role key correctly
-    // - In this function, we ensure service_role context by:
-    //   1. Using service_role key from createTestSupabaseClient()
-    //   2. NOT calling signInWithPassword() before INSERT
-    //   3. Calling signOut() immediately after getting token to reset context
-    //
-    // Error handling:
-    // - 23505 (duplicate key): Orphaned profile from previous failed test - cleanup and retry
-    // - Any other error: Real failure - rollback auth user and throw
-
+    // Create user_profiles explicitly
     const insertResult = await supabaseClient
       .from('user_profiles')
       .insert(profileRecord);
 
-    // Check for duplicate key error (orphaned profile from previous failed test)
+    // Check for duplicate key error
     if (insertResult.error && insertResult.error.code === '23505') {
       console.log(`⚠️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
       await supabaseClient
@@ -140,16 +297,12 @@ export async function createTestUser(
       throw new Error(`Failed to create user profile: ${insertResult.error.message} (code: ${insertResult.error.code})`);
     }
 
-    // Profile created successfully
-    // Note: We don't verify with SELECT here because we trust the INSERT succeeded (no error returned)
-
     // 3. Assign role in user_roles table (REQUIRED for permission checks)
-    // The authentication middleware and permission service need this table
     const { error: roleError } = await supabaseClient
       .from('user_roles')
       .insert({
         user_id: authData.user.id,
-        role_name: role.toLowerCase(),
+        role_name: normalizedRole,
         assigned_by: 'system',
         assigned_at: new Date().toISOString()
       });
@@ -161,52 +314,38 @@ export async function createTestUser(
       throw new Error(`Failed to assign role: ${roleError.message} (code: ${roleError.code})`);
     }
 
-    // 4. Get JWT token (use sign-in, then immediately sign out to avoid mutating the client session)
-    // Retry logic for network errors (ECONNRESET, fetch failed)
-    let sessionData: any = null;
-    let sessionError: any = null;
-    const maxRetries = 3;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const result = await supabaseClient.auth.signInWithPassword({
+    // 4. Get JWT token by signing in (optional - can be skipped to avoid double login)
+    if (options.skipAutoLogin) {
+      // Return user without tokens - test will handle login via API
+      return {
+        userId: authData.user.id,
         email,
-        password
-      });
-
-      sessionData = result.data;
-      sessionError = result.error;
-
-      if (!sessionError) {
-        // Success
-        break;
-      }
-
-      // Check if it's a network error
-      const errorMessage = sessionError.message || '';
-      const isNetworkError = errorMessage.includes('fetch failed') ||
-                            errorMessage.includes('ECONNRESET') ||
-                            errorMessage.includes('ETIMEDOUT');
-
-      if (isNetworkError && attempt < maxRetries) {
-        console.log(`⚠️  Network error on attempt ${attempt}/${maxRetries}, retrying...`);
-        // Wait before retry (exponential backoff: 1s, 2s, 3s)
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        continue;
-      }
-
-      // Non-network error or max retries reached
-      break;
+        password,
+        token: '', // Empty token - test should login via API
+        refreshToken: '',
+        role: role.toUpperCase(),
+        fullName: options.fullName || `Test ${normalizedRole}`
+      };
     }
 
-    if (sessionError) {
+    // Auto-login to get JWT tokens (with delay to avoid rate limiting)
+    await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+    
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (sessionError || !sessionData?.session) {
       // Cleanup on failure
+      await supabaseClient.from('user_roles').delete().eq('user_id', authData.user.id);
       await supabaseClient.from('user_profiles').delete().eq('id', authData.user.id);
       await supabaseClient.auth.admin.deleteUser(authData.user.id);
-      throw new Error(`Failed to sign in after ${maxRetries} attempts: ${sessionError.message}`);
+      throw new Error(`Failed to sign in: ${sessionError?.message || 'No session returned'}`);
     }
 
-    // CRITICAL: Reset client back to Service Role context to bypass RLS in subsequent calls
-    // If we keep the user session, all later .from() queries will run under user RLS and may fail (42501)
+    // CRITICAL: Reset client back to Service Role context
+    // This prevents RLS issues in subsequent calls
     try {
       await supabaseClient.auth.signOut();
     } catch (_) {
@@ -216,10 +355,11 @@ export async function createTestUser(
     return {
       userId: authData.user.id,
       email,
-      token: sessionData.session!.access_token,
-      refreshToken: sessionData.session!.refresh_token,
-      role,
-      fullName: options.fullName || `Test ${role}`
+      password,
+      token: sessionData.session.access_token,
+      refreshToken: sessionData.session.refresh_token,
+      role: role.toUpperCase(), // Return uppercase for test expectations
+      fullName: options.fullName || `Test ${normalizedRole}`
     };
   } catch (error) {
     console.error(`Error creating test user ${email}:`, error);
@@ -247,12 +387,12 @@ export async function getOrCreateTestUser(
 ): Promise<TestUser> {
   try {
     // Try to sign in first
-    const { data: sessionData, error } = await supabaseClient.auth.signInWithPassword({
+    const { data: sessionData, error: signInError } = await supabaseClient.auth.signInWithPassword({
       email,
       password
     });
 
-    if (!error && sessionData.session) {
+    if (!signInError && sessionData?.session) {
       // User exists, get profile
       const { data: profile } = await supabaseClient
         .from('user_profiles')
@@ -261,7 +401,6 @@ export async function getOrCreateTestUser(
         .single();
 
       // CRITICAL: Sign out immediately to reset client back to service_role context
-      // If we keep the user session, subsequent .from() queries will run under user RLS context
       try {
         await supabaseClient.auth.signOut();
       } catch (_) {
@@ -271,9 +410,10 @@ export async function getOrCreateTestUser(
       return {
         userId: sessionData.user.id,
         email,
+        password,
         token: sessionData.session.access_token,
         refreshToken: sessionData.session.refresh_token,
-        role: profile?.role_type || role,
+        role: profile?.role_type || role.toLowerCase(),
         fullName: profile?.full_name
       };
     }
@@ -371,7 +511,7 @@ export async function cleanupTestUsers(
 ): Promise<void> {
   for (const email of emails) {
     try {
-      // Step 1: Get user ID from user_profiles (more reliable than auth.users)
+      // Step 1: Get user ID from user_profiles
       const { data: profile } = await supabaseClient
         .from('user_profiles')
         .select('id')

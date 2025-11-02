@@ -664,35 +664,41 @@ export class BillingFraudEventHandler {
           refundCount
         });
 
-        await this.flagUserAccount(
-          event.patientId,
-          'EXCESSIVE_REFUNDS',
-          'MEDIUM',
-          {
-            refundCount,
-            period: '90_days',
-            lastRefundAmount: event.refundAmount,
-            lastRefundReason: event.refundReason
-          },
-          event.eventId
-        );
-      }
-
-      this.logger.info('Successfully processed payment.refunded event', {
-        eventId: event.eventId,
-        patientId: event.patientId,
-        actionTaken: refundCount >= 5 ? 'FLAGGED' : 'TRACKED'
-      });
-
-    } catch (error) {
-      this.logger.error('Failed to process payment.refunded event', {
-        eventId: event.eventId,
-        patientId: event.patientId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
+      await this.flagUserAccount(
+        event.patientId,
+        'EXCESSIVE_REFUNDS',
+        'MEDIUM',
+        {
+          refundCount,
+          period: '90_days',
+          lastRefundAmount: event.refundAmount,
+          lastRefundReason: event.refundReason
+        },
+        event.eventId
+      );
     }
+
+    await this.inboxService.markProcessed(event.eventId);
+
+    this.logger.info('Successfully processed payment.refunded event', {
+      eventId: event.eventId,
+      patientId: event.patientId,
+      actionTaken: refundCount >= 5 ? 'FLAGGED' : 'TRACKED'
+    });
+
+  } catch (error) {
+    this.logger.error('Failed to process payment.refunded event', {
+      eventId: event.eventId,
+      patientId: event.patientId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    await this.inboxService.markFailed(
+      event.eventId,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    throw error;
   }
+}
 
   /**
    * Handle insurance.claim_rejected event (PHASE 3)
@@ -741,35 +747,41 @@ export class BillingFraudEventHandler {
           rejectionCount
         });
 
-        await this.flagUserAccount(
-          event.patientId,
-          'INSURANCE_CLAIM_REJECTIONS',
-          'MEDIUM',
-          {
-            rejectionCount,
-            period: '60_days',
-            lastRejectionReason: event.rejectionReason,
-            insuranceProvider: event.insuranceProvider
-          },
-          event.eventId
-        );
-      }
-
-      this.logger.info('Successfully processed insurance.claim_rejected event', {
-        eventId: event.eventId,
-        patientId: event.patientId,
-        actionTaken: rejectionCount >= 3 ? 'FLAGGED' : 'TRACKED'
-      });
-
-    } catch (error) {
-      this.logger.error('Failed to process insurance.claim_rejected event', {
-        eventId: event.eventId,
-        patientId: event.patientId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
+      await this.flagUserAccount(
+        event.patientId,
+        'INSURANCE_CLAIM_REJECTIONS',
+        'MEDIUM',
+        {
+          rejectionCount,
+          period: '60_days',
+          lastRejectionReason: event.rejectionReason,
+          insuranceProvider: event.insuranceProvider
+        },
+        event.eventId
+      );
     }
+
+    await this.inboxService.markProcessed(event.eventId);
+
+    this.logger.info('Successfully processed insurance.claim_rejected event', {
+      eventId: event.eventId,
+      patientId: event.patientId,
+      actionTaken: rejectionCount >= 3 ? 'FLAGGED' : 'TRACKED'
+    });
+
+  } catch (error) {
+    this.logger.error('Failed to process insurance.claim_rejected event', {
+      eventId: event.eventId,
+      patientId: event.patientId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    await this.inboxService.markFailed(
+      event.eventId,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    throw error;
   }
+}
 
   /**
    * Get refund count in last N days

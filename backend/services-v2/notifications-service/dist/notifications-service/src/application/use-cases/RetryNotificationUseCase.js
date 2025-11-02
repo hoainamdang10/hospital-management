@@ -17,7 +17,7 @@ class RetryNotificationUseCase {
     }
     async execute(command) {
         try {
-            const notificationId = new NotificationId_1.NotificationId(command.notificationId);
+            const notificationId = NotificationId_1.NotificationId.fromString(command.notificationId);
             const notification = await this.notificationRepository.findById(notificationId);
             if (!notification) {
                 throw new Error('Notification not found');

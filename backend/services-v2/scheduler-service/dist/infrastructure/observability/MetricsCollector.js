@@ -132,6 +132,19 @@ class MetricsCollector {
             labelNames: ['tenant_id', 'error_type'],
             registers: [this.registry]
         });
+        // Unroutable Messages Metrics
+        this.unroutableMessagesTotal = new prom_client_1.Counter({
+            name: 'scheduler_unroutable_messages_total',
+            help: 'Total number of unroutable messages',
+            labelNames: ['routing_key', 'exchange'],
+            registers: [this.registry]
+        });
+        this.unroutableMessagesByExchange = new prom_client_1.Counter({
+            name: 'scheduler_unroutable_messages_by_exchange_total',
+            help: 'Total number of unroutable messages grouped by exchange',
+            labelNames: ['exchange'],
+            registers: [this.registry]
+        });
         // Register default metrics (CPU, memory, etc.)
         this.registry.setDefaultLabels({
             app: 'scheduler-service',

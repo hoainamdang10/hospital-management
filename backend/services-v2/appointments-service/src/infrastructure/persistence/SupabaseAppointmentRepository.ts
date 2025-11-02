@@ -9,7 +9,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Appointment, AppointmentType, AppointmentPriority, AppointmentStatus, PaymentStatus, AppointmentProps } from '../../domain/aggregates/Appointment.aggregate';
+import { Appointment, AppointmentType, AppointmentPriority, AppointmentStatus, AppointmentProps } from '../../domain/aggregates/Appointment.aggregate';
 import { AppointmentId } from '../../domain/value-objects/AppointmentId.vo';
 import { TimeSlot } from '../../domain/value-objects/TimeSlot.vo';
 import { AppointmentDetails } from '../../domain/value-objects/AppointmentDetails.vo';
@@ -21,6 +21,8 @@ import {
   AppointmentConflictCheck,
   AppointmentStatistics
 } from '../../domain/repositories/IAppointmentRepository';
+import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 
 interface DatabaseAppointmentRecord {
   id: string;
@@ -44,10 +46,7 @@ interface DatabaseAppointmentRecord {
   room_id?: string;
   department_id?: string;
   required_equipment?: string[];
-  consultation_fee: number;
-  additional_fees?: number;
-  payment_status: string;
-  payment_method?: string;
+  consultation_fee: number; // Billing reference only - billing-service owns payment lifecycle
   checked_in_at?: string;
   started_at?: string;
   completed_at?: string;
@@ -78,7 +77,11 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   private readonly schema: string = 'appointments_schema';
   private readonly tableName: string = 'appointments';
 
-  constructor(supabaseUrl: string, supabaseKey: string) {
+  constructor(
+    supabaseUrl: string,
+    supabaseKey: string,
+    private readonly eventPublisher?: IDomainEventPublisher
+  ) {
     this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
@@ -100,13 +103,57 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    */
   async save(appointment: Appointment): Promise<void> {
     const record = this.toPersistence(appointment);
+    
+    console.log('[Repository] Saving appointment record:', JSON.stringify(record, null, 2));
 
     const { error } = await this.supabase
       .from(this.tableName)
       .upsert(record, { onConflict: 'id' });
 
     if (error) {
+      console.error('[Repository] Database error:', error);
       throw new Error(`Failed to save appointment: ${error.message}`);
+    }
+
+    // Publish domain events after successful persistence
+    await this.publishDomainEvents(appointment);
+  }
+
+  /**
+   * Publish domain events from aggregate
+   */
+  private async publishDomainEvents(appointment: Appointment): Promise<void> {
+    if (!this.eventPublisher) {
+      console.debug('[SupabaseAppointmentRepository] Event publisher not configured, skipping event publishing');
+      return;
+    }
+
+    const events = appointment.getUncommittedEvents();
+    if (events.length === 0) {
+      return;
+    }
+
+    try {
+      // Publish events in batch
+      await this.eventPublisher.publishBatch(events);
+
+      // Mark events as committed after successful publishing
+      appointment.markEventsAsCommitted();
+
+      console.info('[SupabaseAppointmentRepository] Domain events published', {
+        appointmentId: appointment.getAppointmentId().value,
+        eventCount: events.length,
+        eventTypes: events.map((event: DomainEvent) => event.eventType)
+      });
+    } catch (error) {
+      console.error('[SupabaseAppointmentRepository] Failed to publish domain events', {
+        appointmentId: appointment.getAppointmentId().value,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        eventCount: events.length
+      });
+
+      // Don't throw - event publishing failure shouldn't fail the transaction
+      // Events will be retried on next save or can be published via outbox pattern
     }
   }
 
@@ -197,6 +244,22 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }
 
   /**
+   * Find appointments by doctor ID and specific date
+   * Convenience method that wraps findByTimeSlot for a full day
+   */
+  async findByDoctorAndDate(doctorId: string, date: Date): Promise<Appointment[]> {
+    // Calculate start and end of day
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Delegate to findByTimeSlot
+    return this.findByTimeSlot(doctorId, startOfDay, endOfDay);
+  }
+
+  /**
    * Find appointments by date range
    */
   async findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<Appointment[]> {
@@ -239,8 +302,30 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
   // ===== Additional methods to satisfy IAppointmentRepository interface =====
 
-  async findByIdString(appointmentId: string): Promise<Appointment | null> {
-    return this.findByAppointmentId(appointmentId);
+  async findByIdString(id: string): Promise<Appointment | null> {
+    // Check if it's UUID format (database id) or business format (appointment_id)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    if (isUUID) {
+      // Find by database UUID (id column)
+      const { data, error } = await this.supabase
+        .from(this.tableName)
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Not found
+        }
+        throw new Error(`Failed to find appointment by UUID: ${error.message}`);
+      }
+      
+      return this.toDomain(data);
+    } else {
+      // Find by business ID (appointment_id column)
+      return this.findByAppointmentId(id);
+    }
   }
 
   async findByProviderId(providerId: string, limit?: number, offset?: number): Promise<Appointment[]> {
@@ -808,29 +893,143 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }
 
   async findAvailableTimeSlots(providerId: string, date: Date, duration: number): Promise<{ startTime: Date; endTime: Date }[]> {
-    // This is a simplified implementation
-    // In production, you would need to:
-    // 1. Get provider's working hours
-    // 2. Get all booked appointments for the day
-    // 3. Calculate gaps between appointments
-    // 4. Return slots that fit the duration
-
-    const dateStr = date.toISOString().split('T')[0];
-
-    const { data, error } = await this.supabase
-      .from(this.tableName)
+    // Step 1: Get provider's schedule from provider_schedules table
+    const { data: scheduleData, error: scheduleError } = await this.supabase
+      .from('provider_schedules')
       .select('*')
+      .eq('provider_id', providerId)
+      .single();
+
+    if (scheduleError || !scheduleData) {
+      console.warn(`[FindSlots] No schedule found for provider ${providerId}:`, scheduleError?.message);
+      return []; // No schedule = no available slots
+    }
+
+    // Step 2: Check if the date is a working day
+    const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()];
+    const workingDays = scheduleData.working_days || [];
+    
+    if (!workingDays.includes(dayOfWeek)) {
+      console.log(`[FindSlots] ${dayOfWeek} is not a working day for provider ${providerId}`);
+      return []; // Not a working day
+    }
+
+    // Step 3: Parse working hours (e.g., '08:00' - '17:00')
+    const workingHours = scheduleData.working_hours || { start: '08:00', end: '17:00' };
+    const dayStart = this.parseTimeOnDate(date, workingHours.start);
+    const dayEnd = this.parseTimeOnDate(date, workingHours.end);
+
+    // Step 4: Get all booked appointments for the day (exclude cancelled/no-show)
+    const dateStr = date.toISOString().split('T')[0];
+    const { data: appointments, error: apptError } = await this.supabase
+      .from(this.tableName)
+      .select('start_at_utc, end_at_utc, duration_minutes')
       .eq('doctor_id', providerId)
       .eq('appointment_date', dateStr)
       .not('status', 'in', '(CANCELLED,NO_SHOW)')
       .order('start_at_utc', { ascending: true });
 
-    if (error) {
-      throw new Error(`Failed to find available time slots: ${error.message}`);
+    if (apptError) {
+      throw new Error(`Failed to find booked appointments: ${apptError.message}`);
     }
 
-    // For now, return empty array (TODO: implement slot calculation logic)
-    return [];
+    // Step 5: Build list of busy intervals (already booked)
+    const busyIntervals: { start: Date; end: Date }[] = [];
+    
+    for (const appt of appointments || []) {
+      const start = new Date(appt.start_at_utc);
+      const end = appt.end_at_utc 
+        ? new Date(appt.end_at_utc) 
+        : new Date(start.getTime() + (appt.duration_minutes || 30) * 60 * 1000);
+      
+      busyIntervals.push({ start, end });
+    }
+
+    // Step 6: Merge overlapping intervals to avoid duplicates
+    const mergedBusy = this.mergeIntervals(busyIntervals);
+
+    // Step 7: Find available gaps that fit the duration
+    const availableSlots: { startTime: Date; endTime: Date }[] = [];
+    const slotDuration = duration * 60 * 1000; // Convert minutes to milliseconds
+
+    let currentTime = dayStart;
+
+    for (const busy of mergedBusy) {
+      // If there's a gap before this busy interval
+      if (currentTime < busy.start) {
+        const gapDuration = busy.start.getTime() - currentTime.getTime();
+        
+        // Generate slots within this gap (e.g., every 30 minutes)
+        const slotInterval = Math.min(slotDuration, 30 * 60 * 1000); // Default 30min slot intervals
+        let slotStart = currentTime;
+        
+        while (slotStart.getTime() + slotDuration <= busy.start.getTime()) {
+          availableSlots.push({
+            startTime: new Date(slotStart),
+            endTime: new Date(slotStart.getTime() + slotDuration)
+          });
+          
+          slotStart = new Date(slotStart.getTime() + slotInterval);
+        }
+      }
+      
+      // Move current time to end of this busy period
+      currentTime = busy.end;
+    }
+
+    // Step 8: Check if there's a gap after the last appointment until end of day
+    if (currentTime < dayEnd) {
+      const slotInterval = Math.min(slotDuration, 30 * 60 * 1000);
+      let slotStart = currentTime;
+      
+      while (slotStart.getTime() + slotDuration <= dayEnd.getTime()) {
+        availableSlots.push({
+          startTime: new Date(slotStart),
+          endTime: new Date(slotStart.getTime() + slotDuration)
+        });
+        
+        slotStart = new Date(slotStart.getTime() + slotInterval);
+      }
+    }
+
+    console.log(`[FindSlots] Found ${availableSlots.length} available slots for provider ${providerId} on ${dateStr}`);
+    return availableSlots;
+  }
+
+  /**
+   * Parse time string (HH:MM) on a specific date
+   */
+  private parseTimeOnDate(date: Date, timeStr: string): Date {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const result = new Date(date);
+    result.setHours(hours, minutes, 0, 0);
+    return result;
+  }
+
+  /**
+   * Merge overlapping time intervals
+   */
+  private mergeIntervals(intervals: { start: Date; end: Date }[]): { start: Date; end: Date }[] {
+    if (intervals.length === 0) return [];
+
+    // Sort by start time
+    const sorted = intervals.sort((a, b) => a.start.getTime() - b.start.getTime());
+    const merged: { start: Date; end: Date }[] = [sorted[0]];
+
+    for (let i = 1; i < sorted.length; i++) {
+      const current = sorted[i];
+      const last = merged[merged.length - 1];
+
+      // If current overlaps with last, merge them
+      if (current.start.getTime() <= last.end.getTime()) {
+        last.end = new Date(Math.max(last.end.getTime(), current.end.getTime()));
+      } else {
+        // No overlap, add as new interval
+        merged.push(current);
+      }
+    }
+
+    return merged;
   }
 
   async getUtilizationRate(providerId?: string, department?: string, dateFrom?: Date, dateTo?: Date): Promise<{
@@ -910,10 +1109,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       room_id: props.roomId,
       department_id: props.departmentId,
       required_equipment: props.requiredEquipment,
-      consultation_fee: props.consultationFee,
-      additional_fees: props.additionalFees,
-      payment_status: props.paymentStatus.toUpperCase(),
-      payment_method: props.paymentMethod,
+      consultation_fee: props.consultationFee, // Billing reference only
       checked_in_at: props.checkedInAt?.toISOString(),
       started_at: props.startedAt?.toISOString(),
       completed_at: props.completedAt?.toISOString(),
@@ -967,17 +1163,14 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       doctorId: record.doctor_id,
       timeSlot,
       durationMinutes: record.duration_minutes,
-      type: record.type as AppointmentType,
-      priority: record.priority as AppointmentPriority,
-      status: record.status as AppointmentStatus,
+      type: record.type.toLowerCase() as AppointmentType,
+      priority: record.priority.toLowerCase() as AppointmentPriority,
+      status: record.status.toLowerCase() as AppointmentStatus,
       details,
       roomId: record.room_id,
       departmentId: record.department_id,
       requiredEquipment: record.required_equipment,
-      consultationFee: record.consultation_fee,
-      additionalFees: record.additional_fees,
-      paymentStatus: record.payment_status as PaymentStatus,
-      paymentMethod: record.payment_method,
+      consultationFee: record.consultation_fee, // Billing reference only
       checkedInAt: record.checked_in_at ? new Date(record.checked_in_at) : undefined,
       startedAt: record.started_at ? new Date(record.started_at) : undefined,
       completedAt: record.completed_at ? new Date(record.completed_at) : undefined,

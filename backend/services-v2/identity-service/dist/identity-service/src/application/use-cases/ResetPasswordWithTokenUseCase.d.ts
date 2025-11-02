@@ -13,6 +13,8 @@ import { IRecoveryHistoryRepository } from '../../domain/repositories/IRecoveryH
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { ILogger } from '../services/ILogger';
+import { IEventPublisher } from '../services/IEventPublisher';
+import { IUserRepository } from '../repositories/IUserRepository';
 export interface ResetPasswordWithTokenRequest {
     token: string;
     newPassword: string;
@@ -34,9 +36,11 @@ export declare class ResetPasswordWithTokenUseCase implements IUseCase<ResetPass
     private passwordPolicyRepository;
     private recoveryHistoryRepository;
     private sessionRepository;
+    private userRepository;
     private logger;
     private circuitBreaker;
-    constructor(authService: IAuthenticationService, passwordPolicyRepository: IPasswordPolicyRepository, recoveryHistoryRepository: IRecoveryHistoryRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
+    private eventPublisher?;
+    constructor(authService: IAuthenticationService, passwordPolicyRepository: IPasswordPolicyRepository, recoveryHistoryRepository: IRecoveryHistoryRepository, sessionRepository: ISessionRepository, userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
     execute(request: ResetPasswordWithTokenRequest): Promise<ResetPasswordWithTokenResponse>;
     private executeImpl;
     /**

@@ -20,7 +20,7 @@ import {
 export class SupabaseAppointmentReadModelRepository implements IAppointmentReadModelRepository {
   private client: SupabaseClient;
   private readonly tableName = 'appointment_read_model';
-  private readonly schema = 'scheduling_schema';
+  private readonly schema = 'appointments_schema';
 
   constructor(supabaseUrl: string, supabaseKey: string) {
     this.client = createClient(supabaseUrl, supabaseKey, {
@@ -44,9 +44,7 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
       status: data.status,
       room_id: data.roomId,
       department_id: data.departmentId,
-      consultation_fee: data.consultationFee,
-      additional_fees: data.additionalFees,
-      payment_status: data.paymentStatus,
+      consultation_fee: data.consultationFee, // Billing reference only
       
       // Patient data
       patient_full_name: data.patientData?.patientFullName,
@@ -367,9 +365,7 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
       status: record.status,
       roomId: record.room_id,
       departmentId: record.department_id,
-      consultationFee: parseFloat(record.consultation_fee),
-      additionalFees: record.additional_fees ? parseFloat(record.additional_fees) : undefined,
-      paymentStatus: record.payment_status,
+      consultationFee: parseFloat(record.consultation_fee), // Billing reference only
       
       patientFullName: record.patient_full_name,
       patientPhone: record.patient_phone,

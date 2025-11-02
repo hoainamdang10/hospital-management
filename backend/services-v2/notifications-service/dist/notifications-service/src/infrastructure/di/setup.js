@@ -29,6 +29,7 @@ const SupabaseNotificationRepository_1 = require("../persistence/SupabaseNotific
 const SupabaseInboxRepository_1 = require("../persistence/SupabaseInboxRepository");
 const MultiChannelDeliveryService_1 = require("../delivery/MultiChannelDeliveryService");
 const VietnameseTemplateService_1 = require("../templates/VietnameseTemplateService");
+// import { RealTimeNotificationService } from "../realtime/RealTimeNotificationService";
 // import { SupabaseEventBus } from "../messaging/SupabaseEventBus";
 const NotificationEventHandlers_1 = require("../events/NotificationEventHandlers");
 // Service Tokens
@@ -99,13 +100,7 @@ function setupDependencies(container) {
     // Register repositories
     container.registerFactory(exports.ServiceTokens.NOTIFICATION_REPOSITORY, (container) => {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
-        const logger = container.resolve(exports.ServiceTokens.LOGGER);
-        return new SupabaseNotificationRepository_1.SupabaseNotificationRepository({
-            supabase: supabaseClient,
-            logger,
-            schema: 'notifications_schema',
-            tableName: 'notifications'
-        });
+        return new SupabaseNotificationRepository_1.SupabaseNotificationRepository(supabaseClient);
     }, container_1.ServiceLifetime.SCOPED);
     container.registerFactory(exports.ServiceTokens.INBOX_REPOSITORY, (container) => {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
@@ -115,8 +110,9 @@ function setupDependencies(container) {
     container.registerFactory(exports.ServiceTokens.DELIVERY_SERVICE, () => {
         return new MultiChannelDeliveryService_1.MultiChannelDeliveryService();
     }, container_1.ServiceLifetime.SINGLETON);
-    container.registerFactory(exports.ServiceTokens.TEMPLATE_SERVICE, () => {
-        return new VietnameseTemplateService_1.VietnameseTemplateService();
+    container.registerFactory(exports.ServiceTokens.TEMPLATE_SERVICE, (container) => {
+        const templateRepository = container.resolve(exports.ServiceTokens.TEMPLATE_REPOSITORY);
+        return new VietnameseTemplateService_1.VietnameseTemplateService(templateRepository);
     }, container_1.ServiceLifetime.SINGLETON);
     // Comment out RealTimeService - not needed for now
     // container.registerFactory(

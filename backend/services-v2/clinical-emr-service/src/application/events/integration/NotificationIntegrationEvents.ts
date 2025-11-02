@@ -382,7 +382,7 @@ export class CriticalAlertNotificationEvent extends IntegrationEvent {
    */
   requiresImmediateEscalation(): boolean {
     return this.alertDetails.severity === 'life_threatening' ||
-           (this.alertDetails.timeWindow && this.alertDetails.timeWindow <= 15);
+           (this.alertDetails.timeWindow !== undefined && this.alertDetails.timeWindow <= 15);
   }
 
   /**

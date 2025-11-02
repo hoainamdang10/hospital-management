@@ -17,7 +17,7 @@ import {
 } from '@shared/events/VietnameseHealthcareEvents';
 import { CreateMedicalRecordUseCase } from '../../application/use-cases/CreateMedicalRecordUseCase';
 import { UpdateMedicalRecordUseCase } from '../../application/use-cases/UpdateMedicalRecordUseCase';
-import { GenerateMedicalReportUseCase } from '../../application/use-cases/GenerateMedicalReportUseCase';
+import { GenerateMedicalReportUseCase, ReportType, ReportFormat } from '../../application/use-cases/GenerateMedicalReportUseCase';
 
 export class ClinicalEMREventHandler extends BaseEventHandler {
   constructor(
@@ -27,6 +27,13 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     logger?: any
   ) {
     super('clinical-emr-service', logger);
+  }
+
+  /**
+   * Public wrapper for external event handling
+   */
+  public async handleEvent(event: IntegrationEvent): Promise<EventProcessingResult> {
+    return this.processEvent(event);
   }
 
   /**
@@ -88,67 +95,53 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `📋 Creating medical record for completed appointment: ${event.data.appointmentId}`);
+      this.log('info', `📋 Creating medical record for completed appointment: ${event.eventData.appointmentId}`);
 
-      const appointmentData = event.data;
+      const appointmentData = event.eventData;
 
       // Create medical record from appointment data
       const medicalRecordCommand = {
         patientId: appointmentData.patientId,
         doctorId: appointmentData.doctorId,
         appointmentId: appointmentData.appointmentId,
-        recordType: 'CONSULTATION' as const,
-        chiefComplaint: 'Khám tổng quát', // Default Vietnamese chief complaint
+        visitDate: new Date().toISOString(),
+        symptoms: 'Khám tổng quát',
         diagnosis: appointmentData.diagnosis || '',
-        treatmentPlan: appointmentData.treatmentPlan || '',
-        vitalSigns: {
-          bloodPressure: '',
-          heartRate: '',
-          temperature: '',
-          weight: '',
-          height: ''
-        },
-        symptoms: [],
-        medications: appointmentData.prescriptions || [],
-        followUpInstructions: appointmentData.followUpRequired ? 'Cần tái khám theo lịch hẹn' : '',
-        healthcareContext: {
-          patientId: appointmentData.patientId,
-          doctorId: appointmentData.doctorId,
-          appointmentId: appointmentData.appointmentId,
-          departmentId: appointmentData.healthcareContext?.departmentId || 'GENERAL',
-          recordDate: new Date().toISOString()
-        }
+        treatment: appointmentData.treatmentPlan || '',
+        medications: appointmentData.prescriptions ? JSON.stringify(appointmentData.prescriptions) : '',
+        notes: appointmentData.followUpRequired ? 'Cần tái khám theo lịch hẹn' : '',
+        createdBy: appointmentData.doctorId
       };
 
       const result = await this.createMedicalRecordUseCase.execute(medicalRecordCommand);
 
       if (result.success) {
-        this.log('info', `✅ Medical record created: ${result.medicalRecordId}`);
+        this.log('info', `✅ Medical record created: ${result.recordId}`);
 
         // Publish medical record created event
         const medicalRecordEvent = {
           eventId: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           eventType: 'medical-record.created',
-          aggregateId: result.medicalRecordId,
+          aggregateId: result.recordId,
           aggregateType: 'MedicalRecord',
           serviceName: 'clinical-emr-service',
           eventVersion: '1.0',
-          data: {
-            medicalRecordId: result.medicalRecordId,
+          eventData: {
+            medicalRecordId: result.recordId,
             patientId: appointmentData.patientId,
             doctorId: appointmentData.doctorId,
             appointmentId: appointmentData.appointmentId,
             recordType: 'CONSULTATION',
-            chiefComplaint: medicalRecordCommand.chiefComplaint,
+            chiefComplaint: medicalRecordCommand.symptoms,
             diagnosis: appointmentData.diagnosis,
             treatmentPlan: appointmentData.treatmentPlan,
             createdAt: new Date().toISOString(),
             healthcareContext: {
               patientId: appointmentData.patientId,
               doctorId: appointmentData.doctorId,
-              medicalRecordId: result.medicalRecordId,
+              medicalRecordId: result.recordId,
               appointmentId: appointmentData.appointmentId,
-              departmentId: appointmentData.healthcareContext?.departmentId || 'GENERAL'
+              departmentId: 'GENERAL'
             }
           },
           occurredAt: new Date(),
@@ -164,22 +157,22 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
           const medicationEvent = {
             eventId: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             eventType: 'medication.prescribed',
-            aggregateId: `prescription_${result.medicalRecordId}`,
+            aggregateId: `prescription_${result.recordId}`,
             aggregateType: 'Prescription',
             serviceName: 'clinical-emr-service',
             eventVersion: '1.0',
-            data: {
+            eventData: {
               prescriptionId: `PRESC-${Date.now()}`,
               patientId: appointmentData.patientId,
               doctorId: appointmentData.doctorId,
-              medicalRecordId: result.medicalRecordId,
+              medicalRecordId: result.recordId,
               medications: appointmentData.prescriptions,
               prescribedAt: new Date().toISOString(),
               healthcareContext: {
                 patientId: appointmentData.patientId,
                 doctorId: appointmentData.doctorId,
                 prescriptionId: `PRESC-${Date.now()}`,
-                medicalRecordId: result.medicalRecordId
+                medicalRecordId: result.recordId
               }
             },
             occurredAt: new Date(),
@@ -197,7 +190,7 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
         processingTime: Date.now() - startTime,
         metadata: { 
           appointmentId: appointmentData.appointmentId,
-          medicalRecordId: result.medicalRecordId,
+          medicalRecordId: result.recordId,
           prescriptionsCount: appointmentData.prescriptions?.length || 0,
           action: 'medical_record_created_from_appointment'
         }
@@ -216,9 +209,9 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `👤 Processing patient registration for EMR: ${event.data.patientId}`);
+      this.log('info', `👤 Processing patient registration for EMR: ${event.eventData.patientId}`);
 
-      const patientData = event.data;
+      const patientData = event.eventData;
 
       // Create initial patient medical profile
       // This includes medical history template, allergies, etc.
@@ -253,14 +246,14 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `🧪 Processing test results: ${event.data.testResultId}`);
+      this.log('info', `🧪 Processing test results: ${event.eventData.testResultId}`);
 
-      const testData = event.data;
+      const testData = event.eventData;
 
       // Update medical record with test results
       if (testData.medicalRecordId) {
         const updateCommand = {
-          medicalRecordId: testData.medicalRecordId,
+          recordId: testData.medicalRecordId,
           updateData: {
             testResults: [{
               testId: testData.testResultId,
@@ -354,13 +347,13 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `🩺 Processing diagnosis confirmation: ${event.data.diagnosisId}`);
+      this.log('info', `🩺 Processing diagnosis confirmation: ${event.eventData.diagnosisId}`);
 
-      const diagnosisData = event.data;
+      const diagnosisData = event.eventData;
 
       // Update medical record with confirmed diagnosis
       const updateCommand = {
-        medicalRecordId: diagnosisData.medicalRecordId,
+        recordId: diagnosisData.medicalRecordId,
         updateData: {
           confirmedDiagnosis: {
             diagnosisId: diagnosisData.diagnosisId,
@@ -389,24 +382,23 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
         // Generate medical report if required
         if (diagnosisData.severity === 'SEVERE' || diagnosisData.severity === 'CRITICAL') {
           const reportCommand = {
-            patientId: diagnosisData.patientId,
-            medicalRecordId: diagnosisData.medicalRecordId,
-            reportType: 'DIAGNOSIS_REPORT' as const,
-            includeHistory: true,
-            includeDiagnosis: true,
-            includeTreatment: true,
-            vietnameseFormat: true,
-            healthcareContext: {
-              patientId: diagnosisData.patientId,
-              diagnosisId: diagnosisData.diagnosisId,
-              reportPurpose: 'SEVERE_DIAGNOSIS_DOCUMENTATION'
-            }
+            recordId: diagnosisData.medicalRecordId,
+            reportType: ReportType.DIAGNOSIS_REPORT,
+            format: ReportFormat.PDF,
+            requestedBy: diagnosisData.doctorId,
+            includeDiagnoses: true,
+            includeMedications: true,
+            includeVitalSigns: true,
+            includeNotes: true,
+            includeHospitalHeader: true,
+            watermark: 'SEVERE_DIAGNOSIS',
+            confidentialityLevel: 'confidential' as const
           };
 
           const reportResult = await this.generateMedicalReportUseCase.execute(reportCommand);
           
-          if (reportResult.success) {
-            this.log('info', `📄 Medical report generated for severe diagnosis: ${reportResult.reportId}`);
+          if (reportResult.success && reportResult.data) {
+            this.log('info', `📄 Medical report generated for severe diagnosis: ${reportResult.data.reportId}`);
           }
         }
       }
@@ -435,13 +427,13 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `💊 Processing medication prescription: ${event.data.prescriptionId}`);
+      this.log('info', `💊 Processing medication prescription: ${event.eventData.prescriptionId}`);
 
-      const prescriptionData = event.data;
+      const prescriptionData = event.eventData;
 
       // Update medical record with prescription information
       const updateCommand = {
-        medicalRecordId: prescriptionData.medicalRecordId,
+        recordId: prescriptionData.medicalRecordId,
         updateData: {
           prescriptions: prescriptionData.medications.map((med: any) => ({
             medicationId: med.medicationId,
@@ -493,7 +485,7 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `🧪 Processing lab sample collection: ${event.data.sampleId}`);
+      this.log('info', `🧪 Processing lab sample collection: ${event.eventData.sampleId}`);
 
       // Track sample collection in medical record
       // Update test status to "Sample Collected"
@@ -502,7 +494,7 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
         success: true,
         processingTime: Date.now() - startTime,
         metadata: {
-          sampleId: event.data.sampleId,
+          sampleId: event.eventData.sampleId,
           action: 'lab_sample_tracked'
         }
       };
@@ -520,7 +512,7 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
     const startTime = Date.now();
 
     try {
-      this.log('info', `📷 Processing imaging study completion: ${event.data.studyId}`);
+      this.log('info', `📷 Processing imaging study completion: ${event.eventData.studyId}`);
 
       // Update medical record with imaging results
       // Generate imaging report if needed
@@ -529,7 +521,7 @@ export class ClinicalEMREventHandler extends BaseEventHandler {
         success: true,
         processingTime: Date.now() - startTime,
         metadata: {
-          studyId: event.data.studyId,
+          studyId: event.eventData.studyId,
           action: 'imaging_study_processed'
         }
       };

@@ -1,0 +1,84 @@
+{
+  "defaultReminders": [
+    {
+      "type": "email",
+      "timing": {
+        "value": 24,
+        "unit": "hours",
+        "before": true
+      },
+      "enabled": true
+    },
+    {
+      "type": "sms",
+      "timing": {
+        "value": 2,
+        "unit": "hours",
+        "before": true
+      },
+      "enabled": true
+    },
+    {
+      "type": "push",
+      "timing": {
+        "value": 15,
+        "unit": "minutes",
+        "before": true
+      },
+      "enabled": true
+    }
+  ],
+  "appointmentTypeOverrides": {
+    "CONSULTATION": [
+      {
+        "type": "email",
+        "timing": {
+          "value": 24,
+          "unit": "hours",
+          "before": true
+        },
+        "enabled": true
+      },
+      {
+        "type": "sms",
+        "timing": {
+          "value": 1,
+          "unit": "hours",
+          "before": true
+        },
+        "enabled": true
+      }
+    ],
+    "FOLLOW_UP": [
+      {
+        "type": "email",
+        "timing": {
+          "value": 48,
+          "unit": "hours",
+          "before": true
+        },
+        "enabled": true
+      }
+    ],
+    "EMERGENCY": [
+      {
+        "type": "sms",
+        "timing": {
+          "value": 30,
+          "unit": "minutes",
+          "before": true
+        },
+        "enabled": true
+      }
+    ]
+  },
+  "confirmationReminder": {
+    "enabled": true,
+    "timing": {
+      "value": 5,
+      "unit": "minutes",
+      "before": false
+    },
+    "channels": ["email", "push"]
+  }
+}

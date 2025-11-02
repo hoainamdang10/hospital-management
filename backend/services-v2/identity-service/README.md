@@ -14,7 +14,7 @@
 - **🔐 Real Supabase Authentication**: JWT-based authentication với Supabase Auth API
 - **🛡️ Pure RBAC System**: 5 core roles (ADMIN, DOCTOR, NURSE, RECEPTIONIST, PATIENT) với permission-based access control
 - **🔌 Circuit Breaker Pattern**: Resilience patterns với graceful degradation
-- **📊 Comprehensive Testing**: 97.9% coverage (920/940 tests passing) với real Supabase data
+- **📊 Comprehensive Testing**: Jest + ts-jest pipeline với coverage được bật mặc định (xem `jest.config.js`)
 - **🛡️ HIPAA Compliance**: Audit logging, PHI protection, và Vietnamese healthcare standards
 - **🚀 Production-Ready**: Docker support, monitoring, deployment scripts, và 100% production readiness
 
@@ -23,7 +23,7 @@
 | Metric | Value | Status |
 |--------|-------|--------|
 | **Production Readiness** | 100% | ✅ Ready |
-| **Test Coverage** | 97.9% | ✅ Excellent |
+| **Test Coverage** | Theo kết quả `npm run test:coverage` | ⚠️ Theo dõi định kỳ |
 | **Architecture Compliance** | 100% | ✅ Clean Architecture |
 | **Security Compliance** | 100% | ✅ HIPAA + Vietnamese Standards |
 | **Known Issues** | 0 critical | ✅ None |

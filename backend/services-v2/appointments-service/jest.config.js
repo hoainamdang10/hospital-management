@@ -74,7 +74,7 @@ module.exports = {
     '!src/app.ts'
   ],
 
-  testTimeout: 30000,
+  testTimeout: 120000, // 120 seconds for integration tests with external services
   verbose: true,
   clearMocks: true,
   restoreMocks: true,
@@ -91,5 +91,10 @@ module.exports = {
 
   transformIgnorePatterns: [
     'node_modules/(?!(uuid)/)'
-  ]
+  ],
+
+  // Performance monitoring
+  detectOpenHandles: false, // Disable to avoid warnings in integration tests
+  detectLeaks: false,
+  forceExit: true // Force exit after tests complete
 };

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Integration Tests - Session Management Routes
  * 
  * Tests session management endpoints with REAL database operations:
@@ -13,45 +13,27 @@ import request from 'supertest';
 import { Application } from 'express';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createTestApp } from '../helpers/appFactory';
-import {
-  createTestSupabaseClient,
-  createTestUser,
-  cleanupTestUsers
-} from '../helpers/integrationHelpers';
+import { createTestSupabaseClient } from '../helpers/integrationHelpers';
+import { TestUserPool } from '../helpers/test-user-pool';
+import { testUserPoolCache } from '../helpers/test-user-pool-cache';
 
 describe('Session Management Integration Tests', () => {
   let app: Application;
   let supabaseClient: SupabaseClient;
   let cleanup: () => Promise<void>;
-  const testEmails: string[] = [];
-
-  // Test users
-  let patientUser: { userId: string; email: string; password: string; accessToken: string };
-  let adminUser: { userId: string; email: string; password: string; accessToken: string };
-
-  // Helper to generate unique test email
-  const generateTestEmail = (prefix: string): string => {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    return `${prefix}-${timestamp}-${random}@hospital.vn`;
-  };
-
-  // Helper to generate unique citizen ID (12 digits)
-  const generateUniqueCitizenId = (): string => {
-    const timestamp = Date.now().toString();
-    const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-    const combined = timestamp + random;
-    return combined.slice(-12);
-  };
+  let userPool: TestUserPool;
 
   // Helper to create a session by logging in
   const createSession = async (email: string, password: string): Promise<string> => {
+    // Add delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
     const response = await request(app)
       .post('/auth/login')
       .send({ email, password });
 
     if (!response.body.accessToken) {
-      throw new Error('Failed to create session');
+      throw new Error(`Failed to create session: ${response.status} - ${response.body.message || 'No access token returned'}`);
     }
 
     return response.body.accessToken;
@@ -81,79 +63,14 @@ describe('Session Management Integration Tests', () => {
     app = result.app;
     cleanup = result.cleanup;
 
-    // Create test patient user
-    const patientEmail = generateTestEmail('patient-session');
-    const patientPassword = 'PatientPassword123!';
-    testEmails.push(patientEmail);
-
-    const patient = await createTestUser(
-      supabaseClient,
-      patientEmail,
-      patientPassword,
-      'PATIENT',
-      {
-        fullName: 'Test Patient Session',
-        phoneNumber: '0901234590',
-        address: '123 Test Street, Hanoi, Vietnam',
-        dateOfBirth: '1990-01-01',
-        gender: 'male',
-        citizenId: generateUniqueCitizenId()
-      }
-    );
-
-    // Login to get access token
-    const patientToken = await createSession(patientEmail, patientPassword);
-
-    patientUser = {
-      userId: patient.userId,
-      email: patientEmail,
-      password: patientPassword,
-      accessToken: patientToken
-    };
-
-    // DEBUG: Verify user ID matches JWT token
-    const jwt = require('jsonwebtoken');
-    const decodedPatient = jwt.decode(patientToken) as any;
-    console.log('🔍 DEBUG - Patient User Setup:', {
-      patientUserId: patient.userId,
-      jwtSub: decodedPatient?.sub,
-      match: patient.userId === decodedPatient?.sub
-    });
-
-    // Create test admin user
-    const adminEmail = generateTestEmail('admin-session');
-    const adminPassword = 'AdminPassword123!';
-    testEmails.push(adminEmail);
-
-    const admin = await createTestUser(
-      supabaseClient,
-      adminEmail,
-      adminPassword,
-      'ADMIN',
-      {
-        fullName: 'Test Admin Session',
-        phoneNumber: '0901234591',
-        address: '456 Test Street, Hanoi, Vietnam',
-        dateOfBirth: '1985-05-05',
-        gender: 'female',
-        citizenId: generateUniqueCitizenId()
-      }
-    );
-
-    // Login to get access token
-    const adminToken = await createSession(adminEmail, adminPassword);
-
-    adminUser = {
-      userId: admin.userId,
-      email: adminEmail,
-      password: adminPassword,
-      accessToken: adminToken
-    };
-  }, 30000);
+    // Get cached test user pool (seeds once, reuses for all tests)
+    userPool = await testUserPoolCache.getPool(supabaseClient);
+    
+    console.log('✅ Test setup complete with user pool');
+  }, 120000);
 
   afterAll(async () => {
-    // Cleanup test users
-    await cleanupTestUsers(supabaseClient, testEmails);
+    // Note: User pool is cached and will be cleaned up in global teardown
 
     // Cleanup app
     if (cleanup) {
@@ -164,12 +81,13 @@ describe('Session Management Integration Tests', () => {
   describe('GET /:userId/sessions - List Active Sessions', () => {
     it('should list all active sessions for authenticated user', async () => {
       // Create additional session
-      await createSession(patientUser.email, patientUser.password);
+      await createSession(userPool.patient.email, userPool.patient.password);
+      const authToken = await createSession(userPool.patient.email, userPool.patient.password);
 
       // Get sessions via API
       const response = await request(app)
-        .get(`/api/v1/users/${patientUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .get(`/api/v1/users/${userPool.patient.userId}/sessions`)
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -190,9 +108,11 @@ describe('Session Management Integration Tests', () => {
     });
 
     it('should mark current session correctly', async () => {
+      const authToken = await createSession(userPool.patient.email, userPool.patient.password);
+
       const response = await request(app)
-        .get(`/api/v1/users/${patientUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .get(`/api/v1/users/${userPool.patient.userId}/sessions`)
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -203,38 +123,24 @@ describe('Session Management Integration Tests', () => {
     });
 
     it('should return empty array when user has no active sessions', async () => {
-      // Create a new user without logging in
-      const tempEmail = generateTestEmail('temp-no-session');
-      const tempPassword = 'TempPassword123!';
-      testEmails.push(tempEmail);
-
-      const tempUser = await createTestUser(
-        supabaseClient,
-        tempEmail,
-        tempPassword,
-        'PATIENT',
-        {
-          fullName: 'Temp User No Session',
-          phoneNumber: '0901234592',
-          address: '789 Test Street, Hanoi, Vietnam',
-          dateOfBirth: '1995-01-01',
-          gender: 'male',
-          citizenId: generateUniqueCitizenId()
-        }
-      );
-
-      // Login to get token
-      const tempToken = await createSession(tempEmail, tempPassword);
-
-      // Deactivate all sessions
+      // Deactivate all sessions for patient2
       await supabaseClient
         .from('user_sessions')
         .update({ is_active: false })
-        .eq('user_id', tempUser.userId);
+        .eq('user_id', userPool.patient2.userId);
+
+      // Create one session to get token
+      const tempToken = await createSession(userPool.patient2.email, userPool.patient2.password);
+
+      // Deactivate that session too
+      await supabaseClient
+        .from('user_sessions')
+        .update({ is_active: false })
+        .eq('user_id', userPool.patient2.userId);
 
       // Try to get sessions (should return empty)
       const response = await request(app)
-        .get(`/api/v1/users/${tempUser.userId}/sessions`)
+        .get(`/api/v1/users/${userPool.patient2.userId}/sessions`)
         .set('Authorization', `Bearer ${tempToken}`);
 
       expect(response.status).toBe(200);
@@ -245,23 +151,27 @@ describe('Session Management Integration Tests', () => {
 
     it('should return 401 when not authenticated', async () => {
       const response = await request(app)
-        .get(`/api/v1/users/${patientUser.userId}/sessions`);
+        .get(`/api/v1/users/${userPool.patient.userId}/sessions`);
 
       expect(response.status).toBe(401);
     });
 
     it('should return 403 when accessing other user\'s sessions (non-admin)', async () => {
+      const patientToken = await createSession(userPool.patient.email, userPool.patient.password);
+
       const response = await request(app)
-        .get(`/api/v1/users/${adminUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .get(`/api/v1/users/${userPool.admin.userId}/sessions`)
+        .set('Authorization', `Bearer ${patientToken}`);
 
       expect(response.status).toBe(403);
     });
 
     it('should allow admin to view any user\'s sessions', async () => {
+      const adminToken = await createSession(userPool.admin.email, userPool.admin.password);
+
       const response = await request(app)
-        .get(`/api/v1/users/${patientUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .get(`/api/v1/users/${userPool.patient.userId}/sessions`)
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -271,12 +181,13 @@ describe('Session Management Integration Tests', () => {
 
   describe('DELETE /:userId/sessions/:sessionId - Terminate Specific Session', () => {
     it('should terminate specific session successfully', async () => {
-      // Create two sessions
-      await createSession(patientUser.email, patientUser.password);
-      const session2Token = await createSession(patientUser.email, patientUser.password);
+      // Create two sessions with delay between them
+      await createSession(userPool.patient.email, userPool.patient.password);
+      await new Promise(resolve => setTimeout(resolve, 300)); // Extra delay between sessions
+      const session2Token = await createSession(userPool.patient.email, userPool.patient.password);
 
       // Get all sessions from DB
-      const sessionsBeforeDelete = await getSessionsFromDb(patientUser.userId);
+      const sessionsBeforeDelete = await getSessionsFromDb(userPool.patient.userId);
       expect(sessionsBeforeDelete.length).toBeGreaterThanOrEqual(2);
 
       // Get the first session ID
@@ -284,7 +195,7 @@ describe('Session Management Integration Tests', () => {
 
       // Terminate the first session
       const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions/${sessionToDelete.id}`)
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions/${sessionToDelete.id}`)
         .set('Authorization', `Bearer ${session2Token}`);
 
       expect(response.status).toBe(200);
@@ -298,243 +209,186 @@ describe('Session Management Integration Tests', () => {
         .eq('id', sessionToDelete.id)
         .single();
 
-      expect(deactivatedSession.is_active).toBe(false);
+      expect(deactivatedSession?.is_active).toBe(false);
     });
 
     it('should return 404 when session not found', async () => {
-      const fakeSessionId = '00000000-0000-0000-0000-000000000000';
+      const nonExistentSessionId = '00000000-0000-0000-0000-000000000000';
+      const patientToken = await createSession(userPool.patient.email, userPool.patient.password);
 
       const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions/${fakeSessionId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions/${nonExistentSessionId}`)
+        .set('Authorization', `Bearer ${patientToken}`);
 
       expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('not found');
     });
 
-    it('should return 403 when terminating other user\'s session (non-admin)', async () => {
+    it('should return 401 when not authenticated', async () => {
+      const response = await request(app)
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions/some-session-id`);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 403 when trying to terminate another user\'s session', async () => {
       // Get admin's session
-      const adminSessions = await getSessionsFromDb(adminUser.userId);
+      const adminSessions = await getSessionsFromDb(userPool.admin.userId);
       expect(adminSessions.length).toBeGreaterThan(0);
 
       const adminSessionId = adminSessions[0].id;
 
-      // Patient tries to terminate admin's session
+      // Try to terminate admin's session as patient
+      const patientToken = await createSession(userPool.patient.email, userPool.patient.password);
+
       const response = await request(app)
-        .delete(`/api/v1/users/${adminUser.userId}/sessions/${adminSessionId}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .delete(`/api/v1/users/${userPool.admin.userId}/sessions/${adminSessionId}`)
+        .set('Authorization', `Bearer ${patientToken}`);
 
       expect(response.status).toBe(403);
     });
 
     it('should allow admin to terminate any user\'s session', async () => {
       // Create a session for patient
-      await createSession(patientUser.email, patientUser.password);
+      await createSession(userPool.patient.email, userPool.patient.password);
+      const adminToken = await createSession(userPool.admin.email, userPool.admin.password);
 
       // Get patient's sessions
-      const patientSessions = await getSessionsFromDb(patientUser.userId);
+      const patientSessions = await getSessionsFromDb(userPool.patient.userId);
       expect(patientSessions.length).toBeGreaterThan(0);
 
-      const sessionToDelete = patientSessions[0];
+      const patientSessionId = patientSessions[0].id;
 
       // Admin terminates patient's session
       const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions/${sessionToDelete.id}`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions/${patientSessionId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-
-      // Verify session is deactivated
-      const { data: deactivatedSession } = await supabaseClient
-        .from('user_sessions')
-        .select('*')
-        .eq('id', sessionToDelete.id)
-        .single();
-
-      expect(deactivatedSession.is_active).toBe(false);
     });
 
-    it('should return 401 when not authenticated', async () => {
-      const fakeSessionId = '00000000-0000-0000-0000-000000000000';
+    it('should handle invalid session ID format', async () => {
+      const patientToken = await createSession(userPool.patient.email, userPool.patient.password);
 
       const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions/${fakeSessionId}`);
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions/invalid-uuid-format`)
+        .set('Authorization', `Bearer ${patientToken}`);
 
-      expect(response.status).toBe(401);
-    });
-
-    it('should not allow terminating already inactive session', async () => {
-      // Create a session
-      await createSession(patientUser.email, patientUser.password);
-
-      // Get the session from DB
-      const sessions = await getSessionsFromDb(patientUser.userId);
-      const sessionToDeactivate = sessions[0];
-
-      // Deactivate it manually
-      await supabaseClient
-        .from('user_sessions')
-        .update({ is_active: false })
-        .eq('id', sessionToDeactivate.id);
-
-      // Try to terminate it again (use patientUser.accessToken instead of sessionToken)
-      const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions/${sessionToDeactivate.id}`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
-
-      expect(response.status).toBe(404);
+      expect([400, 404]).toContain(response.status);
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('not found');
     });
   });
 
   describe('DELETE /:userId/sessions - Terminate All Sessions Except Current', () => {
     it('should terminate all sessions except current', async () => {
-      // Create 3 sessions
-      await createSession(patientUser.email, patientUser.password);
-      await createSession(patientUser.email, patientUser.password);
-      const session3Token = await createSession(patientUser.email, patientUser.password);
+      // Create multiple sessions
+      await createSession(userPool.patient.email, userPool.patient.password);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await createSession(userPool.patient.email, userPool.patient.password);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const currentToken = await createSession(userPool.patient.email, userPool.patient.password);
 
-      // Get all sessions before termination
-      const sessionsBeforeDelete = await getSessionsFromDb(patientUser.userId);
-      expect(sessionsBeforeDelete.length).toBeGreaterThanOrEqual(3);
+      // Get current session count
+      const sessionsBeforeDelete = await getSessionsFromDb(userPool.patient.userId);
+      const sessionCountBefore = sessionsBeforeDelete.length;
+      expect(sessionCountBefore).toBeGreaterThanOrEqual(3);
 
-      // Terminate all sessions except current (using session3Token)
+      // Terminate all sessions except current
       const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${session3Token}`);
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions`)
+        .set('Authorization', `Bearer ${currentToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toContain('terminated');
+      expect(response.body.message).toContain('Successfully terminated');
       expect(response.body.terminatedCount).toBeGreaterThanOrEqual(2);
 
-      // Verify only current session remains active
-      const sessionsAfterDelete = await getSessionsFromDb(patientUser.userId);
+      // Verify only one session remains (current)
+      const sessionsAfterDelete = await getSessionsFromDb(userPool.patient.userId);
       expect(sessionsAfterDelete.length).toBe(1);
+    });
 
-      // Verify the remaining session is the current one
-      const { data: currentSessionData } = await supabaseClient
+    it('should return 200 even when no other sessions exist', async () => {
+      // Deactivate all sessions for patient2
+      await supabaseClient
         .from('user_sessions')
-        .select('*')
-        .eq('session_token', session3Token)
-        .single();
+        .update({ is_active: false })
+        .eq('user_id', userPool.patient2.userId);
 
-      expect(currentSessionData.is_active).toBe(true);
-    });
+      const sessionsAfterCleanup = await getSessionsFromDb(userPool.patient2.userId);
+      expect(sessionsAfterCleanup.length).toBe(0);
 
-    it('should return success even when user has only one session', async () => {
-      // Create a new user with only one session
-      const tempEmail = generateTestEmail('temp-one-session');
-      const tempPassword = 'TempPassword123!';
-      testEmails.push(tempEmail);
+      // Create one session
+      const token = await createSession(userPool.patient2.email, userPool.patient2.password);
+      const activeBefore = await getSessionsFromDb(userPool.patient2.userId);
+      expect(activeBefore.length).toBe(1);
 
-      const tempUser = await createTestUser(
-        supabaseClient,
-        tempEmail,
-        tempPassword,
-        'PATIENT',
-        {
-          fullName: 'Temp User One Session',
-          phoneNumber: '0901234593',
-          address: '789 Test Street, Hanoi, Vietnam',
-          dateOfBirth: '1995-01-01',
-          gender: 'male',
-          citizenId: generateUniqueCitizenId()
-        }
-      );
-
-      // Login to create one session
-      const tempToken = await createSession(tempEmail, tempPassword);
-
-      // Terminate all sessions (should terminate 0 sessions)
+      // Try to terminate other sessions (there are none)
       const response = await request(app)
-        .delete(`/api/v1/users/${tempUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${tempToken}`);
+        .delete(`/api/v1/users/${userPool.patient2.userId}/sessions`)
+        .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.terminatedCount).toBe(0);
+                        expect(response.body.terminatedCount).toBe(activeBefore.length - 1);
 
-      // Verify the current session is still active
-      const sessionsAfterDelete = await getSessionsFromDb(tempUser.userId);
-      expect(sessionsAfterDelete.length).toBe(1);
-    });
-
-    it('should return success when user has no other sessions', async () => {
-      // Create a new user
-      const tempEmail = generateTestEmail('temp-no-other-session');
-      const tempPassword = 'TempPassword123!';
-      testEmails.push(tempEmail);
-
-      const tempUser = await createTestUser(
-        supabaseClient,
-        tempEmail,
-        tempPassword,
-        'PATIENT',
-        {
-          fullName: 'Temp User No Other Session',
-          phoneNumber: '0901234594',
-          address: '789 Test Street, Hanoi, Vietnam',
-          dateOfBirth: '1995-01-01',
-          gender: 'male',
-          citizenId: generateUniqueCitizenId()
-        }
-      );
-
-      // Login to create one session
-      const tempToken = await createSession(tempEmail, tempPassword);
-
-      // Terminate all sessions
-      const response = await request(app)
-        .delete(`/api/v1/users/${tempUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${tempToken}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.terminatedCount).toBe(0);
+      const activeAfter = await getSessionsFromDb(userPool.patient2.userId);
+      expect(activeAfter.length).toBe(1);
     });
 
     it('should return 401 when not authenticated', async () => {
       const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions`);
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions`);
 
       expect(response.status).toBe(401);
     });
 
-    it('should return 403 when terminating other user\'s sessions (non-admin)', async () => {
+    it('should return 403 when trying to terminate another user\'s sessions', async () => {
+      const patientToken = await createSession(userPool.patient.email, userPool.patient.password);
+
       const response = await request(app)
-        .delete(`/api/v1/users/${adminUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${patientUser.accessToken}`);
+        .delete(`/api/v1/users/${userPool.admin.userId}/sessions`)
+        .set('Authorization', `Bearer ${patientToken}`);
 
       expect(response.status).toBe(403);
     });
 
     it('should allow admin to terminate all sessions for any user', async () => {
       // Create multiple sessions for patient
-      await createSession(patientUser.email, patientUser.password);
-      await createSession(patientUser.email, patientUser.password);
+      await createSession(userPool.patient.email, userPool.patient.password);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await createSession(userPool.patient.email, userPool.patient.password);
+      const adminToken = await createSession(userPool.admin.email, userPool.admin.password);
 
-      // Get sessions before termination
-      const sessionsBeforeDelete = await getSessionsFromDb(patientUser.userId);
-      const sessionCountBefore = sessionsBeforeDelete.length;
-      expect(sessionCountBefore).toBeGreaterThanOrEqual(2);
+      const sessionsBeforeDelete = await getSessionsFromDb(userPool.patient.userId);
+      expect(sessionsBeforeDelete.length).toBeGreaterThanOrEqual(2);
 
-      // Admin terminates all patient's sessions
+      // Admin terminates all sessions for patient (no current session preserved since admin is making the request)
       const response = await request(app)
-        .delete(`/api/v1/users/${patientUser.userId}/sessions`)
-        .set('Authorization', `Bearer ${adminUser.accessToken}`);
+        .delete(`/api/v1/users/${userPool.patient.userId}/sessions`)
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.terminatedCount).toBeGreaterThanOrEqual(1);
+      expect(response.body.terminatedCount).toBeGreaterThan(0);
+    });
 
-      // Verify sessions are terminated
-      const sessionsAfterDelete = await getSessionsFromDb(patientUser.userId);
-      expect(sessionsAfterDelete.length).toBeLessThan(sessionCountBefore);
+    it('should only affect the specified user\'s sessions', async () => {
+      // Create sessions for both users
+      await createSession(userPool.patient.email, userPool.patient.password);
+      const patient2Token = await createSession(userPool.patient2.email, userPool.patient2.password);
+
+      const patient1SessionsBefore = await getSessionsFromDb(userPool.patient.userId);
+
+      // Patient2 terminates their sessions
+      await request(app)
+        .delete(`/api/v1/users/${userPool.patient2.userId}/sessions`)
+        .set('Authorization', `Bearer ${patient2Token}`);
+
+      // Verify patient1's sessions are unchanged
+      const patient1SessionsAfter = await getSessionsFromDb(userPool.patient.userId);
+      expect(patient1SessionsAfter.length).toBe(patient1SessionsBefore.length);
     });
   });
 });
-

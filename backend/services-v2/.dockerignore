@@ -1,68 +1,123 @@
-# Ignore all node_modules except the one being built
-**/node_modules
-!department-service/node_modules
+# ============================================
+# Docker Ignore for Identity Service Build
+# Build Context: backend/services-v2
+# ============================================
 
-# Ignore all dist folders except the one being built
-**/dist
-!department-service/dist
-
-# Ignore all coverage folders
-**/coverage
-
-# Ignore all test folders
-**/tests
-**/test-results
-
-# Ignore documentation
-**/*.md
-!department-service/README.md
-
-# Ignore git
-.git
-.gitignore
-
-# Ignore IDE
-.vscode
-.idea
-
-# Ignore logs
-**/*.log
-
-# Ignore environment files
-**/.env
-**/.env.*
-
-# Ignore build artifacts
-**/build
-**/tmp
-
-# Ignore other services (only include department-service)
+# Exclude all services except identity-service, appointments-service and shared
 api-gateway
-appointments-service
 billing-service
 clinical-emr-service
-identity-service
+department-service
 notifications-service
 patient-registry-service
 provider-staff-service
 scheduler-service
 
-# Ignore shared (will be copied separately if needed)
-shared
+# Dependencies (will be installed during build)
+**/node_modules
+**/npm-debug.log
+**/yarn-error.log
+**/yarn.lock
+**/pnpm-lock.yaml
 
-# Ignore scripts
+# Keep package-lock.json for npm ci
+# Exclude other services' package-lock.json
+api-gateway/package-lock.json
+billing-service/package-lock.json
+clinical-emr-service/package-lock.json
+department-service/package-lock.json
+notifications-service/package-lock.json
+patient-registry-service/package-lock.json
+provider-staff-service/package-lock.json
+scheduler-service/package-lock.json
+
+# Testing
+**/coverage
+**/*.test.ts
+**/*.spec.ts
+**/tests
+**/test-results
+**/test-results.json
+**/test-results.log
+**/test-results.txt
+**/playwright-report
+
+# Development
+.git
+.gitignore
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.development
+**/.env.test
+
+# IDE & Editors
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+
+# Documentation (except README)
+**/*.md
+!**/README.md
+
+# Build artifacts (will be built fresh)
+**/dist
+**/build
+**/*.log
+**/*.tsbuildinfo
+
+# Monitoring (keep identity-service monitoring, exclude others)
+api-gateway/monitoring
+appointments-service/monitoring
+billing-service/monitoring
+clinical-emr-service/monitoring
+notifications-service/monitoring
+patient-registry-service/monitoring
+provider-staff-service/monitoring
+scheduler-service/monitoring
+
+# Test scripts
+**/test-*.sh
+**/test-*.ps1
+**/*.postman_collection.json
+**/debug-*.js
+
+# Temporary files
+**/tmp
+**/temp
+**/.cache
+
+# CI/CD
+**/.github
+**/.gitlab-ci.yml
+**/.travis.yml
+
+# Migration scripts (not needed in production)
+**/migrations
+identity-service/scripts
+
+# Docker files
+**/Dockerfile
+**/.dockerignore
+**/docker-compose*.yml
+**/compose*.yml
+
+# Assessment and scripts directories
+assessment
 scripts
-
-# Ignore migration
 migration
 
-# Ignore assessment
-assessment
-
-# Ignore root level files
-package.json
-package-lock.json
+# Root level configs
 docker-compose.v2.yml
-*.ts
-*.js
+PORT-MAPPING.md
+README.md
 
+# Service specific files not needed
+**/*.FullName
+**/integration-test.log
+**/generate-jwt.js
+**/test-api.http
+**/test-api.ps1

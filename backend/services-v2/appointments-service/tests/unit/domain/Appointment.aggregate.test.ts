@@ -171,10 +171,11 @@ describe('Appointment Aggregate', () => {
 
     it('should reject check-in for non-confirmed appointment', () => {
       const appointment = createTestAppointment();
+      appointment.cancel('Test', 'user-1'); // Set to CANCELLED status
 
       expect(() => {
         appointment.checkIn();
-      }).toThrow('Only confirmed appointments can be checked in');
+      }).toThrow('Only confirmed or scheduled appointments can be checked in');
     });
   });
 
@@ -260,7 +261,7 @@ describe('Appointment Aggregate', () => {
 
       appointment.cancel('Patient requested', 'patient-123');
 
-      const events = (appointment as any).getDomainEvents();
+      const events = (appointment as any).getUncommittedEvents();
       expect(events).toBeDefined();
       expect(events.length).toBeGreaterThan(0);
     });
@@ -271,7 +272,7 @@ describe('Appointment Aggregate', () => {
       const appointment = createTestAppointment();
       appointment.confirm('doctor-123');
 
-      appointment.markAsNoShow();
+      appointment.markAsNoShow('staff-001');
 
       expect(appointment.getStatus()).toBe(AppointmentStatus.NO_SHOW);
     });
@@ -283,7 +284,7 @@ describe('Appointment Aggregate', () => {
       appointment.start();
 
       expect(() => {
-        appointment.markAsNoShow();
+        appointment.markAsNoShow('staff-001');
       }).toThrow('Only scheduled/confirmed appointments can be marked as no-show');
     });
   });
@@ -330,7 +331,7 @@ describe('Appointment Aggregate', () => {
 
       appointment.reschedule(newTimeSlot, 'Doctor unavailable', 'admin-123');
 
-      const events = (appointment as any).getDomainEvents();
+      const events = (appointment as any).getUncommittedEvents();
       expect(events.length).toBeGreaterThan(0);
     });
   });

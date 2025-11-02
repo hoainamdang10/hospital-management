@@ -88,6 +88,7 @@ export class ClinicalEMRApplicationService {
       if (!validation.isValid) {
         return {
           success: false,
+          recordId: '',
           message: 'Dữ liệu đầu vào không hợp lệ',
           errors: validation.errors
         };
@@ -98,6 +99,7 @@ export class ClinicalEMRApplicationService {
       if (!authorized) {
         return {
           success: false,
+          recordId: '',
           message: 'Bạn không có quyền tạo hồ sơ bệnh án',
           errors: [{
             field: 'authorization',
@@ -113,6 +115,7 @@ export class ClinicalEMRApplicationService {
     } catch (error) {
       return {
         success: false,
+        recordId: '',
         message: `Lỗi khi tạo hồ sơ bệnh án: ${error instanceof Error ? error.message : 'Unknown error'}`,
         errors: [{
           field: 'system',

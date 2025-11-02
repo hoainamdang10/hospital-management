@@ -31,6 +31,8 @@ exports.TYPES = {
     // INFRASTRUCTURE - REPOSITORIES
     // =====================================================
     MedicalRecordRepository: Symbol.for('MedicalRecordRepository'),
+    BaseMedicalRecordRepository: Symbol.for('BaseMedicalRecordRepository'),
+    OutboxRepository: Symbol.for('OutboxRepository'),
     // =====================================================
     // APPLICATION - USE CASES
     // =====================================================
@@ -49,6 +51,8 @@ exports.TYPES = {
     VitalSignsService: Symbol.for('VitalSignsService'),
     DiagnosisService: Symbol.for('DiagnosisService'),
     TreatmentService: Symbol.for('TreatmentService'),
+    TokenVerifier: Symbol.for('TokenVerifier'),
+    AuditLogService: Symbol.for('AuditLogService'),
     // =====================================================
     // PRESENTATION - CONTROLLERS
     // =====================================================
@@ -86,6 +90,10 @@ exports.TYPES = {
     MetricsService: Symbol.for('MetricsService'),
     HealthCheckService: Symbol.for('HealthCheckService'),
     PerformanceMonitor: Symbol.for('PerformanceMonitor'),
+    // =====================================================
+    // INFRASTRUCTURE - OUTBOX PATTERN
+    // =====================================================
+    OutboxPublisherWorker: Symbol.for('OutboxPublisherWorker'),
     // =====================================================
     // DOMAIN SERVICES
     // =====================================================

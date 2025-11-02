@@ -18,7 +18,9 @@ import {
   cancelAppointmentSchema,
   getAppointmentSchema,
   listAppointmentsSchema,
+  rescheduleAppointmentSchema,
 } from '../dto/ValidationSchemas';
+import Joi from 'joi';
 
 /**
  * Create appointment command routes
@@ -61,6 +63,86 @@ export function createAppointmentRoutes(): Router {
     validateRequest(cancelAppointmentSchema, 'body'),
     idempotencyMiddleware,
     (req, res) => controller.cancelAppointment(req, res)
+  );
+
+  // Phase 1: Critical Use Cases
+  router.post(
+    '/appointments/:id/reschedule',
+    authenticate,
+    validateRequest(rescheduleAppointmentSchema, 'body'),
+    idempotencyMiddleware,
+    (req, res) => controller.rescheduleAppointment(req, res)
+  );
+
+  router.post(
+    '/appointments/:id/check-in',
+    authenticate,
+    requireRole(['RECEPTIONIST', 'NURSE', 'ADMIN']),
+    idempotencyMiddleware,
+    (req, res) => controller.checkInAppointment(req, res)
+  );
+
+  router.post(
+    '/appointments/:id/no-show',
+    authenticate,
+    requireRole(['RECEPTIONIST', 'DOCTOR', 'NURSE', 'ADMIN']),
+    idempotencyMiddleware,
+    (req, res) => controller.markAsNoShow(req, res)
+  );
+
+  router.post(
+    '/appointments/:id/start',
+    authenticate,
+    requireRole(['DOCTOR']),
+    idempotencyMiddleware,
+    (req, res) => controller.startAppointment(req, res)
+  );
+
+  // Phase 3: Nice-to-Have Features
+  router.post(
+    '/appointments/bulk-reschedule',
+    authenticate,
+    requireRole(['ADMIN', 'DOCTOR']),
+    idempotencyMiddleware,
+    (req, res) => controller.bulkRescheduleAppointments(req, res)
+  );
+
+  router.get(
+    '/appointments/history',
+    authenticate,
+    (req, res) => controller.getAppointmentHistory(req, res)
+  );
+
+  router.get(
+    '/appointments/statistics',
+    authenticate,
+    requireRole(['ADMIN', 'DOCTOR']),
+    (req, res) => controller.getAppointmentStatistics(req, res)
+  );
+
+  router.post(
+    '/appointments/emergency',
+    authenticate,
+    requireRole(['DOCTOR', 'NURSE', 'ADMIN']),
+    idempotencyMiddleware,
+    (req, res) => controller.createEmergencyAppointment(req, res)
+  );
+
+  router.post(
+    '/appointments/:id/transfer',
+    authenticate,
+    requireRole(['ADMIN', 'DOCTOR']),
+    idempotencyMiddleware,
+    (req, res) => controller.transferAppointment(req, res)
+  );
+
+  // Recurring appointments
+  router.post(
+    '/appointments/recurring',
+    authenticate,
+    requireRole(['ADMIN', 'DOCTOR']),
+    idempotencyMiddleware,
+    (req, res) => controller.createRecurringAppointmentSeries(req, res)
   );
 
   // Utilities

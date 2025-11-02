@@ -203,7 +203,7 @@ export function setupDependencies(): DIContainer {
         logger
       });
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register external service clients
@@ -242,7 +242,7 @@ export function setupDependencies(): DIContainer {
         'staff_profiles'
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register StaffReadModel Repository
@@ -258,7 +258,7 @@ export function setupDependencies(): DIContainer {
 
       return new StaffReadModelRepository(supabaseClient, logger);
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register use cases
@@ -539,7 +539,7 @@ export function setupDependencies(): DIContainer {
         logger
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   container.registerFactory(
@@ -557,7 +557,7 @@ export function setupDependencies(): DIContainer {
         logger
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register event handlers
@@ -574,7 +574,7 @@ export function setupDependencies(): DIContainer {
         eventBus
       });
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register Identity Service event handlers
@@ -591,7 +591,7 @@ export function setupDependencies(): DIContainer {
         auditService
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   container.registerFactory(
@@ -607,7 +607,7 @@ export function setupDependencies(): DIContainer {
         auditService
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   container.registerFactory(
@@ -623,7 +623,7 @@ export function setupDependencies(): DIContainer {
         auditService
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register Identity Event Consumer
@@ -668,7 +668,7 @@ export function setupDependencies(): DIContainer {
         logger
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   container.registerFactory(
@@ -682,7 +682,7 @@ export function setupDependencies(): DIContainer {
         logger
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   container.registerFactory(
@@ -696,7 +696,7 @@ export function setupDependencies(): DIContainer {
         logger
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register Appointments Event Consumer
@@ -739,7 +739,7 @@ export function setupDependencies(): DIContainer {
         logger
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   container.registerFactory(
@@ -751,7 +751,7 @@ export function setupDependencies(): DIContainer {
         logger
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register Patient Event Consumer
@@ -796,7 +796,7 @@ export function setupDependencies(): DIContainer {
         auditService
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   // Register Billing Event Handler
@@ -811,7 +811,7 @@ export function setupDependencies(): DIContainer {
         auditService
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON
   );
 
   return container;

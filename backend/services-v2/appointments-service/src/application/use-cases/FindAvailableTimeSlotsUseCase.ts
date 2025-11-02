@@ -12,8 +12,13 @@
  * Security Note (2025-10-23):
  * - Current RLS: Service role bypass + authenticated read access
  * - Data Classification: Operational data (non-PHI)
- * - TODO: Consider adding active provider filter when implementing multi-tenancy
- * - TODO: Add tenant_id filter when multi-tenancy is required
+ * 
+ * Multi-Tenancy Support (Future Enhancement):
+ * When implementing multi-tenancy, add:
+ * 1. tenantId to FindAvailableTimeSlotsCommand
+ * 2. Provider active status filter via IProviderService
+ * 3. Tenant-level RLS policies in provider_schema and appointments_schema
+ * 4. Filter bookedAppointments by tenant_id in repository
  */
 
 import { IProviderScheduleRepository } from '../../domain/repositories/IProviderScheduleRepository';
@@ -24,6 +29,7 @@ export interface FindAvailableTimeSlotsCommand {
   providerId: string;
   date: Date;
   durationMinutes: number;
+  // Future: tenantId?: string; // For multi-tenancy support
 }
 
 export interface AvailableTimeSlotDTO {

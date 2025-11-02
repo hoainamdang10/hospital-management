@@ -12,6 +12,16 @@ import { createClient } from '@supabase/supabase-js';
 // Mock Supabase client
 jest.mock('@supabase/supabase-js');
 
+// Mock CircuitBreakerFactory to handle missing logger
+jest.mock('@infrastructure/resilience/CircuitBreaker', () => ({
+  CircuitBreakerFactory: {
+    getBreaker: jest.fn(() => ({
+      execute: jest.fn((fn) => fn()),
+      reset: jest.fn()
+    }))
+  }
+}));
+
 describe('SupabaseUserRepository - Security Tests', () => {
   let repository: SupabaseUserRepository;
   let mockSupabaseClient: any;

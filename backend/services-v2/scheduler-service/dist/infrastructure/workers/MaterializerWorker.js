@@ -76,14 +76,24 @@ class MaterializerWorker {
                             continue;
                         }
                         const segment = this.calculateSegment(schedule.getScheduleId());
-                        const run = ScheduleRun_entity_1.ScheduleRun.create(schedule.getScheduleId(), schedule.getTenantId(), occurrence, segment);
+                        // Apply jitter ONCE when creating the run (deterministic scheduling)
+                        // This ensures the same run always has the same due_at_utc
+                        const jitterMs = schedule.getProps().jitterMs || 0;
+                        let dueAtUtc = occurrence;
+                        if (jitterMs > 0) {
+                            // Use schedule ID + occurrence time as seed for deterministic jitter
+                            const seed = this.hashString(`${schedule.getScheduleId()}-${occurrence.getTime()}`);
+                            const jitter = Math.floor((seed % jitterMs));
+                            dueAtUtc = new Date(occurrence.getTime() + jitter);
+                        }
+                        const run = ScheduleRun_entity_1.ScheduleRun.create(schedule.getScheduleId(), schedule.getTenantId(), dueAtUtc, segment);
                         await this.runRepo.save(run);
                         totalRunsCreated++;
                         // Record metrics for each run created
                         this.metrics.workerMaterializationRuns.inc({
                             schedule_type: scheduleType
                         });
-                        this.logger.debug(`Created run for ${occurrence.toISOString()} (segment: ${segment})`);
+                        this.logger.debug(`Created run for ${dueAtUtc.toISOString()} (segment: ${segment}, jitter: ${jitterMs > 0 ? `${dueAtUtc.getTime() - occurrence.getTime()}ms` : '0ms'})`);
                     }
                 }
                 catch (error) {
@@ -107,6 +117,19 @@ class MaterializerWorker {
             hash = hash & hash;
         }
         return Math.abs(hash) % this.config.numSegments;
+    }
+    /**
+     * Hash string to number for deterministic jitter calculation
+     * Uses same algorithm as calculateSegment for consistency
+     */
+    hashString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
     }
     getStatus() {
         return {

@@ -188,23 +188,29 @@ describe('TerminateAllSessionsUseCase', () => {
 
       // Act
       const result = await useCase.execute({
-        userId: testUserId
+        userId: testUserId,
+        currentSessionId: session1.id // Keep current session (use actual id)
       });
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.terminatedCount).toBe(2);
-      expect(result.message).toBe('Successfully terminated 2 session(s)');
+      expect(result.terminatedCount).toBe(1); // Only terminate session-2
+      expect(result.message).toBe('Successfully terminated 1 session(s)');
 
-      // Verify all sessions are deleted
+      // Verify session-2 is deactivated (not deleted)
       const allSessions = await mockRepository.findAllSessionsByUserId(testUserId);
-      expect(allSessions).toHaveLength(0);
+      expect(allSessions).toHaveLength(2); // Both sessions still exist
+      
+      const activeSessions = await mockRepository.findActiveSessionsByUserId(testUserId);
+      expect(activeSessions).toHaveLength(1); // Only session-1 is active
+      expect(activeSessions[0].id).toBe(session1.id);
     });
 
     it('should return 0 when user has no sessions', async () => {
       // Act
       const result = await useCase.execute({
-        userId: testUserId
+        userId: testUserId,
+        currentSessionId: 'session-current'
       });
 
       // Assert
@@ -244,15 +250,18 @@ describe('TerminateAllSessionsUseCase', () => {
       mockRepository.addSession(user2Session);
 
       // Act
-      await useCase.execute({
-        userId: testUserId
+      const result = await useCase.execute({
+        userId: testUserId,
+        currentSessionId: user1Session.id // Keep current session (use actual id)
       });
 
       // Assert
+      expect(result.success).toBe(true);
+      
       const user1Sessions = await mockRepository.findAllSessionsByUserId(testUserId);
       const user2Sessions = await mockRepository.findAllSessionsByUserId('other-user-456');
 
-      expect(user1Sessions).toHaveLength(0);
+      expect(user1Sessions).toHaveLength(1); // user1Session remains
       expect(user2Sessions).toHaveLength(1);
       expect(user2Sessions[0].isActive).toBe(true);
     });

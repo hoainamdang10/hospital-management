@@ -48,26 +48,45 @@ import {
   ReactivatePatientRequest
 } from '../dtos/PatientDTOs';
 import { ResponseHelper, NotFoundError, DomainError } from '../middleware/ErrorHandlingMiddleware';
+import type { AuthenticatedRequest as AuthenticatedHttpRequest } from '../middleware/AuthenticationMiddleware';
 
-/**
- * Authenticated Request interface
- */
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId?: string;
-    role?: string;
-  };
+type RequestWithUser = Request & {
+  user?: (AuthenticatedHttpRequest['user'] & { role?: string }) | undefined;
+};
+
+function getUserContext(req: Request): (AuthenticatedHttpRequest['user'] & { role?: string }) | undefined {
+  return (req as RequestWithUser).user;
 }
 
 /**
  * Helper to get user ID from request
  */
 function getUserId(req: Request): string {
-  return (req as AuthenticatedRequest).user?.userId || 'system';
+  return getUserContext(req)?.userId || 'system';
+}
+
+function getUserRoles(req: Request): string[] {
+  const user = getUserContext(req);
+  if (!user) {
+    return [];
+  }
+
+  const roles = [...(user.roles ?? [])];
+  if (user.role && !roles.includes(user.role)) {
+    roles.push(user.role);
+  }
+
+  return roles;
 }
 
 function getUserRole(req: Request): string {
-  return (req as AuthenticatedRequest).user?.role || 'system';
+  const [primaryRole] = getUserRoles(req);
+  return primaryRole ? primaryRole.toLowerCase() : 'system';
+}
+
+function userHasAnyRole(req: Request, allowedRoles: string[]): boolean {
+  const roles = getUserRoles(req);
+  return roles.some(role => allowedRoles.includes(role));
 }
 
 /**
@@ -652,6 +671,21 @@ export class PatientController {
       const { reason } = req.body;
 
       this.logger.info('Deactivating patient', { patientId, reason });
+
+      if (!userHasAnyRole(req, ['ADMIN', 'SUPER_ADMIN', 'RECEPTIONIST'])) {
+        this.logger.warn('Unauthorized patient deactivation attempt', {
+          patientId,
+          requestedBy: getUserId(req),
+          roles: getUserRoles(req)
+        });
+
+        res.status(403).json({
+          success: false,
+          error: 'FORBIDDEN',
+          message: 'Bạn không có quyền vô hiệu hóa bệnh nhân'
+        });
+        return;
+      }
 
       const result = await this.deactivatePatientUseCase.execute({
         patientId,

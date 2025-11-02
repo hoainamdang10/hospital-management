@@ -78,7 +78,9 @@ class SearchMedicalRecordsUseCase extends use_case_interface_1.BaseHealthcareUse
      */
     async executeSearch(criteria, sort, pagination, request) {
         // Get all medical records that match criteria
-        const allRecords = await this.medicalRecordRepository.search(criteria, sort);
+        const searchResult = await this.medicalRecordRepository.search(criteria);
+        // Extract records from search result
+        const allRecords = Array.isArray(searchResult) ? searchResult : searchResult.records;
         // Apply access control if requested
         const accessibleRecords = request.respectAccessControl !== false
             ? await this.filterByAccessControl(allRecords, request.searchedBy)
@@ -91,7 +93,7 @@ class SearchMedicalRecordsUseCase extends use_case_interface_1.BaseHealthcareUse
         // Get paginated results
         const paginatedRecords = accessibleRecords.slice(pagination.offset, pagination.offset + pagination.limit);
         // Convert to summary format
-        const recordSummaries = await Promise.all(paginatedRecords.map(record => this.convertToSummary(record, request)));
+        const recordSummaries = await Promise.all(paginatedRecords.map((record) => this.convertToSummary(record, request)));
         return {
             records: recordSummaries,
             totalCount,

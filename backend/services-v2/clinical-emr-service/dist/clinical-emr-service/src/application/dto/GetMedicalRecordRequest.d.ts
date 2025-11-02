@@ -84,5 +84,5 @@ export declare function validateGetMedicalRecordRequest(request: GetMedicalRecor
 /**
  * Helper function to map MedicalRecordAggregate to DTO
  */
-export declare function mapMedicalRecordToDto(medicalRecord: any): MedicalRecordDto;
+export declare function mapMedicalRecordToDto(medicalRecord: any, includeVitalSigns?: boolean): MedicalRecordDto;
 //# sourceMappingURL=GetMedicalRecordRequest.d.ts.map

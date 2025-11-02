@@ -12,16 +12,19 @@ export interface DeliveryServiceConfig {
         apiKey: string;
         fromEmail: string;
         fromName: string;
+        enabled: boolean;
     };
     sms?: {
         accountSid: string;
         authToken: string;
         fromNumber: string;
+        enabled: boolean;
     };
     push?: {
         projectId: string;
         privateKey: string;
         clientEmail: string;
+        enabled: boolean;
     };
     voice?: {
         accountSid: string;

@@ -44,8 +44,6 @@ export interface AppointmentDetailsDTO {
     specialInstructions?: string;
     requiredEquipment?: string[];
     consultationFee: number;
-    additionalFees?: number;
-    paymentStatus: string;
     checkedInAt?: string;
     startedAt?: string;
     completedAt?: string;
@@ -69,7 +67,6 @@ export interface AppointmentListItemDTO {
     doctorFullName?: string;
     doctorSpecialization?: string;
     consultationFee: number;
-    paymentStatus: string;
     createdAt: string;
 }
 export interface AppointmentListResponseDTO {

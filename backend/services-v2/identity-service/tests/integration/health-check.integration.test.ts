@@ -11,6 +11,16 @@ import { IdentityServiceHealthCheck, HealthStatus } from '@infrastructure/monito
 import { CircuitBreakerFactory } from '@infrastructure/resilience/CircuitBreaker';
 import type { ILogger } from '@application/services/ILogger';
 
+// Initialize logger for CircuitBreakerFactory before any tests
+const testLogger: ILogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  fatal: jest.fn()
+};
+CircuitBreakerFactory.setLogger(testLogger);
+
 describe('Health Check Integration Tests', () => {
   let healthCheck: IdentityServiceHealthCheck;
 

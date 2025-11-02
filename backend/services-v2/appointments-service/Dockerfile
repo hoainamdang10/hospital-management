@@ -1,31 +1,77 @@
-# scheduling-service - Hospital Management System
-FROM node:18-alpine
+# Appointments Service - Hospital Management System
+# Multi-stage build for optimized production image
+#
+# @author Hospital Management Team
+# @version 2.0.0
+# @compliance Production-Ready, Security Hardened
+#
+# Build context should be: backend/services-v2
+# Build command: docker build -f appointments-service/Dockerfile -t appointments-service:latest .
+
+# ============================================
+# Stage 1: Builder
+# ============================================
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy entire appointments-service and shared folders to maintain structure
+COPY appointments-service/ ./appointments-service/
+COPY shared/ ./shared/
 
-# Install dependencies
-RUN npm ci --only=production
+# Change to appointments-service directory
+WORKDIR /app/appointments-service
 
-# Copy source code
-COPY dist/ ./dist/
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci && npm cache clean --force
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Create symlink for node_modules at parent level so shared can access it
+RUN ln -s /app/appointments-service/node_modules /app/node_modules
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Build the application (tsconfig will find ../shared and ../node_modules)
+RUN npm run build
 
-# Expose port
-EXPOSE 3004
+# ============================================
+# Stage 2: Production
+# ============================================
+FROM node:18-alpine AS production
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S appointments -u 1001
+
+# Set working directory to match build structure
+WORKDIR /app/appointments-service
+
+# Copy entire structure from builder maintaining relative paths
+COPY --from=builder --chown=appointments:nodejs /app/appointments-service/package*.json ./
+COPY --from=builder --chown=appointments:nodejs /app/appointments-service/dist ./dist
+COPY --from=builder --chown=appointments:nodejs /app/appointments-service/node_modules ./node_modules
+COPY --from=builder --chown=appointments:nodejs /app/shared ../shared
+
+# Install production dependencies only (if needed)
+RUN npm prune --production && npm cache clean --force
+
+# Create necessary directories
+RUN mkdir -p /app/appointments-service/logs && chown appointments:nodejs /app/appointments-service/logs
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3024
+ENV SERVICE_NAME=appointments-service
+ENV SERVICE_VERSION=2.0.0
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3004/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3024/health', (res) => { \
+  if (res.statusCode === 200) process.exit(0); else process.exit(1); \
+  }).on('error', () => process.exit(1))"
 
-# Start application
-CMD ["node", "dist/index.js"]
+# Switch to non-root user
+USER appointments
+
+# Expose port
+EXPOSE 3024
+
+# Start the application
+CMD ["node", "dist/appointments-service/src/main.js"]

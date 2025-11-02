@@ -1,0 +1,80 @@
+# Node modules (will be installed in container)
+**/node_modules
+
+# Dist folders (will be built in container)
+**/dist
+
+# Coverage folders
+**/coverage
+
+# Test folders
+**/tests
+**/test-results
+**/playwright-report
+
+# Documentation
+**/*.md
+!identity-service/README.md
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+**/*.swp
+**/*.swo
+*~
+
+# Logs
+**/*.log
+**/logs
+
+# Environment files
+**/.env
+**/.env.*
+!.env.example
+
+# Build artifacts
+**/build
+**/tmp
+
+# Ignore other services (only include identity-service and shared)
+api-gateway
+appointments-service
+billing-service
+clinical-emr-service
+notifications-service
+patient-registry-service
+provider-staff-service
+scheduler-service
+department-service
+
+# Ignore scripts
+scripts
+
+# Ignore migration
+migration
+
+# Ignore assessment
+assessment
+
+# Ignore root level files
+package.json
+package-lock.json
+docker-compose.v2.yml
+*.ts
+*.js
+
+# Ignore test and debug files in identity-service
+identity-service/test-*.sh
+identity-service/test-*.ps1
+identity-service/*.postman_collection.json
+identity-service/debug-*.js
+identity-service/integration-test.log
+identity-service/test-results.*
+identity-service/playwright.config.ts
+identity-service/monitoring
+identity-service/migrations
+

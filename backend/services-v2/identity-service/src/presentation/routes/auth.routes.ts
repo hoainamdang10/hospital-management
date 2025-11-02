@@ -305,27 +305,35 @@ export function createAuthRoutes(deps: RouteDependencies): Router {
     }
   });
 
-  // Enable MFA endpoint (PUBLIC)
-  router.post('/mfa/enable', async (req, res) => {
-    try {
-      const request = {
-        userId: req.body.userId,
-        method: req.body.method,
-        phoneNumber: req.body.phoneNumber,
-        email: req.body.email
-      };
+  // Enable MFA endpoint (PROTECTED - User can only enable MFA for themselves)
+  router.post('/mfa/enable',
+    deps.authMiddleware.authenticate(),
+    deps.permissionMiddleware.requirePermission({
+      permissions: ['mfa:manage', '*'],
+      checkOwnership: true,
+      getResourceOwnerId: (req: AuthenticatedRequest) => req.body.userId
+    }),
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const request = {
+          userId: req.body.userId,
+          method: req.body.method,
+          phoneNumber: req.body.phoneNumber,
+          email: req.body.email
+        };
 
-      const result = await deps.enableMFAUseCase.execute(request);
-      const statusCode = result.success ? 200 : 400;
-      res.status(statusCode).json(result);
-    } catch (error) {
-      logger.error('Enable MFA endpoint error', { error: getErrorMessage(error) });
-      res.status(500).json({
-        success: false,
-        error: 'Lỗi hệ thống, vui lòng thử lại sau'
-      });
+        const result = await deps.enableMFAUseCase.execute(request);
+        const statusCode = result.success ? 200 : 400;
+        res.status(statusCode).json(result);
+      } catch (error) {
+        logger.error('Enable MFA endpoint error', { error: getErrorMessage(error) });
+        res.status(500).json({
+          success: false,
+          error: 'Lỗi hệ thống, vui lòng thử lại sau'
+        });
+      }
     }
-  });
+  );
 
   // Verify MFA endpoint (PUBLIC)
   router.post('/mfa/verify', async (req, res) => {
@@ -351,25 +359,33 @@ export function createAuthRoutes(deps: RouteDependencies): Router {
     }
   });
 
-  // Disable MFA endpoint (PUBLIC)
-  router.post('/mfa/disable', async (req, res) => {
-    try {
-      const request = {
-        userId: req.body.userId,
-        verificationCode: req.body.verificationCode
-      };
+  // Disable MFA endpoint (PROTECTED - User can only disable MFA for themselves)
+  router.post('/mfa/disable',
+    deps.authMiddleware.authenticate(),
+    deps.permissionMiddleware.requirePermission({
+      permissions: ['mfa:manage', '*'],
+      checkOwnership: true,
+      getResourceOwnerId: (req: AuthenticatedRequest) => req.body.userId
+    }),
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const request = {
+          userId: req.body.userId,
+          verificationCode: req.body.verificationCode
+        };
 
-      const result = await deps.disableMFAUseCase.execute(request);
-      const statusCode = result.success ? 200 : 400;
-      res.status(statusCode).json(result);
-    } catch (error) {
-      logger.error('Disable MFA endpoint error', { error: getErrorMessage(error) });
-      res.status(500).json({
-        success: false,
-        error: 'Lỗi hệ thống, vui lòng thử lại sau'
-      });
+        const result = await deps.disableMFAUseCase.execute(request);
+        const statusCode = result.success ? 200 : 400;
+        res.status(statusCode).json(result);
+      } catch (error) {
+        logger.error('Disable MFA endpoint error', { error: getErrorMessage(error) });
+        res.status(500).json({
+          success: false,
+          error: 'Lỗi hệ thống, vui lòng thử lại sau'
+        });
+      }
     }
-  });
+  );
 
   return router;
 }

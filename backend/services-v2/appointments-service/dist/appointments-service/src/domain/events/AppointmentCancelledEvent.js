@@ -16,16 +16,18 @@ const domain_event_1 = require("../../../../shared/domain/base/domain-event");
  * Triggered when an appointment is cancelled
  */
 class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, patientId, providerId, originalStartTime, cancellationReason, cancelledBy, originalEndTime, correlationId, causationId, userId) {
+    constructor(appointmentId, patientId, doctorId, // Changed from providerId to doctorId
+    originalStartTime, cancellationReason, cancelledBy, originalEndTime, correlationId, causationId, userId) {
         const now = new Date();
         const hoursNotice = Math.max(0, (originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
         const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
         const eventData = {
             appointmentId,
             patientId,
-            providerId,
+            doctorId, // Changed from providerId to doctorId
             originalStartTime,
-            originalEndTime: originalEndTime || new Date(originalStartTime.getTime() + 30 * 60 * 1000),
+            originalEndTime: originalEndTime ||
+                new Date(originalStartTime.getTime() + 30 * 60 * 1000),
             cancellationReason,
             cancelledBy,
             cancelledAt: now,
@@ -33,83 +35,94 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
             cancellationPolicy,
             integrationEvents: {
                 providerScheduleUpdate: {
-                    providerId,
-                    timeSlotId: `${providerId}-${originalStartTime.getTime()}`,
+                    doctorId, // Changed from providerId to doctorId
+                    timeSlotId: `${doctorId}-${originalStartTime.getTime()}`,
                     startTime: originalStartTime,
-                    endTime: originalEndTime || new Date(originalStartTime.getTime() + 30 * 60 * 1000),
-                    status: 'available',
+                    endTime: originalEndTime ||
+                        new Date(originalStartTime.getTime() + 30 * 60 * 1000),
+                    status: "available",
                     releasedAppointmentId: appointmentId,
-                    releasedAt: now
+                    releasedAt: now,
                 },
                 patientAppointmentHistory: {
                     patientId,
                     appointmentId,
-                    status: 'cancelled',
+                    status: "cancelled",
                     cancellationReason,
                     cancelledAt: now,
-                    penaltyApplied: cancellationPolicy.penaltyApplied
+                    penaltyApplied: cancellationPolicy.penaltyApplied,
                 },
                 notificationRequests: {
                     patientNotification: {
                         patientId,
-                        type: 'appointment_cancelled',
+                        type: "appointment_cancelled",
                         channels: AppointmentCancelledEvent.getPatientNotificationChannels(hoursNotice),
                         templateData: {
                             appointmentId,
-                            originalDate: originalStartTime.toLocaleDateString('vi-VN'),
-                            originalTime: originalStartTime.toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit'
+                            originalDate: originalStartTime.toLocaleDateString("vi-VN"),
+                            originalTime: originalStartTime.toLocaleTimeString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
                             }),
                             cancellationReason,
-                            penaltyInfo: cancellationPolicy.penaltyApplied ?
-                                `Phí hủy lịch: ${cancellationPolicy.penaltyAmount?.toLocaleString('vi-VN')} VNĐ` : undefined,
-                            rescheduleInfo: cancellationPolicy.rescheduleAllowed ?
-                                'Bạn có thể đặt lịch mới miễn phí' : 'Vui lòng liên hệ để đặt lịch mới'
+                            penaltyInfo: cancellationPolicy.penaltyApplied
+                                ? `Phí hủy lịch: ${cancellationPolicy.penaltyAmount?.toLocaleString("vi-VN")} VNĐ`
+                                : undefined,
+                            rescheduleInfo: cancellationPolicy.rescheduleAllowed
+                                ? "Bạn có thể đặt lịch mới miễn phí"
+                                : "Vui lòng liên hệ để đặt lịch mới",
                         },
-                        priority: hoursNotice < 2 ? 'high' : 'normal'
+                        priority: hoursNotice < 2 ? "high" : "normal",
                     },
                     providerNotification: {
-                        providerId,
-                        type: 'appointment_cancelled',
-                        channels: ['email', 'push'],
+                        doctorId,
+                        type: "appointment_cancelled",
+                        channels: ["email", "push"],
                         templateData: {
                             appointmentId,
-                            patientName: 'Bệnh nhân', // Would be populated by handler
-                            originalDate: originalStartTime.toLocaleDateString('vi-VN'),
-                            originalTime: originalStartTime.toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit'
+                            patientName: "Bệnh nhân", // Would be populated by handler
+                            originalDate: originalStartTime.toLocaleDateString("vi-VN"),
+                            originalTime: originalStartTime.toLocaleTimeString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
                             }),
                             cancellationReason,
-                            hoursNotice: Math.round(hoursNotice * 100) / 100
+                            hoursNotice: Math.round(hoursNotice * 100) / 100,
                         },
-                        priority: 'normal'
-                    }
+                        priority: "normal",
+                    },
                 },
-                billingUpdate: cancellationPolicy.penaltyApplied || cancellationPolicy.refundEligible ? {
-                    patientId,
-                    appointmentId,
-                    action: cancellationPolicy.penaltyApplied ? 'penalty' :
-                        cancellationPolicy.refundEligible ? 'refund' : 'no_action',
-                    amount: cancellationPolicy.penaltyApplied ? cancellationPolicy.penaltyAmount :
-                        cancellationPolicy.refundEligible ? (cancellationPolicy.refundPercentage || 0) * 100000 : undefined,
-                    reason: cancellationReason,
-                    processedAt: now
-                } : undefined,
+                billingUpdate: cancellationPolicy.penaltyApplied || cancellationPolicy.refundEligible
+                    ? {
+                        patientId,
+                        appointmentId,
+                        action: cancellationPolicy.penaltyApplied
+                            ? "penalty"
+                            : cancellationPolicy.refundEligible
+                                ? "refund"
+                                : "no_action",
+                        amount: cancellationPolicy.penaltyApplied
+                            ? cancellationPolicy.penaltyAmount
+                            : cancellationPolicy.refundEligible
+                                ? (cancellationPolicy.refundPercentage || 0) * 100000
+                                : undefined,
+                        reason: cancellationReason,
+                        processedAt: now,
+                    }
+                    : undefined,
                 clinicalUpdate: {
                     patientId,
-                    providerId,
+                    doctorId,
                     appointmentId,
                     updateMedicalRecord: true,
-                    cancellationNote: `Cuộc hẹn bị hủy: ${cancellationReason}. Thời gian thông báo: ${Math.round(hoursNotice * 100) / 100} giờ.`
-                }
-            }
+                    cancellationNote: `Cuộc hẹn bị hủy: ${cancellationReason}. Thời gian thông báo: ${Math.round(hoursNotice * 100) / 100} giờ.`,
+                },
+            },
         };
-        super('AppointmentCancelled', appointmentId, 'Appointment', eventData, 1, correlationId, causationId, userId);
+        super("AppointmentCancelled", appointmentId, "Appointment", eventData, 1, correlationId, causationId, userId);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
-        this.providerId = providerId;
+        this.doctorId = doctorId;
         this.originalStartTime = originalStartTime;
         this.cancellationReason = cancellationReason;
         this.cancelledBy = cancelledBy;
@@ -125,9 +138,10 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
         return {
             appointmentId: this.appointmentId,
             patientId: this.patientId,
-            providerId: this.providerId,
+            doctorId: this.doctorId, // Changed from providerId to doctorId
             originalStartTime: this.originalStartTime,
-            originalEndTime: this.originalEndTime || new Date(this.originalStartTime.getTime() + 30 * 60 * 1000),
+            originalEndTime: this.originalEndTime ||
+                new Date(this.originalStartTime.getTime() + 30 * 60 * 1000),
             cancellationReason: this.cancellationReason,
             cancelledBy: this.cancelledBy,
             cancelledAt: this.occurredAt,
@@ -138,8 +152,8 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 patientAppointmentHistory: this.getPatientAppointmentHistory(),
                 notificationRequests: this.getNotificationRequests(),
                 billingUpdate: this.getBillingUpdate(),
-                clinicalUpdate: this.getClinicalUpdate()
-            }
+                clinicalUpdate: this.getClinicalUpdate(),
+            },
         };
     }
     /**
@@ -165,7 +179,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 penaltyApplied: false,
                 refundEligible: true,
                 rescheduleAllowed: true,
-                refundPercentage: 1.0
+                refundPercentage: 1.0,
             };
         }
         else if (hoursNotice >= 4) {
@@ -174,7 +188,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 penaltyApplied: false,
                 refundEligible: true,
                 rescheduleAllowed: true,
-                refundPercentage: 0.8
+                refundPercentage: 0.8,
             };
         }
         else if (hoursNotice >= 2) {
@@ -184,7 +198,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 refundEligible: true,
                 rescheduleAllowed: true,
                 penaltyAmount: 50000, // 50,000 VNĐ
-                refundPercentage: 0.5
+                refundPercentage: 0.5,
             };
         }
         else {
@@ -193,7 +207,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 penaltyApplied: true,
                 refundEligible: false,
                 rescheduleAllowed: false,
-                penaltyAmount: 100000 // 100,000 VNĐ
+                penaltyAmount: 100000, // 100,000 VNĐ
             };
         }
     }
@@ -203,11 +217,11 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
     static getPatientNotificationChannels(hoursNotice) {
         if (hoursNotice < 2) {
             // Last minute cancellation - use all channels
-            return ['sms', 'push', 'email'];
+            return ["sms", "push", "email"];
         }
         else {
             // Normal cancellation
-            return ['email', 'push'];
+            return ["email", "push"];
         }
     }
     /**
@@ -215,16 +229,16 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
      */
     static getPolicyDescription(policy, hoursNotice) {
         if (hoursNotice >= 24) {
-            return 'Hủy lịch miễn phí, hoàn tiền 100%';
+            return "Hủy lịch miễn phí, hoàn tiền 100%";
         }
         else if (hoursNotice >= 4) {
-            return 'Hoàn tiền 80%, đặt lịch mới miễn phí';
+            return "Hoàn tiền 80%, đặt lịch mới miễn phí";
         }
         else if (hoursNotice >= 2) {
-            return 'Hoàn tiền 50%, phí đặt lịch mới 50,000 VNĐ';
+            return "Hoàn tiền 50%, phí đặt lịch mới 50,000 VNĐ";
         }
         else {
-            return 'Không hoàn tiền, phí hủy lịch 100,000 VNĐ';
+            return "Không hoàn tiền, phí hủy lịch 100,000 VNĐ";
         }
     }
     /**
@@ -233,19 +247,19 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
     getIntegrationEventsForService(serviceName) {
         const eventData = this.getEventData();
         switch (serviceName.toLowerCase()) {
-            case 'provider-staff':
-            case 'provider':
+            case "provider-staff":
+            case "provider":
                 return eventData.integrationEvents.providerScheduleUpdate;
-            case 'patient-registry':
-            case 'patient':
+            case "patient-registry":
+            case "patient":
                 return eventData.integrationEvents.patientAppointmentHistory;
-            case 'notification':
-            case 'notifications':
+            case "notification":
+            case "notifications":
                 return eventData.integrationEvents.notificationRequests;
-            case 'billing':
+            case "billing":
                 return eventData.integrationEvents.billingUpdate;
-            case 'clinical':
-            case 'emr':
+            case "clinical":
+            case "emr":
                 return eventData.integrationEvents.clinicalUpdate;
             default:
                 return null;
@@ -257,13 +271,14 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
     getProviderScheduleUpdate() {
         const now = new Date();
         return {
-            providerId: this.providerId,
-            timeSlotId: `${this.providerId}-${this.originalStartTime.getTime()}`,
+            doctorId: this.doctorId, // Changed from providerId to doctorId
+            timeSlotId: `${this.doctorId}-${this.originalStartTime.getTime()}`,
             startTime: this.originalStartTime,
-            endTime: this.originalEndTime || new Date(this.originalStartTime.getTime() + 30 * 60 * 1000),
-            status: 'available',
+            endTime: this.originalEndTime ||
+                new Date(this.originalStartTime.getTime() + 30 * 60 * 1000),
+            status: "available",
             releasedAppointmentId: this.appointmentId,
-            releasedAt: now
+            releasedAt: now,
         };
     }
     getPatientAppointmentHistory() {
@@ -273,10 +288,10 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
         return {
             patientId: this.patientId,
             appointmentId: this.appointmentId,
-            status: 'cancelled',
+            status: "cancelled",
             cancellationReason: this.cancellationReason,
             cancelledAt: now,
-            penaltyApplied: cancellationPolicy.penaltyApplied
+            penaltyApplied: cancellationPolicy.penaltyApplied,
         };
     }
     getNotificationRequests() {
@@ -286,58 +301,67 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
         return {
             patientNotification: {
                 patientId: this.patientId,
-                type: 'appointment_cancelled',
+                type: "appointment_cancelled",
                 channels: AppointmentCancelledEvent.getPatientNotificationChannels(hoursNotice),
                 templateData: {
                     appointmentId: this.appointmentId,
-                    originalDate: this.originalStartTime.toLocaleDateString('vi-VN'),
-                    originalTime: this.originalStartTime.toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                    originalDate: this.originalStartTime.toLocaleDateString("vi-VN"),
+                    originalTime: this.originalStartTime.toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                     }),
                     cancellationReason: this.cancellationReason,
-                    penaltyInfo: cancellationPolicy.penaltyApplied ?
-                        `Phí hủy lịch: ${cancellationPolicy.penaltyAmount?.toLocaleString('vi-VN')} VNĐ` : undefined,
-                    rescheduleInfo: cancellationPolicy.rescheduleAllowed ?
-                        'Bạn có thể đặt lịch mới miễn phí' : 'Vui lòng liên hệ để đặt lịch mới'
+                    penaltyInfo: cancellationPolicy.penaltyApplied
+                        ? `Phí hủy lịch: ${cancellationPolicy.penaltyAmount?.toLocaleString("vi-VN")} VNĐ`
+                        : undefined,
+                    rescheduleInfo: cancellationPolicy.rescheduleAllowed
+                        ? "Bạn có thể đặt lịch mới miễn phí"
+                        : "Vui lòng liên hệ để đặt lịch mới",
                 },
-                priority: hoursNotice < 2 ? 'high' : 'normal'
+                priority: hoursNotice < 2 ? "high" : "normal",
             },
             providerNotification: {
-                providerId: this.providerId,
-                type: 'appointment_cancelled',
-                channels: ['email', 'push'],
+                doctorId: this.doctorId, // Changed from providerId to doctorId
+                type: "appointment_cancelled",
+                channels: ["email", "push"],
                 templateData: {
                     appointmentId: this.appointmentId,
-                    patientName: 'Bệnh nhân',
-                    originalDate: this.originalStartTime.toLocaleDateString('vi-VN'),
-                    originalTime: this.originalStartTime.toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                    patientName: "Bệnh nhân",
+                    originalDate: this.originalStartTime.toLocaleDateString("vi-VN"),
+                    originalTime: this.originalStartTime.toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                     }),
                     cancellationReason: this.cancellationReason,
-                    hoursNotice: Math.round(hoursNotice * 100) / 100
+                    hoursNotice: Math.round(hoursNotice * 100) / 100,
                 },
-                priority: 'normal'
-            }
+                priority: "normal",
+            },
         };
     }
     getBillingUpdate() {
         const now = new Date();
         const hoursNotice = Math.max(0, (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
         const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
-        if (!cancellationPolicy.penaltyApplied && !cancellationPolicy.refundEligible) {
+        if (!cancellationPolicy.penaltyApplied &&
+            !cancellationPolicy.refundEligible) {
             return undefined;
         }
         return {
             patientId: this.patientId,
             appointmentId: this.appointmentId,
-            action: cancellationPolicy.penaltyApplied ? 'penalty' :
-                cancellationPolicy.refundEligible ? 'refund' : 'no_action',
-            amount: cancellationPolicy.penaltyApplied ? cancellationPolicy.penaltyAmount :
-                cancellationPolicy.refundEligible ? (cancellationPolicy.refundPercentage || 0) * 100000 : undefined,
+            action: cancellationPolicy.penaltyApplied
+                ? "penalty"
+                : cancellationPolicy.refundEligible
+                    ? "refund"
+                    : "no_action",
+            amount: cancellationPolicy.penaltyApplied
+                ? cancellationPolicy.penaltyAmount
+                : cancellationPolicy.refundEligible
+                    ? (cancellationPolicy.refundPercentage || 0) * 100000
+                    : undefined,
             reason: this.cancellationReason,
-            processedAt: now
+            processedAt: now,
         };
     }
     getClinicalUpdate() {
@@ -345,10 +369,10 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
         const hoursNotice = Math.max(0, (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
         return {
             patientId: this.patientId,
-            providerId: this.providerId,
+            doctorId: this.doctorId, // Changed from providerId to doctorId
             appointmentId: this.appointmentId,
             updateMedicalRecord: true,
-            cancellationNote: `Cuộc hẹn bị hủy: ${this.cancellationReason}. Thời gian thông báo: ${Math.round(hoursNotice * 100) / 100} giờ.`
+            cancellationNote: `Cuộc hẹn bị hủy: ${this.cancellationReason}. Thời gian thông báo: ${Math.round(hoursNotice * 100) / 100} giờ.`,
         };
     }
 }

@@ -222,8 +222,7 @@ class AdvancedSearchService {
             }
             // Active medications filter
             if (criteria.hasActiveMedications) {
-                const hasActive = record.getActiveMedications().length > 0;
-                if (!hasActive)
+                if (!record.hasActiveMedications())
                     return false;
             }
             // Vital signs filter

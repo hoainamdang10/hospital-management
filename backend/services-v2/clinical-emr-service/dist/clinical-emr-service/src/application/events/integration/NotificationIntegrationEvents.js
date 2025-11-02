@@ -280,7 +280,7 @@ class CriticalAlertNotificationEvent extends domain_event_1.IntegrationEvent {
      */
     requiresImmediateEscalation() {
         return this.alertDetails.severity === 'life_threatening' ||
-            (this.alertDetails.timeWindow && this.alertDetails.timeWindow <= 15);
+            (this.alertDetails.timeWindow !== undefined && this.alertDetails.timeWindow <= 15);
     }
     /**
      * Get next escalation level

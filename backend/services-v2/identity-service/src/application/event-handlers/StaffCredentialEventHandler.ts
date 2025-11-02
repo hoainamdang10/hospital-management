@@ -571,6 +571,8 @@ export class StaffCredentialEventHandler {
         );
       }
 
+      await this.inboxService.markProcessed(event.eventId);
+
       this.logger.info('Successfully processed staff.performance_flagged event', {
         eventId: event.eventId,
         staffId: event.staffId,
@@ -583,6 +585,10 @@ export class StaffCredentialEventHandler {
         staffId: event.staffId,
         error: error instanceof Error ? error.message : String(error)
       });
+      await this.inboxService.markFailed(
+        event.eventId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       throw error;
     }
   }
@@ -632,6 +638,8 @@ export class StaffCredentialEventHandler {
         event.eventId
       );
 
+      await this.inboxService.markProcessed(event.eventId);
+
       this.logger.info('Successfully processed staff.department_changed event', {
         eventId: event.eventId,
         userId: event.userId,
@@ -644,6 +652,10 @@ export class StaffCredentialEventHandler {
         staffId: event.staffId,
         error: error instanceof Error ? error.message : String(error)
       });
+      await this.inboxService.markFailed(
+        event.eventId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       throw error;
     }
   }
@@ -694,6 +706,8 @@ export class StaffCredentialEventHandler {
         event.eventId
       );
 
+      await this.inboxService.markProcessed(event.eventId);
+
       this.logger.info('Successfully processed staff.schedule_updated event', {
         eventId: event.eventId,
         userId: event.userId,
@@ -707,6 +721,10 @@ export class StaffCredentialEventHandler {
         staffId: event.staffId,
         error: error instanceof Error ? error.message : String(error)
       });
+      await this.inboxService.markFailed(
+        event.eventId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       throw error;
     }
   }

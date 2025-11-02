@@ -45,6 +45,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// Load environment variables first
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -52,53 +55,163 @@ const morgan_1 = __importDefault(require("morgan"));
 const appointment_routes_1 = require("./presentation/routes/appointment.routes");
 const appointmentQueryRoutes_1 = require("./presentation/routes/appointmentQueryRoutes");
 const availability_routes_1 = require("./presentation/routes/availability.routes");
+const queue_routes_1 = require("./presentation/routes/queue.routes");
 const container_1 = require("./infrastructure/di/container");
-const IdempotencyMiddleware_1 = require("./presentation/middleware/IdempotencyMiddleware");
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
+const ValidationMiddleware_1 = require("./presentation/middleware/ValidationMiddleware");
+const ConfigValidator_1 = require("./infrastructure/config/ConfigValidator");
+const Logger_1 = require("./infrastructure/logging/Logger");
+const LoggingMiddleware_1 = require("./presentation/middleware/LoggingMiddleware");
+const MetricsMiddleware_1 = require("./presentation/middleware/MetricsMiddleware");
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
 const app = (0, express_1.default)();
-const PORT = process.env.PORT || 3024;
-const SERVICE_NAME = 'appointments-service';
 // Initialize DI Container
 console.log('[Main] Initializing DI Container...');
 const container = (0, container_1.getContainer)();
+const config = container.getConfig();
+const healthCheckService = container.getHealthCheckService();
+const metricsService = container.getMetricsService();
 console.log('[Main] DI Container initialized successfully');
-// Middleware
-app.use((0, helmet_1.default)());
-app.use((0, cors_1.default)({
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true
+// Print configuration summary
+console.log((0, ConfigValidator_1.getConfigSummary)(config));
+const PORT = config.port;
+const SERVICE_NAME = config.serviceName;
+// Initialize logger
+const logger = (0, Logger_1.createLogger)(SERVICE_NAME, config.logging.level);
+// Security Middleware - Order matters!
+app.use((0, helmet_1.default)({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+            scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+            imgSrc: ["'self'", 'data:', 'https:', 'cdn.jsdelivr.net'],
+            fontSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
+        },
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+    },
 }));
-app.use((0, morgan_1.default)('combined'));
+app.use((0, cors_1.default)({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin)
+            return callback(null, true);
+        const allowedOrigins = Array.isArray(config.cors.origin)
+            ? config.cors.origin
+            : [config.cors.origin];
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key'],
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+}));
+// Request logging (Morgan for basic HTTP logs)
+if (config.logging.enableRequestLogging) {
+    app.use((0, morgan_1.default)('combined'));
+}
+// Metrics collection middleware
+app.use((0, MetricsMiddleware_1.metricsMiddleware)(metricsService));
+// Structured logging middleware
+if (config.logging.enableRequestLogging) {
+    app.use((0, LoggingMiddleware_1.requestLoggingMiddleware)(logger));
+    app.use((0, LoggingMiddleware_1.performanceLoggingMiddleware)(logger, 1000)); // Log requests > 1s
+}
+// Rate limiting - Apply globally (reads from env: RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS)
+app.use((0, ValidationMiddleware_1.rateLimitMiddleware)());
+// Request size limit
+app.use((0, ValidationMiddleware_1.requestSizeLimitMiddleware)(10 * 1024 * 1024)); // 10MB
+// Content type validation (for POST/PUT/PATCH)
+app.use((0, ValidationMiddleware_1.validateContentType)(['application/json']));
+// Body parsers
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+// Sanitize all requests
+app.use(ValidationMiddleware_1.sanitizeRequest);
 // Connect Redis (best-effort)
 RedisCacheService_1.redisCacheService.connect().catch(() => console.warn('[Main] Redis not connected, idempotency will be in fail-open mode'));
-// Idempotency for write endpoints
-app.use(IdempotencyMiddleware_1.idempotencyMiddleware);
+// Idempotency for write endpoints (applied per-route, not globally)
 // Request logging
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
 });
-// Health check
-app.get('/health', (req, res) => {
-    res.json({
-        service: SERVICE_NAME,
-        status: 'healthy',
-        version: '3.0.0',
+// Health check endpoints
+app.get('/health', async (req, res) => {
+    try {
+        const detailed = req.query.detailed === 'true' || config.healthCheck.enableDetailedCheck;
+        const healthStatus = await healthCheckService.check(detailed);
+        const statusCode = healthStatus.status === 'healthy' ? 200 :
+            healthStatus.status === 'degraded' ? 200 : 503;
+        res.status(statusCode).json(healthStatus);
+    }
+    catch (error) {
+        console.error('[Health] Health check failed:', error);
+        res.status(503).json({
+            service: SERVICE_NAME,
+            status: 'unhealthy',
+            timestamp: new Date().toISOString(),
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+// Simple liveness probe
+app.get('/health/live', (req, res) => {
+    res.status(200).json({
+        status: 'alive',
         timestamp: new Date().toISOString(),
-        port: PORT,
-        features: [
-            'Appointment Scheduling',
-            'Appointment Management',
-            'Clean Architecture',
-            'DDD',
-            'CQRS',
-            'CQRS Read Model',
-            'Event-Driven Architecture'
-        ]
     });
 });
+// Readiness probe
+app.get('/health/ready', async (req, res) => {
+    try {
+        const healthStatus = await healthCheckService.check(true);
+        const isReady = healthStatus.status === 'healthy' || healthStatus.status === 'degraded';
+        res.status(isReady ? 200 : 503).json({
+            status: isReady ? 'ready' : 'not_ready',
+            timestamp: new Date().toISOString(),
+            checks: healthStatus.checks,
+        });
+    }
+    catch (error) {
+        res.status(503).json({
+            status: 'not_ready',
+            timestamp: new Date().toISOString(),
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+// Metrics endpoint
+app.get('/metrics', (0, MetricsMiddleware_1.createMetricsHandler)(metricsService));
+// Swagger API Documentation
+// Accessible at: http://localhost:3024/api-docs
+app.use('/api-docs', swagger_ui_express_1.default.serve);
+app.get('/api-docs', swagger_ui_express_1.default.setup(swagger_config_1.swaggerSpec, {
+    customSiteTitle: 'Appointments Service API',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true,
+        tryItOutEnabled: true
+    }
+}));
+// OpenAPI JSON spec
+app.get('/api-docs/json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swagger_config_1.swaggerSpec);
+});
+console.log('[Main] Swagger UI available at http://localhost:' + PORT + '/api-docs');
 // API Routes
 // V1 - Command routes (Write operations) + Legacy queries
 app.use('/api/v1', (0, appointment_routes_1.createAppointmentRoutes)());
@@ -106,23 +219,44 @@ app.use('/api/v1', (0, appointment_routes_1.createAppointmentRoutes)());
 app.use('/api/v2', (0, appointmentQueryRoutes_1.createAppointmentQueryRoutes)());
 // Availability routes (Provider schedule & available slots)
 app.use('/api/appointments', (0, availability_routes_1.createAvailabilityRoutes)());
+// Queue routes (Queue management)
+app.use('/api/queue', (0, queue_routes_1.createQueueRoutes)());
 // 404 Handler
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        message: 'Endpoint not found',
+        error: {
+            code: 'NOT_FOUND',
+            message: 'Endpoint not found',
+        },
         path: req.path,
         method: req.method,
+        correlationId: req.correlationId,
         timestamp: new Date().toISOString()
     });
 });
+// Error logging middleware
+if (config.logging.enableErrorTracking) {
+    app.use((0, LoggingMiddleware_1.errorLoggingMiddleware)(logger));
+}
 // Error Handler
 app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
+    logger.error('Unhandled error', err, {
+        correlationId: req.correlationId,
+        method: req.method,
+        path: req.path,
+    });
+    // Determine status code
+    const statusCode = err.statusCode || 500;
+    const errorCode = err.errorCode || 'INTERNAL_ERROR';
+    res.status(statusCode).json({
         success: false,
-        message: 'Internal server error',
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        error: {
+            code: errorCode,
+            message: err.message || 'Internal server error',
+            ...(config.nodeEnv === 'development' && { stack: err.stack }),
+        },
+        correlationId: req.correlationId,
         timestamp: new Date().toISOString()
     });
 });
@@ -132,8 +266,10 @@ const server = app.listen(PORT, async () => {
     console.log(`🏥 ${SERVICE_NAME.toUpperCase()}`);
     console.log('='.repeat(60));
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`✅ Environment: ${config.nodeEnv}`);
     console.log(`✅ Health check: http://localhost:${PORT}/health`);
+    console.log(`✅ Liveness probe: http://localhost:${PORT}/health/live`);
+    console.log(`✅ Readiness probe: http://localhost:${PORT}/health/ready`);
     console.log('='.repeat(60));
     console.log('📋 API V1 - Command Endpoints (Write Model):');
     console.log(`   POST   /api/v1/appointments - Schedule appointment`);
@@ -151,84 +287,81 @@ const server = app.listen(PORT, async () => {
     console.log('='.repeat(60));
     // Connect event subscriptions
     try {
-        console.log('[Main] Connecting event subscriptions...');
+        logger.info('Connecting event subscriptions...');
         const eventSubscriptions = container.getEventSubscriptions();
         await eventSubscriptions.connect();
-        console.log('[Main] ✅ Event subscriptions connected');
+        logger.info('Event subscriptions connected successfully');
+        // Update HealthCheckService with EventSubscriptions dependency
+        container.updateHealthCheckDependencies();
+        logger.info('Health check service updated with EventSubscriptions');
     }
     catch (error) {
-        console.error('[Main] ⚠️ Failed to connect event subscriptions:', error);
-        console.error('[Main] ⚠️ Service will continue without event subscriptions');
+        logger.error('Failed to connect event subscriptions', error);
+        logger.warn('Service will continue without event subscriptions');
     }
     // Start Outbox Publisher Worker
     try {
         const { OutboxRepository } = await Promise.resolve().then(() => __importStar(require('./infrastructure/outbox/OutboxRepository')));
         const { OutboxPublisherWorker } = await Promise.resolve().then(() => __importStar(require('./infrastructure/outbox/OutboxPublisherWorker')));
-        const { RemoteSchedulerAdapter } = await Promise.resolve().then(() => __importStar(require('@hospital/scheduler-client')));
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        const outboxRepo = new OutboxRepository(supabaseUrl, supabaseKey);
-        const schedulerURL = process.env.SCHEDULER_SERVICE_URL || 'http://localhost:3030';
-        const schedulerApiKey = process.env.SCHEDULER_API_KEY;
-        const scheduler = new RemoteSchedulerAdapter({ baseURL: schedulerURL, apiKey: schedulerApiKey, timeout: 5000, retries: 3 });
+        const { RemoteSchedulerAdapter } = await Promise.resolve().then(() => __importStar(require('./infrastructure/adapters/RemoteSchedulerAdapter')));
+        const outboxRepo = new OutboxRepository(config.supabase.url, config.supabase.serviceRoleKey);
+        const scheduler = new RemoteSchedulerAdapter({
+            baseUrl: config.services.schedulerServiceUrl,
+            apiKey: config.services.schedulerApiKey,
+            timeout: 5000
+        });
         const worker = new OutboxPublisherWorker(outboxRepo, scheduler, {
-            intervalMs: Number(process.env.OUTBOX_POLL_INTERVAL_MS || 5000),
-            batchSize: Number(process.env.OUTBOX_BATCH_SIZE || 50),
-            baseDelayMs: Number(process.env.OUTBOX_BASE_DELAY_MS || 5000),
-            maxDelayMs: Number(process.env.OUTBOX_MAX_DELAY_MS || 600000)
+            intervalMs: config.outbox.pollIntervalMs,
+            batchSize: config.outbox.batchSize,
+            baseDelayMs: config.outbox.baseDelayMs,
+            maxDelayMs: config.outbox.maxDelayMs
         });
         worker.start();
         app.outboxWorker = worker;
-        console.log('[Main] ✅ Outbox publisher worker started');
+        logger.info('Outbox publisher worker started', undefined, {
+            pollIntervalMs: config.outbox.pollIntervalMs,
+            batchSize: config.outbox.batchSize,
+        });
     }
     catch (e) {
-        console.error('[Main] ⚠️ Failed to start Outbox publisher worker:', e);
+        logger.error('Failed to start Outbox publisher worker', e);
     }
 });
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-    console.log('SIGTERM signal received: closing HTTP server');
+const gracefulShutdown = async (signal) => {
+    logger.info(`${signal} signal received: initiating graceful shutdown`);
     // Disconnect event subscriptions
     try {
         const eventSubscriptions = container.getEventSubscriptions();
         await eventSubscriptions.disconnect();
-        console.log('Event subscriptions disconnected');
+        logger.info('Event subscriptions disconnected');
     }
     catch (error) {
-        console.error('Failed to disconnect event subscriptions:', error);
+        logger.error('Failed to disconnect event subscriptions', error);
     }
+    // Stop outbox worker
     try {
         const worker = app.outboxWorker;
-        if (worker)
+        if (worker) {
             worker.stop();
-    }
-    catch { }
-    server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
-    });
-});
-process.on('SIGINT', async () => {
-    console.log('SIGINT signal received: closing HTTP server');
-    // Disconnect event subscriptions
-    try {
-        const eventSubscriptions = container.getEventSubscriptions();
-        await eventSubscriptions.disconnect();
-        console.log('Event subscriptions disconnected');
+            logger.info('Outbox worker stopped');
+        }
     }
     catch (error) {
-        console.error('Failed to disconnect event subscriptions:', error);
+        logger.error('Failed to stop outbox worker', error);
     }
-    try {
-        const worker = app.outboxWorker;
-        if (worker)
-            worker.stop();
-    }
-    catch { }
+    // Close HTTP server
     server.close(() => {
-        console.log('HTTP server closed');
+        logger.info('HTTP server closed');
         process.exit(0);
     });
-});
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+        logger.error('Forced shutdown after timeout');
+        process.exit(1);
+    }, 10000);
+};
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 exports.default = app;
 //# sourceMappingURL=main.js.map

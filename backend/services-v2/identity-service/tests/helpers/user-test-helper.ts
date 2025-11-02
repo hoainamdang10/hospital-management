@@ -10,6 +10,7 @@ import { User } from '../../src/domain/aggregates/User';
 import { Email } from '../../src/domain/value-objects/Email';
 import { PersonalInfo } from '../../src/domain/value-objects/PersonalInfo';
 import { HealthcareRole, HealthcareRoleType } from '../../src/domain/entities/HealthcareRole';
+import { AccountStatus } from '../../src/domain/value-objects/AccountStatus';
 
 /**
  * Create a mock User for testing
@@ -22,6 +23,7 @@ export function createMockUser(overrides?: {
   fullName?: string;
   roleType?: HealthcareRoleType;
   isActive?: boolean;
+  accountStatus?: AccountStatus;
   isEmailVerified?: boolean;
   phoneNumber?: string;
   address?: string;
@@ -34,6 +36,8 @@ export function createMockUser(overrides?: {
   const fullName = overrides?.fullName || 'Test User';
   const roleType = overrides?.roleType || 'PATIENT';
   const isActive = overrides?.isActive !== undefined ? overrides.isActive : true;
+  // Allow explicit accountStatus, otherwise derive from isActive
+  const accountStatus = overrides?.accountStatus || (isActive ? AccountStatus.ACTIVE : AccountStatus.LOCKED);
   const isEmailVerified = overrides?.isEmailVerified !== undefined ? overrides.isEmailVerified : false;
 
   return User.reconstitute(
@@ -48,9 +52,12 @@ export function createMockUser(overrides?: {
       citizenId: overrides?.citizenId || '001234567890'
     }),
     [HealthcareRole.fromRoleType(roleType)], // Array of roles for Pure RBAC
-    isActive,
+    accountStatus,
     isEmailVerified,
-    undefined, // twoFactorEnabled
+    undefined, // deactivationReason
+    undefined, // deactivatedAt
+    undefined, // deactivatedBy
+    undefined, // lastLoginAt
     new Date(),
     new Date()
   );

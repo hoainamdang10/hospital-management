@@ -21,6 +21,16 @@ jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed_password')
 }));
 
+// Initialize logger for CircuitBreakerFactory before tests
+const testLogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+  fatal: jest.fn()
+};
+CircuitBreakerFactory.setLogger(testLogger as any);
+
 describe('RegisterUserUseCase', () => {
   let useCase: RegisterUserUseCase;
   let mockUserRepository: jest.Mocked<IUserRepository>;

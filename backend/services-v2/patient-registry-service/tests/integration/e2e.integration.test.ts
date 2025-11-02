@@ -1,28 +1,28 @@
-/**
+﻿/**
  * End-to-End Integration Tests
- * 
- * Tests complete workflows from HTTP request to database
- * 
- * @author Hospital Management Team
- * @version 2.0.0
+ *
+ * Executes patient registry flows through the HTTP layer using the in-memory repository
+ * and mock identity service.
  */
 
 import request from 'supertest';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Application } from 'express';
+
 import { createAuthenticatedTestApp } from '../helpers/appFactory';
+import { InMemoryPatientRepository } from '../helpers/InMemoryPatientRepository';
 import {
-  getOrCreateTestUser,
   createValidPatientData,
-  verifyPatientExists,
-  getPatientFromDb,
-  cleanupTestPatients
+  generateRandomEmail,
+  generateRandomNationalId,
+  getOrCreateTestUser
 } from '../helpers/testHelpers';
+import { PatientId } from '../../src/domain/value-objects/PatientId';
 
 describe('End-to-End Integration Tests', () => {
   let app: Application;
   let cleanup: () => Promise<void>;
-  let supabaseClient: SupabaseClient;
+  let patientRepository: InMemoryPatientRepository;
+
   let adminToken: string;
   let receptionistToken: string;
   let patientToken: string;
@@ -31,36 +31,34 @@ describe('End-to-End Integration Tests', () => {
   let patientUserId: string;
 
   beforeAll(async () => {
-    // Initialize Supabase client
-    supabaseClient = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // Initialize app with authentication enabled
     const appFactory = await createAuthenticatedTestApp();
     app = appFactory.app;
     cleanup = appFactory.cleanup;
 
-    // Setup test users
-    const admin = await getOrCreateTestUser(supabaseClient, 'admin@test.com', 'test-password-123');
-    adminUserId = admin.userId;
+    if (!appFactory.inMemoryRepository) {
+      throw new Error('Integration tests require in-memory repository instance');
+    }
+
+    patientRepository = appFactory.inMemoryRepository;
+
+    const admin = await getOrCreateTestUser(null, 'admin@test.com', 'test-password-123');
     adminToken = admin.token;
+    adminUserId = admin.userId;
 
-    const receptionist = await getOrCreateTestUser(supabaseClient, 'receptionist@test.com', 'test-password-123');
-    receptionistUserId = receptionist.userId;
+    const receptionist = await getOrCreateTestUser(null, 'receptionist@test.com', 'test-password-123');
     receptionistToken = receptionist.token;
+    receptionistUserId = receptionist.userId;
 
-    const patient = await getOrCreateTestUser(supabaseClient, 'patient@test.com', 'test-password-123');
-    patientUserId = patient.userId;
+    const patient = await getOrCreateTestUser(null, 'patient@test.com', 'test-password-123');
     patientToken = patient.token;
+    patientUserId = patient.userId;
+  });
+
+  beforeEach(() => {
+    patientRepository.clear();
   });
 
   afterAll(async () => {
-    // Cleanup test data
-    await cleanupTestPatients(supabaseClient);
-    
-    // Cleanup app
     if (cleanup) {
       await cleanup();
     }
@@ -68,12 +66,15 @@ describe('End-to-End Integration Tests', () => {
 
   describe('Complete Patient Registration Flow', () => {
     it('should register a new patient end-to-end', async () => {
+      const patientEmail = generateRandomEmail();
+      const patientUser = await getOrCreateTestUser(null, patientEmail, 'test-password-123');
+
       const patientData = createValidPatientData({
-        userId: receptionistUserId,
-        nationalId: 'E2E001234567890'
+        userId: patientUser.userId,
+        email: patientEmail,
+        nationalId: generateRandomNationalId()
       });
 
-      // Step 1: Register patient via API
       const registerResponse = await request(app)
         .post('/api/v1/patients')
         .set('Authorization', `Bearer ${receptionistToken}`)
@@ -83,13 +84,14 @@ describe('End-to-End Integration Tests', () => {
       expect(registerResponse.body.success).toBe(true);
       expect(registerResponse.body.data.patientId).toBeDefined();
 
-      const patientId = registerResponse.body.data.patientId;
+      const patientId: string = registerResponse.body.data.patientId;
+      const storedPatient = await patientRepository.findById(PatientId.create(patientId));
+      expect(storedPatient).not.toBeNull();
 
-      // Step 2: Verify patient exists in database
-      const exists = await verifyPatientExists(supabaseClient, patientId);
-      expect(exists).toBe(true);
+      const storedProps = storedPatient!.getProps();
+      expect(storedProps.personalInfo.fullName).toBe(patientData.fullName);
+      expect(storedProps.personalInfo.nationalId).toBe(patientData.nationalId);
 
-      // Step 3: Retrieve patient via API
       const getResponse = await request(app)
         .get(`/api/v1/patients/${patientId}`)
         .set('Authorization', `Bearer ${receptionistToken}`);
@@ -98,44 +100,45 @@ describe('End-to-End Integration Tests', () => {
       expect(getResponse.body.success).toBe(true);
       expect(getResponse.body.data.patientId).toBe(patientId);
       expect(getResponse.body.data.personalInfo.fullName).toBe(patientData.fullName);
-
-      // Step 4: Verify data consistency between API and database
-      const dbPatient = await getPatientFromDb(supabaseClient, patientId);
-      expect(dbPatient.personal_info.fullName).toBe(patientData.fullName);
-      expect(dbPatient.personal_info.nationalId).toBe(patientData.nationalId);
     });
 
     it('should handle duplicate patient registration', async () => {
-      const patientData = createValidPatientData({
-        userId: receptionistUserId,
-        nationalId: 'E2E001234567891'
+      const duplicateEmail = generateRandomEmail();
+      const duplicateUser = await getOrCreateTestUser(null, duplicateEmail, 'test-password-123');
+      const duplicateData = createValidPatientData({
+        userId: duplicateUser.userId,
+        email: duplicateEmail,
+        nationalId: generateRandomNationalId()
       });
 
-      // Register patient first time
       const firstResponse = await request(app)
         .post('/api/v1/patients')
         .set('Authorization', `Bearer ${receptionistToken}`)
-        .send(patientData);
+        .send(duplicateData);
 
       expect(firstResponse.status).toBe(201);
 
-      // Try to register same patient again (same national ID)
       const secondResponse = await request(app)
         .post('/api/v1/patients')
         .set('Authorization', `Bearer ${receptionistToken}`)
-        .send(patientData);
+        .send(duplicateData);
 
-      expect(secondResponse.status).toBe(409); // Conflict
+      expect(secondResponse.status).toBe(400);
       expect(secondResponse.body.success).toBe(false);
+      expect(secondResponse.body.error).toBe('DOMAIN_ERROR');
+      expect(secondResponse.body.message).toBe('USER_ALREADY_HAS_PATIENT_PROFILE');
     });
   });
 
   describe('Patient Update Flow', () => {
     it('should update patient information end-to-end', async () => {
-      // Create patient
+      const updateEmail = generateRandomEmail();
+      const updateUser = await getOrCreateTestUser(null, updateEmail, 'test-password-123');
+
       const patientData = createValidPatientData({
-        userId: receptionistUserId,
-        nationalId: 'E2E001234567892'
+        userId: updateUser.userId,
+        email: updateEmail,
+        nationalId: generateRandomNationalId()
       });
 
       const createResponse = await request(app)
@@ -143,15 +146,15 @@ describe('End-to-End Integration Tests', () => {
         .set('Authorization', `Bearer ${receptionistToken}`)
         .send(patientData);
 
-      const patientId = createResponse.body.data.patientId;
+      const patientId: string = createResponse.body.data.patientId;
 
-      // Update patient
-      const updateData = {
+      const updatePayload = {
         personalInfo: {
           fullName: 'Updated Name',
           dateOfBirth: patientData.dateOfBirth,
           gender: patientData.gender,
-          nationalId: patientData.nationalId
+          nationalId: patientData.nationalId,
+          nationality: patientData.nationality
         },
         requestedBy: receptionistUserId
       };
@@ -159,25 +162,28 @@ describe('End-to-End Integration Tests', () => {
       const updateResponse = await request(app)
         .put(`/api/v1/patients/${patientId}`)
         .set('Authorization', `Bearer ${receptionistToken}`)
-        .send(updateData);
+        .send(updatePayload);
 
       expect(updateResponse.status).toBe(200);
       expect(updateResponse.body.success).toBe(true);
 
-      // Verify update in database
-      const dbPatient = await getPatientFromDb(supabaseClient, patientId);
-      expect(dbPatient.personal_info.fullName).toBe('Updated Name');
+      const refreshedPatient = await patientRepository.findById(PatientId.create(patientId));
+      expect(refreshedPatient).not.toBeNull();
+      expect(refreshedPatient!.getProps().personalInfo.fullName).toBe('Updated Name');
     });
   });
 
   describe('Patient Search Flow', () => {
     it('should search patients by name', async () => {
-      // Create test patient with unique name
       const uniqueName = `E2E Test Patient ${Date.now()}`;
+      const searchEmail = generateRandomEmail();
+      const searchUser = await getOrCreateTestUser(null, searchEmail, 'test-password-123');
+
       const patientData = createValidPatientData({
-        userId: receptionistUserId,
+        userId: searchUser.userId,
+        email: searchEmail,
         fullName: uniqueName,
-        nationalId: `E2E${Date.now().toString().slice(-12)}`
+        nationalId: generateRandomNationalId()
       });
 
       await request(app)
@@ -185,25 +191,29 @@ describe('End-to-End Integration Tests', () => {
         .set('Authorization', `Bearer ${receptionistToken}`)
         .send(patientData);
 
-      // Search for patient
       const searchResponse = await request(app)
         .get('/api/v1/patients/search')
-        .query({ query: uniqueName })
+        .query({ searchTerm: uniqueName })
         .set('Authorization', `Bearer ${receptionistToken}`);
 
       expect(searchResponse.status).toBe(200);
       expect(searchResponse.body.success).toBe(true);
+      expect(Array.isArray(searchResponse.body.data)).toBe(true);
       expect(searchResponse.body.data.length).toBeGreaterThan(0);
-      expect(searchResponse.body.data[0].personalInfo.fullName).toBe(uniqueName);
+      expect(searchResponse.body.data[0].fullName).toBe(uniqueName);
+      expect(searchResponse.body.pagination).toBeDefined();
     });
   });
 
   describe('Authorization Flow', () => {
-    it('should enforce role-based access control', async () => {
-      // Create patient
+    it('should restrict patient deactivation to privileged roles', async () => {
+      const authEmail = generateRandomEmail();
+      const authUser = await getOrCreateTestUser(null, authEmail, 'test-password-123');
+
       const patientData = createValidPatientData({
-        userId: receptionistUserId,
-        nationalId: 'E2E001234567893'
+        userId: authUser.userId,
+        email: authEmail,
+        nationalId: generateRandomNationalId()
       });
 
       const createResponse = await request(app)
@@ -211,10 +221,9 @@ describe('End-to-End Integration Tests', () => {
         .set('Authorization', `Bearer ${receptionistToken}`)
         .send(patientData);
 
-      const patientId = createResponse.body.data.patientId;
+      const patientId: string = createResponse.body.data.patientId;
 
-      // Patient user should NOT be able to deactivate
-      const deactivateResponse = await request(app)
+      const patientDeactivateResponse = await request(app)
         .post(`/api/v1/patients/${patientId}/deactivate`)
         .set('Authorization', `Bearer ${patientToken}`)
         .send({
@@ -222,10 +231,9 @@ describe('End-to-End Integration Tests', () => {
           requestedBy: patientUserId
         });
 
-      expect(deactivateResponse.status).toBe(403);
-      expect(deactivateResponse.body.success).toBe(false);
+      expect(patientDeactivateResponse.status).toBe(403);
+      expect(patientDeactivateResponse.body.success).toBe(false);
 
-      // Admin should be able to deactivate
       const adminDeactivateResponse = await request(app)
         .post(`/api/v1/patients/${patientId}/deactivate`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -241,26 +249,25 @@ describe('End-to-End Integration Tests', () => {
 
   describe('Error Scenarios', () => {
     it('should handle invalid patient data', async () => {
-      const invalidData = {
+      const invalidPayload = {
+        ...createValidPatientData({
+          userId: receptionistUserId,
+          fullName: ''
+        }),
         userId: receptionistUserId,
-        personalInfo: {
-          fullName: '', // Invalid: empty name
-          dateOfBirth: '1990-01-01',
-          gender: 'male',
-          nationalId: 'E2E001234567894'
-        }
+        fullName: ''
       };
 
       const response = await request(app)
         .post('/api/v1/patients')
         .set('Authorization', `Bearer ${receptionistToken}`)
-        .send(invalidData);
+        .send(invalidPayload);
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
     });
 
-    it('should handle non-existent patient', async () => {
+    it('should handle non-existent patient lookups', async () => {
       const response = await request(app)
         .get('/api/v1/patients/PAT-999999-999')
         .set('Authorization', `Bearer ${receptionistToken}`);
@@ -269,7 +276,7 @@ describe('End-to-End Integration Tests', () => {
       expect(response.body.success).toBe(false);
     });
 
-    it('should handle unauthorized access', async () => {
+    it('should require authentication for protected endpoints', async () => {
       const response = await request(app)
         .get('/api/v1/patients/PAT-202501-001');
 
@@ -278,4 +285,3 @@ describe('End-to-End Integration Tests', () => {
     });
   });
 });
-

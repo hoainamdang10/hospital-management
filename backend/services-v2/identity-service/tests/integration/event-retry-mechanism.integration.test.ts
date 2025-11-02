@@ -66,12 +66,12 @@ describe('Event Retry Mechanism Integration Tests', () => {
       const { data } = await supabaseClient
         .schema('auth_schema')
         .from('event_inbox')
-        .select('retry_count, error_message')
+        .select('retry_count, processing_error')
         .eq('event_id', eventId)
         .single();
 
-      expect(data.retry_count).toBeGreaterThanOrEqual(1);
-      expect(data.error_message).toBeDefined();
+      expect(data!.retry_count).toBeGreaterThanOrEqual(1);
+      expect(data!.processing_error).toBeDefined();
     });
 
     it('should store error message on failure', async () => {
@@ -98,11 +98,11 @@ describe('Event Retry Mechanism Integration Tests', () => {
       const { data } = await supabaseClient
         .schema('auth_schema')
         .from('event_inbox')
-        .select('error_message')
+        .select('processing_error')
         .eq('event_id', eventId)
         .single();
 
-      expect(data.error_message).toBe(errorMessage);
+      expect(data!.processing_error).toBe(errorMessage);
     });
   });
 
@@ -147,8 +147,8 @@ describe('Event Retry Mechanism Integration Tests', () => {
         .order('created_at', { ascending: true });
 
       expect(error).toBeNull();
-      expect(data.length).toBeGreaterThanOrEqual(2);
-      expect(data.every(e => e.status === 'FAILED')).toBe(true);
+      expect(data!.length).toBeGreaterThanOrEqual(2);
+      expect(data!.every(e => e.status === 'FAILED')).toBe(true);
     });
 
     it('should filter events by retry count', async () => {
@@ -214,7 +214,7 @@ describe('Event Retry Mechanism Integration Tests', () => {
         .eq('event_id', eventId)
         .single();
 
-      expect(data.status).toBe('FAILED');
+      expect(data!.status).toBe('FAILED');
 
       // Reprocess - mark as processed
       await inboxService.markProcessed(eventId);
@@ -227,7 +227,7 @@ describe('Event Retry Mechanism Integration Tests', () => {
         .eq('event_id', eventId)
         .single());
 
-      expect(data.status).toBe('PROCESSED');
+      expect(data!.status).toBe('PROCESSED');
     });
   });
 
@@ -262,8 +262,8 @@ describe('Event Retry Mechanism Integration Tests', () => {
         .gte('retry_count', 3)
         .eq('event_id', eventId);
 
-      expect(data.length).toBeGreaterThan(0);
-      expect(data[0].retry_count).toBeGreaterThanOrEqual(3);
+      expect(data!.length).toBeGreaterThan(0);
+      expect(data![0].retry_count).toBeGreaterThanOrEqual(3);
     });
   });
 });

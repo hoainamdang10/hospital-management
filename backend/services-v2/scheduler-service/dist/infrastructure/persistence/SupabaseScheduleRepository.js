@@ -73,6 +73,18 @@ class SupabaseScheduleRepository {
         }
         return data.map(row => this.toDomain(row));
     }
+    async findByTenant(tenantId, limit = 100, offset = 0) {
+        const { data, error } = await this.supabase
+            .from('schedules')
+            .select('*')
+            .eq('tenant_id', tenantId.getValue())
+            .range(offset, offset + limit - 1)
+            .order('created_at', { ascending: false });
+        if (error) {
+            throw new Error(`Failed to find schedules by tenant: ${error.message}`);
+        }
+        return data.map(row => this.toDomain(row));
+    }
     async findActiveSchedules(limit = 100, offset = 0) {
         const { data, error } = await this.supabase
             .from('schedules')

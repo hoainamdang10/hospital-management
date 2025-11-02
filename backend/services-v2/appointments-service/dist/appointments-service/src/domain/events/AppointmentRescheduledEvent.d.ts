@@ -7,11 +7,11 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, Vietnamese Healthcare Standards
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
 export interface AppointmentRescheduledEventData {
     appointmentId: string;
     patientId: string;
-    providerId: string;
+    doctorId: string;
     originalStartTime: Date;
     originalEndTime: Date;
     newStartTime: Date;
@@ -28,18 +28,18 @@ export interface AppointmentRescheduledEventData {
     };
     integrationEvents: {
         providerScheduleUpdate: {
-            providerId: string;
+            doctorId: string;
             releaseTimeSlot: {
                 timeSlotId: string;
                 startTime: Date;
                 endTime: Date;
-                status: 'available';
+                status: "available";
             };
             bookTimeSlot: {
                 timeSlotId: string;
                 startTime: Date;
                 endTime: Date;
-                status: 'booked';
+                status: "booked";
                 appointmentId: string;
             };
             updatedAt: Date;
@@ -47,7 +47,7 @@ export interface AppointmentRescheduledEventData {
         patientAppointmentHistory: {
             patientId: string;
             appointmentId: string;
-            status: 'rescheduled';
+            status: "rescheduled";
             originalDate: Date;
             newDate: Date;
             rescheduleReason: string;
@@ -57,8 +57,8 @@ export interface AppointmentRescheduledEventData {
         notificationRequests: {
             patientNotification: {
                 patientId: string;
-                type: 'appointment_rescheduled';
-                channels: ('sms' | 'email' | 'push')[];
+                type: "appointment_rescheduled";
+                channels: ("sms" | "email" | "push")[];
                 templateData: {
                     appointmentId: string;
                     originalDate: string;
@@ -69,12 +69,12 @@ export interface AppointmentRescheduledEventData {
                     feeInfo?: string;
                     preparationInstructions?: string;
                 };
-                priority: 'normal' | 'high';
+                priority: "normal" | "high";
             };
             providerNotification: {
-                providerId: string;
-                type: 'appointment_rescheduled';
-                channels: ('email' | 'push')[];
+                doctorId: string;
+                type: "appointment_rescheduled";
+                channels: ("email" | "push")[];
                 templateData: {
                     appointmentId: string;
                     patientName: string;
@@ -85,29 +85,29 @@ export interface AppointmentRescheduledEventData {
                     rescheduleReason: string;
                     hoursNotice: number;
                 };
-                priority: 'normal';
+                priority: "normal";
             };
             reminderNotifications: {
                 patientId: string;
                 appointmentId: string;
                 reminders: {
-                    type: '24h' | '2h' | '30min';
+                    type: "24h" | "2h" | "30min";
                     scheduledFor: Date;
-                    channels: ('sms' | 'email' | 'push')[];
+                    channels: ("sms" | "email" | "push")[];
                 }[];
             };
         };
         billingUpdate?: {
             patientId: string;
             appointmentId: string;
-            action: 'reschedule_fee' | 'no_charge';
+            action: "reschedule_fee" | "no_charge";
             amount?: number;
             reason: string;
             processedAt: Date;
         };
         clinicalUpdate?: {
             patientId: string;
-            providerId: string;
+            doctorId: string;
             appointmentId: string;
             updateMedicalRecord: boolean;
             rescheduleNote: string;
@@ -122,14 +122,15 @@ export interface AppointmentRescheduledEventData {
 export declare class AppointmentRescheduledEvent extends DomainEvent {
     readonly appointmentId: string;
     readonly patientId: string;
-    readonly providerId: string;
+    readonly doctorId: string;
     readonly originalStartTime: Date;
     readonly originalEndTime: Date;
     readonly newStartTime: Date;
     readonly newEndTime: Date;
     readonly rescheduleReason: string;
     readonly rescheduledBy: string;
-    constructor(appointmentId: string, patientId: string, providerId: string, originalStartTime: Date, originalEndTime: Date, newStartTime: Date, newEndTime: Date, rescheduleReason: string, rescheduledBy: string, correlationId?: string, causationId?: string, userId?: string);
+    constructor(appointmentId: string, patientId: string, doctorId: string, // Changed from providerId to doctorId
+    originalStartTime: Date, originalEndTime: Date, newStartTime: Date, newEndTime: Date, rescheduleReason: string, rescheduledBy: string, correlationId?: string, causationId?: string, userId?: string);
     /**
      * Get event data payload (required by DomainEvent base class)
      */

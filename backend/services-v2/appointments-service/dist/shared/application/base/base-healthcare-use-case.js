@@ -16,15 +16,10 @@ class BaseHealthcareUseCase {
     /**
      * Execute the use case
      * Public method that validates request then calls the protected executeImpl
+     * Can be overridden by subclasses for custom validation handling
      */
     async execute(request) {
-        // Validate request first
-        const validationResult = await this.validateRequest(request);
-        if (!validationResult.isValid) {
-            const errorMessage = validationResult.errors?.join(', ') || 'Validation failed';
-            throw new Error(errorMessage);
-        }
-        // Execute business logic
+        // Execute business logic - validation is handled in executeImpl
         return this.executeImpl(request);
     }
     /**

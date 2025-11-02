@@ -607,6 +607,7 @@ export class AppointmentCancelledEvent extends DomainEvent {
 /**
  * Published when appointment is completed
  * Subscribers: Clinical EMR Service, Billing Service, Notification Service
+ * Note: consultationFee is provided as reference for billing-service to create invoice
  */
 export class AppointmentCompletedEvent extends DomainEvent {
   constructor(
@@ -615,7 +616,8 @@ export class AppointmentCompletedEvent extends DomainEvent {
     public readonly doctorId: string,
     public readonly completedAt: Date,
     public readonly duration: number,
-    public readonly notes?: string
+    public readonly notes?: string,
+    public readonly consultationFee?: number
   ) {
     super(
       'AppointmentCompleted',
@@ -626,7 +628,8 @@ export class AppointmentCompletedEvent extends DomainEvent {
         doctorId,
         completedAt,
         duration,
-        notes
+        notes,
+        consultationFee
       },
       1,
       undefined,
@@ -641,7 +644,8 @@ export class AppointmentCompletedEvent extends DomainEvent {
       doctorId: this.doctorId,
       completedAt: this.completedAt,
       duration: this.duration,
-      notes: this.notes
+      notes: this.notes,
+      consultationFee: this.consultationFee
     };
   }
 

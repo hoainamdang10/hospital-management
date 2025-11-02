@@ -10,13 +10,12 @@
 import { NotificationEventHandler } from '@application/event-handlers/NotificationEventHandler';
 import { LockAccountUseCase } from '@application/use-cases/LockAccountUseCase';
 import { InboxService } from '@infrastructure/inbox/InboxService';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('NotificationEventHandler', () => {
   let handler: NotificationEventHandler;
   let mockLockAccountUseCase: jest.Mocked<LockAccountUseCase>;
   let mockInboxService: jest.Mocked<InboxService>;
-  let mockSupabaseClient: jest.Mocked<SupabaseClient>;
+  let mockSupabaseClient: any;
   let mockLogger: any;
 
   beforeEach(() => {
@@ -28,13 +27,18 @@ describe('NotificationEventHandler', () => {
       markFailed: jest.fn()
     } as any;
 
+    const mockLimit = jest.fn();
     mockSupabaseClient = {
       schema: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockResolvedValue({ error: null }),
+      update: jest.fn().mockResolvedValue({ error: null }),
       eq: jest.fn().mockReturnThis(),
       gte: jest.fn().mockReturnThis(),
+      contains: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: mockLimit,
       single: jest.fn()
     } as any;
 
@@ -76,9 +80,13 @@ describe('NotificationEventHandler', () => {
         status: 'PENDING'
       });
 
-      // Mock count query - 10 failures
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 10 },
+      // Mock consecutive failures query - return 10 failures
+      mockSupabaseClient.limit.mockResolvedValue({
+        data: Array(10).fill({ 
+          aggregate_type: 'NotificationDeliveryFailed',
+          event_type: 'NotificationDeliveryFailedEvent',
+          payload_json: { userId: 'user-456' }
+        }),
         error: null
       });
 
@@ -87,14 +95,13 @@ describe('NotificationEventHandler', () => {
       expect(mockLockAccountUseCase.execute).toHaveBeenCalledWith({
         userId: 'user-456',
         lockedBy: 'SYSTEM_AUTO',
-        reason: expect.stringContaining('Notification delivery failures'),
-        terminateSessions: false
+        reason: 'Account locked due to 11 consecutive notification delivery failures'
       });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-601');
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
-    it('should not lock account if < 10 failures', async () => {
+    it('should not lock account if < 5 failures', async () => {
       mockInboxService.checkProcessed.mockResolvedValue(false);
       mockInboxService.storeEvent.mockResolvedValue({
         isNew: true,
@@ -102,9 +109,13 @@ describe('NotificationEventHandler', () => {
         status: 'PENDING'
       });
 
-      // Mock count query - 5 failures
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { count: 5 },
+      // Mock fewer than 5 consecutive failures
+      mockSupabaseClient.limit.mockResolvedValue({
+        data: Array(3).fill({ 
+          aggregate_type: 'NotificationDeliveryFailed',
+          event_type: 'NotificationDeliveryFailedEvent',
+          payload_json: { userId: 'user-456' }
+        }),
         error: null
       });
 
@@ -112,6 +123,7 @@ describe('NotificationEventHandler', () => {
 
       expect(mockLockAccountUseCase.execute).not.toHaveBeenCalled();
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-601');
+      expect(mockInboxService.storeEvent).toHaveBeenCalled();
     });
 
     it('should skip if event already processed (idempotency)', async () => {
@@ -121,17 +133,19 @@ describe('NotificationEventHandler', () => {
 
       expect(mockInboxService.checkProcessed).toHaveBeenCalledWith('evt-601');
       expect(mockInboxService.storeEvent).not.toHaveBeenCalled();
+      expect(mockInboxService.markProcessed).not.toHaveBeenCalled();
       expect(mockLogger.debug).toHaveBeenCalledWith('Event already processed', { eventId: 'evt-601' });
     });
 
-    it('should mark as failed on error', async () => {
+    it('should throw error when storeEvent fails', async () => {
       mockInboxService.checkProcessed.mockResolvedValue(false);
       mockInboxService.storeEvent.mockRejectedValue(new Error('Database error'));
 
       await expect(handler.handleNotificationDeliveryFailed(mockEvent)).rejects.toThrow('Database error');
 
-      expect(mockInboxService.markFailed).toHaveBeenCalledWith('evt-601', 'Database error');
       expect(mockLogger.error).toHaveBeenCalled();
+      expect(mockInboxService.markFailed).toHaveBeenCalledWith('evt-601', 'Database error');
+      expect(mockInboxService.markProcessed).not.toHaveBeenCalled();
     });
   });
 });

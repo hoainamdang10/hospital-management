@@ -43,6 +43,10 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
       throw new Error('Ngày sinh không được để trống');
     }
 
+    if (Number.isNaN(this.props.dateOfBirth.getTime())) {
+      throw new Error('Ngày sinh không hợp lệ');
+    }
+
     const today = new Date();
     if (this.props.dateOfBirth >= today) {
       throw new Error('Ngày sinh phải trước ngày hiện tại');
@@ -282,4 +286,3 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
     };
   }
 }
-

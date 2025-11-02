@@ -8,6 +8,7 @@
  */
 
 import { ICircuitBreaker, CircuitBreakerState } from '../../application/services/ICircuitBreaker';
+import { ILogger } from '../../application/services/ILogger';
 import { getErrorMessage } from '../../utils/error-helper';
 
 // Re-export for backward compatibility
@@ -44,11 +45,14 @@ export class IdentityServiceCircuitBreaker implements ICircuitBreaker {
   private lastFailureTime?: Date;
   private halfOpenCalls: number = 0;
   private metrics: CircuitBreakerMetrics;
+  private logger: ILogger;
 
   constructor(
     private config: CircuitBreakerConfig,
-    private serviceName: string
+    private serviceName: string,
+    logger: ILogger
   ) {
+    this.logger = logger;
     this.metrics = {
       totalCalls: 0,
       successfulCalls: 0,
@@ -152,7 +156,12 @@ export class IdentityServiceCircuitBreaker implements ICircuitBreaker {
       reason
     });
 
-    console.log(`[CircuitBreaker:${this.serviceName}] ${oldState} -> ${newState}: ${reason}`);
+    this.logger.info('CircuitBreaker state transition', {
+      serviceName: this.serviceName,
+      from: oldState,
+      to: newState,
+      reason
+    });
   }
 
   /**
@@ -193,10 +202,16 @@ export class IdentityServiceCircuitBreaker implements ICircuitBreaker {
  */
 export class CircuitBreakerFactory {
   private static breakers = new Map<string, IdentityServiceCircuitBreaker>();
+  private static logger: ILogger | null = null;
+
+  static setLogger(logger: ILogger): void {
+    this.logger = logger;
+  }
 
   static getBreaker(
     serviceName: string,
-    config?: Partial<CircuitBreakerConfig>
+    config?: Partial<CircuitBreakerConfig>,
+    logger?: ILogger
   ): IdentityServiceCircuitBreaker {
     if (!this.breakers.has(serviceName)) {
       const defaultConfig: CircuitBreakerConfig = {
@@ -207,7 +222,16 @@ export class CircuitBreakerFactory {
       };
 
       const finalConfig = { ...defaultConfig, ...config };
-      this.breakers.set(serviceName, new IdentityServiceCircuitBreaker(finalConfig, serviceName));
+      const loggerInstance = logger || this.logger;
+      
+      if (!loggerInstance) {
+        throw new Error('Logger must be provided to CircuitBreakerFactory');
+      }
+
+      this.breakers.set(
+        serviceName,
+        new IdentityServiceCircuitBreaker(finalConfig, serviceName, loggerInstance)
+      );
     }
 
     return this.breakers.get(serviceName)!;

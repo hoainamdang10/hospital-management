@@ -24,11 +24,14 @@ import {
   verifyPendingRegistrationExists,
   getPendingRegistrationFromDb
 } from '../helpers/integrationHelpers';
+import { TestUserPool } from '../helpers/test-user-pool';
+import { testUserPoolCache } from '../helpers/test-user-pool-cache';
 
 describe('Auth Routes Integration Tests', () => {
   let app: Application;
   let supabaseClient: SupabaseClient;
   let cleanup: () => Promise<void>;
+  let userPool: TestUserPool;
   const testEmails: string[] = [];
 
   // Helper to generate unique test email
@@ -54,10 +57,15 @@ describe('Auth Routes Integration Tests', () => {
     const result = await createTestApp();
     app = result.app;
     cleanup = result.cleanup;
-  }, 30000); // 30 second timeout for setup
+
+    // Get cached test user pool (seeds once, reuses for all tests)
+    userPool = await testUserPoolCache.getPool(supabaseClient);
+  }, 60000); // 60 second timeout for setup
 
   afterAll(async () => {
-    // Cleanup all test users
+    // Note: User pool is cached and will be cleaned up in global teardown
+
+    // Cleanup all test users created during tests
     if (testEmails.length > 0) {
       await cleanupTestUsers(supabaseClient, testEmails);
     }
@@ -111,14 +119,15 @@ describe('Auth Routes Integration Tests', () => {
       const email = generateTestEmail('register-duplicate');
       testEmails.push(email);
 
-      // Create user first
+      // Create user first (no login needed - just checking duplicate)
       await createTestUser(supabaseClient, email, 'Password123!', 'PATIENT', {
         fullName: 'Existing User',
         phoneNumber: '0901234568',
         address: '456 Test Street, Hanoi, Vietnam',
         dateOfBirth: '1991-02-02',
         gender: 'female',
-        citizenId: generateUniqueCitizenId() // Generate unique citizen ID
+        citizenId: generateUniqueCitizenId(), // Generate unique citizen ID
+        skipAutoLogin: true // No login needed - just checking duplicate
       });
 
       // Try to register with same email
@@ -250,7 +259,8 @@ describe('Auth Routes Integration Tests', () => {
           address: '123 Test Street, Hanoi, Vietnam',
           dateOfBirth: '1990-01-01',
           gender: 'male',
-          citizenId: generateUniqueCitizenId() // Generate unique citizen ID
+          citizenId: generateUniqueCitizenId(), // Generate unique citizen ID
+          skipAutoLogin: true // Avoid double login - test will login via API
         }
       );
       testUserId = user.userId;
@@ -356,12 +366,13 @@ describe('Auth Routes Integration Tests', () => {
           address: '123 Test Street, Hanoi, Vietnam',
           dateOfBirth: '1990-01-01',
           gender: 'male',
-          citizenId: generateUniqueCitizenId() // Generate unique citizen ID
+          citizenId: generateUniqueCitizenId(), // Generate unique citizen ID
+          skipAutoLogin: true // Avoid double login - will login via API
         }
       );
       testUserId = user.userId;
 
-      // Login to get access token
+      // Login to get access token (single login via API)
       const loginResponse = await request(app)
         .post('/auth/login')
         .send({
@@ -411,43 +422,24 @@ describe('Auth Routes Integration Tests', () => {
   });
 
   describe('POST /auth/refresh', () => {
-    let testUserEmail: string;
-    let testUserPassword: string;
     let refreshToken: string;
 
     beforeAll(async () => {
-      // Create test user and login to get refresh token
-      testUserEmail = generateTestEmail('refresh-test');
-      testUserPassword = 'RefreshPassword123!';
-      testEmails.push(testUserEmail);
-
-      await createTestUser(
-        supabaseClient,
-        testUserEmail,
-        testUserPassword,
-        'PATIENT',
-        {
-          fullName: 'Refresh Test User',
-          phoneNumber: '0901234576',
-          address: '123 Test Street, Hanoi, Vietnam',
-          dateOfBirth: '1990-01-01',
-          gender: 'male',
-          citizenId: '001090001240'
-        }
-      );
-
-      // Login to get refresh token
+      // Login to get refresh token from test pool user
       const loginResponse = await request(app)
         .post('/auth/login')
         .send({
-          email: testUserEmail,
-          password: testUserPassword
+          email: userPool.patient.email,
+          password: userPool.patient.password
         });
 
       refreshToken = loginResponse.body.refreshToken;
     });
 
     it('should refresh token successfully with valid refresh token', async () => {
+      // Add delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const response = await request(app)
         .post('/auth/refresh')
         .send({

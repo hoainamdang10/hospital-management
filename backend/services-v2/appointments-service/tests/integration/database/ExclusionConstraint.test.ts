@@ -13,10 +13,14 @@ import { AppointmentDetails } from '../../../src/domain/value-objects/Appointmen
 
 describe('Exclusion Constraint - Prevent Double-Booking', () => {
   let repository: SupabaseAppointmentRepository;
-  const testDoctorId = 'TEST-DOC-000001-001';
-  const testDoctorId2 = 'TEST-DOC-000002-002';
-  const testPatientId1 = 'PAT-000001-001';
-  const testPatientId2 = 'PAT-000002-002';
+  
+  // Generate unique IDs per test run to prevent conflicts
+  // Match format: [DEPT]-DOC-[6digits]-[3digits]
+  const testRunId = String(Date.now()).slice(-6);
+  const testDoctorId = `TEST-DOC-${testRunId}-001`;
+  const testDoctorId2 = `TEST-DOC-${testRunId}-002`;
+  const testPatientId1 = `PAT-${testRunId}-001`;
+  const testPatientId2 = `PAT-${testRunId}-002`;
   const tenantId = TenantId.createDefault();
   const createdAppointmentIds: string[] = [];
 
@@ -35,7 +39,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
     // Cleanup test data
     for (const id of createdAppointmentIds) {
       try {
-        await repository.delete(id);
+        await repository.delete(AppointmentId.create(id));
       } catch (e) {
         // Ignore errors during cleanup
       }
@@ -50,7 +54,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       const end1 = new Date(`${testDateStr}T02:30:00Z`);
 
       const appointment1 = Appointment.create(
-        AppointmentId.create('2025-APT-000001-001'),
+        AppointmentId.generate(), // Use unique ID
         tenantId,
         testPatientId1,
         testDoctorId,
@@ -71,7 +75,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       const end2 = new Date(`${testDateStr}T03:00:00Z`);
 
       const appointment2 = Appointment.create(
-        AppointmentId.create('2025-APT-000002-002'),
+        AppointmentId.generate(), // Use unique ID
         tenantId,
         testPatientId2,
         testDoctorId,
@@ -93,7 +97,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       const end = new Date(`${testDateStr}T03:30:00Z`);
 
       const appointment1 = Appointment.create(
-        AppointmentId.create('2025-APT-000003-003'),
+        AppointmentId.generate(), // Use unique ID instead of hardcoded '2025-APT-000003-003'),
         tenantId,
         testPatientId1,
         testDoctorId,
@@ -110,7 +114,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       createdAppointmentIds.push(appointment1.id);
 
       const appointment2 = Appointment.create(
-        AppointmentId.create('2025-APT-000004-004'),
+        AppointmentId.generate(), // Use unique ID instead of hardcoded '2025-APT-000004-004'),
         tenantId,
         testPatientId2,
         testDoctorId,
@@ -131,7 +135,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       const end1 = new Date(`${testDateStr}T04:30:00Z`);
 
       const appointment1 = Appointment.create(
-        AppointmentId.create('2025-APT-000005-005'),
+        AppointmentId.generate(), // Use unique ID instead of hardcoded '2025-APT-000005-005'),
         tenantId,
         testPatientId1,
         testDoctorId,
@@ -151,7 +155,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       const end2 = new Date(`${testDateStr}T04:45:00Z`);
 
       const appointment2 = Appointment.create(
-        AppointmentId.create('2025-APT-000006-006'),
+        AppointmentId.generate(), // Use unique ID instead of hardcoded '2025-APT-000006-006'),
         tenantId,
         testPatientId2,
         testDoctorId,
@@ -172,7 +176,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       const end = new Date(`${testDateStr}T10:30:00Z`);
 
       const appointment1 = Appointment.create(
-        AppointmentId.create('2025-APT-000013-013'),
+        AppointmentId.generate(), // Use unique ID instead of hardcoded '2025-APT-000013-013'),
         tenantId,
         testPatientId1,
         testDoctorId,
@@ -189,7 +193,7 @@ describe('Exclusion Constraint - Prevent Double-Booking', () => {
       createdAppointmentIds.push(appointment1.id);
 
       const appointment2 = Appointment.create(
-        AppointmentId.create('2025-APT-000014-014'),
+        AppointmentId.generate(), // Use unique ID instead of hardcoded '2025-APT-000014-014'),
         tenantId,
         testPatientId2,
         testDoctorId2,

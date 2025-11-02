@@ -2,13 +2,19 @@
 node_modules
 npm-debug.log
 yarn-error.log
-package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Testing
 coverage
 *.test.ts
 *.spec.ts
 tests
+test-results
+test-results.json
+test-results.log
+test-results.txt
+playwright-report
 
 # Development
 .git
@@ -16,22 +22,27 @@ tests
 .env
 .env.local
 .env.*.local
+.env.development
+.env.test
 
-# IDE
+# IDE & Editors
 .vscode
 .idea
 *.swp
 *.swo
 *~
+.DS_Store
 
 # Documentation
 *.md
 !README.md
+docs
 
 # Build artifacts
 dist
 build
 *.log
+*.tsbuildinfo
 
 # Monitoring
 monitoring
@@ -40,4 +51,25 @@ monitoring
 test-*.sh
 test-*.ps1
 *.postman_collection.json
+debug-*.js
+
+# Temporary files
+tmp
+temp
+.cache
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Migration scripts (not needed in production)
+migrations
+scripts
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+compose*.yml
 

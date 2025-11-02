@@ -9,11 +9,17 @@
  * @compliance Clean Architecture, DDD, HIPAA, Vietnamese Healthcare Standards
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Appointment = exports.PaymentStatus = exports.AppointmentStatus = exports.AppointmentPriority = exports.AppointmentType = void 0;
+exports.Appointment = exports.AppointmentStatus = exports.AppointmentPriority = exports.AppointmentType = void 0;
 const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const AppointmentScheduledEvent_1 = require("../events/AppointmentScheduledEvent");
 const AppointmentCancelledEvent_1 = require("../events/AppointmentCancelledEvent");
 const AppointmentRescheduledEvent_1 = require("../events/AppointmentRescheduledEvent");
+const AppointmentNoShowEvent_1 = require("../events/AppointmentNoShowEvent");
+const AppointmentCheckedInEvent_1 = require("../events/AppointmentCheckedInEvent");
+const AppointmentStartedEvent_1 = require("../events/AppointmentStartedEvent");
+const AppointmentConfirmedEvent_1 = require("../events/AppointmentConfirmedEvent");
+const AppointmentCompletedEvent_1 = require("../events/AppointmentCompletedEvent");
+const AppointmentDetails_vo_1 = require("../value-objects/AppointmentDetails.vo");
 var AppointmentType;
 (function (AppointmentType) {
     AppointmentType["CONSULTATION"] = "consultation";
@@ -40,14 +46,6 @@ var AppointmentStatus;
     AppointmentStatus["CANCELLED"] = "cancelled";
     AppointmentStatus["NO_SHOW"] = "no_show";
 })(AppointmentStatus || (exports.AppointmentStatus = AppointmentStatus = {}));
-var PaymentStatus;
-(function (PaymentStatus) {
-    PaymentStatus["PENDING"] = "pending";
-    PaymentStatus["PAID"] = "paid";
-    PaymentStatus["PARTIALLY_PAID"] = "partially_paid";
-    PaymentStatus["REFUNDED"] = "refunded";
-    PaymentStatus["CANCELLED"] = "cancelled";
-})(PaymentStatus || (exports.PaymentStatus = PaymentStatus = {}));
 /**
  * Appointment Aggregate Root
  * Manages appointment lifecycle with Vietnamese healthcare business rules
@@ -100,17 +98,12 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
     getRequiredEquipment() {
         return this.props.requiredEquipment ? [...this.props.requiredEquipment] : undefined;
     }
+    /**
+     * Get consultation fee (immutable reference for billing-service)
+     * NOTE: Appointments service does NOT manage payment state
+     */
     getConsultationFee() {
         return this.props.consultationFee;
-    }
-    getAdditionalFees() {
-        return this.props.additionalFees;
-    }
-    getPaymentStatus() {
-        return this.props.paymentStatus;
-    }
-    getPaymentMethod() {
-        return this.props.paymentMethod;
     }
     getCheckedInAt() {
         return this.props.checkedInAt;
@@ -193,9 +186,7 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
             roomId,
             departmentId,
             requiredEquipment,
-            consultationFee,
-            additionalFees: 0,
-            paymentStatus: PaymentStatus.PENDING,
+            consultationFee, // Immutable reference for billing-service
             reminderSent: false,
             confirmationRequired: true,
             version: 1,
@@ -237,30 +228,40 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.confirmedBy = confirmedBy;
         this.props.updatedAt = new Date();
         this.props.lastModifiedBy = confirmedBy;
+        // Domain event
+        this.addDomainEvent(new AppointmentConfirmedEvent_1.AppointmentConfirmedEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, this.props.confirmedAt, 'manual' // confirmation method
+        ));
         this.incrementVersion();
     }
     /**
      * Check in patient
      */
-    checkIn() {
-        if (this.props.status !== AppointmentStatus.CONFIRMED) {
-            throw new Error('Only confirmed appointments can be checked in');
+    checkIn(checkInTime) {
+        if (this.props.status !== AppointmentStatus.CONFIRMED &&
+            this.props.status !== AppointmentStatus.SCHEDULED) {
+            throw new Error('Only confirmed or scheduled appointments can be checked in');
         }
+        const actualCheckInTime = checkInTime || new Date();
         this.props.status = AppointmentStatus.ARRIVED;
-        this.props.checkedInAt = new Date();
+        this.props.checkedInAt = actualCheckInTime;
         this.props.updatedAt = new Date();
+        // Domain event
+        this.addDomainEvent(new AppointmentCheckedInEvent_1.AppointmentCheckedInEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, actualCheckInTime, this.props.priority));
         this.incrementVersion();
     }
     /**
      * Start appointment
      */
-    start() {
+    start(startTime) {
         if (this.props.status !== AppointmentStatus.ARRIVED) {
             throw new Error('Patient must be checked in before starting appointment');
         }
+        const actualStartTime = startTime || new Date();
         this.props.status = AppointmentStatus.IN_PROGRESS;
-        this.props.startedAt = new Date();
+        this.props.startedAt = actualStartTime;
         this.props.updatedAt = new Date();
+        // Domain event
+        this.addDomainEvent(new AppointmentStartedEvent_1.AppointmentStartedEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, actualStartTime, this.props.roomId));
         this.incrementVersion();
     }
     /**
@@ -273,6 +274,14 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.status = AppointmentStatus.COMPLETED;
         this.props.completedAt = new Date();
         this.props.updatedAt = new Date();
+        // Calculate duration
+        const duration = this.props.startedAt && this.props.completedAt
+            ? Math.round((this.props.completedAt.getTime() - this.props.startedAt.getTime()) / 60000)
+            : this.props.durationMinutes;
+        // Domain event (includes consultationFee for billing-service to consume)
+        // billing-service will create invoice and handle payment lifecycle
+        this.addDomainEvent(new AppointmentCompletedEvent_1.AppointmentCompletedEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, this.props.completedAt, duration, this.props.details?.notes, this.props.consultationFee // Billing reference
+        ));
         this.incrementVersion();
     }
     /**
@@ -301,14 +310,45 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
     /**
      * Mark as no-show
      */
-    markAsNoShow() {
+    markAsNoShow(markedBy) {
         if (this.props.status !== AppointmentStatus.CONFIRMED &&
             this.props.status !== AppointmentStatus.SCHEDULED) {
             throw new Error('Only scheduled/confirmed appointments can be marked as no-show');
         }
         this.props.status = AppointmentStatus.NO_SHOW;
         this.props.updatedAt = new Date();
+        this.props.lastModifiedBy = markedBy;
+        // Domain event
+        this.addDomainEvent(new AppointmentNoShowEvent_1.AppointmentNoShowEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, new Date(this.props.timeSlot.appointmentDate), this.props.timeSlot.appointmentTime, new Date()));
         this.incrementVersion();
+    }
+    /**
+     * Transfer appointment to another doctor
+     * Business method for changing doctor assignment
+     */
+    transfer(newDoctorId, reason, transferredBy) {
+        // Validate state - cannot transfer completed/cancelled appointments
+        if (this.props.status === AppointmentStatus.COMPLETED) {
+            throw new Error('Cannot transfer completed appointment');
+        }
+        if (this.props.status === AppointmentStatus.CANCELLED) {
+            throw new Error('Cannot transfer cancelled appointment');
+        }
+        if (this.props.status === AppointmentStatus.NO_SHOW) {
+            throw new Error('Cannot transfer no-show appointment');
+        }
+        // Store old doctor for event
+        const oldDoctorId = this.props.doctorId;
+        // Update doctor assignment
+        this.props.doctorId = newDoctorId;
+        this.props.lastModifiedBy = transferredBy;
+        this.props.updatedAt = new Date();
+        // Add transfer note to details
+        const transferNote = `[${new Date().toISOString()}] Transferred from doctor ${oldDoctorId} to ${newDoctorId}. Reason: ${reason}`;
+        const currentNotes = this.props.details.notes || '';
+        const updatedNotes = currentNotes ? `${currentNotes}\n${transferNote}` : transferNote;
+        this.props.details = AppointmentDetails_vo_1.AppointmentDetails.create(this.props.details.reason, this.props.details.chiefComplaint, this.props.details.symptoms, updatedNotes, this.props.details.specialInstructions);
+        this.props.version++;
     }
     /**
      * Reschedule appointment
@@ -339,7 +379,7 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         this.addDomainEvent(new AppointmentRescheduledEvent_1.AppointmentRescheduledEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, originalStartTime, originalEndTime, newStartTime, newEndTime, reason, rescheduledBy));
         this.incrementVersion();
     }
-    // Getters
+    // Getters (shorthand accessors)
     get appointmentId() { return this.props.appointmentId; }
     get patientId() { return this.props.patientId; }
     get doctorId() { return this.props.doctorId; }
@@ -349,8 +389,7 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
     get priority() { return this.props.priority; }
     get status() { return this.props.status; }
     get details() { return this.props.details; }
-    get consultationFee() { return this.props.consultationFee; }
-    get paymentStatus() { return this.props.paymentStatus; }
+    get consultationFee() { return this.props.consultationFee; } // Billing reference only
     /**
      * Healthcare-specific: Contains PHI
      */

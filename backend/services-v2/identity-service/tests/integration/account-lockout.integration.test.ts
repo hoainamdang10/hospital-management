@@ -21,11 +21,14 @@ import {
   createTestSupabaseClient,
   cleanupTestUsers
 } from '../helpers/integrationHelpers';
+import { TestUserPool } from '../helpers/test-user-pool';
+import { testUserPoolCache } from '../helpers/test-user-pool-cache';
 
 describe('Account Lockout & Brute Force Protection Integration Tests', () => {
   let app: Application;
   let supabaseClient: SupabaseClient;
   let cleanup: () => Promise<void>;
+  let userPool: TestUserPool;
   const testEmails: string[] = [];
 
   const generateTestEmail = (prefix: string): string => {
@@ -129,9 +132,15 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
     const result = await createTestApp();
     app = result.app;
     cleanup = result.cleanup;
-  }, 30000);
+
+    // Get cached test user pool (seeds once, reuses for all tests)
+    userPool = await testUserPoolCache.getPool(supabaseClient);
+    console.log('✅ Test user pool ready for account lockout tests');
+  }, 120000); // Increased timeout for user pool seeding
 
   afterAll(async () => {
+    // Note: User pool is cached and will be cleaned up in global teardown
+    
     if (testEmails.length > 0) {
       await cleanupTestUsers(supabaseClient, testEmails);
     }
@@ -150,6 +159,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
         await createUserDirectly(email, password, 'PATIENT');
 
         await insertFailedLoginAttempts(email, 5, 0);
+
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const response = await request(app)
           .post('/auth/login')
@@ -172,6 +184,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
 
         await insertFailedLoginAttempts(email, 4, 0);
 
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         const response = await request(app)
           .post('/auth/login')
           .send({
@@ -192,6 +207,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
 
         await insertFailedLoginAttempts(email, 5, 31);
 
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         const response = await request(app)
           .post('/auth/login')
           .send({
@@ -211,6 +229,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
         await createUserDirectly(email, password, 'PATIENT');
 
         await insertFailedLoginAttempts(email, 5, 0);
+
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const response = await request(app)
           .post('/auth/login')
@@ -235,6 +256,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
 
         await insertFailedLoginAttempts(email, 5, 31);
 
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         const response = await request(app)
           .post('/auth/login')
           .send({
@@ -254,6 +278,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
         await createUserDirectly(email, password, 'PATIENT');
 
         await insertFailedLoginAttempts(email, 3, 0);
+
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const response = await request(app)
           .post('/auth/login')
@@ -281,21 +308,28 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
 
     describe('Lockout Edge Cases', () => {
       it('should not lock account for different users with similar emails', async () => {
-        const email1 = generateTestEmail('lockout-user1');
-        const email2 = generateTestEmail('lockout-user2');
-        const password = 'CorrectPassword123!';
-        testEmails.push(email1, email2);
+        // Use pool users to avoid creating new users (rate limiting)
+        const user1 = userPool.patient;
+        const user2 = userPool.patient2;
 
-        await createUserDirectly(email1, password, 'PATIENT');
-        await createUserDirectly(email2, password, 'PATIENT');
+        // Clear any existing login attempts for both users
+        await supabaseClient
+          .from('login_attempts')
+          .delete()
+          .in('email', [user1.email, user2.email]);
 
-        await insertFailedLoginAttempts(email1, 5, 0);
+        // Insert failed attempts for user1 only
+        await insertFailedLoginAttempts(user1.email, 5, 0);
 
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Try to login as user2 - should succeed since user2 has no failed attempts
         const response = await request(app)
           .post('/auth/login')
           .send({
-            email: email2,
-            password
+            email: user2.email,
+            password: 'PatientPool123!' // Correct password from test pool
           });
 
         expect(response.status).toBe(200);
@@ -314,12 +348,18 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
         await insertFailedLoginAttempts(email1, 5, 0);
         await insertFailedLoginAttempts(email2, 2, 0);
 
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         const response1 = await request(app)
           .post('/auth/login')
           .send({
             email: email1,
             password
           });
+
+        // Add delay between login calls
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const response2 = await request(app)
           .post('/auth/login')
@@ -344,6 +384,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
 
         await insertFailedLoginAttempts(email.toUpperCase(), 5, 0);
 
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         const response = await request(app)
           .post('/auth/login')
           .send({
@@ -356,26 +399,31 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
       });
 
       it('should count only failed attempts (not successful ones)', async () => {
-        const email = generateTestEmail('lockout-mixed-attempts');
-        const password = 'CorrectPassword123!';
-        testEmails.push(email);
+        // Use pool user to avoid creating new user (rate limiting)
+        const user = userPool.destructive.lockable;
 
-        await createUserDirectly(email, password, 'PATIENT');
+        // Clear any existing login attempts
+        await supabaseClient
+          .from('login_attempts')
+          .delete()
+          .eq('email', user.email);
 
-        await insertFailedLoginAttempts(email, 3, 0);
+        // Insert 3 failed attempts
+        await insertFailedLoginAttempts(user.email, 3, 0);
 
+        // Insert 2 successful attempts (should not count toward lockout)
         await supabaseClient
           .from('login_attempts')
           .insert([
             {
-              email,
+              email: user.email,
               success: true,
               ip_address: '127.0.0.1',
               user_agent: 'Test-Agent/1.0',
               attempted_at: new Date().toISOString()
             },
             {
-              email,
+              email: user.email,
               success: true,
               ip_address: '127.0.0.1',
               user_agent: 'Test-Agent/1.0',
@@ -383,11 +431,15 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
             }
           ]);
 
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Should login successfully - only 3 failed attempts (< 5 threshold)
         const response = await request(app)
           .post('/auth/login')
           .send({
-            email,
-            password
+            email: user.email,
+            password: 'LockablePool123!' // Correct password from test pool (PATIENT role)
           });
 
         expect(response.status).toBe(200);
@@ -402,6 +454,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
         testEmails.push(email);
 
         await createUserDirectly(email, password, 'PATIENT');
+
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const response = await request(app)
           .post('/auth/login')
@@ -428,17 +483,23 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
       });
 
       it('should record successful login attempt', async () => {
-        const email = generateTestEmail('tracking-success');
-        const password = 'CorrectPassword123!';
-        testEmails.push(email);
+        // Use pool user to avoid creating new user (rate limiting)
+        const user = userPool.destructive.deletable;
 
-        await createUserDirectly(email, password, 'PATIENT');
+        // Clear any existing login attempts
+        await supabaseClient
+          .from('login_attempts')
+          .delete()
+          .eq('email', user.email);
+
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const response = await request(app)
           .post('/auth/login')
           .send({
-            email,
-            password
+            email: user.email,
+            password: 'DeletablePool123!' // Correct password from test pool (PATIENT role)
           });
 
         expect(response.status).toBe(200);
@@ -447,7 +508,7 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
         const { data: attempts } = await supabaseClient
           .from('login_attempts')
           .select('*')
-          .eq('email', email)
+          .eq('email', user.email)
           .order('attempted_at', { ascending: false })
           .limit(1);
 
@@ -464,6 +525,9 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
         await createUserDirectly(email, password, 'PATIENT');
 
         await insertFailedLoginAttempts(email, 5, 0);
+
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const response = await request(app)
           .post('/auth/login')

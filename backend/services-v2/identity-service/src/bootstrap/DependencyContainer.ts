@@ -28,6 +28,7 @@ import { RabbitMQEventPublisher } from '../infrastructure/events/RabbitMQEventPu
 import { SendGridEmailService } from '../infrastructure/email/SendGridEmailService';
 import { IdentityServiceHealthCheck } from '../infrastructure/monitoring/HealthChecks';
 import { IdentityServiceDegradation } from '../infrastructure/resilience/GracefulDegradation';
+import { CircuitBreakerFactory } from '../infrastructure/resilience/CircuitBreaker';
 
 // Middleware
 import { AuthenticationMiddleware } from '../presentation/middleware/AuthenticationMiddleware';
@@ -135,13 +136,16 @@ export class DependencyContainer {
     }
 
     // Permission cache
-    this.permissionCache = new PermissionCache(this.config.redisUrl);
+    this.permissionCache = new PermissionCache(this.config.redisUrl, this.logger);
     try {
       await this.permissionCache.connect();
       this.logger.info('Permission cache connected');
     } catch (error) {
       this.logger.warn('Permission cache not available', { error });
     }
+
+    // Set logger for CircuitBreakerFactory
+    CircuitBreakerFactory.setLogger(this.logger);
 
     // Event publisher (optional)
     if (this.config.rabbitmqEnabled) {

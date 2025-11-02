@@ -22,6 +22,9 @@ export interface SearchCriteria {
     visitDateTo?: string;
     createdDateFrom?: string;
     createdDateTo?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    searchText?: string;
     symptoms?: string;
     diagnosisText?: string;
     medicationText?: string;

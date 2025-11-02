@@ -481,6 +481,8 @@ export class AppointmentAbuseEventHandler {
         );
       }
 
+      await this.inboxService.markProcessed(event.eventId);
+
       this.logger.info('Successfully processed appointment.rescheduled event', {
         eventId: event.eventId,
         patientId: event.patientId,
@@ -493,6 +495,10 @@ export class AppointmentAbuseEventHandler {
         patientId: event.patientId,
         error: error instanceof Error ? error.message : String(error)
       });
+      await this.inboxService.markFailed(
+        event.eventId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       throw error;
     }
   }
@@ -535,6 +541,7 @@ export class AppointmentAbuseEventHandler {
           minutesLate: event.minutesLate
         });
 
+        await this.inboxService.markProcessed(event.eventId);
         // Event stored in inbox already, just return
         return;
       }
@@ -568,6 +575,8 @@ export class AppointmentAbuseEventHandler {
         );
       }
 
+      await this.inboxService.markProcessed(event.eventId);
+
       this.logger.info('Successfully processed appointment.late_arrival event', {
         eventId: event.eventId,
         patientId: event.patientId,
@@ -580,6 +589,10 @@ export class AppointmentAbuseEventHandler {
         patientId: event.patientId,
         error: error instanceof Error ? error.message : String(error)
       });
+      await this.inboxService.markFailed(
+        event.eventId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       throw error;
     }
   }
@@ -730,6 +743,8 @@ export class AppointmentAbuseEventHandler {
         }
       }
 
+      await this.inboxService.markProcessed(event.eventId);
+
       this.logger.info('Successfully processed appointment.completed event', {
         eventId: event.eventId,
         patientId: event.patientId,
@@ -743,6 +758,10 @@ export class AppointmentAbuseEventHandler {
         patientId: event.patientId,
         error: error instanceof Error ? error.message : String(error)
       });
+      await this.inboxService.markFailed(
+        event.eventId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       throw error;
     }
   }

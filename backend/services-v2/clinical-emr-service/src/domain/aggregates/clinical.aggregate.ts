@@ -91,6 +91,13 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
   }
 
   /**
+   * Validate entity (required by Entity base class)
+   */
+  override validate(): void {
+    this.validateInvariants();
+  }
+
+  /**
    * Create new medical record with enhanced features
    */
   public static create(
@@ -952,8 +959,9 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
       try {
         diagnosis.toFHIR();
       } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
         errors.push(
-          `Chẩn đoán ${index + 1} không tuân thủ FHIR: ${error.message}`
+          `Chẩn đoán ${index + 1} không tuân thủ FHIR: ${err.message}`
         );
       }
     });
@@ -963,7 +971,8 @@ export class MedicalRecordAggregate extends HealthcareAggregateRoot<MedicalRecor
       try {
         medication.toFHIR();
       } catch (error) {
-        errors.push(`Thuốc ${index + 1} không tuân thủ FHIR: ${error.message}`);
+        const err = error instanceof Error ? error : new Error(String(error));
+        errors.push(`Thuốc ${index + 1} không tuân thủ FHIR: ${err.message}`);
       }
     });
 

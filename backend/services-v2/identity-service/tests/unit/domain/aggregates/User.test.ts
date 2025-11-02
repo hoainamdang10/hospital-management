@@ -11,6 +11,7 @@ import { Email } from '../../../../src/domain/value-objects/Email';
 import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
 import { HealthcareRole } from '../../../../src/domain/entities/HealthcareRole';
 import { UserId } from '../../../../src/domain/value-objects/UserId';
+import { AccountStatus } from '../../../../src/domain/value-objects/AccountStatus';
 
 describe('User Aggregate Root', () => {
   // Helper function to create valid test data
@@ -90,8 +91,11 @@ describe('User Aggregate Root', () => {
         email,
         personalInfo,
         [role],
+        AccountStatus.ACTIVE,
         true,
-        true,
+        undefined, // deactivationReason
+        undefined, // deactivatedAt
+        undefined, // deactivatedBy
         lastLoginAt,
         createdAt,
         updatedAt
@@ -117,9 +121,12 @@ describe('User Aggregate Root', () => {
         invalidEmail,
         personalInfo,
         [role],
+        AccountStatus.ACTIVE,
         true,
-        true,
-        undefined,
+        undefined, // deactivationReason
+        undefined, // deactivatedAt
+        undefined, // deactivatedBy
+        undefined, // lastLoginAt
         new Date(),
         new Date()
       )).toThrow();
@@ -173,7 +180,7 @@ describe('User Aggregate Root', () => {
 
       expect(user.isActive).toBe(true);
 
-      user.deactivate();
+      user.deactivate('test-admin', 'Test reason');
 
       expect(user.isActive).toBe(false);
     });
@@ -185,7 +192,7 @@ describe('User Aggregate Root', () => {
         [createValidRole()]
       );
 
-      user.deactivate();
+      user.deactivate('test-admin', 'Test reason');
 
       expect(user.toPersistence().updatedAt).toBeDefined();
     });
@@ -199,10 +206,10 @@ describe('User Aggregate Root', () => {
         [createValidRole()]
       );
 
-      user.deactivate();
+      user.lock('test-admin', 'Test reason');
       expect(user.isActive).toBe(false);
 
-      user.activate();
+      user.activate('test-admin', 'Reactivation reason');
 
       expect(user.isActive).toBe(true);
     });
@@ -214,10 +221,10 @@ describe('User Aggregate Root', () => {
         [createValidRole()]
       );
 
-      user.deactivate();
+      user.lock('test-admin', 'Test reason');
 
       // Should not throw because personal info is complete
-      expect(() => user.activate()).not.toThrow();
+      expect(() => user.activate('test-admin', 'Reactivation reason')).not.toThrow();
     });
 
     it('should throw error when activating user with incomplete info', () => {
@@ -227,14 +234,17 @@ describe('User Aggregate Root', () => {
         createValidEmail(),
         incompleteInfo,
         [createValidRole()],
-        false, // inactive
+        AccountStatus.LOCKED, // locked can be activated, but will fail validation
         true,
-        undefined,
+        'Temporarily locked', // deactivationReason
+        new Date(), // deactivatedAt
+        'admin', // deactivatedBy
+        undefined, // lastLoginAt
         new Date(),
         new Date()
       );
 
-      expect(() => user.activate())
+      expect(() => user.activate('test-admin', 'Reactivation reason'))
         .toThrow('Thông tin cá nhân phải đầy đủ cho người dùng đang hoạt động');
     });
   });
@@ -259,7 +269,7 @@ describe('User Aggregate Root', () => {
         [createValidRole()]
       );
 
-      user.deactivate();
+      user.deactivate('test-admin', 'Test reason');
 
       expect(() => user.recordAuthentication('192.168.1.1', 'Mozilla/5.0'))
         .toThrow('Tài khoản đã bị vô hiệu hóa');
@@ -389,9 +399,12 @@ describe('User Aggregate Root', () => {
         createValidEmail(),
         infoWithoutCitizenId,
         [createValidRole()],
-        false,
+        AccountStatus.DEACTIVATED,
         true,
-        undefined,
+        undefined, // deactivationReason
+        undefined, // deactivatedAt
+        undefined, // deactivatedBy
+        undefined, // lastLoginAt
         new Date(),
         new Date()
       );
@@ -413,9 +426,12 @@ describe('User Aggregate Root', () => {
         createValidEmail(),
         infoWithoutPhone,
         [createValidRole()],
-        false,
+        AccountStatus.DEACTIVATED,
         true,
-        undefined,
+        undefined, // deactivationReason
+        undefined, // deactivatedAt
+        undefined, // deactivatedBy
+        undefined, // lastLoginAt
         new Date(),
         new Date()
       );
@@ -445,7 +461,7 @@ describe('User Aggregate Root', () => {
       );
 
       user.verifyEmail();
-      user.deactivate();
+      user.deactivate('test-admin', 'Test reason');
 
       expect(user.isHIPAACompliant()).toBe(false);
     });
@@ -480,9 +496,12 @@ describe('User Aggregate Root', () => {
         createValidEmail(),
         incompleteInfo,
         [createValidRole()],
-        false,
+        AccountStatus.DEACTIVATED,
         true,
-        undefined,
+        undefined, // deactivationReason
+        undefined, // deactivatedAt
+        undefined, // deactivatedBy
+        undefined, // lastLoginAt
         new Date(),
         new Date()
       );
@@ -541,7 +560,7 @@ describe('User Aggregate Root', () => {
 
       expect(summary).toHaveProperty('userId');
       expect(summary).toHaveProperty('role');
-      expect(summary).toHaveProperty('isActive');
+      expect(summary).toHaveProperty('accountStatus');
       expect(summary).toHaveProperty('isEmailVerified');
       expect(summary).toHaveProperty('createdAt');
     });
@@ -564,7 +583,7 @@ describe('User Aggregate Root', () => {
       expect(persistence.personalInfo).toHaveProperty('fullName');
       expect(persistence.personalInfo).toHaveProperty('phoneNumber');
       expect(persistence).toHaveProperty('healthcareRoles');
-      expect(persistence).toHaveProperty('isActive');
+      expect(persistence).toHaveProperty('accountStatus');
       expect(persistence).toHaveProperty('isEmailVerified');
       expect(persistence).toHaveProperty('createdAt');
       expect(persistence).toHaveProperty('updatedAt');

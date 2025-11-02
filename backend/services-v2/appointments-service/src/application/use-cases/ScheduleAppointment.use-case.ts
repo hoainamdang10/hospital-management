@@ -15,6 +15,9 @@ import { TimeSlot } from '../../domain/value-objects/TimeSlot.vo';
 import { AppointmentDetails } from '../../domain/value-objects/AppointmentDetails.vo';
 import { TenantId } from '../../domain/value-objects/TenantId.vo';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IConflictResolutionService, TimeSlotSuggestion } from '../services/IConflictResolutionService';
+import { IAuthorizationService, AuthorizationError } from '../services/IAuthorizationService';
+import { IReminderService } from '../services/IReminderService';
 
 export interface ScheduleAppointmentRequest {
   // Multi-tenancy
@@ -70,6 +73,11 @@ export interface ScheduleAppointmentResponse {
     consultationFee: number;
   };
   errors?: string[];
+  conflictInfo?: {
+    hasConflicts: boolean;
+    message: string;
+    suggestions?: TimeSlotSuggestion[];
+  };
 }
 
 /**
@@ -81,7 +89,10 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
   ScheduleAppointmentResponse
 > {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: IAppointmentRepository,
+    private readonly conflictResolutionService: IConflictResolutionService,
+    private readonly authorizationService: IAuthorizationService,
+    private readonly reminderService: IReminderService
   ) {
     super();
   }
@@ -93,7 +104,22 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
     request: ScheduleAppointmentRequest
   ): Promise<ScheduleAppointmentResponse> {
     try {
-      // 1. Validate request
+      // 1. Authorization check
+      const canSchedule = await this.authorizationService.canScheduleAppointment(
+        request.createdBy,
+        request.patientId
+      );
+
+      if (!canSchedule) {
+        throw new AuthorizationError(
+          'You are not authorized to schedule appointments for this patient',
+          request.createdBy,
+          'schedule_appointment',
+          request.patientId
+        );
+      }
+
+      // 2. Validate request
       this.validateRequest(request);
 
       // 2. Create value objects
@@ -132,10 +158,78 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
         request.requiredEquipment
       );
 
-      // 4. Save to repository
-      await this.appointmentRepository.save(appointment);
+      // 4. Check for conflicts BEFORE saving
+      const startTime = new Date(`${request.appointmentDate}T${request.appointmentTime}`);
+      const endTime = new Date(startTime.getTime() + request.durationMinutes * 60000);
+      
+      const conflictCheck = await this.conflictResolutionService.checkConflicts({
+        doctorId: request.doctorId,
+        startTime,
+        endTime
+      });
 
-      // 5. Return response
+      if (conflictCheck.hasConflicts) {
+        return {
+          success: false,
+          appointmentId: '',
+          message: 'Không thể đặt lịch: Bác sĩ đã có lịch hẹn vào thời gian này',
+          errors: ['DOUBLE_BOOKING_DETECTED'],
+          conflictInfo: {
+            hasConflicts: true,
+            message: `Đã tìm thấy ${conflictCheck.conflicts.length} lịch hẹn bị trùng`,
+            suggestions: conflictCheck.suggestions
+          }
+        };
+      }
+
+      // 5. Save to repository (domain events will be emitted automatically)
+      try {
+        await this.appointmentRepository.save(appointment);
+      } catch (saveError: any) {
+        // Catch PostgreSQL exclusion constraint violation (23P01)
+        if (saveError.code === '23P01' || saveError.message?.includes('exclude_doctor_time_overlap')) {
+          // Race condition: Another appointment was created between our check and save
+          // Retry conflict check to get fresh suggestions
+          const retryConflictCheck = await this.conflictResolutionService.checkConflicts({
+            doctorId: request.doctorId,
+            startTime,
+            endTime
+          });
+
+          return {
+            success: false,
+            appointmentId: '',
+            message: 'Không thể đặt lịch: Bác sĩ đã có lịch hẹn vào thời gian này (race condition)',
+            errors: ['DOUBLE_BOOKING_DETECTED', 'CONSTRAINT_VIOLATION'],
+            conflictInfo: {
+              hasConflicts: true,
+              message: 'Lịch hẹn bị trùng (đã có người khác đặt trước)',
+              suggestions: retryConflictCheck.suggestions
+            }
+          };
+        }
+        // Re-throw other errors
+        throw saveError;
+      }
+
+      // 6. Domain events emitted → Event handler → Outbox → Worker → Scheduler Service
+      //    No direct HTTP call needed - pure event-driven architecture
+
+      // 7. Schedule reminders for the appointment
+      try {
+        await this.reminderService.scheduleReminders(
+          appointmentId.value,
+          request.patientId,
+          startTime,
+          request.priority
+        );
+        console.log(`[ScheduleAppointment] Reminders scheduled for appointment ${appointmentId.value}`);
+      } catch (reminderError) {
+        // Log but don't fail the appointment creation
+        console.error('[ScheduleAppointment] Failed to schedule reminders:', reminderError);
+      }
+
+      // 8. Return response
       return {
         success: true,
         appointmentId: appointmentId.value,
@@ -155,6 +249,7 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
         }
       };
     } catch (error) {
+      console.error('[ScheduleAppointmentUseCase] Error:', error);
       return {
         success: false,
         appointmentId: '',
@@ -163,6 +258,8 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
       };
     }
   }
+
+
 
   /**
    * Validate request

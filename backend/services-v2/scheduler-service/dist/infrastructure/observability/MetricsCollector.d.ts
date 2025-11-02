@@ -22,6 +22,8 @@ export declare class MetricsCollector {
     readonly runsPending: Gauge;
     readonly runsCompleted: Counter;
     readonly runsFailed: Counter;
+    readonly unroutableMessagesTotal: Counter;
+    readonly unroutableMessagesByExchange: Counter;
     private constructor();
     static getInstance(): MetricsCollector;
     getRegistry(): Registry;

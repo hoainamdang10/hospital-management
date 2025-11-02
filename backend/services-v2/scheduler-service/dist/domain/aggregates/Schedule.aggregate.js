@@ -67,10 +67,9 @@ class Schedule {
         if (nextOccurrence && this.props.endAtUtc && nextOccurrence > this.props.endAtUtc) {
             return null;
         }
-        if (nextOccurrence && this.props.jitterMs > 0) {
-            const jitter = Math.floor(Math.random() * this.props.jitterMs);
-            nextOccurrence = new Date(nextOccurrence.getTime() + jitter);
-        }
+        // REMOVED: Jitter logic moved to MaterializerWorker
+        // Jitter must be calculated ONCE when creating ScheduleRun, not every time getNextOccurrence() is called
+        // This ensures deterministic scheduling and prevents the same run from having different due times
         return nextOccurrence;
     }
     getOccurrencesBetween(startDate, endDate) {
@@ -95,12 +94,9 @@ class Schedule {
         if (this.props.maxRuns !== undefined) {
             occurrences = occurrences.slice(0, this.props.maxRuns);
         }
-        if (this.props.jitterMs > 0) {
-            occurrences = occurrences.map(occ => {
-                const jitter = Math.floor(Math.random() * this.props.jitterMs);
-                return new Date(occ.getTime() + jitter);
-            });
-        }
+        // REMOVED: Jitter logic moved to MaterializerWorker
+        // Jitter must be calculated ONCE when creating ScheduleRun, not every time getOccurrencesBetween() is called
+        // This ensures deterministic scheduling and prevents the same run from having different due times
         return occurrences;
     }
     pause() {
@@ -178,6 +174,21 @@ class Schedule {
     }
     isActive() {
         return this.props.status === ScheduleStatus.ACTIVE;
+    }
+    getCreatedAt() {
+        return this.props.createdAt;
+    }
+    getUpdatedAt() {
+        return this.props.updatedAt;
+    }
+    getPayloadJson() {
+        return this.props.payloadJson;
+    }
+    getEndAtUtc() {
+        return this.props.endAtUtc;
+    }
+    getMaxRuns() {
+        return this.props.maxRuns;
     }
     getProps() {
         return { ...this.props };

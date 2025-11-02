@@ -15,6 +15,8 @@ import compression from 'compression';
 
 // Infrastructure imports
 import { SupabasePatientRepository } from '../../src/infrastructure/repositories/SupabasePatientRepository';
+import { InMemoryPatientRepository } from './InMemoryPatientRepository';
+import { IPatientRepository } from '../../src/domain/repositories/IPatientRepository';
 import { RabbitMQEventPublisher } from '../../src/infrastructure/events/RabbitMQEventPublisher';
 
 // Application Services
@@ -62,6 +64,7 @@ import { createPatientRoutes } from '../../src/presentation/routes/patientRoutes
 import { createCommandRoutes } from '../../src/presentation/routes/commandRoutes';
 import { ErrorHandlingMiddleware } from '../../src/presentation/middleware/ErrorHandlingMiddleware';
 import { AuthenticationMiddleware } from '../../src/presentation/middleware/AuthenticationMiddleware';
+import { ensureIdentityMockServer } from './identityMockServer';
 
 // Logger
 import { ILogger, LogMetadata } from '@shared/application/services/logger.interface';
@@ -72,9 +75,9 @@ import { ILogger, LogMetadata } from '@shared/application/services/logger.interf
 const createTestLogger = (): ILogger => ({
   debug: () => {},
   info: () => {},
-  warn: () => {},
-  error: () => {},
-  fatal: () => {}
+  warn: (...args: unknown[]) => console.warn('[TestLogger][WARN]', ...args),
+  error: (...args: unknown[]) => console.error('[TestLogger][ERROR]', ...args),
+  fatal: (...args: unknown[]) => console.error('[TestLogger][FATAL]', ...args)
 });
 
 /**
@@ -88,6 +91,7 @@ export interface AppFactoryConfig {
   enableAuthentication?: boolean;
   identityServiceUrl?: string;
   logger?: ILogger;
+  useInMemoryRepository?: boolean;
 }
 
 /**
@@ -97,7 +101,8 @@ export interface AppFactoryResult {
   app: Application;
   cleanup: () => Promise<void>;
   eventPublisher?: RabbitMQEventPublisher;
-  patientRepository: SupabasePatientRepository;
+  patientRepository: IPatientRepository;
+  inMemoryRepository?: InMemoryPatientRepository;
 }
 
 /**
@@ -106,6 +111,8 @@ export interface AppFactoryResult {
 export async function createTestApp(config: AppFactoryConfig): Promise<AppFactoryResult> {
   const app = express();
   const logger = config.logger || createTestLogger();
+  const previousIdentityServiceUrl = process.env.IDENTITY_SERVICE_URL;
+  const previousIdentityUseMock = process.env.IDENTITY_USE_MOCK;
 
   // Initialize Event Publisher (optional for tests)
   let eventPublisher: RabbitMQEventPublisher | undefined;
@@ -117,7 +124,8 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
         exchange: 'patient-registry-events-test',
         exchangeType: 'topic',
         durable: false,
-        autoDelete: true
+        autoDelete: true,
+        serviceName: 'patient-registry'
       },
       {
         enableRetry: false,
@@ -141,13 +149,15 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const insuranceValidationService = new InsuranceValidationService(logger);
 
   // Initialize Repository
-  const patientRepository = new SupabasePatientRepository(
-    config.supabaseUrl,
-    config.supabaseKey,
-    logger,
-    matchingService,
-    eventPublisher
-  );
+  const patientRepository: IPatientRepository = config.useInMemoryRepository
+    ? new InMemoryPatientRepository()
+    : new SupabasePatientRepository(
+        config.supabaseUrl,
+        config.supabaseKey,
+        logger,
+        matchingService,
+        eventPublisher
+      );
 
   // Create mock event bus for tests (if no RabbitMQ)
   const mockEventBus = {
@@ -269,9 +279,20 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
 
   // Setup Authentication Middleware (if enabled)
   let authMiddleware: AuthenticationMiddleware | undefined;
-  if (config.enableAuthentication && config.identityServiceUrl) {
+  let identityMockRelease: (() => Promise<void>) | undefined;
+  if (config.enableAuthentication) {
+    let identityServiceUrl = config.identityServiceUrl;
+
+    if (!identityServiceUrl) {
+      const identityMock = await ensureIdentityMockServer();
+      identityMockRelease = identityMock.release;
+      identityServiceUrl = identityMock.url;
+      process.env.IDENTITY_USE_MOCK = 'true';
+      process.env.IDENTITY_SERVICE_URL = identityServiceUrl;
+    }
+
     authMiddleware = new AuthenticationMiddleware({
-      identityServiceUrl: config.identityServiceUrl,
+      identityServiceUrl,
       logger,
       skipPaths: ['/health', '/api-docs']
     });
@@ -305,13 +326,31 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     if (eventPublisher) {
       await eventPublisher.close();
     }
+    if (identityMockRelease) {
+      await identityMockRelease();
+    }
+
+    if (previousIdentityServiceUrl !== undefined) {
+      process.env.IDENTITY_SERVICE_URL = previousIdentityServiceUrl;
+    } else {
+      delete process.env.IDENTITY_SERVICE_URL;
+    }
+
+    if (previousIdentityUseMock !== undefined) {
+      process.env.IDENTITY_USE_MOCK = previousIdentityUseMock;
+    } else {
+      delete process.env.IDENTITY_USE_MOCK;
+    }
   };
 
   return {
     app,
     cleanup,
     eventPublisher,
-    patientRepository
+    patientRepository,
+    inMemoryRepository: patientRepository instanceof InMemoryPatientRepository
+      ? patientRepository
+      : undefined
   };
 }
 
@@ -336,7 +375,7 @@ export async function createAuthenticatedTestApp(): Promise<AppFactoryResult> {
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     enableRabbitMQ: false,
     enableAuthentication: true,
-    identityServiceUrl: process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001'
+    useInMemoryRepository: true
   });
 }
 

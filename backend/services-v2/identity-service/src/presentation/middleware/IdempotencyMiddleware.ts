@@ -8,6 +8,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { RedisCacheService } from '../../infrastructure/cache/RedisCacheService';
+import { ILogger } from '../../application/services/ILogger';
 
 const IDEMP_PREFIX = 'idemp:identity:';
 const DEFAULT_TTL_SECONDS = 60 * 60; // 1 hour
@@ -38,8 +39,12 @@ function shouldApplyIdempotency(req: Request): boolean {
 /**
  * Create idempotency middleware with injected cache service
  * @param cacheService - Cache service instance (injected via DI)
+ * @param logger - Logger instance for error handling
  */
-export function createIdempotencyMiddleware(cacheService: RedisCacheService | null) {
+export function createIdempotencyMiddleware(
+  cacheService: RedisCacheService | null,
+  logger: ILogger
+) {
   /**
    * Idempotency middleware
    * - Checks for Idempotency-Key header
@@ -100,7 +105,11 @@ export function createIdempotencyMiddleware(cacheService: RedisCacheService | nu
     } catch (error) {
       // Fail open: if Redis error, allow request to proceed
       // Log error but don't block the request
-      console.error('Idempotency middleware error (failing open):', error);
+      logger.error('Idempotency middleware error (failing open)', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        path: req.path,
+        method: req.method
+      });
       next();
     }
   };

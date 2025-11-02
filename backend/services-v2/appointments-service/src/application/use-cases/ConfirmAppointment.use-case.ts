@@ -8,6 +8,7 @@
 
 import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAuthorizationService, AuthorizationError } from '../services/IAuthorizationService';
 
 export interface ConfirmAppointmentRequest {
   appointmentId: string;
@@ -25,7 +26,8 @@ export class ConfirmAppointmentUseCase extends BaseHealthcareUseCase<
   ConfirmAppointmentResponse
 > {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: IAppointmentRepository,
+    private readonly authorizationService: IAuthorizationService
   ) {
     super();
   }
@@ -44,6 +46,25 @@ export class ConfirmAppointmentUseCase extends BaseHealthcareUseCase<
           message: 'Không tìm thấy lịch hẹn',
           errors: ['Appointment not found']
         };
+      }
+
+      // Authorization check
+      const canConfirm = await this.authorizationService.canConfirmAppointment(
+        request.confirmedBy,
+        request.appointmentId,
+        {
+          patientId: appointment.patientId,
+          doctorId: appointment.doctorId,
+        }
+      );
+
+      if (!canConfirm) {
+        throw new AuthorizationError(
+          'You are not authorized to confirm this appointment',
+          request.confirmedBy,
+          'confirm_appointment',
+          request.appointmentId
+        );
       }
 
       appointment.confirm(request.confirmedBy);

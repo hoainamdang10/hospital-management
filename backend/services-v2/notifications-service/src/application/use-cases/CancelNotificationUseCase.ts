@@ -27,7 +27,7 @@ export class CancelNotificationUseCase {
 
   async execute(command: CancelNotificationCommand): Promise<CancelNotificationResult> {
     try {
-      const notificationId = new NotificationId(command.notificationId);
+      const notificationId = NotificationId.fromString(command.notificationId);
       const notification = await this.notificationRepository.findById(notificationId);
 
       if (!notification) {

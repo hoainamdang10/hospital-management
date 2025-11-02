@@ -3,7 +3,7 @@
  * REST API routes for appointment queries (CQRS Read Model)
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 3.0.0
  * @compliance Clean Architecture, CQRS, REST API
  */
 import { Router } from 'express';

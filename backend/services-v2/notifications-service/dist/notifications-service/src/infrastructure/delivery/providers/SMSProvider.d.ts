@@ -14,11 +14,13 @@ interface TwilioConfig {
     accountSid: string;
     authToken: string;
     fromNumber: string;
+    enabled: boolean;
 }
 export declare class SMSProvider implements ChannelProvider {
     private readonly config;
     private isConfigured;
     private readonly MAX_SMS_LENGTH;
+    private twilioClient;
     constructor(config: TwilioConfig);
     getType(): string;
     isAvailable(): Promise<boolean>;
@@ -40,7 +42,7 @@ export declare class SMSProvider implements ChannelProvider {
         failureReason?: string;
     }>;
     /**
-     * Send via Twilio (mock implementation)
+     * Send via Twilio (real implementation)
      */
     private sendViaTwilio;
     /**
@@ -51,15 +53,15 @@ export declare class SMSProvider implements ChannelProvider {
     /**
      * Normalize phone number to E.164 format (+84...)
      */
-    private normalizePhoneNumber;
+    private _normalizePhoneNumber;
     /**
      * Remove Vietnamese diacritics for SMS compatibility (optional)
      */
-    private normalizeVietnameseText;
+    private _normalizeVietnameseText;
     /**
      * Estimate SMS segments (Vietnamese chars count differently)
      */
-    private estimateSMSSegments;
+    private _estimateSMSSegments;
 }
 export {};
 //# sourceMappingURL=SMSProvider.d.ts.map

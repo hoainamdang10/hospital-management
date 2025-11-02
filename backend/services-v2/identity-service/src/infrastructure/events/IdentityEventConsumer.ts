@@ -16,6 +16,7 @@
 
 import * as amqp from 'amqplib';
 import { ILogger } from '../../application/services/ILogger';
+import { prometheusMetrics } from '../monitoring/PrometheusMetrics';
 import { StaffCredentialEventHandler } from '../../application/event-handlers/StaffCredentialEventHandler';
 import { BillingFraudEventHandler } from '../../application/event-handlers/BillingFraudEventHandler';
 import { AppointmentAbuseEventHandler } from '../../application/event-handlers/AppointmentAbuseEventHandler';
@@ -209,6 +210,7 @@ export class IdentityEventConsumer {
   private async handleMessage(msg: amqp.ConsumeMessage): Promise<void> {
     const content = msg.content.toString();
     const routingKey = msg.fields.routingKey;
+    const startTime = Date.now();
 
     this.logger.debug('Received event', {
       routingKey,
@@ -217,6 +219,11 @@ export class IdentityEventConsumer {
 
     try {
       const event = JSON.parse(content);
+      const eventType = event.eventType || routingKey;
+      const sourceService = this.extractSourceService(routingKey);
+
+      // Record event consumption
+      prometheusMetrics.recordEventConsumed(eventType, sourceService);
 
       // Route to appropriate handler based on routing key
       switch (routingKey) {
@@ -528,11 +535,27 @@ export class IdentityEventConsumer {
           });
       }
 
+      // Record successful event processing
+      const duration = Date.now() - startTime;
+      const durationSeconds = duration / 1000;
+      prometheusMetrics.recordEventProcessingDuration(eventType, 'success', durationSeconds);
+
     } catch (error) {
+      // Record failed event processing
+      const duration = Date.now() - startTime;
+      const durationSeconds = duration / 1000;
+      const event = JSON.parse(content);
+      const eventType = event.eventType || routingKey;
+      const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
+
+      prometheusMetrics.recordEventProcessingDuration(eventType, 'failed', durationSeconds);
+      prometheusMetrics.recordEventFailed(eventType, errorType);
+
       this.logger.error('Error parsing or handling message', {
         error: error instanceof Error ? error.message : 'Unknown error',
         routingKey,
-        messageId: msg.properties.messageId
+        messageId: msg.properties.messageId,
+        duration: `${duration}ms`
       });
       throw error;
     }
@@ -567,5 +590,33 @@ export class IdentityEventConsumer {
    */
   public getConnectionStatus(): boolean {
     return this.isConnected;
+  }
+
+  /**
+   * Extract source service from routing key
+   * Examples:
+   * - staff.credential_verified → provider-staff-service
+   * - payment.failed → billing-service
+   * - appointment.no_show → appointments-service
+   */
+  private extractSourceService(routingKey: string): string {
+    const prefix = routingKey.split('.')[0];
+    
+    const serviceMap: Record<string, string> = {
+      'staff': 'provider-staff-service',
+      'provider': 'provider-staff-service',
+      'payment': 'billing-service',
+      'invoice': 'billing-service',
+      'billing': 'billing-service',
+      'insurance': 'billing-service',
+      'appointment': 'appointments-service',
+      'clinical': 'clinical-emr-service',
+      'medical-record': 'clinical-emr-service',
+      'prescription': 'clinical-emr-service',
+      'notification': 'notifications-service',
+      'patient': 'patient-registry-service'
+    };
+
+    return serviceMap[prefix] || 'unknown-service';
   }
 }

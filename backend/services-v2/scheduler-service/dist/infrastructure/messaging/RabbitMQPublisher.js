@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RabbitMQPublisher = void 0;
 const amqp = __importStar(require("amqplib"));
 const DeadLetter_entity_1 = require("../../domain/entities/DeadLetter.entity");
+const MetricsCollector_1 = require("../observability/MetricsCollector");
 class RabbitMQPublisher {
     constructor(config, deadLetterRepo, alertService) {
         this.config = config;
@@ -47,6 +48,7 @@ class RabbitMQPublisher {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 10;
         this.reconnectDelay = 5000;
+        this.metrics = MetricsCollector_1.MetricsCollector.getInstance();
     }
     async connect() {
         try {
@@ -68,6 +70,14 @@ class RabbitMQPublisher {
                     routingKey: msg.fields.routingKey,
                     exchange: msg.fields.exchange,
                     messageId: msg.properties.messageId
+                });
+                // Increment Prometheus metrics
+                this.metrics.unroutableMessagesTotal.inc({
+                    routing_key: msg.fields.routingKey,
+                    exchange: msg.fields.exchange
+                });
+                this.metrics.unroutableMessagesByExchange.inc({
+                    exchange: msg.fields.exchange
                 });
                 // Save to dead_letters table
                 await this.handleUnroutableMessage(msg);

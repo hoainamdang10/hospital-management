@@ -98,6 +98,7 @@ const PatientCommandHandlers_1 = require("./application/handlers/PatientCommandH
 const PatientQueryHandlers_1 = require("./application/handlers/PatientQueryHandlers");
 // Infrastructure imports
 const SupabaseStorageService_1 = require("./infrastructure/storage/SupabaseStorageService");
+const AuditService_1 = require("./infrastructure/audit/AuditService");
 const infrastructure_1 = require("./infrastructure");
 // Presentation imports
 const PatientController_1 = require("./presentation/controllers/PatientController");
@@ -154,6 +155,8 @@ class PatientRegistryServiceApp {
         try {
             // Validate configuration
             this.validateConfiguration();
+            // Lazy load Supabase client once for audit and storage integrations
+            const { createClient } = await Promise.resolve().then(() => __importStar(require('@supabase/supabase-js')));
             // Initialize Event Publisher
             this.eventPublisher = new RabbitMQEventPublisher_1.RabbitMQEventPublisher({
                 url: config.rabbitmqUrl,
@@ -208,6 +211,15 @@ class PatientRegistryServiceApp {
             }, logger);
             // Initialize Health Check Service (with degradation service)
             this.healthCheck = new HealthChecks_1.PatientRegistryHealthCheck(config.supabaseUrl, config.supabaseKey, this.degradationService);
+            // Initialize Audit Service
+            const auditSupabaseClient = createClient(config.supabaseUrl, config.supabaseKey, {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            });
+            this.auditService = new AuditService_1.AuditService(auditSupabaseClient, logger);
+            logger.info('Audit service initialized', {});
             // Initialize Infrastructure Layer (inject services + event publisher)
             this.patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(config.supabaseUrl, config.supabaseKey, logger, this.matchingService, // ✅ Inject matching service
             this.eventPublisher // ✅ Inject event publisher
@@ -239,7 +251,6 @@ class PatientRegistryServiceApp {
             this.reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(this.patientRepository);
             this.getPatientStatisticsUseCase = new GetPatientStatisticsUseCase_1.GetPatientStatisticsUseCase(this.patientRepository);
             // Initialize Storage Service
-            const { createClient } = await Promise.resolve().then(() => __importStar(require('@supabase/supabase-js')));
             const storageClient = createClient(config.supabaseUrl, config.supabaseKey, {
                 auth: {
                     autoRefreshToken: false,
@@ -271,12 +282,15 @@ class PatientRegistryServiceApp {
             const userCreatedHandler = new infrastructure_1.IdentityUserCreatedEventHandler(logger, this.patientRepository);
             const userDeletedHandler = new infrastructure_1.IdentityUserDeletedEventHandler(logger, this.patientRepository);
             const userUpdatedHandler = new infrastructure_1.IdentityUserUpdatedEventHandler(logger, this.patientRepository);
-            // Initialize Identity Event Consumer
+            // Initialize Identity Event Consumer with DLQ support
             this.identityEventConsumer = new infrastructure_1.IdentityEventConsumer({
                 rabbitmqUrl: config.rabbitmqUrl,
                 queueName: 'patient.identity.queue',
                 exchangeName: 'hospital.events',
-                routingKeys: ['user.user_created_event', 'user.user_deleted_event', 'user.user_updated_event']
+                routingKeys: ['user.user_created_event', 'user.user_deleted_event', 'user.user_updated_event'],
+                deadLetterExchange: 'hospital.events.dlx',
+                deadLetterQueue: 'patient.identity.queue.dlq',
+                maxRetries: 3
             }, logger, userCreatedHandler, userDeletedHandler, userUpdatedHandler);
             // Connect Identity Event Consumer
             await this.identityEventConsumer.connect();

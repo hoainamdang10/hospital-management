@@ -19,9 +19,9 @@ export declare function validateRequest(schema: Joi.ObjectSchema, source?: 'body
 export declare function sanitizeRequest(req: Request, res: Response, next: NextFunction): void;
 /**
  * Rate Limiting Middleware
+ * Uses environment variables: RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS
  */
-export declare function rateLimitMiddleware(windowMs?: number, // 15 minutes
-maxRequests?: number): (req: Request, res: Response, next: NextFunction) => void | Response<any, Record<string, any>>;
+export declare function rateLimitMiddleware(windowMs?: number, maxRequests?: number): (req: Request, res: Response, next: NextFunction) => void | Response<any, Record<string, any>>;
 /**
  * Request Size Limit Middleware
  */

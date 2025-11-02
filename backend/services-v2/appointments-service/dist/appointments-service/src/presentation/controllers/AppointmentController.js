@@ -43,13 +43,23 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentController = void 0;
 class AppointmentController {
-    constructor(scheduleAppointmentUseCase, cancelAppointmentUseCase, confirmAppointmentUseCase, completeAppointmentUseCase, getAppointmentUseCase, listAppointmentsUseCase) {
+    constructor(scheduleAppointmentUseCase, cancelAppointmentUseCase, confirmAppointmentUseCase, completeAppointmentUseCase, getAppointmentUseCase, listAppointmentsUseCase, rescheduleAppointmentUseCase, checkInAppointmentUseCase, markAsNoShowUseCase, startAppointmentUseCase, bulkRescheduleAppointmentsUseCase, getAppointmentHistoryUseCase, getAppointmentStatisticsUseCase, createEmergencyAppointmentUseCase, transferAppointmentUseCase, createRecurringSeriesUseCase) {
         this.scheduleAppointmentUseCase = scheduleAppointmentUseCase;
         this.cancelAppointmentUseCase = cancelAppointmentUseCase;
         this.confirmAppointmentUseCase = confirmAppointmentUseCase;
         this.completeAppointmentUseCase = completeAppointmentUseCase;
         this.getAppointmentUseCase = getAppointmentUseCase;
         this.listAppointmentsUseCase = listAppointmentsUseCase;
+        this.rescheduleAppointmentUseCase = rescheduleAppointmentUseCase;
+        this.checkInAppointmentUseCase = checkInAppointmentUseCase;
+        this.markAsNoShowUseCase = markAsNoShowUseCase;
+        this.startAppointmentUseCase = startAppointmentUseCase;
+        this.bulkRescheduleAppointmentsUseCase = bulkRescheduleAppointmentsUseCase;
+        this.getAppointmentHistoryUseCase = getAppointmentHistoryUseCase;
+        this.getAppointmentStatisticsUseCase = getAppointmentStatisticsUseCase;
+        this.createEmergencyAppointmentUseCase = createEmergencyAppointmentUseCase;
+        this.transferAppointmentUseCase = transferAppointmentUseCase;
+        this.createRecurringSeriesUseCase = createRecurringSeriesUseCase;
     }
     /**
      * POST /api/appointments
@@ -65,10 +75,28 @@ class AppointmentController {
                 });
                 return;
             }
-            const result = await this.scheduleAppointmentUseCase.execute({
-                ...req.body,
+            // Map nested validation structure to flat use case structure
+            const { patient, provider, appointment, departmentCode } = req.body;
+            console.log('[Controller] Mapping nested structure:', JSON.stringify({ patient, provider, appointment, departmentCode }, null, 2));
+            const startTime = new Date(appointment.startTime);
+            const endTime = new Date(appointment.endTime);
+            const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+            const useCaseRequest = {
+                patientId: patient.patientId,
+                doctorId: provider.providerId,
+                appointmentDate: startTime.toISOString().split('T')[0], // YYYY-MM-DD
+                appointmentTime: startTime.toTimeString().split(' ')[0], // HH:MM:SS
+                durationMinutes,
+                type: appointment.appointmentType,
+                priority: appointment.priority,
+                reason: appointment.reason,
+                notes: appointment.notes,
+                consultationFee: appointment.consultationFee || 0,
+                departmentId: departmentCode,
                 createdBy: userId
-            }, { userId, timestamp: new Date() });
+            };
+            console.log('[Controller] Mapped to use case request:', JSON.stringify(useCaseRequest, null, 2));
+            const result = await this.scheduleAppointmentUseCase.execute(useCaseRequest, { userId, timestamp: new Date() });
             res.status(result.success ? 201 : 400).json(result);
         }
         catch (error) {
@@ -179,7 +207,8 @@ class AppointmentController {
                 return;
             }
             const result = await this.completeAppointmentUseCase.execute({
-                appointmentId: req.params.id
+                appointmentId: req.params.id,
+                completedBy: userId
             }, { userId, timestamp: new Date() });
             res.status(result.success ? 200 : 400).json(result);
         }
@@ -297,6 +326,271 @@ class AppointmentController {
         }
         catch (error) {
             res.status(500).json({ success: false, message: 'Internal server error', errors: [error instanceof Error ? error.message : 'Unknown error'] });
+        }
+    }
+    /**
+     * POST /api/appointments/:id/reschedule
+     * Reschedule an appointment
+     */
+    async rescheduleAppointment(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.rescheduleAppointmentUseCase.execute({
+                appointmentId: req.params.id,
+                ...req.body,
+                rescheduledBy: userId
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/:id/check-in
+     * Check in patient for appointment
+     */
+    async checkInAppointment(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.checkInAppointmentUseCase.execute({
+                appointmentId: req.params.id,
+                checkedInBy: userId,
+                ...req.body
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/:id/no-show
+     * Mark appointment as no-show
+     */
+    async markAsNoShow(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.markAsNoShowUseCase.execute({
+                appointmentId: req.params.id,
+                markedBy: userId,
+                ...req.body
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/:id/start
+     * Start appointment (doctor begins consultation)
+     */
+    async startAppointment(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.startAppointmentUseCase.execute({
+                appointmentId: req.params.id,
+                startedBy: userId,
+                ...req.body
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/bulk-reschedule
+     * Bulk reschedule appointments (doctor unavailable)
+     */
+    async bulkRescheduleAppointments(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.bulkRescheduleAppointmentsUseCase.execute({
+                ...req.body,
+                rescheduledBy: userId
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * GET /api/appointments/history
+     * Get appointment history
+     */
+    async getAppointmentHistory(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.getAppointmentHistoryUseCase.execute({
+                patientId: req.query.patientId,
+                doctorId: req.query.doctorId,
+                startDate: req.query.startDate,
+                endDate: req.query.endDate,
+                status: req.query.status ? req.query.status.split(',') : undefined,
+                limit: req.query.limit ? parseInt(req.query.limit) : undefined,
+                offset: req.query.offset ? parseInt(req.query.offset) : undefined,
+                requestedBy: userId
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * GET /api/appointments/statistics
+     * Get appointment statistics
+     */
+    async getAppointmentStatistics(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.getAppointmentStatisticsUseCase.execute({
+                doctorId: req.query.doctorId,
+                departmentId: req.query.departmentId,
+                startDate: req.query.startDate,
+                endDate: req.query.endDate,
+                groupBy: req.query.groupBy,
+                requestedBy: userId
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/emergency
+     * Create emergency appointment
+     */
+    async createEmergencyAppointment(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.createEmergencyAppointmentUseCase.execute({
+                ...req.body,
+                createdBy: userId
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 201 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/:id/transfer
+     * Transfer appointment to another doctor
+     */
+    async transferAppointment(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const result = await this.transferAppointmentUseCase.execute({
+                appointmentId: req.params.id,
+                ...req.body,
+                transferredBy: userId
+            }, { userId, timestamp: new Date() });
+            res.status(result.success ? 200 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/recurring
+     * Create a recurring appointment series
+     */
+    async createRecurringAppointmentSeries(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized'
+                });
+                return;
+            }
+            const result = await this.createRecurringSeriesUseCase.execute(req.body, { userId, timestamp: new Date() });
+            res.status(result.success ? 201 : 400).json(result);
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
         }
     }
 }

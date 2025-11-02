@@ -1,6 +1,5 @@
 import { IScheduleRepository } from '../../domain/repositories/IScheduleRepository';
 import { IScheduleRunRepository } from '../../domain/repositories/IScheduleRunRepository';
-import { IOutboxRepository } from '../../domain/repositories/IOutboxRepository';
 export interface ExecutionWorkerConfig {
     workerId: string;
     pollInterval: number;
@@ -12,14 +11,13 @@ export interface ExecutionWorkerConfig {
 export declare class ExecutionWorker {
     private readonly scheduleRepo;
     private readonly runRepo;
-    private readonly outboxRepo;
     private readonly config;
     private isRunning;
     private intervalId;
     private activeExecutions;
     private readonly logger;
     private readonly metrics;
-    constructor(scheduleRepo: IScheduleRepository, runRepo: IScheduleRunRepository, outboxRepo: IOutboxRepository, config: ExecutionWorkerConfig);
+    constructor(scheduleRepo: IScheduleRepository, runRepo: IScheduleRunRepository, config: ExecutionWorkerConfig);
     start(): Promise<void>;
     stop(): Promise<void>;
     private poll;

@@ -25,6 +25,7 @@ export declare class RabbitMQPublisher {
     private reconnectAttempts;
     private maxReconnectAttempts;
     private reconnectDelay;
+    private metrics;
     constructor(config: RabbitMQConfig, deadLetterRepo?: IDeadLetterRepository | undefined, alertService?: AlertService | undefined);
     connect(): Promise<void>;
     private reconnect;

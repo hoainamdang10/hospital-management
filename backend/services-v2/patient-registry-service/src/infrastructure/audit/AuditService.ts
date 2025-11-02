@@ -1,0 +1,231 @@
+/**
+ * AuditService - HIPAA-compliant audit logging
+ * 
+ * @author Hospital Management Team
+ * @version 2.0.0
+ * @compliance HIPAA, Clean Architecture
+ */
+
+import { SupabaseClient } from '@supabase/supabase-js';
+import { ILogger } from '@shared/application/services/logger.interface';
+
+export interface AuditLogEntry {
+  eventId: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  action: string;
+  userId?: string;
+  userRole?: string;
+  patientId?: string;
+  containsPHI: boolean;
+  changedFields?: Record<string, any>;
+  oldValues?: Record<string, any>;
+  newValues?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  sessionId?: string;
+  correlationId?: string;
+  complianceLevel: string;
+}
+
+export interface PHIAccessLogEntry {
+  patientId: string;
+  userId: string;
+  userRole?: string;
+  accessType: 'READ' | 'WRITE' | 'EXPORT' | 'PRINT' | 'DELETE' | 'SEARCH';
+  accessedFields?: string[];
+  reason?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  sessionId?: string;
+}
+
+export class AuditService {
+  constructor(
+    private supabase: SupabaseClient,
+    private logger: ILogger
+  ) {}
+
+  /**
+   * Log audit event
+   */
+  async logAudit(entry: AuditLogEntry): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .schema('patient_schema')
+        .from('audit_logs')
+        .insert({
+          event_id: entry.eventId,
+          event_type: entry.eventType,
+          aggregate_type: entry.aggregateType,
+          aggregate_id: entry.aggregateId,
+          action: entry.action,
+          user_id: entry.userId,
+          user_role: entry.userRole,
+          patient_id: entry.patientId,
+          contains_phi: entry.containsPHI,
+          changed_fields: entry.changedFields,
+          old_values: entry.oldValues,
+          new_values: entry.newValues,
+          ip_address: entry.ipAddress,
+          user_agent: entry.userAgent,
+          session_id: entry.sessionId,
+          correlation_id: entry.correlationId,
+          compliance_level: entry.complianceLevel,
+          timestamp: new Date().toISOString()
+        });
+
+      if (error) {
+        this.logger.error('Failed to log audit entry', { error: error.message });
+        throw error;
+      }
+
+      this.logger.debug('Audit log created', {
+        eventType: entry.eventType,
+        action: entry.action,
+        patientId: entry.patientId
+      });
+    } catch (error) {
+      this.logger.error('Error logging audit', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      // Don't throw - audit logging should not break main flow
+    }
+  }
+
+  /**
+   * Log PHI access
+   */
+  async logPHIAccess(entry: PHIAccessLogEntry): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .schema('patient_schema')
+        .from('phi_access_logs')
+        .insert({
+          patient_id: entry.patientId,
+          user_id: entry.userId,
+          user_role: entry.userRole,
+          access_type: entry.accessType,
+          accessed_fields: entry.accessedFields,
+          reason: entry.reason,
+          ip_address: entry.ipAddress,
+          user_agent: entry.userAgent,
+          session_id: entry.sessionId,
+          timestamp: new Date().toISOString()
+        });
+
+      if (error) {
+        this.logger.error('Failed to log PHI access', { error: error.message });
+        throw error;
+      }
+
+      this.logger.debug('PHI access logged', {
+        patientId: entry.patientId,
+        accessType: entry.accessType,
+        userId: entry.userId
+      });
+    } catch (error) {
+      this.logger.error('Error logging PHI access', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Check if event was already processed (idempotency)
+   */
+  async isEventProcessed(eventId: string): Promise<boolean> {
+    try {
+      const { data, error } = await this.supabase
+        .rpc('is_event_processed', { p_event_id: eventId });
+
+      if (error) {
+        this.logger.error('Failed to check event processing status', { error: error.message });
+        return false; // Fail open - allow processing
+      }
+
+      return data === true;
+    } catch (error) {
+      this.logger.error('Error checking event processing status', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Mark event as processing
+   */
+  async markEventProcessing(
+    eventId: string,
+    eventType: string,
+    handlerName: string,
+    eventPayload: any
+  ): Promise<string | null> {
+    try {
+      const { data, error } = await this.supabase
+        .rpc('mark_event_processing', {
+          p_event_id: eventId,
+          p_event_type: eventType,
+          p_handler_name: handlerName,
+          p_event_payload: eventPayload
+        });
+
+      if (error) {
+        this.logger.error('Failed to mark event as processing', { error: error.message });
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      this.logger.error('Error marking event as processing', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Mark event as completed
+   */
+  async markEventCompleted(eventId: string, processingDurationMs: number): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .rpc('mark_event_completed', {
+          p_event_id: eventId,
+          p_processing_duration_ms: processingDurationMs
+        });
+
+      if (error) {
+        this.logger.error('Failed to mark event as completed', { error: error.message });
+      }
+    } catch (error) {
+      this.logger.error('Error marking event as completed', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Mark event as failed
+   */
+  async markEventFailed(eventId: string, errorMessage: string, errorStack?: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .rpc('mark_event_failed', {
+          p_event_id: eventId,
+          p_error_message: errorMessage,
+          p_error_stack: errorStack || ''
+        });
+
+      if (error) {
+        this.logger.error('Failed to mark event as failed', { error: error.message });
+      }
+    } catch (error) {
+      this.logger.error('Error marking event as failed', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+}

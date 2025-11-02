@@ -54,7 +54,7 @@ export function createPermissionRoutes(deps: RouteDependencies): Router {
   );
 
   // Check single permission (PUBLIC - for API Gateway)
-  router.post('/check-permission', async (req, res) => {
+  router.post('/check-permission', deps.internalServiceAuthMiddleware, async (req, res) => {
     try {
       const result = await deps.checkPermissionUseCase.execute({
         userId: req.body.userId,
@@ -72,7 +72,7 @@ export function createPermissionRoutes(deps: RouteDependencies): Router {
   });
 
   // Check multiple permissions (PUBLIC - for API Gateway)
-  router.post('/check-permissions', async (req, res) => {
+  router.post('/check-permissions', deps.internalServiceAuthMiddleware, async (req, res) => {
     try {
       const result = await deps.checkPermissionsUseCase.execute({
         userId: req.body.userId,
@@ -91,7 +91,7 @@ export function createPermissionRoutes(deps: RouteDependencies): Router {
   });
 
   // Check single role (PUBLIC - for API Gateway)
-  router.post('/check-role', async (req, res) => {
+  router.post('/check-role', deps.internalServiceAuthMiddleware, async (req, res) => {
     try {
       const result = await deps.checkRoleUseCase.execute({
         userId: req.body.userId,
@@ -109,7 +109,7 @@ export function createPermissionRoutes(deps: RouteDependencies): Router {
   });
 
   // Check multiple roles (PUBLIC - for API Gateway)
-  router.post('/check-roles', async (req, res) => {
+  router.post('/check-roles', deps.internalServiceAuthMiddleware, async (req, res) => {
     try {
       const result = await deps.checkRolesUseCase.execute({
         userId: req.body.userId,
@@ -129,4 +129,3 @@ export function createPermissionRoutes(deps: RouteDependencies): Router {
 
   return router;
 }
-

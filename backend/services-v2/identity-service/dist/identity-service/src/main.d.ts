@@ -18,5 +18,11 @@ declare global {
         }
     }
 }
-export {};
+/**
+ * Bootstrap application
+ * Orchestrates service initialization using modular bootstrap architecture
+ */
+declare function bootstrap(): Promise<void>;
+export { bootstrap };
+export default bootstrap;
 //# sourceMappingURL=main.d.ts.map

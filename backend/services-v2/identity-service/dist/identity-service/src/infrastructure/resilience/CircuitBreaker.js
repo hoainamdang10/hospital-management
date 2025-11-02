@@ -17,12 +17,13 @@ const error_helper_1 = require("../../utils/error-helper");
  * Implements fail-fast pattern to prevent system overload
  */
 class IdentityServiceCircuitBreaker {
-    constructor(config, serviceName) {
+    constructor(config, serviceName, logger) {
         this.config = config;
         this.serviceName = serviceName;
         this.state = ICircuitBreaker_1.CircuitBreakerState.CLOSED;
         this.failureCount = 0;
         this.halfOpenCalls = 0;
+        this.logger = logger;
         this.metrics = {
             totalCalls: 0,
             successfulCalls: 0,
@@ -112,7 +113,12 @@ class IdentityServiceCircuitBreaker {
             timestamp: new Date(),
             reason
         });
-        console.log(`[CircuitBreaker:${this.serviceName}] ${oldState} -> ${newState}: ${reason}`);
+        this.logger.info('CircuitBreaker state transition', {
+            serviceName: this.serviceName,
+            from: oldState,
+            to: newState,
+            reason
+        });
     }
     /**
      * Get current circuit breaker state (ICircuitBreaker interface)
@@ -148,7 +154,10 @@ exports.IdentityServiceCircuitBreaker = IdentityServiceCircuitBreaker;
  * Circuit Breaker Factory for different service operations
  */
 class CircuitBreakerFactory {
-    static getBreaker(serviceName, config) {
+    static setLogger(logger) {
+        this.logger = logger;
+    }
+    static getBreaker(serviceName, config, logger) {
         if (!this.breakers.has(serviceName)) {
             const defaultConfig = {
                 failureThreshold: 5,
@@ -157,7 +166,11 @@ class CircuitBreakerFactory {
                 halfOpenMaxCalls: 3
             };
             const finalConfig = { ...defaultConfig, ...config };
-            this.breakers.set(serviceName, new IdentityServiceCircuitBreaker(finalConfig, serviceName));
+            const loggerInstance = logger || this.logger;
+            if (!loggerInstance) {
+                throw new Error('Logger must be provided to CircuitBreakerFactory');
+            }
+            this.breakers.set(serviceName, new IdentityServiceCircuitBreaker(finalConfig, serviceName, loggerInstance));
         }
         return this.breakers.get(serviceName);
     }
@@ -182,4 +195,5 @@ class CircuitBreakerFactory {
 }
 exports.CircuitBreakerFactory = CircuitBreakerFactory;
 CircuitBreakerFactory.breakers = new Map();
+CircuitBreakerFactory.logger = null;
 //# sourceMappingURL=CircuitBreaker.js.map

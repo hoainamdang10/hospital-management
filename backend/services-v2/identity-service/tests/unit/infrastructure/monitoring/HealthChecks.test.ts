@@ -1,23 +1,39 @@
 import { TestUtils } from '@tests/setup';
 
-// Mock Supabase client with schema() support
-const createFromMock = () => ({
-  select: jest.fn().mockReturnThis(),
-  limit: jest.fn().mockReturnThis(),
-  order: jest.fn().mockReturnThis(),
-  eq: jest.fn().mockResolvedValue({ error: null, data: [] }),
-});
+type QueryMock = {
+  select: jest.Mock;
+  limit: jest.Mock;
+  order: jest.Mock;
+  eq: jest.Mock;
+};
 
-let fromMock = createFromMock();
+const createQueryMock = (): QueryMock => {
+  const builder: Record<string, jest.Mock> = {} as any;
+  builder.select = jest.fn(() => builder);
+  builder.order = jest.fn(() => builder);
+  builder.limit = jest.fn(() => Promise.resolve({ error: null, data: [] }));
+  builder.eq = jest.fn(() => Promise.resolve({ error: null, data: [] }));
+  return builder as QueryMock;
+};
+
+let queryMocks: Record<string, QueryMock>;
 
 const mockSupabaseClient = {
-  from: jest.fn(() => fromMock as any),
-  schema: jest.fn(function(this: any) {
-    // Return a new object with from() method for chaining
-    return {
-      from: jest.fn(() => fromMock as any)
-    };
+  from: jest.fn((table: string) => {
+    if (!queryMocks[table]) {
+      queryMocks[table] = createQueryMock();
+    }
+    return queryMocks[table];
   }),
+  schema: jest.fn((schema: string) => ({
+    from: (table: string) => {
+      const key = `${schema}:${table}`;
+      if (!queryMocks[key]) {
+        queryMocks[key] = createQueryMock();
+      }
+      return queryMocks[key];
+    },
+  })),
 };
 
 const mockCreateClient = jest.fn(() => mockSupabaseClient);
@@ -42,29 +58,37 @@ describe('IdentityServiceHealthCheck', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Use real timers by default
     jest.useRealTimers();
     logger = TestUtils.createMockLogger();
-
-    // Get mocked CircuitBreakerFactory
     const { CircuitBreakerFactory } = require('@infrastructure/resilience/CircuitBreaker');
     mockCircuitBreakerFactory = CircuitBreakerFactory;
 
-    // Reset fromMock to default behavior
-    fromMock = createFromMock();
-    fromMock.select.mockReturnThis();
-    fromMock.limit.mockReturnThis();
-    fromMock.order.mockReturnThis();
-    fromMock.eq.mockResolvedValue({ error: null, data: [] });
-    mockSupabaseClient.from.mockReturnValue(fromMock as any);
-    mockSupabaseClient.schema.mockReturnValue({
-      from: jest.fn(() => fromMock as any)
+    queryMocks = {
+      user_profiles: createQueryMock(),
+      'auth_schema:healthcare_roles': createQueryMock(),
+      role_permissions: createQueryMock(),
+      'auth_schema:user_sessions': createQueryMock(),
+      'auth_schema:audit_logs': createQueryMock(),
+    };
+
+    mockSupabaseClient.from.mockImplementation((table: string) => {
+      if (!queryMocks[table]) {
+        queryMocks[table] = createQueryMock();
+      }
+      return queryMocks[table];
     });
 
-    // Reset circuit breaker mock
-    mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
+    mockSupabaseClient.schema.mockImplementation((schema: string) => ({
+      from: (table: string) => {
+        const key = `${schema}:${table}`;
+        if (!queryMocks[key]) {
+          queryMocks[key] = createQueryMock();
+        }
+        return queryMocks[key];
+      },
+    }));
 
-    // Reset createClient mock
+    mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
     mockCreateClient.mockReturnValue(mockSupabaseClient);
 
     healthCheck = new IdentityServiceHealthCheck('http://localhost', 'test-key', logger);
@@ -72,9 +96,6 @@ describe('IdentityServiceHealthCheck', () => {
 
   describe('checkHealth', () => {
     it('should return HEALTHY when all components are healthy', async () => {
-      // Mock all database queries to succeed quickly
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
-
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({
         'user-repository': { state: 'CLOSED' },
       });
@@ -90,25 +111,11 @@ describe('IdentityServiceHealthCheck', () => {
       expect(health.components.circuitBreakers.status).toBe(HealthStatus.HEALTHY);
     });
 
-    it.skip('should return DEGRADED when some components are degraded', async () => {
-      // Use fake timers for this test
-      jest.useFakeTimers();
-
-      // Mock slow database response (> 1000ms for database)
-      let callCount = 0;
-      const startTime = Date.now();
-
-      // Mock Date.now() to simulate time passing
-      const mockNow = jest.spyOn(Date, 'now');
-      mockNow.mockReturnValue(startTime);
-
-      fromMock.eq.mockImplementation(async () => {
-        callCount++;
-        if (callCount === 1) { // First call is database check
-          // Simulate 1100ms delay
-          await new Promise(resolve => setTimeout(resolve, 1100));
-          mockNow.mockReturnValue(startTime + 1100);
-        }
+    it('should return DEGRADED when database response time is slow', async () => {
+      let currentTime = 1_000;
+      const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => currentTime);
+      queryMocks['user_profiles'].limit.mockImplementationOnce(async () => {
+        currentTime += 1_100;
         return { error: null, data: [] };
       });
 
@@ -116,24 +123,21 @@ describe('IdentityServiceHealthCheck', () => {
         'user-repository': { state: 'CLOSED' },
       });
 
-      const healthPromise = healthCheck.checkHealth();
+      try {
+        const health = await healthCheck.checkHealth();
 
-      // Run all pending timers
-      jest.runAllTimers();
-
-      const health = await healthPromise;
-
-      expect(health.overall).toBe(HealthStatus.DEGRADED);
-      expect(health.components.database.status).toBe(HealthStatus.DEGRADED);
-
-      // Restore real timers and mocks
-      jest.useRealTimers();
-      mockNow.mockRestore();
+        expect(health.overall).toBe(HealthStatus.DEGRADED);
+        expect(health.components.database.status).toBe(HealthStatus.DEGRADED);
+      } finally {
+        nowSpy.mockRestore();
+      }
     });
 
-    it.skip('should return UNHEALTHY when database fails', async () => {
-      fromMock.eq.mockResolvedValue({ error: { message: 'Connection failed' }, data: null });
-
+    it('should return UNHEALTHY when database fails', async () => {
+      queryMocks['user_profiles'].limit.mockResolvedValueOnce({
+        error: { message: 'Connection failed' },
+        data: null,
+      });
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
       const health = await healthCheck.checkHealth();
@@ -144,8 +148,6 @@ describe('IdentityServiceHealthCheck', () => {
     });
 
     it('should return DEGRADED when circuit breakers are open', async () => {
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
-
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({
         'user-repository': { state: 'OPEN' },
         'auth-service': { state: 'CLOSED' },
@@ -159,8 +161,6 @@ describe('IdentityServiceHealthCheck', () => {
     });
 
     it('should include metadata in health response', async () => {
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
-
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
       const health = await healthCheck.checkHealth();
@@ -185,7 +185,6 @@ describe('IdentityServiceHealthCheck', () => {
 
   describe('checkDatabase', () => {
     it('should return HEALTHY for fast database response', async () => {
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
       const health = await healthCheck.checkHealth();
@@ -195,67 +194,49 @@ describe('IdentityServiceHealthCheck', () => {
       expect(health.components.database.details?.tablesAccessible).toBe(true);
     });
 
-    it.skip('should return DEGRADED for slow database response (> 1s)', async () => {
-      // Use fake timers for this test
-      jest.useFakeTimers();
+    it('should return DEGRADED for slow database response (> 1s)', async () => {
+      let currentTime = 5_000;
+      const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => currentTime);
 
-      const startTime = Date.now();
-      const mockNow = jest.spyOn(Date, 'now');
-      mockNow.mockReturnValue(startTime);
-
-      fromMock.eq.mockImplementation(async () => {
-        // Simulate 1100ms delay
-        await new Promise(resolve => setTimeout(resolve, 1100));
-        mockNow.mockReturnValue(startTime + 1100);
+      queryMocks['user_profiles'].limit.mockImplementationOnce(async () => {
+        currentTime += 1_100;
         return { error: null, data: [] };
       });
+
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
-      const healthPromise = healthCheck.checkHealth();
-      jest.runAllTimers();
-      const health = await healthPromise;
-
-      expect(health.components.database.status).toBe(HealthStatus.DEGRADED);
-      expect(health.components.database.responseTime).toBeGreaterThan(1000);
-
-      // Restore real timers
-      jest.useRealTimers();
-      mockNow.mockRestore();
+      try {
+        const health = await healthCheck.checkHealth();
+        expect(health.components.database.status).toBe(HealthStatus.DEGRADED);
+        expect(health.components.database.responseTime).toBeGreaterThan(1000);
+      } finally {
+        nowSpy.mockRestore();
+      }
     });
 
-    it.skip('should return UNHEALTHY for very slow database response (> 5s)', async () => {
-      // Use fake timers for this test
-      jest.useFakeTimers();
+    it('should return UNHEALTHY for very slow database response (> 5s)', async () => {
+      let currentTime = 10_000;
+      const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => currentTime);
 
-      const startTime = Date.now();
-      const mockNow = jest.spyOn(Date, 'now');
-      mockNow.mockReturnValue(startTime);
-
-      fromMock.eq.mockImplementation(async () => {
-        // Simulate 5100ms delay
-        await new Promise(resolve => setTimeout(resolve, 5100));
-        mockNow.mockReturnValue(startTime + 5100);
+      queryMocks['user_profiles'].limit.mockImplementationOnce(async () => {
+        currentTime += 5_100;
         return { error: null, data: [] };
       });
+
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
-      const healthPromise = healthCheck.checkHealth();
-      jest.runAllTimers();
-      const health = await healthPromise;
-
-      expect(health.components.database.status).toBe(HealthStatus.UNHEALTHY);
-      expect(health.components.database.responseTime).toBeGreaterThan(5000);
-
-      // Restore real timers
-      jest.useRealTimers();
-      mockNow.mockRestore();
+      try {
+        const health = await healthCheck.checkHealth();
+        expect(health.components.database.status).toBe(HealthStatus.UNHEALTHY);
+        expect(health.components.database.responseTime).toBeGreaterThan(5000);
+      } finally {
+        nowSpy.mockRestore();
+      }
     });
   });
 
   describe('checkAuthentication', () => {
     it('should return HEALTHY when authentication is operational', async () => {
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
-
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
 
       const health = await healthCheck.checkHealth();
@@ -264,14 +245,10 @@ describe('IdentityServiceHealthCheck', () => {
       expect(health.components.authentication.details?.rolesAccessible).toBe(true);
     });
 
-    it.skip('should return UNHEALTHY when authentication fails', async () => {
-      let callCount = 0;
-      fromMock.eq.mockImplementation(() => {
-        callCount++;
-        if (callCount === 2) { // Second call is authentication check
-          return Promise.resolve({ error: { message: 'Auth failed' }, data: null });
-        }
-        return Promise.resolve({ error: null, data: [] });
+    it('should return UNHEALTHY when authentication fails', async () => {
+      queryMocks['auth_schema:healthcare_roles'].limit.mockResolvedValueOnce({
+        error: { message: 'Auth failed' },
+        data: null,
       });
 
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({});
@@ -284,8 +261,6 @@ describe('IdentityServiceHealthCheck', () => {
 
   describe('checkCircuitBreakers', () => {
     it('should return HEALTHY when all breakers are closed', async () => {
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
-
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({
         'user-repository': { state: 'CLOSED' },
         'auth-service': { state: 'CLOSED' },
@@ -299,8 +274,6 @@ describe('IdentityServiceHealthCheck', () => {
     });
 
     it('should return DEGRADED when some breakers are open', async () => {
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
-
       mockCircuitBreakerFactory.getHealthStatus.mockReturnValue({
         'user-repository': { state: 'OPEN' },
         'auth-service': { state: 'HALF_OPEN' },
@@ -314,8 +287,6 @@ describe('IdentityServiceHealthCheck', () => {
     });
 
     it('should handle circuit breaker check errors', async () => {
-      fromMock.eq.mockResolvedValue({ error: null, data: [] });
-
       mockCircuitBreakerFactory.getHealthStatus.mockImplementation(() => {
         throw new Error('Breaker status unavailable');
       });
@@ -327,4 +298,3 @@ describe('IdentityServiceHealthCheck', () => {
     });
   });
 });
-

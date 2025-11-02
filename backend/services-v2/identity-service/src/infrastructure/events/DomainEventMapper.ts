@@ -22,6 +22,8 @@ import { UserAccountLockedEvent } from '../../domain/events/UserAccountLockedEve
 import { UserAccountUnlockedEvent } from '../../domain/events/UserAccountUnlockedEvent';
 import { MFAEnabledEvent } from '../../domain/events/MFAEnabledEvent';
 import { MFADisabledEvent } from '../../domain/events/MFADisabledEvent';
+import { PendingRegistrationCreatedEvent } from '../../domain/events/PendingRegistrationCreatedEvent';
+import { PasswordResetEvent } from '../../domain/events/PasswordResetEvent';
 
 export class DomainEventMapper {
   /**
@@ -218,6 +220,34 @@ export class DomainEventMapper {
           email: domainEvent.userEmail,
           role: domainEvent.userRole,
           disabledAt: domainEvent.occurredAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof PendingRegistrationCreatedEvent) {
+      return {
+        ...baseEvent,
+        aggregateType: 'PendingRegistration',
+        payload: {
+          pendingRegistrationId: domainEvent.data.pendingRegistrationId,
+          email: domainEvent.data.email,
+          fullName: domainEvent.data.fullName,
+          roleType: domainEvent.data.roleType,
+          expiresAt: domainEvent.data.expiresAt
+        }
+      };
+    }
+
+    if (domainEvent instanceof PasswordResetEvent) {
+      return {
+        ...baseEvent,
+        payload: {
+          userId: domainEvent.userIdVO.value,
+          email: domainEvent.userEmail,
+          role: domainEvent.userRole,
+          resetMethod: domainEvent.resetMethod,
+          invalidatedSessions: domainEvent.invalidatedSessions,
+          resetAt: domainEvent.occurredAt
         }
       };
     }

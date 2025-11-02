@@ -66,10 +66,36 @@ async function bootstrap() {
       exchangeType: 'topic',
       queueName: 'notifications.inbox',
       routingKeys: [
+        // Scheduler Service - Critical scheduled notifications path
+        'scheduler.schedule.run.due',
+        
+        // Appointments Service
+        'appointments.appointment.scheduled',
+        'appointments.appointment.cancelled',
         'appointments.appointment.reminder.*',
+        
+        // Billing Service
+        'billing.invoice.generated',
+        'billing.payment.completed',
         'billing.payment.reminder.*',
+        
+        // Clinical EMR Service
+        'clinical.medical_record_updated',
         'clinical.medication.reminder.*',
-        'scheduler.schedule.run.due'
+        'emergency.alert',
+        
+        // Identity Service - NEW
+        'user.user_created',
+        'user.user_activated',
+        'user.user_role_changed',
+        'user.password_reset',
+        'staffinvitation.staff_invitation_created',
+        
+        // Patient Registry Service - NEW
+        'patient.patient_registered',
+        'patient.patient_updated',
+        'patient.patient_deactivated',
+        'patient.patient_consent_granted'
       ],
       prefetchCount: 10, // Process 10 messages concurrently
       durable: true

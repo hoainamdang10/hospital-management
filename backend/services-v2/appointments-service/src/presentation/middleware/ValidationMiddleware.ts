@@ -11,6 +11,9 @@
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import { ValidationError } from './ErrorHandlingMiddleware';
+import { createLogger } from '../../infrastructure/logging/Logger';
+
+const logger = createLogger('ValidationMiddleware');
 
 /**
  * Validation Middleware Factory
@@ -34,6 +37,11 @@ export function validateRequest(schema: Joi.ObjectSchema, source: 'body' | 'quer
         message: translateValidationMessage(detail.message, detail.type),
         code: detail.type
       }));
+
+      console.error('[ValidationMiddleware] Validation failed:', {
+        validationErrors,
+        receivedData: JSON.stringify(dataToValidate, null, 2)
+      });
 
       const validationError = new ValidationError(
         'Dữ liệu đầu vào không hợp lệ',
@@ -186,11 +194,23 @@ function sanitizeValue(value: any): any {
 
 /**
  * Rate Limiting Middleware
+ * Uses environment variables: RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS
  */
 export function rateLimitMiddleware(
-  windowMs: number = 15 * 60 * 1000, // 15 minutes
-  maxRequests: number = 100 // 100 requests per window
+  windowMs?: number,
+  maxRequests?: number
 ) {
+  // Read from environment variables or use defaults
+  const effectiveWindowMs = windowMs 
+    ?? parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10); // 15 minutes default
+  const effectiveMaxRequests = maxRequests 
+    ?? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10); // 100 requests default
+
+  logger.info('Rate limit initialized', { 
+    maxRequests: effectiveMaxRequests, 
+    windowMs: effectiveWindowMs 
+  });
+
   const requests = new Map<string, { count: number; resetTime: number }>();
 
   return (req: Request, res: Response, next: NextFunction) => {
@@ -209,13 +229,13 @@ export function rateLimitMiddleware(
     if (!clientData || now > clientData.resetTime) {
       clientData = {
         count: 0,
-        resetTime: now + windowMs
+        resetTime: now + effectiveWindowMs
       };
       requests.set(clientId, clientData);
     }
 
     // Check rate limit
-    if (clientData.count >= maxRequests) {
+    if (clientData.count >= effectiveMaxRequests) {
       return res.status(429).json({
         success: false,
         message: 'Quá nhiều yêu cầu, vui lòng thử lại sau',
@@ -233,8 +253,8 @@ export function rateLimitMiddleware(
 
     // Add rate limit headers
     res.set({
-      'X-RateLimit-Limit': maxRequests.toString(),
-      'X-RateLimit-Remaining': (maxRequests - clientData.count).toString(),
+      'X-RateLimit-Limit': effectiveMaxRequests.toString(),
+      'X-RateLimit-Remaining': (effectiveMaxRequests - clientData.count).toString(),
       'X-RateLimit-Reset': new Date(clientData.resetTime).toISOString()
     });
 

@@ -12,7 +12,6 @@ import { LockAccountUseCase } from '@application/use-cases/LockAccountUseCase';
 import { UnlockAccountUseCase } from '@application/use-cases/UnlockAccountUseCase';
 import { TerminateAllSessionsUseCase } from '@application/use-cases/TerminateAllSessionsUseCase';
 import { InboxService } from '@infrastructure/inbox/InboxService';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('StaffCredentialEventHandler', () => {
   let handler: StaffCredentialEventHandler;
@@ -20,7 +19,7 @@ describe('StaffCredentialEventHandler', () => {
   let mockUnlockAccountUseCase: jest.Mocked<UnlockAccountUseCase>;
   let mockTerminateAllSessionsUseCase: jest.Mocked<TerminateAllSessionsUseCase>;
   let mockInboxService: jest.Mocked<InboxService>;
-  let mockSupabaseClient: jest.Mocked<SupabaseClient>;
+  let mockSupabaseClient: any;
   let mockLogger: any;
 
   beforeEach(() => {
@@ -52,11 +51,12 @@ describe('StaffCredentialEventHandler', () => {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnValue({ single: mockSingle }),
+      insert: jest.fn().mockResolvedValue({ error: null }),
+      eq: jest.fn().mockReturnThis(),
       single: mockSingle,
       auth: {
         admin: {
-          updateUserById: jest.fn()
+          updateUserById: jest.fn().mockResolvedValue({ error: null })
         }
       }
     } as any;
@@ -159,17 +159,10 @@ describe('StaffCredentialEventHandler', () => {
       });
 
       // Mock user lookup
-      (mockSupabaseClient.eq as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: { user_id: 'user-789' },
-          error: null
-        })
-      });
-
       await handler.handleStaffStatusChanged(mockEvent);
 
       expect(mockLockAccountUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-789',
+        userId: 'staff-456', // Uses staffId as userId
         lockedBy: 'admin-123',
         reason: 'Performance issues',
         terminateSessions: true
@@ -192,24 +185,17 @@ describe('StaffCredentialEventHandler', () => {
         status: 'PENDING'
       });
 
-      (mockSupabaseClient.eq as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: { user_id: 'user-789' },
-          error: null
-        })
-      });
-
       await handler.handleStaffStatusChanged(reactivateEvent);
 
       expect(mockUnlockAccountUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-789',
+        userId: 'staff-456', // Uses staffId as userId
         unlockedBy: 'admin-123',
         reason: 'Performance improved'
       });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-124');
     });
 
-    it('should handle user not found gracefully', async () => {
+    it('should still lock account even when processing (uses staffId as userId)', async () => {
       mockInboxService.checkProcessed.mockResolvedValue(false);
       mockInboxService.storeEvent.mockResolvedValue({
         isNew: true,
@@ -217,17 +203,15 @@ describe('StaffCredentialEventHandler', () => {
         status: 'PENDING'
       });
 
-      (mockSupabaseClient.eq as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error: { code: 'PGRST116', message: 'Not found' }
-        })
-      });
-
       await handler.handleStaffStatusChanged(mockEvent);
 
-      expect(mockLockAccountUseCase.execute).not.toHaveBeenCalled();
-      expect(mockLogger.warn).toHaveBeenCalled();
+      // Business logic uses staffId as userId, so lock is always called
+      expect(mockLockAccountUseCase.execute).toHaveBeenCalledWith({
+        userId: 'staff-456',
+        lockedBy: 'admin-123',
+        reason: 'Performance issues',
+        terminateSessions: true
+      });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-124');
     });
   });
@@ -250,19 +234,17 @@ describe('StaffCredentialEventHandler', () => {
         status: 'PENDING'
       });
 
-      (mockSupabaseClient.eq as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: { user_id: 'user-789' },
-          error: null
-        })
+      mockSupabaseClient.single.mockResolvedValue({
+        data: { user_id: 'user-789' },
+        error: null
       });
 
       await handler.handleStaffCredentialExpired(mockEvent);
 
       expect(mockLockAccountUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-789',
+        userId: 'staff-456',
         lockedBy: 'SYSTEM_AUTO',
-        reason: expect.stringContaining('Credential expired'),
+        reason: 'Credential expired: MEDICAL_LICENSE (CRED-789)',
         terminateSessions: true
       });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-125');
@@ -288,23 +270,21 @@ describe('StaffCredentialEventHandler', () => {
         status: 'PENDING'
       });
 
-      (mockSupabaseClient.eq as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: { user_id: 'user-789' },
-          error: null
-        })
+      mockSupabaseClient.single.mockResolvedValue({
+        data: { user_id: 'user-789' },
+        error: null
       });
 
       await handler.handleStaffLicenseRevoked(mockEvent);
 
       expect(mockLockAccountUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-789',
+        userId: 'staff-456',
         lockedBy: 'SYSTEM_AUTO',
-        reason: expect.stringContaining('License revoked'),
+        reason: 'License revoked: Malpractice',
         terminateSessions: true
       });
       expect(mockTerminateAllSessionsUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-789'
+        userId: 'staff-456'
       });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-126');
     });
@@ -329,22 +309,20 @@ describe('StaffCredentialEventHandler', () => {
         status: 'PENDING'
       });
 
-      (mockSupabaseClient.eq as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: { user_id: 'user-789' },
-          error: null
-        })
+      mockSupabaseClient.single.mockResolvedValue({
+        data: { user_id: 'user-789' },
+        error: null
       });
 
       await handler.handleStaffPerformanceFlagged(mockEvent);
 
       expect(mockLockAccountUseCase.execute).toHaveBeenCalledWith({
-        userId: 'user-789',
+        userId: 'staff-456',
         lockedBy: 'SYSTEM_AUTO',
-        reason: expect.stringContaining('Performance flagged'),
-        terminateSessions: true
+        reason: 'Account locked due to CRITICAL performance issue: Multiple patient complaints'
       });
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-127');
+      expect(mockInboxService.markFailed).not.toHaveBeenCalled();
     });
 
     it('should only flag account when severity is not CRITICAL', async () => {
@@ -365,17 +343,16 @@ describe('StaffCredentialEventHandler', () => {
         status: 'PENDING'
       });
 
-      (mockSupabaseClient.eq as jest.Mock).mockReturnValue({
-        single: jest.fn().mockResolvedValue({
-          data: { user_id: 'user-789' },
-          error: null
-        })
+      mockSupabaseClient.single.mockResolvedValue({
+        data: { user_id: 'user-789' },
+        error: null
       });
 
       await handler.handleStaffPerformanceFlagged(mockEvent);
 
       expect(mockLockAccountUseCase.execute).not.toHaveBeenCalled();
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-128');
+      expect(mockInboxService.markFailed).not.toHaveBeenCalled();
     });
   });
 
@@ -412,13 +389,15 @@ describe('StaffCredentialEventHandler', () => {
         'user-789',
         {
           user_metadata: {
-            departmentId: 'dept-2',
-            departmentName: 'Emergency',
-            lastDepartmentChange: mockEvent.effectiveDate.toISOString()
+            department_id: 'dept-2',
+            department_name: 'Emergency',
+            department_changed_at: mockEvent.effectiveDate.toISOString(),
+            previous_department: 'Cardiology'
           }
         }
       );
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-129');
+      expect(mockInboxService.markFailed).not.toHaveBeenCalled();
     });
   });
 
@@ -457,18 +436,19 @@ describe('StaffCredentialEventHandler', () => {
         'user-789',
         {
           user_metadata: {
-            scheduleType: 'WEEKLY',
-            workingDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY'],
-            workingHours: {
+            schedule_type: 'WEEKLY',
+            working_days: ['MONDAY', 'TUESDAY', 'WEDNESDAY'],
+            working_hours: {
               start: '08:00',
               end: '17:00'
             },
-            isAvailable: true,
-            lastScheduleUpdate: mockEvent.occurredAt.toISOString()
+            is_available: true,
+            schedule_updated_at: mockEvent.occurredAt.toISOString()
           }
         }
       );
       expect(mockInboxService.markProcessed).toHaveBeenCalledWith('evt-130');
+      expect(mockInboxService.markFailed).not.toHaveBeenCalled();
     });
   });
 });

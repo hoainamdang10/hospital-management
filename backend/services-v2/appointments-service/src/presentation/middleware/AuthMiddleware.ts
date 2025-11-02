@@ -8,6 +8,9 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createLogger } from '../../infrastructure/logging/Logger';
+
+const logger = createLogger('AuthMiddleware');
 
 /**
  * Extended Express Request with user info
@@ -80,15 +83,19 @@ export class AuthMiddleware {
       }
 
       // 3. Attach user info to request
+      const rawRole = data.user.user_metadata?.role || data.user.app_metadata?.role;
       req.user = {
         id: data.user.id,
         email: data.user.email,
-        role: data.user.user_metadata?.role || data.user.app_metadata?.role,
+        role: rawRole ? rawRole.toUpperCase() : undefined, // Normalize to uppercase
         sub: data.user.id,
       };
 
       // 4. Log authentication (optional, for audit)
-      console.log(`[Auth] User authenticated: ${req.user.id} - ${req.user.email}`);
+      logger.info('User authenticated', { 
+        userId: req.user.id, 
+        email: req.user.email 
+      });
 
       next();
     } catch (error) {
@@ -150,10 +157,11 @@ export class AuthMiddleware {
       const { data, error } = await this.supabase.auth.getUser(token);
 
       if (!error && data.user) {
+        const rawRole = data.user.user_metadata?.role || data.user.app_metadata?.role;
         req.user = {
           id: data.user.id,
           email: data.user.email,
-          role: data.user.user_metadata?.role || data.user.app_metadata?.role,
+          role: rawRole ? rawRole.toUpperCase() : undefined, // Normalize to uppercase
           sub: data.user.id,
         };
       }

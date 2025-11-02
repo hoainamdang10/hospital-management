@@ -42,4 +42,30 @@ export * from './GrantAccessUseCase';
 export * from './RevokeAccessUseCase';
 export * from './AuditAccessHistoryUseCase';
 
+// Clinical Notes Use Cases
+export * from './CreateClinicalNoteUseCase';
+export * from './GetClinicalNoteUseCase';
+export * from './UpdateClinicalNoteUseCase';
+export * from './CosignClinicalNoteUseCase';
+export * from './ListClinicalNotesUseCase';
+
+// Diagnostic Reports Use Cases
+export * from './CreateDiagnosticReportUseCase';
+export * from './GetDiagnosticReportUseCase';
+export * from './UpdateDiagnosticReportUseCase';
+export * from './FinalizeDiagnosticReportUseCase';
+export * from './ListDiagnosticReportsUseCase';
+
+// Treatment Plans Use Cases
+export * from './CreateTreatmentPlanUseCase';
+export * from './GetTreatmentPlanUseCase';
+export * from './UpdateTreatmentPlanUseCase';
+export * from './CompleteTreatmentPlanUseCase';
+export * from './ListTreatmentPlansUseCase';
+
+// Prescription Use Cases
+export * from './CreatePrescriptionUseCase';
+export * from './GetPrescriptionUseCase';
+export * from './DispensePrescriptionUseCase';
+export * from './ListPrescriptionsUseCase';
 

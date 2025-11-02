@@ -13,6 +13,16 @@ import { ConfirmAppointmentUseCase } from '../../application/use-cases/ConfirmAp
 import { CompleteAppointmentUseCase } from '../../application/use-cases/CompleteAppointment.use-case';
 import { GetAppointmentUseCase } from '../../application/use-cases/GetAppointment.use-case';
 import { ListAppointmentsUseCase } from '../../application/use-cases/ListAppointments.use-case';
+import { RescheduleAppointmentUseCase } from '../../application/use-cases/RescheduleAppointment.use-case';
+import { CheckInAppointmentUseCase } from '../../application/use-cases/CheckInAppointment.use-case';
+import { MarkAsNoShowUseCase } from '../../application/use-cases/MarkAsNoShow.use-case';
+import { StartAppointmentUseCase } from '../../application/use-cases/StartAppointment.use-case';
+import { BulkRescheduleAppointmentsUseCase } from '../../application/use-cases/BulkRescheduleAppointments.use-case';
+import { GetAppointmentHistoryUseCase } from '../../application/use-cases/GetAppointmentHistory.use-case';
+import { GetAppointmentStatisticsUseCase } from '../../application/use-cases/GetAppointmentStatistics.use-case';
+import { CreateEmergencyAppointmentUseCase } from '../../application/use-cases/CreateEmergencyAppointment.use-case';
+import { TransferAppointmentUseCase } from '../../application/use-cases/TransferAppointment.use-case';
+import { CreateRecurringAppointmentSeriesUseCase } from '../../application/use-cases/CreateRecurringAppointmentSeries.use-case';
 export declare class AppointmentController {
     private readonly scheduleAppointmentUseCase;
     private readonly cancelAppointmentUseCase;
@@ -20,7 +30,17 @@ export declare class AppointmentController {
     private readonly completeAppointmentUseCase;
     private readonly getAppointmentUseCase;
     private readonly listAppointmentsUseCase;
-    constructor(scheduleAppointmentUseCase: ScheduleAppointmentUseCase, cancelAppointmentUseCase: CancelAppointmentUseCase, confirmAppointmentUseCase: ConfirmAppointmentUseCase, completeAppointmentUseCase: CompleteAppointmentUseCase, getAppointmentUseCase: GetAppointmentUseCase, listAppointmentsUseCase: ListAppointmentsUseCase);
+    private readonly rescheduleAppointmentUseCase;
+    private readonly checkInAppointmentUseCase;
+    private readonly markAsNoShowUseCase;
+    private readonly startAppointmentUseCase;
+    private readonly bulkRescheduleAppointmentsUseCase;
+    private readonly getAppointmentHistoryUseCase;
+    private readonly getAppointmentStatisticsUseCase;
+    private readonly createEmergencyAppointmentUseCase;
+    private readonly transferAppointmentUseCase;
+    private readonly createRecurringSeriesUseCase;
+    constructor(scheduleAppointmentUseCase: ScheduleAppointmentUseCase, cancelAppointmentUseCase: CancelAppointmentUseCase, confirmAppointmentUseCase: ConfirmAppointmentUseCase, completeAppointmentUseCase: CompleteAppointmentUseCase, getAppointmentUseCase: GetAppointmentUseCase, listAppointmentsUseCase: ListAppointmentsUseCase, rescheduleAppointmentUseCase: RescheduleAppointmentUseCase, checkInAppointmentUseCase: CheckInAppointmentUseCase, markAsNoShowUseCase: MarkAsNoShowUseCase, startAppointmentUseCase: StartAppointmentUseCase, bulkRescheduleAppointmentsUseCase: BulkRescheduleAppointmentsUseCase, getAppointmentHistoryUseCase: GetAppointmentHistoryUseCase, getAppointmentStatisticsUseCase: GetAppointmentStatisticsUseCase, createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase, transferAppointmentUseCase: TransferAppointmentUseCase, createRecurringSeriesUseCase: CreateRecurringAppointmentSeriesUseCase);
     /**
      * POST /api/appointments
      * Schedule a new appointment
@@ -56,5 +76,55 @@ export declare class AppointmentController {
      * Preview reminder schedules (applies quiet hours)
      */
     previewReminders(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/:id/reschedule
+     * Reschedule an appointment
+     */
+    rescheduleAppointment(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/:id/check-in
+     * Check in patient for appointment
+     */
+    checkInAppointment(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/:id/no-show
+     * Mark appointment as no-show
+     */
+    markAsNoShow(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/:id/start
+     * Start appointment (doctor begins consultation)
+     */
+    startAppointment(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/bulk-reschedule
+     * Bulk reschedule appointments (doctor unavailable)
+     */
+    bulkRescheduleAppointments(req: Request, res: Response): Promise<void>;
+    /**
+     * GET /api/appointments/history
+     * Get appointment history
+     */
+    getAppointmentHistory(req: Request, res: Response): Promise<void>;
+    /**
+     * GET /api/appointments/statistics
+     * Get appointment statistics
+     */
+    getAppointmentStatistics(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/emergency
+     * Create emergency appointment
+     */
+    createEmergencyAppointment(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/:id/transfer
+     * Transfer appointment to another doctor
+     */
+    transferAppointment(req: Request, res: Response): Promise<void>;
+    /**
+     * POST /api/appointments/recurring
+     * Create a recurring appointment series
+     */
+    createRecurringAppointmentSeries(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=AppointmentController.d.ts.map

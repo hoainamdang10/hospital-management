@@ -78,13 +78,13 @@ export class AddMedicationUseCase extends BaseHealthcareUseCase<AddMedicationReq
       const medication = Medication.create(
         request.code,
         request.name,
-        request.strength,
-        request.dosageForm,
-        request.route,
-        request.dosage,
-        request.frequency,
-        request.frequencyUnit,
-        request.instructions,
+        request.strength || '',
+        request.dosageForm || DosageForm.TABLET,
+        request.route || RouteOfAdministration.ORAL,
+        request.dosage || '',
+        request.frequency?.toString() || '',
+        request.frequencyUnit || FrequencyUnit.TIMES_PER_DAY,
+        request.instructions || '',
         request.prescribedBy
       );
 

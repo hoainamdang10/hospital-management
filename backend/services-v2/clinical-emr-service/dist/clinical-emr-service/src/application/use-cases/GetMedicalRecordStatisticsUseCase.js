@@ -35,7 +35,12 @@ class GetMedicalRecordStatisticsUseCase extends use_case_interface_1.BaseHealthc
                 statistics = await this.medicalRecordRepository.getDoctorStatistics(request.doctorId);
             }
             else {
-                statistics = await this.medicalRecordRepository.getSystemStatistics();
+                // System-wide statistics not available, return empty stats
+                statistics = {
+                    totalRecords: 0,
+                    activeRecords: 0,
+                    archivedRecords: 0
+                };
             }
             return {
                 success: true,

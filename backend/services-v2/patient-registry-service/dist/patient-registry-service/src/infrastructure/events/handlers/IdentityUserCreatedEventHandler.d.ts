@@ -10,14 +10,12 @@ import { ILogger } from '../../../../../shared/application/services/logger.inter
 import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
 /**
  * Identity User Created Event Data
+ * Matches payload structure from Identity Service DomainEventMapper
  */
 export interface IdentityUserCreatedEventData {
     userId: string;
     email: string;
     role: string;
-    fullName?: string;
-    phoneNumber?: string;
-    createdAt: string;
 }
 /**
  * Identity User Created Event Handler

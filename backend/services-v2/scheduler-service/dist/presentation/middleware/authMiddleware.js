@@ -15,7 +15,7 @@ function authMiddleware(req, res, next) {
             });
             return;
         }
-        const token = authHeader.replace('Bearer ', '');
+        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
         if (!token) {
             res.status(401).json({
                 success: false,

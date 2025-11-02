@@ -48,7 +48,7 @@ export class EventSubscriptions {
       this.isConnected = true;
       this.logger.info('[EventSubscriptions] ✅ All subscriptions ready and listening');
     } catch (error) {
-      this.logger.error('[EventSubscriptions] ❌ Failed to setup subscriptions:', error);
+      this.logger.error('[EventSubscriptions] ❌ Failed to setup subscriptions:', { error: String(error) });
       throw error;
     }
   }
@@ -67,7 +67,7 @@ export class EventSubscriptions {
       this.isConnected = false;
       this.logger.info('[EventSubscriptions] ✅ Disconnected successfully');
     } catch (error) {
-      this.logger.error('[EventSubscriptions] ❌ Failed to disconnect:', error);
+      this.logger.error('[EventSubscriptions] ❌ Failed to disconnect:', { error: String(error) });
       throw error;
     }
   }
@@ -85,9 +85,11 @@ export class EventSubscriptions {
     // 1. Appointment Completed → Create Medical Record
     await this.eventBus.subscribe(
       'AppointmentCompleted',
-      async (event: any) => {
-        this.logger.info(`[Event] 📅 Received AppointmentCompleted: ${event.aggregateId}`);
-        await this.clinicalEMREventHandler.processEvent(event);
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 📅 Received AppointmentCompleted: ${event.aggregateId}`, event.metadata as any);
+          await this.clinicalEMREventHandler.handleEvent(event);
+        }
       },
       `${serviceName}.appointment.completed`
     );
@@ -96,9 +98,11 @@ export class EventSubscriptions {
     // 2. Appointment Cancelled → Update Medical Record if exists
     await this.eventBus.subscribe(
       'AppointmentCancelled',
-      async (event: any) => {
-        this.logger.info(`[Event] ❌ Received AppointmentCancelled: ${event.aggregateId}`);
-        // Update medical record status if linked
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] ❌ Received AppointmentCancelled: ${event.aggregateId}`, event.metadata as any);
+          // Update medical record status if linked
+        }
       },
       `${serviceName}.appointment.cancelled`
     );
@@ -111,9 +115,11 @@ export class EventSubscriptions {
     // 3. Patient Registered → Initialize EMR Profile
     await this.eventBus.subscribe(
       'PatientRegistered',
-      async (event: any) => {
-        this.logger.info(`[Event] 👤 Received PatientRegistered: ${event.aggregateId}`);
-        await this.clinicalEMREventHandler.processEvent(event);
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 👤 Received PatientRegistered: ${event.aggregateId}`, event.metadata as any);
+          await this.clinicalEMREventHandler.handleEvent(event);
+        }
       },
       `${serviceName}.patient.registered`
     );
@@ -122,9 +128,11 @@ export class EventSubscriptions {
     // 4. Patient Updated → Sync Patient Data
     await this.eventBus.subscribe(
       'PatientUpdated',
-      async (event: any) => {
-        this.logger.info(`[Event] 👤 Received PatientUpdated: ${event.aggregateId}`);
-        // Update cached patient data if needed
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 👤 Received PatientUpdated: ${event.aggregateId}`, event.metadata as any);
+          // Update cached patient data if needed
+        }
       },
       `${serviceName}.patient.updated`
     );
@@ -137,9 +145,11 @@ export class EventSubscriptions {
     // 5. Staff Registered → Cache Doctor Info
     await this.eventBus.subscribe(
       'StaffRegistered',
-      async (event: any) => {
-        this.logger.info(`[Event] 👨‍⚕️ Received StaffRegistered: ${event.aggregateId}`);
-        // Cache doctor information for faster lookups
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 👨‍⚕️ Received StaffRegistered: ${event.aggregateId}`, event.metadata as any);
+          // Cache doctor information for faster lookups
+        }
       },
       `${serviceName}.staff.registered`
     );
@@ -148,9 +158,11 @@ export class EventSubscriptions {
     // 6. Staff Updated → Update Cached Doctor Data
     await this.eventBus.subscribe(
       'StaffUpdated',
-      async (event: any) => {
-        this.logger.info(`[Event] 👨‍⚕️ Received StaffUpdated: ${event.aggregateId}`);
-        // Update cached doctor data
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 👨‍⚕️ Received StaffUpdated: ${event.aggregateId}`, event.metadata as any);
+          // Update cached doctor data
+        }
       },
       `${serviceName}.staff.updated`
     );
@@ -163,9 +175,11 @@ export class EventSubscriptions {
     // 7. Test Results Ready → Add to Medical Record
     await this.eventBus.subscribe(
       'TestResultsReady',
-      async (event: any) => {
-        this.logger.info(`[Event] 🧪 Received TestResultsReady: ${event.aggregateId}`);
-        await this.clinicalEMREventHandler.processEvent(event);
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 🧪 Received TestResultsReady: ${event.aggregateId}`, event.metadata as any);
+          await this.clinicalEMREventHandler.handleEvent(event);
+        }
       },
       `${serviceName}.test.results.ready`
     );
@@ -178,9 +192,11 @@ export class EventSubscriptions {
     // 8. Payment Completed → Update Medical Record Payment Status
     await this.eventBus.subscribe(
       'PaymentCompleted',
-      async (event: any) => {
-        this.logger.info(`[Event] 💰 Received PaymentCompleted: ${event.aggregateId}`);
-        // Update payment status in medical record
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 💰 Received PaymentCompleted: ${event.aggregateId}`, event.metadata as any);
+          // Update payment status in medical record
+        }
       },
       `${serviceName}.billing.payment.completed`
     );
@@ -193,9 +209,11 @@ export class EventSubscriptions {
     // 9. Medical Record Created → Publish to other services
     await this.eventBus.subscribe(
       'MedicalRecordCreated',
-      async (event: any) => {
-        this.logger.info(`[Event] 📋 Received MedicalRecordCreated: ${event.aggregateId}`);
-        await this.medicalRecordDomainEventHandler.handle(event);
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 📋 Received MedicalRecordCreated: ${event.aggregateId}`, event.metadata as any);
+          await this.medicalRecordDomainEventHandler.handle(event);
+        }
       },
       `${serviceName}.medical.record.created.internal`
     );
@@ -204,9 +222,11 @@ export class EventSubscriptions {
     // 10. Medical Record Updated → Notify other services
     await this.eventBus.subscribe(
       'MedicalRecordUpdated',
-      async (event: any) => {
-        this.logger.info(`[Event] 📝 Received MedicalRecordUpdated: ${event.aggregateId}`);
-        await this.medicalRecordDomainEventHandler.handle(event);
+      {
+        handle: async (event: any) => {
+          this.logger.info(`[Event] 📝 Received MedicalRecordUpdated: ${event.aggregateId}`, event.metadata as any);
+          await this.medicalRecordDomainEventHandler.handle(event);
+        }
       },
       `${serviceName}.medical.record.updated.internal`
     );

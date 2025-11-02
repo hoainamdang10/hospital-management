@@ -7,6 +7,7 @@
  */
 import { AuthenticationMiddleware } from '../middleware/AuthenticationMiddleware';
 import { PermissionMiddleware } from '../middleware/PermissionMiddleware';
+import { createInternalServiceAuthMiddleware } from '../middleware/InternalServiceAuthMiddleware';
 import { AuthenticateUserUseCase } from '../../application/use-cases/AuthenticateUserUseCase';
 import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase';
 import { ForgotPasswordUseCase } from '../../application/use-cases/ForgotPasswordUseCase';
@@ -62,6 +63,7 @@ export interface RouteDependencies {
     cacheService: ICacheService | null;
     authMiddleware: AuthenticationMiddleware;
     permissionMiddleware: PermissionMiddleware;
+    internalServiceAuthMiddleware: ReturnType<typeof createInternalServiceAuthMiddleware>;
     authenticateUserUseCase: AuthenticateUserUseCase;
     registerUserUseCase: RegisterUserUseCase;
     forgotPasswordUseCase: ForgotPasswordUseCase;

@@ -34,7 +34,7 @@ import { SupabaseNotificationRepository } from "../persistence/SupabaseNotificat
 import { SupabaseInboxRepository } from "../persistence/SupabaseInboxRepository";
 import { MultiChannelDeliveryService } from "../delivery/MultiChannelDeliveryService";
 import { VietnameseTemplateService } from "../templates/VietnameseTemplateService";
-import { RealTimeNotificationService } from "../realtime/RealTimeNotificationService";
+// import { RealTimeNotificationService } from "../realtime/RealTimeNotificationService";
 // import { SupabaseEventBus } from "../messaging/SupabaseEventBus";
 import { NotificationEventHandlers } from "../events/NotificationEventHandlers";
 
@@ -127,14 +127,7 @@ export function setupDependencies(container: DIContainer): void {
     ServiceTokens.NOTIFICATION_REPOSITORY,
     (container) => {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new SupabaseNotificationRepository({
-        supabase: supabaseClient,
-        logger,
-        schema: 'notifications_schema',
-        tableName: 'notifications'
-      });
+      return new SupabaseNotificationRepository(supabaseClient);
     },
     ServiceLifetime.SCOPED
   );
@@ -159,8 +152,9 @@ export function setupDependencies(container: DIContainer): void {
 
   container.registerFactory(
     ServiceTokens.TEMPLATE_SERVICE,
-    () => {
-      return new VietnameseTemplateService();
+    (container) => {
+      const templateRepository = container.resolve(ServiceTokens.TEMPLATE_REPOSITORY);
+      return new VietnameseTemplateService(templateRepository);
     },
     ServiceLifetime.SINGLETON
   );

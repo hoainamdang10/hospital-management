@@ -47,12 +47,30 @@ class IdentityEventConsumer {
             await this.channel.assertExchange(this.config.exchangeName, 'topic', {
                 durable: true
             });
-            // Assert queue
+            // Assert dead letter exchange
+            const dlxName = this.config.deadLetterExchange || `${this.config.exchangeName}.dlx`;
+            await this.channel.assertExchange(dlxName, 'direct', {
+                durable: true
+            });
+            // Assert dead letter queue
+            const dlqName = this.config.deadLetterQueue || `${this.config.queueName}.dlq`;
+            await this.channel.assertQueue(dlqName, {
+                durable: true
+            });
+            // Bind DLQ to DLX
+            await this.channel.bindQueue(dlqName, dlxName, 'failed');
+            this.logger.info('Dead letter queue configured', {
+                dlxName,
+                dlqName
+            });
+            // Assert queue with DLX configuration
             await this.channel.assertQueue(this.config.queueName, {
                 durable: true,
                 arguments: {
                     'x-message-ttl': 86400000, // 24 hours
-                    'x-max-length': 10000
+                    'x-max-length': 10000,
+                    'x-dead-letter-exchange': dlxName,
+                    'x-dead-letter-routing-key': 'failed'
                 }
             });
             // Bind queue to routing keys
@@ -95,34 +113,76 @@ class IdentityEventConsumer {
             const content = msg.content.toString();
             const event = JSON.parse(content);
             const routingKey = msg.fields.routingKey;
+            // Get retry count
+            const retryCount = msg.properties.headers?.['x-retry-count'] || 0;
+            const maxRetries = this.config.maxRetries || 3;
             this.logger.debug('Received identity event', {
                 routingKey,
-                eventId: event.eventId
+                eventId: event.eventId,
+                retryCount
             });
             // Route to appropriate handler
-            switch (routingKey) {
-                case 'user.user_created_event':
-                    await this.userCreatedHandler.handle(event.payload);
-                    break;
-                case 'user.user_deleted_event':
-                    await this.userDeletedHandler.handle(event.payload);
-                    break;
-                case 'user.user_updated_event':
-                    await this.userUpdatedHandler.handle(event.payload);
-                    break;
-                default:
-                    this.logger.warn('Unknown identity event routing key', { routingKey });
+            try {
+                switch (routingKey) {
+                    case 'user.user_created_event':
+                        await this.userCreatedHandler.handle(event.payload);
+                        break;
+                    case 'user.user_deleted_event':
+                        await this.userDeletedHandler.handle(event.payload);
+                        break;
+                    case 'user.user_updated_event':
+                        await this.userUpdatedHandler.handle(event.payload);
+                        break;
+                    default:
+                        this.logger.warn('Unknown identity event routing key', { routingKey });
+                }
+                // Acknowledge message on success
+                this.channel.ack(msg);
             }
-            // Acknowledge message
-            this.channel.ack(msg);
+            catch (handlerError) {
+                this.logger.error('Handler error', {
+                    routingKey,
+                    error: handlerError instanceof Error ? handlerError.message : 'Unknown error',
+                    retryCount
+                });
+                // Retry logic
+                if (retryCount < maxRetries) {
+                    // Nack without requeue - will go to DLQ
+                    this.channel.nack(msg, false, false);
+                    // Republish with incremented retry count
+                    const retryHeaders = {
+                        ...msg.properties.headers,
+                        'x-retry-count': retryCount + 1,
+                        'x-first-death-reason': handlerError instanceof Error ? handlerError.message : 'Unknown error'
+                    };
+                    await this.channel.publish(this.config.exchangeName, routingKey, msg.content, {
+                        ...msg.properties,
+                        headers: retryHeaders
+                    });
+                    this.logger.info('Message requeued for retry', {
+                        eventId: event.eventId,
+                        retryCount: retryCount + 1,
+                        maxRetries
+                    });
+                }
+                else {
+                    // Max retries exceeded - send to DLQ
+                    this.channel.nack(msg, false, false);
+                    this.logger.error('Max retries exceeded - message sent to DLQ', {
+                        routingKey,
+                        eventId: event.eventId,
+                        retryCount
+                    });
+                }
+            }
         }
         catch (error) {
-            this.logger.error('Error handling identity event', {
+            this.logger.error('Error processing message', {
                 error: error instanceof Error ? error.message : 'Unknown error'
             });
-            // Reject and requeue message
+            // Nack without requeue on parse errors
             if (this.channel) {
-                this.channel.nack(msg, false, true);
+                this.channel.nack(msg, false, false);
             }
         }
     }

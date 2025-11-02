@@ -26,7 +26,7 @@ function createSessionRoutes(deps) {
         try {
             // Extract session ID from JWT or find current session from database
             let currentSessionId = req.user.sessionId;
-            console.log('[LIST_SESSIONS] Initial sessionId from JWT', {
+            logger.debug('Listing sessions - initial sessionId from JWT', {
                 userId: req.params.userId,
                 sessionId: currentSessionId,
                 hasSessionId: !!currentSessionId
@@ -34,53 +34,32 @@ function createSessionRoutes(deps) {
             // If sessionId not in JWT, try to find it from the access token
             if (!currentSessionId) {
                 const authHeader = req.headers.authorization;
-                console.log('[LIST_SESSIONS] Attempting token lookup', {
-                    userId: req.params.userId,
-                    hasAuthHeader: !!authHeader,
-                    authHeaderPrefix: authHeader?.substring(0, 10)
-                });
                 if (authHeader && authHeader.startsWith('Bearer ')) {
                     const token = authHeader.substring(7);
-                    console.log('[LIST_SESSIONS] Calling findByToken', {
-                        userId: req.params.userId,
-                        tokenLength: token.length,
-                        tokenPrefix: token.substring(0, 20)
-                    });
                     // Try to find session by token
                     try {
                         const session = await deps.sessionRepository.findByToken(token);
-                        console.log('[LIST_SESSIONS] findByToken result', {
-                            userId: req.params.userId,
-                            foundSession: !!session,
-                            sessionId: session?.id
-                        });
                         if (session) {
                             currentSessionId = session.id;
-                            console.log('[LIST_SESSIONS] Found session ID from token lookup', {
+                            logger.debug('Found session ID from token lookup', {
                                 userId: req.params.userId,
                                 sessionId: currentSessionId
                             });
                         }
                         else {
-                            console.log('[LIST_SESSIONS] findByToken returned null', {
-                                userId: req.params.userId,
-                                tokenLength: token.length
+                            logger.warn('Session not found by token', {
+                                userId: req.params.userId
                             });
                         }
                     }
                     catch (error) {
-                        console.error('[LIST_SESSIONS] Failed to find session by token', {
+                        logger.error('Failed to find session by token', {
                             userId: req.params.userId,
                             error: getErrorMessage(error)
                         });
                     }
                 }
             }
-            console.log('[LIST_SESSIONS] Final sessionId before use case', {
-                userId: req.params.userId,
-                currentSessionId,
-                hasCurrentSessionId: !!currentSessionId
-            });
             const result = await deps.listActiveSessionsUseCase.execute({
                 userId: req.params.userId,
                 currentSessionId
@@ -139,7 +118,7 @@ function createSessionRoutes(deps) {
         try {
             // Extract session ID from JWT or find current session from database
             let currentSessionId = req.user.sessionId;
-            console.log('[TERMINATE_ALL] Initial sessionId from JWT', {
+            logger.debug('Terminating sessions - initial sessionId from JWT', {
                 userId: req.params.userId,
                 sessionId: currentSessionId,
                 hasSessionId: !!currentSessionId
@@ -147,53 +126,32 @@ function createSessionRoutes(deps) {
             // If sessionId not in JWT, try to find it from the access token
             if (!currentSessionId) {
                 const authHeader = req.headers.authorization;
-                console.log('[TERMINATE_ALL] Attempting token lookup', {
-                    userId: req.params.userId,
-                    hasAuthHeader: !!authHeader,
-                    authHeaderPrefix: authHeader?.substring(0, 10)
-                });
                 if (authHeader && authHeader.startsWith('Bearer ')) {
                     const token = authHeader.substring(7);
-                    console.log('[TERMINATE_ALL] Calling findByToken', {
-                        userId: req.params.userId,
-                        tokenLength: token.length,
-                        tokenPrefix: token.substring(0, 20)
-                    });
                     // Try to find session by token
                     try {
                         const session = await deps.sessionRepository.findByToken(token);
-                        console.log('[TERMINATE_ALL] findByToken result', {
-                            userId: req.params.userId,
-                            foundSession: !!session,
-                            sessionId: session?.id
-                        });
                         if (session) {
                             currentSessionId = session.id;
-                            console.log('[TERMINATE_ALL] Found session ID from token lookup', {
+                            logger.debug('Found session ID from token lookup', {
                                 userId: req.params.userId,
                                 sessionId: currentSessionId
                             });
                         }
                         else {
-                            console.log('[TERMINATE_ALL] findByToken returned null', {
-                                userId: req.params.userId,
-                                tokenLength: token.length
+                            logger.warn('Session not found by token', {
+                                userId: req.params.userId
                             });
                         }
                     }
                     catch (error) {
-                        console.error('[TERMINATE_ALL] Failed to find session by token', {
+                        logger.error('Failed to find session by token', {
                             userId: req.params.userId,
                             error: getErrorMessage(error)
                         });
                     }
                 }
             }
-            console.log('[TERMINATE_ALL] Final sessionId before use case', {
-                userId: req.params.userId,
-                currentSessionId,
-                hasCurrentSessionId: !!currentSessionId
-            });
             const result = await deps.terminateAllSessionsUseCase.execute({
                 userId: req.params.userId,
                 currentSessionId

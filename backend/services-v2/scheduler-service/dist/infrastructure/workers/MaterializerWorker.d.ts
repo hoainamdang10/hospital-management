@@ -19,6 +19,11 @@ export declare class MaterializerWorker {
     stop(): Promise<void>;
     private materialize;
     private calculateSegment;
+    /**
+     * Hash string to number for deterministic jitter calculation
+     * Uses same algorithm as calculateSegment for consistency
+     */
+    private hashString;
     getStatus(): {
         isRunning: boolean;
         config: MaterializerConfig;

@@ -11,19 +11,34 @@ import { ChannelProvider } from '../MultiChannelDeliveryService';
 import { RecipientInfo } from '../../../domain/value-objects/RecipientInfo';
 import { NotificationContent } from '../../../domain/value-objects/NotificationContent';
 import { NotificationChannel } from '../../../domain/value-objects/NotificationChannel';
+import twilio from 'twilio';
 
 interface TwilioConfig {
   accountSid: string;
   authToken: string;
   fromNumber: string;
+  enabled: boolean;
 }
 
 export class SMSProvider implements ChannelProvider {
   private isConfigured: boolean = false;
   private readonly MAX_SMS_LENGTH = 160;
+  private twilioClient: any = null;
 
   constructor(private readonly config: TwilioConfig) {
-    this.isConfigured = !!config.accountSid && !!config.authToken;
+    this.isConfigured = !!config.accountSid && !!config.authToken && config.enabled;
+    
+    if (this.isConfigured) {
+      try {
+        this.twilioClient = twilio(config.accountSid, config.authToken);
+        console.log('[SMSProvider] ✅ Twilio initialized successfully');
+      } catch (error) {
+        console.error('[SMSProvider] ❌ Failed to initialize Twilio:', error);
+        this.twilioClient = null;
+      }
+    } else {
+      console.warn('[SMSProvider] ⚠️ Twilio not configured - SMS delivery disabled');
+    }
   }
 
   getType(): string {
@@ -31,7 +46,7 @@ export class SMSProvider implements ChannelProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    return this.isConfigured;
+    return this.isConfigured && this.twilioClient !== null;
   }
 
   async deliver(request: {
@@ -122,28 +137,52 @@ export class SMSProvider implements ChannelProvider {
   }
 
   /**
-   * Send via Twilio (mock implementation)
+   * Send via Twilio (real implementation)
    */
   private async sendViaTwilio(smsData: any): Promise<any> {
-    // In production, use Twilio SDK:
-    // const twilio = require('twilio');
-    // const client = twilio(this.config.accountSid, this.config.authToken);
-    // const message = await client.messages.create(smsData);
-    // return message;
+    if (!this.twilioClient) {
+      console.warn('[SMSProvider] Twilio not ready, using mock mode');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return {
+        sid: `SM${Math.random().toString(36).substr(2, 32)}`,
+        status: 'queued',
+        to: smsData.to,
+        from: smsData.from,
+        body: smsData.body,
+        dateCreated: new Date(),
+        price: '-0.00750',
+        priceUnit: 'USD'
+      };
+    }
 
-    // Mock implementation
-    await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
-    
-    return {
-      sid: `SM${Math.random().toString(36).substr(2, 32)}`,
-      status: 'queued',
-      to: smsData.to,
-      from: smsData.from,
-      body: smsData.body,
-      dateCreated: new Date(),
-      price: '-0.00750', // $0.0075 per SMS
-      priceUnit: 'USD'
-    };
+    try {
+      // Real Twilio API call
+      const message = await this.twilioClient.messages.create(smsData);
+      
+      console.log('[SMSProvider] ✅ SMS sent successfully', {
+        sid: message.sid,
+        status: message.status,
+        to: message.to
+      });
+
+      return {
+        sid: message.sid,
+        status: message.status,
+        to: message.to,
+        from: message.from,
+        body: message.body,
+        dateCreated: message.dateCreated,
+        price: message.price,
+        priceUnit: message.priceUnit
+      };
+    } catch (error: any) {
+      console.error('[SMSProvider] ❌ Twilio API error:', {
+        code: error.code,
+        message: error.message,
+        moreInfo: error.moreInfo
+      });
+      throw new Error(`Twilio failed: ${error.message}`);
+    }
   }
 
   /**
@@ -159,7 +198,7 @@ export class SMSProvider implements ChannelProvider {
   /**
    * Normalize phone number to E.164 format (+84...)
    */
-  private normalizePhoneNumber(phone: string): string {
+  private _normalizePhoneNumber(phone: string): string {
     let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
     
     if (cleanPhone.startsWith('0')) {
@@ -174,7 +213,7 @@ export class SMSProvider implements ChannelProvider {
   /**
    * Remove Vietnamese diacritics for SMS compatibility (optional)
    */
-  private normalizeVietnameseText(text: string): string {
+  private _normalizeVietnameseText(text: string): string {
     // Keep Vietnamese diacritics by default
     // Only normalize if carrier doesn't support UTF-8
     return text;
@@ -183,7 +222,7 @@ export class SMSProvider implements ChannelProvider {
   /**
    * Estimate SMS segments (Vietnamese chars count differently)
    */
-  private estimateSMSSegments(text: string): number {
+  private _estimateSMSSegments(text: string): number {
     // Vietnamese SMS: ~70 chars per segment (UCS-2 encoding)
     const hasVietnamese = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text);
     

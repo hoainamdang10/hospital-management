@@ -103,13 +103,23 @@ class MedicalRecordUpdatedEventHandler {
                 console.warn(`Medical record ${event.recordId} not found for updated event`);
                 return;
             }
+            // Build changes from previousValues and newValues
+            const changes = {};
+            if (event.previousValues && event.newValues) {
+                for (const field of event.updatedFields) {
+                    changes[field] = {
+                        oldValue: event.previousValues[field],
+                        newValue: event.newValues[field]
+                    };
+                }
+            }
             // Check if update affects billing
-            const hasBillingImpact = this.checkBillingImpact(event.changes);
+            const hasBillingImpact = this.checkBillingImpact(changes);
             if (hasBillingImpact) {
                 const billingUpdateEvent = new BillingIntegrationEvents_1.MedicalRecordUpdatedForBillingEvent(event.recordId, event.patientId, {
-                    statusChange: event.changes.status ? {
-                        from: event.changes.status.oldValue,
-                        to: event.changes.status.newValue
+                    statusChange: changes.status ? {
+                        from: changes.status.oldValue,
+                        to: changes.status.newValue
                     } : undefined
                 }, {
                     costChange: 0, // Would calculate based on changes
@@ -120,7 +130,7 @@ class MedicalRecordUpdatedEventHandler {
                 await this.eventPublisher.publish(billingUpdateEvent);
             }
             // Publish notification for significant updates
-            if (this.isSignificantUpdate(event.changes)) {
+            if (this.isSignificantUpdate(changes)) {
                 const notificationEvent = new NotificationIntegrationEvents_1.MedicalRecordNotificationEvent(event.recordId, event.patientId, event.doctorId, 'record_completed', // Updated record
                 [
                     {
@@ -247,33 +257,33 @@ class MedicationAddedEventHandler {
                 console.warn(`Medication ${event.medicationCode} not found in record ${event.recordId}`);
                 return;
             }
-            // Check for drug interactions or allergies
+            // Check for drug interactions or contraindications
             const hasInteractions = medication.interactions && medication.interactions.length > 0;
-            const hasAllergies = medication.allergies && medication.allergies.length > 0;
-            if (hasInteractions || hasAllergies) {
+            const hasContraindications = medication.contraindications && medication.contraindications.length > 0;
+            if (hasInteractions || hasContraindications) {
                 const criticalAlertEvent = new NotificationIntegrationEvents_1.CriticalAlertNotificationEvent(`alert-${event.recordId}-${event.medicationCode}`, event.recordId, event.patientId, event.doctorId, {
-                    type: hasAllergies ? 'allergy_alert' : 'drug_interaction',
-                    severity: hasAllergies ? 'critical' : 'high',
-                    description: hasAllergies
-                        ? `Allergy alert for medication: ${medication.name}`
+                    type: hasContraindications ? 'allergy_alert' : 'drug_interaction',
+                    severity: hasContraindications ? 'critical' : 'high',
+                    description: hasContraindications
+                        ? `Contraindication alert for medication: ${medication.name}`
                         : `Drug interaction detected for medication: ${medication.name}`,
-                    clinicalSignificance: hasAllergies
-                        ? 'Patient has known allergies to this medication'
+                    clinicalSignificance: hasContraindications
+                        ? 'Patient has known contraindications to this medication'
                         : 'Potential drug interactions detected',
-                    recommendedAction: hasAllergies
+                    recommendedAction: hasContraindications
                         ? 'Stop medication immediately and contact physician'
                         : 'Review medication interactions and adjust dosage if necessary',
-                    timeWindow: hasAllergies ? 5 : 30
+                    timeWindow: hasContraindications ? 5 : 30
                 }, {
                     relevantMedications: [medication.code],
-                    relevantAllergies: medication.allergies
+                    relevantAllergies: medication.contraindications || []
                 }, [
                     {
                         level: 1,
                         recipientType: 'attending_doctor',
                         recipientId: event.doctorId,
-                        contactMethod: hasAllergies ? 'phone_call' : 'sms',
-                        timeoutMinutes: hasAllergies ? 2 : 10
+                        contactMethod: hasContraindications ? 'phone_call' : 'sms',
+                        timeoutMinutes: hasContraindications ? 2 : 10
                     }
                 ], event.prescribedBy, event.occurredAt);
                 await this.eventPublisher.publish(criticalAlertEvent);
@@ -281,12 +291,12 @@ class MedicationAddedEventHandler {
             // Create medication reminder
             const reminderEvent = new NotificationIntegrationEvents_1.MedicationReminderNotificationEvent(event.recordId, event.patientId, {
                 medicationCode: medication.code,
-                medicationName: medication.name,
-                dosage: medication.dosage,
-                frequency: medication.frequency,
-                instructions: medication.instructions,
-                startDate: medication.prescribedDate,
-                endDate: medication.endDate,
+                medicationName: medication.name || medication.toJSON().name,
+                dosage: medication.dosage || medication.toJSON().dosage,
+                frequency: medication.frequency || medication.toJSON().frequency,
+                instructions: medication.instructions || medication.toJSON().instructions,
+                startDate: medication.prescribedDate || medication.toJSON().prescribedDate,
+                endDate: medication.endDate || medication.toJSON().endDate,
                 nextDoseTime: this.calculateNextDoseTime(medication),
                 missedDoses: 0
             }, 'dose_reminder', {

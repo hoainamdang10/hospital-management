@@ -20,16 +20,19 @@ export interface DeliveryServiceConfig {
     apiKey: string;
     fromEmail: string;
     fromName: string;
+    enabled: boolean;
   };
   sms?: {
     accountSid: string;
     authToken: string;
     fromNumber: string;
+    enabled: boolean;
   };
   push?: {
     projectId: string;
     privateKey: string;
     clientEmail: string;
+    enabled: boolean;
   };
   voice?: {
     accountSid: string;
@@ -51,7 +54,8 @@ export class DeliveryServiceFactory {
       const emailProvider = new EmailProvider({
         apiKey: config.email.apiKey,
         fromEmail: config.email.fromEmail,
-        fromName: config.email.fromName
+        fromName: config.email.fromName,
+        enabled: config.email.enabled
       });
       providers.push(emailProvider);
     }
@@ -61,7 +65,8 @@ export class DeliveryServiceFactory {
       const smsProvider = new SMSProvider({
         accountSid: config.sms.accountSid,
         authToken: config.sms.authToken,
-        fromNumber: config.sms.fromNumber
+        fromNumber: config.sms.fromNumber,
+        enabled: config.sms.enabled
       });
       providers.push(smsProvider);
     }
@@ -71,7 +76,8 @@ export class DeliveryServiceFactory {
       const pushProvider = new PushProvider({
         projectId: config.push.projectId,
         privateKey: config.push.privateKey,
-        clientEmail: config.push.clientEmail
+        clientEmail: config.push.clientEmail,
+        enabled: config.push.enabled
       });
       providers.push(pushProvider);
     }
@@ -106,8 +112,9 @@ export class DeliveryServiceFactory {
     if (process.env.SENDGRID_API_KEY) {
       config.email = {
         apiKey: process.env.SENDGRID_API_KEY,
-        fromEmail: process.env.EMAIL_FROM || 'noreply@hospital.vn',
-        fromName: process.env.EMAIL_FROM_NAME || 'Bệnh viện Đa khoa'
+        fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@hospital.vn',
+        fromName: process.env.SENDGRID_FROM_NAME || 'Bệnh viện Đa khoa',
+        enabled: process.env.SENDGRID_ENABLED === 'true'
       };
     }
 
@@ -116,7 +123,8 @@ export class DeliveryServiceFactory {
       config.sms = {
         accountSid: process.env.TWILIO_ACCOUNT_SID,
         authToken: process.env.TWILIO_AUTH_TOKEN,
-        fromNumber: process.env.TWILIO_FROM_NUMBER || '+84123456789'
+        fromNumber: process.env.TWILIO_FROM_NUMBER || '+84123456789',
+        enabled: process.env.TWILIO_ENABLED === 'true'
       };
 
       // Voice uses same Twilio credentials
@@ -132,7 +140,8 @@ export class DeliveryServiceFactory {
       config.push = {
         projectId: process.env.FIREBASE_PROJECT_ID,
         privateKey: process.env.FIREBASE_PRIVATE_KEY || '',
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL || ''
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
+        enabled: process.env.FIREBASE_ENABLED === 'true'
       };
     }
 
@@ -147,17 +156,20 @@ export class DeliveryServiceFactory {
       email: {
         apiKey: 'mock-api-key',
         fromEmail: 'test@hospital.vn',
-        fromName: 'Test Hospital'
+        fromName: 'Test Hospital',
+        enabled: true
       },
       sms: {
         accountSid: 'mock-sid',
         authToken: 'mock-token',
-        fromNumber: '+84123456789'
+        fromNumber: '+84123456789',
+        enabled: true
       },
       push: {
         projectId: 'mock-project',
         privateKey: 'mock-key',
-        clientEmail: 'mock@hospital.vn'
+        clientEmail: 'mock@hospital.vn',
+        enabled: true
       },
       voice: {
         accountSid: 'mock-sid',

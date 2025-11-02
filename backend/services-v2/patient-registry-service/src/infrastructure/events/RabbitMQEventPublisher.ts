@@ -18,6 +18,7 @@ export interface RabbitMQConfig {
   exchangeType: 'topic' | 'fanout' | 'direct';
   durable: boolean;
   autoDelete: boolean;
+  serviceName?: string;
 }
 
 /**
@@ -92,7 +93,7 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
-      this.logger.info('Connected to RabbitMQ successfully', {
+      this.logger.info('RabbitMQ Event Publisher connected', {
         exchange: this.config.exchange
       });
     } catch (error) {
@@ -298,7 +299,7 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
       }
 
       this.isConnected = false;
-      this.logger.info('RabbitMQ connection closed');
+      this.logger.info('RabbitMQ Event Publisher disconnected');
     } catch (error) {
       this.logger.error('Error closing RabbitMQ connection', {
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -314,11 +315,11 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
     // Example: patient.registered, patient.updated, patient.deleted
     // Convert PascalCase eventType to dot.notation
     // PatientRegistered -> patient.registered
-    const eventName = event.eventType
-      .replace(/([A-Z])/g, '.$1')
-      .toLowerCase()
-      .substring(1);
-    return eventName;
+    const serviceName = this.getServiceName();
+    const aggregate = event.aggregateType.toLowerCase();
+    const eventType = event.eventType.toLowerCase();
+
+    return `${serviceName}.${aggregate}.${eventType}`;
   }
 
   /**
@@ -328,5 +329,19 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
     // Use toJSON() method from DomainEvent base class
     return JSON.stringify(event.toJSON());
   }
-}
 
+  /**
+   * Resolve service name for routing keys
+   */
+  private getServiceName(): string {
+    if (this.config.serviceName && this.config.serviceName.trim().length > 0) {
+      return this.config.serviceName.toLowerCase();
+    }
+
+    if (this.config.exchange && this.config.exchange.trim().length > 0) {
+      return this.config.exchange.replace(/[-_]?events$/i, '').toLowerCase();
+    }
+
+    return 'domain';
+  }
+}

@@ -20,6 +20,12 @@ class MedicalRecordDomainEventHandler {
         this.eventBus = config.eventBus;
     }
     /**
+     * Get event type this handler handles
+     */
+    getEventType() {
+        return 'MedicalRecordDomain';
+    }
+    /**
      * Handle domain events
      */
     async handle(event) {
@@ -63,7 +69,7 @@ class MedicalRecordDomainEventHandler {
                 doctorId: event.doctorId
             });
             // 1. HIPAA Audit Logging
-            await this.auditService.logMedicalRecordAccess('CREATE', event.recordId, event.createdBy, 'Medical record created', {
+            await this.auditService.logAction('CREATE', 'MedicalRecord', event.recordId, event.createdBy, 'Medical record created', {
                 patientId: event.patientId,
                 doctorId: event.doctorId,
                 appointmentId: event.appointmentId,
@@ -85,8 +91,7 @@ class MedicalRecordDomainEventHandler {
                     visitDate: event.visitDate,
                     symptoms: event.symptoms,
                     diagnosis: event.diagnosis,
-                    createdBy: event.createdBy,
-                    createdAt: event.createdAt
+                    createdBy: event.createdBy
                 },
                 metadata: {
                     priority: 'high',
@@ -143,7 +148,7 @@ class MedicalRecordDomainEventHandler {
                 updatedFields: event.updatedFields
             });
             // 1. HIPAA Audit Logging
-            await this.auditService.logMedicalRecordAccess('UPDATE', event.recordId, event.updatedBy, 'Medical record updated', {
+            await this.auditService.logAction('UPDATE', 'MedicalRecord', event.recordId, event.updatedBy, 'Medical record updated', {
                 patientId: event.patientId,
                 doctorId: event.doctorId,
                 updatedFields: event.updatedFields,
@@ -166,7 +171,6 @@ class MedicalRecordDomainEventHandler {
                     previousValues: event.previousValues,
                     newValues: event.newValues,
                     updatedBy: event.updatedBy,
-                    updatedAt: event.updatedAt,
                     updateReason: event.updateReason
                 },
                 metadata: {

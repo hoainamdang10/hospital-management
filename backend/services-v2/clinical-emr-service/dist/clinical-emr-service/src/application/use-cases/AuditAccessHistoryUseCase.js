@@ -82,8 +82,8 @@ class AuditAccessHistoryUseCase extends use_case_interface_1.BaseHealthcareUseCa
                         writeAccesses,
                         printAccesses,
                         exportAccesses,
-                        firstAccessAt: sortedLogs[0]?.accessedAt.toISOString ? sortedLogs[0].accessedAt.toISOString() : sortedLogs[0]?.accessedAt.toString(),
-                        lastAccessAt: sortedLogs[sortedLogs.length - 1]?.accessedAt.toISOString ? sortedLogs[sortedLogs.length - 1].accessedAt.toISOString() : sortedLogs[sortedLogs.length - 1]?.accessedAt.toString()
+                        firstAccessAt: sortedLogs[0]?.accessedAt instanceof Date ? sortedLogs[0].accessedAt.toISOString() : (sortedLogs[0]?.accessedAt ? String(sortedLogs[0].accessedAt) : ''),
+                        lastAccessAt: sortedLogs[sortedLogs.length - 1]?.accessedAt instanceof Date ? sortedLogs[sortedLogs.length - 1].accessedAt.toISOString() : (sortedLogs[sortedLogs.length - 1]?.accessedAt ? String(sortedLogs[sortedLogs.length - 1].accessedAt) : '')
                     }
                 }
             };

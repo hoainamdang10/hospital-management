@@ -10,6 +10,7 @@ import { IAuthenticationService } from '../../../src/application/services/IAuthe
 import { IPasswordPolicyRepository } from '../../../src/domain/repositories/IPasswordPolicyRepository';
 import { IRecoveryHistoryRepository } from '../../../src/domain/repositories/IRecoveryHistoryRepository';
 import { ISessionRepository } from '../../../src/domain/repositories/ISessionRepository';
+import { IUserRepository } from '../../../src/application/repositories/IUserRepository';
 import { createCircuitBreakerStub } from '../../helpers/circuit-breaker-test-helper';
 
 describe('ResetPasswordWithTokenUseCase', () => {
@@ -18,6 +19,7 @@ describe('ResetPasswordWithTokenUseCase', () => {
   let mockPasswordPolicyRepository: jest.Mocked<IPasswordPolicyRepository>;
   let mockRecoveryHistoryRepository: jest.Mocked<IRecoveryHistoryRepository>;
   let mockSessionRepository: jest.Mocked<ISessionRepository>;
+  let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockLogger: any;
   let circuitBreaker: any;
   const testToken = 'valid-reset-token';
@@ -56,6 +58,14 @@ describe('ResetPasswordWithTokenUseCase', () => {
       deleteAllByUserId: jest.fn(),
     } as any;
 
+    mockUserRepository = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      findByEmail: jest.fn(),
+      delete: jest.fn(),
+      update: jest.fn(),
+    } as any;
+
     mockLogger = {
       info: jest.fn(),
       warn: jest.fn(),
@@ -71,6 +81,7 @@ describe('ResetPasswordWithTokenUseCase', () => {
       mockPasswordPolicyRepository,
       mockRecoveryHistoryRepository,
       mockSessionRepository,
+      mockUserRepository,
       mockLogger,
       circuitBreaker
     );

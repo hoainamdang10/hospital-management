@@ -9,6 +9,7 @@
 import { config } from 'dotenv';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createTestSupabaseClient } from '../helpers/integrationHelpers';
+import { testUserPoolCache } from '../helpers/test-user-pool-cache';
 
 // Load test environment variables
 config({ path: '.env.test' });
@@ -62,6 +63,12 @@ afterAll(async () => {
   console.log('\n🧹 Cleaning up integration tests...');
 
   try {
+    // Cleanup cached test user pool
+    if (testUserPoolCache.isCached()) {
+      console.log('🗑️  Cleaning up cached test user pool...');
+      await testUserPoolCache.cleanup(supabaseClient);
+    }
+
     // Cleanup dynamic test users (pattern: test-*@hospital.vn)
     await cleanupDynamicTestUsers();
 

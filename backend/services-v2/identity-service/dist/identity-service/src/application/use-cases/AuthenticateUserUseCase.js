@@ -59,7 +59,7 @@ class AuthenticateUserUseCase {
                 });
                 // Cache successful authentication for fallback
                 if (authResult.mode === IDegradationService_1.ServiceMode.FULL_SERVICE) {
-                    this.degradationService.cacheAuthentication(request.email, authResult);
+                    await this.degradationService.cacheAuthentication(request.email, authResult, request.password);
                 }
             }
             return this.mapToResponse(authResult);
@@ -260,9 +260,109 @@ class AuthenticateUserUseCase {
         const credentials = {
             email: request.email,
             password: request.password,
-            mfaCode: request.mfaCode
+            mfaCode: request.mfaCode,
+            ipAddress: request.ipAddress,
+            userAgent: request.userAgent
         };
-        return await this.degradationService.authenticateUser(credentials);
+        const fallbackResult = await this.degradationService.authenticateUser(credentials);
+        if (!fallbackResult.success) {
+            await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, fallbackResult.degradationReason || 'Fallback authentication failed');
+            throw new Error(fallbackResult.degradationReason || 'Không thể xác thực trong chế độ dự phòng');
+        }
+        const user = await this.userRepository.findByEmail(email);
+        if (!user) {
+            await this.userRepository.recordLoginAttempt(email, false, request.ipAddress, request.userAgent, 'User not found during fallback');
+            throw new Error('Người dùng không tồn tại');
+        }
+        const [repoRoles, repoPermissions] = await Promise.all([
+            this.userRepository.getUserRoles(user.userId),
+            this.permissionRepository.getUserPermissions(user.userId)
+        ]);
+        const roles = fallbackResult.roles && fallbackResult.roles.length > 0
+            ? fallbackResult.roles
+            : repoRoles;
+        const permissions = fallbackResult.permissions && fallbackResult.permissions.length > 0
+            ? fallbackResult.permissions
+            : repoPermissions;
+        await this.userRepository.recordLoginAttempt(email, true, request.ipAddress, request.userAgent, 'Fallback authentication success');
+        user.recordAuthentication(request.ipAddress, request.userAgent);
+        const sessionToken = fallbackResult.accessToken ?? fallbackResult.sessionToken;
+        const accessToken = fallbackResult.accessToken ?? sessionToken;
+        const expiresAt = fallbackResult.expiresAt ?? new Date(Date.now() + 3600000);
+        let supabaseSessionId;
+        if (sessionToken) {
+            try {
+                const decoded = jsonwebtoken_1.default.decode(sessionToken);
+                supabaseSessionId = decoded?.session_id || decoded?.sid || decoded?.sessionId;
+            }
+            catch (error) {
+                this.logger.warn('Failed to decode JWT for session_id in fallback auth', {
+                    error: (0, error_helper_1.getErrorMessage)(error),
+                    userId: user.id
+                });
+            }
+        }
+        else {
+            this.logger.warn('Fallback authentication succeeded without access token', {
+                userId: user.id
+            });
+        }
+        if (sessionToken) {
+            const session = supabaseSessionId
+                ? UserSession_1.UserSession.fromPersistenceData({
+                    id: supabaseSessionId,
+                    userId: user.id,
+                    sessionToken,
+                    deviceInfo: request.deviceInfo || {},
+                    ipAddress: request.ipAddress,
+                    userAgent: request.userAgent,
+                    expiresAt,
+                    isActive: true,
+                    createdAt: new Date(),
+                    lastAccessedAt: new Date()
+                })
+                : UserSession_1.UserSession.create(user.id, sessionToken, request.deviceInfo || {}, request.ipAddress, request.userAgent, expiresAt);
+            await this.userRepository.createSession(session);
+            this.logger.info('Fallback session created in database', {
+                userId: user.id,
+                sessionId: session.id,
+                usedSupabaseSessionId: !!supabaseSessionId
+            });
+        }
+        if (this.eventPublisher) {
+            try {
+                const domainEvents = user.getUncommittedEvents();
+                await this.eventPublisher.publishDomainEvents(domainEvents);
+                user.markEventsAsCommitted();
+                this.logger.info('Fallback authentication events published', {
+                    userId: user.id,
+                    eventCount: domainEvents.length
+                });
+            }
+            catch (error) {
+                this.logger.error('Failed to publish fallback authentication events', {
+                    userId: user.id,
+                    error: (0, error_helper_1.getErrorMessage)(error)
+                });
+            }
+        }
+        const enhancedResult = {
+            success: true,
+            userId: fallbackResult.userId ?? user.id,
+            accessToken,
+            sessionToken: sessionToken,
+            refreshToken: fallbackResult.refreshToken,
+            roles,
+            permissions,
+            mode: fallbackResult.mode,
+            degradationReason: fallbackResult.degradationReason,
+            expiresAt,
+            metadata: fallbackResult.metadata
+        };
+        if (enhancedResult.mode === IDegradationService_1.ServiceMode.FULL_SERVICE) {
+            await this.degradationService.cacheAuthentication(request.email, enhancedResult, request.password);
+        }
+        return enhancedResult;
     }
     /**
      * Validate authentication request

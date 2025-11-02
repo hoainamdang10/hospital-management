@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { IScheduleRunRepository } from '../../domain/repositories/IScheduleRunRepository';
+import { IScheduleRunRepository, ExecuteRunTransactionalParams, ExecuteRunTransactionalResult } from '../../domain/repositories/IScheduleRunRepository';
 import { ScheduleRun, ScheduleRunStatus } from '../../domain/entities/ScheduleRun.entity';
 export declare class SupabaseScheduleRunRepository implements IScheduleRunRepository {
     private readonly supabase;
@@ -9,6 +9,7 @@ export declare class SupabaseScheduleRunRepository implements IScheduleRunReposi
     findByScheduleId(scheduleId: string, limit?: number, offset?: number): Promise<ScheduleRun[]>;
     findDueRuns(beforeDate: Date, segment?: number, limit?: number): Promise<ScheduleRun[]>;
     acquireDueRuns(beforeDate: Date, workerId: string, segment?: number, limit?: number, graceWindowMs?: number, leaseTtlMs?: number): Promise<ScheduleRun[]>;
+    executeRunTransactional(params: ExecuteRunTransactionalParams): Promise<ExecuteRunTransactionalResult>;
     findByStatus(status: ScheduleRunStatus, limit?: number): Promise<ScheduleRun[]>;
     update(run: ScheduleRun): Promise<void>;
     delete(runId: string): Promise<void>;

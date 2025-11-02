@@ -1,5 +1,5 @@
 import { OutboxRepository } from './OutboxRepository';
-import { RemoteSchedulerAdapter } from '@hospital/scheduler-client';
+import { RemoteSchedulerAdapter } from '../adapters/RemoteSchedulerAdapter';
 export interface OutboxWorkerOptions {
     intervalMs?: number;
     batchSize?: number;

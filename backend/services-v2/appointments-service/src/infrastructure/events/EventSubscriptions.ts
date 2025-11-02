@@ -13,7 +13,10 @@ import {
   PatientUpdatedEventHandler,
   DoctorUpdatedEventHandler,
   AppointmentStatusChangedEventHandler,
-  AppointmentCancelledEventHandler
+  AppointmentCancelledEventHandler,
+  AppointmentConfirmedEventHandler,
+  AppointmentCompletedEventHandler,
+  AppointmentNoShowEventHandler
 } from './EventHandlers';
 import {
   AppointmentScheduledSchedulerHandler,
@@ -23,6 +26,10 @@ import {
 import { OutboxRepository } from '../outbox/OutboxRepository';
 import { StaffScheduleUpdatedHandler } from './handlers/StaffScheduleUpdatedHandler';
 import { SupabaseProviderScheduleRepository } from '../persistence/SupabaseProviderScheduleRepository';
+
+// Pure Outbox Pattern - Event Consumers
+import { PatientEventConsumer } from './PatientEventConsumer';
+import { ProviderEventConsumer } from './ProviderEventConsumer';
 
 /**
  * Setup event subscriptions for Scheduling Service
@@ -36,10 +43,16 @@ export class EventSubscriptions {
     rescheduled: AppointmentRescheduledSchedulerHandler;
   };
   private staffScheduleUpdatedHandler: StaffScheduleUpdatedHandler;
+  
+  // Pure Outbox Pattern - Event Consumers
+  private patientEventConsumer: PatientEventConsumer;
+  private providerEventConsumer: ProviderEventConsumer;
 
   constructor(
     private readModelHandler: AppointmentReadModelEventHandler,
-    private config: EventBusConfig
+    private config: EventBusConfig,
+    patientEventConsumer: PatientEventConsumer,
+    providerEventConsumer: ProviderEventConsumer
   ) {
     this.eventBus = EventBusFactory.create(config);
 
@@ -61,6 +74,10 @@ export class EventSubscriptions {
     // Initialize StaffScheduleUpdated handler
     const providerScheduleRepo = new SupabaseProviderScheduleRepository(supabaseUrl, supabaseKey);
     this.staffScheduleUpdatedHandler = new StaffScheduleUpdatedHandler(providerScheduleRepo);
+    
+    // Pure Outbox Pattern - Event Consumers
+    this.patientEventConsumer = patientEventConsumer;
+    this.providerEventConsumer = providerEventConsumer;
   }
 
   /**
@@ -200,6 +217,100 @@ export class EventSubscriptions {
       `${this.config.serviceName}.staff.schedule.updated`
     );
     console.log('[EventSubscriptions] ✅ Subscribed to StaffScheduleUpdated (Provider Schedule Cache)');
+
+    // 10. Subscribe to AppointmentConfirmed events (from Scheduling Service itself)
+    await this.eventBus.subscribe(
+      'AppointmentConfirmed',
+      new AppointmentConfirmedEventHandler(this.readModelHandler),
+      `${this.config.serviceName}.appointment.confirmed`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to AppointmentConfirmed (Read Model)');
+
+    // 11. Subscribe to AppointmentCompleted events (from Scheduling Service itself)
+    await this.eventBus.subscribe(
+      'AppointmentCompleted',
+      new AppointmentCompletedEventHandler(this.readModelHandler),
+      `${this.config.serviceName}.appointment.completed`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to AppointmentCompleted (Read Model)');
+
+    // 12. Subscribe to AppointmentNoShow events (from Scheduling Service itself)
+    await this.eventBus.subscribe(
+      'AppointmentNoShow',
+      new AppointmentNoShowEventHandler(this.readModelHandler),
+      `${this.config.serviceName}.appointment.noshow`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to AppointmentNoShow (Read Model)');
+    
+    // ========================================================================
+    // PURE OUTBOX PATTERN - Read Model Sync Subscriptions
+    // ========================================================================
+    
+    // 13. Subscribe to patient.patient.* events (from Patient Registry Service)
+    // These events sync Patient data into local patient_read_model
+    await this.eventBus.subscribe(
+      'patient.patient.registered',
+      this.patientEventConsumer,
+      `${this.config.serviceName}.patient.read.model.registered`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to patient.patient.registered (Pure Outbox)');
+    
+    await this.eventBus.subscribe(
+      'patient.patient.updated',
+      this.patientEventConsumer,
+      `${this.config.serviceName}.patient.read.model.updated`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to patient.patient.updated (Pure Outbox)');
+    
+    await this.eventBus.subscribe(
+      'patient.patient.deactivated',
+      this.patientEventConsumer,
+      `${this.config.serviceName}.patient.read.model.deactivated`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to patient.patient.deactivated (Pure Outbox)');
+    
+    await this.eventBus.subscribe(
+      'patient.patient.deleted',
+      this.patientEventConsumer,
+      `${this.config.serviceName}.patient.read.model.deleted`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to patient.patient.deleted (Pure Outbox)');
+    
+    // 14. Subscribe to provider.staff.* events (from Provider Staff Service)
+    // These events sync Provider/Staff data into local provider_read_model
+    await this.eventBus.subscribe(
+      'provider.staff.created',
+      this.providerEventConsumer,
+      `${this.config.serviceName}.provider.read.model.created`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to provider.staff.created (Pure Outbox)');
+    
+    await this.eventBus.subscribe(
+      'provider.staff.updated',
+      this.providerEventConsumer,
+      `${this.config.serviceName}.provider.read.model.updated`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to provider.staff.updated (Pure Outbox)');
+    
+    await this.eventBus.subscribe(
+      'provider.staff.deactivated',
+      this.providerEventConsumer,
+      `${this.config.serviceName}.provider.read.model.deactivated`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to provider.staff.deactivated (Pure Outbox)');
+    
+    await this.eventBus.subscribe(
+      'provider.staff.deleted',
+      this.providerEventConsumer,
+      `${this.config.serviceName}.provider.read.model.deleted`
+    );
+    console.log('[EventSubscriptions] ✅ Subscribed to provider.staff.deleted (Pure Outbox)');
+    
+    console.log('[EventSubscriptions] ='.repeat(30));
+    console.log('[EventSubscriptions] 🚀 Pure Outbox Pattern: All read model syncs ready!');
+    console.log('[EventSubscriptions]    Patient Read Model: 4 events');
+    console.log('[EventSubscriptions]    Provider Read Model: 4 events');
+    console.log('[EventSubscriptions] ='.repeat(30));
   }
 
   /**
@@ -221,14 +332,34 @@ export class EventSubscriptions {
  * Create event subscriptions instance
  */
 export function createEventSubscriptions(
-  readModelHandler: AppointmentReadModelEventHandler
+  readModelHandler: AppointmentReadModelEventHandler,
+  patientEventConsumer?: PatientEventConsumer,
+  providerEventConsumer?: ProviderEventConsumer
 ): EventSubscriptions {
   const config: EventBusConfig = {
     rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
     exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
     serviceName: 'scheduling-service'
   };
+  
+  // If consumers not provided, create them here (fallback for backward compatibility)
+  if (!patientEventConsumer || !providerEventConsumer) {
+    console.warn('[EventSubscriptions] Event consumers not provided, creating fallback instances');
+    const { PatientReadModelRepository } = require('../repositories/PatientReadModelRepository');
+    const { ProviderReadModelRepository } = require('../repositories/ProviderReadModelRepository');
+    const { InboxRepository } = require('../inbox/InboxRepository');
+    
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    
+    const patientReadModelRepo = new PatientReadModelRepository(supabaseUrl, supabaseKey);
+    const providerReadModelRepo = new ProviderReadModelRepository(supabaseUrl, supabaseKey);
+    const inboxRepo = new InboxRepository(supabaseUrl, supabaseKey);
+    
+    patientEventConsumer = new PatientEventConsumer(patientReadModelRepo, inboxRepo);
+    providerEventConsumer = new ProviderEventConsumer(providerReadModelRepo, inboxRepo);
+  }
 
-  return new EventSubscriptions(readModelHandler, config);
+  return new EventSubscriptions(readModelHandler, config, patientEventConsumer, providerEventConsumer);
 }
 

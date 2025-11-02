@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Comprehensive Health Checks for Identity Service
  * Monitors all critical components and dependencies
  * 
@@ -76,6 +76,7 @@ export class IdentityServiceHealthCheck implements IHealthCheckService {
 
       return {
         overall,
+        status: this.mapStatus(overall),
         components,
         metadata: {
           version: '2.0.0',
@@ -89,6 +90,7 @@ export class IdentityServiceHealthCheck implements IHealthCheckService {
       
       return {
         overall: HealthStatus.UNHEALTHY,
+        status: this.mapStatus(HealthStatus.UNHEALTHY),
         components: {
           database: this.createErrorResult(error),
           authentication: this.createErrorResult(error),
@@ -107,6 +109,12 @@ export class IdentityServiceHealthCheck implements IHealthCheckService {
     }
   }
 
+  /**
+   * Map overall health status to simplified status string
+   */
+  private mapStatus(overall: HealthStatus): HealthStatus {
+    return overall;
+  }
   /**
    * Check database connectivity and performance
    */

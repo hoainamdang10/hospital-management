@@ -96,6 +96,14 @@ export interface IAppointmentRepository {
   findByDoctorId(doctorId: string, limit?: number, offset?: number): Promise<Appointment[]>;
 
   /**
+   * Find appointments by doctor ID and specific date
+   * @param doctorId - Doctor/Provider ID
+   * @param date - Specific date (will search entire day from 00:00:00 to 23:59:59)
+   * @returns List of appointments for that doctor on that date
+   */
+  findByDoctorAndDate(doctorId: string, date: Date): Promise<Appointment[]>;
+
+  /**
    * Find appointments by date range
    */
   findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<Appointment[]>;
