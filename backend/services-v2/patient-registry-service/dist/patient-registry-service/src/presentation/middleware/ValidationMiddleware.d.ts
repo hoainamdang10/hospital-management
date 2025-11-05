@@ -67,4 +67,16 @@ export declare const validateAddEmergencyContact: (((req: Request, res: Response
  * Validate grant consent request
  */
 export declare const validateGrantConsent: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
+/**
+ * Validate revoke consent request
+ */
+export declare const validateRevokeConsent: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
+/**
+ * Validate update emergency contact request
+ */
+export declare const validateUpdateEmergencyContact: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
+/**
+ * Validate remove emergency contact request
+ */
+export declare const validateRemoveEmergencyContact: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
 //# sourceMappingURL=ValidationMiddleware.d.ts.map

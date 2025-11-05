@@ -7,15 +7,16 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA-Compliant, Production-Ready
  */
-import { RedisCacheService } from '../cache/RedisCacheService';
-import { IUserRepository, CreateAuthUserData } from '../../application/repositories/IUserRepository';
-import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { User } from '../../domain/aggregates/User';
-import { UserId } from '../../domain/value-objects/UserId';
-import { Email } from '../../domain/value-objects/Email';
-import { UserSession } from '../../domain/entities/UserSession';
-import { ILogger } from '../../application/services/ILogger';
-import { IEventPublisher } from '../../application/services/IEventPublisher';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { RedisCacheService } from "../cache/RedisCacheService";
+import { IUserRepository, CreateAuthUserData } from "../../application/repositories/IUserRepository";
+import { IPermissionRepository } from "../../domain/repositories/IPermissionRepository";
+import { User } from "../../domain/aggregates/User";
+import { UserId } from "../../domain/value-objects/UserId";
+import { Email } from "../../domain/value-objects/Email";
+import { UserSession } from "../../domain/entities/UserSession";
+import { ILogger } from "../../application/services/ILogger";
+import { IEventPublisher } from "../../application/services/IEventPublisher";
 export interface CreateUserRequest {
     email: string;
     fullName: string;
@@ -59,7 +60,7 @@ export declare class SupabaseUserRepository implements IUserRepository {
     private permissionRepository?;
     private eventPublisher?;
     private readonly CACHE_TTL;
-    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger, cacheService?: RedisCacheService, permissionRepository?: IPermissionRepository, eventPublisher?: IEventPublisher);
+    constructor(supabaseClient: SupabaseClient, logger: ILogger, cacheService?: RedisCacheService, permissionRepository?: IPermissionRepository, eventPublisher?: IEventPublisher);
     /**
      * Find user by ID with circuit breaker protection and caching
      * Returns Domain aggregate, not DTO

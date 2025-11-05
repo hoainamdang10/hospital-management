@@ -7,11 +7,11 @@
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
 
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { Patient } from '../../domain/aggregates/Patient';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { ILogger } from '@shared/application/services/logger.interface';
-import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { Patient } from "../../domain/aggregates/Patient";
+import { PatientId } from "../../domain/value-objects/PatientId";
+import { ILogger } from "@shared/application/services/logger.interface";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
 
 export interface SetPrimaryEmergencyContactCommand {
   patientId: string;
@@ -32,14 +32,16 @@ export class SetPrimaryEmergencyContactUseCase {
   constructor(
     private patientRepository: IPatientRepository,
     private eventBus: IEventBus,
-    private logger: ILogger
+    private logger: ILogger,
   ) {}
 
-  async execute(command: SetPrimaryEmergencyContactCommand): Promise<SetPrimaryEmergencyContactResult> {
-    this.logger.info('Setting primary emergency contact', {
+  async execute(
+    command: SetPrimaryEmergencyContactCommand,
+  ): Promise<SetPrimaryEmergencyContactResult> {
+    this.logger.info("Setting primary emergency contact", {
       patientId: command.patientId,
       contactId: command.contactId,
-      performedBy: command.performedBy
+      performedBy: command.performedBy,
     });
 
     try {
@@ -47,24 +49,24 @@ export class SetPrimaryEmergencyContactUseCase {
       if (!command.patientId || command.patientId.trim().length === 0) {
         return {
           success: false,
-          message: 'Patient ID không được để trống',
-          errors: ['INVALID_PATIENT_ID']
+          message: "Patient ID không được để trống",
+          errors: ["INVALID_PATIENT_ID"],
         };
       }
 
       if (!command.contactId || command.contactId.trim().length === 0) {
         return {
           success: false,
-          message: 'Contact ID không được để trống',
-          errors: ['INVALID_CONTACT_ID']
+          message: "Contact ID không được để trống",
+          errors: ["INVALID_CONTACT_ID"],
         };
       }
 
       if (!command.performedBy || command.performedBy.trim().length === 0) {
         return {
           success: false,
-          message: 'Người thực hiện không được để trống',
-          errors: ['INVALID_PERFORMED_BY']
+          message: "Người thực hiện không được để trống",
+          errors: ["INVALID_PERFORMED_BY"],
         };
       }
 
@@ -76,24 +78,26 @@ export class SetPrimaryEmergencyContactUseCase {
         return {
           success: false,
           message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
-          errors: ['PATIENT_NOT_FOUND']
+          errors: ["PATIENT_NOT_FOUND"],
         };
       }
 
       // 3. Get all emergency contacts
       const contacts = patient.getEmergencyContacts();
-      const targetContact = contacts.find(c => c.getId() === command.contactId);
+      const targetContact = contacts.find(
+        (c) => c.getId() === command.contactId,
+      );
 
       if (!targetContact) {
         return {
           success: false,
           message: `Không tìm thấy người liên hệ khẩn cấp với ID: ${command.contactId}`,
-          errors: ['CONTACT_NOT_FOUND']
+          errors: ["CONTACT_NOT_FOUND"],
         };
       }
 
       // 4. Remove primary flag from all contacts
-      contacts.forEach(contact => {
+      contacts.forEach((contact) => {
         if (contact.isPrimary) {
           contact.removePrimary();
         }
@@ -108,28 +112,27 @@ export class SetPrimaryEmergencyContactUseCase {
       // 7. Publish domain events
       await this.publishDomainEvents(patient);
 
-      this.logger.info('Primary emergency contact set successfully', {
+      this.logger.info("Primary emergency contact set successfully", {
         patientId: command.patientId,
         contactId: command.contactId,
-        performedBy: command.performedBy
+        performedBy: command.performedBy,
       });
 
       return {
         success: true,
-        message: 'Đặt người liên hệ khẩn cấp chính thành công'
+        message: "Đặt người liên hệ khẩn cấp chính thành công",
       };
-
     } catch (error) {
-      this.logger.error('Error setting primary emergency contact', {
+      this.logger.error("Error setting primary emergency contact", {
         patientId: command.patientId,
         contactId: command.contactId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
       return {
         success: false,
-        message: 'Lỗi khi đặt người liên hệ khẩn cấp chính',
-        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+        message: "Lỗi khi đặt người liên hệ khẩn cấp chính",
+        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
       };
     }
   }
@@ -147,11 +150,10 @@ export class SetPrimaryEmergencyContactUseCase {
 
       patient.markEventsAsCommitted();
     } catch (error) {
-      this.logger.warn('Event publishing failed, but primary contact was set', {
+      this.logger.warn("Event publishing failed, but primary contact was set", {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
 }
-

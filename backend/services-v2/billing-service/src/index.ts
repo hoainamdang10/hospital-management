@@ -12,10 +12,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { DIContainer } from '../shared/infrastructure/di/container';
+import { createClient } from '@supabase/supabase-js';
+import { DIContainer } from '../../shared/infrastructure/di/container';
 import { setupDependencies } from './infrastructure/di/setup';
 import { setupRoutes } from './presentation/routes';
 import { logger } from './infrastructure/logging/logger';
+import { SupabaseOutboxRepository } from './infrastructure/outbox/SupabaseOutboxRepository';
+import { OutboxPublisherWorker } from './infrastructure/outbox/OutboxPublisherWorker';
+import { RabbitMQPublisher } from './infrastructure/messaging/RabbitMQPublisher';
 
 const app = express();
 const PORT = process.env.PORT || 3029;
@@ -29,6 +33,44 @@ const container = new DIContainer({
 
 // Setup dependencies
 setupDependencies(container);
+
+// =====================================================
+// OUTBOX PATTERN SETUP
+// =====================================================
+
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseClient = createClient(supabaseUrl, supabaseKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+  db: { schema: 'billing_schema' },
+});
+
+// Initialize Outbox Repository
+const outboxRepository = new SupabaseOutboxRepository(supabaseClient, logger);
+
+// Initialize RabbitMQ Publisher
+const rabbitmqPublisher = new RabbitMQPublisher(
+  {
+    url: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
+    exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
+    routingKeyPrefix: 'billing',
+  },
+  logger
+);
+
+// Initialize Outbox Worker
+const outboxWorker = new OutboxPublisherWorker(
+  outboxRepository,
+  supabaseClient,
+  logger,
+  (event) => rabbitmqPublisher.publish(event),
+  {
+    enabled: process.env.OUTBOX_WORKER_ENABLED !== 'false',
+    pollingIntervalMs: parseInt(process.env.OUTBOX_POLLING_INTERVAL || '5000'),
+    batchSize: parseInt(process.env.OUTBOX_BATCH_SIZE || '50'),
+  }
+);
 
 // Middleware
 app.use(helmet());
@@ -44,6 +86,8 @@ setupRoutes(app, container);
 app.get('/health', async (req, res) => {
   try {
     const healthStatus = await container.getServiceHealth();
+    const workerStatus = outboxWorker.getStatus();
+
     res.json({
       service: 'billing-service',
       status: 'healthy',
@@ -51,7 +95,13 @@ app.get('/health', async (req, res) => {
       port: PORT,
       features: ["Invoices","Payments","Insurance Claims","PayOS Integration"],
       patterns: ["Strategy","Outbox","Payment Gateway"],
-      services: healthStatus
+      services: healthStatus,
+      outboxWorker: {
+        enabled: workerStatus.isRunning,
+        workerId: workerStatus.workerId,
+        pollingInterval: workerStatus.config.pollingIntervalMs,
+        batchSize: workerStatus.config.batchSize,
+      }
     });
   } catch (error) {
     res.status(503).json({
@@ -72,10 +122,73 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
 });
 
 // Start server
-app.listen(PORT, () => {
+const serviceName = 'Billing Service';
+const features = ["Invoices", "Payments", "Insurance Claims", "PayOS Integration"];
+const patterns = ["Strategy", "Outbox", "Payment Gateway"];
+
+const server = app.listen(PORT, async () => {
   logger.info(`🏥 ${serviceName} started on port ${PORT}`);
-  logger.info(`📋 Features: ${config.features.join(', ')}`);
-  logger.info(`🎯 Patterns: ${config.patterns.join(', ')}`);
+  logger.info(`📋 Features: ${features.join(', ')}`);
+  logger.info(`🎯 Patterns: ${patterns.join(', ')}`);
+
+  // Start Outbox Worker
+  try {
+    await rabbitmqPublisher.connect();
+    await outboxWorker.start();
+    logger.info('✅ Outbox Worker started successfully');
+  } catch (error) {
+    logger.error('❌ Failed to start Outbox Worker', { error });
+  }
+});
+
+// =====================================================
+// GRACEFUL SHUTDOWN
+// =====================================================
+
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+
+  // Stop accepting new requests
+  server.close(async () => {
+    logger.info('HTTP server closed');
+
+    try {
+      // Stop Outbox Worker
+      await outboxWorker.stop();
+      logger.info('Outbox Worker stopped');
+
+      // Disconnect RabbitMQ
+      await rabbitmqPublisher.disconnect();
+      logger.info('RabbitMQ disconnected');
+
+      logger.info('✅ Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during shutdown', { error });
+      process.exit(1);
+    }
+  });
+
+  // Force shutdown after 30 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
+};
+
+// Handle shutdown signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception', { error });
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection', { reason, promise });
+  gracefulShutdown('UNHANDLED_REJECTION');
 });
 
 export default app;

@@ -5,11 +5,12 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { ISessionRepository } from "../../domain/repositories/ISessionRepository";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface ListActiveSessionsRequest {
     userId: string;
     currentSessionId?: string;
+    accessToken?: string;
 }
 export interface SessionInfo {
     sessionId: string;

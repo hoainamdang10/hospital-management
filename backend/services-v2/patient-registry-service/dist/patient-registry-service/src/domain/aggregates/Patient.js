@@ -27,9 +27,36 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     }
     /**
      * Factory method: Register new patient
+     * @deprecated Use registerWithId() instead to pass pre-generated PatientId from database
      */
     static register(userId, personalInfo, contactInfo, basicMedicalInfo, insuranceInfo, emergencyContacts, createdBy) {
         const patientId = PatientId_1.PatientId.generate();
+        const now = new Date();
+        const patient = new Patient({
+            id: patientId,
+            userId,
+            personalInfo,
+            contactInfo,
+            basicMedicalInfo,
+            insuranceInfo,
+            emergencyContacts,
+            consents: [],
+            status: PatientStatus_1.PatientStatus.ACTIVE,
+            links: [],
+            createdAt: now,
+            updatedAt: now,
+            createdBy,
+            updatedBy: createdBy
+        });
+        // Publish domain event
+        patient.addDomainEvent(new PatientRegisteredEvent_1.PatientRegisteredEvent(patientId.value, userId, personalInfo.fullName, personalInfo.dateOfBirth, personalInfo.gender, personalInfo.nationalId));
+        return patient;
+    }
+    /**
+     * Factory method: Register new patient with pre-generated ID from database
+     * This is the recommended method to avoid ID collisions
+     */
+    static registerWithId(patientId, userId, personalInfo, contactInfo, basicMedicalInfo, insuranceInfo, emergencyContacts, createdBy) {
         const now = new Date();
         const patient = new Patient({
             id: patientId,

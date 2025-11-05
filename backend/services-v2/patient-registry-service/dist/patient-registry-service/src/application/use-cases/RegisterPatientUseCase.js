@@ -11,34 +11,37 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegisterPatientUseCase = void 0;
 const Patient_1 = require("../../domain/aggregates/Patient");
+const PatientId_1 = require("../../domain/value-objects/PatientId");
 const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
 const ContactInfo_1 = require("../../domain/value-objects/ContactInfo");
 const BasicMedicalInfo_1 = require("../../domain/value-objects/BasicMedicalInfo");
 const InsuranceInfo_1 = require("../../domain/entities/InsuranceInfo");
 const EmergencyContact_1 = require("../../domain/entities/EmergencyContact");
 class RegisterPatientUseCase {
-    constructor(patientRepository, eventBus, logger) {
+    constructor(patientRepository, eventBus, logger, auditService, supabaseClient) {
         this.patientRepository = patientRepository;
         this.eventBus = eventBus;
         this.logger = logger;
+        this.auditService = auditService;
+        this.supabaseClient = supabaseClient;
     }
     async execute(request) {
         try {
-            this.logger.info('Starting patient registration', {
+            this.logger.info("Starting patient registration", {
                 userId: request.userId,
-                requestedBy: request.requestedBy
+                requestedBy: request.requestedBy,
             });
             // 1. Validate user exists (should be done by caller or Identity Service)
             // 2. Check if patient already exists
             const existingPatient = await this.patientRepository.findByUserId(request.userId);
             if (existingPatient) {
-                this.logger.warn('Patient registration failed: user already has profile', {
-                    userId: request.userId
+                this.logger.warn("Patient registration failed: user already has profile", {
+                    userId: request.userId,
                 });
                 return {
                     success: false,
-                    message: 'Người dùng đã có hồ sơ bệnh nhân',
-                    errors: ['USER_ALREADY_HAS_PATIENT_PROFILE']
+                    message: "Người dùng đã có hồ sơ bệnh nhân",
+                    errors: ["USER_ALREADY_HAS_PATIENT_PROFILE"],
                 };
             }
             // 3. Check if national ID already exists
@@ -46,8 +49,8 @@ class RegisterPatientUseCase {
             if (existingByNationalId) {
                 return {
                     success: false,
-                    message: 'CMND/CCCD đã tồn tại trong hệ thống',
-                    errors: ['NATIONAL_ID_ALREADY_EXISTS']
+                    message: "CMND/CCCD đã tồn tại trong hệ thống",
+                    errors: ["NATIONAL_ID_ALREADY_EXISTS"],
                 };
             }
             // 4. Check if BHYT number already exists (if provided)
@@ -56,8 +59,8 @@ class RegisterPatientUseCase {
                 if (existingByBHYT) {
                     return {
                         success: false,
-                        message: 'Số BHYT đã tồn tại trong hệ thống',
-                        errors: ['BHYT_NUMBER_ALREADY_EXISTS']
+                        message: "Số BHYT đã tồn tại trong hệ thống",
+                        errors: ["BHYT_NUMBER_ALREADY_EXISTS"],
                     };
                 }
             }
@@ -70,20 +73,20 @@ class RegisterPatientUseCase {
                 nationality: request.personalInfo.nationality,
                 ethnicity: request.personalInfo.ethnicity,
                 occupation: request.personalInfo.occupation,
-                maritalStatus: request.personalInfo.maritalStatus
+                maritalStatus: request.personalInfo.maritalStatus,
             });
             const contactInfo = ContactInfo_1.ContactInfo.create({
                 primaryPhone: request.contactInfo.primaryPhone,
                 secondaryPhone: request.contactInfo.secondaryPhone,
                 email: request.contactInfo.email,
                 preferredContactMethod: request.contactInfo.preferredContactMethod,
-                address: request.contactInfo.address
+                address: request.contactInfo.address,
             });
             const basicMedicalInfo = request.basicMedicalInfo
                 ? BasicMedicalInfo_1.BasicMedicalInfo.create({
                     bloodType: request.basicMedicalInfo.bloodType,
                     knownAllergies: request.basicMedicalInfo.knownAllergies || [],
-                    emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo
+                    emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo,
                 })
                 : BasicMedicalInfo_1.BasicMedicalInfo.createEmpty();
             // 6. Create insurance info entity (if provided)
@@ -99,54 +102,56 @@ class RegisterPatientUseCase {
                     isVietnameseInsurance: request.insuranceInfo.isVietnameseInsurance,
                     bhytNumber: request.insuranceInfo.bhytNumber,
                     isPrimary: request.insuranceInfo.isPrimary,
-                    isActive: true
+                    isActive: true,
                 });
             }
             // 7. Create emergency contact entities
-            const emergencyContacts = request.emergencyContacts.map(contact => EmergencyContact_1.EmergencyContact.create(contact.name, contact.relationship, contact.primaryPhone, contact.secondaryPhone, contact.email, contact.address, contact.isPrimary));
-            // 8. Register patient (create aggregate)
-            const patient = Patient_1.Patient.register(request.userId, personalInfo, contactInfo, basicMedicalInfo, insuranceInfo, emergencyContacts, request.requestedBy);
-            // 9. Save to repository
+            const emergencyContacts = request.emergencyContacts.map((contact) => EmergencyContact_1.EmergencyContact.create(contact.name, contact.relationship, contact.primaryPhone, contact.secondaryPhone, contact.email, contact.address, contact.isPrimary));
+            // 8. Generate PatientId from database sequence (thread-safe)
+            const patientId = await PatientId_1.PatientId.generateFromDB(this.supabaseClient);
+            // 9. Register patient (create aggregate with pre-generated ID)
+            const patient = Patient_1.Patient.registerWithId(patientId, request.userId, personalInfo, contactInfo, basicMedicalInfo, insuranceInfo, emergencyContacts, request.requestedBy);
+            // 10. Save to repository
             await this.patientRepository.save(patient);
-            // 10. Publish domain events
+            // 11. Publish domain events
             await this.publishDomainEvents(patient);
-            // 11. HIPAA audit logging
+            // 12. HIPAA audit logging
             await this.auditPatientRegistration(patient, request);
-            this.logger.info('Patient registration completed successfully', {
+            this.logger.info("Patient registration completed successfully", {
                 patientId: patient.getPatientId(),
                 userId: request.userId,
-                requestedBy: request.requestedBy
+                requestedBy: request.requestedBy,
             });
-            // 12. Return success response
+            // 13. Return success response
             return {
                 success: true,
-                patientId: patient.getPatientId() || '',
-                message: 'Đăng ký bệnh nhân thành công'
+                patientId: patient.getPatientId() || "",
+                message: "Đăng ký bệnh nhân thành công",
             };
         }
         catch (error) {
             // Handle validation errors
             if (error instanceof Error) {
-                this.logger.error('Patient registration failed', {
+                this.logger.error("Patient registration failed", {
                     userId: request.userId,
                     error: error.message,
-                    stack: error.stack
+                    stack: error.stack,
                 });
                 return {
                     success: false,
-                    message: 'Đăng ký bệnh nhân thất bại',
-                    errors: ['REGISTRATION_FAILED', error.message]
+                    message: "Đăng ký bệnh nhân thất bại",
+                    errors: ["REGISTRATION_FAILED", error.message],
                 };
             }
             // Handle unexpected errors
-            this.logger.error('Unexpected error during patient registration', {
+            this.logger.error("Unexpected error during patient registration", {
                 userId: request.userId,
-                error: 'UNEXPECTED_ERROR'
+                error: "UNEXPECTED_ERROR",
             });
             return {
                 success: false,
-                message: 'Đã xảy ra lỗi không mong muốn',
-                errors: ['UNEXPECTED_ERROR']
+                message: "Đã xảy ra lỗi không mong muốn",
+                errors: ["UNEXPECTED_ERROR"],
             };
         }
     }
@@ -162,25 +167,45 @@ class RegisterPatientUseCase {
             patient.markEventsAsCommitted();
         }
         catch (error) {
-            this.logger.warn('Event publishing failed, but patient was saved', {
+            this.logger.warn("Event publishing failed, but patient was saved", {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : "Unknown error",
             });
         }
     }
     /**
      * HIPAA audit logging for patient registration
+     * Logs to audit_logs table via AuditService
      */
     async auditPatientRegistration(patient, request) {
-        this.logger.info('HIPAA Audit: Patient registration', {
-            action: 'PATIENT_REGISTRATION',
-            patientId: patient.getPatientId(),
-            userId: request.userId,
-            requestedBy: request.requestedBy,
-            timestamp: new Date().toISOString(),
-            dataAccessed: 'patient_personal_info,patient_contact_info,patient_medical_info,insurance_info',
-            complianceLevel: 'hipaa'
-        });
+        try {
+            // Log to audit_logs table (HIPAA compliance)
+            await this.auditService.logAudit({
+                eventId: `patient-registration-${patient.getPatientId()}-${Date.now()}`,
+                eventType: 'patient.registered',
+                aggregateType: 'Patient',
+                aggregateId: patient.getPatientId() || 'unknown',
+                action: 'PATIENT_REGISTRATION',
+                userId: request.userId ?? undefined,
+                patientId: patient.getPatientId() ?? undefined,
+                containsPHI: true,
+                changedFields: {
+                    dataAccessed: 'patient_personal_info,patient_contact_info,patient_medical_info,insurance_info',
+                    requestedBy: request.requestedBy || 'system',
+                },
+                complianceLevel: 'hipaa',
+            });
+            this.logger.info("Patient registration audited successfully", {
+                patientId: patient.getPatientId(),
+            });
+        }
+        catch (error) {
+            // Log error but don't fail the registration
+            this.logger.error("Failed to audit patient registration", {
+                patientId: patient.getPatientId(),
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+        }
     }
 }
 exports.RegisterPatientUseCase = RegisterPatientUseCase;

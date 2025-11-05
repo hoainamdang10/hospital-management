@@ -6,13 +6,16 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA
  */
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { Patient } from '../../domain/aggregates/Patient';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { PatientRegistryCircuitBreaker } from '../resilience/CircuitBreaker';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
-import { IPatientMatchingService } from '../../application/services/IPatientMatchingService';
-import { IDomainEventPublisher } from '../../../../shared/domain/events/IDomainEventPublisher';
+import type { OptimizedSupabaseClient } from "../../../../shared/infrastructure/database/optimized-supabase-client";
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { Patient } from "../../domain/aggregates/Patient";
+import { PatientId } from "../../domain/value-objects/PatientId";
+import { PatientRegistryCircuitBreaker } from "../resilience/CircuitBreaker";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { IPatientMatchingService } from "../../application/services/IPatientMatchingService";
+import { IDomainEventPublisher } from "../../../../shared/domain/events/IDomainEventPublisher";
+import { PatientCache } from "../cache/PatientCache";
+import { IOutboxRepository } from "../outbox/SupabaseOutboxRepository";
 /**
  * Supabase Patient Repository Implementation
  */
@@ -20,9 +23,12 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     private logger;
     private matchingService;
     private eventPublisher?;
-    private supabaseClient;
+    private patientCache?;
+    private outboxRepository?;
+    private readonly optimizedClient;
+    private readonly supabaseClient;
     private circuitBreaker;
-    constructor(supabaseUrl: string, supabaseKey: string, logger: ILogger, matchingService: IPatientMatchingService, eventPublisher?: IDomainEventPublisher | undefined);
+    constructor(optimizedClient: OptimizedSupabaseClient, logger: ILogger, matchingService: IPatientMatchingService, eventPublisher?: IDomainEventPublisher | undefined, patientCache?: PatientCache | undefined, outboxRepository?: IOutboxRepository | undefined);
     /**
      * Find patient by ID
      */
@@ -44,6 +50,8 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
      */
     save(patient: Patient): Promise<void>;
+    private shouldUseDirectPersistence;
+    private savePatientFallback;
     /**
      * Delete patient (soft delete)
      */
@@ -63,7 +71,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
         limit: number;
         sorting?: {
             field: string;
-            direction: 'asc' | 'desc';
+            direction: "asc" | "desc";
         };
     }): Promise<{
         patients: Patient[];
@@ -94,7 +102,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
         email?: string;
     }, onlyCertainMatches?: boolean, limit?: number): Promise<Array<{
         patient: Patient;
-        matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
+        matchGrade: "certain" | "probable" | "possible" | "certainly-not";
         score: number;
     }>>;
     /**
@@ -157,6 +165,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     private _saveLinks;
     /**
      * Publish domain events from aggregate
+     * ✅ OUTBOX PATTERN: Save events to outbox table for reliable publishing
      */
     private publishDomainEvents;
     /**
@@ -171,10 +180,10 @@ export declare class SupabasePatientRepository implements IPatientRepository {
             unknown: number;
         };
         byAgeRange: {
-            '0-18': number;
-            '19-40': number;
-            '41-60': number;
-            '60+': number;
+            "0-18": number;
+            "19-40": number;
+            "41-60": number;
+            "60+": number;
         };
         byInsuranceType: {
             bhyt: number;
@@ -193,11 +202,36 @@ export declare class SupabasePatientRepository implements IPatientRepository {
             count: number;
         }>;
     }>;
+    /**
+     * Get patient history (audit logs and access history)
+     * Returns chronological history of patient record changes and accesses
+     */
+    getPatientHistory(patientId: PatientId, options?: {
+        limit?: number;
+        offset?: number;
+        dateFrom?: Date;
+        dateTo?: Date;
+        eventTypes?: string[];
+    }): Promise<{
+        history: Array<{
+            eventId: string;
+            eventType: string;
+            action: string;
+            userId: string;
+            userRole?: string;
+            timestamp: Date;
+            changes?: Record<string, any>;
+            accessedFields?: string[];
+            ipAddress?: string;
+            userAgent?: string;
+        }>;
+        total: number;
+    }>;
 }
 interface RepositoryHealthStatus {
-    status: 'healthy' | 'unhealthy';
+    status: "healthy" | "unhealthy";
     database?: string;
-    circuitBreaker?: ReturnType<PatientRegistryCircuitBreaker['getStatus']>;
+    circuitBreaker?: ReturnType<PatientRegistryCircuitBreaker["getStatus"]>;
     timestamp: string;
     error?: string;
 }

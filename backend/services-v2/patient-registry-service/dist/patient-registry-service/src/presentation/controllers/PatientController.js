@@ -11,20 +11,39 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientController = void 0;
 const crypto_1 = require("crypto");
 const ErrorHandlingMiddleware_1 = require("../middleware/ErrorHandlingMiddleware");
+function getUserContext(req) {
+    return req.user;
+}
 /**
  * Helper to get user ID from request
  */
 function getUserId(req) {
-    return req.user?.userId || 'system';
+    return getUserContext(req)?.userId || 'system';
+}
+function getUserRoles(req) {
+    const user = getUserContext(req);
+    if (!user) {
+        return [];
+    }
+    const roles = [...(user.roles ?? [])];
+    if (user.role && !roles.includes(user.role)) {
+        roles.push(user.role);
+    }
+    return roles;
 }
 function getUserRole(req) {
-    return req.user?.role || 'system';
+    const [primaryRole] = getUserRoles(req);
+    return primaryRole ? primaryRole.toLowerCase() : 'system';
+}
+function userHasAnyRole(req, allowedRoles) {
+    const roles = getUserRoles(req);
+    return roles.some(role => allowedRoles.includes(role));
 }
 /**
  * Patient Controller
  */
 class PatientController {
-    constructor(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, patientQueryHandlers) {
+    constructor(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, getPatientHistoryUseCase, patientQueryHandlers) {
         this.logger = logger;
         this.registerPatientUseCase = registerPatientUseCase;
         this.updatePatientInfoUseCase = updatePatientInfoUseCase;
@@ -54,6 +73,7 @@ class PatientController {
         this.deletePatientPhotoUseCase = deletePatientPhotoUseCase;
         this.updateCommunicationPreferencesUseCase = updateCommunicationPreferencesUseCase;
         this.getCommunicationPreferencesUseCase = getCommunicationPreferencesUseCase;
+        this.getPatientHistoryUseCase = getPatientHistoryUseCase;
         this.patientQueryHandlers = patientQueryHandlers;
     }
     /**
@@ -63,9 +83,9 @@ class PatientController {
     async registerPatient(req, res) {
         try {
             const request = req.body;
+            // Do NOT log PHI/PII - only log operation type
             this.logger.info('Registering new patient', {
-                userId: request.userId,
-                fullName: request.fullName
+                userId: request.userId
             });
             const result = await this.registerPatientUseCase.execute({
                 userId: request.userId,
@@ -131,7 +151,10 @@ class PatientController {
         try {
             const { patientId } = req.params;
             const requestedBy = getUserId(req);
-            this.logger.info('Getting patient by ID', { patientId });
+            // Redact patient ID for HIPAA compliance
+            this.logger.info('Getting patient by ID', {
+                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***')
+            });
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
                 queryType: 'GetPatientProfile',
@@ -164,7 +187,8 @@ class PatientController {
         try {
             const { userId } = req.params;
             const requestedBy = getUserId(req);
-            this.logger.info('Getting patient by user ID', { userId });
+            // Do NOT log userId - it's PII
+            this.logger.info('Getting patient by user ID');
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
                 queryType: 'GetPatientProfile',
@@ -197,7 +221,8 @@ class PatientController {
         try {
             const { nationalId } = req.params;
             const requestedBy = getUserId(req);
-            this.logger.info('Getting patient by national ID', { nationalId });
+            // Do NOT log nationalId - it's PHI/PII
+            this.logger.info('Getting patient by national ID');
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
                 queryType: 'GetPatientProfile',
@@ -230,7 +255,8 @@ class PatientController {
         try {
             const { bhytNumber } = req.params;
             const requestedBy = getUserId(req);
-            this.logger.info('Getting patient by BHYT number', { bhytNumber });
+            // Do NOT log bhytNumber - it's PHI/PII
+            this.logger.info('Getting patient by BHYT number');
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
                 queryType: 'GetPatientProfile',
@@ -263,7 +289,10 @@ class PatientController {
         try {
             const { patientId } = req.params;
             const updateRequest = req.body;
-            this.logger.info('Updating patient', { patientId });
+            // Redact patient ID for HIPAA compliance
+            this.logger.info('Updating patient', {
+                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***')
+            });
             const result = await this.updatePatientInfoUseCase.execute({
                 patientId,
                 ...updateRequest,
@@ -410,7 +439,8 @@ class PatientController {
     async matchPatients(req, res) {
         try {
             const { fullName, dateOfBirth, nationalId, primaryPhone, email, onlyCertainMatches, limit } = req.body;
-            this.logger.info('Matching patients', { fullName, nationalId });
+            // Do NOT log PHI/PII (fullName, nationalId)
+            this.logger.info('Matching patients');
             const result = await this.matchPatientsUseCase.execute({
                 criteria: {
                     fullName,
@@ -443,7 +473,11 @@ class PatientController {
     async mergePatients(req, res) {
         try {
             const { duplicatePatientId, masterPatientId, reason } = req.body;
-            this.logger.info('Merging patients', { duplicatePatientId, masterPatientId });
+            // Redact patient IDs for HIPAA compliance
+            this.logger.info('Merging patients', {
+                duplicatePatientId: duplicatePatientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+                masterPatientId: masterPatientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***')
+            });
             const result = await this.mergePatientsUseCase.execute({
                 duplicatePatientId,
                 masterPatientId,
@@ -474,7 +508,12 @@ class PatientController {
         try {
             const { patientId } = req.params;
             const { otherPatientId, linkType } = req.body;
-            this.logger.info('Linking patients', { patientId, otherPatientId, linkType });
+            // Redact patient IDs for HIPAA compliance
+            this.logger.info('Linking patients', {
+                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+                otherPatientId: otherPatientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+                linkType
+            });
             const result = await this.linkPatientsUseCase.execute({
                 patientId,
                 otherPatientId,
@@ -506,7 +545,23 @@ class PatientController {
         try {
             const { patientId } = req.params;
             const { reason } = req.body;
-            this.logger.info('Deactivating patient', { patientId, reason });
+            // Redact patient ID for HIPAA compliance
+            this.logger.info('Deactivating patient', {
+                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***')
+            });
+            if (!userHasAnyRole(req, ['ADMIN', 'SUPER_ADMIN', 'RECEPTIONIST'])) {
+                this.logger.warn('Unauthorized patient deactivation attempt', {
+                    patientId,
+                    requestedBy: getUserId(req),
+                    roles: getUserRoles(req)
+                });
+                res.status(403).json({
+                    success: false,
+                    error: 'FORBIDDEN',
+                    message: 'Bạn không có quyền vô hiệu hóa bệnh nhân'
+                });
+                return;
+            }
             const result = await this.deactivatePatientUseCase.execute({
                 patientId,
                 reason,
@@ -1003,6 +1058,42 @@ class PatientController {
                 success: false,
                 message: error instanceof Error ? error.message : 'Lỗi khi lấy tùy chọn liên hệ'
             });
+        }
+    }
+    /**
+     * Get patient history (audit logs and access logs)
+     * GET /api/v1/patients/:patientId/history
+     */
+    async getPatientHistory(req, res) {
+        try {
+            const { patientId } = req.params;
+            const { limit, offset, dateFrom, dateTo, eventTypes } = req.query;
+            const requestedBy = getUserId(req);
+            this.logger.info('Getting patient history', {
+                patientId,
+                limit,
+                offset,
+                requestedBy
+            });
+            const result = await this.getPatientHistoryUseCase.execute({
+                patientId,
+                limit: limit ? parseInt(limit) : undefined,
+                offset: offset ? parseInt(offset) : undefined,
+                dateFrom: dateFrom,
+                dateTo: dateTo,
+                eventTypes: eventTypes ? (Array.isArray(eventTypes) ? eventTypes : [eventTypes]) : undefined,
+                requestedBy
+            });
+            if (!result.success) {
+                throw new ErrorHandlingMiddleware_1.NotFoundError('Lịch sử bệnh nhân', patientId);
+            }
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+        }
+        catch (error) {
+            this.logger.error('Failed to get patient history', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            throw error;
         }
     }
 }

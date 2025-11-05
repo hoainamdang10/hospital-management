@@ -12,6 +12,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import { createClient } from '@supabase/supabase-js';
 
 // Infrastructure imports
 import { SupabasePatientRepository } from '../../src/infrastructure/repositories/SupabasePatientRepository';
@@ -54,6 +55,7 @@ import { GetPatientPhotoUseCase } from '../../src/application/use-cases/GetPatie
 import { DeletePatientPhotoUseCase } from '../../src/application/use-cases/DeletePatientPhotoUseCase';
 import { UpdateCommunicationPreferencesUseCase } from '../../src/application/use-cases/UpdateCommunicationPreferencesUseCase';
 import { GetCommunicationPreferencesUseCase } from '../../src/application/use-cases/GetCommunicationPreferencesUseCase';
+import { GetPatientHistoryUseCase } from '../../src/application/use-cases/GetPatientHistoryUseCase';
 import { PatientCommandHandlers } from '../../src/application/handlers/PatientCommandHandlers';
 import { PatientQueryHandlers } from '../../src/application/handlers/PatientQueryHandlers';
 
@@ -68,6 +70,9 @@ import { ensureIdentityMockServer } from './identityMockServer';
 
 // Logger
 import { ILogger, LogMetadata } from '@shared/application/services/logger.interface';
+import { PatientCache } from '../../src/infrastructure/cache/PatientCache';
+import { AuditService } from '../../src/infrastructure/audit/AuditService';
+import { SupabaseOutboxRepository } from '../../src/infrastructure/outbox/SupabaseOutboxRepository';
 
 /**
  * Test Logger - Silent logger for tests
@@ -148,16 +153,44 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const matchingService = new PatientMatchingService(logger);
   const insuranceValidationService = new InsuranceValidationService(logger);
 
+  // Initialize Cache (optional for tests)
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6380';
+  const patientCache = new PatientCache(redisUrl);
+
+  // Initialize Audit Service (optional for tests)
+  const supabaseClient = createClient(config.supabaseUrl, config.supabaseKey);
+  const auditService = new AuditService(supabaseClient, logger);
+
   // Initialize Repository
-  const patientRepository: IPatientRepository = config.useInMemoryRepository
-    ? new InMemoryPatientRepository()
-    : new SupabasePatientRepository(
-        config.supabaseUrl,
-        config.supabaseKey,
-        logger,
-        matchingService,
-        eventPublisher
-      );
+  let patientRepository: IPatientRepository;
+  if (config.useInMemoryRepository) {
+    patientRepository = new InMemoryPatientRepository();
+  } else {
+    // Create OptimizedSupabaseClient for SupabasePatientRepository
+    const { createOptimizedSupabaseClient } = await import('@shared/infrastructure/database/optimized-supabase-client');
+    const optimizedClient = createOptimizedSupabaseClient({
+      supabaseUrl: config.supabaseUrl,
+      supabaseServiceKey: config.supabaseKey,
+      serviceName: 'patient-registry-service',
+      schemaName: 'patient_schema',
+      enableOptimizations: false, // Disable for tests
+    });
+
+    // Create Outbox Repository for tests
+    const outboxRepository = new SupabaseOutboxRepository(
+      supabaseClient,
+      logger
+    );
+
+    patientRepository = new SupabasePatientRepository(
+      optimizedClient,
+      logger,
+      matchingService,
+      eventPublisher,
+      patientCache,
+      outboxRepository // ✅ Inject outbox repository
+    );
+  }
 
   // Create mock event bus for tests (if no RabbitMQ)
   const mockEventBus = {
@@ -170,14 +203,14 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const eventBus = eventPublisher || mockEventBus;
 
   // Initialize Use Cases
-  const registerPatientUseCase = new RegisterPatientUseCase(patientRepository, eventBus as any, logger);
-  const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository, eventBus as any, logger);
-  const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, logger);
+  const registerPatientUseCase = new RegisterPatientUseCase(patientRepository, eventBus as any, logger, auditService);
+  const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository, eventBus as any, logger, auditService);
+  const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, logger, auditService);
   const searchPatientsUseCase = new SearchPatientsUseCase(patientRepository);
   const matchPatientsUseCase = new MatchPatientsUseCase(patientRepository, matchingService, logger);
   const mergePatientsUseCase = new MergePatientsUseCase(patientRepository);
   const linkPatientsUseCase = new LinkPatientsUseCase(patientRepository);
-  const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository, eventBus as any, logger);
+  const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository, eventBus as any, logger, auditService);
   const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
   const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository, eventBus as any, logger);
   const grantConsentUseCase = new GrantConsentUseCase(patientRepository);
@@ -215,6 +248,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const deletePatientPhotoUseCase = new DeletePatientPhotoUseCase(patientRepository, mockStorageService);
   const updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase(patientRepository);
   const getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase(patientRepository);
+  const getPatientHistoryUseCase = new GetPatientHistoryUseCase(patientRepository, logger);
 
   const patientQueryHandlers = new PatientQueryHandlers(
     getPatientProfileUseCase,
@@ -264,6 +298,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     deletePatientPhotoUseCase,
     updateCommunicationPreferencesUseCase,
     getCommunicationPreferencesUseCase,
+    getPatientHistoryUseCase,
     patientQueryHandlers
   );
 
@@ -289,6 +324,9 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
       identityServiceUrl = identityMock.url;
       process.env.IDENTITY_USE_MOCK = 'true';
       process.env.IDENTITY_SERVICE_URL = identityServiceUrl;
+      console.log(`[AppFactory] Using mock Identity Service at ${identityServiceUrl}`);
+    } else {
+      console.log(`[AppFactory] Using real Identity Service at ${identityServiceUrl}`);
     }
 
     authMiddleware = new AuthenticationMiddleware({
@@ -367,15 +405,21 @@ export async function createMinimalTestApp(): Promise<AppFactoryResult> {
 }
 
 /**
- * Create test app with authentication (calls Identity Service)
+ * Create test app with authentication
+ * - If IDENTITY_USE_MOCK=true or NODE_ENV=test: Uses mock Identity Service
+ * - If IDENTITY_USE_MOCK=false: Uses REAL Identity Service at IDENTITY_SERVICE_URL
  */
 export async function createAuthenticatedTestApp(): Promise<AppFactoryResult> {
+  const useMock = process.env.IDENTITY_USE_MOCK === 'true' || process.env.NODE_ENV === 'test';
+  const identityServiceUrl = useMock ? undefined : (process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021');
+
   return createTestApp({
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     enableRabbitMQ: false,
     enableAuthentication: true,
-    useInMemoryRepository: true
+    useInMemoryRepository: true,
+    identityServiceUrl // Pass URL for real service, undefined for mock
   });
 }
 

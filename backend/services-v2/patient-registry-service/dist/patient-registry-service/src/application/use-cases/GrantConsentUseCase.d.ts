@@ -7,6 +7,8 @@
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { IAuditService } from '../../../../shared/application/services/audit.service.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface GrantConsentCommand {
     patientId: string;
     consentType: string;
@@ -25,7 +27,13 @@ export interface GrantConsentResult {
  */
 export declare class GrantConsentUseCase {
     private patientRepository;
-    constructor(patientRepository: IPatientRepository);
+    private auditService;
+    private logger;
+    constructor(patientRepository: IPatientRepository, auditService: IAuditService, logger: ILogger);
     execute(command: GrantConsentCommand): Promise<GrantConsentResult>;
+    /**
+     * HIPAA audit logging for consent granted
+     */
+    private auditConsentGranted;
 }
 //# sourceMappingURL=GrantConsentUseCase.d.ts.map

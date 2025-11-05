@@ -12,18 +12,22 @@
  * @compliance Clean Architecture, DDD, HIPAA, Anti-Pattern Mitigation
  */
 
-import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
-import { UserId } from '../value-objects/UserId';
-import { Email } from '../value-objects/Email';
-import { PersonalInfo } from '../value-objects/PersonalInfo';
-import { HealthcareRole } from '../entities/HealthcareRole';
-import { AccountStatus, AccountStatusHelper } from '../value-objects/AccountStatus';
-import { UserCreatedEvent } from '../events/UserCreatedEvent';
-import { UserAuthenticatedEvent } from '../events/UserAuthenticatedEvent';
-import { UserRoleChangedEvent } from '../events/UserRoleChangedEvent';
-import { UserDeactivatedEvent } from '../events/UserDeactivatedEvent';
-import { UserActivatedEvent } from '../events/UserActivatedEvent';
+import { HealthcareAggregateRoot } from "@shared/domain/base/aggregate-root";
+import { DomainEvent } from "@shared/domain/base/domain-event";
+import { UserId } from "../value-objects/UserId";
+import { Email } from "../value-objects/Email";
+import { PersonalInfo } from "../value-objects/PersonalInfo";
+import { HealthcareRole } from "../entities/HealthcareRole";
+import {
+  AccountStatus,
+  AccountStatusHelper,
+} from "../value-objects/AccountStatus";
+import { UserCreatedEvent } from "../events/UserCreatedEvent";
+import { UserAuthenticatedEvent } from "../events/UserAuthenticatedEvent";
+import { UserRoleChangedEvent } from "../events/UserRoleChangedEvent";
+import { UserDeactivatedEvent } from "../events/UserDeactivatedEvent";
+import { UserActivatedEvent } from "../events/UserActivatedEvent";
+import { UserAccountLockedEvent } from "../events/UserAccountLockedEvent";
 
 export interface UserProps {
   id: UserId;
@@ -64,12 +68,12 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   public static create(
     email: Email,
     personalInfo: PersonalInfo,
-    healthcareRoles: HealthcareRole[]
+    healthcareRoles: HealthcareRole[],
   ): User {
     try {
       // Validate at least one role
       if (!healthcareRoles || healthcareRoles.length === 0) {
-        throw new Error('User must have at least one role');
+        throw new Error("User must have at least one role");
       }
 
       const userId = UserId.generate();
@@ -83,14 +87,16 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         accountStatus: AccountStatus.ACTIVE,
         isEmailVerified: false,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
       });
 
       // Validate business invariants before creating
       user.validateBusinessInvariants();
 
       // Domain event for user creation (with primary role)
-      user.addDomainEvent(new UserCreatedEvent(userId, email, healthcareRoles[0]));
+      user.addDomainEvent(
+        new UserCreatedEvent(userId, email, healthcareRoles[0]),
+      );
 
       return user;
     } catch (error) {
@@ -120,7 +126,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     deactivatedBy: string | undefined,
     lastLoginAt: Date | undefined,
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
   ): User {
     const props: UserProps = {
       id: UserId.fromString(id),
@@ -134,7 +140,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       deactivatedBy,
       lastLoginAt,
       createdAt,
-      updatedAt
+      updatedAt,
     };
 
     const user = new User(props, id);
@@ -220,7 +226,9 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    */
   public recordAuthentication(ipAddress: string, userAgent: string): void {
     if (this.props.accountStatus !== AccountStatus.ACTIVE) {
-      throw new Error(`Tài khoản đã bị vô hiệu hóa: ${this.props.accountStatus}`);
+      throw new Error(
+        `Tài khoản đã bị vô hiệu hóa: ${this.props.accountStatus}`,
+      );
     }
 
     // Update last login
@@ -228,12 +236,14 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     this.props.updatedAt = new Date();
 
     // Domain event for successful authentication
-    this.addDomainEvent(new UserAuthenticatedEvent(
-      this.props.id,
-      ipAddress,
-      userAgent,
-      new Date()
-    ));
+    this.addDomainEvent(
+      new UserAuthenticatedEvent(
+        this.props.id,
+        ipAddress,
+        userAgent,
+        new Date(),
+      ),
+    );
   }
 
   /**
@@ -243,7 +253,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * @returns Array of role type strings (e.g., ['DOCTOR', 'ADMIN'])
    */
   public get roleTypes(): string[] {
-    return this.props.healthcareRoles.map(r => r.type);
+    return this.props.healthcareRoles.map((r) => r.type);
   }
 
   /**
@@ -253,7 +263,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * @returns true if user has the role, false otherwise
    */
   public hasRole(roleType: string): boolean {
-    return this.props.healthcareRoles.some(r => r.type === roleType);
+    return this.props.healthcareRoles.some((r) => r.type === roleType);
   }
 
   /**
@@ -268,7 +278,9 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   public addRole(newRole: HealthcareRole, assignedBy: UserId): void {
     try {
       // Check if role already assigned
-      const hasRole = this.props.healthcareRoles.some(r => r.type === newRole.type);
+      const hasRole = this.props.healthcareRoles.some(
+        (r) => r.type === newRole.type,
+      );
       if (hasRole) {
         throw new Error(`User already has role: ${newRole.type}`);
       }
@@ -277,12 +289,14 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       this.props.updatedAt = new Date();
 
       // Domain event for role assignment
-      this.addDomainEvent(new UserRoleChangedEvent(
-        this.props.id,
-        this.props.healthcareRoles[0], // old primary role
-        newRole,
-        assignedBy.value
-      ));
+      this.addDomainEvent(
+        new UserRoleChangedEvent(
+          this.props.id,
+          this.props.healthcareRoles[0], // old primary role
+          newRole,
+          assignedBy.value,
+        ),
+      );
     } catch (error) {
       throw new Error(`Failed to add role: ${getErrorMessage(error)}`);
     }
@@ -300,10 +314,14 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   public removeRole(roleType: string, removedBy: UserId): void {
     try {
       if (this.props.healthcareRoles.length === 1) {
-        throw new Error('Cannot remove last role. User must have at least one role.');
+        throw new Error(
+          "Cannot remove last role. User must have at least one role.",
+        );
       }
 
-      const roleIndex = this.props.healthcareRoles.findIndex(r => r.type === roleType);
+      const roleIndex = this.props.healthcareRoles.findIndex(
+        (r) => r.type === roleType,
+      );
       if (roleIndex === -1) {
         throw new Error(`User does not have role: ${roleType}`);
       }
@@ -313,12 +331,14 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       this.props.updatedAt = new Date();
 
       // Domain event for role removal
-      this.addDomainEvent(new UserRoleChangedEvent(
-        this.props.id,
-        removedRole,
-        this.props.healthcareRoles[0], // new primary role
-        removedBy.value
-      ));
+      this.addDomainEvent(
+        new UserRoleChangedEvent(
+          this.props.id,
+          removedRole,
+          this.props.healthcareRoles[0], // new primary role
+          removedBy.value,
+        ),
+      );
     } catch (error) {
       throw new Error(`Failed to remove role: ${getErrorMessage(error)}`);
     }
@@ -337,7 +357,14 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       this.props.updatedAt = new Date();
 
       // Domain event for role change
-      this.addDomainEvent(new UserRoleChangedEvent(this.props.id, oldRole, newRole, changedBy.value));
+      this.addDomainEvent(
+        new UserRoleChangedEvent(
+          this.props.id,
+          oldRole,
+          newRole,
+          changedBy.value,
+        ),
+      );
     } catch (error) {
       throw new Error(`Failed to change role: ${getErrorMessage(error)}`);
     }
@@ -348,7 +375,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * @deprecated Use roleTypes getter instead
    */
   public getRoleTypes(): string[] {
-    return this.props.healthcareRoles.map(r => r.type);
+    return this.props.healthcareRoles.map((r) => r.type);
   }
 
   /**
@@ -358,11 +385,13 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     try {
       this.props.personalInfo = personalInfo;
       this.props.updatedAt = new Date();
-      
+
       // Re-validate business invariants after update
       this.validateBusinessInvariants();
     } catch (error) {
-      throw new Error(`Failed to update personal info: ${getErrorMessage(error)}`);
+      throw new Error(
+        `Failed to update personal info: ${getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -374,23 +403,31 @@ export class User extends HealthcareAggregateRoot<UserProps> {
 
     // Email validation
     if (!this.props.email || !this.props.email.isValid()) {
-      errors.push('Email không hợp lệ');
+      errors.push("Email không hợp lệ");
     }
 
     // Healthcare role validation
-    if (!this.props.healthcareRoles || this.props.healthcareRoles.length === 0) {
-      errors.push('Vai trò y tế phải được chỉ định');
+    if (
+      !this.props.healthcareRoles ||
+      this.props.healthcareRoles.length === 0
+    ) {
+      errors.push("Vai trò y tế phải được chỉ định");
     }
 
     // Personal info validation for active users
-    if (this.props.accountStatus === AccountStatus.ACTIVE && !this.props.personalInfo.isComplete()) {
-      errors.push('Thông tin cá nhân phải đầy đủ cho người dùng đang hoạt động');
+    if (
+      this.props.accountStatus === AccountStatus.ACTIVE &&
+      !this.props.personalInfo.isComplete()
+    ) {
+      errors.push(
+        "Thông tin cá nhân phải đầy đủ cho người dùng đang hoạt động",
+      );
     }
 
     // Password validation removed - handled by Supabase Auth
 
     if (errors.length > 0) {
-      throw new Error(`Business invariants violated: ${errors.join(', ')}`);
+      throw new Error(`Business invariants violated: ${errors.join(", ")}`);
     }
   }
 
@@ -404,12 +441,15 @@ export class User extends HealthcareAggregateRoot<UserProps> {
 
     // Email validation (critical)
     if (!this.props.email || !this.props.email.isValid()) {
-      errors.push('Email không hợp lệ');
+      errors.push("Email không hợp lệ");
     }
 
     // Healthcare role validation (critical)
-    if (!this.props.healthcareRoles || this.props.healthcareRoles.length === 0) {
-      errors.push('Vai trò y tế phải được chỉ định');
+    if (
+      !this.props.healthcareRoles ||
+      this.props.healthcareRoles.length === 0
+    ) {
+      errors.push("Vai trò y tế phải được chỉ định");
     }
 
     // Skip personal info validation for reconstitution
@@ -417,7 +457,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     // Validation will be enforced when user tries to update their profile
 
     if (errors.length > 0) {
-      throw new Error(`Critical invariants violated: ${errors.join(', ')}`);
+      throw new Error(`Critical invariants violated: ${errors.join(", ")}`);
     }
   }
 
@@ -480,12 +520,12 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         accountStatus: this.props.accountStatus,
         isEmailVerified: this.props.isEmailVerified,
         lastLoginAt: this.props.lastLoginAt?.toISOString(),
-        createdAt: this.props.createdAt.toISOString()
+        createdAt: this.props.createdAt.toISOString(),
       };
     } catch (error) {
       return {
-        userId: 'unknown',
-        error: 'Failed to extract user summary'
+        userId: "unknown",
+        error: "Failed to extract user summary",
       };
     }
   }
@@ -514,8 +554,15 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   public deactivate(deactivatedBy: string, reason: string): void {
     try {
       // Validate transition
-      if (!AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus.DEACTIVATED)) {
-        throw new Error(`Cannot deactivate account with status: ${this.props.accountStatus}`);
+      if (
+        !AccountStatusHelper.canTransition(
+          this.props.accountStatus,
+          AccountStatus.DEACTIVATED,
+        )
+      ) {
+        throw new Error(
+          `Cannot deactivate account with status: ${this.props.accountStatus}`,
+        );
       }
 
       const now = new Date();
@@ -526,13 +573,15 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       this.props.updatedAt = now;
 
       // Emit domain event
-      this.addDomainEvent(new UserDeactivatedEvent(
-        this.props.id,
-        deactivatedBy,
-        reason,
-        this.props.email.value,
-        this.roleTypes[0] || 'UNKNOWN'
-      ));
+      this.addDomainEvent(
+        new UserDeactivatedEvent(
+          this.props.id,
+          deactivatedBy,
+          reason,
+          this.props.email.value,
+          this.roleTypes[0] || "UNKNOWN",
+        ),
+      );
     } catch (error) {
       throw new Error(`Failed to deactivate user: ${getErrorMessage(error)}`);
     }
@@ -541,10 +590,21 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   /**
    * Lock account temporarily (can be unlocked by admin)
    */
-  public lock(lockedBy: string, reason: string): void {
+  public lock(
+    lockedBy: string,
+    reason: string,
+    terminatedSessions = false,
+  ): void {
     try {
-      if (!AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus.LOCKED)) {
-        throw new Error(`Cannot lock account with status: ${this.props.accountStatus}`);
+      if (
+        !AccountStatusHelper.canTransition(
+          this.props.accountStatus,
+          AccountStatus.LOCKED,
+        )
+      ) {
+        throw new Error(
+          `Cannot lock account with status: ${this.props.accountStatus}`,
+        );
       }
 
       const now = new Date();
@@ -553,6 +613,17 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       this.props.deactivatedAt = now;
       this.props.deactivatedBy = lockedBy;
       this.props.updatedAt = now;
+
+      this.addDomainEvent(
+        new UserAccountLockedEvent(
+          this.props.id,
+          lockedBy,
+          reason,
+          terminatedSessions,
+          this.props.email.value,
+          this.roleTypes[0] || "UNKNOWN",
+        ),
+      );
     } catch (error) {
       throw new Error(`Failed to lock user: ${getErrorMessage(error)}`);
     }
@@ -565,12 +636,19 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     try {
       // Prevent activation of permanently deactivated accounts
       if (AccountStatusHelper.isPermanent(this.props.accountStatus)) {
-        throw new Error('Cannot activate permanently deactivated account');
+        throw new Error("Cannot activate permanently deactivated account");
       }
 
       // Validate transition
-      if (!AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus.ACTIVE)) {
-        throw new Error(`Cannot activate account with status: ${this.props.accountStatus}`);
+      if (
+        !AccountStatusHelper.canTransition(
+          this.props.accountStatus,
+          AccountStatus.ACTIVE,
+        )
+      ) {
+        throw new Error(
+          `Cannot activate account with status: ${this.props.accountStatus}`,
+        );
       }
 
       const now = new Date();
@@ -584,11 +662,13 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       this.validateBusinessInvariants();
 
       // Emit domain event
-      this.addDomainEvent(new UserActivatedEvent(
-        this.props.id.value,
-        this.props.email.value,
-        now
-      ));
+      this.addDomainEvent(
+        new UserActivatedEvent(
+          this.props.id.value,
+          this.props.email.value,
+          now,
+        ),
+      );
     } catch (error) {
       throw new Error(`Failed to activate user: ${getErrorMessage(error)}`);
     }
@@ -644,17 +724,17 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         gender: props.personalInfo.gender,
         citizenId: props.personalInfo.citizenId,
         emergencyContactName: props.personalInfo.emergencyContactName,
-        emergencyContactPhone: props.personalInfo.emergencyContactPhone
+        emergencyContactPhone: props.personalInfo.emergencyContactPhone,
       },
-      healthcareRoles: props.healthcareRoles.map(r => ({
+      healthcareRoles: props.healthcareRoles.map((r) => ({
         type: r.type,
-        name: r.name
+        name: r.name,
       })),
       accountStatus: props.accountStatus,
       isEmailVerified: props.isEmailVerified,
       lastLoginAt: props.lastLoginAt,
       createdAt: props.createdAt,
-      updatedAt: props.updatedAt
+      updatedAt: props.updatedAt,
     };
   }
 }

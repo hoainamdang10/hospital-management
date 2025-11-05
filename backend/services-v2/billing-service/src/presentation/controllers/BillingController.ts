@@ -8,31 +8,57 @@
  */
 
 import { Request, Response } from "express";
-import { GenerateInvoiceCommand } from "../../application/commands/GenerateInvoiceCommand";
-import { BillingCommandHandlers } from "../../application/commands/handlers/BillingCommandHandlers";
-import { ProcessPaymentCommand } from "../../application/commands/ProcessPaymentCommand";
-import { ValidateInsuranceCommand } from "../../application/commands/ValidateInsuranceCommand";
+import { CreateInvoiceUseCase } from "../../application/use-cases/CreateInvoiceUseCase";
+import { ProcessPaymentUseCase } from "../../application/use-cases/ProcessPaymentUseCase";
+import { RefundPaymentUseCase } from "../../application/use-cases/RefundPaymentUseCase";
+import { GetInvoiceUseCase } from "../../application/use-cases/GetInvoiceUseCase";
+import { GetBillingHistoryUseCase } from "../../application/use-cases/GetBillingHistoryUseCase";
+import { GetPatientOutstandingBalanceUseCase } from "../../application/use-cases/GetPatientOutstandingBalanceUseCase";
+import { DownloadInvoiceUseCase } from "../../application/use-cases/DownloadInvoiceUseCase";
+import { ILogger } from "../../../../shared/infrastructure/logging/logger.interface";
 
 export interface BillingControllerDependencies {
-  billingCommandHandlers: BillingCommandHandlers;
+  createInvoiceUseCase: CreateInvoiceUseCase;
+  processPaymentUseCase: ProcessPaymentUseCase;
+  refundPaymentUseCase: RefundPaymentUseCase;
+  getInvoiceUseCase: GetInvoiceUseCase;
+  getBillingHistoryUseCase: GetBillingHistoryUseCase;
+  getPatientOutstandingBalanceUseCase: GetPatientOutstandingBalanceUseCase;
+  downloadInvoiceUseCase: DownloadInvoiceUseCase;
+  logger: ILogger;
 }
 
 /**
  * BillingController
  * Handles HTTP requests for billing operations
+ * Direct UseCase invocation (Clean Architecture)
  */
 export class BillingController {
-  private readonly commandHandlers: BillingCommandHandlers;
+  private readonly createInvoiceUseCase: CreateInvoiceUseCase;
+  private readonly processPaymentUseCase: ProcessPaymentUseCase;
+  private readonly refundPaymentUseCase: RefundPaymentUseCase;
+  private readonly getInvoiceUseCase: GetInvoiceUseCase;
+  private readonly getBillingHistoryUseCase: GetBillingHistoryUseCase;
+  private readonly getPatientOutstandingBalanceUseCase: GetPatientOutstandingBalanceUseCase;
+  private readonly downloadInvoiceUseCase: DownloadInvoiceUseCase;
+  private readonly logger: ILogger;
 
   constructor(dependencies: BillingControllerDependencies) {
-    this.commandHandlers = dependencies.billingCommandHandlers;
+    this.createInvoiceUseCase = dependencies.createInvoiceUseCase;
+    this.processPaymentUseCase = dependencies.processPaymentUseCase;
+    this.refundPaymentUseCase = dependencies.refundPaymentUseCase;
+    this.getInvoiceUseCase = dependencies.getInvoiceUseCase;
+    this.getBillingHistoryUseCase = dependencies.getBillingHistoryUseCase;
+    this.getPatientOutstandingBalanceUseCase = dependencies.getPatientOutstandingBalanceUseCase;
+    this.downloadInvoiceUseCase = dependencies.downloadInvoiceUseCase;
+    this.logger = dependencies.logger;
   }
 
   /**
-   * Generate invoice for medical services
+   * Create invoice for medical services
    * POST /api/v1/billing/invoices
    */
-  async generateInvoice(req: Request, res: Response): Promise<void> {
+  async createInvoice(req: Request, res: Response): Promise<void> {
     try {
       const {
         patientId,
@@ -42,150 +68,65 @@ export class BillingController {
         items,
         insurance,
         notes,
+        issuedBy
       } = req.body;
 
       // Validate required fields
-      if (!patientId || !items || !Array.isArray(items) || items.length === 0) {
+      if (!patientId || !items || !Array.isArray(items) || items.length === 0 || !issuedBy) {
         res.status(400).json({
           success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Thiếu thông tin bắt buộc: patientId và items",
-            details: {
-              patientId: !patientId
-                ? "Mã bệnh nhân không được để trống"
-                : undefined,
-              items:
-                !items || !Array.isArray(items) || items.length === 0
-                  ? "Danh sách dịch vụ không được để trống"
-                  : undefined,
-            },
-          },
+          message: "Thiếu thông tin bắt buộc",
+          errors: [
+            !patientId && { field: 'patientId', message: 'Mã bệnh nhân không được để trống' },
+            (!items || !Array.isArray(items) || items.length === 0) && { field: 'items', message: 'Danh sách dịch vụ không được để trống' },
+            !issuedBy && { field: 'issuedBy', message: 'Người lập hóa đơn không được để trống' }
+          ].filter(Boolean)
         });
         return;
       }
 
-      // Validate items
-      const itemValidationErrors: string[] = [];
-      items.forEach((item: any, index: number) => {
-        if (!item.serviceCode) {
-          itemValidationErrors.push(
-            `Item ${index + 1}: Mã dịch vụ không được để trống`
-          );
-        }
-        if (!item.serviceName) {
-          itemValidationErrors.push(
-            `Item ${index + 1}: Tên dịch vụ không được để trống`
-          );
-        }
-        if (!item.quantity || item.quantity <= 0) {
-          itemValidationErrors.push(
-            `Item ${index + 1}: Số lượng phải lớn hơn 0`
-          );
-        }
-        if (!item.unitPrice || item.unitPrice <= 0) {
-          itemValidationErrors.push(
-            `Item ${index + 1}: Đơn giá phải lớn hơn 0`
-          );
-        }
-        if (!item.category) {
-          itemValidationErrors.push(
-            `Item ${index + 1}: Danh mục dịch vụ không được để trống`
-          );
-        }
-      });
-
-      if (itemValidationErrors.length > 0) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Dữ liệu dịch vụ không hợp lệ",
-            details: itemValidationErrors,
-          },
-        });
-        return;
-      }
-
-      // Create command
-      const command = new GenerateInvoiceCommand({
+      // Execute use case
+      const result = await this.createInvoiceUseCase.execute({
         patientId,
-        doctorId,
+        doctorId: doctorId || '',
         medicalRecordId,
         appointmentId,
         items: items.map((item: any) => ({
-          serviceCode: item.serviceCode,
-          serviceName: item.serviceName,
+          description: item.description || item.serviceName,
+          vietnameseDescription: item.vietnameseDescription || item.serviceName,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           category: item.category,
-          description: item.description,
+          taxable: item.taxable !== false,
+          insuranceCoverable: item.insuranceCoverable !== false,
+          serviceCode: item.serviceCode
         })),
-        insurance: insurance
-          ? {
-              type: insurance.type,
-              policyNumber: insurance.policyNumber,
-              validFrom: insurance.validFrom
-                ? new Date(insurance.validFrom)
-                : undefined,
-              validTo: insurance.validTo
-                ? new Date(insurance.validTo)
-                : undefined,
-              beneficiaryName: insurance.beneficiaryName,
-              region: insurance.region,
-              coverageLevel: insurance.coverageLevel,
-            }
-          : undefined,
+        insurance: insurance ? {
+          type: insurance.type,
+          number: insurance.number || insurance.cardNumber || insurance.policyNumber,
+          validFrom: insurance.validFrom ? new Date(insurance.validFrom) : undefined,
+          validUntil: insurance.validUntil || insurance.validTo ? new Date(insurance.validUntil || insurance.validTo) : undefined,
+          beneficiaryName: insurance.beneficiaryName,
+          region: insurance.region,
+          coverageLevel: insurance.coverageLevel || insurance.coveragePercentage
+        } : undefined,
         notes,
-        correlationId:
-          (req.headers["x-correlation-id"] as string) ||
-          `billing-${Date.now()}`,
+        issuedBy
       });
 
-      // Execute command
-      const result = await this.commandHandlers.handleGenerateInvoice(command);
-
       if (!result.success) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: result.error?.code || "INVOICE_GENERATION_ERROR",
-            message: result.error?.message || "Lỗi khi tạo hóa đơn",
-            details: result.error?.details,
-          },
-        });
+        res.status(400).json(result);
         return;
       }
 
       // Return success response
-      res.status(201).json({
-        success: true,
-        data: {
-          invoiceId: result.data!.invoiceId,
-          invoiceNumber: result.data!.invoiceNumber,
-          patientId: result.data!.patientId,
-          doctorId: result.data!.doctorId,
-          items: result.data!.items,
-          subtotal: result.data!.subtotal,
-          taxAmount: result.data!.taxAmount,
-          totalAmount: result.data!.totalAmount,
-          insuranceCoverage: result.data!.insuranceCoverage,
-          patientPayment: result.data!.patientPayment,
-          status: result.data!.status,
-          createdAt: result.data!.createdAt,
-          dueDate: result.data!.dueDate,
-          summary: result.data!.summary,
-        },
-        message: "Tạo hóa đơn thành công",
-      });
+      res.status(201).json(result);
     } catch (error) {
-      console.error("BillingController generateInvoice error:", error);
+      this.logger.error('Error creating invoice', { error });
       res.status(500).json({
         success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi hệ thống khi tạo hóa đơn",
-        },
+        message: "Lỗi hệ thống khi tạo hóa đơn",
+        errors: [{ field: 'system', message: error instanceof Error ? error.message : 'Unknown error' }]
       });
     }
   }
@@ -201,462 +142,201 @@ export class BillingController {
         paymentMethod,
         amount,
         currency = "VND",
-        paymentDetails,
-        notes,
+        processedBy,
+        transactionId,
+        notes
       } = req.body;
 
       // Validate required fields
-      if (!invoiceId || !paymentMethod || !amount) {
+      if (!invoiceId || !paymentMethod || !amount || !processedBy) {
         res.status(400).json({
           success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message:
-              "Thiếu thông tin bắt buộc: invoiceId, paymentMethod, amount",
-            details: {
-              invoiceId: !invoiceId
-                ? "Mã hóa đơn không được để trống"
-                : undefined,
-              paymentMethod: !paymentMethod
-                ? "Phương thức thanh toán không được để trống"
-                : undefined,
-              amount: !amount
-                ? "Số tiền thanh toán không được để trống"
-                : undefined,
-            },
-          },
+          message: "Thiếu thông tin bắt buộc",
+          errors: [
+            !invoiceId && { field: 'invoiceId', message: 'Mã hóa đơn không được để trống' },
+            !paymentMethod && { field: 'paymentMethod', message: 'Phương thức thanh toán không được để trống' },
+            !amount && { field: 'amount', message: 'Số tiền thanh toán không được để trống' },
+            !processedBy && { field: 'processedBy', message: 'Người xử lý không được để trống' }
+          ].filter(Boolean)
         });
         return;
       }
 
-      // Validate payment method
-      const validPaymentMethods = [
-        "CASH",
-        "CARD",
-        "BANK_TRANSFER",
-        "PAYOS",
-        "INSURANCE_DIRECT",
-      ];
-      if (!validPaymentMethods.includes(paymentMethod)) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Phương thức thanh toán không hợp lệ",
-            details: {
-              paymentMethod: `Phương thức thanh toán phải là một trong: ${validPaymentMethods.join(", ")}`,
-            },
-          },
-        });
-        return;
-      }
-
-      // Validate amount
-      if (typeof amount !== "number" || amount <= 0) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Số tiền thanh toán không hợp lệ",
-            details: {
-              amount: "Số tiền thanh toán phải là số dương",
-            },
-          },
-        });
-        return;
-      }
-
-      // Create command
-      const command = new ProcessPaymentCommand({
+      // Execute use case
+      const result = await this.processPaymentUseCase.execute({
         invoiceId,
-        paymentMethod: paymentMethod as any,
         amount,
         currency,
-        paymentDetails: paymentDetails || {},
+        paymentMethod,
+        transactionId,
         notes,
-        correlationId:
-          (req.headers["x-correlation-id"] as string) ||
-          `payment-${Date.now()}`,
+        processedBy
       });
-
-      // Execute command
-      const result = await this.commandHandlers.handleProcessPayment(command);
 
       if (!result.success) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: result.error?.code || "PAYMENT_PROCESSING_ERROR",
-            message: result.error?.message || "Lỗi khi xử lý thanh toán",
-            details: result.error?.details,
-          },
-        });
+        res.status(400).json(result);
         return;
       }
 
-      // Return success response
-      res.status(200).json({
-        success: true,
-        data: {
-          paymentId: result.data!.paymentId,
-          invoiceId: result.data!.invoiceId,
-          paymentMethod: result.data!.paymentMethod,
-          amount: result.data!.amount,
-          currency: result.data!.currency,
-          status: result.data!.status,
-          transactionId: result.data!.transactionId,
-          paymentLink: result.data!.paymentLink,
-          qrCode: result.data!.qrCode,
-          processedAt: result.data!.processedAt,
-          expiresAt: result.data!.expiresAt,
-        },
-        message: "Xử lý thanh toán thành công",
-      });
+      res.status(200).json(result);
     } catch (error) {
-      console.error("BillingController processPayment error:", error);
+      this.logger.error('Error processing payment', { error });
       res.status(500).json({
         success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi hệ thống khi xử lý thanh toán",
-        },
-      });
-    }
-  }
-
-  /**
-   * Validate insurance information
-   * POST /api/v1/billing/insurance/validate
-   */
-  async validateInsurance(req: Request, res: Response): Promise<void> {
-    try {
-      const {
-        type,
-        policyNumber,
-        beneficiaryName,
-        dateOfBirth,
-        region,
-        serviceDate,
-      } = req.body;
-
-      // Validate required fields
-      if (!type || !policyNumber || !beneficiaryName) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message:
-              "Thiếu thông tin bắt buộc: type, policyNumber, beneficiaryName",
-            details: {
-              type: !type ? "Loại bảo hiểm không được để trống" : undefined,
-              policyNumber: !policyNumber
-                ? "Số thẻ bảo hiểm không được để trống"
-                : undefined,
-              beneficiaryName: !beneficiaryName
-                ? "Tên người thụ hưởng không được để trống"
-                : undefined,
-            },
-          },
-        });
-        return;
-      }
-
-      // Validate insurance type
-      const validInsuranceTypes = ["BHYT", "BHTN", "PRIVATE"];
-      if (!validInsuranceTypes.includes(type)) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Loại bảo hiểm không hợp lệ",
-            details: {
-              type: `Loại bảo hiểm phải là một trong: ${validInsuranceTypes.join(", ")}`,
-            },
-          },
-        });
-        return;
-      }
-
-      // Create command
-      const command = new ValidateInsuranceCommand({
-        type: type as any,
-        policyNumber,
-        beneficiaryName,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-        region,
-        serviceDate: serviceDate ? new Date(serviceDate) : new Date(),
-        correlationId:
-          (req.headers["x-correlation-id"] as string) ||
-          `insurance-${Date.now()}`,
-      });
-
-      // Execute command
-      const result =
-        await this.commandHandlers.handleValidateInsurance(command);
-
-      if (!result.success) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: result.error?.code || "INSURANCE_VALIDATION_ERROR",
-            message: result.error?.message || "Lỗi khi xác thực bảo hiểm",
-            details: result.error?.details,
-          },
-        });
-        return;
-      }
-
-      // Return success response
-      res.status(200).json({
-        success: true,
-        data: {
-          isValid: result.data!.isValid,
-          policyNumber: result.data!.policyNumber,
-          beneficiaryName: result.data!.beneficiaryName,
-          coverageLevel: result.data!.coverageLevel,
-          coPaymentRate: result.data!.coPaymentRate,
-          maxCoverage: result.data!.maxCoverage,
-          validFrom: result.data!.validFrom,
-          validTo: result.data!.validTo,
-          region: result.data!.region,
-          warnings: result.data!.warnings,
-          recommendations: result.data!.recommendations,
-        },
-        message: "Xác thực bảo hiểm thành công",
-      });
-    } catch (error) {
-      console.error("BillingController validateInsurance error:", error);
-      res.status(500).json({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi hệ thống khi xác thực bảo hiểm",
-        },
+        message: "Lỗi hệ thống khi xử lý thanh toán",
+        errors: [{ field: 'system', message: error instanceof Error ? error.message : 'Unknown error' }]
       });
     }
   }
 
   /**
    * Get invoice by ID
-   * GET /api/v1/billing/invoices/:invoiceId
+   * GET /api/v1/billing/invoices/:id
    */
   async getInvoice(req: Request, res: Response): Promise<void> {
     try {
-      const { invoiceId } = req.params;
+      const { id } = req.params;
 
-      if (!invoiceId) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Mã hóa đơn không được để trống",
-          },
-        });
+      const result = await this.getInvoiceUseCase.execute({ invoiceId: id });
+
+      if (!result.success) {
+        res.status(404).json(result);
         return;
       }
 
-      // Get invoice from repository
-      const invoice = await this.commandHandlers.getInvoiceById(invoiceId);
-
-      if (!invoice) {
-        res.status(404).json({
-          success: false,
-          error: {
-            code: "INVOICE_NOT_FOUND",
-            message: "Không tìm thấy hóa đơn",
-          },
-        });
-        return;
-      }
-
-      res.status(200).json({
-        success: true,
-        data: invoice,
-        message: "Lấy thông tin hóa đơn thành công",
-      });
+      res.status(200).json(result);
     } catch (error) {
-      console.error("BillingController getInvoice error:", error);
+      this.logger.error('Error getting invoice', { error });
       res.status(500).json({
         success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi hệ thống khi lấy thông tin hóa đơn",
-        },
+        message: "Lỗi hệ thống khi lấy hóa đơn"
       });
     }
   }
 
   /**
-   * Get invoices by patient ID
-   * GET /api/v1/billing/patients/:patientId/invoices
+   * Get billing history
+   * GET /api/v1/billing/history
    */
-  async getInvoicesByPatient(req: Request, res: Response): Promise<void> {
+  async getBillingHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const { patientId, doctorId, dateFrom, dateTo, status, page, pageSize } = req.query;
+
+      const result = await this.getBillingHistoryUseCase.execute({
+        patientId: patientId as string,
+        doctorId: doctorId as string,
+        dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+        dateTo: dateTo ? new Date(dateTo as string) : undefined,
+        status: status as any,
+        page: page ? parseInt(page as string) : 1,
+        pageSize: pageSize ? parseInt(pageSize as string) : 20
+      });
+
+      res.status(200).json(result);
+    } catch (error) {
+      this.logger.error('Error getting billing history', { error });
+      res.status(500).json({
+        success: false,
+        message: "Lỗi hệ thống khi lấy lịch sử thanh toán"
+      });
+    }
+  }
+
+  /**
+   * Get patient outstanding balance
+   * GET /api/v1/billing/patients/:patientId/outstanding
+   */
+  async getPatientOutstandingBalance(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
-      const { status, fromDate, toDate, page = 1, limit = 10 } = req.query;
 
-      if (!patientId) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Mã bệnh nhân không được để trống",
-          },
-        });
-        return;
-      }
+      const result = await this.getPatientOutstandingBalanceUseCase.execute({ patientId });
 
-      // Get invoices from repository
-      const invoices = await this.commandHandlers.getInvoicesByPatient(
-        patientId,
-        {
-          status: status as string,
-          fromDate: fromDate ? new Date(fromDate as string) : undefined,
-          toDate: toDate ? new Date(toDate as string) : undefined,
-          page: parseInt(page as string),
-          limit: parseInt(limit as string),
-        }
-      );
-
-      res.status(200).json({
-        success: true,
-        data: invoices,
-        message: "Lấy danh sách hóa đơn thành công",
-      });
+      res.status(200).json(result);
     } catch (error) {
-      console.error("BillingController getInvoicesByPatient error:", error);
+      this.logger.error('Error getting patient outstanding balance', { error });
       res.status(500).json({
         success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi hệ thống khi lấy danh sách hóa đơn",
-        },
+        message: "Lỗi hệ thống khi lấy số dư nợ"
       });
     }
   }
 
   /**
-   * Generate Vietnamese invoice PDF
-   * GET /api/v1/billing/invoices/:invoiceId/pdf
+   * Download invoice
+   * GET /api/v1/billing/invoices/:id/download
    */
-  async generateInvoicePDF(req: Request, res: Response): Promise<void> {
+  async downloadInvoice(req: Request, res: Response): Promise<void> {
     try {
-      const { invoiceId } = req.params;
-      const { language = "vi" } = req.query;
+      const { id } = req.params;
+      const { format = 'pdf', language = 'vi' } = req.query;
 
-      if (!invoiceId) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Mã hóa đơn không được để trống",
-          },
-        });
+      const result = await this.downloadInvoiceUseCase.execute({
+        invoiceId: id,
+        format: format as 'pdf' | 'html',
+        language: language as 'vi' | 'en'
+      });
+
+      if (!result.success || !result.data) {
+        res.status(404).json(result);
         return;
       }
 
-      // Generate PDF
-      const pdfResult = await this.commandHandlers.generateInvoicePDF(
-        invoiceId,
-        language as string
-      );
-
-      if (!pdfResult.success) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: pdfResult.error?.code || "PDF_GENERATION_ERROR",
-            message: pdfResult.error?.message || "Lỗi khi tạo file PDF",
-          },
-        });
-        return;
-      }
-
-      // Set response headers for PDF download
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="invoice-${invoiceId}.pdf"`
-      );
-      res.setHeader("Content-Length", pdfResult.data!.buffer.length);
-
-      // Send PDF buffer
-      res.send(pdfResult.data!.buffer);
+      // Set headers for file download
+      const contentType = format === 'pdf' ? 'application/pdf' : 'text/html';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="invoice-${id}.${format}"`);
+      res.send(result.data.fileContent);
     } catch (error) {
-      console.error("BillingController generateInvoicePDF error:", error);
+      this.logger.error('Error downloading invoice', { error });
       res.status(500).json({
         success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi hệ thống khi tạo file PDF",
-        },
+        message: "Lỗi hệ thống khi tải hóa đơn"
       });
     }
   }
 
   /**
-   * Process insurance claim
-   * POST /api/v1/billing/insurance/claims
+   * Refund payment
+   * POST /api/v1/billing/refunds
    */
-  async processInsuranceClaim(req: Request, res: Response): Promise<void> {
+  async refundPayment(req: Request, res: Response): Promise<void> {
     try {
-      const {
-        invoiceId,
-        insuranceType,
-        policyNumber,
-        claimAmount,
-        supportingDocuments,
-        notes,
-      } = req.body;
+      const { invoiceId, refundAmount, refundReason, refundMethod, refundedBy } = req.body;
 
-      // Validate required fields
-      if (!invoiceId || !insuranceType || !policyNumber || !claimAmount) {
+      if (!invoiceId || !refundAmount || !refundReason || !refundedBy) {
         res.status(400).json({
           success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message:
-              "Thiếu thông tin bắt buộc: invoiceId, insuranceType, policyNumber, claimAmount",
-          },
+          message: "Thiếu thông tin bắt buộc",
+          errors: [
+            !invoiceId && { field: 'invoiceId', message: 'Mã hóa đơn không được để trống' },
+            !refundAmount && { field: 'refundAmount', message: 'Số tiền hoàn không được để trống' },
+            !refundReason && { field: 'refundReason', message: 'Lý do hoàn tiền không được để trống' },
+            !refundedBy && { field: 'refundedBy', message: 'Người xử lý không được để trống' }
+          ].filter(Boolean)
         });
         return;
       }
 
-      // Process insurance claim
-      const claimResult = await this.commandHandlers.processInsuranceClaim({
+      const result = await this.refundPaymentUseCase.execute({
         invoiceId,
-        insuranceType,
-        policyNumber,
-        claimAmount,
-        supportingDocuments: supportingDocuments || [],
-        notes,
+        refundAmount,
+        refundReason,
+        refundMethod,
+        refundedBy
       });
 
-      if (!claimResult.success) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: claimResult.error?.code || "CLAIM_PROCESSING_ERROR",
-            message:
-              claimResult.error?.message || "Lỗi khi xử lý yêu cầu bồi thường",
-          },
-        });
+      if (!result.success) {
+        res.status(400).json(result);
         return;
       }
 
-      res.status(200).json({
-        success: true,
-        data: claimResult.data,
-        message: "Xử lý yêu cầu bồi thường thành công",
-      });
+      res.status(200).json(result);
     } catch (error) {
-      console.error("BillingController processInsuranceClaim error:", error);
+      this.logger.error('Error refunding payment', { error });
       res.status(500).json({
         success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi hệ thống khi xử lý yêu cầu bồi thường",
-        },
+        message: "Lỗi hệ thống khi hoàn tiền"
       });
     }
   }

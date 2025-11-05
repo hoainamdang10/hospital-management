@@ -13,20 +13,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IdentityEventConsumer = void 0;
 const amqplib_1 = __importDefault(require("amqplib"));
+const IdempotentEventHandler_1 = require("./IdempotentEventHandler");
 /**
  * Identity Event Consumer
  * Subscribes to identity.* events from Identity Service
  */
 class IdentityEventConsumer {
-    constructor(config, logger, userCreatedHandler, userDeletedHandler, userUpdatedHandler) {
+    constructor(config, logger, userCreatedHandler, userDeletedHandler, userUpdatedHandler, auditService) {
         this.config = config;
         this.logger = logger;
         this.userCreatedHandler = userCreatedHandler;
         this.userDeletedHandler = userDeletedHandler;
         this.userUpdatedHandler = userUpdatedHandler;
+        this.auditService = auditService;
         this.connection = null;
         this.channel = null;
         this.isConnected = false;
+        this.idempotentHandlers = new Map();
+        // Initialize idempotent handlers with audit service
+        if (this.auditService) {
+            this.idempotentHandlers.set('user.user_created_event', new IdempotentEventHandler_1.IdempotentEventHandler('IdentityUserCreatedEventHandler', this.auditService, this.logger, (data) => this.userCreatedHandler.handle(data)));
+            this.idempotentHandlers.set('user.user_deleted_event', new IdempotentEventHandler_1.IdempotentEventHandler('IdentityUserDeletedEventHandler', this.auditService, this.logger, (data) => this.userDeletedHandler.handle(data)));
+            this.idempotentHandlers.set('user.user_updated_event', new IdempotentEventHandler_1.IdempotentEventHandler('IdentityUserUpdatedEventHandler', this.auditService, this.logger, (data) => this.userUpdatedHandler.handle(data)));
+        }
     }
     /**
      * Connect to RabbitMQ and start consuming
@@ -123,18 +132,32 @@ class IdentityEventConsumer {
             });
             // Route to appropriate handler
             try {
-                switch (routingKey) {
-                    case 'user.user_created_event':
-                        await this.userCreatedHandler.handle(event.payload);
-                        break;
-                    case 'user.user_deleted_event':
-                        await this.userDeletedHandler.handle(event.payload);
-                        break;
-                    case 'user.user_updated_event':
-                        await this.userUpdatedHandler.handle(event.payload);
-                        break;
-                    default:
-                        this.logger.warn('Unknown identity event routing key', { routingKey });
+                // Use idempotent handler if available, otherwise fallback to direct handler
+                const idempotentHandler = this.idempotentHandlers.get(routingKey);
+                if (idempotentHandler) {
+                    // Use idempotent handler with audit tracking
+                    const eventMessage = {
+                        eventId: event.eventId,
+                        eventType: routingKey,
+                        payload: event.payload
+                    };
+                    await idempotentHandler.handle(eventMessage);
+                }
+                else {
+                    // Fallback to direct handler (for backward compatibility)
+                    switch (routingKey) {
+                        case 'user.user_created_event':
+                            await this.userCreatedHandler.handle(event.payload);
+                            break;
+                        case 'user.user_deleted_event':
+                            await this.userDeletedHandler.handle(event.payload);
+                            break;
+                        case 'user.user_updated_event':
+                            await this.userUpdatedHandler.handle(event.payload);
+                            break;
+                        default:
+                            this.logger.warn('Unknown identity event routing key', { routingKey });
+                    }
                 }
                 // Acknowledge message on success
                 this.channel.ack(msg);

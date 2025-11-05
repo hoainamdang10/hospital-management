@@ -5,8 +5,8 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { Application } from 'express';
-import { RouteDependencies } from './types';
+import { Application } from "express";
+import { RouteDependencies } from "./types";
 /**
  * Register all routes with the Express application
  * @param app Express application instance

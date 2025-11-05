@@ -10,6 +10,7 @@ import { RemoveEmergencyContactUseCase } from '../../../../src/application/use-c
 import { IPatientRepository } from '../../../../src/domain/repositories/IPatientRepository';
 import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
 import { ILogger } from '@shared/application/services/logger.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
 import { Patient } from '../../../../src/domain/aggregates/Patient';
 import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
 import { ContactInfo } from '../../../../src/domain/value-objects/ContactInfo';
@@ -21,6 +22,7 @@ describe('RemoveEmergencyContactUseCase', () => {
   let mockRepository: jest.Mocked<IPatientRepository>;
   let mockEventBus: jest.Mocked<IEventBus>;
   let mockLogger: jest.Mocked<ILogger>;
+  let mockAuditService: jest.Mocked<IAuditService>;
 
   beforeEach(() => {
     mockRepository = {
@@ -33,7 +35,11 @@ describe('RemoveEmergencyContactUseCase', () => {
       matchPatients: jest.fn(),
       findWithFilters: jest.fn(),
       delete: jest.fn(),
-      getHealthStatus: jest.fn()
+      getHealthStatus: jest.fn(),
+
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as any;
 
     mockEventBus = {
@@ -47,7 +53,13 @@ describe('RemoveEmergencyContactUseCase', () => {
       debug: jest.fn()
     } as any;
 
-    useCase = new RemoveEmergencyContactUseCase(mockRepository, mockEventBus, mockLogger);
+    mockAuditService = {
+      log: jest.fn(),
+      getLogsForResource: jest.fn(),
+      getLogsForUser: jest.fn()
+    } as any;
+
+    useCase = new RemoveEmergencyContactUseCase(mockRepository, mockEventBus, mockLogger, mockAuditService);
   });
 
   describe('execute', () => {

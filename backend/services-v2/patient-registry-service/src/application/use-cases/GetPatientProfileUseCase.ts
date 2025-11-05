@@ -12,6 +12,7 @@ import { IPatientRepository } from '../../domain/repositories/IPatientRepository
 import { PatientId } from '../../domain/value-objects/PatientId';
 import { Patient } from '../../domain/aggregates/Patient';
 import { ILogger } from '@shared/application/services/logger.interface';
+import { AuditService } from '../../infrastructure/audit/AuditService';
 
 export interface GetPatientProfileRequest {
   patientId?: string;
@@ -103,7 +104,8 @@ export interface GetPatientProfileResponse {
 export class GetPatientProfileUseCase {
   constructor(
     private readonly patientRepository: IPatientRepository,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
+    private readonly auditService: AuditService,
   ) {}
 
   async execute(request: GetPatientProfileRequest): Promise<GetPatientProfileResponse> {
@@ -273,19 +275,31 @@ export class GetPatientProfileUseCase {
 
   /**
    * HIPAA audit logging for patient profile access
+   * Logs PHI access to phi_access_logs table via AuditService
    */
-  private auditPatientProfileAccess(
+  private async auditPatientProfileAccess(
     patient: Patient,
     request: GetPatientProfileRequest
-  ): void {
-    this.logger.info('HIPAA Audit: Patient profile access', {
-      action: 'PATIENT_PROFILE_ACCESS',
-      patientId: patient.getPatientId(),
-      requestedBy: request.requestedBy,
-      timestamp: new Date().toISOString(),
-      dataAccessed: 'patient_full_profile',
-      complianceLevel: 'hipaa'
-    });
+  ): Promise<void> {
+    try {
+      // Log PHI access to phi_access_logs table (HIPAA compliance)
+      await this.auditService.logPHIAccess({
+        patientId: patient.getPatientId() || 'unknown',
+        userId: request.requestedBy || 'system',
+        accessType: 'READ',
+        accessedFields: ['patient_full_profile'],
+        reason: 'Patient profile retrieval',
+      });
+
+      this.logger.info("Patient profile access audited successfully", {
+        patientId: patient.getPatientId(),
+      });
+    } catch (error) {
+      this.logger.error("Failed to audit patient profile access", {
+        patientId: patient.getPatientId(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }
 

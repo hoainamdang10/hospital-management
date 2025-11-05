@@ -27,6 +27,7 @@ import { CreateInvoiceUseCase } from "../../application/use-cases/CreateInvoiceU
 import { ProcessPaymentUseCase } from "../../application/use-cases/ProcessPaymentUseCase";
 import { RefundPaymentUseCase } from "../../application/use-cases/RefundPaymentUseCase";
 import { GetBillingHistoryUseCase } from "../../application/use-cases/GetBillingHistoryUseCase";
+import { GetInvoiceUseCase } from "../../application/use-cases/GetInvoiceUseCase";
 import { BillingCommandHandlers } from "../../application/handlers/BillingCommandHandlers";
 import { BillingQueryHandlers } from "../../application/handlers/BillingQueryHandlers";
 import { PayOSIntegrationService } from "../../application/services/PayOSIntegrationService";
@@ -58,6 +59,9 @@ export const ServiceTokens = {
   PROCESS_PAYMENT_USE_CASE: "ProcessPaymentUseCase",
   REFUND_PAYMENT_USE_CASE: "RefundPaymentUseCase",
   GET_BILLING_HISTORY_USE_CASE: "GetBillingHistoryUseCase",
+  GET_INVOICE_USE_CASE: "GetInvoiceUseCase",
+  GET_PATIENT_OUTSTANDING_BALANCE_USE_CASE: "GetPatientOutstandingBalanceUseCase",
+  DOWNLOAD_INVOICE_USE_CASE: "DownloadInvoiceUseCase",
 
   // Handlers
   BILLING_COMMAND_HANDLERS: "BillingCommandHandlers",
@@ -69,6 +73,9 @@ export const ServiceTokens = {
 
   // Application Services
   BILLING_APPLICATION_SERVICE: "BillingApplicationService",
+
+  // Controllers
+  BILLING_CONTROLLER: "BillingController",
 } as const;
 
 export function setupDependencies(container: DIContainer): void {
@@ -128,7 +135,7 @@ export function setupDependencies(container: DIContainer): void {
         logger,
         auditService,
         schema: 'billing_schema',
-        tableName: 'billings'
+        tableName: 'invoices'
       });
     },
     ServiceLifetime.SCOPED
@@ -222,6 +229,41 @@ export function setupDependencies(container: DIContainer): void {
     ServiceLifetime.TRANSIENT
   );
 
+  container.register(
+    ServiceTokens.GET_INVOICE_USE_CASE,
+    (container) => {
+      const repository = container.resolve(ServiceTokens.BILLING_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new GetInvoiceUseCase(repository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.GET_PATIENT_OUTSTANDING_BALANCE_USE_CASE,
+    (container) => {
+      const { GetPatientOutstandingBalanceUseCase } = require('../../application/use-cases/GetPatientOutstandingBalanceUseCase');
+      const repository = container.resolve(ServiceTokens.BILLING_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new GetPatientOutstandingBalanceUseCase(repository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.DOWNLOAD_INVOICE_USE_CASE,
+    (container) => {
+      const { DownloadInvoiceUseCase } = require('../../application/use-cases/DownloadInvoiceUseCase');
+      const repository = container.resolve(ServiceTokens.BILLING_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new DownloadInvoiceUseCase(repository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
   // Register handlers
   container.register(
     ServiceTokens.BILLING_COMMAND_HANDLERS,
@@ -230,6 +272,7 @@ export function setupDependencies(container: DIContainer): void {
       const processPaymentUseCase = container.resolve(ServiceTokens.PROCESS_PAYMENT_USE_CASE);
       const refundUseCase = container.resolve(ServiceTokens.REFUND_PAYMENT_USE_CASE);
       const repository = container.resolve(ServiceTokens.BILLING_REPOSITORY);
+      const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new BillingCommandHandlers(
@@ -237,6 +280,7 @@ export function setupDependencies(container: DIContainer): void {
         processPaymentUseCase,
         refundUseCase,
         repository,
+        eventBus,
         logger
       );
     },
@@ -315,6 +359,34 @@ export function setupDependencies(container: DIContainer): void {
         commandHandlers,
         queryHandlers,
         payosService,
+        logger
+      });
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  // Register controllers
+  container.register(
+    ServiceTokens.BILLING_CONTROLLER,
+    (container) => {
+      const { BillingController } = require('../../presentation/controllers/BillingController');
+      const createInvoiceUseCase = container.resolve(ServiceTokens.CREATE_INVOICE_USE_CASE);
+      const processPaymentUseCase = container.resolve(ServiceTokens.PROCESS_PAYMENT_USE_CASE);
+      const refundPaymentUseCase = container.resolve(ServiceTokens.REFUND_PAYMENT_USE_CASE);
+      const getInvoiceUseCase = container.resolve(ServiceTokens.GET_INVOICE_USE_CASE);
+      const getBillingHistoryUseCase = container.resolve(ServiceTokens.GET_BILLING_HISTORY_USE_CASE);
+      const getPatientOutstandingBalanceUseCase = container.resolve(ServiceTokens.GET_PATIENT_OUTSTANDING_BALANCE_USE_CASE);
+      const downloadInvoiceUseCase = container.resolve(ServiceTokens.DOWNLOAD_INVOICE_USE_CASE);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new BillingController({
+        createInvoiceUseCase,
+        processPaymentUseCase,
+        refundPaymentUseCase,
+        getInvoiceUseCase,
+        getBillingHistoryUseCase,
+        getPatientOutstandingBalanceUseCase,
+        downloadInvoiceUseCase,
         logger
       });
     },

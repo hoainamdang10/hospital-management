@@ -26,7 +26,9 @@ describe('GetInsuranceInfoUseCase', () => {
       findWithFilters: jest.fn(),
       matchPatients: jest.fn(),
       getHealthStatus: jest.fn(),
-      getStatistics: jest.fn()
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as jest.Mocked<IPatientRepository>;
 
     mockLogger = {

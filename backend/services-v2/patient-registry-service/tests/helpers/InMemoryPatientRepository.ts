@@ -104,6 +104,34 @@ export class InMemoryPatientRepository implements IPatientRepository {
     };
   }
 
+  async getPatientHistory(
+    patientId: PatientId,
+    options?: {
+      limit?: number;
+      offset?: number;
+      dateFrom?: Date;
+      dateTo?: Date;
+      eventTypes?: string[];
+    }
+  ): Promise<{
+    history: Array<{
+      eventId: string;
+      eventType: string;
+      action: string;
+      userId: string;
+      userRole?: string;
+      timestamp: Date;
+      changes?: Record<string, any>;
+      accessedFields?: string[];
+      ipAddress?: string;
+      userAgent?: string;
+    }>;
+    total: number;
+  }> {
+    // In-memory implementation returns empty history for tests
+    return { history: [], total: 0 };
+  }
+
   /**
    * Utility helpers for tests
    */

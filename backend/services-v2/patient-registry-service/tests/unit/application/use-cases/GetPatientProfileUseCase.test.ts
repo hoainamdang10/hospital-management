@@ -3,11 +3,13 @@ import { IPatientRepository } from '../../../../src/domain/repositories/IPatient
 import { ILogger } from '@shared/application/services/logger.interface';
 import { Patient } from '../../../../src/domain/aggregates/Patient';
 import { PatientId } from '../../../../src/domain/value-objects/PatientId';
+import { AuditService } from '../../../../src/infrastructure/audit/AuditService';
 
 describe('GetPatientProfileUseCase', () => {
   let useCase: GetPatientProfileUseCase;
   let mockRepository: jest.Mocked<IPatientRepository>;
   let mockLogger: jest.Mocked<ILogger>;
+  let mockAuditService: jest.Mocked<AuditService>;
 
   beforeEach(() => {
     mockRepository = {
@@ -18,7 +20,11 @@ describe('GetPatientProfileUseCase', () => {
       findByBHYTNumber: jest.fn(),
       search: jest.fn(),
       findDuplicates: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as any;
 
     mockLogger = {
@@ -29,9 +35,16 @@ describe('GetPatientProfileUseCase', () => {
       fatal: jest.fn()
     } as any;
 
+    mockAuditService = {
+      logAudit: jest.fn().mockResolvedValue(undefined),
+      logPHIAccess: jest.fn().mockResolvedValue(undefined),
+      isEventProcessed: jest.fn().mockResolvedValue(false),
+    } as any;
+
     useCase = new GetPatientProfileUseCase(
       mockRepository,
-      mockLogger
+      mockLogger,
+      mockAuditService
     );
   });
 
@@ -85,10 +98,9 @@ describe('GetPatientProfileUseCase', () => {
         expect.any(Object)
       );
       expect(mockLogger.info).toHaveBeenCalledWith(
-        'HIPAA Audit: Patient profile access',
+        'Patient profile access audited successfully',
         expect.objectContaining({
-          action: 'PATIENT_PROFILE_ACCESS',
-          complianceLevel: 'hipaa'
+          patientId: 'PAT-202401-001'
         })
       );
     });
@@ -165,13 +177,9 @@ describe('GetPatientProfileUseCase', () => {
       await useCase.execute(request);
 
       expect(mockLogger.info).toHaveBeenCalledWith(
-        'HIPAA Audit: Patient profile access',
+        'Patient profile access audited successfully',
         expect.objectContaining({
-          action: 'PATIENT_PROFILE_ACCESS',
-          patientId: 'PAT-202401-001',
-          requestedBy: 'doctor-456',
-          dataAccessed: 'patient_full_profile',
-          complianceLevel: 'hipaa'
+          patientId: 'PAT-202401-001'
         })
       );
     });

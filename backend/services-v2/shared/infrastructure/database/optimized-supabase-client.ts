@@ -20,7 +20,7 @@ export interface OptimizedSupabaseClientConfig {
 }
 
 export class OptimizedSupabaseClient {
-  private client: SupabaseClient;
+  private client: SupabaseClient<any, any, any>;
   private config: OptimizedSupabaseClientConfig;
   private queryCache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
   private connectionCount = 0;
@@ -36,7 +36,7 @@ export class OptimizedSupabaseClient {
   /**
    * Create optimized Supabase client
    */
-  private createOptimizedClient(): SupabaseClient {
+  private createOptimizedClient(): SupabaseClient<any, any, any> {
     const optimizationConfig = supabaseOptimizationConfig;
 
     return createClient(this.config.supabaseUrl, this.config.supabaseServiceKey, {
@@ -45,7 +45,7 @@ export class OptimizedSupabaseClient {
         persistSession: false,
       },
       db: {
-        schema: this.config.schemaName,
+        schema: this.config.schemaName, // Use service-specific schema
       },
       global: {
         headers: {
@@ -202,7 +202,9 @@ export class OptimizedSupabaseClient {
     // Limit cache size
     if (this.queryCache.size > 1000) {
       const oldestKey = this.queryCache.keys().next().value;
-      this.queryCache.delete(oldestKey);
+      if (oldestKey !== undefined) {
+        this.queryCache.delete(oldestKey);
+      }
     }
 
     this.queryCache.set(cacheKey, {
@@ -235,11 +237,13 @@ export class OptimizedSupabaseClient {
   private async trackUsage(): Promise<void> {
     try {
       await usageTracker.trackUsage();
-      
+
       // Reset query count for next interval
       this.queryCount = 0;
     } catch (error) {
-      logger.error('Usage tracking failed:', error);
+      logger.error('Usage tracking failed:', {
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 

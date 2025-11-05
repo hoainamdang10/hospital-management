@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseUserRepository = void 0;
-const supabase_js_1 = require("@supabase/supabase-js");
 const CircuitBreaker_1 = require("../resilience/CircuitBreaker");
 const error_helper_1 = require("../../utils/error-helper");
 const UserMapper_1 = require("../mappers/UserMapper");
@@ -26,32 +25,17 @@ const UserSession_1 = require("../../domain/entities/UserSession");
  * Returns Domain aggregates, not DTOs
  */
 class SupabaseUserRepository {
-    constructor(supabaseUrl, supabaseKey, logger, cacheService, permissionRepository, eventPublisher) {
+    constructor(supabaseClient, logger, cacheService, permissionRepository, eventPublisher) {
         this.logger = logger;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('user-repository');
+        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker("user-repository");
         // Cache TTL constants (in seconds)
         this.CACHE_TTL = {
             USER_PROFILE: 300, // 5 minutes
             USER_ROLES: 900, // 15 minutes
             USER_PERMISSIONS: 900, // 15 minutes
-            SESSION: 60 // 1 minute
+            SESSION: 60, // 1 minute
         };
-        // Configure Supabase client with auth_schema
-        // Note: TypeScript will infer the correct schema type from createClient options
-        this.supabaseClient = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false,
-            },
-            db: {
-                schema: 'auth_schema', // Use auth_schema for user_profiles
-            },
-            global: {
-                headers: {
-                    'X-Client-Info': 'identity-service',
-                },
-            },
-        }); // Type assertion to bypass schema type mismatch
+        this.supabaseClient = supabaseClient;
         this.cacheService = cacheService;
         this.permissionRepository = permissionRepository;
         this.eventPublisher = eventPublisher;
@@ -67,30 +51,32 @@ class SupabaseUserRepository {
             const cacheKey = `user:${id}`;
             const cached = await this.cacheService.get(cacheKey);
             if (cached) {
-                this.logger.debug('Cache hit for user', { userId: id });
+                this.logger.debug("Cache hit for user", { userId: id });
                 return await this.mapToUserAggregate(cached);
             }
         }
         return await this.circuitBreaker.execute(async () => {
             const { data, error } = await this.supabaseClient
-                .from('user_profiles')
-                .select('*')
-                .eq('id', id)
+                .from("user_profiles")
+                .select("*")
+                .eq("id", id)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     return null; // Not found
                 }
                 throw new Error(`Failed to find user: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             // Cache the database record
             if (this.cacheService && data) {
-                await this.cacheService.set(`user:${id}`, data, { ttl: this.CACHE_TTL.USER_PROFILE });
+                await this.cacheService.set(`user:${id}`, data, {
+                    ttl: this.CACHE_TTL.USER_PROFILE,
+                });
             }
             // Map to Domain aggregate
             return await this.mapToUserAggregate(data);
         }, async () => {
-            this.logger.warn('Using fallback for findById', { userId: id });
+            this.logger.warn("Using fallback for findById", { userId: id });
             return null; // Fallback: return null if database unavailable
         });
     }
@@ -105,31 +91,37 @@ class SupabaseUserRepository {
             const cacheKey = `user:email:${emailValue}`;
             const cached = await this.cacheService.get(cacheKey);
             if (cached) {
-                this.logger.debug('Cache hit for user by email', { email: emailValue });
+                this.logger.debug("Cache hit for user by email", { email: emailValue });
                 return await this.mapToUserAggregate(cached);
             }
         }
         return await this.circuitBreaker.execute(async () => {
             const { data, error } = await this.supabaseClient
-                .from('user_profiles')
-                .select('*')
-                .eq('email', emailValue)
+                .from("user_profiles")
+                .select("*")
+                .eq("email", emailValue)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     return null; // Not found
                 }
                 throw new Error(`Failed to find user by email: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             // Cache the database record
             if (this.cacheService && data) {
-                await this.cacheService.set(`user:email:${emailValue}`, data, { ttl: this.CACHE_TTL.USER_PROFILE });
-                await this.cacheService.set(`user:${data.id}`, data, { ttl: this.CACHE_TTL.USER_PROFILE });
+                await this.cacheService.set(`user:email:${emailValue}`, data, {
+                    ttl: this.CACHE_TTL.USER_PROFILE,
+                });
+                await this.cacheService.set(`user:${data.id}`, data, {
+                    ttl: this.CACHE_TTL.USER_PROFILE,
+                });
             }
             // Map to Domain aggregate
             return await this.mapToUserAggregate(data);
         }, async () => {
-            this.logger.warn('Using fallback for findByEmail', { email: emailValue });
+            this.logger.warn("Using fallback for findByEmail", {
+                email: emailValue,
+            });
             return null;
         });
     }
@@ -145,16 +137,16 @@ class SupabaseUserRepository {
                 full_name: userData.fullName,
                 role_type: userData.roleType,
                 citizen_id: userData.citizenId,
-                date_of_birth: userData.dateOfBirth?.toISOString().split('T')[0],
+                date_of_birth: userData.dateOfBirth?.toISOString().split("T")[0],
                 gender: userData.gender,
                 phone_number: userData.phoneNumber,
                 is_active: true,
                 is_verified: false,
                 created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
             };
             const { data, error } = await this.supabaseClient
-                .from('user_profiles')
+                .from("user_profiles")
                 .insert(userRecord)
                 .select()
                 .single();
@@ -162,9 +154,9 @@ class SupabaseUserRepository {
                 throw new Error(`Failed to create user: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             // Log user creation for audit
-            await this.logAuditEvent('USER_CREATED', data.id, {
+            await this.logAuditEvent("USER_CREATED", data.id, {
                 email: userData.email,
-                roleType: userData.roleType
+                roleType: userData.roleType,
             });
             return await this.mapToUserAggregate(data);
         });
@@ -179,7 +171,9 @@ class SupabaseUserRepository {
      */
     async createAuthUser(userData) {
         return await this.circuitBreaker.execute(async () => {
-            this.logger.info('Creating auth user with profile', { email: userData.email });
+            this.logger.info("Creating auth user with profile", {
+                email: userData.email,
+            });
             // Step 1: Create auth user via Admin API
             const { data: authUser, error: authError } = await this.supabaseClient.auth.admin.createUser({
                 email: userData.email,
@@ -192,21 +186,21 @@ class SupabaseUserRepository {
                     // This prevents metadata/database sync issues
                     phone_number: userData.phoneNumber,
                     citizen_id: userData.citizenId,
-                    date_of_birth: userData.dateOfBirth?.toISOString().split('T')[0],
+                    date_of_birth: userData.dateOfBirth?.toISOString().split("T")[0],
                     gender: userData.gender,
-                    address: userData.address
-                }
+                    address: userData.address,
+                },
             });
             if (authError || !authUser.user) {
-                this.logger.error('Failed to create auth user', {
+                this.logger.error("Failed to create auth user", {
                     email: userData.email,
-                    error: (0, error_helper_1.getErrorMessage)(authError)
+                    error: (0, error_helper_1.getErrorMessage)(authError),
                 });
                 throw new Error(`Failed to create auth user: ${(0, error_helper_1.getErrorMessage)(authError)}`);
             }
-            this.logger.debug('Auth user created', {
+            this.logger.debug("Auth user created", {
                 userId: authUser.user.id,
-                email: userData.email
+                email: userData.email,
             });
             // Step 2: Create user profile explicitly (no trigger dependency)
             const profileRecord = {
@@ -215,40 +209,40 @@ class SupabaseUserRepository {
                 full_name: userData.fullName,
                 role_type: userData.roleType,
                 citizen_id: userData.citizenId,
-                date_of_birth: userData.dateOfBirth?.toISOString().split('T')[0],
+                date_of_birth: userData.dateOfBirth?.toISOString().split("T")[0],
                 gender: userData.gender,
                 phone_number: userData.phoneNumber,
                 address: userData.address,
                 is_active: true,
                 is_verified: userData.emailConfirm ?? true,
-                subscription_tier: 'free',
+                subscription_tier: "free",
                 created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
             };
             let profile = null;
             let profileError = null;
             // Try to insert profile
             const insertResult = await this.supabaseClient
-                .from('user_profiles')
+                .from("user_profiles")
                 .insert(profileRecord)
                 .select()
                 .single();
             profile = insertResult.data;
             profileError = insertResult.error;
             // Handle duplicate key error (orphaned profile from previous failed operation)
-            if (profileError && profileError.code === '23505') {
-                this.logger.warn('Found orphaned profile, cleaning up and retrying', {
+            if (profileError && profileError.code === "23505") {
+                this.logger.warn("Found orphaned profile, cleaning up and retrying", {
                     userId: authUser.user.id,
-                    email: userData.email
+                    email: userData.email,
                 });
                 // Delete orphaned profile
                 await this.supabaseClient
-                    .from('user_profiles')
+                    .from("user_profiles")
                     .delete()
-                    .eq('id', authUser.user.id);
+                    .eq("id", authUser.user.id);
                 // Retry insert
                 const retryResult = await this.supabaseClient
-                    .from('user_profiles')
+                    .from("user_profiles")
                     .insert(profileRecord)
                     .select()
                     .single();
@@ -258,17 +252,17 @@ class SupabaseUserRepository {
             // Check final result
             if (profileError || !profile) {
                 // Rollback: Delete auth user if profile creation fails
-                this.logger.error('Failed to create user profile, rolling back auth user', {
+                this.logger.error("Failed to create user profile, rolling back auth user", {
                     userId: authUser.user.id,
-                    error: (0, error_helper_1.getErrorMessage)(profileError)
+                    error: (0, error_helper_1.getErrorMessage)(profileError),
                 });
                 await this.supabaseClient.auth.admin.deleteUser(authUser.user.id);
                 throw new Error(`Failed to create user profile: ${(0, error_helper_1.getErrorMessage)(profileError)}`);
             }
-            this.logger.info('User profile created successfully', {
+            this.logger.info("User profile created successfully", {
                 userId: profile.id,
                 email: profile.email,
-                role: profile.role_type
+                role: profile.role_type,
             });
             // Step 3: Assign role in Pure RBAC (user_roles table)
             // CRITICAL: This must succeed for Pure RBAC to work correctly
@@ -279,48 +273,62 @@ class SupabaseUserRepository {
                     validRoles = await this.permissionRepository.getAllRoles();
                 }
                 catch (error) {
-                    this.logger.error('Failed to get valid roles from database, using fallback', error instanceof Error ? error : new Error(String(error)));
+                    this.logger.error("Failed to get valid roles from database, using fallback", error instanceof Error ? error : new Error(String(error)));
                     // Fallback to hardcoded roles if database query fails
-                    validRoles = ['admin', 'doctor', 'nurse', 'patient', 'receptionist', 'pharmacist', 'lab_technician', 'billing_staff'];
+                    validRoles = [
+                        "admin",
+                        "doctor",
+                        "nurse",
+                        "patient",
+                        "receptionist",
+                        "pharmacist",
+                        "lab_technician",
+                        "billing_staff",
+                    ];
                 }
                 if (!validRoles.includes(userData.roleType.toLowerCase())) {
                     // Rollback: Delete auth user and profile
-                    this.logger.error('Invalid role type, rolling back user creation', {
+                    this.logger.error("Invalid role type, rolling back user creation", {
                         userId: profile.id,
                         roleType: userData.roleType,
-                        validRoles
+                        validRoles,
                     });
                     await this.supabaseClient.auth.admin.deleteUser(profile.id);
-                    await this.supabaseClient.from('user_profiles').delete().eq('id', profile.id);
-                    throw new Error(`Invalid role type: ${userData.roleType}. Valid roles: ${validRoles.join(', ')}`);
+                    await this.supabaseClient
+                        .from("user_profiles")
+                        .delete()
+                        .eq("id", profile.id);
+                    throw new Error(`Invalid role type: ${userData.roleType}. Valid roles: ${validRoles.join(", ")}`);
                 }
                 try {
                     const userId = UserId_1.UserId.fromString(profile.id);
-                    await this.permissionRepository.assignRole(userId, userData.roleType, 'system' // assigned_by
-                    );
-                    this.logger.info('Role assigned in Pure RBAC', {
+                    await this.permissionRepository.assignRole(userId, userData.roleType, "system");
+                    this.logger.info("Role assigned in Pure RBAC", {
                         userId: profile.id,
-                        role: userData.roleType
+                        role: userData.roleType,
                     });
                 }
                 catch (error) {
                     // CRITICAL ERROR: Rollback user creation
-                    this.logger.error('Failed to assign role in Pure RBAC, rolling back user creation', {
+                    this.logger.error("Failed to assign role in Pure RBAC, rolling back user creation", {
                         userId: profile.id,
                         role: userData.roleType,
-                        error: (0, error_helper_1.getErrorMessage)(error)
+                        error: (0, error_helper_1.getErrorMessage)(error),
                     });
                     // Rollback: Delete auth user and profile
                     await this.supabaseClient.auth.admin.deleteUser(profile.id);
-                    await this.supabaseClient.from('user_profiles').delete().eq('id', profile.id);
+                    await this.supabaseClient
+                        .from("user_profiles")
+                        .delete()
+                        .eq("id", profile.id);
                     throw new Error(`Failed to assign role: ${(0, error_helper_1.getErrorMessage)(error)}`);
                 }
             }
             // Step 4: Log audit event
-            await this.logAuditEvent('USER_CREATED', profile.id, {
+            await this.logAuditEvent("USER_CREATED", profile.id, {
                 email: userData.email,
                 roleType: userData.roleType,
-                method: 'createAuthUser'
+                method: "createAuthUser",
             });
             // Step 5: Invalidate cache (user + roles)
             if (this.cacheService) {
@@ -348,17 +356,17 @@ class SupabaseUserRepository {
                 }
             }
             const { error } = await this.supabaseClient
-                .from('user_profiles')
+                .from("user_profiles")
                 .update(updateRecord)
-                .eq('id', id)
+                .eq("id", id)
                 .select()
                 .single();
             if (error) {
                 throw new Error(`Failed to update user: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             // Log user update for audit
-            await this.logAuditEvent('USER_UPDATED', id, {
-                updatedFields: Object.keys(updateRecord)
+            await this.logAuditEvent("USER_UPDATED", id, {
+                updatedFields: Object.keys(updateRecord),
             });
             // Invalidate cache after update
             await this.invalidateUserCache(id, user.email.value);
@@ -373,17 +381,19 @@ class SupabaseUserRepository {
         try {
             // Update auth.users table directly using admin API
             const { error } = await this.supabaseClient.auth.admin.updateUserById(id, {
-                email_confirm: true
+                email_confirm: true,
             });
             if (error) {
                 throw new Error(`Failed to update auth email confirmed: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
-            this.logger.info('Supabase Auth email_confirmed_at updated', { userId: id });
+            this.logger.info("Supabase Auth email_confirmed_at updated", {
+                userId: id,
+            });
         }
         catch (error) {
-            this.logger.error('Failed to update Supabase Auth email_confirmed_at', {
+            this.logger.error("Failed to update Supabase Auth email_confirmed_at", {
                 userId: id,
-                error: (0, error_helper_1.getErrorMessage)(error)
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }
@@ -395,8 +405,8 @@ class SupabaseUserRepository {
         const record = UserMapper_1.UserMapper.toPersistence(user);
         // Upsert by id into auth_schema.user_profiles
         const { error } = await this.supabaseClient
-            .from('user_profiles')
-            .upsert(record, { onConflict: 'id' });
+            .from("user_profiles")
+            .upsert(record, { onConflict: "id" });
         if (error) {
             throw new Error(`Failed to save user: ${(0, error_helper_1.getErrorMessage)(error)}`);
         }
@@ -410,7 +420,7 @@ class SupabaseUserRepository {
      */
     async publishDomainEvents(user) {
         if (!this.eventPublisher) {
-            this.logger.debug('Event publisher not configured, skipping event publishing');
+            this.logger.debug("Event publisher not configured, skipping event publishing");
             return;
         }
         const events = user.getUncommittedEvents();
@@ -422,17 +432,17 @@ class SupabaseUserRepository {
             await this.eventPublisher.publishDomainEvents(events);
             // Mark events as committed after successful publishing
             user.markEventsAsCommitted();
-            this.logger.info('Domain events published', {
+            this.logger.info("Domain events published", {
                 userId: user.id,
                 eventCount: events.length,
-                eventTypes: events.map((event) => event.eventType)
+                eventTypes: events.map((event) => event.eventType),
             });
         }
         catch (error) {
-            this.logger.error('Failed to publish domain events', {
+            this.logger.error("Failed to publish domain events", {
                 userId: user.id,
-                error: error instanceof Error ? error.message : 'Unknown error',
-                eventCount: events.length
+                error: error instanceof Error ? error.message : "Unknown error",
+                eventCount: events.length,
             });
             // Don't throw - event publishing failure shouldn't fail the transaction
             // Events will be retried on next save or can be published via outbox pattern
@@ -444,9 +454,9 @@ class SupabaseUserRepository {
     async delete(userId) {
         const id = userId.value;
         const { error } = await this.supabaseClient
-            .from('user_profiles')
+            .from("user_profiles")
             .update({ is_active: false, updated_at: new Date().toISOString() })
-            .eq('id', id);
+            .eq("id", id);
         if (error) {
             throw new Error(`Failed to delete user: ${(0, error_helper_1.getErrorMessage)(error)}`);
         }
@@ -458,12 +468,12 @@ class SupabaseUserRepository {
     async exists(userId) {
         const id = userId.value;
         const { data, error } = await this.supabaseClient
-            .from('user_profiles')
-            .select('id')
-            .eq('id', id)
+            .from("user_profiles")
+            .select("id")
+            .eq("id", id)
             .limit(1)
             .maybeSingle();
-        if (error && error.code !== 'PGRST116') {
+        if (error && error.code !== "PGRST116") {
             throw new Error(`Failed to check user existence: ${(0, error_helper_1.getErrorMessage)(error)}`);
         }
         return !!data;
@@ -483,10 +493,10 @@ class SupabaseUserRepository {
                 expires_at: session.expiresAt.toISOString(),
                 is_active: session.isActive,
                 created_at: new Date().toISOString(),
-                last_accessed_at: new Date().toISOString()
+                last_accessed_at: new Date().toISOString(),
             };
             const { data, error } = await this.supabaseClient
-                .from('user_sessions')
+                .from("user_sessions")
                 .insert(sessionRecord)
                 .select()
                 .single();
@@ -494,10 +504,10 @@ class SupabaseUserRepository {
                 throw new Error(`Failed to create session: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             // Log session creation for security audit
-            await this.logAuditEvent('SESSION_CREATED', session.userId, {
+            await this.logAuditEvent("SESSION_CREATED", session.userId, {
                 sessionId: data.id,
                 ipAddress: session.ipAddress,
-                userAgent: session.userAgent
+                userAgent: session.userAgent,
             });
         });
     }
@@ -507,21 +517,21 @@ class SupabaseUserRepository {
     async findSessionByToken(token) {
         return await this.circuitBreaker.execute(async () => {
             const { data, error } = await this.supabaseClient
-                .from('user_sessions')
-                .select('*')
-                .eq('session_token', token)
-                .eq('is_active', true)
-                .gt('expires_at', new Date().toISOString())
+                .from("user_sessions")
+                .select("*")
+                .eq("session_token", token)
+                .eq("is_active", true)
+                .gt("expires_at", new Date().toISOString())
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     return null; // Not found
                 }
                 throw new Error(`Failed to find session: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             return this.mapToSessionEntity(data);
         }, async () => {
-            this.logger.warn('Using fallback for findSessionByToken');
+            this.logger.warn("Using fallback for findSessionByToken");
             return null;
         });
     }
@@ -531,14 +541,14 @@ class SupabaseUserRepository {
     async invalidateSession(sessionId, sessionToken, userId) {
         return await this.circuitBreaker.execute(async () => {
             let query = this.supabaseClient
-                .from('user_sessions')
+                .from("user_sessions")
                 .update({
                 is_active: false,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
             })
-                .eq('id', sessionId);
+                .eq("id", sessionId);
             if (userId) {
-                query = query.eq('user_id', userId);
+                query = query.eq("user_id", userId);
             }
             const { error } = await query;
             if (error) {
@@ -549,8 +559,8 @@ class SupabaseUserRepository {
                 await this.invalidateSessionCache(sessionToken);
             }
             // Log session invalidation for security audit
-            await this.logAuditEvent('SESSION_INVALIDATED', null, {
-                sessionId
+            await this.logAuditEvent("SESSION_INVALIDATED", null, {
+                sessionId,
             });
         });
     }
@@ -572,16 +582,16 @@ class SupabaseUserRepository {
             const cacheKey = `roles:${id}`;
             const cached = await this.cacheService.get(cacheKey);
             if (cached) {
-                this.logger.debug('Cache hit for user roles', { userId: id });
+                this.logger.debug("Cache hit for user roles", { userId: id });
                 return cached;
             }
         }
         return await this.circuitBreaker.execute(async () => {
             // Query user_roles table (Pure RBAC)
             const { data, error } = await this.supabaseClient
-                .from('user_roles')
-                .select('role_name')
-                .eq('user_id', id);
+                .from("user_roles")
+                .select("role_name")
+                .eq("user_id", id);
             if (error) {
                 throw new Error(`Failed to get user roles: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
@@ -589,11 +599,13 @@ class SupabaseUserRepository {
             const roles = data?.map((row) => row.role_name) || [];
             // Cache the result
             if (this.cacheService) {
-                await this.cacheService.set(`roles:${id}`, roles, { ttl: this.CACHE_TTL.USER_ROLES });
+                await this.cacheService.set(`roles:${id}`, roles, {
+                    ttl: this.CACHE_TTL.USER_ROLES,
+                });
             }
             return roles;
         }, async () => {
-            this.logger.warn('Using fallback for getUserRoles', { userId: id });
+            this.logger.warn("Using fallback for getUserRoles", { userId: id });
             return []; // Return empty array for non-existent user
         });
     }
@@ -605,22 +617,20 @@ class SupabaseUserRepository {
             const auditRecord = {
                 actor_id: userId,
                 action,
-                resource_type: 'user',
+                resource_type: "user",
                 resource_id: userId,
                 details,
-                severity: 'info',
+                severity: "info",
                 success: true,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
             };
-            await this.supabaseClient
-                .from('audit_logs')
-                .insert(auditRecord);
+            await this.supabaseClient.from("audit_logs").insert(auditRecord);
         }
         catch (error) {
-            this.logger.error('Failed to log audit event', {
+            this.logger.error("Failed to log audit event", {
                 action,
                 userId,
-                error: (0, error_helper_1.getErrorMessage)(error)
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
         }
     }
@@ -639,9 +649,9 @@ class SupabaseUserRepository {
                 roleTypes = await this.permissionRepository.getUserRoles(userId);
             }
             catch (error) {
-                this.logger.warn('Failed to load user roles from Pure RBAC, falling back to role_type', {
+                this.logger.warn("Failed to load user roles from Pure RBAC, falling back to role_type", {
                     userId: data.id,
-                    error: (0, error_helper_1.getErrorMessage)(error)
+                    error: (0, error_helper_1.getErrorMessage)(error),
                 });
                 // Fallback to legacy role_type if Pure RBAC fails
                 if (data.role_type) {
@@ -672,7 +682,7 @@ class SupabaseUserRepository {
             expiresAt: new Date(data.expires_at),
             isActive: data.is_active,
             createdAt: new Date(data.created_at),
-            lastAccessedAt: new Date(data.last_accessed_at)
+            lastAccessedAt: new Date(data.last_accessed_at),
         });
     }
     /**
@@ -683,32 +693,35 @@ class SupabaseUserRepository {
         try {
             // Disable MFA in two_factor_auth table
             const { error: mfaError } = await this.supabaseClient
-                .from('two_factor_auth')
+                .from("two_factor_auth")
                 .update({
                 is_enabled: false,
                 secret_key: null,
                 backup_codes: null,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
             })
-                .eq('user_id', id);
+                .eq("user_id", id);
             if (mfaError) {
                 throw new Error(`Failed to disable MFA: ${(0, error_helper_1.getErrorMessage)(mfaError)}`);
             }
             // Update user profile
             const { error: profileError } = await this.supabaseClient
-                .from('user_profiles')
+                .from("user_profiles")
                 .update({
                 two_factor_enabled: false,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
             })
-                .eq('id', id);
+                .eq("id", id);
             if (profileError) {
                 throw new Error(`Failed to update user profile: ${(0, error_helper_1.getErrorMessage)(profileError)}`);
             }
-            this.logger.info('MFA disabled successfully', { userId: id });
+            this.logger.info("MFA disabled successfully", { userId: id });
         }
         catch (error) {
-            this.logger.error('Failed to disable MFA', { userId: id, error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Failed to disable MFA", {
+                userId: id,
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
             throw error;
         }
     }
@@ -722,14 +735,17 @@ class SupabaseUserRepository {
             const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
             // Get recent failed login attempts (last 30 minutes)
             const { data: attempts, error } = await this.supabaseClient
-                .from('login_attempts')
-                .select('*')
-                .eq('email', emailValue)
-                .eq('success', false) // Fixed: Use 'success' to match migration schema
-                .gte('attempted_at', thirtyMinutesAgo.toISOString()) // Fixed: Use 'attempted_at' to match migration schema
-                .order('attempted_at', { ascending: false });
+                .from("login_attempts")
+                .select("*")
+                .eq("email", emailValue)
+                .eq("success", false) // Fixed: Use 'success' to match migration schema
+                .gte("attempted_at", thirtyMinutesAgo.toISOString()) // Fixed: Use 'attempted_at' to match migration schema
+                .order("attempted_at", { ascending: false });
             if (error) {
-                this.logger.error('Failed to check account lockout', { email: emailValue, error: (0, error_helper_1.getErrorMessage)(error) });
+                this.logger.error("Failed to check account lockout", {
+                    email: emailValue,
+                    error: (0, error_helper_1.getErrorMessage)(error),
+                });
                 return { isLocked: false, failedAttempts: 0 };
             }
             const failedAttempts = attempts?.length || 0;
@@ -739,14 +755,21 @@ class SupabaseUserRepository {
                 const unlockAt = new Date(new Date(firstFailedAttempt.attempted_at).getTime() + 30 * 60 * 1000); // Fixed: Use 'attempted_at'
                 // Check if still locked
                 if (new Date() < unlockAt) {
-                    this.logger.warn('Account is locked', { email: emailValue, failedAttempts, unlockAt });
+                    this.logger.warn("Account is locked", {
+                        email: emailValue,
+                        failedAttempts,
+                        unlockAt,
+                    });
                     return { isLocked: true, unlockAt, failedAttempts };
                 }
             }
             return { isLocked: false, failedAttempts };
         }
         catch (error) {
-            this.logger.error('Error checking account lockout', { email: email.value, error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Error checking account lockout", {
+                email: email.value,
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
             return { isLocked: false, failedAttempts: 0 };
         }
     }
@@ -762,13 +785,16 @@ class SupabaseUserRepository {
                 ip_address: ipAddress,
                 user_agent: userAgent,
                 failure_reason: errorMessage, // Fixed: Use 'failure_reason' to match migration schema
-                attempted_at: new Date().toISOString() // Fixed: Use 'attempted_at' to match migration schema
+                attempted_at: new Date().toISOString(), // Fixed: Use 'attempted_at' to match migration schema
             };
             const { error } = await this.supabaseClient
-                .from('login_attempts')
+                .from("login_attempts")
                 .insert(attemptRecord);
             if (error) {
-                this.logger.error('Failed to record login attempt', { email: emailValue, error: (0, error_helper_1.getErrorMessage)(error) });
+                this.logger.error("Failed to record login attempt", {
+                    email: emailValue,
+                    error: (0, error_helper_1.getErrorMessage)(error),
+                });
             }
             // If successful, clear old failed attempts
             if (isSuccessful) {
@@ -776,7 +802,10 @@ class SupabaseUserRepository {
             }
         }
         catch (error) {
-            this.logger.error('Error recording login attempt', { email: email.value, error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Error recording login attempt", {
+                email: email.value,
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
         }
     }
     /**
@@ -785,16 +814,22 @@ class SupabaseUserRepository {
     async clearFailedLoginAttempts(email) {
         try {
             const { error } = await this.supabaseClient
-                .from('login_attempts')
+                .from("login_attempts")
                 .delete()
-                .eq('email', email)
-                .eq('success', false); // Fixed: Use 'success' to match migration schema
+                .eq("email", email)
+                .eq("success", false); // Fixed: Use 'success' to match migration schema
             if (error) {
-                this.logger.error('Failed to clear failed login attempts', { email, error: (0, error_helper_1.getErrorMessage)(error) });
+                this.logger.error("Failed to clear failed login attempts", {
+                    email,
+                    error: (0, error_helper_1.getErrorMessage)(error),
+                });
             }
         }
         catch (error) {
-            this.logger.error('Error clearing failed login attempts', { email, error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Error clearing failed login attempts", {
+                email,
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
         }
     }
     /**
@@ -805,22 +840,28 @@ class SupabaseUserRepository {
             const emailValue = email.value;
             // Delete all failed login attempts
             const { error } = await this.supabaseClient
-                .from('login_attempts')
+                .from("login_attempts")
                 .delete()
-                .eq('email', emailValue)
-                .eq('success', false); // Fixed: Use 'success' to match migration schema
+                .eq("email", emailValue)
+                .eq("success", false); // Fixed: Use 'success' to match migration schema
             if (error) {
                 throw new Error(`Failed to unlock account: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
             // Log audit event
-            await this.logAuditEvent('account_unlocked', adminUserId, {
+            await this.logAuditEvent("account_unlocked", adminUserId, {
                 target_email: emailValue,
-                action: 'manual_unlock'
+                action: "manual_unlock",
             });
-            this.logger.info('Account unlocked successfully', { email: emailValue, adminUserId });
+            this.logger.info("Account unlocked successfully", {
+                email: emailValue,
+                adminUserId,
+            });
         }
         catch (error) {
-            this.logger.error('Failed to unlock account', { email: email.value, error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Failed to unlock account", {
+                email: email.value,
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
             throw error;
         }
     }
@@ -842,10 +883,13 @@ class SupabaseUserRepository {
             await this.cacheService.delete(`roles:${userId}`);
             // Delete permissions cache
             await this.cacheService.delete(`permissions:${userId}`);
-            this.logger.debug('User cache invalidated', { userId });
+            this.logger.debug("User cache invalidated", { userId });
         }
         catch (error) {
-            this.logger.error('Failed to invalidate user cache', { userId, error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Failed to invalidate user cache", {
+                userId,
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
         }
     }
     /**
@@ -857,10 +901,14 @@ class SupabaseUserRepository {
         }
         try {
             await this.cacheService.delete(`session:${sessionToken}`);
-            this.logger.debug('Session cache invalidated', { sessionToken: sessionToken.substring(0, 10) + '...' });
+            this.logger.debug("Session cache invalidated", {
+                sessionToken: sessionToken.substring(0, 10) + "...",
+            });
         }
         catch (error) {
-            this.logger.error('Failed to invalidate session cache', { error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Failed to invalidate session cache", {
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
         }
     }
     /**
@@ -872,10 +920,12 @@ class SupabaseUserRepository {
         }
         try {
             const deletedCount = await this.cacheService.clear();
-            this.logger.info('All cache cleared', { deletedCount });
+            this.logger.info("All cache cleared", { deletedCount });
         }
         catch (error) {
-            this.logger.error('Failed to clear all cache', { error: (0, error_helper_1.getErrorMessage)(error) });
+            this.logger.error("Failed to clear all cache", {
+                error: (0, error_helper_1.getErrorMessage)(error),
+            });
         }
     }
     /**
@@ -902,8 +952,8 @@ class SupabaseUserRepository {
     async getUserPermissions(userId) {
         // NOTE: This method should be removed once all code is migrated to use IPermissionRepository
         // For now, we return empty array and log a warning
-        this.logger.warn('getUserPermissions() called on UserRepository. Use IPermissionRepository instead.', {
-            userId: userId.value
+        this.logger.warn("getUserPermissions() called on UserRepository. Use IPermissionRepository instead.", {
+            userId: userId.value,
         });
         return [];
     }
@@ -912,24 +962,24 @@ class SupabaseUserRepository {
      */
     async getActiveSessions(userId) {
         const { data, error } = await this.supabaseClient
-            .from('user_sessions')
-            .select('*')
-            .eq('user_id', userId.value)
-            .eq('is_active', true)
-            .gt('expires_at', new Date().toISOString());
+            .from("user_sessions")
+            .select("*")
+            .eq("user_id", userId.value)
+            .eq("is_active", true)
+            .gt("expires_at", new Date().toISOString());
         if (error) {
             throw new Error(`Failed to get active sessions: ${(0, error_helper_1.getErrorMessage)(error)}`);
         }
-        return data.map(record => this.mapToSessionEntity(record));
+        return data.map((record) => this.mapToSessionEntity(record));
     }
     /**
      * Get healthcare role by type
      */
     async getHealthcareRoleByType(roleType) {
         const { data, error } = await this.supabaseClient
-            .from('healthcare_roles')
-            .select('*')
-            .eq('role_name', roleType)
+            .from("healthcare_roles")
+            .select("*")
+            .eq("role_name", roleType)
             .single();
         if (error) {
             return null;
@@ -940,24 +990,22 @@ class SupabaseUserRepository {
      * List all users with pagination
      */
     async list(options) {
-        let query = this.supabaseClient
-            .from('user_profiles')
-            .select('*');
+        let query = this.supabaseClient.from("user_profiles").select("*");
         if (options?.filters) {
             // Handle search_term separately with ilike
             const { search_term, ...otherFilters } = options.filters;
             // SECURITY: Whitelist allowed filter keys to prevent unauthorized column access
             const allowedFilterKeys = [
-                'role_type',
-                'is_active',
-                'is_verified',
-                'gender',
-                'id'
+                "role_type",
+                "is_active",
+                "is_verified",
+                "gender",
+                "id",
             ];
             // Apply exact match filters with validation
             Object.entries(otherFilters).forEach(([key, value]) => {
                 if (!allowedFilterKeys.includes(key)) {
-                    throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(', ')}`);
+                    throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(", ")}`);
                 }
                 query = query.eq(key, value);
             });
@@ -966,9 +1014,9 @@ class SupabaseUserRepository {
             if (search_term) {
                 // Escape special characters: \, %, _
                 const escapedTerm = String(search_term)
-                    .replace(/\\/g, '\\\\') // Escape backslash first
-                    .replace(/%/g, '\\%') // Escape % wildcard
-                    .replace(/_/g, '\\_'); // Escape _ wildcard
+                    .replace(/\\/g, "\\\\") // Escape backslash first
+                    .replace(/%/g, "\\%") // Escape % wildcard
+                    .replace(/_/g, "\\_"); // Escape _ wildcard
                 query = query.or(`full_name.ilike.%${escapedTerm}%,email.ilike.%${escapedTerm}%`);
             }
         }
@@ -982,30 +1030,30 @@ class SupabaseUserRepository {
         if (error) {
             throw new Error(`Failed to list users: ${(0, error_helper_1.getErrorMessage)(error)}`);
         }
-        return await Promise.all(data.map(record => this.mapToUserAggregate(record)));
+        return await Promise.all(data.map((record) => this.mapToUserAggregate(record)));
     }
     /**
      * Count total users
      */
     async count(filters) {
         let query = this.supabaseClient
-            .from('user_profiles')
-            .select('*', { count: 'exact', head: true });
+            .from("user_profiles")
+            .select("*", { count: "exact", head: true });
         if (filters) {
             // Handle search_term separately with ilike
             const { search_term, ...otherFilters } = filters;
             // SECURITY: Whitelist allowed filter keys to prevent unauthorized column access
             const allowedFilterKeys = [
-                'role_type',
-                'is_active',
-                'is_verified',
-                'gender',
-                'id'
+                "role_type",
+                "is_active",
+                "is_verified",
+                "gender",
+                "id",
             ];
             // Apply exact match filters with validation
             Object.entries(otherFilters).forEach(([key, value]) => {
                 if (!allowedFilterKeys.includes(key)) {
-                    throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(', ')}`);
+                    throw new Error(`Invalid filter key: ${key}. Allowed keys: ${allowedFilterKeys.join(", ")}`);
                 }
                 query = query.eq(key, value);
             });
@@ -1014,9 +1062,9 @@ class SupabaseUserRepository {
             if (search_term) {
                 // Escape special characters: \, %, _
                 const escapedTerm = String(search_term)
-                    .replace(/\\/g, '\\\\') // Escape backslash first
-                    .replace(/%/g, '\\%') // Escape % wildcard
-                    .replace(/_/g, '\\_'); // Escape _ wildcard
+                    .replace(/\\/g, "\\\\") // Escape backslash first
+                    .replace(/%/g, "\\%") // Escape % wildcard
+                    .replace(/_/g, "\\_"); // Escape _ wildcard
                 query = query.or(`full_name.ilike.%${escapedTerm}%,email.ilike.%${escapedTerm}%`);
             }
         }
@@ -1032,27 +1080,27 @@ class SupabaseUserRepository {
     async storeStaffInvitation(data) {
         try {
             const { error } = await this.supabaseClient
-                .from('staff_invitations')
+                .from("staff_invitations")
                 .insert({
                 email: data.email,
                 role: data.role,
                 invited_by: data.invitedBy,
                 invitation_token: data.invitationToken,
                 expires_at: data.expiresAt.toISOString(),
-                status: 'PENDING',
-                invitation_data: data.invitationData || {}
+                status: "PENDING",
+                invitation_data: data.invitationData || {},
             });
             if (error) {
                 throw new Error(`Failed to store staff invitation: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
-            this.logger.info('Staff invitation stored', {
+            this.logger.info("Staff invitation stored", {
                 email: data.email,
-                role: data.role
+                role: data.role,
             });
         }
         catch (error) {
-            this.logger.error('Error storing staff invitation', {
-                error: (0, error_helper_1.getErrorMessage)(error)
+            this.logger.error("Error storing staff invitation", {
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }
@@ -1063,10 +1111,10 @@ class SupabaseUserRepository {
     async verifyStaffInvitation(token) {
         try {
             const { data, error } = await this.supabaseClient
-                .from('staff_invitations')
-                .select('*')
-                .eq('invitation_token', token)
-                .eq('status', 'PENDING')
+                .from("staff_invitations")
+                .select("*")
+                .eq("invitation_token", token)
+                .eq("status", "PENDING")
                 .single();
             if (error || !data) {
                 return { isValid: false };
@@ -1074,9 +1122,9 @@ class SupabaseUserRepository {
             // Check if token is expired
             const expiresAt = new Date(data.expires_at);
             if (expiresAt < new Date()) {
-                this.logger.warn('Staff invitation token expired', {
+                this.logger.warn("Staff invitation token expired", {
                     email: data.email,
-                    expiresAt
+                    expiresAt,
                 });
                 return { isValid: false };
             }
@@ -1084,12 +1132,12 @@ class SupabaseUserRepository {
                 isValid: true,
                 email: data.email,
                 role: data.role,
-                invitationData: data.invitation_data
+                invitationData: data.invitation_data,
             };
         }
         catch (error) {
-            this.logger.error('Error verifying staff invitation', {
-                error: (0, error_helper_1.getErrorMessage)(error)
+            this.logger.error("Error verifying staff invitation", {
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             return { isValid: false };
         }
@@ -1100,25 +1148,25 @@ class SupabaseUserRepository {
     async markInvitationAsUsed(token, userId) {
         try {
             const { error } = await this.supabaseClient
-                .from('staff_invitations')
+                .from("staff_invitations")
                 .update({
-                status: 'ACCEPTED',
+                status: "ACCEPTED",
                 accepted_at: new Date().toISOString(),
-                accepted_by_user_id: userId
+                accepted_by_user_id: userId,
             })
-                .eq('invitation_token', token)
-                .eq('status', 'PENDING');
+                .eq("invitation_token", token)
+                .eq("status", "PENDING");
             if (error) {
                 throw new Error(`Failed to mark invitation as used: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
-            this.logger.info('Staff invitation marked as used', {
-                token: token.substring(0, 10) + '...',
-                userId
+            this.logger.info("Staff invitation marked as used", {
+                token: token.substring(0, 10) + "...",
+                userId,
             });
         }
         catch (error) {
-            this.logger.error('Error marking invitation as used', {
-                error: (0, error_helper_1.getErrorMessage)(error)
+            this.logger.error("Error marking invitation as used", {
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }
@@ -1132,21 +1180,21 @@ class SupabaseUserRepository {
             const offset = options?.offset || 0;
             // Build query
             let query = this.supabaseClient
-                .from('staff_invitations')
-                .select('*', { count: 'exact' });
+                .from("staff_invitations")
+                .select("*", { count: "exact" });
             // Apply filters
             if (options?.status) {
-                query = query.eq('status', options.status);
+                query = query.eq("status", options.status);
             }
             if (options?.role) {
-                query = query.eq('role', options.role);
+                query = query.eq("role", options.role);
             }
             if (options?.email) {
-                query = query.ilike('email', `%${options.email}%`);
+                query = query.ilike("email", `%${options.email}%`);
             }
             // Apply pagination and ordering
             query = query
-                .order('created_at', { ascending: false })
+                .order("created_at", { ascending: false })
                 .range(offset, offset + limit - 1);
             const { data, error, count } = await query;
             if (error) {
@@ -1164,16 +1212,16 @@ class SupabaseUserRepository {
                 status: row.status,
                 invitationData: row.invitation_data || {},
                 createdAt: new Date(row.created_at),
-                updatedAt: new Date(row.updated_at)
+                updatedAt: new Date(row.updated_at),
             }));
             return {
                 invitations,
-                total: count || 0
+                total: count || 0,
             };
         }
         catch (error) {
-            this.logger.error('Error listing staff invitations', {
-                error: (0, error_helper_1.getErrorMessage)(error)
+            this.logger.error("Error listing staff invitations", {
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }
@@ -1184,9 +1232,9 @@ class SupabaseUserRepository {
     async getStaffInvitationById(id) {
         try {
             const { data, error } = await this.supabaseClient
-                .from('staff_invitations')
-                .select('*')
-                .eq('id', id)
+                .from("staff_invitations")
+                .select("*")
+                .eq("id", id)
                 .single();
             if (error || !data) {
                 return null;
@@ -1203,13 +1251,13 @@ class SupabaseUserRepository {
                 status: data.status,
                 invitationData: data.invitation_data || {},
                 createdAt: new Date(data.created_at),
-                updatedAt: new Date(data.updated_at)
+                updatedAt: new Date(data.updated_at),
             };
         }
         catch (error) {
-            this.logger.error('Error getting staff invitation by ID', {
+            this.logger.error("Error getting staff invitation by ID", {
                 id,
-                error: (0, error_helper_1.getErrorMessage)(error)
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }
@@ -1220,25 +1268,25 @@ class SupabaseUserRepository {
     async cancelStaffInvitation(id, cancelledBy) {
         try {
             const { error } = await this.supabaseClient
-                .from('staff_invitations')
+                .from("staff_invitations")
                 .update({
-                status: 'CANCELLED',
-                updated_at: new Date().toISOString()
+                status: "CANCELLED",
+                updated_at: new Date().toISOString(),
             })
-                .eq('id', id)
-                .eq('status', 'PENDING'); // Only cancel pending invitations
+                .eq("id", id)
+                .eq("status", "PENDING"); // Only cancel pending invitations
             if (error) {
                 throw new Error(`Failed to cancel staff invitation: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
-            this.logger.info('Staff invitation cancelled', {
+            this.logger.info("Staff invitation cancelled", {
                 id,
-                cancelledBy
+                cancelledBy,
             });
         }
         catch (error) {
-            this.logger.error('Error cancelling staff invitation', {
+            this.logger.error("Error cancelling staff invitation", {
                 id,
-                error: (0, error_helper_1.getErrorMessage)(error)
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }
@@ -1249,32 +1297,32 @@ class SupabaseUserRepository {
     async resendStaffInvitation(id) {
         try {
             // Generate new token and expiry
-            const invitationToken = crypto_1.default.randomBytes(32).toString('hex');
+            const invitationToken = crypto_1.default.randomBytes(32).toString("hex");
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
             const { error } = await this.supabaseClient
-                .from('staff_invitations')
+                .from("staff_invitations")
                 .update({
                 invitation_token: invitationToken,
                 expires_at: expiresAt.toISOString(),
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
             })
-                .eq('id', id)
-                .eq('status', 'PENDING'); // Only resend pending invitations
+                .eq("id", id)
+                .eq("status", "PENDING"); // Only resend pending invitations
             if (error) {
                 throw new Error(`Failed to resend staff invitation: ${(0, error_helper_1.getErrorMessage)(error)}`);
             }
-            this.logger.info('Staff invitation resent', {
-                id
+            this.logger.info("Staff invitation resent", {
+                id,
             });
             return {
                 invitationToken,
-                expiresAt
+                expiresAt,
             };
         }
         catch (error) {
-            this.logger.error('Error resending staff invitation', {
+            this.logger.error("Error resending staff invitation", {
                 id,
-                error: (0, error_helper_1.getErrorMessage)(error)
+                error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }

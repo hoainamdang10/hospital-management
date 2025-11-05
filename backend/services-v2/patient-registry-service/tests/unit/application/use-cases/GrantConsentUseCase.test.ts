@@ -8,6 +8,8 @@
 
 import { GrantConsentUseCase } from '../../../../src/application/use-cases/GrantConsentUseCase';
 import { IPatientRepository } from '../../../../src/domain/repositories/IPatientRepository';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 import { Patient } from '../../../../src/domain/aggregates/Patient';
 import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
 import { ContactInfo } from '../../../../src/domain/value-objects/ContactInfo';
@@ -16,6 +18,8 @@ import { BasicMedicalInfo } from '../../../../src/domain/value-objects/BasicMedi
 describe('GrantConsentUseCase', () => {
   let useCase: GrantConsentUseCase;
   let mockRepository: jest.Mocked<IPatientRepository>;
+  let mockAuditService: jest.Mocked<IAuditService>;
+  let mockLogger: jest.Mocked<ILogger>;
 
   beforeEach(() => {
     mockRepository = {
@@ -28,10 +32,27 @@ describe('GrantConsentUseCase', () => {
       matchPatients: jest.fn(),
       findWithFilters: jest.fn(),
       delete: jest.fn(),
-      getHealthStatus: jest.fn()
+      getHealthStatus: jest.fn(),
+
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as any;
 
-    useCase = new GrantConsentUseCase(mockRepository);
+    mockAuditService = {
+      log: jest.fn(),
+      getLogsForResource: jest.fn(),
+      getLogsForUser: jest.fn()
+    } as any;
+
+    mockLogger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn()
+    } as any;
+
+    useCase = new GrantConsentUseCase(mockRepository, mockAuditService, mockLogger);
   });
 
   describe('execute', () => {

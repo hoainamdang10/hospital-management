@@ -9,12 +9,14 @@ import { PatientId } from '../../../../src/domain/value-objects/PatientId';
 import { PatientConsent } from '../../../../src/domain/entities/PatientConsent';
 import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
 import { ILogger } from '@shared/application/services/logger.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
 
 describe('RevokeConsentUseCase', () => {
   let useCase: RevokeConsentUseCase;
   let mockRepository: jest.Mocked<IPatientRepository>;
   let mockEventBus: jest.Mocked<IEventBus>;
   let mockLogger: jest.Mocked<ILogger>;
+  let mockAuditService: jest.Mocked<IAuditService>;
 
   beforeEach(() => {
     mockRepository = {
@@ -28,7 +30,9 @@ describe('RevokeConsentUseCase', () => {
       findWithFilters: jest.fn(),
       matchPatients: jest.fn(),
       getHealthStatus: jest.fn(),
-      getStatistics: jest.fn()
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as jest.Mocked<IPatientRepository>;
 
     mockEventBus = {
@@ -43,7 +47,13 @@ describe('RevokeConsentUseCase', () => {
       fatal: jest.fn()
     } as jest.Mocked<ILogger>;
 
-    useCase = new RevokeConsentUseCase(mockRepository, mockEventBus, mockLogger);
+    mockAuditService = {
+      log: jest.fn(),
+      getLogsForResource: jest.fn(),
+      getLogsForUser: jest.fn()
+    } as any;
+
+    useCase = new RevokeConsentUseCase(mockRepository, mockEventBus, mockLogger, mockAuditService);
   });
 
   describe('execute', () => {

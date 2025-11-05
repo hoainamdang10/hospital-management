@@ -79,7 +79,6 @@ module.exports = {
     {
       displayName: 'Unit Tests',
       testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
-      timeout: 5000,
       maxWorkers: '100%',
       preset: 'ts-jest',
       testEnvironment: 'node',
@@ -103,7 +102,6 @@ module.exports = {
     {
       displayName: 'Integration Tests',
       testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
-      timeout: 30000,
       maxWorkers: 1, // Run integration tests serially to avoid race conditions
       preset: 'ts-jest',
       testEnvironment: 'node',

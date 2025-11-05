@@ -217,6 +217,7 @@ export declare class AppointmentCancelledEvent extends DomainEvent {
 /**
  * Published when appointment is completed
  * Subscribers: Clinical EMR Service, Billing Service, Notification Service
+ * Note: consultationFee is provided as reference for billing-service to create invoice
  */
 export declare class AppointmentCompletedEvent extends DomainEvent {
     readonly appointmentId: string;
@@ -225,7 +226,8 @@ export declare class AppointmentCompletedEvent extends DomainEvent {
     readonly completedAt: Date;
     readonly duration: number;
     readonly notes?: string | undefined;
-    constructor(appointmentId: string, patientId: string, doctorId: string, completedAt: Date, duration: number, notes?: string | undefined);
+    readonly consultationFee?: number | undefined;
+    constructor(appointmentId: string, patientId: string, doctorId: string, completedAt: Date, duration: number, notes?: string | undefined, consultationFee?: number | undefined);
     getEventData(): any;
     containsPHI(): boolean;
     getPatientId(): string | null;

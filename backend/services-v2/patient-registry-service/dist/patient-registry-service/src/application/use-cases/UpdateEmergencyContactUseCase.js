@@ -20,32 +20,32 @@ class UpdateEmergencyContactUseCase {
         this.logger = logger;
     }
     async execute(command) {
-        this.logger.info('Updating emergency contact', {
+        this.logger.info("Updating emergency contact", {
             patientId: command.patientId,
             contactId: command.contactId,
-            performedBy: command.performedBy
+            performedBy: command.performedBy,
         });
         try {
             // 1. Validate input
             if (!command.patientId || command.patientId.trim().length === 0) {
                 return {
                     success: false,
-                    message: 'Patient ID không được để trống',
-                    errors: ['INVALID_PATIENT_ID']
+                    message: "Patient ID không được để trống",
+                    errors: ["INVALID_PATIENT_ID"],
                 };
             }
             if (!command.contactId || command.contactId.trim().length === 0) {
                 return {
                     success: false,
-                    message: 'Contact ID không được để trống',
-                    errors: ['INVALID_CONTACT_ID']
+                    message: "Contact ID không được để trống",
+                    errors: ["INVALID_CONTACT_ID"],
                 };
             }
             if (!command.performedBy || command.performedBy.trim().length === 0) {
                 return {
                     success: false,
-                    message: 'Người thực hiện không được để trống',
-                    errors: ['INVALID_PERFORMED_BY']
+                    message: "Người thực hiện không được để trống",
+                    errors: ["INVALID_PERFORMED_BY"],
                 };
             }
             // 2. Find patient
@@ -55,17 +55,17 @@ class UpdateEmergencyContactUseCase {
                 return {
                     success: false,
                     message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
-                    errors: ['PATIENT_NOT_FOUND']
+                    errors: ["PATIENT_NOT_FOUND"],
                 };
             }
             // 3. Find emergency contact
             const contacts = patient.getEmergencyContacts();
-            const contact = contacts.find(c => c.getId() === command.contactId);
+            const contact = contacts.find((c) => c.getId() === command.contactId);
             if (!contact) {
                 return {
                     success: false,
                     message: `Không tìm thấy người liên hệ khẩn cấp với ID: ${command.contactId}`,
-                    errors: ['CONTACT_NOT_FOUND']
+                    errors: ["CONTACT_NOT_FOUND"],
                 };
             }
             // 4. Update contact properties
@@ -78,27 +78,27 @@ class UpdateEmergencyContactUseCase {
             await this.patientRepository.save(patient);
             // 7. Publish domain events
             await this.publishDomainEvents(patient);
-            this.logger.info('Emergency contact updated successfully', {
+            this.logger.info("Emergency contact updated successfully", {
                 patientId: command.patientId,
                 contactId: command.contactId,
-                performedBy: command.performedBy
+                performedBy: command.performedBy,
             });
             return {
                 success: true,
                 contactId: command.contactId,
-                message: 'Cập nhật người liên hệ khẩn cấp thành công'
+                message: "Cập nhật người liên hệ khẩn cấp thành công",
             };
         }
         catch (error) {
-            this.logger.error('Error updating emergency contact', {
+            this.logger.error("Error updating emergency contact", {
                 patientId: command.patientId,
                 contactId: command.contactId,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             return {
                 success: false,
-                message: 'Lỗi khi cập nhật người liên hệ khẩn cấp',
-                errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+                message: "Lỗi khi cập nhật người liên hệ khẩn cấp",
+                errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
             };
         }
     }
@@ -114,9 +114,9 @@ class UpdateEmergencyContactUseCase {
             patient.markEventsAsCommitted();
         }
         catch (error) {
-            this.logger.warn('Event publishing failed, but emergency contact was updated', {
+            this.logger.warn("Event publishing failed, but emergency contact was updated", {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : "Unknown error",
             });
         }
     }

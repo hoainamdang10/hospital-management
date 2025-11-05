@@ -6,9 +6,9 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { IEventBus } from '../../../../shared/infrastructure/event-bus/EventBus';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { IEventBus } from "../../../../shared/application/services/event-bus.interface";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface UpdateInsuranceInfoCommand {
     patientId: string;
     provider?: string;
@@ -16,7 +16,7 @@ export interface UpdateInsuranceInfoCommand {
     groupNumber?: string;
     validFrom?: Date;
     validTo?: Date;
-    coverageType?: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
+    coverageType?: "BHYT" | "BHTN" | "private" | "self_pay";
     isActive?: boolean;
     isPrimary?: boolean;
     bhytNumber?: string;

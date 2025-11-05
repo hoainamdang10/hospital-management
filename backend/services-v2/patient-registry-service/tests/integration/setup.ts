@@ -13,6 +13,10 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // Load test environment variables
 config({ path: '.env.test' });
 
+// Force mock Identity Service for integration tests
+process.env.IDENTITY_USE_MOCK = 'true';
+process.env.NODE_ENV = 'test';
+
 let supabaseClient: SupabaseClient;
 
 /**

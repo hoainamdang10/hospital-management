@@ -50,6 +50,7 @@ class IdentityServiceHealthCheck {
             const overall = this.calculateOverallHealth(components);
             return {
                 overall,
+                status: this.mapStatus(overall),
                 components,
                 metadata: {
                     version: '2.0.0',
@@ -63,6 +64,7 @@ class IdentityServiceHealthCheck {
             this.logger.error('Health check failed', { error: (0, error_helper_1.getErrorMessage)(error) });
             return {
                 overall: IHealthCheckService_1.HealthStatus.UNHEALTHY,
+                status: this.mapStatus(IHealthCheckService_1.HealthStatus.UNHEALTHY),
                 components: {
                     database: this.createErrorResult(error),
                     authentication: this.createErrorResult(error),
@@ -79,6 +81,12 @@ class IdentityServiceHealthCheck {
                 }
             };
         }
+    }
+    /**
+     * Map overall health status to simplified status string
+     */
+    mapStatus(overall) {
+        return overall;
     }
     /**
      * Check database connectivity and performance

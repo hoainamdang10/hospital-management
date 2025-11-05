@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, Vietnamese Healthcare Standards
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateGrantConsent = exports.validateAddEmergencyContact = exports.validateLinkPatients = exports.validateMergePatients = exports.validateMatchPatients = exports.validateFilterPatients = exports.validateSearchPatients = exports.validateBHYTNumber = exports.validateNationalId = exports.validateUserId = exports.validatePatientId = exports.validateUpdatePatient = exports.validateGetPatientList = exports.validateRegisterPatient = exports.handleValidationErrors = void 0;
+exports.validateRemoveEmergencyContact = exports.validateUpdateEmergencyContact = exports.validateRevokeConsent = exports.validateGrantConsent = exports.validateAddEmergencyContact = exports.validateLinkPatients = exports.validateMergePatients = exports.validateMatchPatients = exports.validateFilterPatients = exports.validateSearchPatients = exports.validateBHYTNumber = exports.validateNationalId = exports.validateUserId = exports.validatePatientId = exports.validateUpdatePatient = exports.validateGetPatientList = exports.validateRegisterPatient = exports.handleValidationErrors = void 0;
 const express_validator_1 = require("express-validator");
 /**
  * Handle validation errors
@@ -292,6 +292,56 @@ exports.validateGrantConsent = [
     (0, express_validator_1.body)('expiresAt')
         .optional()
         .isISO8601().withMessage('Ngày hết hạn phải là ngày hợp lệ'),
+    exports.handleValidationErrors
+];
+/**
+ * Validate revoke consent request
+ */
+exports.validateRevokeConsent = [
+    (0, express_validator_1.param)('patientId')
+        .notEmpty().withMessage('Patient ID không được để trống')
+        .matches(/^PAT-\d{6}-\d{3}$/).withMessage('Patient ID không đúng định dạng'),
+    (0, express_validator_1.param)('consentId')
+        .notEmpty().withMessage('Consent ID không được để trống')
+        .isUUID().withMessage('Consent ID phải là UUID hợp lệ'),
+    exports.handleValidationErrors
+];
+/**
+ * Validate update emergency contact request
+ */
+exports.validateUpdateEmergencyContact = [
+    (0, express_validator_1.param)('patientId')
+        .notEmpty().withMessage('Patient ID không được để trống')
+        .matches(/^PAT-\d{6}-\d{3}$/).withMessage('Patient ID không đúng định dạng'),
+    (0, express_validator_1.param)('contactId')
+        .notEmpty().withMessage('Contact ID không được để trống')
+        .isUUID().withMessage('Contact ID phải là UUID hợp lệ'),
+    (0, express_validator_1.body)('name')
+        .notEmpty().withMessage('Tên người liên hệ không được để trống')
+        .isLength({ min: 2, max: 255 }).withMessage('Tên phải từ 2-255 ký tự'),
+    (0, express_validator_1.body)('relationship')
+        .notEmpty().withMessage('Mối quan hệ không được để trống'),
+    (0, express_validator_1.body)('primaryPhone')
+        .notEmpty().withMessage('Số điện thoại chính không được để trống')
+        .matches(/^(0|\+84)[0-9]{9,10}$/).withMessage('Số điện thoại không hợp lệ'),
+    (0, express_validator_1.body)('secondaryPhone')
+        .optional()
+        .matches(/^(0|\+84)[0-9]{9,10}$/).withMessage('Số điện thoại phụ không hợp lệ'),
+    (0, express_validator_1.body)('email')
+        .optional()
+        .isEmail().withMessage('Email không hợp lệ'),
+    exports.handleValidationErrors
+];
+/**
+ * Validate remove emergency contact request
+ */
+exports.validateRemoveEmergencyContact = [
+    (0, express_validator_1.param)('patientId')
+        .notEmpty().withMessage('Patient ID không được để trống')
+        .matches(/^PAT-\d{6}-\d{3}$/).withMessage('Patient ID không đúng định dạng'),
+    (0, express_validator_1.param)('contactId')
+        .notEmpty().withMessage('Contact ID không được để trống')
+        .isUUID().withMessage('Contact ID phải là UUID hợp lệ'),
     exports.handleValidationErrors
 ];
 //# sourceMappingURL=ValidationMiddleware.js.map

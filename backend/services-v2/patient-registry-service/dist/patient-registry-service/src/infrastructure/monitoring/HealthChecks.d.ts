@@ -56,6 +56,7 @@ export declare class PatientRegistryHealthCheck {
     private checkDatabase;
     /**
      * Check RabbitMQ event publisher
+     * Performs actual connection check instead of placeholder
      */
     private checkEventPublisher;
     /**

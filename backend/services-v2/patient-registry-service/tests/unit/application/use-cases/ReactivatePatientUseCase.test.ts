@@ -28,7 +28,11 @@ describe('ReactivatePatientUseCase', () => {
       matchPatients: jest.fn(),
       findWithFilters: jest.fn(),
       delete: jest.fn(),
-      getHealthStatus: jest.fn()
+      getHealthStatus: jest.fn(),
+
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as any;
 
     useCase = new ReactivatePatientUseCase(mockRepository);

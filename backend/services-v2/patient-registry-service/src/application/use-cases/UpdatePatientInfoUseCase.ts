@@ -8,22 +8,26 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
-import { ContactInfo, Address } from '../../domain/value-objects/ContactInfo';
-import { BasicMedicalInfo, BloodType } from '../../domain/value-objects/BasicMedicalInfo';
-import { InsuranceInfo } from '../../domain/entities/InsuranceInfo';
-import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
-import { ILogger } from '@shared/application/services/logger.interface';
-import { Patient } from '../../domain/aggregates/Patient';
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { PatientId } from "../../domain/value-objects/PatientId";
+import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
+import { ContactInfo, Address } from "../../domain/value-objects/ContactInfo";
+import {
+  BasicMedicalInfo,
+  BloodType,
+} from "../../domain/value-objects/BasicMedicalInfo";
+import { InsuranceInfo } from "../../domain/entities/InsuranceInfo";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
+import { ILogger } from "@shared/application/services/logger.interface";
+import { Patient } from "../../domain/aggregates/Patient";
+import { AuditService } from "../../infrastructure/audit/AuditService";
 
 export interface UpdatePatientInfoRequest {
   patientId: string;
   personalInfo?: {
     fullName: string;
     dateOfBirth: string;
-    gender: 'male' | 'female' | 'other';
+    gender: "male" | "female" | "other";
     nationalId: string;
     nationality: string;
     ethnicity?: string;
@@ -34,7 +38,7 @@ export interface UpdatePatientInfoRequest {
     primaryPhone: string;
     secondaryPhone?: string;
     email?: string;
-    preferredContactMethod: 'phone' | 'email' | 'sms';
+    preferredContactMethod: "phone" | "email" | "sms";
     address: {
       street: string;
       ward: string;
@@ -55,7 +59,7 @@ export interface UpdatePatientInfoRequest {
     groupNumber?: string;
     validFrom: string;
     validTo: string;
-    coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
+    coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
     isVietnameseInsurance: boolean;
     bhytNumber?: string;
     isPrimary: boolean;
@@ -73,14 +77,17 @@ export class UpdatePatientInfoUseCase {
   constructor(
     private readonly patientRepository: IPatientRepository,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
+    private readonly auditService: AuditService,
   ) {}
 
-  async execute(request: UpdatePatientInfoRequest): Promise<UpdatePatientInfoResponse> {
+  async execute(
+    request: UpdatePatientInfoRequest,
+  ): Promise<UpdatePatientInfoResponse> {
     try {
-      this.logger.info('Starting patient info update', {
+      this.logger.info("Starting patient info update", {
         patientId: request.patientId,
-        updatedBy: request.updatedBy
+        updatedBy: request.updatedBy,
       });
 
       // 1. Find patient
@@ -88,25 +95,25 @@ export class UpdatePatientInfoUseCase {
       const patient = await this.patientRepository.findById(patientId);
 
       if (!patient) {
-        this.logger.warn('Patient update failed: patient not found', {
-          patientId: request.patientId
+        this.logger.warn("Patient update failed: patient not found", {
+          patientId: request.patientId,
         });
         return {
           success: false,
-          message: 'Không tìm thấy bệnh nhân',
-          errors: ['PATIENT_NOT_FOUND']
+          message: "Không tìm thấy bệnh nhân",
+          errors: ["PATIENT_NOT_FOUND"],
         };
       }
 
       // 2. Check if patient is active
       if (!patient.isActive()) {
-        this.logger.warn('Patient update failed: patient not active', {
-          patientId: request.patientId
+        this.logger.warn("Patient update failed: patient not active", {
+          patientId: request.patientId,
         });
         return {
           success: false,
-          message: 'Không thể cập nhật bệnh nhân không hoạt động',
-          errors: ['PATIENT_NOT_ACTIVE']
+          message: "Không thể cập nhật bệnh nhân không hoạt động",
+          errors: ["PATIENT_NOT_ACTIVE"],
         };
       }
 
@@ -115,7 +122,7 @@ export class UpdatePatientInfoUseCase {
 
       // 3. Update personal info (if provided)
       if (request.personalInfo) {
-        updatedFields.push('personal_info');
+        updatedFields.push("personal_info");
         const personalInfo = PersonalInfo.create({
           fullName: request.personalInfo.fullName,
           dateOfBirth: new Date(request.personalInfo.dateOfBirth),
@@ -124,7 +131,7 @@ export class UpdatePatientInfoUseCase {
           nationality: request.personalInfo.nationality,
           ethnicity: request.personalInfo.ethnicity,
           occupation: request.personalInfo.occupation,
-          maritalStatus: request.personalInfo.maritalStatus
+          maritalStatus: request.personalInfo.maritalStatus,
         });
 
         patient.updatePersonalInfo(personalInfo, request.updatedBy);
@@ -132,13 +139,13 @@ export class UpdatePatientInfoUseCase {
 
       // 4. Update contact info (if provided)
       if (request.contactInfo) {
-        updatedFields.push('contact_info');
+        updatedFields.push("contact_info");
         const contactInfo = ContactInfo.create({
           primaryPhone: request.contactInfo.primaryPhone,
           secondaryPhone: request.contactInfo.secondaryPhone,
           email: request.contactInfo.email,
           preferredContactMethod: request.contactInfo.preferredContactMethod,
-          address: request.contactInfo.address as Address
+          address: request.contactInfo.address as Address,
         });
 
         patient.updateContactInfo(contactInfo, request.updatedBy);
@@ -146,11 +153,11 @@ export class UpdatePatientInfoUseCase {
 
       // 5. Update basic medical info (if provided)
       if (request.basicMedicalInfo) {
-        updatedFields.push('basic_medical_info');
+        updatedFields.push("basic_medical_info");
         const basicMedicalInfo = BasicMedicalInfo.create({
           bloodType: request.basicMedicalInfo.bloodType,
           knownAllergies: request.basicMedicalInfo.knownAllergies || [],
-          emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo
+          emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo,
         });
 
         patient.updateBasicMedicalInfo(basicMedicalInfo, request.updatedBy);
@@ -158,7 +165,7 @@ export class UpdatePatientInfoUseCase {
 
       // 6. Update insurance info (if provided)
       if (request.insuranceInfo) {
-        updatedFields.push('insurance_info');
+        updatedFields.push("insurance_info");
         const insuranceInfo = InsuranceInfo.create({
           provider: request.insuranceInfo.provider,
           policyNumber: request.insuranceInfo.policyNumber,
@@ -169,7 +176,7 @@ export class UpdatePatientInfoUseCase {
           isVietnameseInsurance: request.insuranceInfo.isVietnameseInsurance,
           bhytNumber: request.insuranceInfo.bhytNumber,
           isPrimary: request.insuranceInfo.isPrimary,
-          isActive: true
+          isActive: true,
         });
 
         patient.updateInsuranceInfo(insuranceInfo, request.updatedBy);
@@ -184,42 +191,41 @@ export class UpdatePatientInfoUseCase {
       // 9. HIPAA audit logging
       await this.auditPatientUpdate(patient, request, updatedFields);
 
-      this.logger.info('Patient info update completed successfully', {
+      this.logger.info("Patient info update completed successfully", {
         patientId: request.patientId,
         updatedBy: request.updatedBy,
-        updatedFields: updatedFields.join(',')
+        updatedFields: updatedFields.join(","),
       });
 
       // 10. Return success response
       return {
         success: true,
-        message: 'Cập nhật thông tin bệnh nhân thành công'
+        message: "Cập nhật thông tin bệnh nhân thành công",
       };
-
     } catch (error) {
       // Handle validation errors
       if (error instanceof Error) {
-        this.logger.error('Patient info update failed', {
+        this.logger.error("Patient info update failed", {
           patientId: request.patientId,
           error: error.message,
-          stack: error.stack
+          stack: error.stack,
         });
         return {
           success: false,
-          message: 'Cập nhật thông tin bệnh nhân thất bại',
-          errors: ['UPDATE_FAILED', error.message]
+          message: "Cập nhật thông tin bệnh nhân thất bại",
+          errors: ["UPDATE_FAILED", error.message],
         };
       }
 
       // Handle unexpected errors
-      this.logger.error('Unexpected error during patient info update', {
+      this.logger.error("Unexpected error during patient info update", {
         patientId: request.patientId,
-        error: 'UNEXPECTED_ERROR'
+        error: "UNEXPECTED_ERROR",
       });
       return {
         success: false,
-        message: 'Đã xảy ra lỗi không mong muốn',
-        errors: ['UNEXPECTED_ERROR']
+        message: "Đã xảy ra lỗi không mong muốn",
+        errors: ["UNEXPECTED_ERROR"],
       };
     }
   }
@@ -237,30 +243,49 @@ export class UpdatePatientInfoUseCase {
 
       patient.markEventsAsCommitted();
     } catch (error) {
-      this.logger.warn('Event publishing failed, but patient was updated', {
+      this.logger.warn("Event publishing failed, but patient was updated", {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
 
   /**
    * HIPAA audit logging for patient update
+   * Logs to audit_logs table via AuditService
    */
   private async auditPatientUpdate(
     patient: Patient,
     request: UpdatePatientInfoRequest,
-    updatedFields: string[]
+    updatedFields: string[],
   ): Promise<void> {
-    this.logger.info('HIPAA Audit: Patient info update', {
-      action: 'PATIENT_INFO_UPDATE',
-      patientId: patient.getPatientId(),
-      updatedBy: request.updatedBy,
-      updatedFields: updatedFields.join(','),
-      timestamp: new Date().toISOString(),
-      dataAccessed: updatedFields.join(','),
-      complianceLevel: 'hipaa'
-    });
+    try {
+      // Log to audit_logs table (HIPAA compliance)
+      await this.auditService.logAudit({
+        eventId: `patient-update-${patient.getPatientId()}-${Date.now()}`,
+        eventType: 'patient.updated',
+        aggregateType: 'Patient',
+        aggregateId: patient.getPatientId() || 'unknown',
+        action: 'PATIENT_INFO_UPDATE',
+        userId: request.updatedBy ?? undefined,
+        patientId: patient.getPatientId() ?? undefined,
+        containsPHI: true,
+        changedFields: {
+          dataAccessed: updatedFields.join(','),
+          requestedBy: request.updatedBy || 'system',
+          updatedFields: updatedFields,
+        },
+        complianceLevel: 'hipaa',
+      });
+
+      this.logger.info("Patient update audited successfully", {
+        patientId: patient.getPatientId(),
+      });
+    } catch (error) {
+      this.logger.error("Failed to audit patient update", {
+        patientId: patient.getPatientId(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }
-

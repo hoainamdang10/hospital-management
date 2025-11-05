@@ -91,6 +91,9 @@ export class TestPatientFactory {
       currentMedications: []
     };
 
+    // Generate a valid UUID for test system user
+    const testSystemUserId = uuidv4();
+
     const patientData = {
       patient_id: patientId,
       user_id: data.userId,
@@ -100,8 +103,8 @@ export class TestPatientFactory {
       status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      created_by: 'test-system',
-      updated_by: 'test-system'
+      created_by: testSystemUserId,
+      updated_by: testSystemUserId
     };
 
     try {

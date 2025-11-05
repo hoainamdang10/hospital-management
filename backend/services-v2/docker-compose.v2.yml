@@ -144,7 +144,7 @@ services:
     ports:
       - "3021:3001"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=test
       - PORT=3001
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -171,6 +171,48 @@ services:
       - core
       - dev
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Identity Service - Test Environment (No Rate Limiting)
+  identity-service-test:
+    build:
+      context: .
+      dockerfile: ./identity-service/Dockerfile
+    container_name: hospital-identity-service-v2-test
+    ports:
+      - "3021:3001"
+    environment:
+      - NODE_ENV=test
+      - PORT=3001
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=redis://redis-v2:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
+      - DATABASE_SCHEMA=auth_schema
+      - SERVICE_NAME=identity-service
+      - SERVICE_VERSION=2.0.0
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3101
+      - LOG_LEVEL=error
+      # Email Verification Configuration
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      - redis-v2
+      - rabbitmq-v2
+    networks:
+      - hospital-v2-network
+    profiles:
+      - test
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s

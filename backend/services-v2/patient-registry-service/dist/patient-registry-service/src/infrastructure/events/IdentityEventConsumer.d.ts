@@ -10,6 +10,7 @@ import { ILogger } from '../../../../shared/application/services/logger.interfac
 import { IdentityUserCreatedEventHandler } from './handlers/IdentityUserCreatedEventHandler';
 import { IdentityUserDeletedEventHandler } from './handlers/IdentityUserDeletedEventHandler';
 import { IdentityUserUpdatedEventHandler } from './handlers/IdentityUserUpdatedEventHandler';
+import { AuditService } from '../audit/AuditService';
 /**
  * Identity Event Consumer Configuration
  */
@@ -32,10 +33,12 @@ export declare class IdentityEventConsumer {
     private userCreatedHandler;
     private userDeletedHandler;
     private userUpdatedHandler;
+    private auditService?;
     private connection;
     private channel;
     private isConnected;
-    constructor(config: IdentityEventConsumerConfig, logger: ILogger, userCreatedHandler: IdentityUserCreatedEventHandler, userDeletedHandler: IdentityUserDeletedEventHandler, userUpdatedHandler: IdentityUserUpdatedEventHandler);
+    private idempotentHandlers;
+    constructor(config: IdentityEventConsumerConfig, logger: ILogger, userCreatedHandler: IdentityUserCreatedEventHandler, userDeletedHandler: IdentityUserDeletedEventHandler, userUpdatedHandler: IdentityUserUpdatedEventHandler, auditService?: AuditService | undefined);
     /**
      * Connect to RabbitMQ and start consuming
      */

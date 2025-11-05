@@ -22,6 +22,8 @@ const UserAccountLockedEvent_1 = require("../../domain/events/UserAccountLockedE
 const UserAccountUnlockedEvent_1 = require("../../domain/events/UserAccountUnlockedEvent");
 const MFAEnabledEvent_1 = require("../../domain/events/MFAEnabledEvent");
 const MFADisabledEvent_1 = require("../../domain/events/MFADisabledEvent");
+const PendingRegistrationCreatedEvent_1 = require("../../domain/events/PendingRegistrationCreatedEvent");
+const PasswordResetEvent_1 = require("../../domain/events/PasswordResetEvent");
 class DomainEventMapper {
     /**
      * Convert domain event to RabbitMQ event format
@@ -203,6 +205,32 @@ class DomainEventMapper {
                     email: domainEvent.userEmail,
                     role: domainEvent.userRole,
                     disabledAt: domainEvent.occurredAt
+                }
+            };
+        }
+        if (domainEvent instanceof PendingRegistrationCreatedEvent_1.PendingRegistrationCreatedEvent) {
+            return {
+                ...baseEvent,
+                aggregateType: 'PendingRegistration',
+                payload: {
+                    pendingRegistrationId: domainEvent.data.pendingRegistrationId,
+                    email: domainEvent.data.email,
+                    fullName: domainEvent.data.fullName,
+                    roleType: domainEvent.data.roleType,
+                    expiresAt: domainEvent.data.expiresAt
+                }
+            };
+        }
+        if (domainEvent instanceof PasswordResetEvent_1.PasswordResetEvent) {
+            return {
+                ...baseEvent,
+                payload: {
+                    userId: domainEvent.userIdVO.value,
+                    email: domainEvent.userEmail,
+                    role: domainEvent.userRole,
+                    resetMethod: domainEvent.resetMethod,
+                    invalidatedSessions: domainEvent.invalidatedSessions,
+                    resetAt: domainEvent.occurredAt
                 }
             };
         }

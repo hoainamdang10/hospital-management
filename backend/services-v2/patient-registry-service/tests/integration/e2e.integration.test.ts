@@ -149,14 +149,11 @@ describe('End-to-End Integration Tests', () => {
       const patientId: string = createResponse.body.data.patientId;
 
       const updatePayload = {
-        personalInfo: {
-          fullName: 'Updated Name',
-          dateOfBirth: patientData.dateOfBirth,
-          gender: patientData.gender,
-          nationalId: patientData.nationalId,
-          nationality: patientData.nationality
-        },
-        requestedBy: receptionistUserId
+        fullName: 'Updated Name',
+        dateOfBirth: patientData.dateOfBirth,
+        gender: patientData.gender,
+        nationalId: patientData.nationalId,
+        nationality: patientData.nationality
       };
 
       const updateResponse = await request(app)

@@ -83,7 +83,7 @@ async function bootstrap() {
 
     // Step 5: Build Express application
     logger.info('Building Express application...');
-    const app = buildExpressApp(config, logger, container.cache);
+    const app = buildExpressApp(config, logger);
     logger.info('Express application built successfully');
 
     // Step 6: Register API routes

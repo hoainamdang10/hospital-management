@@ -69,7 +69,7 @@ class RabbitMQEventPublisher {
             });
             this.isConnected = true;
             this.reconnectAttempts = 0;
-            this.logger.info('Connected to RabbitMQ successfully', {
+            this.logger.info('RabbitMQ Event Publisher connected', {
                 exchange: this.config.exchange
             });
         }
@@ -250,7 +250,7 @@ class RabbitMQEventPublisher {
                 this.connection = null;
             }
             this.isConnected = false;
-            this.logger.info('RabbitMQ connection closed');
+            this.logger.info('RabbitMQ Event Publisher disconnected');
         }
         catch (error) {
             this.logger.error('Error closing RabbitMQ connection', {
@@ -266,11 +266,10 @@ class RabbitMQEventPublisher {
         // Example: patient.registered, patient.updated, patient.deleted
         // Convert PascalCase eventType to dot.notation
         // PatientRegistered -> patient.registered
-        const eventName = event.eventType
-            .replace(/([A-Z])/g, '.$1')
-            .toLowerCase()
-            .substring(1);
-        return eventName;
+        const serviceName = this.getServiceName();
+        const aggregate = event.aggregateType.toLowerCase();
+        const eventType = event.eventType.toLowerCase();
+        return `${serviceName}.${aggregate}.${eventType}`;
     }
     /**
      * Serialize event to JSON
@@ -278,6 +277,18 @@ class RabbitMQEventPublisher {
     serializeEvent(event) {
         // Use toJSON() method from DomainEvent base class
         return JSON.stringify(event.toJSON());
+    }
+    /**
+     * Resolve service name for routing keys
+     */
+    getServiceName() {
+        if (this.config.serviceName && this.config.serviceName.trim().length > 0) {
+            return this.config.serviceName.toLowerCase();
+        }
+        if (this.config.exchange && this.config.exchange.trim().length > 0) {
+            return this.config.exchange.replace(/[-_]?events$/i, '').toLowerCase();
+        }
+        return 'domain';
     }
 }
 exports.RabbitMQEventPublisher = RabbitMQEventPublisher;

@@ -96,7 +96,7 @@ export class GetBillingHistoryUseCase extends BaseHealthcareUseCase<GetBillingHi
   /**
    * Execute billing history retrieval
    */
-  protected async executeCore(request: GetBillingHistoryRequest): Promise<GetBillingHistoryResponse> {
+  protected async executeImpl(request: GetBillingHistoryRequest): Promise<GetBillingHistoryResponse> {
     try {
       this.logger.info('Retrieving billing history', {
         patientId: request.patientId,

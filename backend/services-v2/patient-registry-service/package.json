@@ -23,7 +23,7 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.38.0",
+    "@supabase/supabase-js": "^2.56.0",
     "@types/multer": "^2.0.0",
     "amqplib": "^0.10.9",
     "axios": "^1.12.2",
@@ -37,6 +37,8 @@
     "joi": "^17.9.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.2",
     "redis": "^5.8.3",
     "uuid": "^9.0.0",
     "winston": "^3.10.0"

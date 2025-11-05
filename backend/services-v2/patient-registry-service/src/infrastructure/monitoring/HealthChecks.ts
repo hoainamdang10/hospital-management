@@ -178,13 +178,39 @@ export class PatientRegistryHealthCheck {
 
   /**
    * Check RabbitMQ event publisher
+   * Performs actual connection check instead of placeholder
    */
   private async checkEventPublisher(): Promise<HealthCheckResult> {
     const startTime = Date.now();
 
     try {
-      // Check if RabbitMQ connection is available
-      // This is a placeholder - actual implementation would check RabbitMQ connection
+      // Check RabbitMQ connection via environment variable
+      const rabbitmqUrl = process.env.RABBITMQ_URL;
+
+      if (!rabbitmqUrl) {
+        return {
+          status: HealthStatus.DEGRADED,
+          timestamp: new Date(),
+          responseTime: Date.now() - startTime,
+          details: {
+            connected: false,
+            reason: 'RABBITMQ_URL not configured'
+          }
+        };
+      }
+
+      // Try to connect to RabbitMQ
+      const amqp = await import('amqplib');
+      const connection = await amqp.connect(rabbitmqUrl);
+      const channel = await connection.createChannel();
+
+      // Verify exchange exists
+      await channel.checkExchange('patient-registry-events');
+
+      // Cleanup
+      await channel.close();
+      await connection.close();
+
       const responseTime = Date.now() - startTime;
 
       return {
@@ -201,7 +227,10 @@ export class PatientRegistryHealthCheck {
         status: HealthStatus.UNHEALTHY,
         timestamp: new Date(),
         responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: {
+          connected: false
+        }
       };
     }
   }

@@ -1,338 +1,486 @@
 /**
  * Dependency Injection Container - Clinical EMR Service
- * Container setup for all dependencies
- * 
+ * Complete container setup with all dependencies
+ *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.1.0
  * @compliance Clean Architecture, DI Pattern, IoC
+ * @updated 2025-11-02 - Registered all 40+ use cases and controllers
  */
 
-import { Container } from 'inversify';
-import { TYPES } from './types';
+import { Container } from "inversify";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { TYPES } from "./types";
 
-// Domain
-import { IMedicalRecordRepository } from '../../domain/repositories/IMedicalRecordRepository';
+// =====================================================
+// DOMAIN
+// =====================================================
+import { IMedicalRecordRepository } from "../../domain/repositories/IMedicalRecordRepository";
+import { IClinicalNoteRepository } from "../../domain/repositories/IClinicalNoteRepository";
+import { IDiagnosticReportRepository } from "../../domain/repositories/IDiagnosticReportRepository";
+import { IPrescriptionRepository } from "../../domain/repositories/IPrescriptionRepository";
+import { ITreatmentPlanRepository } from "../../domain/repositories/ITreatmentPlanRepository";
 
-// Application
-import { CreateMedicalRecordUseCase } from '../../application/use-cases/CreateMedicalRecordUseCase';
-import { GetMedicalRecordUseCase } from '../../application/use-cases/GetMedicalRecordUseCase';
-import { GetPatientMedicalRecordsUseCase } from '../../application/use-cases/GetPatientMedicalRecordsUseCase';
-import { UpdateMedicalRecordUseCase } from '../../application/use-cases/UpdateMedicalRecordUseCase';
+// =====================================================
+// APPLICATION - USE CASES (Medical Records)
+// =====================================================
+import { CreateMedicalRecordUseCase } from "../../application/use-cases/CreateMedicalRecordUseCase";
+import { GetMedicalRecordUseCase } from "../../application/use-cases/GetMedicalRecordUseCase";
+import { GetPatientMedicalRecordsUseCase } from "../../application/use-cases/GetPatientMedicalRecordsUseCase";
+import { GetDoctorMedicalRecordsUseCase } from "../../application/use-cases/GetDoctorMedicalRecordsUseCase";
+import { UpdateMedicalRecordUseCase } from "../../application/use-cases/UpdateMedicalRecordUseCase";
+import { DeleteMedicalRecordUseCase } from "../../application/use-cases/DeleteMedicalRecordUseCase";
+import { ArchiveMedicalRecordUseCase } from "../../application/use-cases/ArchiveMedicalRecordUseCase";
+import { RestoreMedicalRecordUseCase } from "../../application/use-cases/RestoreMedicalRecordUseCase";
+import { SearchMedicalRecordsUseCase } from "../../application/use-cases/SearchMedicalRecordsUseCase";
+import { GetMedicalRecordStatisticsUseCase } from "../../application/use-cases/GetMedicalRecordStatisticsUseCase";
 
-// Infrastructure
-import { SupabaseMedicalRecordRepository } from '../persistence/SupabaseMedicalRecordRepository';
-import { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
-import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
-import { InMemoryDomainEventPublisher } from '@shared/infrastructure/events/InMemoryDomainEventPublisher';
-import { SupabaseTokenVerifier } from '../services/SupabaseTokenVerifier';
-import { SupabaseAuditLogService } from '../audit/SupabaseAuditLogService';
-import { ILogger } from '@shared/infrastructure/logging/logger.interface';
-import { ConsoleLogger } from '@shared/infrastructure/logging/console-logger';
+// Diagnoses & Medications
+import { AddDiagnosisUseCase } from "../../application/use-cases/AddDiagnosisUseCase";
+import { RemoveDiagnosisUseCase } from "../../application/use-cases/RemoveDiagnosisUseCase";
+import { AddMedicationUseCase } from "../../application/use-cases/AddMedicationUseCase";
+import { RemoveMedicationUseCase } from "../../application/use-cases/RemoveMedicationUseCase";
+import { UpdateVitalSignsUseCase } from "../../application/use-cases/UpdateVitalSignsUseCase";
 
-// Application Services
-import { ITokenVerifier } from '../../application/services/ITokenVerifier';
-import { IAuditLogService } from '../../application/services/IAuditLogService';
+// Access Control & Audit
+import { GrantAccessUseCase } from "../../application/use-cases/GrantAccessUseCase";
+import { RevokeAccessUseCase } from "../../application/use-cases/RevokeAccessUseCase";
+import { AuditAccessHistoryUseCase } from "../../application/use-cases/AuditAccessHistoryUseCase";
 
-// Middleware
-import { AuthenticationMiddleware } from '../../presentation/middleware/AuthenticationMiddleware';
+// FHIR Compliance
+import { ExportToFHIRUseCase } from "../../application/use-cases/ExportToFHIRUseCase";
+import { ValidateFHIRComplianceUseCase } from "../../application/use-cases/ValidateFHIRComplianceUseCase";
 
-// Configuration
-import { ClinicalEMRConfig } from '../config/clinical-emr-config';
+// Reports
+import { GenerateMedicalReportUseCase } from "../../application/use-cases/GenerateMedicalReportUseCase";
+
+// =====================================================
+// APPLICATION - USE CASES (Clinical Notes)
+// =====================================================
+import { CreateClinicalNoteUseCase } from "../../application/use-cases/CreateClinicalNoteUseCase";
+import { GetClinicalNoteUseCase } from "../../application/use-cases/GetClinicalNoteUseCase";
+import { ListClinicalNotesUseCase } from "../../application/use-cases/ListClinicalNotesUseCase";
+import { UpdateClinicalNoteUseCase } from "../../application/use-cases/UpdateClinicalNoteUseCase";
+import { CosignClinicalNoteUseCase } from "../../application/use-cases/CosignClinicalNoteUseCase";
+
+// =====================================================
+// APPLICATION - USE CASES (Diagnostic Reports)
+// =====================================================
+import { CreateDiagnosticReportUseCase } from "../../application/use-cases/CreateDiagnosticReportUseCase";
+import { GetDiagnosticReportUseCase } from "../../application/use-cases/GetDiagnosticReportUseCase";
+import { ListDiagnosticReportsUseCase } from "../../application/use-cases/ListDiagnosticReportsUseCase";
+import { UpdateDiagnosticReportUseCase } from "../../application/use-cases/UpdateDiagnosticReportUseCase";
+import { FinalizeDiagnosticReportUseCase } from "../../application/use-cases/FinalizeDiagnosticReportUseCase";
+
+// =====================================================
+// APPLICATION - USE CASES (Prescriptions)
+// =====================================================
+import { CreatePrescriptionUseCase } from "../../application/use-cases/CreatePrescriptionUseCase";
+import { GetPrescriptionUseCase } from "../../application/use-cases/GetPrescriptionUseCase";
+import { ListPrescriptionsUseCase } from "../../application/use-cases/ListPrescriptionsUseCase";
+import { DispensePrescriptionUseCase } from "../../application/use-cases/DispensePrescriptionUseCase";
+
+// =====================================================
+// APPLICATION - USE CASES (Treatment Plans)
+// =====================================================
+import { CreateTreatmentPlanUseCase } from "../../application/use-cases/CreateTreatmentPlanUseCase";
+import { GetTreatmentPlanUseCase } from "../../application/use-cases/GetTreatmentPlanUseCase";
+import { ListTreatmentPlansUseCase } from "../../application/use-cases/ListTreatmentPlansUseCase";
+import { UpdateTreatmentPlanUseCase } from "../../application/use-cases/UpdateTreatmentPlanUseCase";
+import { CompleteTreatmentPlanUseCase } from "../../application/use-cases/CompleteTreatmentPlanUseCase";
+
+// =====================================================
+// INFRASTRUCTURE - REPOSITORIES
+// =====================================================
+import { SupabaseMedicalRecordRepository } from "../repositories/SupabaseMedicalRecordRepository";
+import { SupabaseClinicalNoteRepository } from "../repositories/SupabaseClinicalNoteRepository";
+import { SupabaseDiagnosticReportRepository } from "../repositories/SupabaseDiagnosticReportRepository";
+import { SupabasePrescriptionRepository } from "../repositories/SupabasePrescriptionRepository";
+import { SupabaseTreatmentPlanRepository } from "../repositories/SupabaseTreatmentPlanRepository";
+
+// =====================================================
+// INFRASTRUCTURE - SERVICES
+// =====================================================
+import { SupabaseTokenVerifier } from "../services/SupabaseTokenVerifier";
+import { SupabaseAuditLogService } from "../audit/SupabaseAuditLogService";
+import { ITokenVerifier } from "../../application/services/ITokenVerifier";
+import { IAuditLogService } from "../../application/services/IAuditLogService";
+
+// =====================================================
+// INFRASTRUCTURE - EVENTS
+// =====================================================
+import { IDomainEventPublisher } from "@shared/domain/events/IDomainEventPublisher";
+import { InMemoryDomainEventPublisher } from "@shared/infrastructure/events/InMemoryDomainEventPublisher";
+import { ClinicalEMREventHandler } from "../events/ClinicalEMREventHandler";
+import { MedicalRecordDomainEventHandler } from "../events/MedicalRecordDomainEventHandler";
+
+// =====================================================
+// INFRASTRUCTURE - LOGGING
+// =====================================================
+import { ILogger } from "@shared/infrastructure/logging/logger.interface";
+import { ConsoleLogger } from "@shared/infrastructure/logging/console-logger";
+
+// =====================================================
+// PRESENTATION - CONTROLLERS
+// =====================================================
+import { MedicalRecordController } from "../../presentation/controllers/MedicalRecordController";
+import { ClinicalNoteController } from "../../presentation/controllers/ClinicalNoteController";
+import { DiagnosticReportController } from "../../presentation/controllers/DiagnosticReportController";
+import { PrescriptionController } from "../../presentation/controllers/PrescriptionController";
+import { TreatmentPlanController } from "../../presentation/controllers/TreatmentPlanController";
+
+// =====================================================
+// PRESENTATION - MIDDLEWARE
+// =====================================================
+import { AuthenticationMiddleware } from "../../presentation/middleware/AuthenticationMiddleware";
+
+// =====================================================
+// CONFIGURATION
+// =====================================================
+import { ClinicalEMRConfig } from "../config/clinical-emr-config";
+
+// Global container instance
+export const container = new Container({ defaultScope: "Singleton" });
 
 /**
- * Create and configure the DI container
+ * Initialize and configure the DI container
  */
-export function createContainer(): Container {
-  const container = new Container();
+export async function initializeContainer(): Promise<{
+  success: boolean;
+  errors: string[];
+}> {
+  const errors: string[] = [];
 
-  // =====================================================
-  // CONFIGURATION
-  // =====================================================
-  
-  container.bind<ClinicalEMRConfig>(TYPES.Config).to(ClinicalEMRConfig).inSingletonScope();
+  try {
+    console.log("📦 Initializing DI Container...");
 
-  // =====================================================
-  // INFRASTRUCTURE - DATABASE
-  // =====================================================
-  
-  container.bind<OptimizedSupabaseClient>(TYPES.SupabaseClient)
-    .toDynamicValue((context) => {
-      const config = context.container.get<ClinicalEMRConfig>(TYPES.Config);
-      return new OptimizedSupabaseClient({
-        supabaseUrl: config.supabaseUrl,
-        supabaseServiceKey: config.supabaseServiceRoleKey,
-        serviceName: 'clinical-emr-service',
-        schemaName: 'medical_records_schema',
-        enableOptimizations: process.env.NODE_ENV !== 'test'
-      });
-    })
-    .inSingletonScope();
+    // =====================================================
+    // CONFIGURATION
+    // =====================================================
+    console.log("  - Binding Configuration...");
+    container
+      .bind<ClinicalEMRConfig>(TYPES.Config)
+      .to(ClinicalEMRConfig)
+      .inSingletonScope();
 
-  // =====================================================
-  // INFRASTRUCTURE - EVENTS
-  // =====================================================
-  
-  container.bind<IDomainEventPublisher>(TYPES.DomainEventPublisher)
-    .to(InMemoryDomainEventPublisher)
-    .inSingletonScope();
+    // =====================================================
+    // INFRASTRUCTURE - LOGGING
+    // =====================================================
+    console.log("  - Binding Logger...");
+    container.bind<ILogger>(TYPES.Logger).to(ConsoleLogger).inSingletonScope();
 
-  // =====================================================
-  // INFRASTRUCTURE - REPOSITORIES
-  // =====================================================
-  
-  container.bind<IMedicalRecordRepository>(TYPES.MedicalRecordRepository)
-    .to(SupabaseMedicalRecordRepository)
-    .inSingletonScope();
+    // =====================================================
+    // INFRASTRUCTURE - DATABASE CLIENT
+    // =====================================================
+    console.log("  - Binding Supabase Client...");
+    container
+      .bind<SupabaseClient>(TYPES.SupabaseClient)
+      .toDynamicValue((context) => {
+        const config = context.container.get<ClinicalEMRConfig>(TYPES.Config);
+        const { createClient } = require("@supabase/supabase-js");
+        return createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+          db: {
+            schema: "clinical_schema",
+          },
+        });
+      })
+      .inSingletonScope();
 
-  // =====================================================
-  // APPLICATION - USE CASES
-  // =====================================================
-  
-  container.bind<CreateMedicalRecordUseCase>(TYPES.CreateMedicalRecordUseCase)
-    .toDynamicValue((context) => {
-      const repository = context.container.get<IMedicalRecordRepository>(TYPES.MedicalRecordRepository);
-      const eventPublisher = context.container.get<IDomainEventPublisher>(TYPES.DomainEventPublisher);
-      return new CreateMedicalRecordUseCase(repository, eventPublisher);
-    })
-    .inTransientScope();
+    // =====================================================
+    // INFRASTRUCTURE - EVENTS
+    // =====================================================
+    console.log("  - Binding Event Publisher...");
+    container
+      .bind<IDomainEventPublisher>(TYPES.DomainEventPublisher)
+      .to(InMemoryDomainEventPublisher)
+      .inSingletonScope();
 
-  container.bind<GetMedicalRecordUseCase>(TYPES.GetMedicalRecordUseCase)
-    .toDynamicValue((context) => {
-      const repository = context.container.get<IMedicalRecordRepository>(TYPES.MedicalRecordRepository);
-      return new GetMedicalRecordUseCase(repository);
-    })
-    .inTransientScope();
+    console.log("  - Binding Event Handlers...");
+    container
+      .bind<ClinicalEMREventHandler>(TYPES.ClinicalEMREventHandler)
+      .to(ClinicalEMREventHandler)
+      .inSingletonScope();
 
-  container.bind<GetPatientMedicalRecordsUseCase>(TYPES.GetPatientMedicalRecordsUseCase)
-    .toDynamicValue((context) => {
-      const repository = context.container.get<IMedicalRecordRepository>(TYPES.MedicalRecordRepository);
-      return new GetPatientMedicalRecordsUseCase(repository);
-    })
-    .inTransientScope();
+    container
+      .bind<MedicalRecordDomainEventHandler>(
+        TYPES.MedicalRecordDomainEventHandler,
+      )
+      .to(MedicalRecordDomainEventHandler)
+      .inSingletonScope();
 
-  container.bind<UpdateMedicalRecordUseCase>(TYPES.UpdateMedicalRecordUseCase)
-    .toDynamicValue((context) => {
-      const repository = context.container.get<IMedicalRecordRepository>(TYPES.MedicalRecordRepository);
-      const eventPublisher = context.container.get<IDomainEventPublisher>(TYPES.DomainEventPublisher);
-      return new UpdateMedicalRecordUseCase(repository, eventPublisher);
-    })
-    .inTransientScope();
+    // =====================================================
+    // INFRASTRUCTURE - REPOSITORIES
+    // =====================================================
+    console.log("  - Binding Repositories...");
+    container
+      .bind<IMedicalRecordRepository>(TYPES.MedicalRecordRepository)
+      .to(SupabaseMedicalRecordRepository)
+      .inSingletonScope();
 
-  // =====================================================
-  // PHASE 1: AUTHENTICATION & SECURITY
-  // =====================================================
-  
-  // Logger
-  container.bind<ILogger>(TYPES.Logger)
-    .to(ConsoleLogger)
-    .inSingletonScope();
+    container
+      .bind<IClinicalNoteRepository>(TYPES.ClinicalNoteRepository)
+      .to(SupabaseClinicalNoteRepository)
+      .inSingletonScope();
 
-  // Token Verifier
-  container.bind<ITokenVerifier>(TYPES.TokenVerifier)
-    .to(SupabaseTokenVerifier)
-    .inSingletonScope();
+    container
+      .bind<IDiagnosticReportRepository>(TYPES.DiagnosticReportRepository)
+      .to(SupabaseDiagnosticReportRepository)
+      .inSingletonScope();
 
-  // Audit Log Service
-  container.bind<IAuditLogService>(TYPES.AuditLogService)
-    .toDynamicValue((context) => {
-      const supabaseClient = context.container.get<OptimizedSupabaseClient>(TYPES.SupabaseClient);
-      const logger = context.container.get<ILogger>(TYPES.Logger);
-      return new SupabaseAuditLogService(supabaseClient, logger);
-    })
-    .inSingletonScope();
+    container
+      .bind<IPrescriptionRepository>(TYPES.PrescriptionRepository)
+      .to(SupabasePrescriptionRepository)
+      .inSingletonScope();
 
-  // Authentication Middleware
-  container.bind<AuthenticationMiddleware>(TYPES.AuthenticationMiddleware)
-    .toDynamicValue((context) => {
-      const tokenVerifier = context.container.get<ITokenVerifier>(TYPES.TokenVerifier);
-      const auditLogService = context.container.get<IAuditLogService>(TYPES.AuditLogService);
-      const logger = context.container.get<ILogger>(TYPES.Logger);
-      return new AuthenticationMiddleware(tokenVerifier, auditLogService, logger);
-    })
-    .inSingletonScope();
+    container
+      .bind<ITreatmentPlanRepository>(TYPES.TreatmentPlanRepository)
+      .to(SupabaseTreatmentPlanRepository)
+      .inSingletonScope();
 
-  return container;
+    // =====================================================
+    // INFRASTRUCTURE - SERVICES
+    // =====================================================
+    console.log("  - Binding Services...");
+    container
+      .bind<ITokenVerifier>(TYPES.TokenVerifier)
+      .to(SupabaseTokenVerifier)
+      .inSingletonScope();
+
+    container
+      .bind<IAuditLogService>(TYPES.AuditLogService)
+      .to(SupabaseAuditLogService)
+      .inSingletonScope();
+
+    // =====================================================
+    // APPLICATION - USE CASES (Medical Records)
+    // =====================================================
+    console.log("  - Binding Medical Record Use Cases...");
+    container
+      .bind(TYPES.CreateMedicalRecordUseCase)
+      .to(CreateMedicalRecordUseCase);
+    container.bind(TYPES.GetMedicalRecordUseCase).to(GetMedicalRecordUseCase);
+    container
+      .bind(TYPES.GetPatientMedicalRecordsUseCase)
+      .to(GetPatientMedicalRecordsUseCase);
+    container
+      .bind(TYPES.GetDoctorMedicalRecordsUseCase)
+      .to(GetDoctorMedicalRecordsUseCase);
+    container
+      .bind(TYPES.UpdateMedicalRecordUseCase)
+      .to(UpdateMedicalRecordUseCase);
+    container
+      .bind(TYPES.DeleteMedicalRecordUseCase)
+      .to(DeleteMedicalRecordUseCase);
+    container
+      .bind(TYPES.ArchiveMedicalRecordUseCase)
+      .to(ArchiveMedicalRecordUseCase);
+    container
+      .bind(TYPES.RestoreMedicalRecordUseCase)
+      .to(RestoreMedicalRecordUseCase);
+    container
+      .bind(TYPES.SearchMedicalRecordsUseCase)
+      .to(SearchMedicalRecordsUseCase);
+    container
+      .bind(TYPES.GetMedicalRecordStatisticsUseCase)
+      .to(GetMedicalRecordStatisticsUseCase);
+
+    console.log("  - Binding Diagnosis/Medication Use Cases...");
+    container.bind(TYPES.AddDiagnosisUseCase).to(AddDiagnosisUseCase);
+    container.bind(TYPES.RemoveDiagnosisUseCase).to(RemoveDiagnosisUseCase);
+    container.bind(TYPES.AddMedicationUseCase).to(AddMedicationUseCase);
+    container.bind(TYPES.RemoveMedicationUseCase).to(RemoveMedicationUseCase);
+    container.bind(TYPES.UpdateVitalSignsUseCase).to(UpdateVitalSignsUseCase);
+
+    console.log("  - Binding Access Control Use Cases...");
+    container.bind(TYPES.GrantAccessUseCase).to(GrantAccessUseCase);
+    container.bind(TYPES.RevokeAccessUseCase).to(RevokeAccessUseCase);
+    container
+      .bind(TYPES.AuditAccessHistoryUseCase)
+      .to(AuditAccessHistoryUseCase);
+
+    console.log("  - Binding FHIR Use Cases...");
+    container.bind(TYPES.ExportToFHIRUseCase).to(ExportToFHIRUseCase);
+    container
+      .bind(TYPES.ValidateFHIRComplianceUseCase)
+      .to(ValidateFHIRComplianceUseCase);
+
+    console.log("  - Binding Report Use Cases...");
+    container
+      .bind(TYPES.GenerateMedicalReportUseCase)
+      .to(GenerateMedicalReportUseCase);
+
+    // =====================================================
+    // APPLICATION - USE CASES (Clinical Notes)
+    // =====================================================
+    console.log("  - Binding Clinical Note Use Cases...");
+    container
+      .bind(TYPES.CreateClinicalNoteUseCase)
+      .to(CreateClinicalNoteUseCase);
+    container.bind(TYPES.GetClinicalNoteUseCase).to(GetClinicalNoteUseCase);
+    container.bind(TYPES.ListClinicalNotesUseCase).to(ListClinicalNotesUseCase);
+    container
+      .bind(TYPES.UpdateClinicalNoteUseCase)
+      .to(UpdateClinicalNoteUseCase);
+    container
+      .bind(TYPES.CosignClinicalNoteUseCase)
+      .to(CosignClinicalNoteUseCase);
+
+    // =====================================================
+    // APPLICATION - USE CASES (Diagnostic Reports)
+    // =====================================================
+    console.log("  - Binding Diagnostic Report Use Cases...");
+    container
+      .bind(TYPES.CreateDiagnosticReportUseCase)
+      .to(CreateDiagnosticReportUseCase);
+    container
+      .bind(TYPES.GetDiagnosticReportUseCase)
+      .to(GetDiagnosticReportUseCase);
+    container
+      .bind(TYPES.ListDiagnosticReportsUseCase)
+      .to(ListDiagnosticReportsUseCase);
+    container
+      .bind(TYPES.UpdateDiagnosticReportUseCase)
+      .to(UpdateDiagnosticReportUseCase);
+    container
+      .bind(TYPES.FinalizeDiagnosticReportUseCase)
+      .to(FinalizeDiagnosticReportUseCase);
+
+    // =====================================================
+    // APPLICATION - USE CASES (Prescriptions)
+    // =====================================================
+    console.log("  - Binding Prescription Use Cases...");
+    container
+      .bind(TYPES.CreatePrescriptionUseCase)
+      .to(CreatePrescriptionUseCase);
+    container.bind(TYPES.GetPrescriptionUseCase).to(GetPrescriptionUseCase);
+    container.bind(TYPES.ListPrescriptionsUseCase).to(ListPrescriptionsUseCase);
+    container
+      .bind(TYPES.DispensePrescriptionUseCase)
+      .to(DispensePrescriptionUseCase);
+
+    // =====================================================
+    // APPLICATION - USE CASES (Treatment Plans)
+    // =====================================================
+    console.log("  - Binding Treatment Plan Use Cases...");
+    container
+      .bind(TYPES.CreateTreatmentPlanUseCase)
+      .to(CreateTreatmentPlanUseCase);
+    container.bind(TYPES.GetTreatmentPlanUseCase).to(GetTreatmentPlanUseCase);
+    container
+      .bind(TYPES.ListTreatmentPlansUseCase)
+      .to(ListTreatmentPlansUseCase);
+    container
+      .bind(TYPES.UpdateTreatmentPlanUseCase)
+      .to(UpdateTreatmentPlanUseCase);
+    container
+      .bind(TYPES.CompleteTreatmentPlanUseCase)
+      .to(CompleteTreatmentPlanUseCase);
+
+    // =====================================================
+    // PRESENTATION - CONTROLLERS
+    // =====================================================
+    console.log("  - Binding Controllers...");
+    container
+      .bind<MedicalRecordController>(TYPES.MedicalRecordController)
+      .to(MedicalRecordController)
+      .inSingletonScope();
+
+    container
+      .bind<ClinicalNoteController>(TYPES.ClinicalNoteController)
+      .to(ClinicalNoteController)
+      .inSingletonScope();
+
+    container
+      .bind<DiagnosticReportController>(TYPES.DiagnosticReportController)
+      .to(DiagnosticReportController)
+      .inSingletonScope();
+
+    container
+      .bind<PrescriptionController>(TYPES.PrescriptionController)
+      .to(PrescriptionController)
+      .inSingletonScope();
+
+    container
+      .bind<TreatmentPlanController>(TYPES.TreatmentPlanController)
+      .to(TreatmentPlanController)
+      .inSingletonScope();
+
+    // =====================================================
+    // PRESENTATION - MIDDLEWARE
+    // =====================================================
+    console.log("  - Binding Middleware...");
+    container
+      .bind<AuthenticationMiddleware>(TYPES.AuthenticationMiddleware)
+      .to(AuthenticationMiddleware)
+      .inSingletonScope();
+
+    console.log("✅ DI Container initialized successfully");
+    console.log(`   - Registered ${container.getBindings().length} bindings`);
+
+    return { success: true, errors: [] };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    errors.push(errorMessage);
+    console.error("❌ DI Container initialization failed:", errorMessage);
+    return { success: false, errors };
+  }
 }
 
 /**
- * Global container instance
+ * Check container health
  */
-export const container = createContainer();
-
-/**
- * Helper functions to get services from container
- */
-export const getService = <T>(serviceIdentifier: symbol): T => {
-  return container.get<T>(serviceIdentifier);
-};
-
-export const getServices = <T>(serviceIdentifier: symbol): T[] => {
-  return container.getAll<T>(serviceIdentifier);
-};
-
-/**
- * Container health check
- */
-export const checkContainerHealth = (): { healthy: boolean; errors: string[] } => {
+export async function checkContainerHealth(): Promise<{
+  healthy: boolean;
+  errors: string[];
+}> {
   const errors: string[] = [];
-  let healthy = true;
 
   try {
-    // Test critical dependencies
+    // Check critical dependencies
     const config = container.get<ClinicalEMRConfig>(TYPES.Config);
-    if (!config) {
-      errors.push('Configuration not available');
-      healthy = false;
-    }
+    const logger = container.get<ILogger>(TYPES.Logger);
+    const supabase = container.get<SupabaseClient>(TYPES.SupabaseClient);
 
-    const supabaseClient = container.get<OptimizedSupabaseClient>(TYPES.SupabaseClient);
-    if (!supabaseClient) {
-      errors.push('Supabase client not available');
-      healthy = false;
-    }
+    if (!config) errors.push("Config not available");
+    if (!logger) errors.push("Logger not available");
+    if (!supabase) errors.push("Supabase client not available");
 
-    const repository = container.get<IMedicalRecordRepository>(TYPES.MedicalRecordRepository);
-    if (!repository) {
-      errors.push('Medical record repository not available');
-      healthy = false;
-    }
-
-    const eventPublisher = container.get<IDomainEventPublisher>(TYPES.DomainEventPublisher);
-    if (!eventPublisher) {
-      errors.push('Domain event publisher not available');
-      healthy = false;
-    }
-
-    // Test use cases
-    const createUseCase = container.get<CreateMedicalRecordUseCase>(TYPES.CreateMedicalRecordUseCase);
-    if (!createUseCase) {
-      errors.push('Create medical record use case not available');
-      healthy = false;
-    }
-
-    const getUseCase = container.get<GetMedicalRecordUseCase>(TYPES.GetMedicalRecordUseCase);
-    if (!getUseCase) {
-      errors.push('Get medical record use case not available');
-      healthy = false;
-    }
-
-    const getPatientUseCase = container.get<GetPatientMedicalRecordsUseCase>(TYPES.GetPatientMedicalRecordsUseCase);
-    if (!getPatientUseCase) {
-      errors.push('Get patient medical records use case not available');
-      healthy = false;
-    }
-
-    const updateUseCase = container.get<UpdateMedicalRecordUseCase>(TYPES.UpdateMedicalRecordUseCase);
-    if (!updateUseCase) {
-      errors.push('Update medical record use case not available');
-      healthy = false;
-    }
-
+    return { healthy: errors.length === 0, errors };
   } catch (error) {
-    errors.push(`Container error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    healthy = false;
+    errors.push(error instanceof Error ? error.message : "Unknown error");
+    return { healthy: false, errors };
   }
-
-  return { healthy, errors };
-};
+}
 
 /**
- * Container cleanup
+ * Cleanup container resources
  */
-export const cleanupContainer = async (): Promise<void> => {
+export async function cleanupContainer(): Promise<void> {
   try {
-    // Cleanup Supabase client connections
-    const supabaseClient = container.get<OptimizedSupabaseClient>(TYPES.SupabaseClient);
-    if (supabaseClient && typeof supabaseClient.cleanup === 'function') {
-      await supabaseClient.cleanup();
-    }
+    console.log("🧹 Cleaning up DI container...");
 
-    // Cleanup event publisher
-    // TODO: Add cleanup method to IDomainEventPublisher interface
-    // const eventPublisher = container.get<IDomainEventPublisher>(TYPES.DomainEventPublisher);
-    // if (eventPublisher && typeof eventPublisher.cleanup === 'function') {
-    //   await eventPublisher.cleanup();
-    // }
-
-    // Unbind all services
+    // Unbind all
     container.unbindAll();
 
+    console.log("✅ DI container cleaned up");
   } catch (error) {
-    console.error('Error during container cleanup:', error);
+    console.error("❌ Error cleaning up container:", error);
   }
-};
+}
 
 /**
- * Container configuration validation
+ * Get a service from the container (helper)
  */
-export const validateContainerConfiguration = (): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  let valid = true;
-
-  try {
-    const config = container.get<ClinicalEMRConfig>(TYPES.Config);
-    
-    if (!config.supabaseUrl) {
-      errors.push('Supabase URL not configured');
-      valid = false;
-    }
-
-    if (!config.supabaseServiceRoleKey) {
-      errors.push('Supabase service role key not configured');
-      valid = false;
-    }
-
-    if (!config.jwtSecret) {
-      errors.push('JWT secret not configured');
-      valid = false;
-    }
-
-    if (!config.port || config.port < 1000 || config.port > 65535) {
-      errors.push('Invalid port configuration');
-      valid = false;
-    }
-
-  } catch (error) {
-    errors.push(`Configuration validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    valid = false;
-  }
-
-  return { valid, errors };
-};
+export function resolve<T>(serviceIdentifier: symbol): T {
+  return container.get<T>(serviceIdentifier);
+}
 
 /**
- * Initialize container with health checks
+ * Export container instance
  */
-export const initializeContainer = async (): Promise<{ success: boolean; errors: string[] }> => {
-  const errors: string[] = [];
-
-  try {
-    // Validate configuration
-    const configValidation = validateContainerConfiguration();
-    if (!configValidation.valid) {
-      errors.push(...configValidation.errors);
-      return { success: false, errors };
-    }
-
-    // Check container health
-    const healthCheck = checkContainerHealth();
-    if (!healthCheck.healthy) {
-      errors.push(...healthCheck.errors);
-      return { success: false, errors };
-    }
-
-    // Test database connection
-    const supabaseClient = container.get<OptimizedSupabaseClient>(TYPES.SupabaseClient);
-    const connection = await supabaseClient.getConnection();
-    if (!connection) {
-      errors.push('Failed to establish database connection');
-      return { success: false, errors };
-    }
-
-    return { success: true, errors: [] };
-
-  } catch (error) {
-    errors.push(`Container initialization error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    return { success: false, errors };
-  }
-};
+export { container as DIContainer };

@@ -23,6 +23,10 @@ export declare class IdentityServiceHealthCheck implements IHealthCheckService {
      */
     checkHealth(): Promise<ServiceHealth>;
     /**
+     * Map overall health status to simplified status string
+     */
+    private mapStatus;
+    /**
      * Check database connectivity and performance
      */
     private checkDatabase;

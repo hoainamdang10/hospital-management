@@ -3,32 +3,60 @@
 > **Minimal, machine-friendly guide for coding agents**
 
 ## Quick Reference
-Luôn sử dụng các mcp đã được cấu hình để tận dụng tối đa hiệu suất và hiệu quả trong việc phát triển và triển khai các dịch vụ.
-Không được tạo md báo cáo, trừ khi user yêu cầu.
+
 **Project**: Hospital Management System V2
 **Architecture**: Clean Architecture + DDD + CQRS + Event-Driven
-**Status**: 40-50% Complete
+**Status**: 50-60% Complete (3 core services ready, 4 in development)
 **Node**: >= 18.0.0 | **npm**: >= 9.0.0
+**OS**: Windows (PowerShell) | macOS/Linux (Bash)
+
+### Agent Rules
+
+1. **MCP Usage**: Luôn sử dụng các MCP đã được cấu hình (Supabase MCP, Filesystem MCP) để tận dụng tối đa hiệu suất
+2. **No Documentation Files**: TUYỆT ĐỐI KHÔNG tạo markdown CHANGELOG, REPORT, kế hoạch chi tiết khi thực hiện xong task
+3. **Database Verification**: Luôn check Supabase project ID và verify database schema qua MCP, không tin vào migration files
+4. **Cleanup**: Các file code debug phải cleanup sau khi hoàn thành nhiệm vụ
+5. **Full Paths**: Luôn dùng đường dẫn đầy đủ khi dùng filesystem MCP
+6. **Language**: Trả lời bằng tiếng Việt, giữ nguyên thuật ngữ kỹ thuật tiếng Anh
 
 ### Essential Commands
 
 ```bash
-# Setup
-cd backend/services-v2 && npm install
+# Setup (from repository root)
+cd backend/services-v2
+npm install
 
-# Infrastructure
-npm run dev:infrastructure    # Redis + RabbitMQ
-npm run dev:core             # Core services (Identity, Patient, Provider)
-npm run dev:all              # All services
+# Infrastructure (Redis + RabbitMQ)
+npm run dev:infrastructure
+
+# Core Services (Identity, Patient, Provider)
+npm run dev:core
+
+# Business Services (Appointments, Clinical, Billing)
+npm run dev:business
+
+# Supporting Services (Notifications, Scheduler)
+npm run dev:supporting
+
+# All Services
+npm run dev:all
 
 # Build & Test
 npm run build:all            # Build all services
 npm run test:all             # Run all tests
 
-# Health Check
+# Health Checks
 curl http://localhost:3021/health  # Identity
 curl http://localhost:3023/health  # Patient
 curl http://localhost:3022/health  # Provider
+curl http://localhost:3024/health  # Appointments
+curl http://localhost:3027/health  # Clinical EMR
+curl http://localhost:3029/health  # Billing
+curl http://localhost:3031/health  # Notifications
+curl http://localhost:3101/health  # API Gateway
+
+# Windows PowerShell Health Check
+Invoke-WebRequest -Uri http://localhost:3021/health
 
 # Cleanup
 npm run dev:stop             # Stop services
@@ -37,19 +65,24 @@ npm run dev:clean            # Remove containers + volumes
 
 ### Service Ports
 
-| Service | Port | Status |
-|---------|------|--------|
-| identity-service | 3021 | ✅ Ready |
-| patient-registry-service | 3023 | ✅ Ready |
-| provider-staff-service | 3022 | ✅ Ready |
-| appointments-service | 3024 | 🔄 Dev |
-| clinical-emr-service | 3027 | 🔄 Dev |
-| billing-service | 3029 | 🔄 Dev |
-| notifications-service | 3031 | 🔄 Dev |
-| api-gateway | 3101 | ❌ Not Started |
-| Redis | 6380 | ✅ Infra |
-| RabbitMQ | 5673 | ✅ Infra |
-| RabbitMQ UI | 15673 | ✅ Infra |
+| Service | Port | Status | Coverage |
+|---------|------|--------|----------|
+| identity-service | 3021 | ✅ Ready | 90%+ |
+| patient-registry-service | 3023 | ✅ Ready | 90%+ |
+| provider-staff-service | 3022 | ✅ Ready | 85%+ |
+| appointments-service | 3024 | 🔄 Dev | 70%+ |
+| clinical-emr-service | 3027 | 🔄 Dev | 60%+ |
+| billing-service | 3029 | 🔄 Dev | 50%+ |
+| notifications-service | 3031 | 🔄 Dev | 60%+ |
+| department-service | 3025 | 🔄 Dev | 40%+ |
+| scheduler-service | 3030 | 🔄 Dev | 50%+ |
+| api-gateway | 3101 | 🔄 Dev | 70%+ |
+| **Infrastructure** | | | |
+| Redis | 6380 | ✅ Infra | - |
+| RabbitMQ | 5673 | ✅ Infra | - |
+| RabbitMQ UI | 15673 | ✅ Infra | - |
+| **Frontend** | | | |
+| Next.js App | 3000 | ✅ Ready | 60%+ |
 
 ---
 
@@ -57,19 +90,39 @@ npm run dev:clean            # Remove containers + volumes
 
 ```
 hospital-management-V2/
-├── backend/services-v2/         # Microservices root
-│   ├── identity-service/       # Auth & User Management
-│   ├── patient-registry-service/
-│   ├── provider-staff-service/
-│   ├── appointments-service/
-│   ├── clinical-emr-service/
-│   ├── billing-service/
-│   ├── notifications-service/
-│   ├── shared/                 # Shared domain primitives
-│   ├── docker-compose.v2.yml   # Orchestration
-│   └── package.json            # Monorepo scripts
-├── frontend/                   # Next.js 15 app
-└── AGENTS.md                   # This file
+├── backend/
+│   └── services-v2/                    # Microservices root
+│       ├── identity-service/           # ✅ Auth & User Management
+│       ├── patient-registry-service/   # ✅ Patient Management
+│       ├── provider-staff-service/     # ✅ Doctor/Staff Management
+│       ├── appointments-service/       # 🔄 Appointments & Scheduling
+│       ├── clinical-emr-service/       # 🔄 Medical Records & FHIR
+│       ├── billing-service/            # 🔄 Payments & Billing
+│       ├── notifications-service/      # 🔄 Notifications
+│       ├── department-service/         # 🔄 Department Management
+│       ├── scheduler-service/          # 🔄 Job Scheduling
+│       ├── api-gateway/                # 🔄 API Gateway
+│       ├── shared/                     # Shared domain primitives
+│       │   ├── domain/                 # Base entities, value objects
+│       │   ├── application/            # Base use cases, services
+│       │   ├── infrastructure/         # DB, event bus, logging
+│       │   ├── events/                 # Domain events
+│       │   ├── testing/                # Test utilities
+│       │   ├── workflows/              # Cross-service workflows
+│       │   └── sdk/                    # Client SDKs
+│       ├── docker-compose.v2.yml       # Orchestration
+│       ├── package.json                # Monorepo scripts
+│       └── scripts/                    # Utility scripts
+├── frontend/                           # Next.js 15 + React 18
+│   ├── app/                           # Next.js App Router
+│   ├── modules/                       # Feature modules
+│   ├── components/                    # React components
+│   └── package.json                   # Frontend dependencies
+├── .augment/                          # Augment AI configuration
+│   └── rules/                         # AI behavior rules
+├── package.json                       # Root dependencies
+├── AGENTS.md                          # This file
+└── README.md                          # Project overview
 ```
 
 ### Service Structure (Clean Architecture)
@@ -110,7 +163,7 @@ npm install
 Create `backend/services-v2/.env`:
 
 ```env
-# Supabase (Required)
+# Supabase (Required) - Verify project ID via Supabase MCP
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
 SUPABASE_JWT_SECRET=your-jwt-secret
@@ -118,13 +171,28 @@ SUPABASE_JWT_SECRET=your-jwt-secret
 # Service
 NODE_ENV=development
 JWT_SECRET=your-jwt-secret
+PORT=3021  # Service-specific port
 
-# Infrastructure (auto-configured)
+# Infrastructure (auto-configured by docker-compose)
 REDIS_URL=redis://redis-v2:6379
 RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
+
+# External Services (Optional)
+SENDGRID_API_KEY=SG.xxx  # For email notifications
+TWILIO_ACCOUNT_SID=xxx   # For SMS notifications
+TWILIO_AUTH_TOKEN=xxx
+TWILIO_PHONE_NUMBER=+xxx
+
+# Monitoring (Optional)
+LOG_LEVEL=info
+LOG_FORMAT=json
 ```
 
-**⚠️ Never commit `.env` files**
+**⚠️ Security:**
+- Never commit `.env` files
+- Use Supabase MCP to verify project ID
+- Rotate keys regularly
+- Use different keys for dev/staging/production
 
 ### 4. Start Services
 
@@ -193,14 +261,140 @@ npm run lint:fix               # Fix linting
 npm run format                 # Prettier
 ```
 
-### Frontend
+### Frontend Development
 
 ```bash
 cd frontend
+npm install                    # Install dependencies
 npm run dev                    # http://localhost:3000
 npm run build                  # Production build
+npm run start                  # Start production server
 npm run typecheck              # TypeScript check
+npm run lint                   # ESLint check
+npm test                       # Run Jest tests
+npm run test:watch             # Watch mode
+npm run test:coverage          # Coverage report
 ```
+
+**Frontend Stack:**
+- Next.js 15.3.2 (App Router)
+- React 18.3.1
+- TypeScript 5.8.3
+- Tailwind CSS 4.1.7
+- Jest 29.7.0 + Testing Library
+
+---
+
+## MCP Servers & Tools
+
+### Available MCP Servers
+
+**1. Supabase MCP**
+- **Purpose**: Direct database access and schema verification
+- **Usage**: Always verify database schema before making changes
+- **Critical**: Migration files may be outdated, use MCP as source of truth
+- **Commands**: Check project ID, verify schemas, query tables
+
+**2. Filesystem MCP**
+- **Purpose**: File operations with full path support
+- **Usage**: Always use absolute paths from `D:\hospital-management-V2`
+- **Critical**: Required for file operations in Windows environment
+
+**3. Auggie MCP**
+- **Purpose**: AI-assisted development tasks
+- **Usage**: Complex refactoring, code generation, analysis
+
+### MCP Best Practices
+
+```bash
+# Always verify Supabase project ID
+# Use Supabase MCP to check schema before migrations
+
+# Always use full paths for filesystem operations
+# Example: D:\hospital-management-V2\backend\services-v2\identity-service\src\...
+
+# Use Auggie for complex tasks
+# Example: Refactoring entire service, generating boilerplate
+```
+
+---
+
+## Shared Modules
+
+### Location
+`backend/services-v2/shared/`
+
+### Structure
+
+```
+shared/
+├── domain/                    # Base domain primitives
+│   ├── AggregateRoot.ts      # Base aggregate
+│   ├── Entity.ts             # Base entity
+│   ├── ValueObject.ts        # Base value object
+│   └── DomainEvent.ts        # Base domain event
+├── application/               # Base application layer
+│   ├── base/                 # Base use cases
+│   ├── services/             # Application services
+│   └── use-cases/            # Use case templates
+├── infrastructure/            # Shared infrastructure
+│   ├── database/             # Supabase client, optimization
+│   ├── event-bus/            # RabbitMQ event bus
+│   ├── logging/              # Pino logger
+│   ├── middleware/           # Express middleware
+│   └── validation/           # Input validation
+├── events/                    # Domain events
+│   ├── EventBusConfiguration.ts
+│   ├── VietnameseHealthcareEvents.ts
+│   └── DepartmentEvents.ts
+├── testing/                   # Test utilities
+│   ├── IntegrationTestFramework.ts
+│   ├── EndToEndTestSuite.ts
+│   └── PerformanceTestSuite.ts
+├── workflows/                 # Cross-service workflows
+│   ├── PatientJourneyWorkflow.ts
+│   ├── AppointmentBillingWorkflow.ts
+│   └── NotificationTriggerWorkflow.ts
+└── sdk/                       # Client SDKs
+    └── scheduler-client/      # Scheduler service client
+```
+
+### Usage in Services
+
+```typescript
+// Import from shared modules
+import { AggregateRoot } from '@shared/domain';
+import { createOptimizedSupabaseClient } from '@shared/infrastructure/database';
+import { RabbitMQEventBus } from '@shared/infrastructure/event-bus';
+import { logger } from '@shared/utils/logger';
+
+// Use in service
+export class Patient extends AggregateRoot {
+  // Implementation
+}
+```
+
+### Key Shared Components
+
+**1. Optimized Supabase Client**
+- Location: `shared/infrastructure/database/optimized-supabase-client.ts`
+- Features: Connection pooling, query optimization, caching
+- Usage: All services MUST use this instead of raw Supabase client
+
+**2. RabbitMQ Event Bus**
+- Location: `shared/infrastructure/event-bus/`
+- Features: Event publishing, subscription, retry logic
+- Usage: All inter-service communication
+
+**3. Domain Events**
+- Location: `shared/events/`
+- Features: Standardized event naming, Vietnamese healthcare events
+- Convention: `<service>.<entity>.<action>`
+
+**4. Test Utilities**
+- Location: `shared/testing/`
+- Features: Integration test framework, E2E test suite
+- Usage: All services should use these for consistent testing
 
 ---
 
@@ -402,82 +596,268 @@ Examples:
 
 ## Services Overview
 
-### Identity Service (3021) ✅
+### Core Services (Ready for Production)
 
-**Responsibilities**: Auth, User Management, RBAC
+#### Identity Service (3021) ✅
 
-**Key Features**: JWT auth, 5 roles (SUPER_ADMIN, ADMIN, DOCTOR, NURSE, PATIENT), password policies
+**Status**: Production Ready | **Coverage**: 90%+
+
+**Responsibilities**: Authentication, Authorization, User Management, RBAC
+
+**Key Features**:
+- JWT authentication with Supabase
+- 5 roles: SUPER_ADMIN, ADMIN, DOCTOR, NURSE, PATIENT
+- Password policies & validation
+- Email verification (SendGrid/Resend)
+- Rate limiting & security headers
+- Circuit breaker pattern
+- Prometheus metrics
 
 **Schema**: `auth_schema`
+
+**Tech Stack**: Express, TypeScript, Supabase, Redis, RabbitMQ, Pino
 
 **Endpoints**:
 ```
 POST /api/auth/register
 POST /api/auth/login
+POST /api/auth/logout
 GET  /api/users/:id
+PUT  /api/users/:id
+GET  /health
+GET  /metrics
 ```
 
-### Patient Registry (3023) ✅
+#### Patient Registry (3023) ✅
 
-**Responsibilities**: Patient Management, Medical History
+**Status**: Production Ready | **Coverage**: 90%+
 
-**Key Features**: Vietnamese ID validation, medical history, emergency contacts, insurance (BHYT/BHTN)
+**Responsibilities**: Patient Management, Medical History, Insurance
+
+**Key Features**:
+- Vietnamese ID (CCCD) validation
+- Medical history tracking
+- Emergency contacts
+- Insurance (BHYT/BHTN) management
+- HIPAA compliance
+- Audit logging
+- Event-driven updates
 
 **Schema**: `patient_schema`
+
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
 
 **Endpoints**:
 ```
 POST /api/patients
 GET  /api/patients/:id
+PUT  /api/patients/:id
 GET  /api/patients/:id/history
+POST /api/patients/:id/insurance
+GET  /health
 ```
 
-### Provider/Staff (3022) ✅
+#### Provider/Staff (3022) ✅
 
-**Responsibilities**: Doctor/Staff Management
+**Status**: Production Ready | **Coverage**: 85%+
 
-**Key Features**: Credentials, departments, schedules, specializations
+**Responsibilities**: Doctor/Staff Management, Schedules, Credentials
+
+**Key Features**:
+- Doctor/Staff profiles
+- Credentials & certifications
+- Department assignments
+- Schedule management
+- Specializations
+- Availability tracking
 
 **Schema**: `provider_schema`
+
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
 
 **Endpoints**:
 ```
 POST /api/providers
 GET  /api/providers/:id
+PUT  /api/providers/:id
 GET  /api/providers/:id/schedule
+POST /api/providers/:id/credentials
+GET  /health
 ```
 
-### Appointments (3024) 🔄
+### Business Services (In Development)
 
-**Responsibilities**: Appointments, Queue Management
+#### Appointments Service (3024) 🔄
 
-**Planned**: Booking, queue, calendar, reminders, conflict detection
+**Status**: 70% Complete | **Coverage**: 70%+
+
+**Responsibilities**: Appointment Booking, Queue Management, Scheduling
+
+**Key Features**:
+- Appointment booking & cancellation
+- Queue management
+- Conflict detection
+- Calendar integration
+- Reminder notifications
+- Integration with Scheduler Service
 
 **Schema**: `appointments_schema`
 
-### Clinical EMR (3027) 🔄
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ, Scheduler SDK
 
-**Responsibilities**: Medical Records, FHIR Compliance
+**Endpoints**:
+```
+POST /api/appointments
+GET  /api/appointments/:id
+PUT  /api/appointments/:id
+DELETE /api/appointments/:id
+GET  /api/appointments/queue
+POST /api/appointments/:id/reschedule
+GET  /health
+```
 
-**Planned**: EMR, FHIR R4, clinical notes, lab results, prescriptions
+#### Clinical EMR (3027) 🔄
 
-**Schema**: `clinical_schema`
+**Status**: 60% Complete | **Coverage**: 60%+
 
-### Billing (3029) 🔄
+**Responsibilities**: Electronic Medical Records, FHIR Compliance
 
-**Responsibilities**: Payments, Insurance Claims
+**Key Features**:
+- EMR management
+- FHIR R4 compliance
+- Clinical notes
+- Lab results
+- Prescriptions
+- Medical imaging references
+- Audit trail
 
-**Planned**: Invoices, payments, insurance (BHYT/BHTN), refunds
+**Schema**: `medical_records_schema`
 
-**Schema**: `billing_schema`
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
 
-### Notifications (3031) 🔄
+**Endpoints**:
+```
+POST /api/emr/records
+GET  /api/emr/records/:id
+POST /api/emr/records/:id/notes
+POST /api/emr/records/:id/prescriptions
+GET  /api/emr/records/:id/history
+GET  /health
+```
+
+#### Billing Service (3029) 🔄
+
+**Status**: 50% Complete | **Coverage**: 50%+
+
+**Responsibilities**: Invoicing, Payments, Insurance Claims
+
+**Key Features**:
+- Invoice generation
+- Payment processing
+- Insurance claims (BHYT/BHTN)
+- Refunds
+- Payment history
+- Integration with Vietnamese payment gateways
+
+**Schema**: `payment_schema`
+
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
+
+**Endpoints**:
+```
+POST /api/billing/invoices
+GET  /api/billing/invoices/:id
+POST /api/billing/payments
+POST /api/billing/claims
+GET  /api/billing/history/:patientId
+GET  /health
+```
+
+### Supporting Services
+
+#### Notifications Service (3031) 🔄
+
+**Status**: 60% Complete | **Coverage**: 60%+
 
 **Responsibilities**: Multi-channel Notifications
 
-**Planned**: Email, SMS, in-app, push notifications
+**Key Features**:
+- Email notifications (SendGrid)
+- SMS notifications (Twilio)
+- In-app notifications
+- Push notifications
+- Template management
+- Delivery tracking
 
 **Schema**: `notifications_schema`
+
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ, SendGrid, Twilio
+
+**Endpoints**:
+```
+POST /api/notifications/email
+POST /api/notifications/sms
+GET  /api/notifications/:userId
+PUT  /api/notifications/:id/read
+GET  /health
+```
+
+#### Department Service (3025) 🔄
+
+**Status**: 40% Complete | **Coverage**: 40%+
+
+**Responsibilities**: Department Management, Organizational Structure
+
+**Key Features**:
+- Department CRUD
+- Hierarchical structure
+- Staff assignments
+- Resource management
+
+**Schema**: `department_schema`
+
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
+
+#### Scheduler Service (3030) 🔄
+
+**Status**: 50% Complete | **Coverage**: 50%+
+
+**Responsibilities**: Job Scheduling, Recurring Tasks
+
+**Key Features**:
+- Cron-based scheduling
+- Recurring tasks
+- Job monitoring
+- Dead letter queue
+- SDK for other services
+
+**Schema**: `scheduler_schema`
+
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
+
+#### API Gateway (3101) 🔄
+
+**Status**: 70% Complete | **Coverage**: 70%+
+
+**Responsibilities**: Unified API Entry Point, Routing, Security
+
+**Key Features**:
+- Request routing
+- JWT validation
+- Rate limiting (Redis)
+- CORS handling
+- Circuit breaker
+- Request/response logging
+- Prometheus metrics
+
+**Tech Stack**: Express, TypeScript, Redis, Prometheus
+
+**Endpoints**:
+```
+/* Proxies to all services
+GET  /health
+GET  /metrics
+```
 
 ---
 
@@ -534,18 +914,81 @@ test(provider): add credential validation tests
 
 ---
 
+## Platform-Specific Commands
+
+### Windows (PowerShell)
+
+```powershell
+# Find process using port
+netstat -ano | findstr :3021
+Get-Process -Id <PID>
+
+# Kill process
+taskkill /PID <PID> /F
+Stop-Process -Id <PID> -Force
+
+# Health check
+Invoke-WebRequest -Uri http://localhost:3021/health
+
+# View logs
+docker logs hospital-identity-service-v2 -f
+
+# Environment variables
+$env:NODE_ENV = "development"
+Get-ChildItem Env:
+
+# File operations (use full paths)
+cd D:\hospital-management-V2\backend\services-v2
+```
+
+### macOS/Linux (Bash)
+
+```bash
+# Find process using port
+lsof -i :3021
+ps aux | grep node
+
+# Kill process
+kill -9 <PID>
+pkill -f "node.*identity-service"
+
+# Health check
+curl http://localhost:3021/health
+
+# View logs
+docker logs hospital-identity-service-v2 -f
+
+# Environment variables
+export NODE_ENV=development
+printenv
+```
+
+---
+
 ## Troubleshooting
 
 ### Port Already in Use
 
-```bash
-# Find process
-lsof -i :3021              # macOS/Linux
-netstat -ano | findstr :3021  # Windows
+**Windows:**
+```powershell
+# Find and kill process
+netstat -ano | findstr :3021
+taskkill /PID <PID> /F
 
-# Kill process
-kill -9 <PID>              # macOS/Linux
-taskkill /PID <PID> /F     # Windows
+# Or use Docker
+docker ps
+docker stop hospital-identity-service-v2
+```
+
+**macOS/Linux:**
+```bash
+# Find and kill process
+lsof -i :3021
+kill -9 <PID>
+
+# Or use Docker
+docker ps
+docker stop hospital-identity-service-v2
 ```
 
 ### Docker Issues
@@ -564,13 +1007,35 @@ npm run dev:core
 
 ### Database Connection Failed
 
+**Step 1: Verify Credentials**
 ```bash
-# Verify credentials
-cat backend/services-v2/.env
+# Windows
+type backend\services-v2\.env
 
-# Test connection
+# macOS/Linux
+cat backend/services-v2/.env
+```
+
+**Step 2: Use Supabase MCP to Verify**
+- Check project ID matches SUPABASE_URL
+- Verify service role key is valid
+- Check schema exists
+
+**Step 3: Test Connection**
+```bash
+# Windows PowerShell
+$headers = @{ "apikey" = "YOUR_KEY" }
+Invoke-WebRequest -Uri "https://YOUR_PROJECT.supabase.co/rest/v1/" -Headers $headers
+
+# macOS/Linux
 curl -H "apikey: YOUR_KEY" https://YOUR_PROJECT.supabase.co/rest/v1/
 ```
+
+**Step 4: Check Supabase Optimization Config**
+- Location: `shared/infrastructure/database/supabase-optimization.config.ts`
+- Verify connection pool settings
+- Check max connections (15 for dev, 20 for prod)
+- Ensure not exceeding Supabase free tier limits (60 connections)
 
 ### Tests Failing
 
@@ -587,34 +1052,251 @@ node --inspect-brk node_modules/.bin/jest --runInBand
 
 ### Build Errors
 
+**Windows:**
+```powershell
+# Clean build
+Remove-Item -Recurse -Force dist
+npm run build
+
+# Check TypeScript config
+type tsconfig.json
+
+# Check for circular dependencies
+npm run build 2>&1 | Select-String "circular"
+```
+
+**macOS/Linux:**
 ```bash
 # Clean build
 rm -rf dist && npm run build
 
-# Check config
+# Check TypeScript config
 cat tsconfig.json
+
+# Check for circular dependencies
+npm run build 2>&1 | grep "circular"
+```
+
+### Common Issues
+
+**1. TypeScript Errors**
+- Check `tsconfig.json` paths configuration
+- Verify `tsc-alias` is installed
+- Run `npm run build` to see detailed errors
+
+**2. Module Resolution**
+- Ensure `@shared` alias is configured in `tsconfig.json`
+- Check `paths` in `tsconfig.json`
+- Verify imports use correct paths
+
+**3. Supabase Connection Pool Exhausted**
+- Check active connections via Supabase MCP
+- Verify connection pool settings in `supabase-optimization.config.ts`
+- Ensure services are closing connections properly
+- Free tier limit: 60 connections
+
+**4. RabbitMQ Connection Failed**
+- Verify RabbitMQ is running: `docker ps | grep rabbitmq`
+- Check credentials: admin/admin (default)
+- Verify port 5673 is not in use
+- Check RabbitMQ UI: http://localhost:15673
+
+**5. Redis Connection Failed**
+- Verify Redis is running: `docker ps | grep redis`
+- Check port 6380 is not in use
+- Test connection: `redis-cli -p 6380 ping`
+
+**6. Frontend Build Errors**
+- Clear Next.js cache: `rm -rf .next` (or `Remove-Item -Recurse .next`)
+- Reinstall dependencies: `npm install`
+- Check Node version: `node --version` (>= 18.0.0)
+- Verify Tailwind CSS config
+
+---
+
+## Dependencies
+
+### Root Dependencies
+
+**Location**: `package.json` (repository root)
+
+```json
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.0",
+    "axios": "^1.10.0",
+    "context7": "^1.0.3",
+    "dotenv": "^17.2.1",
+    "mcp-knowledge-graph": "^1.2.0",
+    "puppeteer": "^24.11.0",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "playwright": "^1.56.0",
+    "ts-jest": "^29.1.2"
+  }
+}
+```
+
+### Backend Service Dependencies
+
+**Common Dependencies** (all services):
+- `express`: ^4.18.2
+- `typescript`: ^5.2.2
+- `@supabase/supabase-js`: ^2.38.0
+- `amqplib`: ^0.10.3 (RabbitMQ)
+- `redis`: ^4.6.10
+- `pino`: ^10.1.0 (logging)
+- `jest`: ^29.7.0 (testing)
+- `dotenv`: ^16.3.1
+
+**Service-Specific**:
+- Identity: `bcrypt`, `jsonwebtoken`, `resend`, `@sendgrid/mail`
+- Notifications: `@sendgrid/mail`, `twilio`
+- API Gateway: `helmet`, `express-rate-limit`, `prom-client`
+
+### Frontend Dependencies
+
+**Location**: `frontend/package.json`
+
+```json
+{
+  "dependencies": {
+    "next": "15.3.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.1.7",
+    "typescript": "5.8.3",
+    "jest": "^29.7.0",
+    "@testing-library/react": "^14.1.2",
+    "eslint": "^9.0.0"
+  }
+}
+```
+
+### Installing Dependencies
+
+```bash
+# Root dependencies
+npm install
+
+# Backend services (all)
+cd backend/services-v2
+npm run install:all
+
+# Specific service
+cd backend/services-v2/identity-service
+npm install
+
+# Frontend
+cd frontend
+npm install
 ```
 
 ---
 
 ## Resources
 
-### Documentation
+### Internal Documentation
 
-- [README.md](./README.md) - Project overview
-- [backend/services-v2/README.md](./backend/services-v2/README.md) - Services overview
-- [PORT-MAPPING.md](./backend/services-v2/PORT-MAPPING.md) - Port configuration
+- [README.md](./README.md) - Project overview & quick start
+- [backend/services-v2/README.md](./backend/services-v2/README.md) - Services detailed overview
+- [backend/services-v2/PORT-MAPPING.md](./backend/services-v2/PORT-MAPPING.md) - Port configuration
+- [backend/services-v2/COMPREHENSIVE_AUDIT_REPORT.md](./backend/services-v2/COMPREHENSIVE_AUDIT_REPORT.md) - Architecture audit
+- [.augment/rules/AI-behavior.md](./.augment/rules/AI-behavior.md) - AI agent behavior rules
 
-### External
+### Service-Specific Documentation
 
-- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-- [DDD](https://martinfowler.com/bliki/DomainDrivenDesign.html)
-- [CQRS](https://martinfowler.com/bliki/CQRS.html)
-- [Supabase Docs](https://supabase.com/docs)
-- [RabbitMQ Tutorials](https://www.rabbitmq.com/getstarted.html)
+- [identity-service/README.md](./backend/services-v2/identity-service/README.md)
+- [patient-registry-service/README.md](./backend/services-v2/patient-registry-service/README.md)
+- [provider-staff-service/README.md](./backend/services-v2/provider-staff-service/README.md)
+- [appointments-service/README.md](./backend/services-v2/appointments-service/README.md)
+- [clinical-emr-service/README.md](./backend/services-v2/clinical-emr-service/README.md)
+- [billing-service/README.md](./backend/services-v2/billing-service/README.md)
+- [notifications-service/README.md](./backend/services-v2/notifications-service/README.md)
+- [api-gateway/README.md](./backend/services-v2/api-gateway/README.md)
+
+### External Resources
+
+**Architecture & Patterns:**
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) - Uncle Bob's original article
+- [DDD](https://martinfowler.com/bliki/DomainDrivenDesign.html) - Domain-Driven Design by Martin Fowler
+- [CQRS](https://martinfowler.com/bliki/CQRS.html) - Command Query Responsibility Segregation
+- [Event-Driven Architecture](https://martinfowler.com/articles/201701-event-driven.html) - Event-driven systems
+
+**Technologies:**
+- [Supabase Docs](https://supabase.com/docs) - Database & authentication
+- [RabbitMQ Tutorials](https://www.rabbitmq.com/getstarted.html) - Message broker
+- [Redis Documentation](https://redis.io/docs/) - Caching & rate limiting
+- [Next.js 15 Docs](https://nextjs.org/docs) - Frontend framework
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/) - TypeScript guide
+
+**Testing:**
+- [Jest Documentation](https://jestjs.io/docs/getting-started) - Testing framework
+- [Testing Library](https://testing-library.com/docs/) - React testing
+- [Playwright](https://playwright.dev/docs/intro) - E2E testing
+
+**Vietnamese Healthcare:**
+- [BHYT Guidelines](https://baohiemxahoi.gov.vn/) - Vietnamese health insurance
+- [FHIR R4](https://www.hl7.org/fhir/) - Healthcare data standards
+
+---
+
+## Quick Reference Card
+
+### Most Used Commands
+
+```bash
+# Start development
+cd backend/services-v2
+npm run dev:infrastructure  # Start Redis + RabbitMQ
+npm run dev:core           # Start core services
+
+# Health checks
+curl http://localhost:3021/health  # Identity
+curl http://localhost:3023/health  # Patient
+curl http://localhost:3022/health  # Provider
+
+# Build & test
+npm run build:all
+npm run test:all
+
+# Cleanup
+npm run dev:stop
+npm run dev:clean
+```
+
+### Critical Paths
+
+```
+D:\hospital-management-V2\backend\services-v2\          # Services root
+D:\hospital-management-V2\backend\services-v2\shared\   # Shared modules
+D:\hospital-management-V2\frontend\                     # Frontend
+D:\hospital-management-V2\.augment\rules\               # AI rules
+```
+
+### Environment Variables (Required)
+
+```env
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+SUPABASE_JWT_SECRET=your-jwt-secret
+NODE_ENV=development
+```
+
+### Key Contacts & Support
+
+- **Repository**: https://github.com/Kutou01/hospital-management
+- **Issues**: https://github.com/Kutou01/hospital-management/issues
+- **Supabase Project**: Verify via Supabase MCP
 
 ---
 
 **Version**: 2.0.0-alpha
-**Last Updated**: 2025-10-29
+**Last Updated**: 2025-01-11
 **For Coding Agents**: Minimal, machine-friendly guide. Follow strictly.
+**Platform**: Windows (Primary) | macOS/Linux (Supported)

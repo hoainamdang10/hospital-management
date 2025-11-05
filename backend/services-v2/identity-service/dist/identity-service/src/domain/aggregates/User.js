@@ -22,6 +22,7 @@ const UserAuthenticatedEvent_1 = require("../events/UserAuthenticatedEvent");
 const UserRoleChangedEvent_1 = require("../events/UserRoleChangedEvent");
 const UserDeactivatedEvent_1 = require("../events/UserDeactivatedEvent");
 const UserActivatedEvent_1 = require("../events/UserActivatedEvent");
+const UserAccountLockedEvent_1 = require("../events/UserAccountLockedEvent");
 /**
  * User Aggregate Root with Enhanced Error Handling
  * Implements anti-patterns mitigation and graceful degradation
@@ -45,7 +46,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
         try {
             // Validate at least one role
             if (!healthcareRoles || healthcareRoles.length === 0) {
-                throw new Error('User must have at least one role');
+                throw new Error("User must have at least one role");
             }
             const userId = UserId_1.UserId.generate();
             const now = new Date();
@@ -57,7 +58,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
                 accountStatus: AccountStatus_1.AccountStatus.ACTIVE,
                 isEmailVerified: false,
                 createdAt: now,
-                updatedAt: now
+                updatedAt: now,
             });
             // Validate business invariants before creating
             user.validateBusinessInvariants();
@@ -92,7 +93,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             deactivatedBy,
             lastLoginAt,
             createdAt,
-            updatedAt
+            updatedAt,
         };
         const user = new User(props, id);
         // Relaxed validation for reconstitution - only validate critical invariants
@@ -177,7 +178,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
      * @returns Array of role type strings (e.g., ['DOCTOR', 'ADMIN'])
      */
     get roleTypes() {
-        return this.props.healthcareRoles.map(r => r.type);
+        return this.props.healthcareRoles.map((r) => r.type);
     }
     /**
      * Check if user has a specific role
@@ -186,7 +187,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
      * @returns true if user has the role, false otherwise
      */
     hasRole(roleType) {
-        return this.props.healthcareRoles.some(r => r.type === roleType);
+        return this.props.healthcareRoles.some((r) => r.type === roleType);
     }
     /**
      * Add a role to user
@@ -200,7 +201,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
     addRole(newRole, assignedBy) {
         try {
             // Check if role already assigned
-            const hasRole = this.props.healthcareRoles.some(r => r.type === newRole.type);
+            const hasRole = this.props.healthcareRoles.some((r) => r.type === newRole.type);
             if (hasRole) {
                 throw new Error(`User already has role: ${newRole.type}`);
             }
@@ -226,9 +227,9 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
     removeRole(roleType, removedBy) {
         try {
             if (this.props.healthcareRoles.length === 1) {
-                throw new Error('Cannot remove last role. User must have at least one role.');
+                throw new Error("Cannot remove last role. User must have at least one role.");
             }
-            const roleIndex = this.props.healthcareRoles.findIndex(r => r.type === roleType);
+            const roleIndex = this.props.healthcareRoles.findIndex((r) => r.type === roleType);
             if (roleIndex === -1) {
                 throw new Error(`User does not have role: ${roleType}`);
             }
@@ -266,7 +267,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
      * @deprecated Use roleTypes getter instead
      */
     getRoleTypes() {
-        return this.props.healthcareRoles.map(r => r.type);
+        return this.props.healthcareRoles.map((r) => r.type);
     }
     /**
      * Update personal info with validation
@@ -289,19 +290,21 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
         const errors = [];
         // Email validation
         if (!this.props.email || !this.props.email.isValid()) {
-            errors.push('Email không hợp lệ');
+            errors.push("Email không hợp lệ");
         }
         // Healthcare role validation
-        if (!this.props.healthcareRoles || this.props.healthcareRoles.length === 0) {
-            errors.push('Vai trò y tế phải được chỉ định');
+        if (!this.props.healthcareRoles ||
+            this.props.healthcareRoles.length === 0) {
+            errors.push("Vai trò y tế phải được chỉ định");
         }
         // Personal info validation for active users
-        if (this.props.accountStatus === AccountStatus_1.AccountStatus.ACTIVE && !this.props.personalInfo.isComplete()) {
-            errors.push('Thông tin cá nhân phải đầy đủ cho người dùng đang hoạt động');
+        if (this.props.accountStatus === AccountStatus_1.AccountStatus.ACTIVE &&
+            !this.props.personalInfo.isComplete()) {
+            errors.push("Thông tin cá nhân phải đầy đủ cho người dùng đang hoạt động");
         }
         // Password validation removed - handled by Supabase Auth
         if (errors.length > 0) {
-            throw new Error(`Business invariants violated: ${errors.join(', ')}`);
+            throw new Error(`Business invariants violated: ${errors.join(", ")}`);
         }
     }
     /**
@@ -313,17 +316,18 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
         const errors = [];
         // Email validation (critical)
         if (!this.props.email || !this.props.email.isValid()) {
-            errors.push('Email không hợp lệ');
+            errors.push("Email không hợp lệ");
         }
         // Healthcare role validation (critical)
-        if (!this.props.healthcareRoles || this.props.healthcareRoles.length === 0) {
-            errors.push('Vai trò y tế phải được chỉ định');
+        if (!this.props.healthcareRoles ||
+            this.props.healthcareRoles.length === 0) {
+            errors.push("Vai trò y tế phải được chỉ định");
         }
         // Skip personal info validation for reconstitution
         // This allows us to load users with incomplete data from database
         // Validation will be enforced when user tries to update their profile
         if (errors.length > 0) {
-            throw new Error(`Critical invariants violated: ${errors.join(', ')}`);
+            throw new Error(`Critical invariants violated: ${errors.join(", ")}`);
         }
     }
     /**
@@ -380,13 +384,13 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
                 accountStatus: this.props.accountStatus,
                 isEmailVerified: this.props.isEmailVerified,
                 lastLoginAt: this.props.lastLoginAt?.toISOString(),
-                createdAt: this.props.createdAt.toISOString()
+                createdAt: this.props.createdAt.toISOString(),
             };
         }
         catch (error) {
             return {
-                userId: 'unknown',
-                error: 'Failed to extract user summary'
+                userId: "unknown",
+                error: "Failed to extract user summary",
             };
         }
     }
@@ -423,7 +427,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             this.props.deactivatedBy = deactivatedBy;
             this.props.updatedAt = now;
             // Emit domain event
-            this.addDomainEvent(new UserDeactivatedEvent_1.UserDeactivatedEvent(this.props.id, deactivatedBy, reason, this.props.email.value, this.roleTypes[0] || 'UNKNOWN'));
+            this.addDomainEvent(new UserDeactivatedEvent_1.UserDeactivatedEvent(this.props.id, deactivatedBy, reason, this.props.email.value, this.roleTypes[0] || "UNKNOWN"));
         }
         catch (error) {
             throw new Error(`Failed to deactivate user: ${getErrorMessage(error)}`);
@@ -432,7 +436,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
     /**
      * Lock account temporarily (can be unlocked by admin)
      */
-    lock(lockedBy, reason) {
+    lock(lockedBy, reason, terminatedSessions = false) {
         try {
             if (!AccountStatus_1.AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus_1.AccountStatus.LOCKED)) {
                 throw new Error(`Cannot lock account with status: ${this.props.accountStatus}`);
@@ -443,6 +447,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             this.props.deactivatedAt = now;
             this.props.deactivatedBy = lockedBy;
             this.props.updatedAt = now;
+            this.addDomainEvent(new UserAccountLockedEvent_1.UserAccountLockedEvent(this.props.id, lockedBy, reason, terminatedSessions, this.props.email.value, this.roleTypes[0] || "UNKNOWN"));
         }
         catch (error) {
             throw new Error(`Failed to lock user: ${getErrorMessage(error)}`);
@@ -455,7 +460,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
         try {
             // Prevent activation of permanently deactivated accounts
             if (AccountStatus_1.AccountStatusHelper.isPermanent(this.props.accountStatus)) {
-                throw new Error('Cannot activate permanently deactivated account');
+                throw new Error("Cannot activate permanently deactivated account");
             }
             // Validate transition
             if (!AccountStatus_1.AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus_1.AccountStatus.ACTIVE)) {
@@ -522,17 +527,17 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
                 gender: props.personalInfo.gender,
                 citizenId: props.personalInfo.citizenId,
                 emergencyContactName: props.personalInfo.emergencyContactName,
-                emergencyContactPhone: props.personalInfo.emergencyContactPhone
+                emergencyContactPhone: props.personalInfo.emergencyContactPhone,
             },
-            healthcareRoles: props.healthcareRoles.map(r => ({
+            healthcareRoles: props.healthcareRoles.map((r) => ({
                 type: r.type,
-                name: r.name
+                name: r.name,
             })),
             accountStatus: props.accountStatus,
             isEmailVerified: props.isEmailVerified,
             lastLoginAt: props.lastLoginAt,
             createdAt: props.createdAt,
-            updatedAt: props.updatedAt
+            updatedAt: props.updatedAt,
         };
     }
 }

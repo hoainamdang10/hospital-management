@@ -102,7 +102,7 @@ class OptimizedSupabaseClient {
                 this.setCachedResult(options.cacheKey, result, options.cacheTtl || 300000); // 5min default
             }
             // Log performance
-            logger_1.default.debug(`🔍 Query executed`, {
+            logger_1.default.debug(` Query executed`, {
                 service: this.config.serviceName,
                 schema: this.config.schemaName,
                 queryTime,
@@ -113,7 +113,7 @@ class OptimizedSupabaseClient {
         }
         catch (error) {
             const queryTime = Date.now() - startTime;
-            logger_1.default.error(`❌ Query failed`, {
+            logger_1.default.error(` Query failed`, {
                 service: this.config.serviceName,
                 schema: this.config.schemaName,
                 queryTime,
@@ -216,6 +216,18 @@ class OptimizedSupabaseClient {
      */
     getRawClient() {
         return this.client;
+    }
+    /**
+     * Get database connection (alias for getRawClient for compatibility)
+     */
+    getConnection() {
+        return this.client;
+    }
+    /**
+     * Cleanup resources (for DI container)
+     */
+    async cleanup() {
+        await this.close();
     }
     /**
      * Proxy method for table access (for convenience)

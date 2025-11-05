@@ -371,3 +371,67 @@ export const validateGrantConsent = [
 
   handleValidationErrors
 ];
+
+/**
+ * Validate revoke consent request
+ */
+export const validateRevokeConsent = [
+  param('patientId')
+    .notEmpty().withMessage('Patient ID không được để trống')
+    .matches(/^PAT-\d{6}-\d{3}$/).withMessage('Patient ID không đúng định dạng'),
+
+  param('consentId')
+    .notEmpty().withMessage('Consent ID không được để trống')
+    .isUUID().withMessage('Consent ID phải là UUID hợp lệ'),
+
+  handleValidationErrors
+];
+
+/**
+ * Validate update emergency contact request
+ */
+export const validateUpdateEmergencyContact = [
+  param('patientId')
+    .notEmpty().withMessage('Patient ID không được để trống')
+    .matches(/^PAT-\d{6}-\d{3}$/).withMessage('Patient ID không đúng định dạng'),
+
+  param('contactId')
+    .notEmpty().withMessage('Contact ID không được để trống')
+    .isUUID().withMessage('Contact ID phải là UUID hợp lệ'),
+
+  body('name')
+    .notEmpty().withMessage('Tên người liên hệ không được để trống')
+    .isLength({ min: 2, max: 255 }).withMessage('Tên phải từ 2-255 ký tự'),
+
+  body('relationship')
+    .notEmpty().withMessage('Mối quan hệ không được để trống'),
+
+  body('primaryPhone')
+    .notEmpty().withMessage('Số điện thoại chính không được để trống')
+    .matches(/^(0|\+84)[0-9]{9,10}$/).withMessage('Số điện thoại không hợp lệ'),
+
+  body('secondaryPhone')
+    .optional()
+    .matches(/^(0|\+84)[0-9]{9,10}$/).withMessage('Số điện thoại phụ không hợp lệ'),
+
+  body('email')
+    .optional()
+    .isEmail().withMessage('Email không hợp lệ'),
+
+  handleValidationErrors
+];
+
+/**
+ * Validate remove emergency contact request
+ */
+export const validateRemoveEmergencyContact = [
+  param('patientId')
+    .notEmpty().withMessage('Patient ID không được để trống')
+    .matches(/^PAT-\d{6}-\d{3}$/).withMessage('Patient ID không đúng định dạng'),
+
+  param('contactId')
+    .notEmpty().withMessage('Contact ID không được để trống')
+    .isUUID().withMessage('Contact ID phải là UUID hợp lệ'),
+
+  handleValidationErrors
+];

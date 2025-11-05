@@ -5,9 +5,9 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
-import { ILogger } from '../../application/services/ILogger';
-import { IEventPublisher, IntegrationEventPayload } from '../../application/services/IEventPublisher';
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
+import { ILogger } from "../../application/services/ILogger";
+import { IEventPublisher, IntegrationEventPayload } from "../../application/services/IEventPublisher";
 export declare class RabbitMQEventPublisher implements IEventPublisher {
     private readonly rabbitMQUrl;
     private readonly logger;
@@ -15,6 +15,10 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
     private channel;
     private readonly exchangeName;
     private isConnected;
+    private readonly pendingEvents;
+    private flushingPending;
+    private readonly maxPublishAttempts;
+    private readonly publishRetryDelayMs;
     constructor(rabbitMQUrl: string, logger: ILogger);
     /**
      * Initialize RabbitMQ connection and channel
@@ -38,6 +42,8 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
      * Example: user.registered, user.activated, user.role_changed
      */
     private getRoutingKey;
+    private publishWithRetry;
+    private flushPendingEvents;
 }
 /**
  * Mock Event Publisher for testing

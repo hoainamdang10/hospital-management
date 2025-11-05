@@ -12,9 +12,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetPatientProfileUseCase = void 0;
 const PatientId_1 = require("../../domain/value-objects/PatientId");
 class GetPatientProfileUseCase {
-    constructor(patientRepository, logger) {
+    constructor(patientRepository, logger, auditService) {
         this.patientRepository = patientRepository;
         this.logger = logger;
+        this.auditService = auditService;
     }
     async execute(request) {
         try {
@@ -178,16 +179,28 @@ class GetPatientProfileUseCase {
     }
     /**
      * HIPAA audit logging for patient profile access
+     * Logs PHI access to phi_access_logs table via AuditService
      */
-    auditPatientProfileAccess(patient, request) {
-        this.logger.info('HIPAA Audit: Patient profile access', {
-            action: 'PATIENT_PROFILE_ACCESS',
-            patientId: patient.getPatientId(),
-            requestedBy: request.requestedBy,
-            timestamp: new Date().toISOString(),
-            dataAccessed: 'patient_full_profile',
-            complianceLevel: 'hipaa'
-        });
+    async auditPatientProfileAccess(patient, request) {
+        try {
+            // Log PHI access to phi_access_logs table (HIPAA compliance)
+            await this.auditService.logPHIAccess({
+                patientId: patient.getPatientId() || 'unknown',
+                userId: request.requestedBy || 'system',
+                accessType: 'READ',
+                accessedFields: ['patient_full_profile'],
+                reason: 'Patient profile retrieval',
+            });
+            this.logger.info("Patient profile access audited successfully", {
+                patientId: patient.getPatientId(),
+            });
+        }
+        catch (error) {
+            this.logger.error("Failed to audit patient profile access", {
+                patientId: patient.getPatientId(),
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+        }
     }
 }
 exports.GetPatientProfileUseCase = GetPatientProfileUseCase;

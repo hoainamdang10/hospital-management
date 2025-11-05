@@ -57,13 +57,18 @@ export declare class ConflictError extends ApplicationError {
     constructor(message: string, details?: unknown);
 }
 /**
- * Error handling middleware
+ * Error handling middleware with PHI/PII redaction
  */
 export declare class ErrorHandlingMiddleware {
     private logger;
     constructor(logger: ILogger);
     /**
-     * Handle errors
+     * Redact sensitive data from request before logging
+     * HIPAA compliance - remove PHI/PII from logs
+     */
+    private redactSensitiveData;
+    /**
+     * Handle errors with PHI/PII redaction
      */
     handle(): (err: Error, req: Request, res: Response, _next: NextFunction) => void;
     /**

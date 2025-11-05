@@ -5,11 +5,12 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
-import { ILogger } from '../services/ILogger';
+import { ISessionRepository } from "../../domain/repositories/ISessionRepository";
+import { ILogger } from "../services/ILogger";
 export interface TerminateAllSessionsRequest {
     userId: string;
     currentSessionId?: string;
+    accessToken?: string;
 }
 export interface TerminateAllSessionsResponse {
     success: boolean;

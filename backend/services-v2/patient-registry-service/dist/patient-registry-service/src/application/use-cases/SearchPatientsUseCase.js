@@ -87,8 +87,14 @@ class SearchPatientsUseCase {
                     }
                 });
             }
-            // 6. Map patients to response DTO
-            const patientsDTO = filteredPatients.map(patient => {
+            // 6. Calculate total before pagination
+            const total = filteredPatients.length;
+            const totalPages = Math.ceil(total / limit);
+            // 7. Apply pagination to filtered results
+            const offset = (page - 1) * limit;
+            const paginatedPatients = filteredPatients.slice(offset, offset + limit);
+            // 8. Map patients to response DTO
+            const patientsDTO = paginatedPatients.map(patient => {
                 const personalInfo = patient.getPersonalInfo();
                 const contactInfo = patient.getContactInfo();
                 const insuranceInfo = patient.getInsuranceInfo();
@@ -110,9 +116,6 @@ class SearchPatientsUseCase {
                     updatedAt: patient.getProps().updatedAt.toISOString()
                 };
             });
-            // 7. Calculate pagination
-            const total = filteredPatients.length;
-            const totalPages = Math.ceil(total / limit);
             return {
                 success: true,
                 message: `Tìm thấy ${total} bệnh nhân`,

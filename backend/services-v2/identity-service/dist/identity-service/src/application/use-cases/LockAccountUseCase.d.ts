@@ -6,12 +6,11 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS Command Pattern
  */
-import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { IUserRepository } from '../repositories/IUserRepository';
-import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
-import { ICircuitBreaker } from '../services/ICircuitBreaker';
-import { ILogger } from '../services/ILogger';
-import { IEventPublisher } from '../services/IEventPublisher';
+import { IUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
+import { IUserRepository } from "../repositories/IUserRepository";
+import { ISessionRepository } from "../../domain/repositories/ISessionRepository";
+import { ICircuitBreaker } from "../services/ICircuitBreaker";
+import { ILogger } from "../services/ILogger";
 export interface LockAccountRequest {
     userId: string;
     lockedBy: string;
@@ -34,8 +33,7 @@ export declare class LockAccountUseCase implements IUseCase<LockAccountRequest, 
     private sessionRepository;
     private logger;
     private circuitBreaker;
-    private eventPublisher?;
-    constructor(userRepository: IUserRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    constructor(userRepository: IUserRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker);
     execute(request: LockAccountRequest): Promise<LockAccountResponse>;
     private executeImpl;
     private validateRequest;

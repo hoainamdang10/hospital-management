@@ -22,7 +22,12 @@ import {
   validateMatchPatients,
   validateMergePatients,
   validateLinkPatients,
-  validateGetPatientList
+  validateGetPatientList,
+  validateAddEmergencyContact,
+  validateGrantConsent,
+  validateRevokeConsent,
+  validateUpdateEmergencyContact,
+  validateRemoveEmergencyContact
 } from '../middleware/ValidationMiddleware';
 
 /**
@@ -139,6 +144,16 @@ export function createPatientRoutes(controller: PatientController): Router {
   );
 
   /**
+   * Get patient history (audit logs and access logs)
+   * GET /api/v1/patients/:patientId/history
+   */
+  router.get(
+    '/:patientId/history',
+    validatePatientId,
+    asyncHandler(controller.getPatientHistory.bind(controller))
+  );
+
+  /**
    * Get patient by ID
    * GET /api/v1/patients/:patientId
    */
@@ -186,7 +201,7 @@ export function createPatientRoutes(controller: PatientController): Router {
    */
   router.post(
     '/:patientId/emergency-contacts',
-    validatePatientId,
+    validateAddEmergencyContact,
     asyncHandler(controller.addEmergencyContact.bind(controller))
   );
 
@@ -206,7 +221,7 @@ export function createPatientRoutes(controller: PatientController): Router {
    */
   router.put(
     '/:patientId/emergency-contacts/:contactId',
-    validatePatientId,
+    validateUpdateEmergencyContact,
     asyncHandler(controller.updateEmergencyContact.bind(controller))
   );
 
@@ -216,7 +231,7 @@ export function createPatientRoutes(controller: PatientController): Router {
    */
   router.delete(
     '/:patientId/emergency-contacts/:contactId',
-    validatePatientId,
+    validateRemoveEmergencyContact,
     asyncHandler(controller.removeEmergencyContact.bind(controller))
   );
 
@@ -293,7 +308,7 @@ export function createPatientRoutes(controller: PatientController): Router {
    */
   router.post(
     '/:patientId/consents',
-    validatePatientId,
+    validateGrantConsent,
     asyncHandler(controller.grantConsent.bind(controller))
   );
 
@@ -333,7 +348,7 @@ export function createPatientRoutes(controller: PatientController): Router {
    */
   router.post(
     '/:patientId/consents/:consentId/revoke',
-    validatePatientId,
+    validateRevokeConsent,
     asyncHandler(controller.revokeConsent.bind(controller))
   );
 

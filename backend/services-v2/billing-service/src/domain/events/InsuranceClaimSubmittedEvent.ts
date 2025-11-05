@@ -7,14 +7,9 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { IDomainEvent } from '../../../../shared/domain/events/IDomainEvent';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 
-export class InsuranceClaimSubmittedEvent implements IDomainEvent {
-  public readonly eventId: string;
-  public readonly aggregateId: string;
-  public readonly occurredAt: Date;
-  public readonly eventVersion: number = 1;
-
+export class InsuranceClaimSubmittedEvent extends DomainEvent {
   constructor(
     public readonly invoiceId: string,
     public readonly patientId: string,
@@ -23,19 +18,9 @@ export class InsuranceClaimSubmittedEvent implements IDomainEvent {
     public readonly insuranceNumber: string,
     public readonly claimAmount: number,
     public readonly currency: string,
-    public readonly claimNumber: string,
-    occurredAt: Date
+    public readonly claimNumber: string
   ) {
-    this.eventId = `insurance-claim-submitted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    this.aggregateId = invoiceId;
-    this.occurredAt = occurredAt;
-  }
-
-  /**
-   * Get event name
-   */
-  getEventName(): string {
-    return 'InsuranceClaimSubmittedEvent';
+    super(invoiceId, 'InsuranceClaimSubmittedEvent', 1);
   }
 
   /**
@@ -185,8 +170,6 @@ export class InsuranceClaimSubmittedEvent implements IDomainEvent {
       expectedProcessingDays: this.getExpectedProcessingDays(),
       vietnameseProcessingTimeDisplay: this.getVietnameseProcessingTimeDisplay(),
       requiredDocuments: this.getRequiredDocuments(),
-      occurredAt: this.occurredAt.toISOString(),
-      eventVersion: this.eventVersion,
       vietnameseDescription: `Đã gửi yêu cầu bồi thường ${this.getVietnameseInsuranceType()} số ${this.claimNumber}`
     };
   }
@@ -210,25 +193,6 @@ export class InsuranceClaimSubmittedEvent implements IDomainEvent {
       submittedDate: this.occurredAt.toLocaleDateString('vi-VN'),
       expectedCompletionDate: expectedCompletion.toLocaleDateString('vi-VN'),
       status: 'Đã gửi'
-    };
-  }
-
-  /**
-   * Serialize to JSON
-   */
-  toJSON(): any {
-    return {
-      eventId: this.eventId,
-      eventName: this.getEventName(),
-      aggregateId: this.aggregateId,
-      aggregateType: this.getAggregateType(),
-      eventVersion: this.eventVersion,
-      occurredAt: this.occurredAt.toISOString(),
-      eventData: this.getEventData(),
-      claimTrackingInfo: this.getClaimTrackingInfo(),
-      isBHYTClaim: this.isBHYTClaim(),
-      isBHTNClaim: this.isBHTNClaim(),
-      isPrivateClaim: this.isPrivateClaim()
     };
   }
 }

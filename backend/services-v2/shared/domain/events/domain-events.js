@@ -447,15 +447,17 @@ exports.AppointmentCancelledEvent = AppointmentCancelledEvent;
 /**
  * Published when appointment is completed
  * Subscribers: Clinical EMR Service, Billing Service, Notification Service
+ * Note: consultationFee is provided as reference for billing-service to create invoice
  */
 class AppointmentCompletedEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, patientId, doctorId, completedAt, duration, notes) {
+    constructor(appointmentId, patientId, doctorId, completedAt, duration, notes, consultationFee) {
         super('AppointmentCompleted', appointmentId, 'Appointment', {
             patientId,
             doctorId,
             completedAt,
             duration,
-            notes
+            notes,
+            consultationFee
         }, 1, undefined, undefined, doctorId);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
@@ -463,6 +465,7 @@ class AppointmentCompletedEvent extends domain_event_1.DomainEvent {
         this.completedAt = completedAt;
         this.duration = duration;
         this.notes = notes;
+        this.consultationFee = consultationFee;
     }
     getEventData() {
         return {
@@ -470,7 +473,8 @@ class AppointmentCompletedEvent extends domain_event_1.DomainEvent {
             doctorId: this.doctorId,
             completedAt: this.completedAt,
             duration: this.duration,
-            notes: this.notes
+            notes: this.notes,
+            consultationFee: this.consultationFee
         };
     }
     containsPHI() {

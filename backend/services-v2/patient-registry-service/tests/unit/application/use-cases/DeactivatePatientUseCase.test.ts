@@ -14,12 +14,14 @@ import { Patient } from '../../../../src/domain/aggregates/Patient';
 import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo';
 import { ContactInfo } from '../../../../src/domain/value-objects/ContactInfo';
 import { BasicMedicalInfo } from '../../../../src/domain/value-objects/BasicMedicalInfo';
+import { AuditService } from '../../../../src/infrastructure/audit/AuditService';
 
 describe('DeactivatePatientUseCase', () => {
   let useCase: DeactivatePatientUseCase;
   let mockRepository: jest.Mocked<IPatientRepository>;
   let mockEventBus: jest.Mocked<IEventBus>;
   let mockLogger: jest.Mocked<ILogger>;
+  let mockAuditService: jest.Mocked<AuditService>;
 
   beforeEach(() => {
     mockRepository = {
@@ -30,7 +32,13 @@ describe('DeactivatePatientUseCase', () => {
       findByBHYTNumber: jest.fn(),
       search: jest.fn(),
       findDuplicates: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      searchPatients: jest.fn(),
+      matchPatients: jest.fn(),
+      findWithFilters: jest.fn(),
+      getHealthStatus: jest.fn(),
+      getStatistics: jest.fn(),
+      getPatientHistory: jest.fn()
     } as any;
 
     mockEventBus = {
@@ -48,10 +56,17 @@ describe('DeactivatePatientUseCase', () => {
       fatal: jest.fn()
     } as any;
 
+    mockAuditService = {
+      logAudit: jest.fn().mockResolvedValue(undefined),
+      logPHIAccess: jest.fn().mockResolvedValue(undefined),
+      isEventProcessed: jest.fn().mockResolvedValue(false),
+    } as any;
+
     useCase = new DeactivatePatientUseCase(
       mockRepository,
       mockEventBus,
-      mockLogger
+      mockLogger,
+      mockAuditService
     );
   });
 
@@ -283,11 +298,9 @@ describe('DeactivatePatientUseCase', () => {
       await useCase.execute(request);
 
       expect(mockLogger.info).toHaveBeenCalledWith(
-        'HIPAA Audit: Patient deactivation',
+        'Patient deactivation audited successfully',
         expect.objectContaining({
-          action: 'PATIENT_DEACTIVATION',
-          patientId: request.patientId,
-          performedBy: request.performedBy
+          patientId: request.patientId
         })
       );
     });

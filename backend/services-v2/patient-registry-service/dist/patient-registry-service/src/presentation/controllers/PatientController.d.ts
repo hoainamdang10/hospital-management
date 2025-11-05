@@ -37,6 +37,7 @@ import { GetPatientPhotoUseCase } from '../../application/use-cases/GetPatientPh
 import { DeletePatientPhotoUseCase } from '../../application/use-cases/DeletePatientPhotoUseCase';
 import { UpdateCommunicationPreferencesUseCase } from '../../application/use-cases/UpdateCommunicationPreferencesUseCase';
 import { GetCommunicationPreferencesUseCase } from '../../application/use-cases/GetCommunicationPreferencesUseCase';
+import { GetPatientHistoryUseCase } from '../../application/use-cases/GetPatientHistoryUseCase';
 /**
  * Patient Controller
  */
@@ -70,8 +71,9 @@ export declare class PatientController {
     private deletePatientPhotoUseCase;
     private updateCommunicationPreferencesUseCase;
     private getCommunicationPreferencesUseCase;
+    private getPatientHistoryUseCase;
     private patientQueryHandlers;
-    constructor(logger: ILogger, registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, matchPatientsUseCase: MatchPatientsUseCase, mergePatientsUseCase: MergePatientsUseCase, linkPatientsUseCase: LinkPatientsUseCase, deactivatePatientUseCase: DeactivatePatientUseCase, validateInsuranceUseCase: ValidateInsuranceUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, getEmergencyContactsUseCase: GetEmergencyContactsUseCase, updateEmergencyContactUseCase: UpdateEmergencyContactUseCase, removeEmergencyContactUseCase: RemoveEmergencyContactUseCase, setPrimaryEmergencyContactUseCase: SetPrimaryEmergencyContactUseCase, grantConsentUseCase: GrantConsentUseCase, getConsentsUseCase: GetConsentsUseCase, getConsentDetailsUseCase: GetConsentDetailsUseCase, revokeConsentUseCase: RevokeConsentUseCase, getActiveConsentsUseCase: GetActiveConsentsUseCase, getInsuranceInfoUseCase: GetInsuranceInfoUseCase, updateInsuranceInfoUseCase: UpdateInsuranceInfoUseCase, verifyInsuranceUseCase: VerifyInsuranceUseCase, markAsDeceasedUseCase: MarkAsDeceasedUseCase, reactivatePatientUseCase: ReactivatePatientUseCase, getPatientStatisticsUseCase: GetPatientStatisticsUseCase, uploadPatientPhotoUseCase: UploadPatientPhotoUseCase, getPatientPhotoUseCase: GetPatientPhotoUseCase, deletePatientPhotoUseCase: DeletePatientPhotoUseCase, updateCommunicationPreferencesUseCase: UpdateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase: GetCommunicationPreferencesUseCase, patientQueryHandlers: PatientQueryHandlers);
+    constructor(logger: ILogger, registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, matchPatientsUseCase: MatchPatientsUseCase, mergePatientsUseCase: MergePatientsUseCase, linkPatientsUseCase: LinkPatientsUseCase, deactivatePatientUseCase: DeactivatePatientUseCase, validateInsuranceUseCase: ValidateInsuranceUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, getEmergencyContactsUseCase: GetEmergencyContactsUseCase, updateEmergencyContactUseCase: UpdateEmergencyContactUseCase, removeEmergencyContactUseCase: RemoveEmergencyContactUseCase, setPrimaryEmergencyContactUseCase: SetPrimaryEmergencyContactUseCase, grantConsentUseCase: GrantConsentUseCase, getConsentsUseCase: GetConsentsUseCase, getConsentDetailsUseCase: GetConsentDetailsUseCase, revokeConsentUseCase: RevokeConsentUseCase, getActiveConsentsUseCase: GetActiveConsentsUseCase, getInsuranceInfoUseCase: GetInsuranceInfoUseCase, updateInsuranceInfoUseCase: UpdateInsuranceInfoUseCase, verifyInsuranceUseCase: VerifyInsuranceUseCase, markAsDeceasedUseCase: MarkAsDeceasedUseCase, reactivatePatientUseCase: ReactivatePatientUseCase, getPatientStatisticsUseCase: GetPatientStatisticsUseCase, uploadPatientPhotoUseCase: UploadPatientPhotoUseCase, getPatientPhotoUseCase: GetPatientPhotoUseCase, deletePatientPhotoUseCase: DeletePatientPhotoUseCase, updateCommunicationPreferencesUseCase: UpdateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase: GetCommunicationPreferencesUseCase, getPatientHistoryUseCase: GetPatientHistoryUseCase, patientQueryHandlers: PatientQueryHandlers);
     /**
      * Register new patient
      * POST /api/v1/patients
@@ -239,5 +241,10 @@ export declare class PatientController {
      * GET /api/v1/patients/:patientId/communication
      */
     getCommunicationPreferences(req: Request, res: Response): Promise<void>;
+    /**
+     * Get patient history (audit logs and access logs)
+     * GET /api/v1/patients/:patientId/history
+     */
+    getPatientHistory(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=PatientController.d.ts.map

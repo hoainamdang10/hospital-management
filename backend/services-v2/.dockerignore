@@ -9,7 +9,6 @@ billing-service
 clinical-emr-service
 department-service
 notifications-service
-patient-registry-service
 provider-staff-service
 scheduler-service
 
@@ -27,7 +26,6 @@ billing-service/package-lock.json
 clinical-emr-service/package-lock.json
 department-service/package-lock.json
 notifications-service/package-lock.json
-patient-registry-service/package-lock.json
 provider-staff-service/package-lock.json
 scheduler-service/package-lock.json
 
@@ -75,7 +73,6 @@ appointments-service/monitoring
 billing-service/monitoring
 clinical-emr-service/monitoring
 notifications-service/monitoring
-patient-registry-service/monitoring
 provider-staff-service/monitoring
 scheduler-service/monitoring
 

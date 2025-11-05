@@ -74,6 +74,11 @@ function createPatientRoutes(controller) {
      */
     router.get('/bhyt/:bhytNumber', ValidationMiddleware_1.validateBHYTNumber, asyncHandler(controller.getPatientByBHYTNumber.bind(controller)));
     /**
+     * Get patient history (audit logs and access logs)
+     * GET /api/v1/patients/:patientId/history
+     */
+    router.get('/:patientId/history', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getPatientHistory.bind(controller)));
+    /**
      * Get patient by ID
      * GET /api/v1/patients/:patientId
      */
@@ -98,7 +103,7 @@ function createPatientRoutes(controller) {
      * Add emergency contact
      * POST /api/v1/patients/:patientId/emergency-contacts
      */
-    router.post('/:patientId/emergency-contacts', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.addEmergencyContact.bind(controller)));
+    router.post('/:patientId/emergency-contacts', ValidationMiddleware_1.validateAddEmergencyContact, asyncHandler(controller.addEmergencyContact.bind(controller)));
     /**
      * Get emergency contacts
      * GET /api/v1/patients/:patientId/emergency-contacts
@@ -108,12 +113,12 @@ function createPatientRoutes(controller) {
      * Update emergency contact
      * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId
      */
-    router.put('/:patientId/emergency-contacts/:contactId', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.updateEmergencyContact.bind(controller)));
+    router.put('/:patientId/emergency-contacts/:contactId', ValidationMiddleware_1.validateUpdateEmergencyContact, asyncHandler(controller.updateEmergencyContact.bind(controller)));
     /**
      * Remove emergency contact
      * DELETE /api/v1/patients/:patientId/emergency-contacts/:contactId
      */
-    router.delete('/:patientId/emergency-contacts/:contactId', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.removeEmergencyContact.bind(controller)));
+    router.delete('/:patientId/emergency-contacts/:contactId', ValidationMiddleware_1.validateRemoveEmergencyContact, asyncHandler(controller.removeEmergencyContact.bind(controller)));
     /**
      * Set primary emergency contact
      * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId/set-primary
@@ -151,7 +156,7 @@ function createPatientRoutes(controller) {
      * Grant consent
      * POST /api/v1/patients/:patientId/consents
      */
-    router.post('/:patientId/consents', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.grantConsent.bind(controller)));
+    router.post('/:patientId/consents', ValidationMiddleware_1.validateGrantConsent, asyncHandler(controller.grantConsent.bind(controller)));
     /**
      * Get all consents
      * GET /api/v1/patients/:patientId/consents
@@ -171,7 +176,7 @@ function createPatientRoutes(controller) {
      * Revoke consent
      * POST /api/v1/patients/:patientId/consents/:consentId/revoke
      */
-    router.post('/:patientId/consents/:consentId/revoke', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.revokeConsent.bind(controller)));
+    router.post('/:patientId/consents/:consentId/revoke', ValidationMiddleware_1.validateRevokeConsent, asyncHandler(controller.revokeConsent.bind(controller)));
     /**
      * Get insurance info
      * GET /api/v1/patients/:patientId/insurance

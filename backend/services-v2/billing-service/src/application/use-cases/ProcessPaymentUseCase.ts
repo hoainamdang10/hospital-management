@@ -95,7 +95,7 @@ export class ProcessPaymentUseCase extends BaseHealthcareUseCase<ProcessPaymentR
   /**
    * Execute payment processing
    */
-  protected async executeCore(request: ProcessPaymentRequest): Promise<ProcessPaymentResponse> {
+  protected async executeImpl(request: ProcessPaymentRequest): Promise<ProcessPaymentResponse> {
     try {
       this.logger.info('Processing payment', {
         invoiceId: request.invoiceId,

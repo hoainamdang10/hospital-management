@@ -15,6 +15,7 @@ export interface RabbitMQConfig {
     exchangeType: 'topic' | 'fanout' | 'direct';
     durable: boolean;
     autoDelete: boolean;
+    serviceName?: string;
 }
 /**
  * RabbitMQ Event Publisher
@@ -73,5 +74,9 @@ export declare class RabbitMQEventPublisher implements IDomainEventPublisher {
      * Serialize event to JSON
      */
     private serializeEvent;
+    /**
+     * Resolve service name for routing keys
+     */
+    private getServiceName;
 }
 //# sourceMappingURL=RabbitMQEventPublisher.d.ts.map

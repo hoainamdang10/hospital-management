@@ -10,7 +10,8 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-// Load .env file from service root directory
+// Load .env.test first (for integration tests), then .env as fallback
+dotenv.config({ path: path.resolve(__dirname, '../.env.test') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Don't mock uuid - let it work naturally

@@ -1,6 +1,6 @@
 /**
  * AuditService - HIPAA-compliant audit logging
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance HIPAA, Clean Architecture
@@ -8,6 +8,10 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ILogger } from '@shared/application/services/logger.interface';
+import {
+  IAuditService,
+  AuditLogEntry as SharedAuditLogEntry
+} from '@shared/application/services/audit.service.interface';
 
 export interface AuditLogEntry {
   eventId: string;
@@ -41,7 +45,7 @@ export interface PHIAccessLogEntry {
   sessionId?: string;
 }
 
-export class AuditService {
+export class AuditService implements IAuditService {
   constructor(
     private supabase: SupabaseClient,
     private logger: ILogger
@@ -226,6 +230,122 @@ export class AuditService {
       this.logger.error('Error marking event as failed', {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  }
+
+  /**
+   * IAuditService implementation - Log audit entry
+   */
+  async log(entry: Omit<SharedAuditLogEntry, 'id' | 'timestamp'>): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .schema('patient_schema')
+        .from('audit_logs')
+        .insert({
+          event_id: crypto.randomUUID(),
+          event_type: 'AUDIT',
+          aggregate_type: entry.resource,
+          aggregate_id: entry.resourceId || '',
+          action: entry.action,
+          user_id: entry.userId,
+          patient_id: entry.resourceId,
+          contains_phi: true,
+          changed_fields: entry.details,
+          ip_address: entry.ipAddress,
+          user_agent: entry.userAgent,
+          compliance_level: 'HIPAA',
+          timestamp: new Date().toISOString()
+        });
+
+      if (error) {
+        this.logger.error('Failed to log audit entry', { error: error.message });
+        throw error;
+      }
+
+      this.logger.debug('Audit log created via IAuditService', {
+        action: entry.action,
+        resource: entry.resource,
+        resourceId: entry.resourceId
+      });
+    } catch (error) {
+      this.logger.error('Error logging audit via IAuditService', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      // Don't throw - audit logging should not break main flow
+    }
+  }
+
+  /**
+   * IAuditService implementation - Get logs for resource
+   */
+  async getLogsForResource(resource: string, resourceId: string): Promise<SharedAuditLogEntry[]> {
+    try {
+      const { data, error } = await this.supabase
+        .schema('patient_schema')
+        .from('audit_logs')
+        .select('*')
+        .eq('aggregate_type', resource)
+        .eq('aggregate_id', resourceId)
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        this.logger.error('Failed to get audit logs for resource', { error: error.message });
+        return [];
+      }
+
+      return (data || []).map(row => ({
+        id: row.event_id,
+        timestamp: new Date(row.timestamp),
+        userId: row.user_id,
+        action: row.action,
+        resource: row.aggregate_type,
+        resourceId: row.aggregate_id,
+        details: row.changed_fields,
+        ipAddress: row.ip_address,
+        userAgent: row.user_agent
+      }));
+    } catch (error) {
+      this.logger.error('Error getting audit logs for resource', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return [];
+    }
+  }
+
+  /**
+   * IAuditService implementation - Get logs for user
+   */
+  async getLogsForUser(userId: string, limit: number = 100): Promise<SharedAuditLogEntry[]> {
+    try {
+      const { data, error } = await this.supabase
+        .schema('patient_schema')
+        .from('audit_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        this.logger.error('Failed to get audit logs for user', { error: error.message });
+        return [];
+      }
+
+      return (data || []).map(row => ({
+        id: row.event_id,
+        timestamp: new Date(row.timestamp),
+        userId: row.user_id,
+        action: row.action,
+        resource: row.aggregate_type,
+        resourceId: row.aggregate_id,
+        details: row.changed_fields,
+        ipAddress: row.ip_address,
+        userAgent: row.user_agent
+      }));
+    } catch (error) {
+      this.logger.error('Error getting audit logs for user', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return [];
     }
   }
 }

@@ -21,6 +21,8 @@ import {
   IdentityUserUpdatedEventHandler,
   IdentityUserUpdatedEventData 
 } from './handlers/IdentityUserUpdatedEventHandler';
+import { IdempotentEventHandler, EventMessage } from './IdempotentEventHandler';
+import { AuditService } from '../audit/AuditService';
 
 /**
  * Identity Event Consumer Configuration
@@ -43,14 +45,47 @@ export class IdentityEventConsumer {
   private connection: any = null;
   private channel: Channel | null = null;
   private isConnected = false;
+  private idempotentHandlers: Map<string, IdempotentEventHandler<any>> = new Map();
 
   constructor(
     private config: IdentityEventConsumerConfig,
     private logger: ILogger,
     private userCreatedHandler: IdentityUserCreatedEventHandler,
     private userDeletedHandler: IdentityUserDeletedEventHandler,
-    private userUpdatedHandler: IdentityUserUpdatedEventHandler
-  ) {}
+    private userUpdatedHandler: IdentityUserUpdatedEventHandler,
+    private auditService?: AuditService
+  ) {
+    // Initialize idempotent handlers with audit service
+    if (this.auditService) {
+      this.idempotentHandlers.set(
+        'user.user_created_event',
+        new IdempotentEventHandler(
+          'IdentityUserCreatedEventHandler',
+          this.auditService,
+          this.logger,
+          (data: IdentityUserCreatedEventData) => this.userCreatedHandler.handle(data)
+        )
+      );
+      this.idempotentHandlers.set(
+        'user.user_deleted_event',
+        new IdempotentEventHandler(
+          'IdentityUserDeletedEventHandler',
+          this.auditService,
+          this.logger,
+          (data: IdentityUserDeletedEventData) => this.userDeletedHandler.handle(data)
+        )
+      );
+      this.idempotentHandlers.set(
+        'user.user_updated_event',
+        new IdempotentEventHandler(
+          'IdentityUserUpdatedEventHandler',
+          this.auditService,
+          this.logger,
+          (data: IdentityUserUpdatedEventData) => this.userUpdatedHandler.handle(data)
+        )
+      );
+    }
+  }
 
   /**
    * Connect to RabbitMQ and start consuming
@@ -173,21 +208,35 @@ export class IdentityEventConsumer {
 
       // Route to appropriate handler
       try {
-        switch (routingKey) {
-          case 'user.user_created_event':
-            await this.userCreatedHandler.handle(event.payload as IdentityUserCreatedEventData);
-            break;
+        // Use idempotent handler if available, otherwise fallback to direct handler
+        const idempotentHandler = this.idempotentHandlers.get(routingKey);
 
-          case 'user.user_deleted_event':
-            await this.userDeletedHandler.handle(event.payload as IdentityUserDeletedEventData);
-            break;
+        if (idempotentHandler) {
+          // Use idempotent handler with audit tracking
+          const eventMessage: EventMessage = {
+            eventId: event.eventId,
+            eventType: routingKey,
+            payload: event.payload
+          };
+          await idempotentHandler.handle(eventMessage);
+        } else {
+          // Fallback to direct handler (for backward compatibility)
+          switch (routingKey) {
+            case 'user.user_created_event':
+              await this.userCreatedHandler.handle(event.payload as IdentityUserCreatedEventData);
+              break;
 
-          case 'user.user_updated_event':
-            await this.userUpdatedHandler.handle(event.payload as IdentityUserUpdatedEventData);
-            break;
+            case 'user.user_deleted_event':
+              await this.userDeletedHandler.handle(event.payload as IdentityUserDeletedEventData);
+              break;
 
-          default:
-            this.logger.warn('Unknown identity event routing key', { routingKey });
+            case 'user.user_updated_event':
+              await this.userUpdatedHandler.handle(event.payload as IdentityUserUpdatedEventData);
+              break;
+
+            default:
+              this.logger.warn('Unknown identity event routing key', { routingKey });
+          }
         }
 
         // Acknowledge message on success

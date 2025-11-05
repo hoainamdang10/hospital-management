@@ -15,6 +15,7 @@ import {
   PatientSearchCriteria,
   IDegradationService
 } from '../../application/services/IDegradationService';
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 
 export interface DegradationConfig {
   enableReadOnlyFallback: boolean;
@@ -42,7 +43,8 @@ export class PatientRegistryDegradation implements IDegradationService {
   constructor(
     private config: DegradationConfig,
     private supabaseConfig: SupabaseConfig,
-    private logger: ILogger
+    private logger: ILogger,
+    private patientRepository?: IPatientRepository
   ) {
     // Start periodic cache cleanup
     setInterval(() => this.cleanupCache(), this.CACHE_CLEANUP_INTERVAL);
@@ -108,20 +110,37 @@ export class PatientRegistryDegradation implements IDegradationService {
    * Primary get patient operation (full database access)
    */
   private async primaryGetPatient(criteria: PatientSearchCriteria): Promise<PatientOperationResult> {
-    // This would normally call the repository
-    // For now, we'll simulate success
     this.logger.info('Primary get patient operation', { criteria });
 
-    // Cache the result for fallback
-    const cacheKey = this.getCacheKey(criteria);
-    const result: PatientOperationResult = {
-      success: true,
-      mode: ServiceMode.FULL_SERVICE,
-      message: 'Patient retrieved successfully'
-    };
+    try {
+      // Use real repository if available
+      if (this.patientRepository && criteria.patientId) {
+        const { PatientId } = await import('../../domain/value-objects/PatientId');
+        const patientId = PatientId.create(criteria.patientId);
+        const patient = await this.patientRepository.findById(patientId);
 
-    this.setCache(cacheKey, result);
-    return result;
+        if (patient) {
+          const cacheKey = this.getCacheKey(criteria);
+          const result: PatientOperationResult = {
+            success: true,
+            patientId: criteria.patientId,
+            mode: ServiceMode.FULL_SERVICE,
+            message: 'Patient retrieved successfully'
+          };
+          this.setCache(cacheKey, result);
+          return result;
+        }
+      }
+
+      // Fallback if repository not available or patient not found
+      throw new Error('Patient not found or repository unavailable');
+    } catch (error) {
+      this.logger.error('Primary get patient operation failed', {
+        criteria,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
   }
 
   /**

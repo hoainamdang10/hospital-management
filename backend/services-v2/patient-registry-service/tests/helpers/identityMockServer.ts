@@ -29,7 +29,7 @@ export async function ensureIdentityMockServer(): Promise<{ url: string; release
           await new Promise<void>(resolve => server!.close(() => resolve()));
           server = null;
           baseUrl = null;
-          tokenRegistry.clear();
+          // Don't clear tokenRegistry here - tokens may still be needed
         }
       }
     };
@@ -40,6 +40,7 @@ export async function ensureIdentityMockServer(): Promise<{ url: string; release
   app.get('/auth/verify', (req, res) => {
     const authHeader = req.header('authorization') || req.header('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[MockIdentity] Missing bearer token');
       return res.status(401).json({
         success: false,
         error: 'Unauthorized',
@@ -51,6 +52,7 @@ export async function ensureIdentityMockServer(): Promise<{ url: string; release
     const payload = tokenRegistry.get(token);
 
     if (!payload) {
+      console.log(`[MockIdentity] Invalid token: ${token.substring(0, 20)}... (Registry size: ${tokenRegistry.size})`);
       return res.status(401).json({
         success: false,
         error: 'Unauthorized',
@@ -58,6 +60,7 @@ export async function ensureIdentityMockServer(): Promise<{ url: string; release
       });
     }
 
+    console.log(`[MockIdentity] Token verified for user: ${payload.email} (roles: ${payload.roles.join(', ')})`);
     return res.json({
       success: true,
       data: {
@@ -86,7 +89,7 @@ export async function ensureIdentityMockServer(): Promise<{ url: string; release
         await new Promise<void>(resolve => server!.close(() => resolve()));
         server = null;
         baseUrl = null;
-        tokenRegistry.clear();
+        // Don't clear tokenRegistry here - tokens may still be needed
       }
     }
   };

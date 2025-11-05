@@ -1,17 +1,9 @@
 /**
- * Express Application Builder
- * Constructs Express application with all middleware configured
- * 
- * Features:
- * - Security middleware (Helmet, CORS, Rate Limiting)
- * - Request tracing (Request ID, Logging)
- * - Idempotency middleware for write operations
- * - Metrics authentication
- * - Error handling
+ * Application Builder Module
+ * Constructs Express application with middleware and configuration
  * 
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Production-Ready, HIPAA-Compliant
  */
 
 import express, { Application, Request, Response, NextFunction } from 'express';
@@ -20,63 +12,27 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import { ILogger } from '../application/services/ILogger';
-import { ICacheService } from '../application/services/ICacheService';
 import { AppConfig } from './config';
 import { createRequestIdMiddleware } from '../presentation/middleware/RequestIdMiddleware';
-import { createIdempotencyMiddleware } from '../presentation/middleware/IdempotencyMiddleware';
 import { createMetricsAuthMiddleware } from '../presentation/middleware/MetricsAuthMiddleware';
-import { createMetricsMiddleware } from '../presentation/middleware/MetricsMiddleware';
 
 /**
  * Build Express application with all middleware
- * 
- * @param config Application configuration
- * @param logger Logger instance
- * @param cacheService Cache service for idempotency (optional)
- * @returns Configured Express application
  */
-export function buildExpressApp(
-  config: AppConfig,
-  logger: ILogger,
-  cacheService: ICacheService | null = null
-): Application {
+export function buildExpressApp(config: AppConfig, logger: ILogger): Application {
   const app = express();
 
-  // Respect reverse proxies/load balancers so req.ip reflects the original client
-  app.set('trust proxy', 1);
-
-  // 1. Basic middleware
+  // Basic middleware
   setupBasicMiddleware(app, logger);
 
-  // 2. Security middleware
+  // Security middleware
   setupSecurityMiddleware(app, config, logger);
 
-  // 3. Request tracing
+  // Request tracing
   setupRequestTracing(app, logger);
 
-  // 4. Idempotency middleware (for write operations)
-  if (cacheService) {
-    setupIdempotencyMiddleware(app, cacheService, logger);
-  }
-
-  // 5. Prometheus metrics (before request logging)
-  setupMetricsMiddleware(app, logger);
-
-  // 6. Request logging
+  // Request logging
   setupRequestLogging(app, logger);
-
-  logger.info('Express application built successfully', {
-    middleware: [
-      'body-parser',
-      'compression',
-      'cors',
-      'helmet',
-      'rate-limiting',
-      'request-id',
-      cacheService ? 'idempotency' : null,
-      'request-logging'
-    ].filter(Boolean)
-  });
 
   return app;
 }
@@ -123,21 +79,27 @@ function setupSecurityMiddleware(
     }
   }));
 
-  // Rate limiting
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false
-  });
-  app.use(limiter);
+  // Rate limiting (disabled in test environment)
+  if (process.env.NODE_ENV !== 'test') {
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // Limit each IP to 100 requests per windowMs
+      message: 'Too many requests from this IP, please try again later.',
+      standardHeaders: true,
+      legacyHeaders: false
+    });
+    app.use(limiter);
 
-  logger.debug('Security middleware configured', {
-    allowedOrigins: config.allowedOrigins,
-    rateLimitWindow: '15 minutes',
-    rateLimitMax: 100
-  });
+    logger.debug('Security middleware configured', {
+      allowedOrigins: config.allowedOrigins,
+      rateLimitWindow: '15 minutes',
+      rateLimitMax: 100
+    });
+  } else {
+    logger.debug('Security middleware configured (rate limiting disabled for tests)', {
+      allowedOrigins: config.allowedOrigins
+    });
+  }
 }
 
 /**
@@ -149,36 +111,6 @@ function setupRequestTracing(app: Application, logger: ILogger): void {
 }
 
 /**
- * Setup idempotency middleware
- */
-function setupIdempotencyMiddleware(
-  app: Application,
-  cacheService: ICacheService,
-  logger: ILogger
-): void {
-  const idempotencyMiddleware = createIdempotencyMiddleware(cacheService as any, logger);
-  
-  // Apply to write operations only
-  app.use((req, res, next) => {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-      idempotencyMiddleware(req, res, next);
-      return;
-    }
-    next();
-  });
-
-  logger.debug('Idempotency middleware configured');
-}
-
-/**
- * Setup Prometheus metrics middleware
- */
-function setupMetricsMiddleware(app: Application, logger: ILogger): void {
-  app.use(createMetricsMiddleware(logger));
-  logger.debug('Prometheus metrics middleware configured');
-}
-
-/**
  * Setup request logging
  */
 function setupRequestLogging(app: Application, logger: ILogger): void {
@@ -187,15 +119,14 @@ function setupRequestLogging(app: Application, logger: ILogger): void {
 
     res.on('finish', () => {
       const duration = Date.now() - start;
-      const requestLogger = (req as any).logger || logger;
+      const reqLogger = (req as any).logger || logger;
 
-      requestLogger.info('HTTP Request', {
+      reqLogger.info('HTTP Request', {
         method: req.method,
         path: req.path,
         statusCode: res.statusCode,
         duration: `${duration}ms`,
-        userAgent: req.headers['user-agent'],
-        requestId: (req as any).requestId
+        userAgent: req.headers['user-agent']
       });
     });
 
@@ -206,54 +137,7 @@ function setupRequestLogging(app: Application, logger: ILogger): void {
 }
 
 /**
- * Register error handling middleware
- * MUST be called AFTER all routes are registered
- */
-export function registerErrorHandlers(app: Application, logger: ILogger): void {
-  // 404 handler
-  app.use((req: Request, res: Response) => {
-    logger.warn('Route not found', {
-      method: req.method,
-      path: req.path,
-      requestId: (req as any).requestId
-    });
-
-    res.status(404).json({
-      error: 'Not Found',
-      message: `Route ${req.method} ${req.path} not found`,
-      requestId: (req as any).requestId
-    });
-  });
-
-  // Global error handler
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-    logger.error('Unhandled error', {
-      error: err.message,
-      stack: err.stack,
-      method: req.method,
-      path: req.path,
-      requestId: (req as any).requestId
-    });
-
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: process.env.NODE_ENV === 'production'
-        ? 'An unexpected error occurred'
-        : err.message,
-      requestId: (req as any).requestId
-    });
-  });
-
-  logger.info('Error handlers registered');
-}
-
-/**
  * Create metrics authentication middleware
- * 
- * @param config Application configuration
- * @param logger Logger instance
- * @returns Metrics auth middleware
  */
 export function createMetricsAuth(config: AppConfig, logger: ILogger) {
   return createMetricsAuthMiddleware({
@@ -261,4 +145,73 @@ export function createMetricsAuth(config: AppConfig, logger: ILogger) {
     authToken: config.metricsAuthToken,
     allowedIPs: config.metricsAllowedIPs
   }, logger);
+}
+
+/**
+ * Register global error handlers
+ */
+export function registerErrorHandlers(app: Application, logger: ILogger): void {
+  // 404 handler
+  app.use((req: Request, res: Response) => {
+    logger.warn('Route not found', {
+      method: req.method,
+      path: req.path,
+      ip: req.ip
+    });
+
+    res.status(404).json({
+      success: false,
+      error: 'Endpoint không tồn tại',
+      path: req.path,
+      method: req.method
+    });
+  });
+
+  // Global error handler
+  app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+    logger.error('Unhandled error', {
+      error: err.message,
+      stack: err.stack,
+      method: req.method,
+      path: req.path
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Lỗi hệ thống, vui lòng thử lại sau'
+    });
+  });
+
+  logger.debug('Error handlers registered');
+}
+
+/**
+ * Legacy export for backward compatibility
+ */
+export class AppBuilder {
+  private app: Application;
+
+  constructor(
+    private config: AppConfig,
+    private logger: ILogger
+  ) {
+    this.app = express();
+  }
+
+  public build(): Application {
+    setupBasicMiddleware(this.app, this.logger);
+    setupSecurityMiddleware(this.app, this.config, this.logger);
+    setupRequestTracing(this.app, this.logger);
+    setupRequestLogging(this.app, this.logger);
+
+    return this.app;
+  }
+
+  public getMetricsAuthMiddleware() {
+    return createMetricsAuth(this.config, this.logger);
+  }
+
+  public getApp(): Application {
+    return this.app;
+  }
 }

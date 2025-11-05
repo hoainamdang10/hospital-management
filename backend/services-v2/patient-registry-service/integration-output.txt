@@ -1,0 +1,1468 @@
+
+> patient-registry-service@1.0.0 test:integration
+> jest --config jest.integration.config.js
+
+  console.log
+    🔧 Setting up test database...
+
+      at TestDatabase.setup (tests/helpers/test-database.ts:59:13)
+
+  console.log
+    ✅ Test database connected
+
+      at TestDatabase.setup (tests/helpers/test-database.ts:72:13)
+
+  console.log
+    🔧 Creating auth user for admin-1762303950315@test.com...
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:59:15)
+
+  console.log
+    ✅ Auth user created: d6cda049-2033-4fd1-a101-9ccde14d8c17
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:75:15)
+
+  console.warn
+    ⚠️  Failed to create user profile: duplicate key value violates unique constraint "user_profiles_pkey"
+
+    [0m [90m  96 |[39m
+     [90m  97 |[39m       [36mif[39m (profileError) {
+    [31m[1m>[22m[39m[90m  98 |[39m         console[33m.[39mwarn([32m`⚠️  Failed to create user profile: ${profileError.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m  99 |[39m         [90m// Continue anyway, profile might be created by trigger[39m
+     [90m 100 |[39m       } [36melse[39m {
+     [90m 101 |[39m         console[33m.[39mlog([32m`✅ User profile created for ${email}`[39m)[33m;[39m[0m
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:98:17)
+      at setupTestUsers (tests/integration/identity-service.integration.test.ts:442:21)
+      at Object.<anonymous> (tests/integration/identity-service.integration.test.ts:57:5)
+
+  console.log
+    ✅ Role admin assigned to admin-1762303950315@test.com
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:118:17)
+
+  console.error
+    ❌ Failed to setup test users: AxiosError {
+      message: 'Request failed with status code 429',
+      name: 'AxiosError',
+      code: 'ERR_BAD_REQUEST',
+      config: {
+        transitional: {
+          silentJSONParsing: true,
+          forcedJSONParsing: true,
+          clarifyTimeoutError: false
+        },
+        adapter: [ 'xhr', 'http', 'fetch' ],
+        transformRequest: [ [Function: transformRequest] ],
+        transformResponse: [ [Function: transformResponse] ],
+        timeout: 0,
+        xsrfCookieName: 'XSRF-TOKEN',
+        xsrfHeaderName: 'X-XSRF-TOKEN',
+        maxContentLength: -1,
+        maxBodyLength: -1,
+        env: { FormData: [Function [FormData]], Blob: [class Blob] },
+        validateStatus: [Function: validateStatus],
+        headers: Object [AxiosHeaders] {
+          Accept: 'application/json, text/plain, */*',
+          'Content-Type': 'application/json',
+          'User-Agent': 'axios/1.12.2',
+          'Content-Length': '71',
+          'Accept-Encoding': 'gzip, compress, deflate, br'
+        },
+        method: 'post',
+        url: 'http://localhost:3021/auth/login',
+        data: '{"email":"admin-1762303950315@test.com","password":"Test@Password123!"}',
+        allowAbsoluteUrls: true
+      },
+      request: <ref *1> ClientRequest {
+        _events: [Object: null prototype] {
+          abort: [Function (anonymous)],
+          aborted: [Function (anonymous)],
+          connect: [Function (anonymous)],
+          error: [Function (anonymous)],
+          socket: [Function (anonymous)],
+          timeout: [Function (anonymous)],
+          finish: [Function: requestOnFinish]
+        },
+        _eventsCount: 7,
+        _maxListeners: undefined,
+        outputData: [],
+        outputSize: 0,
+        writable: true,
+        destroyed: true,
+        _last: false,
+        chunkedEncoding: false,
+        shouldKeepAlive: true,
+        maxRequestsOnConnectionReached: false,
+        _defaultKeepAlive: true,
+        useChunkedEncodingByDefault: true,
+        sendDate: false,
+        _removedConnection: false,
+        _removedContLen: false,
+        _removedTE: false,
+        strictContentLength: false,
+        _contentLength: '71',
+        _hasBody: true,
+        _trailer: '',
+        finished: true,
+        _headerSent: true,
+        _closed: true,
+        _header: 'POST /auth/login HTTP/1.1\r\n' +
+          'Accept: application/json, text/plain, */*\r\n' +
+          'Content-Type: application/json\r\n' +
+          'User-Agent: axios/1.12.2\r\n' +
+          'Content-Length: 71\r\n' +
+          'Accept-Encoding: gzip, compress, deflate, br\r\n' +
+          'Host: localhost:3021\r\n' +
+          'Connection: keep-alive\r\n' +
+          '\r\n',
+        _keepAliveTimeout: 0,
+        _onPendingData: [Function: nop],
+        agent: Agent {
+          _events: [Object: null prototype],
+          _eventsCount: 2,
+          _maxListeners: undefined,
+          defaultPort: 80,
+          protocol: 'http:',
+          options: [Object: null prototype],
+          requests: [Object: null prototype] {},
+          sockets: [Object: null prototype] {},
+          freeSockets: [Object: null prototype],
+          keepAliveMsecs: 1000,
+          keepAlive: true,
+          maxSockets: Infinity,
+          maxFreeSockets: 256,
+          scheduling: 'lifo',
+          maxTotalSockets: Infinity,
+          totalSocketCount: 1,
+          [Symbol(shapeMode)]: false,
+          [Symbol(kCapture)]: false
+        },
+        socketPath: undefined,
+        method: 'POST',
+        maxHeaderSize: undefined,
+        insecureHTTPParser: undefined,
+        joinDuplicateHeaders: undefined,
+        path: '/auth/login',
+        _ended: true,
+        res: IncomingMessage {
+          _events: [Object],
+          _readableState: [ReadableState],
+          _maxListeners: undefined,
+          socket: null,
+          httpVersionMajor: 1,
+          httpVersionMinor: 1,
+          httpVersion: '1.1',
+          complete: true,
+          rawHeaders: [Array],
+          rawTrailers: [],
+          joinDuplicateHeaders: undefined,
+          aborted: false,
+          upgrade: false,
+          url: '',
+          method: null,
+          statusCode: 429,
+          statusMessage: 'Too Many Requests',
+          client: [Socket],
+          _consuming: false,
+          _dumped: false,
+          req: [Circular *1],
+          _eventsCount: 4,
+          responseUrl: 'http://localhost:3021/auth/login',
+          redirects: [],
+          [Symbol(shapeMode)]: true,
+          [Symbol(kCapture)]: false,
+          [Symbol(kHeaders)]: [Object],
+          [Symbol(kHeadersCount)]: 50,
+          [Symbol(kTrailers)]: null,
+          [Symbol(kTrailersCount)]: 0
+        },
+        aborted: false,
+        timeoutCb: null,
+        upgradeOrConnect: false,
+        parser: null,
+        maxHeadersCount: null,
+        reusedSocket: false,
+        host: 'localhost',
+        protocol: 'http:',
+        _redirectable: Writable {
+          _events: [Object],
+          _writableState: [WritableState],
+          _maxListeners: undefined,
+          _options: [Object],
+          _ended: true,
+          _ending: true,
+          _redirectCount: 0,
+          _redirects: [],
+          _requestBodyLength: 71,
+          _requestBodyBuffers: [],
+          _eventsCount: 3,
+          _onNativeResponse: [Function (anonymous)],
+          _currentRequest: [Circular *1],
+          _currentUrl: 'http://localhost:3021/auth/login',
+          [Symbol(shapeMode)]: true,
+          [Symbol(kCapture)]: false
+        },
+        [Symbol(shapeMode)]: false,
+        [Symbol(kCapture)]: false,
+        [Symbol(kBytesWritten)]: 0,
+        [Symbol(kNeedDrain)]: false,
+        [Symbol(corked)]: 0,
+        [Symbol(kChunkedBuffer)]: [],
+        [Symbol(kChunkedLength)]: 0,
+        [Symbol(kSocket)]: Socket {
+          connecting: false,
+          _hadError: false,
+          _parent: null,
+          _host: 'localhost',
+          _closeAfterHandlingError: false,
+          _events: [Object],
+          _readableState: [ReadableState],
+          _writableState: [WritableState],
+          allowHalfOpen: false,
+          _maxListeners: undefined,
+          _eventsCount: 6,
+          _sockname: null,
+          _pendingData: null,
+          _pendingEncoding: '',
+          server: null,
+          _server: null,
+          timeout: 4000,
+          parser: null,
+          _httpMessage: null,
+          [Symbol(async_id_symbol)]: -1,
+          [Symbol(kHandle)]: [TCP],
+          [Symbol(lastWriteQueueSize)]: 0,
+          [Symbol(timeout)]: Timeout {
+            _idleTimeout: 4000,
+            _idlePrev: [TimersList],
+            _idleNext: [Timeout],
+            _idleStart: 5101,
+            _onTimeout: [Function: bound ],
+            _timerArgs: undefined,
+            _repeat: null,
+            _destroyed: false,
+            [Symbol(refed)]: false,
+            [Symbol(kHasPrimitive)]: false,
+            [Symbol(asyncId)]: 3437,
+            [Symbol(triggerId)]: 3435,
+            [Symbol(kAsyncContextFrame)]: undefined
+          },
+          [Symbol(kBuffer)]: null,
+          [Symbol(kBufferCb)]: null,
+          [Symbol(kBufferGen)]: null,
+          [Symbol(shapeMode)]: true,
+          [Symbol(kCapture)]: false,
+          [Symbol(kSetNoDelay)]: true,
+          [Symbol(kSetKeepAlive)]: true,
+          [Symbol(kSetKeepAliveInitialDelay)]: 1,
+          [Symbol(kBytesRead)]: 0,
+          [Symbol(kBytesWritten)]: 0
+        },
+        [Symbol(kOutHeaders)]: [Object: null prototype] {
+          accept: [Array],
+          'content-type': [Array],
+          'user-agent': [Array],
+          'content-length': [Array],
+          'accept-encoding': [Array],
+          host: [Array]
+        },
+        [Symbol(errored)]: null,
+        [Symbol(kHighWaterMark)]: 16384,
+        [Symbol(kRejectNonStandardBodyWrites)]: false,
+        [Symbol(kUniqueHeaders)]: null
+      },
+      response: {
+        status: 429,
+        statusText: 'Too Many Requests',
+        headers: Object [AxiosHeaders] {
+          vary: 'Origin, Accept-Encoding',
+          'access-control-allow-credentials': 'true',
+          'content-security-policy': "default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self' 'unsafe-inline';img-src 'self' data: https:;base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';upgrade-insecure-requests",
+          'cross-origin-opener-policy': 'same-origin',
+          'cross-origin-resource-policy': 'same-origin',
+          'origin-agent-cluster': '?1',
+          'referrer-policy': 'no-referrer',
+          'strict-transport-security': 'max-age=15552000; includeSubDomains',
+          'x-content-type-options': 'nosniff',
+          'x-dns-prefetch-control': 'off',
+          'x-download-options': 'noopen',
+          'x-frame-options': 'SAMEORIGIN',
+          'x-permitted-cross-domain-policies': 'none',
+          'x-xss-protection': '0',
+          'ratelimit-policy': '100;w=900',
+          'ratelimit-limit': '100',
+          'ratelimit-remaining': '0',
+          'ratelimit-reset': '231',
+          'retry-after': '231',
+          'content-type': 'text/html; charset=utf-8',
+          'content-length': '55',
+          etag: 'W/"37-GXzJfQEBpCBb0XTpo5yLKb1Kg+0"',
+          date: 'Wed, 05 Nov 2025 00:52:30 GMT',
+          connection: 'keep-alive',
+          'keep-alive': 'timeout=5'
+        },
+        config: {
+          transitional: [Object],
+          adapter: [Array],
+          transformRequest: [Array],
+          transformResponse: [Array],
+          timeout: 0,
+          xsrfCookieName: 'XSRF-TOKEN',
+          xsrfHeaderName: 'X-XSRF-TOKEN',
+          maxContentLength: -1,
+          maxBodyLength: -1,
+          env: [Object],
+          validateStatus: [Function: validateStatus],
+          headers: [Object [AxiosHeaders]],
+          method: 'post',
+          url: 'http://localhost:3021/auth/login',
+          data: '{"email":"admin-1762303950315@test.com","password":"Test@Password123!"}',
+          allowAbsoluteUrls: true
+        },
+        request: <ref *1> ClientRequest {
+          _events: [Object: null prototype],
+          _eventsCount: 7,
+          _maxListeners: undefined,
+          outputData: [],
+          outputSize: 0,
+          writable: true,
+          destroyed: true,
+          _last: false,
+          chunkedEncoding: false,
+          shouldKeepAlive: true,
+          maxRequestsOnConnectionReached: false,
+          _defaultKeepAlive: true,
+          useChunkedEncodingByDefault: true,
+          sendDate: false,
+          _removedConnection: false,
+          _removedContLen: false,
+          _removedTE: false,
+          strictContentLength: false,
+          _contentLength: '71',
+          _hasBody: true,
+          _trailer: '',
+          finished: true,
+          _headerSent: true,
+          _closed: true,
+          _header: 'POST /auth/login HTTP/1.1\r\n' +
+            'Accept: application/json, text/plain, */*\r\n' +
+            'Content-Type: application/json\r\n' +
+            'User-Agent: axios/1.12.2\r\n' +
+            'Content-Length: 71\r\n' +
+            'Accept-Encoding: gzip, compress, deflate, br\r\n' +
+            'Host: localhost:3021\r\n' +
+            'Connection: keep-alive\r\n' +
+            '\r\n',
+          _keepAliveTimeout: 0,
+          _onPendingData: [Function: nop],
+          agent: [Agent],
+          socketPath: undefined,
+          method: 'POST',
+          maxHeaderSize: undefined,
+          insecureHTTPParser: undefined,
+          joinDuplicateHeaders: undefined,
+          path: '/auth/login',
+          _ended: true,
+          res: [IncomingMessage],
+          aborted: false,
+          timeoutCb: null,
+          upgradeOrConnect: false,
+          parser: null,
+          maxHeadersCount: null,
+          reusedSocket: false,
+          host: 'localhost',
+          protocol: 'http:',
+          _redirectable: [Writable],
+          [Symbol(shapeMode)]: false,
+          [Symbol(kCapture)]: false,
+          [Symbol(kBytesWritten)]: 0,
+          [Symbol(kNeedDrain)]: false,
+          [Symbol(corked)]: 0,
+          [Symbol(kChunkedBuffer)]: [],
+          [Symbol(kChunkedLength)]: 0,
+          [Symbol(kSocket)]: [Socket],
+          [Symbol(kOutHeaders)]: [Object: null prototype],
+          [Symbol(errored)]: null,
+          [Symbol(kHighWaterMark)]: 16384,
+          [Symbol(kRejectNonStandardBodyWrites)]: false,
+          [Symbol(kUniqueHeaders)]: null
+        },
+        data: 'Too many requests from this IP, please try again later.'
+      },
+      status: 429
+    }
+
+    [0m [90m 529 |[39m       console[33m.[39mlog([32m`   Patient: ${patientUserId}`[39m)[33m;[39m
+     [90m 530 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 531 |[39m       console[33m.[39merror([32m'❌ Failed to setup test users:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 532 |[39m       [36mthrow[39m error[33m;[39m
+     [90m 533 |[39m     }
+     [90m 534 |[39m   }[0m
+
+      at setupTestUsers (tests/integration/identity-service.integration.test.ts:531:15)
+      at Object.<anonymous> (tests/integration/identity-service.integration.test.ts:57:5)
+
+  console.log
+    🧹 Cleaning up test users...
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:200:13)
+
+  console.log
+    ✅ Deleted test user: d6cda049-2033-4fd1-a101-9ccde14d8c17
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:221:17)
+
+  console.log
+    ✅ Test users cleaned up
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:228:13)
+
+  console.log
+    🧹 Cleaning up test data...
+
+      at TestDatabase.cleanup (tests/helpers/test-database.ts:80:13)
+
+  console.log
+    ✅ Test data cleaned up
+
+      at TestDatabase.cleanup (tests/helpers/test-database.ts:129:15)
+
+  console.log
+    ✅ Test database connection closed
+
+      at TestDatabase.close (tests/helpers/test-database.ts:227:13)
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.error
+    [TestLogger][ERROR] Identity Service verification failed { error: 'Request failed with status code 429', status: 429 }
+
+    [0m [90m 82 |[39m   info[33m:[39m () [33m=>[39m {}[33m,[39m
+     [90m 83 |[39m   warn[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39mwarn([32m'[TestLogger][WARN]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+    [31m[1m>[22m[39m[90m 84 |[39m   error[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][ERROR]'[39m[33m,[39m [33m...[39margs)[33m,[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 85 |[39m   fatal[33m:[39m ([33m...[39margs[33m:[39m unknown[]) [33m=>[39m console[33m.[39merror([32m'[TestLogger][FATAL]'[39m[33m,[39m [33m...[39margs)
+     [90m 86 |[39m })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at Object.error (tests/helpers/appFactory.ts:84:42)
+      at AuthenticationMiddleware.verifyTokenWithIdentityService (src/presentation/middleware/AuthenticationMiddleware.ts:132:21)
+      at src/presentation/middleware/AuthenticationMiddleware.ts:68:22
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:32.602Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-766',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-766'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:32.604Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:32.969Z - Patient deleted (soft) { patientId: 'PAT-202511-766' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:33.053Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-181',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-181'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:33.054Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:33.296Z - Patient deleted (soft) { patientId: 'PAT-202511-181' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:33.377Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-530',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-530'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:33.378Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:33.461Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-530',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-530'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:33.462Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:33.718Z - Patient deleted (soft) { patientId: 'PAT-202511-530' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:33.795Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-059',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-059'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:33.796Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:34.038Z - Patient deleted (soft) { patientId: 'PAT-202511-059' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:34.201Z - Patient deleted (soft) { patientId: 'PAT-202511-804' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:34.278Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-205',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-205'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:34.279Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:34.526Z - Patient deleted (soft) { patientId: 'PAT-202511-205' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:34.603Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-863',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-863'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:34.604Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:34.861Z - Patient deleted (soft) { patientId: 'PAT-202511-802' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.warn
+    [WARN] [service] 2025-11-05T00:52:34.942Z - Circuit breaker fallback for findByUserId { userId: 'non-existent-user-id' }
+
+    [0m [90m 50 |[39m     console[33m.[39mlog([32m`[INFO] [${this.serviceName}] ${new Date().toISOString()} - ${message}`[39m[33m,[39m [33mObject[39m[33m.[39mkeys(meta)[33m.[39mlength [33m?[39m meta [33m:[39m [32m''[39m)[33m;[39m
+     [90m 51 |[39m   }
+    [31m[1m>[22m[39m[90m 52 |[39m
+     [90m    |[39m [31m[1m^[22m[39m
+     [90m 53 |[39m   warn(message[33m:[39m string[33m,[39m meta[33m:[39m [33mLogMetadata[39m [33m=[39m {})[33m:[39m [36mvoid[39m {
+     [90m 54 |[39m     console[33m.[39mwarn([32m`[WARN] [${this.serviceName}] ${new Date().toISOString()} - ${message}`[39m[33m,[39m [33mObject[39m[33m.[39mkeys(meta)[33m.[39mlength [33m?[39m meta [33m:[39m [32m''[39m)[33m;[39m
+     [90m 55 |[39m   }[0m
+
+      at ConsoleLogger.warn (../shared/application/services/logger.interface.ts:52:13)
+      at src/infrastructure/repositories/SupabasePatientRepository.ts:179:21
+      at PatientRegistryCircuitBreaker.execute (src/infrastructure/resilience/CircuitBreaker.ts:97:22)
+      at SupabasePatientRepository.findByUserId (src/infrastructure/repositories/SupabasePatientRepository.ts:142:12)
+      at Object.<anonymous> (tests/integration/repositories/SupabasePatientRepository.test.ts:213:21)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:35.021Z - Patient deleted (soft) { patientId: 'PAT-202511-361' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:35.100Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-739',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-739'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:35.101Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:35.360Z - Patient deleted (soft) { patientId: 'PAT-202511-739' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:35.522Z - Patient deleted (soft) { patientId: 'PAT-202511-751' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:35.601Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-318',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-318'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:35.602Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:35.684Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-318',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-318'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:35.685Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:35.935Z - Patient deleted (soft) { patientId: 'PAT-202511-318' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:36.013Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-714',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-714'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:36.013Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:36.098Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-714',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-714'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:36.099Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:36.354Z - Patient deleted (soft) { patientId: 'PAT-202511-714' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:36.429Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-633',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-633'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:36.430Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:36.508Z - Patient deleted (soft) { patientId: 'PAT-202511-633' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.049Z - Patient deleted (soft) { patientId: 'PAT-202511-633' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.119Z - Patient deleted (soft) { patientId: 'PAT-202512-999' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.193Z - Patient deleted (soft) { patientId: 'PAT-202511-037' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.269Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-031',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-031'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:37.270Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.521Z - Patient deleted (soft) { patientId: 'PAT-202511-031' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.609Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-615',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-615'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:37.609Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.848Z - Patient deleted (soft) { patientId: 'PAT-202511-615' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:37.932Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-936',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-936'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:37.933Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:38.177Z - Patient deleted (soft) { patientId: 'PAT-202511-936' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:38.259Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-390',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-390'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:38.259Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:38.337Z - Patient deleted (soft) { patientId: 'PAT-202511-390' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:38.424Z - Patient saved successfully (transaction) {
+      patientId: 'PAT-202511-097',
+      result: {
+        message: 'Patient saved successfully',
+        success: true,
+        patient_id: 'PAT-202511-097'
+      }
+    }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [service] 2025-11-05T00:52:38.425Z - Neither outbox nor event publisher configured, skipping event publishing
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:38.717Z - Patient deleted (soft) { patientId: 'PAT-202511-097' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [service] 2025-11-05T00:52:39.071Z - Patient deleted (soft) { patientId: 'PAT-202511-993' }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [hospital-service] INFO: 🔌 Optimized Supabase client closed { service: 'patient-registry-service-test', schema: 'patient_schema' }
+
+      at ConsoleLogger.info (../shared/utils/logger.ts:21:13)
+
+  console.log
+    🔧 Setting up test database...
+
+      at TestDatabase.setup (tests/helpers/test-database.ts:59:13)
+
+  console.log
+    ✅ Test database connected
+
+      at TestDatabase.setup (tests/helpers/test-database.ts:72:13)
+
+  console.log
+    🔧 Creating auth user for test-cuceqy9h@hospital.test...
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:59:15)
+
+  console.log
+    ✅ Auth user created: 334f6058-3d8b-47c0-a677-9cff938a864b
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:75:15)
+
+  console.warn
+    ⚠️  Failed to create user profile: duplicate key value violates unique constraint "user_profiles_pkey"
+
+    [0m [90m  96 |[39m
+     [90m  97 |[39m       [36mif[39m (profileError) {
+    [31m[1m>[22m[39m[90m  98 |[39m         console[33m.[39mwarn([32m`⚠️  Failed to create user profile: ${profileError.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m  99 |[39m         [90m// Continue anyway, profile might be created by trigger[39m
+     [90m 100 |[39m       } [36melse[39m {
+     [90m 101 |[39m         console[33m.[39mlog([32m`✅ User profile created for ${email}`[39m)[33m;[39m[0m
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:98:17)
+      at Object.<anonymous> (tests/integration/patient-registration.integration.test.ts:46:24)
+
+  console.log
+    ✅ Role patient assigned to test-cuceqy9h@hospital.test
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:118:17)
+
+  console.log
+    ✅ Test patient created: PAT-202511-7532
+
+      at TestPatientFactory.createTestPatient (tests/helpers/test-patient-factory.ts:125:15)
+
+  console.log
+    🧹 Cleaning up test patients...
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:277:13)
+
+  console.log
+    ✅ Deleted test patient: PAT-202511-7532
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:288:17)
+
+  console.log
+    ✅ Test patients cleaned up
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:295:13)
+
+  console.log
+    🔧 Creating auth user for test-u5ju75zk@hospital.test...
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:59:15)
+
+  console.log
+    ✅ Auth user created: d37bf895-25d1-4a6d-a76a-138d0de7d0df
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:75:15)
+
+  console.warn
+    ⚠️  Failed to create user profile: duplicate key value violates unique constraint "user_profiles_pkey"
+
+    [0m [90m  96 |[39m
+     [90m  97 |[39m       [36mif[39m (profileError) {
+    [31m[1m>[22m[39m[90m  98 |[39m         console[33m.[39mwarn([32m`⚠️  Failed to create user profile: ${profileError.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m  99 |[39m         [90m// Continue anyway, profile might be created by trigger[39m
+     [90m 100 |[39m       } [36melse[39m {
+     [90m 101 |[39m         console[33m.[39mlog([32m`✅ User profile created for ${email}`[39m)[33m;[39m[0m
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:98:17)
+      at Object.<anonymous> (tests/integration/patient-registration.integration.test.ts:85:24)
+
+  console.log
+    ✅ Role patient assigned to test-u5ju75zk@hospital.test
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:118:17)
+
+  console.log
+    ✅ Test patient created: PAT-202511-4841
+
+      at TestPatientFactory.createTestPatient (tests/helpers/test-patient-factory.ts:125:15)
+
+  console.log
+    🧹 Cleaning up test patients...
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:277:13)
+
+  console.log
+    ✅ Deleted test patient: PAT-202511-4841
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:288:17)
+
+  console.log
+    ✅ Test patients cleaned up
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:295:13)
+
+  console.log
+    🔧 Creating auth user for test-l7f14nj3@hospital.test...
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:59:15)
+
+  console.log
+    ✅ Auth user created: 471fb3fa-280f-4a3a-97eb-21581d18e1bb
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:75:15)
+
+  console.warn
+    ⚠️  Failed to create user profile: duplicate key value violates unique constraint "user_profiles_pkey"
+
+    [0m [90m  96 |[39m
+     [90m  97 |[39m       [36mif[39m (profileError) {
+    [31m[1m>[22m[39m[90m  98 |[39m         console[33m.[39mwarn([32m`⚠️  Failed to create user profile: ${profileError.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m  99 |[39m         [90m// Continue anyway, profile might be created by trigger[39m
+     [90m 100 |[39m       } [36melse[39m {
+     [90m 101 |[39m         console[33m.[39mlog([32m`✅ User profile created for ${email}`[39m)[33m;[39m[0m
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:98:17)
+      at Object.<anonymous> (tests/integration/patient-registration.integration.test.ts:129:24)
+
+  console.log
+    ✅ Role patient assigned to test-l7f14nj3@hospital.test
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:118:17)
+
+  console.log
+    ✅ Test patient created: PAT-202511-5715
+
+      at TestPatientFactory.createTestPatient (tests/helpers/test-patient-factory.ts:125:15)
+
+  console.log
+    ✅ Emergency contact created: 49eb9bcd-9c11-4322-b786-a31cd38621ef
+
+      at TestPatientFactory.createEmergencyContact (tests/helpers/test-patient-factory.ts:178:15)
+
+  console.log
+    🧹 Cleaning up test patients...
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:277:13)
+
+  console.log
+    ✅ Deleted test patient: PAT-202511-5715
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:288:17)
+
+  console.log
+    ✅ Test patients cleaned up
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:295:13)
+
+  console.log
+    🔧 Creating auth user for test-v7fuyk7l@hospital.test...
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:59:15)
+
+  console.log
+    ✅ Auth user created: fe82b925-72f4-4312-85cb-18f431adb5c5
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:75:15)
+
+  console.warn
+    ⚠️  Failed to create user profile: duplicate key value violates unique constraint "user_profiles_pkey"
+
+    [0m [90m  96 |[39m
+     [90m  97 |[39m       [36mif[39m (profileError) {
+    [31m[1m>[22m[39m[90m  98 |[39m         console[33m.[39mwarn([32m`⚠️  Failed to create user profile: ${profileError.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m  99 |[39m         [90m// Continue anyway, profile might be created by trigger[39m
+     [90m 100 |[39m       } [36melse[39m {
+     [90m 101 |[39m         console[33m.[39mlog([32m`✅ User profile created for ${email}`[39m)[33m;[39m[0m
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:98:17)
+      at Object.<anonymous> (tests/integration/patient-registration.integration.test.ts:171:24)
+
+  console.log
+    ✅ Role patient assigned to test-v7fuyk7l@hospital.test
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:118:17)
+
+  console.log
+    ✅ Test patient created: PAT-202511-1119
+
+      at TestPatientFactory.createTestPatient (tests/helpers/test-patient-factory.ts:125:15)
+
+  console.log
+    ✅ Emergency contact created: 9dac9a16-a3aa-4bd3-bcb2-30d44607051b
+
+      at TestPatientFactory.createEmergencyContact (tests/helpers/test-patient-factory.ts:178:15)
+
+  console.log
+    ✅ Emergency contact created: aa8f4b8f-c231-4123-ad29-f3e6adb9de38
+
+      at TestPatientFactory.createEmergencyContact (tests/helpers/test-patient-factory.ts:178:15)
+
+  console.log
+    🧹 Cleaning up test patients...
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:277:13)
+
+  console.log
+    ✅ Deleted test patient: PAT-202511-1119
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:288:17)
+
+  console.log
+    ✅ Test patients cleaned up
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:295:13)
+
+  console.log
+    🔧 Creating auth user for test-wjo8mm11@hospital.test...
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:59:15)
+
+  console.log
+    ✅ Auth user created: 5d83e0cd-f3cd-444a-84b5-c94e6fdacd4f
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:75:15)
+
+  console.warn
+    ⚠️  Failed to create user profile: duplicate key value violates unique constraint "user_profiles_pkey"
+
+    [0m [90m  96 |[39m
+     [90m  97 |[39m       [36mif[39m (profileError) {
+    [31m[1m>[22m[39m[90m  98 |[39m         console[33m.[39mwarn([32m`⚠️  Failed to create user profile: ${profileError.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m  99 |[39m         [90m// Continue anyway, profile might be created by trigger[39m
+     [90m 100 |[39m       } [36melse[39m {
+     [90m 101 |[39m         console[33m.[39mlog([32m`✅ User profile created for ${email}`[39m)[33m;[39m[0m
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:98:17)
+      at Object.<anonymous> (tests/integration/patient-registration.integration.test.ts:219:24)
+
+  console.log
+    ✅ Role patient assigned to test-wjo8mm11@hospital.test
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:118:17)
+
+  console.log
+    ✅ Test patient created: PAT-202511-7683
+
+      at TestPatientFactory.createTestPatient (tests/helpers/test-patient-factory.ts:125:15)
+
+  console.log
+    ✅ Medical info updated for patient: PAT-202511-7683
+
+      at TestPatientFactory.updateMedicalInfo (tests/helpers/test-patient-factory.ts:218:15)
+
+  console.log
+    🧹 Cleaning up test patients...
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:277:13)
+
+  console.log
+    ✅ Deleted test patient: PAT-202511-7683
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:288:17)
+
+  console.log
+    ✅ Test patients cleaned up
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:295:13)
+
+  console.log
+    🔧 Creating auth user for test-pafre4q9@hospital.test...
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:59:15)
+
+  console.log
+    ✅ Auth user created: 4b73c1c6-6e5f-43a1-b91c-8d07b335f82a
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:75:15)
+
+  console.warn
+    ⚠️  Failed to create user profile: duplicate key value violates unique constraint "user_profiles_pkey"
+
+    [0m [90m  96 |[39m
+     [90m  97 |[39m       [36mif[39m (profileError) {
+    [31m[1m>[22m[39m[90m  98 |[39m         console[33m.[39mwarn([32m`⚠️  Failed to create user profile: ${profileError.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m  99 |[39m         [90m// Continue anyway, profile might be created by trigger[39m
+     [90m 100 |[39m       } [36melse[39m {
+     [90m 101 |[39m         console[33m.[39mlog([32m`✅ User profile created for ${email}`[39m)[33m;[39m[0m
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:98:17)
+      at Object.<anonymous> (tests/integration/patient-registration.integration.test.ts:255:24)
+
+  console.log
+    ✅ Role patient assigned to test-pafre4q9@hospital.test
+
+      at TestUserFactory.createVerifiedUser (tests/helpers/test-user-factory.ts:118:17)
+
+  console.log
+    ✅ Test patient created: PAT-202511-1431
+
+      at TestPatientFactory.createTestPatient (tests/helpers/test-patient-factory.ts:125:15)
+
+  console.log
+    ✅ Insurance info created: 5462a9c7-4e9a-48dc-a535-65617aa29e6c
+
+      at TestPatientFactory.createInsuranceInfo (tests/helpers/test-patient-factory.ts:265:15)
+
+  console.log
+    🧹 Cleaning up test patients...
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:277:13)
+
+  console.log
+    ✅ Deleted test patient: PAT-202511-1431
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:288:17)
+
+  console.log
+    ✅ Test patients cleaned up
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:295:13)
+
+  console.log
+    🧹 Cleaning up test patients...
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:277:13)
+
+  console.log
+    ✅ Test patients cleaned up
+
+      at TestPatientFactory.cleanup (tests/helpers/test-patient-factory.ts:295:13)
+
+  console.log
+    🧹 Cleaning up test users...
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:200:13)
+
+  console.log
+    ✅ Deleted test user: 334f6058-3d8b-47c0-a677-9cff938a864b
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:221:17)
+
+  console.log
+    ✅ Deleted test user: d37bf895-25d1-4a6d-a76a-138d0de7d0df
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:221:17)
+
+  console.log
+    ✅ Deleted test user: 471fb3fa-280f-4a3a-97eb-21581d18e1bb
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:221:17)
+
+  console.log
+    ✅ Deleted test user: fe82b925-72f4-4312-85cb-18f431adb5c5
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:221:17)
+
+  console.log
+    ✅ Deleted test user: 5d83e0cd-f3cd-444a-84b5-c94e6fdacd4f
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:221:17)
+
+  console.log
+    ✅ Deleted test user: 4b73c1c6-6e5f-43a1-b91c-8d07b335f82a
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:221:17)
+
+  console.log
+    ✅ Test users cleaned up
+
+      at TestUserFactory.cleanup (tests/helpers/test-user-factory.ts:228:13)
+
+  console.log
+    🧹 Cleaning up test data...
+
+      at TestDatabase.cleanup (tests/helpers/test-database.ts:80:13)
+
+  console.log
+    ✅ Test data cleaned up
+
+      at TestDatabase.cleanup (tests/helpers/test-database.ts:129:15)
+
+  console.log
+    ✅ Test database connection closed
+
+      at TestDatabase.close (tests/helpers/test-database.ts:227:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:45.224Z - [OutboxRepository] Events saved to outbox { count: 1 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:45.573Z - [OutboxRepository] Events saved to outbox { count: 2 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:45.822Z - [OutboxRepository] Events saved to outbox { count: 1 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:45.964Z - [OutboxRepository] Events marked as published { count: 1 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:46.213Z - [OutboxRepository] Events saved to outbox { count: 1 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:46.428Z - [OutboxRepository] Event marked as failed { eventId: 'e2c40bc0-9a48-4da5-bea1-fc195def767b', retryCount: 1 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:46.686Z - [OutboxRepository] Events saved to outbox { count: 1 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [outbox-test] 2025-11-05T00:52:46.687Z - [OutboxWorker] Starting outbox publisher worker { pollingIntervalMs: 500, batchSize: 50 }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [INFO] [outbox-test] 2025-11-05T00:52:46.764Z - [OutboxWorker] Processing batch { count: 1 }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:46.765Z - [OutboxWorker] Event published {
+      eventId: 'bea5d401-c883-4fb3-987a-6b3dacbe3fe5',
+      eventType: 'patient.registered'
+    }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:46.832Z - [OutboxRepository] Events marked as published { count: 1 }
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [outbox-test] 2025-11-05T00:52:46.832Z - [OutboxWorker] Batch processed successfully { published: 1, failed: 0 }
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:47.410Z - [OutboxWorker] No pending events
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [DEBUG] [outbox-test] 2025-11-05T00:52:47.985Z - [OutboxWorker] No pending events
+
+      at ConsoleLogger.debug (../shared/application/services/logger.interface.ts:44:13)
+
+  console.log
+    [INFO] [outbox-test] 2025-11-05T00:52:48.200Z - [OutboxWorker] Outbox publisher worker stopped
+
+      at ConsoleLogger.info (../shared/application/services/logger.interface.ts:48:13)
+
+

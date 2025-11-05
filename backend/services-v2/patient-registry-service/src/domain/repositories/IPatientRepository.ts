@@ -143,5 +143,34 @@ export interface IPatientRepository {
       count: number;
     }>;
   }>;
+
+  /**
+   * Get patient history (audit logs and access history)
+   * Returns chronological history of patient record changes and accesses
+   */
+  getPatientHistory(
+    patientId: PatientId,
+    options?: {
+      limit?: number;
+      offset?: number;
+      dateFrom?: Date;
+      dateTo?: Date;
+      eventTypes?: string[];
+    }
+  ): Promise<{
+    history: Array<{
+      eventId: string;
+      eventType: string;
+      action: string;
+      userId: string;
+      userRole?: string;
+      timestamp: Date;
+      changes?: Record<string, any>;
+      accessedFields?: string[];
+      ipAddress?: string;
+      userAgent?: string;
+    }>;
+    total: number;
+  }>;
 }
 

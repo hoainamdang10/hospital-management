@@ -15,6 +15,7 @@ exports.bootstrap = bootstrap;
 // Load environment variables first
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+const fs_1 = __importDefault(require("fs"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const yamljs_1 = __importDefault(require("yamljs"));
 const path_1 = __importDefault(require("path"));
@@ -52,7 +53,7 @@ async function bootstrap() {
         logger.info('Dependency container built successfully');
         // Step 5: Build Express application
         logger.info('Building Express application...');
-        const app = (0, bootstrap_1.buildExpressApp)(config, logger, container.cache);
+        const app = (0, bootstrap_1.buildExpressApp)(config, logger);
         logger.info('Express application built successfully');
         // Step 6: Register API routes
         logger.info('Registering API routes...');
@@ -76,9 +77,17 @@ async function bootstrap() {
         logger.info('Prometheus metrics endpoint registered at /metrics (protected)');
         // Swagger documentation (protected)
         try {
-            const swaggerDocument = yamljs_1.default.load(path_1.default.join(__dirname, '../docs/swagger.yaml'));
+            const swaggerCandidates = [
+                path_1.default.join(__dirname, '../docs/api/openapi.yaml'),
+                path_1.default.join(__dirname, '../../docs/api/openapi.yaml')
+            ];
+            const swaggerPath = swaggerCandidates.find((candidate) => fs_1.default.existsSync(candidate));
+            if (!swaggerPath) {
+                throw new Error('openapi.yaml not found in expected locations');
+            }
+            const swaggerDocument = yamljs_1.default.load(swaggerPath);
             app.use('/api-docs', metricsAuth, swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
-            logger.info('Swagger documentation registered at /api-docs (protected)');
+            logger.info('Swagger documentation registered at /api-docs (protected)', { swaggerPath });
         }
         catch (error) {
             logger.warn('Failed to load Swagger documentation', { error });
@@ -126,7 +135,6 @@ async function bootstrap() {
     }
 }
 exports.default = bootstrap;
-// Start application when executed directly
 if (require.main === module) {
     bootstrap().catch((error) => {
         console.error('Fatal error during bootstrap:', error);

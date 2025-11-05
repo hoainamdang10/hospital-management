@@ -17,42 +17,50 @@ class TerminateAllSessionsUseCase {
         try {
             // Validate input
             if (!request.userId) {
-                throw new Error('User ID is required');
+                throw new Error("User ID is required");
             }
-            let terminatedCount;
-            if (request.currentSessionId) {
-                // Terminate all sessions except the current one
-                this.logger.info('Terminating all sessions except current', {
+            let resolvedCurrentSessionId = request.currentSessionId;
+            if (!resolvedCurrentSessionId && request.accessToken) {
+                const session = await this.sessionRepository.findByToken(request.accessToken);
+                if (session && session.userId === request.userId) {
+                    resolvedCurrentSessionId = session.id;
+                }
+                else {
+                    this.logger.warn("Unable to resolve current session when terminating all sessions", {
+                        userId: request.userId,
+                        reason: session ? "token_user_mismatch" : "session_not_found",
+                    });
+                }
+            }
+            if (!resolvedCurrentSessionId) {
+                // Safety check: do not terminate all sessions if we cannot identify current session
+                this.logger.warn("Attempted to terminate all sessions without resolvable currentSessionId", {
                     userId: request.userId,
-                    currentSessionId: request.currentSessionId
                 });
-                terminatedCount = await this.sessionRepository.deactivateAllExcept(request.userId, request.currentSessionId);
+                throw new Error("Cannot terminate all sessions: current session ID not resolved. " +
+                    "This is a safety measure to prevent accidental deletion of all sessions.");
             }
-            else {
-                // CRITICAL: If no currentSessionId, we should NOT delete all sessions
-                // This is a safety measure to prevent accidental deletion of all sessions
-                // Instead, we log a warning and return an error
-                this.logger.warn('Attempted to terminate all sessions without currentSessionId', {
-                    userId: request.userId
-                });
-                throw new Error('Cannot terminate all sessions: current session ID not found. ' +
-                    'This is a safety measure to prevent accidental deletion of all sessions.');
-            }
-            this.logger.info('Sessions terminated successfully', {
+            // Terminate all sessions except the current one
+            this.logger.info("Terminating all sessions except current", {
                 userId: request.userId,
-                terminatedCount
+                currentSessionId: resolvedCurrentSessionId,
+            });
+            const terminatedCount = await this.sessionRepository.deactivateAllExcept(request.userId, resolvedCurrentSessionId);
+            this.logger.info("Sessions terminated successfully", {
+                userId: request.userId,
+                terminatedCount,
             });
             return {
                 success: true,
                 message: `Successfully terminated ${terminatedCount} session(s)`,
-                terminatedCount
+                terminatedCount,
             };
         }
         catch (error) {
-            this.logger.error('Error terminating all sessions', {
+            this.logger.error("Error terminating all sessions", {
                 userId: request.userId,
                 currentSessionId: request.currentSessionId,
-                error: error.message
+                error: error.message,
             });
             throw new Error(`Failed to terminate all sessions: ${error.message}`);
         }

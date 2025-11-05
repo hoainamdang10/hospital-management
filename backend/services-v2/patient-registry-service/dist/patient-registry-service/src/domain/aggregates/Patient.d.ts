@@ -43,8 +43,14 @@ export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
     private constructor();
     /**
      * Factory method: Register new patient
+     * @deprecated Use registerWithId() instead to pass pre-generated PatientId from database
      */
     static register(userId: string, personalInfo: PersonalInfo, contactInfo: ContactInfo, basicMedicalInfo: BasicMedicalInfo, insuranceInfo: InsuranceInfo | undefined, emergencyContacts: EmergencyContact[], createdBy: string): Patient;
+    /**
+     * Factory method: Register new patient with pre-generated ID from database
+     * This is the recommended method to avoid ID collisions
+     */
+    static registerWithId(patientId: PatientId, userId: string, personalInfo: PersonalInfo, contactInfo: ContactInfo, basicMedicalInfo: BasicMedicalInfo, insuranceInfo: InsuranceInfo | undefined, emergencyContacts: EmergencyContact[], createdBy: string): Patient;
     /**
      * Factory method: Reconstitute from persistence
      */

@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -139,36 +139,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -206,22 +206,22 @@
  * @compliance CQRS Pattern, Clean Architecture
  */
 &nbsp;
-import { Router } from 'express';
+<span class="cstat-no" title="statement not covered" >import { Router } from 'express';</span>
 import { CommandController } from '../controllers/CommandController';
-import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';
+<span class="cstat-no" title="statement not covered" >import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';</span>
 &nbsp;
 /**
  * Create command routes
  */
-export function createCommandRoutes(controller: CommandController): Router {
-  const router = Router();
-  const asyncHandler = ErrorHandlingMiddleware.asyncHandler;
+<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >c</span>reateCommandRoutes(</span>controller: CommandController): Router {
+  const router = <span class="cstat-no" title="statement not covered" >Router();</span>
+  const asyncHandler = <span class="cstat-no" title="statement not covered" >ErrorHandlingMiddleware.asyncHandler;</span>
 &nbsp;
   /**
    * Execute patient command
    * POST /api/v1/commands/patient
    */
-  router.post(
+<span class="cstat-no" title="statement not covered" >  router.post(</span>
     '/patient',
     asyncHandler(controller.executePatientCommand.bind(controller))
   );
@@ -230,12 +230,12 @@ export function createCommandRoutes(controller: CommandController): Router {
    * Get command handler status
    * GET /api/v1/commands/status
    */
-  router.get(
+<span class="cstat-no" title="statement not covered" >  router.get(</span>
     '/status',
     asyncHandler(controller.getCommandHandlerStatus.bind(controller))
   );
 &nbsp;
-  return router;
+<span class="cstat-no" title="statement not covered" >  return router;</span>
 }
 &nbsp;
 /**
@@ -271,7 +271,7 @@ export function createCommandRoutes(controller: CommandController): Router {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-26T23:46:11.328Z
+                at 2025-11-04T17:49:05.516Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

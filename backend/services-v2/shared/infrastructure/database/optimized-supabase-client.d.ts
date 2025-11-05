@@ -89,6 +89,14 @@ export declare class OptimizedSupabaseClient {
      */
     getRawClient(): SupabaseClient;
     /**
+     * Get database connection (alias for getRawClient for compatibility)
+     */
+    getConnection(): SupabaseClient;
+    /**
+     * Cleanup resources (for DI container)
+     */
+    cleanup(): Promise<void>;
+    /**
      * Proxy method for table access (for convenience)
      */
     from(table: string): import("@supabase/postgrest-js").PostgrestQueryBuilder<any, any, any, string, unknown>;

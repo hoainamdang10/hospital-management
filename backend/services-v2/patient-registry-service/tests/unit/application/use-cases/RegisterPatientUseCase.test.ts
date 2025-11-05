@@ -3,12 +3,15 @@ import { IPatientRepository } from '../../../../src/domain/repositories/IPatient
 import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
 import { ILogger } from '@shared/application/services/logger.interface';
 import { Patient } from '../../../../src/domain/aggregates/Patient';
+import { AuditService } from '../../../../src/infrastructure/audit/AuditService';
 
 describe('RegisterPatientUseCase', () => {
   let useCase: RegisterPatientUseCase;
   let mockRepository: jest.Mocked<IPatientRepository>;
   let mockEventBus: jest.Mocked<IEventBus>;
   let mockLogger: jest.Mocked<ILogger>;
+  let mockAuditService: jest.Mocked<AuditService>;
+  let mockSupabaseClient: any;
 
   beforeEach(() => {
     mockRepository = {
@@ -19,7 +22,11 @@ describe('RegisterPatientUseCase', () => {
       findByBHYTNumber: jest.fn(),
       search: jest.fn(),
       findDuplicates: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as any;
 
     mockEventBus = {
@@ -37,10 +44,29 @@ describe('RegisterPatientUseCase', () => {
       fatal: jest.fn()
     } as any;
 
+    mockAuditService = {
+      logAudit: jest.fn().mockResolvedValue(undefined),
+      logPHIAccess: jest.fn().mockResolvedValue(undefined),
+      isEventProcessed: jest.fn().mockResolvedValue(false),
+      log: jest.fn().mockResolvedValue(undefined),
+      getLogsForResource: jest.fn().mockResolvedValue([]),
+      getLogsForUser: jest.fn().mockResolvedValue([]),
+    } as any;
+
+    // Mock Supabase client for PatientId.generateFromDB()
+    mockSupabaseClient = {
+      rpc: jest.fn().mockResolvedValue({
+        data: 1,
+        error: null
+      })
+    };
+
     useCase = new RegisterPatientUseCase(
       mockRepository,
       mockEventBus,
-      mockLogger
+      mockLogger,
+      mockAuditService,
+      mockSupabaseClient
     );
   });
 

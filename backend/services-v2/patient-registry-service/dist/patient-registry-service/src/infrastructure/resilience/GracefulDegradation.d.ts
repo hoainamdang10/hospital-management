@@ -8,6 +8,7 @@
  */
 import { ILogger } from '../../../../shared/application/services/logger.interface';
 import { ServiceMode, PatientOperationResult, PatientSearchCriteria, IDegradationService } from '../../application/services/IDegradationService';
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 export interface DegradationConfig {
     enableReadOnlyFallback: boolean;
     enableCacheFallback: boolean;
@@ -26,12 +27,13 @@ export declare class PatientRegistryDegradation implements IDegradationService {
     private config;
     private supabaseConfig;
     private logger;
+    private patientRepository?;
     private currentMode;
     private degradationStartTime?;
     private cache;
     private readonly MAX_CACHE_SIZE;
     private readonly CACHE_CLEANUP_INTERVAL;
-    constructor(config: DegradationConfig, supabaseConfig: SupabaseConfig, logger: ILogger);
+    constructor(config: DegradationConfig, supabaseConfig: SupabaseConfig, logger: ILogger, patientRepository?: IPatientRepository | undefined);
     /**
      * Get patient with graceful degradation
      */

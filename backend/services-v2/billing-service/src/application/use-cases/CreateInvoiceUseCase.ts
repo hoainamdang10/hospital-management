@@ -85,7 +85,7 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<CreateInvoiceReq
   /**
    * Execute invoice creation
    */
-  protected async executeCore(request: CreateInvoiceRequest): Promise<CreateInvoiceResponse> {
+  protected async executeImpl(request: CreateInvoiceRequest): Promise<CreateInvoiceResponse> {
     try {
       this.logger.info('Creating new invoice', {
         patientId: request.patientId,
@@ -104,44 +104,34 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<CreateInvoiceReq
         };
       }
 
-      // 2. Generate invoice ID
-      const invoiceId = await this.generateInvoiceId();
-
-      // 3. Create billing items
-      const billingItems = this.createBillingItems(request.items);
-
-      // 4. Create insurance if provided
-      let insurance: Insurance | undefined;
-      if (request.insurance) {
-        insurance = this.createInsurance(request.insurance);
-      }
-
-      // 5. Create billing aggregate
+      // 2. Create billing aggregate
       const billingAggregate = BillingAggregate.create(
-        invoiceId,
         request.patientId,
+        request.medicalRecordId || '',
         request.doctorId,
-        billingItems,
-        request.issuedBy,
-        {
-          medicalRecordId: request.medicalRecordId,
-          appointmentId: request.appointmentId,
-          insurance,
-          notes: request.notes,
-          dueDate: request.dueDate || this.calculateDefaultDueDate()
-        }
+        request.appointmentId || '',
+        request.issuedBy
       );
 
-      // 6. Calculate totals and insurance coverage
-      billingAggregate.calculateTotals();
-      if (insurance) {
-        billingAggregate.applyInsuranceCoverage();
+      // 3. Add billing items
+      const billingItems = this.createBillingItems(request.items);
+      for (const item of billingItems) {
+        billingAggregate.addItem(item);
       }
 
-      // 7. Save to repository
+      // 4. Set insurance if provided
+      if (request.insurance) {
+        const insurance = this.createInsurance(request.insurance);
+        billingAggregate.setInsurance(insurance);
+      }
+
+      // 5. Finalize invoice (this will calculate totals and apply insurance)
+      billingAggregate.finalize();
+
+      // 6. Save to repository
       await this.billingRepository.save(billingAggregate);
 
-      // 8. Publish domain events
+      // 7. Publish domain events
       const events = billingAggregate.getUncommittedEvents();
       for (const event of events) {
         await this.eventBus.publish(event);
@@ -149,7 +139,7 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<CreateInvoiceReq
       billingAggregate.markEventsAsCommitted();
 
       this.logger.info('Invoice created successfully', {
-        invoiceId: invoiceId.value,
+        invoiceId: billingAggregate.id.value,
         invoiceNumber: billingAggregate.invoiceNumber,
         totalAmount: billingAggregate.totalAmount.amount,
         patientId: request.patientId
@@ -159,13 +149,13 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<CreateInvoiceReq
         success: true,
         message: 'Hóa đơn được tạo thành công',
         data: {
-          invoiceId: invoiceId.value,
+          invoiceId: billingAggregate.id.value,
           invoiceNumber: billingAggregate.invoiceNumber,
           totalAmount: billingAggregate.totalAmount.amount,
           insuranceCoverage: billingAggregate.insuranceCoverage?.amount || 0,
-          patientPayable: billingAggregate.patientPayable.amount,
+          patientPayable: billingAggregate.patientPayment.amount,
           status: billingAggregate.status,
-          createdAt: billingAggregate.createdAt
+          createdAt: billingAggregate.issuedAt
         }
       };
 
@@ -276,9 +266,11 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<CreateInvoiceReq
    * Generate unique invoice ID
    */
   private async generateInvoiceId(): Promise<InvoiceId> {
-    const yearMonth = new Date().toISOString().slice(0, 7).replace('-', '');
-    const sequence = await this.billingRepository.getNextSequenceNumber(yearMonth);
-    return InvoiceId.generate(yearMonth, sequence);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const sequence = await this.billingRepository.getNextSequenceNumber(year, month);
+    return InvoiceId.generateForMonth(year, month, sequence);
   }
 
   /**
@@ -303,21 +295,44 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<CreateInvoiceReq
    * Create insurance from request
    */
   private createInsurance(insuranceData: CreateInvoiceRequest['insurance']): Insurance {
-    return Insurance.create(
-      insuranceData!.type,
-      insuranceData!.number,
-      insuranceData!.validUntil,
-      insuranceData!.coverageLevel,
-      {
-        issuedBy: insuranceData!.issuedBy,
-        beneficiaryType: insuranceData!.beneficiaryType,
-        accidentType: insuranceData!.accidentType,
-        accidentDate: insuranceData!.accidentDate,
-        employerInfo: insuranceData!.employerInfo,
-        insuranceCompany: insuranceData!.insuranceCompany,
-        policyType: insuranceData!.policyType
-      }
-    );
+    if (!insuranceData) {
+      return Insurance.createSelfPay();
+    }
+
+    const { type, number, validUntil, coverageLevel } = insuranceData;
+
+    switch (type) {
+      case 'BHYT':
+        return Insurance.createBHYT(
+          number,
+          validUntil || new Date(),
+          coverageLevel || 100,
+          insuranceData.beneficiaryType || 'GENERAL',
+          insuranceData.issuedBy || 'BHXH'
+        );
+
+      case 'BHTN':
+        return Insurance.createBHTN(
+          number,
+          validUntil || new Date(),
+          insuranceData.accidentType || 'WORK_RELATED',
+          insuranceData.accidentDate || new Date(),
+          insuranceData.employerInfo
+        );
+
+      case 'PRIVATE':
+        return Insurance.createPrivate(
+          number,
+          validUntil || new Date(),
+          coverageLevel || 80,
+          insuranceData.insuranceCompany || 'Unknown',
+          insuranceData.policyType || 'STANDARD'
+        );
+
+      case 'SELF_PAY':
+      default:
+        return Insurance.createSelfPay();
+    }
   }
 
   /**

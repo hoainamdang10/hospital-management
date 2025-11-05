@@ -2,15 +2,57 @@
 
 ## Overview
 
-Integration tests verify the communication between Patient Registry Service and external services:
-- **Identity Service** - Authentication & Authorization
+Integration tests verify the **REAL** communication flow between Patient Registry Service and external services:
+- **Identity Service** - Authentication & Authorization (uses REAL HTTP calls, not mocks)
 - **Downstream Services** - Event-driven communication (Clinical EMR, Scheduling, Billing)
+
+## ⚠️ IMPORTANT: Prerequisites for Identity Service Tests
+
+### Identity Service Must Be Running
+
+Integration tests for Identity Service require the **REAL** Identity Service running on port **3021**.
+
+**Option A: Start Identity Service Manually**
+
+```bash
+# Terminal 1: Start Identity Service
+cd backend/services-v2/identity-service
+PORT=3021 npm run dev
+```
+
+**Option B: Use Docker**
+
+```bash
+cd backend/services-v2
+docker-compose -f docker-compose.v2.yml up identity-service
+```
+
+**Verify Identity Service is Running:**
+
+```bash
+# Windows PowerShell
+Invoke-WebRequest -Uri http://localhost:3021/health
+
+# macOS/Linux
+curl http://localhost:3021/health
+```
+
+Expected response:
+```json
+{
+  "status": "healthy",
+  "service": "identity-service",
+  "timestamp": "..."
+}
+```
 
 ## Test Suites
 
 ### 1. Identity Service Integration (`identity-service.integration.test.ts`)
 
-Tests authentication and authorization flow:
+**⚠️ Requires Identity Service running on port 3021**
+
+Tests authentication and authorization flow using REAL HTTP calls:
 
 **Authentication Flow Tests:**
 - ✅ Reject requests without token
@@ -337,17 +379,77 @@ jobs:
           files: ./coverage/lcov.info
 ```
 
+## Running Integration Tests
+
+### Quick Start (Recommended)
+
+**Windows PowerShell:**
+```powershell
+cd backend/services-v2/patient-registry-service
+.\scripts\run-integration-tests.ps1
+```
+
+**macOS/Linux:**
+```bash
+cd backend/services-v2/patient-registry-service
+chmod +x scripts/run-integration-tests.sh
+./scripts/run-integration-tests.sh
+```
+
+These scripts will:
+1. ✅ Check if Identity Service is running
+2. ✅ Run integration tests
+3. ✅ Report results
+
+### Manual Run
+
+```bash
+cd backend/services-v2/patient-registry-service
+
+# Run all integration tests
+npm run test:integration
+
+# Run specific test file
+npm run test:integration -- identity-service.integration.test.ts
+
+# Run with coverage
+npm run test:integration -- --coverage
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
-**1. Tests timeout**
+**1. Error: "ECONNREFUSED" or "404 Not Found"**
+
+**Problem:** Identity Service is not running
+
+**Solution:**
+```bash
+# Start Identity Service
+cd backend/services-v2/identity-service
+PORT=3021 npm run dev
+```
+
+**2. Error: "Invalid JWT token"**
+
+**Problem:** JWT_SECRET mismatch between services
+
+**Solution:** Verify both services use the same `JWT_SECRET` in `.env.test`
+
+**3. Error: "Rate limit exceeded"**
+
+**Problem:** Too many login requests to Identity Service
+
+**Solution:** Identity Service has rate limiting. Wait 1 minute or restart Identity Service
+
+**4. Tests timeout**
 ```bash
 # Increase timeout in jest.config.js
 testTimeout: 60000
 ```
 
-**2. Database connection errors**
+**5. Database connection errors**
 ```bash
 # Check Supabase credentials
 echo $SUPABASE_URL

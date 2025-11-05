@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '../../../../shared/application/base/base-healthcare-use-case';
+import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/base/base-healthcare-use-case';
 import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
 import { ILogger } from '../interfaces/ILogger';
 import { StaffId } from '../../domain/value-objects/StaffId';

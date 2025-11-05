@@ -45,20 +45,25 @@ function getDefaultPermissionsForRole(role: string): string[] {
   }
 }
 
-function issueMockIdentityToken(userId: string, email: string): string {
-  const role = deriveRoleFromEmail(email);
+function issueMockIdentityToken(userId: string, email: string, roles?: string[]): string {
+  const role = roles && roles.length > 0 ? roles[0] : deriveRoleFromEmail(email);
   const permissions = getDefaultPermissionsForRole(role);
   const token = `mock-token-${userId}-${Date.now()}`;
 
   registerIdentityToken(token, {
     userId,
     email,
-    roles: [role],
+    roles: roles || [role],
     permissions
   });
 
   return token;
 }
+
+/**
+ * Export issueMockIdentityToken for use in tests
+ */
+export { issueMockIdentityToken };
 
 /**
  * Generate random Vietnamese phone number
@@ -120,13 +125,13 @@ export function createValidPatientData(overrides: any = {}) {
       province: overrides.address?.province ?? overrides.province ?? 'Hồ Chí Minh',
       country: overrides.address?.country ?? overrides.country ?? 'Vietnam'
     },
-    // Emergency Contacts
+    // Emergency Contacts (using 'name' field as per DTO spec)
     emergencyContacts: overrides.emergencyContacts || [{
       name: 'Nguyễn Thị Emergency',
       relationship: 'Spouse',
       primaryPhone: generateRandomPhone(),
-      email: overrides.emergencyContactEmail || 'emergency@example.com',
-      address: overrides.emergencyContactAddress || '456 Emergency Street',
+      email: 'emergency@example.com',
+      address: '456 Emergency Street',
       isPrimary: true
     }],
     ...overrides
@@ -539,25 +544,48 @@ export async function createTestPatientInDb(
     throw new Error('Supabase client not initialized');
   }
 
+  // Use JSONB structure matching actual schema
+  const personalInfo = {
+    fullName: patientData.personalInfo.fullName,
+    dateOfBirth: patientData.personalInfo.dateOfBirth,
+    gender: patientData.personalInfo.gender,
+    nationalId: patientData.personalInfo.nationalId,
+    nationality: 'Vietnamese'
+  };
+
+  const contactInfo = {
+    primaryPhone: patientData.contactInfo.primaryPhone,
+    email: patientData.contactInfo.email,
+    address: {
+      street: patientData.contactInfo.address.street,
+      ward: patientData.contactInfo.address.ward,
+      district: patientData.contactInfo.address.district,
+      city: patientData.contactInfo.address.city,
+      country: 'Vietnam'
+    }
+  };
+
+  const basicMedicalInfo = {
+    bloodType: 'O',
+    allergies: [],
+    chronicConditions: [],
+    currentMedications: []
+  };
+
   const { data, error } = await supabaseClient
     .schema('patient_schema')
-    .from('patient_profiles')
+    .from('patients')
     .insert({
       patient_id: patientData.patientId || generateRandomPatientId(),
       user_id: patientData.userId,
-      full_name: patientData.personalInfo.fullName,
-      date_of_birth: patientData.personalInfo.dateOfBirth,
-      gender: patientData.personalInfo.gender,
-      national_id: patientData.personalInfo.nationalId,
-      primary_phone: patientData.contactInfo.primaryPhone,
-      email: patientData.contactInfo.email,
-      address_street: patientData.contactInfo.address.street,
-      address_ward: patientData.contactInfo.address.ward,
-      address_district: patientData.contactInfo.address.district,
-      address_city: patientData.contactInfo.address.city,
+      personal_info: personalInfo,
+      contact_info: contactInfo,
+      basic_medical_info: basicMedicalInfo,
       status: 'active',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      created_by: patientData.userId,
+      updated_by: patientData.userId
     })
     .select('patient_id')
     .single();

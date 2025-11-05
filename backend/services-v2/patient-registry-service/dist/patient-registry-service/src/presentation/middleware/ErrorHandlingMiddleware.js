@@ -87,26 +87,44 @@ class ConflictError extends ApplicationError {
 }
 exports.ConflictError = ConflictError;
 /**
- * Error handling middleware
+ * Error handling middleware with PHI/PII redaction
  */
 class ErrorHandlingMiddleware {
     constructor(logger) {
         this.logger = logger;
     }
     /**
-     * Handle errors
+     * Redact sensitive data from request before logging
+     * HIPAA compliance - remove PHI/PII from logs
+     */
+    redactSensitiveData(data) {
+        if (!data || typeof data !== 'object')
+            return data;
+        const redacted = { ...data };
+        const sensitiveFields = [
+            'password', 'token', 'nationalId', 'phoneNumber', 'email',
+            'address', 'dateOfBirth', 'bhytNumber', 'bhtnNumber',
+            'personalInfo', 'contactInfo', 'insuranceInfo', 'medicalHistory'
+        ];
+        for (const field of sensitiveFields) {
+            if (field in redacted) {
+                redacted[field] = '[REDACTED]';
+            }
+        }
+        return redacted;
+    }
+    /**
+     * Handle errors with PHI/PII redaction
      */
     handle() {
         return (err, req, res, _next) => {
-            // Log error
+            // Log error WITHOUT sensitive data (HIPAA compliance)
             this.logger.error('Request error', {
                 error: err.message,
-                stack: err.stack,
+                stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
                 path: req.path,
                 method: req.method,
-                body: req.body,
-                query: req.query,
-                params: req.params
+                // DO NOT log body, query, params - they may contain PHI
             });
             // Handle known application errors
             if (err instanceof ApplicationError) {

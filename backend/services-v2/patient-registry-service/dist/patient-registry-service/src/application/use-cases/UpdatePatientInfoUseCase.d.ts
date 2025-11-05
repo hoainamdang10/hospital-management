@@ -7,16 +7,17 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { BloodType } from '../../domain/value-objects/BasicMedicalInfo';
-import { IEventBus } from '../../../../shared/infrastructure/event-bus/EventBus';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { BloodType } from "../../domain/value-objects/BasicMedicalInfo";
+import { IEventBus } from "../../../../shared/application/services/event-bus.interface";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { AuditService } from "../../infrastructure/audit/AuditService";
 export interface UpdatePatientInfoRequest {
     patientId: string;
     personalInfo?: {
         fullName: string;
         dateOfBirth: string;
-        gender: 'male' | 'female' | 'other';
+        gender: "male" | "female" | "other";
         nationalId: string;
         nationality: string;
         ethnicity?: string;
@@ -27,7 +28,7 @@ export interface UpdatePatientInfoRequest {
         primaryPhone: string;
         secondaryPhone?: string;
         email?: string;
-        preferredContactMethod: 'phone' | 'email' | 'sms';
+        preferredContactMethod: "phone" | "email" | "sms";
         address: {
             street: string;
             ward: string;
@@ -48,7 +49,7 @@ export interface UpdatePatientInfoRequest {
         groupNumber?: string;
         validFrom: string;
         validTo: string;
-        coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
+        coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
         isVietnameseInsurance: boolean;
         bhytNumber?: string;
         isPrimary: boolean;
@@ -64,7 +65,8 @@ export declare class UpdatePatientInfoUseCase {
     private readonly patientRepository;
     private readonly eventBus;
     private readonly logger;
-    constructor(patientRepository: IPatientRepository, eventBus: IEventBus, logger: ILogger);
+    private readonly auditService;
+    constructor(patientRepository: IPatientRepository, eventBus: IEventBus, logger: ILogger, auditService: AuditService);
     execute(request: UpdatePatientInfoRequest): Promise<UpdatePatientInfoResponse>;
     /**
      * Publish domain events
@@ -72,6 +74,7 @@ export declare class UpdatePatientInfoUseCase {
     private publishDomainEvents;
     /**
      * HIPAA audit logging for patient update
+     * Logs to audit_logs table via AuditService
      */
     private auditPatientUpdate;
 }

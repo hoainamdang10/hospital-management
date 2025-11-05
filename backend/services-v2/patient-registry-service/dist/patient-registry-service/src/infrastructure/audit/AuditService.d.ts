@@ -7,6 +7,7 @@
  */
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IAuditService, AuditLogEntry as SharedAuditLogEntry } from '../../../../shared/application/services/audit.service.interface';
 export interface AuditLogEntry {
     eventId: string;
     eventType: string;
@@ -37,7 +38,7 @@ export interface PHIAccessLogEntry {
     userAgent?: string;
     sessionId?: string;
 }
-export declare class AuditService {
+export declare class AuditService implements IAuditService {
     private supabase;
     private logger;
     constructor(supabase: SupabaseClient, logger: ILogger);
@@ -65,5 +66,17 @@ export declare class AuditService {
      * Mark event as failed
      */
     markEventFailed(eventId: string, errorMessage: string, errorStack?: string): Promise<void>;
+    /**
+     * IAuditService implementation - Log audit entry
+     */
+    log(entry: Omit<SharedAuditLogEntry, 'id' | 'timestamp'>): Promise<void>;
+    /**
+     * IAuditService implementation - Get logs for resource
+     */
+    getLogsForResource(resource: string, resourceId: string): Promise<SharedAuditLogEntry[]>;
+    /**
+     * IAuditService implementation - Get logs for user
+     */
+    getLogsForUser(userId: string, limit?: number): Promise<SharedAuditLogEntry[]>;
 }
 //# sourceMappingURL=AuditService.d.ts.map

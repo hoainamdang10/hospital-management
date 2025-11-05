@@ -7,10 +7,11 @@
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
 
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { PatientId } from "../../domain/value-objects/PatientId";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
+import { ILogger } from "@shared/application/services/logger.interface";
+import { IAuditService } from "@shared/application/services/audit.service.interface";
 
 export interface RevokeConsentCommand {
   patientId: string;
@@ -31,14 +32,15 @@ export class RevokeConsentUseCase {
   constructor(
     private patientRepository: IPatientRepository,
     private eventBus: IEventBus,
-    private logger: ILogger
+    private logger: ILogger,
+    private auditService: IAuditService,
   ) {}
 
   async execute(command: RevokeConsentCommand): Promise<RevokeConsentResult> {
-    this.logger.info('Revoking consent', {
+    this.logger.info("Revoking consent", {
       patientId: command.patientId,
       consentId: command.consentId,
-      performedBy: command.performedBy
+      performedBy: command.performedBy,
     });
 
     try {
@@ -46,24 +48,24 @@ export class RevokeConsentUseCase {
       if (!command.patientId || command.patientId.trim().length === 0) {
         return {
           success: false,
-          message: 'Patient ID không được để trống',
-          errors: ['INVALID_PATIENT_ID']
+          message: "Patient ID không được để trống",
+          errors: ["INVALID_PATIENT_ID"],
         };
       }
 
       if (!command.consentId || command.consentId.trim().length === 0) {
         return {
           success: false,
-          message: 'Consent ID không được để trống',
-          errors: ['INVALID_CONSENT_ID']
+          message: "Consent ID không được để trống",
+          errors: ["INVALID_CONSENT_ID"],
         };
       }
 
       if (!command.performedBy || command.performedBy.trim().length === 0) {
         return {
           success: false,
-          message: 'Người thực hiện không được để trống',
-          errors: ['INVALID_PERFORMED_BY']
+          message: "Người thực hiện không được để trống",
+          errors: ["INVALID_PERFORMED_BY"],
         };
       }
 
@@ -75,19 +77,19 @@ export class RevokeConsentUseCase {
         return {
           success: false,
           message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
-          errors: ['PATIENT_NOT_FOUND']
+          errors: ["PATIENT_NOT_FOUND"],
         };
       }
 
       // 3. Find consent
       const consents = patient.getConsents();
-      const consent = consents.find(c => c.getId() === command.consentId);
+      const consent = consents.find((c) => c.getId() === command.consentId);
 
       if (!consent) {
         return {
           success: false,
           message: `Không tìm thấy đồng ý với ID: ${command.consentId}`,
-          errors: ['CONSENT_NOT_FOUND']
+          errors: ["CONSENT_NOT_FOUND"],
         };
       }
 
@@ -95,8 +97,8 @@ export class RevokeConsentUseCase {
       if (!consent.isActive) {
         return {
           success: false,
-          message: 'Đồng ý đã được thu hồi trước đó',
-          errors: ['CONSENT_ALREADY_WITHDRAWN']
+          message: "Đồng ý đã được thu hồi trước đó",
+          errors: ["CONSENT_ALREADY_WITHDRAWN"],
         };
       }
 
@@ -109,26 +111,29 @@ export class RevokeConsentUseCase {
       // 7. Publish domain events
       await this.publishDomainEvents(patient);
 
-      this.logger.info('Consent revoked successfully', {
+      // 8. HIPAA audit logging
+      await this.auditConsentRevoked(patient, command, consent);
+
+      this.logger.info("Consent revoked successfully", {
         patientId: command.patientId,
-        consentId: command.consentId
+        consentId: command.consentId,
       });
 
       return {
         success: true,
-        message: 'Thu hồi đồng ý thành công'
+        message: "Thu hồi đồng ý thành công",
       };
     } catch (error) {
-      this.logger.error('Error revoking consent', {
+      this.logger.error("Error revoking consent", {
         patientId: command.patientId,
         consentId: command.consentId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
       return {
         success: false,
-        message: 'Lỗi khi thu hồi đồng ý',
-        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+        message: "Lỗi khi thu hồi đồng ý",
+        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
       };
     }
   }
@@ -141,10 +146,47 @@ export class RevokeConsentUseCase {
       }
       patient.markEventsAsCommitted();
     } catch (error) {
-      this.logger.warn('Event publishing failed, but consent was revoked', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.warn("Event publishing failed, but consent was revoked", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  /**
+   * HIPAA audit logging for consent revoked
+   */
+  private async auditConsentRevoked(
+    patient: any,
+    command: RevokeConsentCommand,
+    consent: any,
+  ): Promise<void> {
+    try {
+      await this.auditService.log({
+        userId: command.performedBy,
+        action: "CONSENT_REVOKED",
+        resource: "patient_consents",
+        resourceId: patient.getPatientId() || undefined,
+        details: {
+          consentId: command.consentId,
+          consentType: consent.consentType,
+          revokedAt: new Date().toISOString(),
+          complianceLevel: "HIPAA",
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      this.logger.info("HIPAA Audit: Consent revoked", {
+        action: "CONSENT_REVOKED",
+        patientId: patient.getPatientId(),
+        consentId: command.consentId,
+        performedBy: command.performedBy,
+      });
+    } catch (error) {
+      this.logger.error("Failed to log HIPAA audit", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        patientId: patient.getPatientId(),
+        action: "CONSENT_REVOKED",
       });
     }
   }
 }
-

@@ -29,6 +29,9 @@ class PersonalInfo extends value_object_1.ValueObject {
         if (!this.props.dateOfBirth) {
             throw new Error('Ngày sinh không được để trống');
         }
+        if (Number.isNaN(this.props.dateOfBirth.getTime())) {
+            throw new Error('Ngày sinh không hợp lệ');
+        }
         const today = new Date();
         if (this.props.dateOfBirth >= today) {
             throw new Error('Ngày sinh phải trước ngày hiện tại');

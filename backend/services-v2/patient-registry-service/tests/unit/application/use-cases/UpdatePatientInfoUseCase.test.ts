@@ -15,12 +15,14 @@ import { PersonalInfo } from '../../../../src/domain/value-objects/PersonalInfo'
 import { ContactInfo } from '../../../../src/domain/value-objects/ContactInfo';
 import { BasicMedicalInfo } from '../../../../src/domain/value-objects/BasicMedicalInfo';
 import { PatientId } from '../../../../src/domain/value-objects/PatientId';
+import { AuditService } from '../../../../src/infrastructure/audit/AuditService';
 
 describe('UpdatePatientInfoUseCase', () => {
   let useCase: UpdatePatientInfoUseCase;
   let mockRepository: jest.Mocked<IPatientRepository>;
   let mockEventBus: jest.Mocked<IEventBus>;
   let mockLogger: jest.Mocked<ILogger>;
+  let mockAuditService: jest.Mocked<AuditService>;
 
   beforeEach(() => {
     mockRepository = {
@@ -31,7 +33,11 @@ describe('UpdatePatientInfoUseCase', () => {
       findByBHYTNumber: jest.fn(),
       search: jest.fn(),
       findDuplicates: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+
+      getStatistics: jest.fn(),
+
+      getPatientHistory: jest.fn()
     } as any;
 
     mockEventBus = {
@@ -49,10 +55,17 @@ describe('UpdatePatientInfoUseCase', () => {
       fatal: jest.fn()
     } as any;
 
+    mockAuditService = {
+      logAudit: jest.fn().mockResolvedValue(undefined),
+      logPHIAccess: jest.fn().mockResolvedValue(undefined),
+      isEventProcessed: jest.fn().mockResolvedValue(false),
+    } as any;
+
     useCase = new UpdatePatientInfoUseCase(
       mockRepository,
       mockEventBus,
-      mockLogger
+      mockLogger,
+      mockAuditService
     );
   });
 

@@ -7,14 +7,9 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { IDomainEvent } from '../../../../shared/domain/events/IDomainEvent';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 
-export class PaymentProcessedEvent implements IDomainEvent {
-  public readonly eventId: string;
-  public readonly aggregateId: string;
-  public readonly occurredAt: Date;
-  public readonly eventVersion: number = 1;
-
+export class PaymentProcessedEvent extends DomainEvent {
   constructor(
     public readonly invoiceId: string,
     public readonly patientId: string,
@@ -23,19 +18,9 @@ export class PaymentProcessedEvent implements IDomainEvent {
     public readonly currency: string,
     public readonly paymentMethod: string,
     public readonly transactionId: string | undefined,
-    public readonly processedBy: string,
-    occurredAt: Date
+    public readonly processedBy: string
   ) {
-    this.eventId = `payment-processed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    this.aggregateId = invoiceId;
-    this.occurredAt = occurredAt;
-  }
-
-  /**
-   * Get event name
-   */
-  getEventName(): string {
-    return 'PaymentProcessedEvent';
+    super(invoiceId, 'PaymentProcessedEvent', 1);
   }
 
   /**
@@ -84,8 +69,6 @@ export class PaymentProcessedEvent implements IDomainEvent {
       vietnameseAmountDisplay: this.getVietnameseAmountDisplay(),
       transactionId: this.transactionId,
       processedBy: this.processedBy,
-      occurredAt: this.occurredAt.toISOString(),
-      eventVersion: this.eventVersion,
       vietnameseDescription: `Thanh toán ${this.getVietnameseAmountDisplay()} bằng ${this.getVietnamesePaymentMethod()}`
     };
   }
@@ -126,24 +109,5 @@ export class PaymentProcessedEvent implements IDomainEvent {
       default:
         return 'electronic';
     }
-  }
-
-  /**
-   * Serialize to JSON
-   */
-  toJSON(): any {
-    return {
-      eventId: this.eventId,
-      eventName: this.getEventName(),
-      aggregateId: this.aggregateId,
-      aggregateType: this.getAggregateType(),
-      eventVersion: this.eventVersion,
-      occurredAt: this.occurredAt.toISOString(),
-      eventData: this.getEventData(),
-      paymentCategory: this.getPaymentCategory(),
-      isPayOSPayment: this.isPayOSPayment(),
-      isCashPayment: this.isCashPayment(),
-      isInsurancePayment: this.isInsurancePayment()
-    };
   }
 }

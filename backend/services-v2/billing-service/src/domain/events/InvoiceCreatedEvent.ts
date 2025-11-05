@@ -1,39 +1,24 @@
 /**
  * InvoiceCreatedEvent - Domain Event
  * Raised when a new invoice is created
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { IDomainEvent } from '../../../../shared/domain/events/IDomainEvent';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 
-export class InvoiceCreatedEvent implements IDomainEvent {
-  public readonly eventId: string;
-  public readonly aggregateId: string;
-  public readonly occurredAt: Date;
-  public readonly eventVersion: number = 1;
-
+export class InvoiceCreatedEvent extends DomainEvent {
   constructor(
     public readonly invoiceId: string,
     public readonly patientId: string,
     public readonly medicalRecordId: string,
     public readonly doctorId: string,
     public readonly appointmentId: string,
-    public readonly issuedBy: string,
-    occurredAt: Date
+    public readonly issuedBy: string
   ) {
-    this.eventId = `invoice-created-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    this.aggregateId = invoiceId;
-    this.occurredAt = occurredAt;
-  }
-
-  /**
-   * Get event name
-   */
-  getEventName(): string {
-    return 'InvoiceCreatedEvent';
+    super(invoiceId, 'InvoiceCreatedEvent', 1);
   }
 
   /**
@@ -54,24 +39,7 @@ export class InvoiceCreatedEvent implements IDomainEvent {
       doctorId: this.doctorId,
       appointmentId: this.appointmentId,
       issuedBy: this.issuedBy,
-      occurredAt: this.occurredAt.toISOString(),
-      eventVersion: this.eventVersion,
       vietnameseDescription: 'Hóa đơn mới đã được tạo'
-    };
-  }
-
-  /**
-   * Serialize to JSON
-   */
-  toJSON(): any {
-    return {
-      eventId: this.eventId,
-      eventName: this.getEventName(),
-      aggregateId: this.aggregateId,
-      aggregateType: this.getAggregateType(),
-      eventVersion: this.eventVersion,
-      occurredAt: this.occurredAt.toISOString(),
-      eventData: this.getEventData()
     };
   }
 }

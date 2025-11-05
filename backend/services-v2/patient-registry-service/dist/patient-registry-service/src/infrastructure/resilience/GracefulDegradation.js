@@ -7,6 +7,39 @@
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant Fallbacks
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientRegistryDegradation = void 0;
 const CircuitBreaker_1 = require("./CircuitBreaker");
@@ -16,10 +49,11 @@ const IDegradationService_1 = require("../../application/services/IDegradationSe
  * Ensures system availability even during partial failures
  */
 class PatientRegistryDegradation {
-    constructor(config, supabaseConfig, logger) {
+    constructor(config, supabaseConfig, logger, patientRepository) {
         this.config = config;
         this.supabaseConfig = supabaseConfig;
         this.logger = logger;
+        this.patientRepository = patientRepository;
         this.currentMode = IDegradationService_1.ServiceMode.FULL_SERVICE;
         this.cache = new Map();
         this.MAX_CACHE_SIZE = 1000; // Prevent unbounded growth
@@ -75,18 +109,35 @@ class PatientRegistryDegradation {
      * Primary get patient operation (full database access)
      */
     async primaryGetPatient(criteria) {
-        // This would normally call the repository
-        // For now, we'll simulate success
         this.logger.info('Primary get patient operation', { criteria });
-        // Cache the result for fallback
-        const cacheKey = this.getCacheKey(criteria);
-        const result = {
-            success: true,
-            mode: IDegradationService_1.ServiceMode.FULL_SERVICE,
-            message: 'Patient retrieved successfully'
-        };
-        this.setCache(cacheKey, result);
-        return result;
+        try {
+            // Use real repository if available
+            if (this.patientRepository && criteria.patientId) {
+                const { PatientId } = await Promise.resolve().then(() => __importStar(require('../../domain/value-objects/PatientId')));
+                const patientId = PatientId.create(criteria.patientId);
+                const patient = await this.patientRepository.findById(patientId);
+                if (patient) {
+                    const cacheKey = this.getCacheKey(criteria);
+                    const result = {
+                        success: true,
+                        patientId: criteria.patientId,
+                        mode: IDegradationService_1.ServiceMode.FULL_SERVICE,
+                        message: 'Patient retrieved successfully'
+                    };
+                    this.setCache(cacheKey, result);
+                    return result;
+                }
+            }
+            // Fallback if repository not available or patient not found
+            throw new Error('Patient not found or repository unavailable');
+        }
+        catch (error) {
+            this.logger.error('Primary get patient operation failed', {
+                criteria,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            throw error;
+        }
     }
     /**
      * Fallback get patient (read-only from cache)

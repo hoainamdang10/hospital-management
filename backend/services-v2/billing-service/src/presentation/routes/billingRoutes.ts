@@ -1,344 +1,546 @@
 /**
- * billingRoutes - Presentation Layer
- * Express routes for billing service API endpoints
- * 
+ * Billing Routes - Presentation Layer
+ * RESTful API endpoints for Billing Service
+ *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance REST API Standards, Vietnamese Healthcare, Clean Architecture
+ * @compliance Clean Architecture, REST, CQRS, Vietnamese Healthcare Standards
  */
 
-import { Router } from 'express';
-import { BillingController } from '../controllers/BillingController';
-import { authMiddleware } from '../middleware/authMiddleware';
-import { validationMiddleware } from '../middleware/validationMiddleware';
-import { rateLimitMiddleware } from '../middleware/rateLimitMiddleware';
-import { corsMiddleware } from '../middleware/corsMiddleware';
-import { loggingMiddleware } from '../middleware/loggingMiddleware';
+import { Router } from "express";
+import { BillingController } from "../controllers/BillingController";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { validateRequest } from "../middleware/validation.middleware";
+import { rateLimitMiddleware } from "../middleware/rate-limit.middleware";
+import { auditMiddleware } from "../middleware/audit.middleware";
+import { errorHandler } from "../middleware/error-handler.middleware";
 
-export interface BillingRoutesConfig {
-  billingController: BillingController;
-}
-
-/**
- * Create billing routes
- */
-export function createBillingRoutes(config: BillingRoutesConfig): Router {
+export function createBillingRoutes(controller: BillingController): Router {
   const router = Router();
-  const { billingController } = config;
 
-  // Apply common middleware
-  router.use(corsMiddleware);
-  router.use(loggingMiddleware);
+  // Apply global middleware
+  router.use(authMiddleware);
   router.use(rateLimitMiddleware);
+  router.use(auditMiddleware);
 
-  // Invoice Management Routes
-  
+  // =====================================================
+  // INVOICE ENDPOINTS
+  // =====================================================
+
   /**
-   * @route POST /api/v1/billing/invoices
-   * @desc Generate new invoice for medical services
-   * @access Private (Doctor, Receptionist, Admin)
-   * @body {
-   *   patientId: string,
-   *   doctorId?: string,
-   *   medicalRecordId?: string,
-   *   appointmentId?: string,
-   *   items: Array<{
-   *     serviceCode: string,
-   *     serviceName: string,
-   *     quantity: number,
-   *     unitPrice: number,
-   *     category: string,
-   *     description?: string
-   *   }>,
-   *   insurance?: {
-   *     type: 'BHYT' | 'BHTN' | 'PRIVATE',
-   *     policyNumber: string,
-   *     validFrom?: Date,
-   *     validTo?: Date,
-   *     beneficiaryName?: string,
-   *     region?: string,
-   *     coverageLevel?: number
-   *   },
-   *   notes?: string
-   * }
-   * @returns {
-   *   success: boolean,
-   *   data: {
-   *     invoiceId: string,
-   *     invoiceNumber: string,
-   *     patientId: string,
-   *     items: Array,
-   *     subtotal: number,
-   *     taxAmount: number,
-   *     totalAmount: number,
-   *     insuranceCoverage: number,
-   *     patientPayment: number,
-   *     status: string,
-   *     createdAt: Date,
-   *     dueDate: Date,
-   *     summary: string
-   *   },
-   *   message: string
-   * }
+   * @route   POST /api/v1/invoices
+   * @desc    Create new invoice
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   * @body    { patientId, doctorId, items[], insurance?, notes }
    */
   router.post(
-    '/invoices',
-    authMiddleware(['doctor', 'receptionist', 'admin']),
-    validationMiddleware.validateGenerateInvoice,
-    billingController.generateInvoice.bind(billingController)
+    "/invoices",
+    validateRequest("createInvoice"),
+    controller.createInvoice.bind(controller),
   );
 
   /**
-   * @route GET /api/v1/billing/invoices/:invoiceId
-   * @desc Get invoice by ID
-   * @access Private (Patient, Doctor, Receptionist, Admin)
-   * @params invoiceId: string
-   * @returns Invoice details
+   * @route   GET /api/v1/invoices/:id
+   * @desc    Get invoice by ID
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
+   */
+  router.get("/invoices/:id", controller.getInvoiceById.bind(controller));
+
+  /**
+   * @route   GET /api/v1/invoices
+   * @desc    Get all invoices with pagination and filters
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   * @query   { page, limit, status, patientId, doctorId, dateFrom, dateTo }
+   */
+  router.get("/invoices", controller.getInvoices.bind(controller));
+
+  /**
+   * @route   PUT /api/v1/invoices/:id/items
+   * @desc    Add item to invoice
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   */
+  router.put(
+    "/invoices/:id/items",
+    validateRequest("addInvoiceItem"),
+    controller.addInvoiceItem.bind(controller),
+  );
+
+  /**
+   * @route   DELETE /api/v1/invoices/:id/items/:itemId
+   * @desc    Remove item from invoice
+   * @access  Private (ADMIN, DOCTOR)
+   */
+  router.delete(
+    "/invoices/:id/items/:itemId",
+    controller.removeInvoiceItem.bind(controller),
+  );
+
+  /**
+   * @route   PUT /api/v1/invoices/:id/finalize
+   * @desc    Finalize invoice (change from draft to pending)
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   */
+  router.put(
+    "/invoices/:id/finalize",
+    controller.finalizeInvoice.bind(controller),
+  );
+
+  /**
+   * @route   PUT /api/v1/invoices/:id/cancel
+   * @desc    Cancel invoice
+   * @access  Private (ADMIN, DOCTOR)
+   */
+  router.put(
+    "/invoices/:id/cancel",
+    validateRequest("cancelInvoice"),
+    controller.cancelInvoice.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/invoices/:id/download
+   * @desc    Download invoice as PDF
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
    */
   router.get(
-    '/invoices/:invoiceId',
-    authMiddleware(['patient', 'doctor', 'receptionist', 'admin']),
-    validationMiddleware.validateInvoiceId,
-    billingController.getInvoice.bind(billingController)
+    "/invoices/:id/download",
+    controller.downloadInvoice.bind(controller),
+  );
+
+  // =====================================================
+  // PAYMENT ENDPOINTS
+  // =====================================================
+
+  /**
+   * @route   POST /api/v1/invoices/:id/payments
+   * @desc    Process payment for invoice
+   * @access  Private (ADMIN, DOCTOR, NURSE, CASHIER)
+   * @body    { amount, method, transactionId?, notes? }
+   */
+  router.post(
+    "/invoices/:id/payments",
+    validateRequest("processPayment"),
+    controller.processPayment.bind(controller),
   );
 
   /**
-   * @route GET /api/v1/billing/patients/:patientId/invoices
-   * @desc Get invoices by patient ID
-   * @access Private (Patient own data, Doctor, Receptionist, Admin)
-   * @params patientId: string
-   * @query status?: string, fromDate?: Date, toDate?: Date, page?: number, limit?: number
-   * @returns List of invoices
+   * @route   GET /api/v1/invoices/:id/payments
+   * @desc    Get payment history for invoice
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
    */
   router.get(
-    '/patients/:patientId/invoices',
-    authMiddleware(['patient', 'doctor', 'receptionist', 'admin']),
-    validationMiddleware.validatePatientId,
-    billingController.getInvoicesByPatient.bind(billingController)
+    "/invoices/:id/payments",
+    controller.getPaymentHistory.bind(controller),
   );
 
   /**
-   * @route GET /api/v1/billing/invoices/:invoiceId/pdf
-   * @desc Generate Vietnamese invoice PDF
-   * @access Private (Patient, Doctor, Receptionist, Admin)
-   * @params invoiceId: string
-   * @query language?: 'vi' | 'en'
-   * @returns PDF file download
+   * @route   GET /api/v1/payments
+   * @desc    Get all payments with filters
+   * @access  Private (ADMIN, CASHIER)
+   * @query   { page, limit, method, dateFrom, dateTo }
+   */
+  router.get("/payments", controller.getAllPayments.bind(controller));
+
+  /**
+   * @route   GET /api/v1/payments/:id
+   * @desc    Get payment by ID
+   * @access  Private (ADMIN, CASHIER)
+   */
+  router.get("/payments/:id", controller.getPaymentById.bind(controller));
+
+  // =====================================================
+  // PAYOS INTEGRATION ENDPOINTS
+  // =====================================================
+
+  /**
+   * @route   POST /api/v1/payos/create-payment-link
+   * @desc    Create PayOS payment link
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
+   * @body    { invoiceId, returnUrl, cancelUrl }
+   */
+  router.post(
+    "/payos/create-payment-link",
+    validateRequest("createPaymentLink"),
+    controller.createPayOSPaymentLink.bind(controller),
+  );
+
+  /**
+   * @route   POST /api/v1/payos/webhook
+   * @desc    PayOS webhook for payment notifications
+   * @access  Public (with signature verification)
+   */
+  router.post("/payos/webhook", controller.handlePayOSWebhook.bind(controller));
+
+  /**
+   * @route   GET /api/v1/payos/payment-status/:orderCode
+   * @desc    Check PayOS payment status
+   * @access  Private
    */
   router.get(
-    '/invoices/:invoiceId/pdf',
-    authMiddleware(['patient', 'doctor', 'receptionist', 'admin']),
-    validationMiddleware.validateInvoiceId,
-    billingController.generateInvoicePDF.bind(billingController)
+    "/payos/payment-status/:orderCode",
+    controller.getPayOSPaymentStatus.bind(controller),
   );
 
-  // Payment Processing Routes
-
   /**
-   * @route POST /api/v1/billing/payments
-   * @desc Process payment for invoice
-   * @access Private (Patient, Receptionist, Admin)
-   * @body {
-   *   invoiceId: string,
-   *   paymentMethod: 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'PAYOS' | 'INSURANCE_DIRECT',
-   *   amount: number,
-   *   currency?: string,
-   *   paymentDetails?: object,
-   *   notes?: string
-   * }
-   * @returns {
-   *   success: boolean,
-   *   data: {
-   *     paymentId: string,
-   *     invoiceId: string,
-   *     paymentMethod: string,
-   *     amount: number,
-   *     currency: string,
-   *     status: string,
-   *     transactionId?: string,
-   *     paymentLink?: string,
-   *     qrCode?: string,
-   *     processedAt: Date,
-   *     expiresAt?: Date
-   *   },
-   *   message: string
-   * }
+   * @route   POST /api/v1/payos/cancel-payment
+   * @desc    Cancel PayOS payment
+   * @access  Private
+   * @body    { orderCode, reason }
    */
   router.post(
-    '/payments',
-    authMiddleware(['patient', 'receptionist', 'admin']),
-    validationMiddleware.validateProcessPayment,
-    billingController.processPayment.bind(billingController)
+    "/payos/cancel-payment",
+    validateRequest("cancelPayOSPayment"),
+    controller.cancelPayOSPayment.bind(controller),
   );
 
-  // Insurance Management Routes
+  // =====================================================
+  // INSURANCE CLAIMS ENDPOINTS
+  // =====================================================
 
   /**
-   * @route POST /api/v1/billing/insurance/validate
-   * @desc Validate insurance information
-   * @access Private (Doctor, Receptionist, Admin)
-   * @body {
-   *   type: 'BHYT' | 'BHTN' | 'PRIVATE',
-   *   policyNumber: string,
-   *   beneficiaryName: string,
-   *   dateOfBirth?: Date,
-   *   region?: string,
-   *   serviceDate?: Date
-   * }
-   * @returns {
-   *   success: boolean,
-   *   data: {
-   *     isValid: boolean,
-   *     policyNumber: string,
-   *     beneficiaryName: string,
-   *     coverageLevel: number,
-   *     coPaymentRate: number,
-   *     maxCoverage: number,
-   *     validFrom: Date,
-   *     validTo: Date,
-   *     region: string,
-   *     warnings: string[],
-   *     recommendations: string[]
-   *   },
-   *   message: string
-   * }
+   * @route   POST /api/v1/invoices/:id/insurance-claim
+   * @desc    Submit insurance claim
+   * @access  Private (ADMIN, DOCTOR, NURSE)
    */
   router.post(
-    '/insurance/validate',
-    authMiddleware(['doctor', 'receptionist', 'admin']),
-    validationMiddleware.validateInsurance,
-    billingController.validateInsurance.bind(billingController)
+    "/invoices/:id/insurance-claim",
+    controller.submitInsuranceClaim.bind(controller),
   );
 
   /**
-   * @route POST /api/v1/billing/insurance/claims
-   * @desc Process insurance claim
-   * @access Private (Doctor, Receptionist, Admin)
-   * @body {
-   *   invoiceId: string,
-   *   insuranceType: 'BHYT' | 'BHTN' | 'PRIVATE',
-   *   policyNumber: string,
-   *   claimAmount: number,
-   *   supportingDocuments?: string[],
-   *   notes?: string
-   * }
-   * @returns Insurance claim processing result
+   * @route   GET /api/v1/invoices/:id/insurance-claims
+   * @desc    Get insurance claims for invoice
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   */
+  router.get(
+    "/invoices/:id/insurance-claims",
+    controller.getInsuranceClaims.bind(controller),
+  );
+
+  /**
+   * @route   PUT /api/v1/insurance-claims/:claimId/approve
+   * @desc    Approve insurance claim
+   * @access  Private (ADMIN, INSURANCE_OFFICER)
+   * @body    { approvedAmount, notes }
+   */
+  router.put(
+    "/insurance-claims/:claimId/approve",
+    validateRequest("approveInsuranceClaim"),
+    controller.approveInsuranceClaim.bind(controller),
+  );
+
+  /**
+   * @route   PUT /api/v1/insurance-claims/:claimId/reject
+   * @desc    Reject insurance claim
+   * @access  Private (ADMIN, INSURANCE_OFFICER)
+   * @body    { rejectionReason }
+   */
+  router.put(
+    "/insurance-claims/:claimId/reject",
+    validateRequest("rejectInsuranceClaim"),
+    controller.rejectInsuranceClaim.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/insurance-claims
+   * @desc    Get all insurance claims with filters
+   * @access  Private (ADMIN, INSURANCE_OFFICER)
+   * @query   { page, limit, status, insuranceType, dateFrom, dateTo }
+   */
+  router.get(
+    "/insurance-claims",
+    controller.getAllInsuranceClaims.bind(controller),
+  );
+
+  // =====================================================
+  // PATIENT BILLING ENDPOINTS
+  // =====================================================
+
+  /**
+   * @route   GET /api/v1/patients/:patientId/invoices
+   * @desc    Get all invoices for a patient
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
+   * @query   { page, limit, status }
+   */
+  router.get(
+    "/patients/:patientId/invoices",
+    controller.getPatientInvoices.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/patients/:patientId/billing-summary
+   * @desc    Get billing summary for a patient
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
+   */
+  router.get(
+    "/patients/:patientId/billing-summary",
+    controller.getPatientBillingSummary.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/patients/:patientId/payment-history
+   * @desc    Get payment history for a patient
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
+   * @query   { page, limit, dateFrom, dateTo }
+   */
+  router.get(
+    "/patients/:patientId/payment-history",
+    controller.getPatientPaymentHistory.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/patients/:patientId/outstanding-balance
+   * @desc    Get outstanding balance for a patient
+   * @access  Private (ADMIN, DOCTOR, NURSE, PATIENT - own records)
+   */
+  router.get(
+    "/patients/:patientId/outstanding-balance",
+    controller.getPatientOutstandingBalance.bind(controller),
+  );
+
+  // =====================================================
+  // REPORTS & STATISTICS ENDPOINTS
+  // =====================================================
+
+  /**
+   * @route   GET /api/v1/reports/revenue
+   * @desc    Get revenue report
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @query   { dateFrom, dateTo, groupBy, doctorId?, insuranceType? }
+   */
+  router.get("/reports/revenue", controller.getRevenueReport.bind(controller));
+
+  /**
+   * @route   GET /api/v1/reports/outstanding
+   * @desc    Get outstanding invoices report
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   */
+  router.get(
+    "/reports/outstanding",
+    controller.getOutstandingInvoicesReport.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/reports/insurance-claims
+   * @desc    Get insurance claims report
+   * @access  Private (ADMIN, FINANCE_MANAGER, INSURANCE_OFFICER)
+   * @query   { dateFrom, dateTo, insuranceType?, status? }
+   */
+  router.get(
+    "/reports/insurance-claims",
+    controller.getInsuranceClaimsReport.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/reports/payment-trends
+   * @desc    Get payment trends report
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @query   { dateFrom, dateTo, groupBy }
+   */
+  router.get(
+    "/reports/payment-trends",
+    controller.getPaymentTrendsReport.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/statistics/dashboard
+   * @desc    Get dashboard statistics
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   */
+  router.get(
+    "/statistics/dashboard",
+    controller.getDashboardStatistics.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/statistics/doctor/:doctorId
+   * @desc    Get doctor billing performance
+   * @access  Private (ADMIN, FINANCE_MANAGER, DOCTOR - own records)
+   * @query   { dateFrom, dateTo }
+   */
+  router.get(
+    "/statistics/doctor/:doctorId",
+    controller.getDoctorBillingPerformance.bind(controller),
+  );
+
+  // =====================================================
+  // INVOICE SEARCH & FILTERS
+  // =====================================================
+
+  /**
+   * @route   POST /api/v1/invoices/search
+   * @desc    Advanced invoice search
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   * @body    { criteria: { status?, patientId?, doctorId?, dateRange?, amountRange? } }
    */
   router.post(
-    '/insurance/claims',
-    authMiddleware(['doctor', 'receptionist', 'admin']),
-    validationMiddleware.validateInsuranceClaim,
-    billingController.processInsuranceClaim.bind(billingController)
+    "/invoices/search",
+    validateRequest("searchInvoices"),
+    controller.searchInvoices.bind(controller),
   );
 
-  // Webhook Routes (Public for payment gateways)
+  /**
+   * @route   GET /api/v1/invoices/overdue
+   * @desc    Get overdue invoices
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   */
+  router.get(
+    "/invoices/overdue",
+    controller.getOverdueInvoices.bind(controller),
+  );
 
   /**
-   * @route POST /api/v1/billing/webhooks/payos
-   * @desc Handle PayOS webhook notifications
-   * @access Public (PayOS webhook)
-   * @body PayOS webhook payload
-   * @returns Webhook acknowledgment
+   * @route   GET /api/v1/invoices/pending-claims
+   * @desc    Get invoices with pending insurance claims
+   * @access  Private (ADMIN, INSURANCE_OFFICER)
+   */
+  router.get(
+    "/invoices/pending-claims",
+    controller.getInvoicesWithPendingClaims.bind(controller),
+  );
+
+  // =====================================================
+  // BULK OPERATIONS
+  // =====================================================
+
+  /**
+   * @route   POST /api/v1/invoices/bulk-export
+   * @desc    Export multiple invoices to CSV/Excel
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @body    { invoiceIds[], format: 'csv' | 'excel' }
    */
   router.post(
-    '/webhooks/payos',
-    validationMiddleware.validatePayOSWebhook,
-    async (req, res) => {
-      try {
-        // Process PayOS webhook
-        const webhookResult = await billingController.processPayOSWebhook(req.body);
-        
-        res.status(200).json({
-          success: true,
-          message: 'Webhook processed successfully'
-        });
-      } catch (error) {
-        console.error('PayOS webhook processing error:', error);
-        res.status(200).json({
-          success: true,
-          message: 'Webhook acknowledged'
-        });
-      }
-    }
+    "/invoices/bulk-export",
+    validateRequest("bulkExportInvoices"),
+    controller.bulkExportInvoices.bind(controller),
   );
 
   /**
-   * @route POST /api/v1/billing/webhooks/bhyt
-   * @desc Handle BHYT webhook notifications
-   * @access Public (BHYT webhook)
-   * @body BHYT webhook payload
-   * @returns Webhook acknowledgment
+   * @route   POST /api/v1/invoices/bulk-send-reminders
+   * @desc    Send payment reminders for multiple invoices
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @body    { invoiceIds[], reminderType: 'email' | 'sms' }
    */
   router.post(
-    '/webhooks/bhyt',
-    validationMiddleware.validateBHYTWebhook,
-    async (req, res) => {
-      try {
-        // Process BHYT webhook
-        const webhookResult = await billingController.processBHYTWebhook(req.body);
-        
-        res.status(200).json({
-          success: true,
-          message: 'BHYT webhook processed successfully'
-        });
-      } catch (error) {
-        console.error('BHYT webhook processing error:', error);
-        res.status(200).json({
-          success: true,
-          message: 'BHYT webhook acknowledged'
-        });
-      }
-    }
+    "/invoices/bulk-send-reminders",
+    validateRequest("bulkSendReminders"),
+    controller.bulkSendPaymentReminders.bind(controller),
+  );
+
+  // =====================================================
+  // VIETNAMESE TAX COMPLIANCE
+  // =====================================================
+
+  /**
+   * @route   GET /api/v1/tax/invoices
+   * @desc    Get invoices for tax reporting (Vietnamese compliance)
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @query   { year, quarter }
+   */
+  router.get("/tax/invoices", controller.getTaxInvoices.bind(controller));
+
+  /**
+   * @route   GET /api/v1/tax/summary
+   * @desc    Get tax summary for a period
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @query   { year, quarter }
+   */
+  router.get("/tax/summary", controller.getTaxSummary.bind(controller));
+
+  // =====================================================
+  // INVOICE TEMPLATES
+  // =====================================================
+
+  /**
+   * @route   GET /api/v1/invoice-templates
+   * @desc    Get all invoice templates
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   */
+  router.get(
+    "/invoice-templates",
+    controller.getInvoiceTemplates.bind(controller),
   );
 
   /**
-   * @route POST /api/v1/billing/webhooks/bhtn
-   * @desc Handle BHTN webhook notifications
-   * @access Public (BHTN webhook)
-   * @body BHTN webhook payload
-   * @returns Webhook acknowledgment
+   * @route   POST /api/v1/invoice-templates
+   * @desc    Create invoice template
+   * @access  Private (ADMIN)
+   * @body    { name, description, items[] }
    */
   router.post(
-    '/webhooks/bhtn',
-    validationMiddleware.validateBHTNWebhook,
-    async (req, res) => {
-      try {
-        // Process BHTN webhook
-        const webhookResult = await billingController.processBHTNWebhook(req.body);
-        
-        res.status(200).json({
-          success: true,
-          message: 'BHTN webhook processed successfully'
-        });
-      } catch (error) {
-        console.error('BHTN webhook processing error:', error);
-        res.status(200).json({
-          success: true,
-          message: 'BHTN webhook acknowledged'
-        });
-      }
-    }
+    "/invoice-templates",
+    validateRequest("createInvoiceTemplate"),
+    controller.createInvoiceTemplate.bind(controller),
   );
 
-  // Health Check Route
+  /**
+   * @route   POST /api/v1/invoices/from-template/:templateId
+   * @desc    Create invoice from template
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   * @body    { patientId, doctorId, customizations? }
+   */
+  router.post(
+    "/invoices/from-template/:templateId",
+    validateRequest("createInvoiceFromTemplate"),
+    controller.createInvoiceFromTemplate.bind(controller),
+  );
+
+  // =====================================================
+  // REFUNDS
+  // =====================================================
 
   /**
-   * @route GET /api/v1/billing/health
-   * @desc Health check endpoint
-   * @access Public
-   * @returns Service health status
+   * @route   POST /api/v1/invoices/:id/refund
+   * @desc    Process refund for invoice
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @body    { amount, reason, refundMethod }
    */
-  router.get('/health', (req, res) => {
-    res.status(200).json({
-      success: true,
-      service: 'billing-service',
-      version: '2.0.0',
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'development'
-    });
-  });
+  router.post(
+    "/invoices/:id/refund",
+    validateRequest("processRefund"),
+    controller.processRefund.bind(controller),
+  );
+
+  /**
+   * @route   GET /api/v1/refunds
+   * @desc    Get all refunds
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   * @query   { page, limit, dateFrom, dateTo }
+   */
+  router.get("/refunds", controller.getAllRefunds.bind(controller));
+
+  // =====================================================
+  // NOTIFICATIONS
+  // =====================================================
+
+  /**
+   * @route   POST /api/v1/invoices/:id/send-notification
+   * @desc    Send invoice notification to patient
+   * @access  Private (ADMIN, DOCTOR, NURSE)
+   * @body    { notificationType: 'email' | 'sms', customMessage? }
+   */
+  router.post(
+    "/invoices/:id/send-notification",
+    validateRequest("sendInvoiceNotification"),
+    controller.sendInvoiceNotification.bind(controller),
+  );
+
+  /**
+   * @route   POST /api/v1/invoices/:id/send-reminder
+   * @desc    Send payment reminder to patient
+   * @access  Private (ADMIN, FINANCE_MANAGER)
+   */
+  router.post(
+    "/invoices/:id/send-reminder",
+    controller.sendPaymentReminder.bind(controller),
+  );
+
+  // Error handling middleware (must be last)
+  router.use(errorHandler);
 
   return router;
 }
+
+/**
+ * Export configured router
+ */
+export default createBillingRoutes;

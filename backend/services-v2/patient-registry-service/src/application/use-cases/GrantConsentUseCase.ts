@@ -10,6 +10,8 @@
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { PatientConsent } from '../../domain/entities/PatientConsent';
 import { PatientId } from '../../domain/value-objects/PatientId';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface GrantConsentCommand {
   patientId: string;
@@ -30,7 +32,11 @@ export interface GrantConsentResult {
  * Use Case: Grant Patient Consent
  */
 export class GrantConsentUseCase {
-  constructor(private patientRepository: IPatientRepository) {}
+  constructor(
+    private patientRepository: IPatientRepository,
+    private auditService: IAuditService,
+    private logger: ILogger,
+  ) {}
 
   async execute(command: GrantConsentCommand): Promise<GrantConsentResult> {
     // 1. Validate input
@@ -73,11 +79,53 @@ export class GrantConsentUseCase {
     // 5. Save patient
     await this.patientRepository.save(patient);
 
+    // 6. HIPAA audit logging
+    await this.auditConsentGranted(patient, command, consent);
+
     return {
       success: true,
       consentId: consent.getId(),
       message: 'Đã cấp đồng ý thành công'
     };
+  }
+
+  /**
+   * HIPAA audit logging for consent granted
+   */
+  private async auditConsentGranted(
+    patient: any,
+    command: GrantConsentCommand,
+    consent: PatientConsent,
+  ): Promise<void> {
+    try {
+      await this.auditService.log({
+        userId: command.performedBy,
+        action: 'CONSENT_GRANTED',
+        resource: 'patient_consents',
+        resourceId: patient.getPatientId() || undefined,
+        details: {
+          consentId: consent.getId(),
+          consentType: command.consentType,
+          grantedBy: command.grantedBy,
+          expiresAt: command.expiresAt?.toISOString(),
+          complianceLevel: 'HIPAA',
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      this.logger.info('HIPAA Audit: Consent granted', {
+        action: 'CONSENT_GRANTED',
+        patientId: patient.getPatientId(),
+        consentId: consent.getId(),
+        performedBy: command.performedBy,
+      });
+    } catch (error) {
+      this.logger.error('Failed to log HIPAA audit', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        patientId: patient.getPatientId(),
+        action: 'CONSENT_GRANTED',
+      });
+    }
   }
 }
 

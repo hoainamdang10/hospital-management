@@ -9,6 +9,7 @@
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { AuditService } from '../../infrastructure/audit/AuditService';
 export interface GetPatientProfileRequest {
     patientId?: string;
     userId?: string;
@@ -97,10 +98,12 @@ export interface GetPatientProfileResponse {
 export declare class GetPatientProfileUseCase {
     private readonly patientRepository;
     private readonly logger;
-    constructor(patientRepository: IPatientRepository, logger: ILogger);
+    private readonly auditService;
+    constructor(patientRepository: IPatientRepository, logger: ILogger, auditService: AuditService);
     execute(request: GetPatientProfileRequest): Promise<GetPatientProfileResponse>;
     /**
      * HIPAA audit logging for patient profile access
+     * Logs PHI access to phi_access_logs table via AuditService
      */
     private auditPatientProfileAccess;
 }

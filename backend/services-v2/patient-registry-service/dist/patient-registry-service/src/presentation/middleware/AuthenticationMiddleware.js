@@ -54,9 +54,12 @@ class AuthenticationMiddleware {
                 next();
             }
             catch (error) {
+                // Redact path if it contains patient IDs (HIPAA compliance)
+                const redactedPath = req.path.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***');
                 this.logger.error('Authentication middleware error', {
                     error: error instanceof Error ? error.message : 'Unknown error',
-                    path: req.path
+                    path: redactedPath,
+                    // DO NOT log authorization header
                 });
                 res.status(500).json({
                     success: false,
@@ -71,19 +74,20 @@ class AuthenticationMiddleware {
      */
     async verifyTokenWithIdentityService(token) {
         try {
-            const response = await axios_1.default.get(`${this.identityServiceUrl}/auth/verify`, {
+            const response = await axios_1.default.get(`${this.identityServiceUrl}/api/v1/users/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
                 timeout: 5000
             });
-            if (response.status === 200 && response.data.success) {
+            if (response.status === 200 && response.data?.success && response.data?.user) {
+                const user = response.data.user;
                 return {
-                    userId: response.data.data.userId,
-                    email: response.data.data.email,
-                    roles: response.data.data.roles || [],
-                    permissions: response.data.data.permissions || [],
-                    sessionId: response.data.data.sessionId
+                    userId: user.userId || user.id,
+                    email: user.email,
+                    roles: user.roles || [],
+                    permissions: user.permissions || [],
+                    sessionId: user.sessionId
                 };
             }
             return null;

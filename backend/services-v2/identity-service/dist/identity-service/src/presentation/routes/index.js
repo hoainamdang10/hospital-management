@@ -23,29 +23,27 @@ const admin_routes_1 = require("./admin.routes");
  */
 function registerRoutes(app, deps) {
     // Health & Monitoring routes
-    app.use('/', (0, health_routes_1.createHealthRoutes)(deps));
+    app.use("/", (0, health_routes_1.createHealthRoutes)(deps));
     // Authentication routes
-    app.use('/auth', (0, auth_routes_1.createAuthRoutes)(deps));
+    app.use("/auth", (0, auth_routes_1.createAuthRoutes)(deps));
     // User management routes
-    app.use('/api/v1/users', (0, user_routes_1.createUserRoutes)(deps));
+    app.use("/api/v1/users", (0, user_routes_1.createUserRoutes)(deps));
     // Session management routes (nested under users)
-    app.use('/api/v1/users', (0, session_routes_1.createSessionRoutes)(deps));
+    app.use("/api/v1/users", (0, session_routes_1.createSessionRoutes)(deps));
     // Password policy routes
-    app.use('/api/v1/password-policy', (0, password_policy_routes_1.createPasswordPolicyRoutes)(deps));
+    app.use("/api/v1/password-policy", (0, password_policy_routes_1.createPasswordPolicyRoutes)(deps));
     // Account recovery routes
-    app.use('/api/v1/account-recovery', (0, account_recovery_routes_1.createAccountRecoveryRoutes)(deps));
+    app.use("/api/v1/account-recovery", (0, account_recovery_routes_1.createAccountRecoveryRoutes)(deps));
     // Permission routes
-    app.use('/api/v1/permissions', (0, permission_routes_1.createPermissionRoutes)(deps));
-    // Permission check routes (for API Gateway)
-    app.use('/api/v1/auth', (0, permission_routes_1.createPermissionRoutes)(deps));
+    app.use("/api/v1/permissions", (0, permission_routes_1.createPermissionRoutes)(deps));
     // Admin routes
-    app.use('/admin', (0, admin_routes_1.createAdminRoutes)(deps));
+    app.use("/admin", (0, admin_routes_1.createAdminRoutes)(deps));
     // 404 handler
-    app.use('*', (req, res) => {
+    app.use("*", (req, res) => {
         res.status(404).json({
-            error: 'Endpoint không tồn tại',
+            error: "Endpoint không tồn tại",
             path: req.originalUrl,
-            method: req.method
+            method: req.method,
         });
     });
 }

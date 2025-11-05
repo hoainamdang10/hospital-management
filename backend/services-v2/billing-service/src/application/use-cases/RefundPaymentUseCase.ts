@@ -61,7 +61,7 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<RefundPaymentReq
   /**
    * Execute payment refund
    */
-  protected async executeCore(request: RefundPaymentRequest): Promise<RefundPaymentResponse> {
+  protected async executeImpl(request: RefundPaymentRequest): Promise<RefundPaymentResponse> {
     try {
       this.logger.info('Processing payment refund', {
         invoiceId: request.invoiceId,
