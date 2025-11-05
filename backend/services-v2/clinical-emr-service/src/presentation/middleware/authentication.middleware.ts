@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 export function authenticationMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Simple JWT check
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({
       success: false,
@@ -16,6 +16,9 @@ export function authenticationMiddleware(req: Request, res: Response, next: Next
   // TODO: Validate JWT
   next();
 }
+
+// Alias for compatibility
+export const authenticateJWT = authenticationMiddleware;
 
 
 

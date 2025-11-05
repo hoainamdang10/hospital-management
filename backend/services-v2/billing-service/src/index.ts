@@ -12,11 +12,15 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import swaggerUi from 'swagger-ui-express';
 import { createClient } from '@supabase/supabase-js';
 import { DIContainer } from '../../shared/infrastructure/di/container';
 import { setupDependencies } from './infrastructure/di/setup';
 import { setupRoutes } from './presentation/routes';
+import { createHealthRoutes } from './presentation/routes/healthRoutes';
 import { logger } from './infrastructure/logging/logger';
+import { prometheusMetrics } from './infrastructure/monitoring/PrometheusMetrics';
+import { swaggerSpec } from './infrastructure/swagger/swagger.config';
 import { SupabaseOutboxRepository } from './infrastructure/outbox/SupabaseOutboxRepository';
 import { OutboxPublisherWorker } from './infrastructure/outbox/OutboxPublisherWorker';
 import { RabbitMQPublisher } from './infrastructure/messaging/RabbitMQPublisher';
@@ -73,44 +77,62 @@ const outboxWorker = new OutboxPublisherWorker(
 );
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      imgSrc: ["'self'", "data:", "https:", "cdn.jsdelivr.net"],
+      fontSrc: ["'self'", "data:", "cdn.jsdelivr.net"]
+    }
+  }
+}));
 app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Setup routes
-setupRoutes(app, container);
+// Health & Metrics routes
+const healthRoutes = createHealthRoutes(container);
+app.use('/', healthRoutes);
 
-// Health check
-app.get('/health', async (req, res) => {
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
   try {
-    const healthStatus = await container.getServiceHealth();
-    const workerStatus = outboxWorker.getStatus();
-
-    res.json({
-      service: 'billing-service',
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      port: PORT,
-      features: ["Invoices","Payments","Insurance Claims","PayOS Integration"],
-      patterns: ["Strategy","Outbox","Payment Gateway"],
-      services: healthStatus,
-      outboxWorker: {
-        enabled: workerStatus.isRunning,
-        workerId: workerStatus.workerId,
-        pollingInterval: workerStatus.config.pollingIntervalMs,
-        batchSize: workerStatus.config.batchSize,
-      }
-    });
+    res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+    const metrics = await prometheusMetrics.getMetrics();
+    res.send(metrics);
   } catch (error) {
-    res.status(503).json({
-      service: 'billing-service',
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+    logger.error('Failed to generate Prometheus metrics', { error });
+    res.status(500).send('Failed to generate metrics');
   }
 });
+logger.info('Prometheus metrics endpoint registered at /metrics');
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Billing Service API Documentation',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true
+  }
+}));
+
+// OpenAPI JSON spec
+app.get('/api-docs/json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+logger.info('Swagger UI available at http://localhost:' + PORT + '/api-docs');
+
+// Setup routes
+setupRoutes(app, container);
 
 // Error handling
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

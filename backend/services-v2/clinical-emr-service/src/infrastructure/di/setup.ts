@@ -31,6 +31,8 @@ import { GetMedicalRecordUseCase } from "../../application/use-cases/GetMedicalR
 import { SearchMedicalRecordsUseCase } from "../../application/use-cases/SearchMedicalRecordsUseCase";
 import { GenerateMedicalReportUseCase } from "../../application/use-cases/GenerateMedicalReportUseCase";
 import { ExportToFHIRUseCase } from "../../application/use-cases/ExportToFHIRUseCase";
+import { GetAuditLogsUseCase } from "../../application/use-cases/GetAuditLogsUseCase";
+import { BulkExportFHIRUseCase } from "../../application/use-cases/BulkExportFHIRUseCase";
 
 // Infrastructure Layer
 import { SupabaseMedicalRecordRepository } from "../persistence/SupabaseMedicalRecordRepository";
@@ -43,6 +45,8 @@ import { ClinicalEMREventHandler } from "../events/ClinicalEMREventHandler";
 import { SupabaseOutboxRepository } from "../outbox/SupabaseOutboxRepository";
 import { OutboxMedicalRecordRepository } from "../outbox/OutboxMedicalRecordRepository";
 import { OutboxPublisherWorker } from "../outbox/OutboxPublisherWorker";
+import { FHIRExportServiceAdapter } from "../services/FHIRExportServiceAdapter";
+import { AuditLogServiceAdapter } from "../services/AuditLogServiceAdapter";
 
 // Middleware
 import { AuthenticationMiddleware } from "../../presentation/middleware/AuthenticationMiddleware";
@@ -65,6 +69,8 @@ export const ServiceTokens = {
 
   // External Services
   FHIR_EXPORT_SERVICE: "FHIRExportService",
+  FHIR_EXPORT_SERVICE_ADAPTER: "FHIRExportServiceAdapter",
+  AUDIT_LOG_SERVICE_ADAPTER: "AuditLogServiceAdapter",
 
   // Outbox Pattern
   OUTBOX_REPOSITORY: "OutboxRepository",
@@ -79,6 +85,8 @@ export const ServiceTokens = {
   SEARCH_MEDICAL_RECORDS_USE_CASE: "SearchMedicalRecordsUseCase",
   GENERATE_MEDICAL_REPORT_USE_CASE: "GenerateMedicalReportUseCase",
   EXPORT_TO_FHIR_USE_CASE: "ExportToFHIRUseCase",
+  GET_AUDIT_LOGS_USE_CASE: "GetAuditLogsUseCase",
+  BULK_EXPORT_FHIR_USE_CASE: "BulkExportFHIRUseCase",
 
   // Command Handlers
   ADD_DIAGNOSIS_COMMAND_HANDLER: "AddDiagnosisCommandHandler",
@@ -354,6 +362,47 @@ export function setupDependencies(container: DIContainer): void {
     ServiceLifetime.SCOPED
   );
 
+  // Register FHIR Export Service Adapter
+  container.register(
+    ServiceTokens.FHIR_EXPORT_SERVICE_ADAPTER,
+    ((container: any) => {
+      const fhirExportService = container.resolve(ServiceTokens.FHIR_EXPORT_SERVICE);
+      return new FHIRExportServiceAdapter(fhirExportService);
+    }) as any,
+    ServiceLifetime.SINGLETON
+  );
+
+  // Register Audit Log Service Adapter
+  container.register(
+    ServiceTokens.AUDIT_LOG_SERVICE_ADAPTER,
+    ((container: any) => {
+      const auditLogService = container.resolve(ServiceTokens.AUDIT_LOG_SERVICE);
+      return new AuditLogServiceAdapter(auditLogService);
+    }) as any,
+    ServiceLifetime.SINGLETON
+  );
+
+  // Register GetAuditLogsUseCase
+  container.register(
+    ServiceTokens.GET_AUDIT_LOGS_USE_CASE,
+    ((container: any) => {
+      const auditLogServiceAdapter = container.resolve(ServiceTokens.AUDIT_LOG_SERVICE_ADAPTER);
+      return new GetAuditLogsUseCase(auditLogServiceAdapter);
+    }) as any,
+    ServiceLifetime.SCOPED
+  );
+
+  // Register BulkExportFHIRUseCase
+  container.register(
+    ServiceTokens.BULK_EXPORT_FHIR_USE_CASE,
+    ((container: any) => {
+      const medicalRecordRepository = container.resolve(ServiceTokens.MEDICAL_RECORD_REPOSITORY);
+      const fhirExportServiceAdapter = container.resolve(ServiceTokens.FHIR_EXPORT_SERVICE_ADAPTER);
+      return new BulkExportFHIRUseCase(medicalRecordRepository, fhirExportServiceAdapter);
+    }) as any,
+    ServiceLifetime.SCOPED
+  );
+
   // Register application services
   container.register(
     ServiceTokens.CLINICAL_EMR_APPLICATION_SERVICE,
@@ -365,11 +414,11 @@ export function setupDependencies(container: DIContainer): void {
       const getPatientRecordsUseCase = container.resolve(ServiceTokens.GET_PATIENT_MEDICAL_RECORDS_USE_CASE || 'GetPatientMedicalRecordsUseCase');
       const generateReportUseCase = container.resolve(ServiceTokens.GENERATE_MEDICAL_REPORT_USE_CASE);
       const searchUseCase = container.resolve(ServiceTokens.SEARCH_MEDICAL_RECORDS_USE_CASE);
-      
+
       // Command Handlers
       const addDiagnosisHandler = container.resolve(ServiceTokens.ADD_DIAGNOSIS_COMMAND_HANDLER || 'AddDiagnosisCommandHandler');
       const addMedicationHandler = container.resolve(ServiceTokens.ADD_MEDICATION_COMMAND_HANDLER || 'AddMedicationCommandHandler');
-      
+
       // Query Handlers
       const getDetailsQueryHandler = container.resolve(ServiceTokens.GET_MEDICAL_RECORD_DETAILS_QUERY_HANDLER || 'GetMedicalRecordDetailsQueryHandler');
 

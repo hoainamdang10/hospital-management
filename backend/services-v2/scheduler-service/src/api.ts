@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 import { SupabaseClientFactory } from './infrastructure/database/SupabaseClientFactory';
 import { SupabaseScheduleRepository } from './infrastructure/persistence/SupabaseScheduleRepository';
 import { SupabaseScheduleRunRepository } from './infrastructure/persistence/SupabaseScheduleRunRepository';
@@ -25,6 +26,7 @@ import { metricsMiddleware } from './presentation/middleware/metricsMiddleware';
 import { loggingMiddleware } from './presentation/middleware/loggingMiddleware';
 import { Logger } from './infrastructure/observability/Logger';
 import { MetricsCollector } from './infrastructure/observability/MetricsCollector';
+import { swaggerSpec } from './infrastructure/swagger/swagger.config';
 
 dotenv.config();
 
@@ -80,7 +82,17 @@ async function bootstrap() {
     const app = express();
 
     // Security & CORS
-    app.use(helmet());
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+          imgSrc: ["'self'", "data:", "https:", "cdn.jsdelivr.net"],
+          fontSrc: ["'self'", "data:", "cdn.jsdelivr.net"]
+        }
+      }
+    }));
     app.use(cors());
     app.use(express.json());
 
@@ -98,6 +110,27 @@ async function bootstrap() {
     // Metrics endpoint (no auth required for Prometheus scraping)
     const metricsRoutes = createMetricsRoutes();
     app.use('/', metricsRoutes);
+
+    // Swagger API Documentation
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+      explorer: true,
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Scheduler Service API Documentation',
+      swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true,
+        tryItOutEnabled: true
+      }
+    }));
+
+    // OpenAPI JSON spec
+    app.get('/api-docs/json', (req: express.Request, res: express.Response) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(swaggerSpec);
+    });
+
+    logger.info('Swagger UI available at http://localhost:' + PORT + '/api-docs');
 
     // Error handler
     app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

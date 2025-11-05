@@ -32,8 +32,16 @@ import { BillingCommandHandlers } from "../../application/handlers/BillingComman
 import { BillingQueryHandlers } from "../../application/handlers/BillingQueryHandlers";
 import { PayOSIntegrationService } from "../../application/services/PayOSIntegrationService";
 
+// Payment Plan Use Cases
+import { CreatePaymentPlanUseCase } from "../../application/use-cases/CreatePaymentPlanUseCase";
+import { GetPaymentPlanUseCase } from "../../application/use-cases/GetPaymentPlanUseCase";
+import { UpdatePaymentPlanUseCase } from "../../application/use-cases/UpdatePaymentPlanUseCase";
+import { GetPatientPaymentPlansUseCase } from "../../application/use-cases/GetPatientPaymentPlansUseCase";
+import { RecordInstallmentPaymentUseCase } from "../../application/use-cases/RecordInstallmentPaymentUseCase";
+
 // Infrastructure Layer
 import { SupabaseBillingRepository } from "../persistence/SupabaseBillingRepository";
+import { SupabasePaymentPlanRepository } from "../repositories/SupabasePaymentPlanRepository";
 import { PayOSGatewayService } from "../external/PayOSGatewayService";
 import { SupabaseEventBus } from "../messaging/SupabaseEventBus";
 import { BillingDomainEventHandler } from "../events/BillingDomainEventHandler";
@@ -49,6 +57,7 @@ export const ServiceTokens = {
 
   // Repositories
   BILLING_REPOSITORY: "BillingRepository",
+  PAYMENT_PLAN_REPOSITORY: "PaymentPlanRepository",
 
   // External Services
   PAYOS_GATEWAY_SERVICE: "PayOSGatewayService",
@@ -63,6 +72,13 @@ export const ServiceTokens = {
   GET_PATIENT_OUTSTANDING_BALANCE_USE_CASE: "GetPatientOutstandingBalanceUseCase",
   DOWNLOAD_INVOICE_USE_CASE: "DownloadInvoiceUseCase",
 
+  // Payment Plan Use Cases
+  CREATE_PAYMENT_PLAN_USE_CASE: "CreatePaymentPlanUseCase",
+  GET_PAYMENT_PLAN_USE_CASE: "GetPaymentPlanUseCase",
+  UPDATE_PAYMENT_PLAN_USE_CASE: "UpdatePaymentPlanUseCase",
+  GET_PATIENT_PAYMENT_PLANS_USE_CASE: "GetPatientPaymentPlansUseCase",
+  RECORD_INSTALLMENT_PAYMENT_USE_CASE: "RecordInstallmentPaymentUseCase",
+
   // Handlers
   BILLING_COMMAND_HANDLERS: "BillingCommandHandlers",
   BILLING_QUERY_HANDLERS: "BillingQueryHandlers",
@@ -76,6 +92,7 @@ export const ServiceTokens = {
 
   // Controllers
   BILLING_CONTROLLER: "BillingController",
+  PAYMENT_PLAN_CONTROLLER: "PaymentPlanController",
 } as const;
 
 export function setupDependencies(container: DIContainer): void {
@@ -389,6 +406,84 @@ export function setupDependencies(container: DIContainer): void {
         downloadInvoiceUseCase,
         logger
       });
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  // Register Payment Plan Repository
+  container.register(
+    ServiceTokens.PAYMENT_PLAN_REPOSITORY,
+    (container) => {
+      const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+      return new SupabasePaymentPlanRepository(supabaseClient.getClient());
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  // Register Payment Plan Use Cases
+  container.register(
+    ServiceTokens.CREATE_PAYMENT_PLAN_USE_CASE,
+    (container) => {
+      const repository = container.resolve(ServiceTokens.PAYMENT_PLAN_REPOSITORY);
+      return new CreatePaymentPlanUseCase(repository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.GET_PAYMENT_PLAN_USE_CASE,
+    (container) => {
+      const repository = container.resolve(ServiceTokens.PAYMENT_PLAN_REPOSITORY);
+      return new GetPaymentPlanUseCase(repository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.UPDATE_PAYMENT_PLAN_USE_CASE,
+    (container) => {
+      const repository = container.resolve(ServiceTokens.PAYMENT_PLAN_REPOSITORY);
+      return new UpdatePaymentPlanUseCase(repository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.GET_PATIENT_PAYMENT_PLANS_USE_CASE,
+    (container) => {
+      const repository = container.resolve(ServiceTokens.PAYMENT_PLAN_REPOSITORY);
+      return new GetPatientPaymentPlansUseCase(repository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.register(
+    ServiceTokens.RECORD_INSTALLMENT_PAYMENT_USE_CASE,
+    (container) => {
+      const repository = container.resolve(ServiceTokens.PAYMENT_PLAN_REPOSITORY);
+      return new RecordInstallmentPaymentUseCase(repository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  // Register Payment Plan Controller
+  container.register(
+    ServiceTokens.PAYMENT_PLAN_CONTROLLER,
+    (container) => {
+      const { PaymentPlanController } = require('../../presentation/controllers/PaymentPlanController');
+      const createUseCase = container.resolve(ServiceTokens.CREATE_PAYMENT_PLAN_USE_CASE);
+      const getUseCase = container.resolve(ServiceTokens.GET_PAYMENT_PLAN_USE_CASE);
+      const updateUseCase = container.resolve(ServiceTokens.UPDATE_PAYMENT_PLAN_USE_CASE);
+      const getPatientPlansUseCase = container.resolve(ServiceTokens.GET_PATIENT_PAYMENT_PLANS_USE_CASE);
+      const recordPaymentUseCase = container.resolve(ServiceTokens.RECORD_INSTALLMENT_PAYMENT_USE_CASE);
+
+      return new PaymentPlanController(
+        createUseCase,
+        getUseCase,
+        updateUseCase,
+        getPatientPlansUseCase,
+        recordPaymentUseCase
+      );
     },
     ServiceLifetime.SCOPED
   );

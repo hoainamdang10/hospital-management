@@ -208,6 +208,10 @@ class ApiGatewayApplication {
             windowMs: 60 * 1000,
             max: 50,
           },
+          '/api/v1/schedules': {
+            windowMs: 60 * 1000,
+            max: 100, // Higher limit for schedule management operations
+          },
         },
       };
 
@@ -241,46 +245,78 @@ class ApiGatewayApplication {
     logger.info('Registering service routes...');
 
     const routes = [
+      // Identity Service - Authentication & Authorization (port 3021)
       ServiceRoute.create({
         serviceName: 'identity-service',
-        baseUrl: process.env.IDENTITY_SERVICE_URL || 'http://identity-service:3001',
+        baseUrl: process.env.IDENTITY_SERVICE_URL || 'http://identity-service:3021',
         pathPrefix: '/api/v1/auth',
         requiresAuth: false
       }),
+
+      // Patient Registry Service - Patient Management (port 3023)
       ServiceRoute.create({
         serviceName: 'patient-registry-service',
-        baseUrl: process.env.PATIENT_REGISTRY_SERVICE_URL || 'http://patient-registry-service:3003',
+        baseUrl: process.env.PATIENT_REGISTRY_SERVICE_URL || 'http://patient-registry-service:3023',
         pathPrefix: '/api/v1/patients',
         requiresAuth: true,
         requiredPermissions: ['patient:read']
       }),
+
+      // Provider/Staff Service - Doctor/Staff Management (port 3022)
       ServiceRoute.create({
         serviceName: 'provider-staff-service',
-        baseUrl: process.env.PROVIDER_STAFF_SERVICE_URL || 'http://provider-staff-service:3002',
+        baseUrl: process.env.PROVIDER_STAFF_SERVICE_URL || 'http://provider-staff-service:3022',
         pathPrefix: '/api/v1/providers',
         requiresAuth: true,
         requiredPermissions: ['provider:read']
       }),
+
+      // Appointments Service - Appointment Booking & Scheduling (port 3024)
+      // Fixed: scheduling-service → appointments-service
       ServiceRoute.create({
-        serviceName: 'scheduling-service',
-        baseUrl: process.env.SCHEDULING_SERVICE_URL || 'http://scheduling-service:3004',
+        serviceName: 'appointments-service',
+        baseUrl: process.env.APPOINTMENTS_SERVICE_URL || 'http://appointments-service:3024',
         pathPrefix: '/api/v1/appointments',
         requiresAuth: true,
         requiredPermissions: ['appointment:read']
       }),
+
+      // Clinical EMR Service - Electronic Medical Records (port 3027)
+      // Note: Uses /api/v2/clinical-emr for FHIR R4 compliance
       ServiceRoute.create({
         serviceName: 'clinical-emr-service',
-        baseUrl: process.env.CLINICAL_EMR_SERVICE_URL || 'http://clinical-emr-service:3007',
-        pathPrefix: '/api/v1/clinical',
+        baseUrl: process.env.CLINICAL_EMR_SERVICE_URL || 'http://clinical-emr-service:3027',
+        pathPrefix: '/api/v2/clinical-emr',
         requiresAuth: true,
         requiredPermissions: ['clinical:read']
       }),
+
+      // Billing Service - Invoicing & Payments (port 3029)
       ServiceRoute.create({
         serviceName: 'billing-service',
-        baseUrl: process.env.BILLING_SERVICE_URL || 'http://billing-service:3009',
+        baseUrl: process.env.BILLING_SERVICE_URL || 'http://billing-service:3029',
         pathPrefix: '/api/v1/billing',
         requiresAuth: true,
         requiredPermissions: ['billing:read']
+      }),
+
+      // Notifications Service - Multi-channel Notifications (port 3031)
+      ServiceRoute.create({
+        serviceName: 'notifications-service',
+        baseUrl: process.env.NOTIFICATIONS_SERVICE_URL || 'http://notifications-service:3031',
+        pathPrefix: '/api/v1/notifications',
+        requiresAuth: true,
+        requiredPermissions: ['notification:read']
+      }),
+
+      // Scheduler Service - Job Scheduling & Cron Management (port 3030)
+      // Provides scheduled task execution, recurring jobs, and job monitoring
+      ServiceRoute.create({
+        serviceName: 'scheduler-service',
+        baseUrl: process.env.SCHEDULER_SERVICE_URL || 'http://scheduler-service:3030',
+        pathPrefix: '/api/v1/schedules',
+        requiresAuth: true,
+        requiredPermissions: ['schedule:read']
       })
     ];
 

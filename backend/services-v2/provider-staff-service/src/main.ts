@@ -18,11 +18,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
+import swaggerUi from 'swagger-ui-express';
 
 // Infrastructure imports
 import { RabbitMQEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
 import { ProviderStaffHealthCheck } from './infrastructure/monitoring/HealthChecks';
+import { prometheusMetrics } from './infrastructure/monitoring/PrometheusMetrics';
 import { logger } from './infrastructure/logging/logger';
+import { swaggerSpec } from './infrastructure/swagger/swagger.config';
 
 // Application imports
 import { RegisterStaffUseCase } from './application/use-cases/RegisterStaffUseCase';
@@ -47,6 +50,7 @@ import { StaffQueryHandlers } from './application/handlers/StaffQueryHandlers';
 
 // Presentation imports
 import { setupRoutes } from './presentation/routes';
+import { createHealthRoutes } from './presentation/routes/healthRoutes';
 // import { ErrorHandlingMiddleware } from './presentation/middleware/ErrorHandlingMiddleware';
 
 // DI Container
@@ -288,9 +292,10 @@ class ProviderStaffServiceApp {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:']
+          styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          imgSrc: ["'self'", 'data:', 'https:', 'cdn.jsdelivr.net'],
+          fontSrc: ["'self'", 'data:', 'cdn.jsdelivr.net']
         }
       },
       hsts: {
@@ -337,39 +342,46 @@ class ProviderStaffServiceApp {
   private setupRoutes(): void {
     logger.info('Setting up routes...');
 
-    // Health check endpoint
-    this.app.get('/health', async (_req, res) => {
+    // Health & Metrics routes
+    const healthRoutes = createHealthRoutes({
+      healthCheck: this.healthCheck,
+      logger
+    });
+    this.app.use('/', healthRoutes);
+
+    // Prometheus metrics endpoint
+    this.app.get('/metrics', async (_req, res) => {
       try {
-        const health = await this.healthCheck.checkHealth();
-        const statusCode = health.overall === 'HEALTHY' ? 200 : 503;
-
-        res.status(statusCode).json(health);
+        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        const metrics = await prometheusMetrics.getMetrics();
+        res.send(metrics);
       } catch (error) {
-        logger.error('Health check failed', {
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-
-        res.status(503).json({
-          overall: 'UNHEALTHY',
-          service: config.serviceName,
-          version: config.version,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
-        });
+        logger.error('Failed to generate metrics', { error });
+        res.status(500).send('Failed to generate metrics');
       }
     });
+    logger.info('Prometheus metrics endpoint registered at /metrics');
 
-    // Service info endpoint
-    this.app.get('/info', (_req, res) => {
-      res.json({
-        service: config.serviceName,
-        version: config.version,
-        environment: config.nodeEnv,
-        schema: config.schema,
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-      });
+    // Swagger API Documentation
+    this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+      explorer: true,
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Provider/Staff Service API Documentation',
+      swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true,
+        tryItOutEnabled: true
+      }
+    }));
+
+    // OpenAPI JSON spec
+    this.app.get('/api-docs/json', (_req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(swaggerSpec);
     });
+
+    logger.info('Swagger UI available at http://localhost:' + config.port + '/api-docs');
 
     // Setup application routes
     const updateStaffScheduleUseCase = this.container.resolve<UpdateStaffScheduleUseCase>(ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE);

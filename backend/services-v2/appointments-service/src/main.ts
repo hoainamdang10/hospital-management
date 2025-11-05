@@ -20,6 +20,7 @@ import { createAppointmentRoutes } from './presentation/routes/appointment.route
 import { createAppointmentQueryRoutes } from './presentation/routes/appointmentQueryRoutes';
 import { createAvailabilityRoutes } from './presentation/routes/availability.routes';
 import { createQueueRoutes } from './presentation/routes/queue.routes';
+import { createWaitlistRoutes } from './presentation/routes/waitlist.routes';
 import { getContainer } from './infrastructure/di/container';
 import { idempotencyMiddleware } from './presentation/middleware/IdempotencyMiddleware';
 import { redisCacheService } from './infrastructure/cache/RedisCacheService';
@@ -40,6 +41,7 @@ import {
   metricsMiddleware,
   createMetricsHandler,
 } from './presentation/middleware/MetricsMiddleware';
+import { prometheusMetrics } from './infrastructure/monitoring/PrometheusMetrics';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/swagger/swagger.config';
 
@@ -191,8 +193,20 @@ app.get('/health/ready', async (req: Request, res: Response) => {
   }
 });
 
-// Metrics endpoint
-app.get('/metrics', createMetricsHandler(metricsService));
+// Metrics endpoint (existing service metrics)
+app.get('/metrics/service', createMetricsHandler(metricsService));
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req: Request, res: Response) => {
+  try {
+    res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+    const metrics = await prometheusMetrics.getMetrics();
+    res.send(metrics);
+  } catch (error) {
+    logger.error('Failed to generate Prometheus metrics', { error });
+    res.status(500).send('Failed to generate metrics');
+  }
+});
 
 // Swagger API Documentation
 // Accessible at: http://localhost:3024/api-docs
@@ -216,18 +230,24 @@ app.get('/api-docs/json', (req: Request, res: Response) => {
 
 console.log('[Main] Swagger UI available at http://localhost:' + PORT + '/api-docs');
 
-// API Routes
-// V1 - Command routes (Write operations) + Legacy queries
+// API Routes - Standardized to /api/v1/ prefix
+// Command routes (Write operations - CQRS Commands)
 app.use('/api/v1', createAppointmentRoutes());
 
-// V2 - Query routes (Read Model with denormalized data)
-app.use('/api/v2', createAppointmentQueryRoutes());
+// Query routes (Read operations - CQRS Queries with denormalized data)
+// Moved from /api/v2 to /api/v1 for consistency
+app.use('/api/v1', createAppointmentQueryRoutes());
 
 // Availability routes (Provider schedule & available slots)
-app.use('/api/appointments', createAvailabilityRoutes());
+// Moved from /api/appointments to /api/v1/appointments for consistency
+app.use('/api/v1/appointments', createAvailabilityRoutes());
 
 // Queue routes (Queue management)
-app.use('/api/queue', createQueueRoutes());
+// Moved from /api/queue to /api/v1/queue for consistency
+app.use('/api/v1/queue', createQueueRoutes());
+
+// Waitlist routes (Waitlist management)
+app.use('/api/v1/appointments/waitlist', createWaitlistRoutes());
 
 // 404 Handler
 app.use((req: Request, res: Response) => {

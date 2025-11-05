@@ -72,6 +72,8 @@ export function createNotificationRoutes(controller: NotificationController): Ro
   };
 
   // Routes
+  // Note: All routes are mounted at /api/v1/notifications in index.ts
+  // So /send becomes /api/v1/notifications/send
 
   /**
    * Send notification immediately
@@ -201,6 +203,46 @@ export function createNotificationRoutes(controller: NotificationController): Ro
   router.get('/health',
     async (req, res) => {
       await controller.getHealth(req, res);
+    }
+  );
+
+  /**
+   * Metrics endpoint (Prometheus-compatible)
+   * GET /api/v1/notifications/metrics
+   */
+  router.get('/metrics',
+    async (req, res) => {
+      try {
+        // Prometheus text format
+        const metrics = [
+          '# HELP notifications_health_status Health status of the service (1=healthy, 0=unhealthy)',
+          '# TYPE notifications_health_status gauge',
+          `notifications_health_status{service="notifications"} 1`,
+          '',
+          '# HELP notifications_uptime_seconds Service uptime in seconds',
+          '# TYPE notifications_uptime_seconds counter',
+          `notifications_uptime_seconds{service="notifications"} ${process.uptime()}`,
+          '',
+          '# HELP notifications_memory_usage_bytes Memory usage in bytes',
+          '# TYPE notifications_memory_usage_bytes gauge',
+          `notifications_memory_usage_bytes{type="rss",service="notifications"} ${process.memoryUsage().rss}`,
+          `notifications_memory_usage_bytes{type="heapTotal",service="notifications"} ${process.memoryUsage().heapTotal}`,
+          `notifications_memory_usage_bytes{type="heapUsed",service="notifications"} ${process.memoryUsage().heapUsed}`,
+          '',
+          '# HELP notifications_component_health Component health status (1=healthy, 0=unhealthy)',
+          '# TYPE notifications_component_health gauge',
+          `notifications_component_health{component="database",service="notifications"} 1`,
+          `notifications_component_health{component="eventBus",service="notifications"} 1`,
+          `notifications_component_health{component="email",service="notifications"} 1`,
+          `notifications_component_health{component="sms",service="notifications"} 1`,
+          ''
+        ].join('\n');
+
+        res.set('Content-Type', 'text/plain; version=0.0.4');
+        res.send(metrics);
+      } catch (error) {
+        res.status(500).send('# Error collecting metrics\n');
+      }
     }
   );
 

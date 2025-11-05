@@ -10,8 +10,10 @@
 import { Express, Router } from "express";
 import { DIContainer } from "../../../../shared/infrastructure/di/container";
 import { BillingController } from "../controllers/BillingController";
+import { PaymentPlanController } from "../controllers/PaymentPlanController";
 import { ServiceTokens } from "../../infrastructure/di/setup";
 import { createBillingRoutes } from "./billingRoutes";
+import paymentPlanRoutes from "./paymentPlanRoutes";
 import {
   corsMiddleware,
   requestLoggingMiddleware,
@@ -142,13 +144,18 @@ export function setupRoutes(app: Express, container: DIContainer): void {
     }
   });
 
-  // Get BillingController from DI container
+  // Get controllers from DI container
   const billingController =
     container.resolve<BillingController>(ServiceTokens.BILLING_CONTROLLER);
+  const paymentPlanController =
+    container.resolve<PaymentPlanController>(ServiceTokens.PAYMENT_PLAN_CONTROLLER);
 
   // Setup billing routes
   const billingRoutes = createBillingRoutes(billingController);
   apiV1Router.use("/", billingRoutes);
+
+  // Setup payment plan routes
+  apiV1Router.use("/billing/payment-plans", paymentPlanRoutes);
 
   // Mount API v1 router
   app.use("/api/v1", apiV1Router);

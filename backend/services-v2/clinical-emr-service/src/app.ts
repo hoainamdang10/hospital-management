@@ -13,11 +13,14 @@ import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
 
 // Infrastructure
 import { container, initializeContainer } from "./infrastructure/di/container";
 import { TYPES } from "./infrastructure/di/types";
 import { ClinicalEMRConfig } from "./infrastructure/config/clinical-emr-config";
+import { prometheusMetrics } from "./infrastructure/monitoring/PrometheusMetrics";
+import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
 
 // Routes
 import { createMedicalRecordRoutes } from "./presentation/routes/medical-record.routes";
@@ -58,11 +61,11 @@ export async function createApp(): Promise<Application> {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
+          styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+          imgSrc: ["'self'", "data:", "https:", "cdn.jsdelivr.net"],
           connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
+          fontSrc: ["'self'", "data:", "cdn.jsdelivr.net"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
           frameSrc: ["'none'"],
@@ -225,9 +228,82 @@ export async function createApp(): Promise<Application> {
     });
   });
 
+  // Prometheus metrics endpoint
+  app.get("/metrics", async (req: Request, res: Response) => {
+    try {
+      res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+      const metrics = await prometheusMetrics.getMetrics();
+      res.send(metrics);
+    } catch (error) {
+      console.error('Failed to generate Prometheus metrics', { error });
+      res.status(500).send('Failed to generate metrics');
+    }
+  });
+
+  // Swagger API Documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Clinical EMR Service API Documentation',
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+      tryItOutEnabled: true
+    }
+  }));
+
+  // OpenAPI JSON spec
+  app.get('/api-docs/json', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+
+  console.log('[Swagger] Swagger UI available at http://localhost:' + config.port + '/api-docs');
+
+  // Legacy metrics endpoint (for backward compatibility)
+  app.get("/metrics/legacy", async (req: Request, res: Response) => {
+    try {
+      const eventStatus = getEventSubscriptionsStatus();
+      const isHealthy = eventStatus.enabled && eventStatus.connected;
+
+      // Prometheus text format
+      const metrics = [
+        '# HELP clinical_emr_health_status Health status of the service (1=healthy, 0=unhealthy)',
+        '# TYPE clinical_emr_health_status gauge',
+        `clinical_emr_health_status{service="clinical-emr"} ${isHealthy ? 1 : 0}`,
+        '',
+        '# HELP clinical_emr_uptime_seconds Service uptime in seconds',
+        '# TYPE clinical_emr_uptime_seconds counter',
+        `clinical_emr_uptime_seconds{service="clinical-emr"} ${process.uptime()}`,
+        '',
+        '# HELP clinical_emr_memory_usage_bytes Memory usage in bytes',
+        '# TYPE clinical_emr_memory_usage_bytes gauge',
+        `clinical_emr_memory_usage_bytes{type="rss",service="clinical-emr"} ${process.memoryUsage().rss}`,
+        `clinical_emr_memory_usage_bytes{type="heapTotal",service="clinical-emr"} ${process.memoryUsage().heapTotal}`,
+        `clinical_emr_memory_usage_bytes{type="heapUsed",service="clinical-emr"} ${process.memoryUsage().heapUsed}`,
+        '',
+        '# HELP clinical_emr_component_health Component health status (1=healthy, 0=unhealthy)',
+        '# TYPE clinical_emr_component_health gauge',
+        `clinical_emr_component_health{component="database",service="clinical-emr"} ${isHealthy ? 1 : 0}`,
+        `clinical_emr_component_health{component="eventBus",service="clinical-emr"} ${eventStatus.connected ? 1 : 0}`,
+        `clinical_emr_component_health{component="fhir",service="clinical-emr"} ${isHealthy ? 1 : 0}`,
+        ''
+      ].join('\n');
+
+      res.set('Content-Type', 'text/plain; version=0.0.4');
+      res.send(metrics);
+    } catch (error) {
+      res.status(500).send('# Error collecting metrics\n');
+    }
+  });
+
   // =====================================================
   // API ROUTES
   // =====================================================
+  // Note: Clinical EMR uses /api/v2/clinical-emr prefix instead of /api/v1/
+  // Reason: FHIR R4 compliance and clinical data specificity require separate versioning
+  // This allows independent evolution of clinical APIs without affecting other services
 
   // API version info
   app.get("/api/v2/clinical-emr", (req: Request, res: Response) => {

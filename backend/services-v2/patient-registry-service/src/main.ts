@@ -20,6 +20,7 @@ import compression from "compression";
 // Infrastructure imports
 import { SupabasePatientRepository } from "./infrastructure/repositories/SupabasePatientRepository";
 import { PatientRegistryHealthCheck } from "./infrastructure/monitoring/HealthChecks";
+import { prometheusMetrics } from "./infrastructure/monitoring/PrometheusMetrics";
 import { RedisCacheService } from "./infrastructure/cache/RedisCacheService";
 import { PatientCache } from "./infrastructure/cache/PatientCache";
 import { PatientRegistryDegradation } from "./infrastructure/resilience/GracefulDegradation";
@@ -91,6 +92,7 @@ import { PatientController } from "./presentation/controllers/PatientController"
 import { CommandController } from "./presentation/controllers/CommandController";
 import { createPatientRoutes } from "./presentation/routes/patientRoutes";
 import { createCommandRoutes } from "./presentation/routes/commandRoutes";
+import { createHealthRoutes } from "./presentation/routes/healthRoutes";
 import { ErrorHandlingMiddleware } from "./presentation/middleware/ErrorHandlingMiddleware";
 import { AuthenticationMiddleware } from "./presentation/middleware/AuthenticationMiddleware";
 
@@ -723,23 +725,25 @@ class PatientRegistryServiceApp {
   private setupRoutes(): void {
     logger.info("Setting up routes...");
 
-    // Health check
-    this.app.get("/health", async (_req, res) => {
+    // Health & Metrics routes
+    const healthRoutes = createHealthRoutes({
+      healthCheck: this.healthCheck,
+      logger
+    });
+    this.app.use('/', healthRoutes);
+
+    // Prometheus metrics endpoint
+    this.app.get('/metrics', async (_req, res) => {
       try {
-        const health = await this.healthCheck.checkHealth();
-        const statusCode = health.overall === "HEALTHY" ? 200 : 503;
-        res.status(statusCode).json(health);
+        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        const metrics = await prometheusMetrics.getMetrics();
+        res.send(metrics);
       } catch (error) {
-        logger.error("Health check failed", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-        res.status(503).json({
-          overall: "UNHEALTHY",
-          error: error instanceof Error ? error.message : "Unknown error",
-          timestamp: new Date(),
-        });
+        logger.error('Failed to generate metrics', { error });
+        res.status(500).send('Failed to generate metrics');
       }
     });
+    logger.info('Prometheus metrics endpoint registered at /metrics');
 
     // Degradation status endpoint
     this.app.get("/degradation", (_req, res) => {

@@ -29,7 +29,7 @@ export function createClinicalNoteRoutes(controller: ClinicalNoteController): Ro
 
   /**
    * Create new clinical note
-   * POST /api/v2/clinical-emr/clinical-notes
+   * POST /api/v2/clinical-emr/notes
    * @access Doctor, Nurse, Admin
    * @audit PHI Access - Create Clinical Note
    */
@@ -42,7 +42,7 @@ export function createClinicalNoteRoutes(controller: ClinicalNoteController): Ro
 
   /**
    * Get clinical note by ID
-   * GET /api/v2/clinical-emr/clinical-notes/:noteId
+   * GET /api/v2/clinical-emr/notes/:noteId
    * @access Healthcare Staff (view clinical documentation)
    * @audit PHI Access - View Clinical Note
    */
@@ -55,7 +55,7 @@ export function createClinicalNoteRoutes(controller: ClinicalNoteController): Ro
 
   /**
    * Update clinical note
-   * PUT /api/v2/clinical-emr/clinical-notes/:noteId
+   * PUT /api/v2/clinical-emr/notes/:noteId
    * @access Doctor, Nurse (original author), Admin
    * @audit PHI Access - Update Clinical Note
    */
@@ -68,7 +68,7 @@ export function createClinicalNoteRoutes(controller: ClinicalNoteController): Ro
 
   /**
    * Cosign clinical note (supervisor approval)
-   * POST /api/v2/clinical-emr/clinical-notes/:noteId/cosign
+   * POST /api/v2/clinical-emr/notes/:noteId/cosign
    * @access Doctor (supervisor), Admin
    * @audit PHI Access - Cosign Clinical Note (Critical)
    */
@@ -81,7 +81,7 @@ export function createClinicalNoteRoutes(controller: ClinicalNoteController): Ro
 
   /**
    * List clinical notes with filtering
-   * GET /api/v2/clinical-emr/clinical-notes
+   * GET /api/v2/clinical-emr/notes
    * @access Healthcare Staff
    * @audit PHI Access - List Clinical Notes
    * @query patientId, authorId, type, startDate, endDate

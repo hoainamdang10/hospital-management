@@ -20,6 +20,8 @@ import { IClinicalNoteRepository } from "../../domain/repositories/IClinicalNote
 import { IDiagnosticReportRepository } from "../../domain/repositories/IDiagnosticReportRepository";
 import { IPrescriptionRepository } from "../../domain/repositories/IPrescriptionRepository";
 import { ITreatmentPlanRepository } from "../../domain/repositories/ITreatmentPlanRepository";
+import { ILabResultRepository } from "../../domain/repositories/ILabResultRepository";
+import { IMedicalImagingRepository } from "../../domain/repositories/IMedicalImagingRepository";
 
 // =====================================================
 // APPLICATION - USE CASES (Medical Records)
@@ -90,6 +92,22 @@ import { UpdateTreatmentPlanUseCase } from "../../application/use-cases/UpdateTr
 import { CompleteTreatmentPlanUseCase } from "../../application/use-cases/CompleteTreatmentPlanUseCase";
 
 // =====================================================
+// APPLICATION - USE CASES (Lab Results)
+// =====================================================
+import { CreateLabResultUseCase } from "../../application/use-cases/CreateLabResultUseCase";
+import { GetLabResultUseCase } from "../../application/use-cases/GetLabResultUseCase";
+import { UpdateLabResultUseCase } from "../../application/use-cases/UpdateLabResultUseCase";
+import { GetPatientLabResultsUseCase } from "../../application/use-cases/GetPatientLabResultsUseCase";
+
+// =====================================================
+// APPLICATION - USE CASES (Medical Imaging)
+// =====================================================
+import { CreateMedicalImagingUseCase } from "../../application/use-cases/CreateMedicalImagingUseCase";
+import { GetMedicalImagingUseCase } from "../../application/use-cases/GetMedicalImagingUseCase";
+import { UpdateMedicalImagingUseCase } from "../../application/use-cases/UpdateMedicalImagingUseCase";
+import { GetPatientMedicalImagingUseCase } from "../../application/use-cases/GetPatientMedicalImagingUseCase";
+
+// =====================================================
 // INFRASTRUCTURE - REPOSITORIES
 // =====================================================
 import { SupabaseMedicalRecordRepository } from "../repositories/SupabaseMedicalRecordRepository";
@@ -97,6 +115,8 @@ import { SupabaseClinicalNoteRepository } from "../repositories/SupabaseClinical
 import { SupabaseDiagnosticReportRepository } from "../repositories/SupabaseDiagnosticReportRepository";
 import { SupabasePrescriptionRepository } from "../repositories/SupabasePrescriptionRepository";
 import { SupabaseTreatmentPlanRepository } from "../repositories/SupabaseTreatmentPlanRepository";
+import { SupabaseLabResultRepository } from "../repositories/SupabaseLabResultRepository";
+import { SupabaseMedicalImagingRepository } from "../repositories/SupabaseMedicalImagingRepository";
 
 // =====================================================
 // INFRASTRUCTURE - SERVICES
@@ -128,6 +148,8 @@ import { ClinicalNoteController } from "../../presentation/controllers/ClinicalN
 import { DiagnosticReportController } from "../../presentation/controllers/DiagnosticReportController";
 import { PrescriptionController } from "../../presentation/controllers/PrescriptionController";
 import { TreatmentPlanController } from "../../presentation/controllers/TreatmentPlanController";
+import { LabResultController } from "../../presentation/controllers/LabResultController";
+import { MedicalImagingController } from "../../presentation/controllers/MedicalImagingController";
 
 // =====================================================
 // PRESENTATION - MIDDLEWARE
@@ -239,6 +261,16 @@ export async function initializeContainer(): Promise<{
     container
       .bind<ITreatmentPlanRepository>(TYPES.TreatmentPlanRepository)
       .to(SupabaseTreatmentPlanRepository)
+      .inSingletonScope();
+
+    container
+      .bind<ILabResultRepository>(TYPES.LabResultRepository)
+      .to(SupabaseLabResultRepository)
+      .inSingletonScope();
+
+    container
+      .bind<IMedicalImagingRepository>(TYPES.MedicalImagingRepository)
+      .to(SupabaseMedicalImagingRepository)
       .inSingletonScope();
 
     // =====================================================
@@ -381,6 +413,40 @@ export async function initializeContainer(): Promise<{
       .to(CompleteTreatmentPlanUseCase);
 
     // =====================================================
+    // APPLICATION - USE CASES (Lab Results)
+    // =====================================================
+    console.log("  - Binding Lab Result Use Cases...");
+    container
+      .bind(TYPES.CreateLabResultUseCase)
+      .to(CreateLabResultUseCase);
+    container
+      .bind(TYPES.GetLabResultUseCase)
+      .to(GetLabResultUseCase);
+    container
+      .bind(TYPES.UpdateLabResultUseCase)
+      .to(UpdateLabResultUseCase);
+    container
+      .bind(TYPES.GetPatientLabResultsUseCase)
+      .to(GetPatientLabResultsUseCase);
+
+    // =====================================================
+    // APPLICATION - USE CASES (Medical Imaging)
+    // =====================================================
+    console.log("  - Binding Medical Imaging Use Cases...");
+    container
+      .bind(TYPES.CreateMedicalImagingUseCase)
+      .to(CreateMedicalImagingUseCase);
+    container
+      .bind(TYPES.GetMedicalImagingUseCase)
+      .to(GetMedicalImagingUseCase);
+    container
+      .bind(TYPES.UpdateMedicalImagingUseCase)
+      .to(UpdateMedicalImagingUseCase);
+    container
+      .bind(TYPES.GetPatientMedicalImagingUseCase)
+      .to(GetPatientMedicalImagingUseCase);
+
+    // =====================================================
     // PRESENTATION - CONTROLLERS
     // =====================================================
     console.log("  - Binding Controllers...");
@@ -407,6 +473,16 @@ export async function initializeContainer(): Promise<{
     container
       .bind<TreatmentPlanController>(TYPES.TreatmentPlanController)
       .to(TreatmentPlanController)
+      .inSingletonScope();
+
+    container
+      .bind<LabResultController>(TYPES.LabResultController)
+      .to(LabResultController)
+      .inSingletonScope();
+
+    container
+      .bind<MedicalImagingController>(TYPES.MedicalImagingController)
+      .to(MedicalImagingController)
       .inSingletonScope();
 
     // =====================================================

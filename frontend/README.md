@@ -1,119 +1,91 @@
-# Hospital Management V2 - Frontend
+# Hospital Management System
 
-## Visual Variations
+A hospital management system built with React, TypeScript, and Tailwind CSS. This project helps manage patient records, appointments, and hospital operations.
 
-This homepage implements three distinct visual variations, all meeting WCAG 2.2 AA standards:
+## Features
 
-### 1. Clinical Minimal (Default - `/`)
-- **Aesthetic**: Mostly white surfaces, thin dividers, blue hyperlinks
-- **Accent**: Jade (#0E9F6E) only for primary CTAs
-- **Typography**: Clean, spacious, plenty of white space
-- **Best for**: Professional medical institutions prioritizing trust and clarity
+- Patient management and medical records
+- Doctor scheduling and availability
+- Appointment booking system
+- Billing and payment processing
+- Staff management
+- Reports and analytics
+- Responsive design for mobile and desktop
+- Dark/light theme support
 
-### 2. Data-Forward (`/data-forward`)
-- **Aesthetic**: Stronger cyan accents, prominent live data displays
-- **Features**: Enhanced availability stats, wait-time sparklines, real-time indicators
-- **Typography**: Monospace numbers, data-centric layout
-- **Best for**: Tech-forward hospitals emphasizing efficiency and metrics
+## Getting Started
 
-### 3. Warm Human (`/warm-human`)
-- **Aesthetic**: Off-white surfaces (#F7FAFC), warmer color temperature
-- **Features**: Photo-led sections, amber info banners, softer shadows
-- **Typography**: Slightly larger base size, increased line-height
-- **Best for**: Patient-first clinics emphasizing care and empathy
+### Prerequisites
 
-## Design System
+- Node.js 18+
+- npm or yarn
 
-### Color Palette
-- **Primary (Jade)**: `#0E9F6E` - Actions, primary CTAs
-- **Secondary (Royal Blue)**: `#1E4DD8` - Links, highlights
-- **Neutrals**: `#0E1217` (900) to `#F7FAFC` (50)
-- **Accents**: Cyan `#06B6D4`, Amber `#F59E0B`
-- **States**: Success `#10B981`, Warning `#F59E0B`, Error `#F43F5E`
+### Installation
 
-### Typography
-- **Font**: Inter (body), ui-monospace (numbers/data)
-- **Base Size**: 17px
-- **Line Height**: 1.55
-- **Headings**: 600-700 weight
+1. Clone the repository
 
-### Spacing Scale
-- 6px, 12px, 18px, 24px, 36px (custom tokens)
+   ```bash
+   git clone <repository-url>
+   cd hospital-management-system
+   ```
 
-### Accessibility Features (WCAG 2.2 AA)
-- ✅ Focus Not Obscured: All interactive elements have visible focus rings
-- ✅ Target Size Minimum: All tap targets ≥44×44px
-- ✅ Dragging Movements: Keyboard alternatives for all interactions
-- ✅ Redundant Entry: Preserved user data, no unnecessary re-entry
-- ✅ Keyboard Navigation: Full keyboard access via Tab/Shift+Tab/Enter/Space
-- ✅ Reduced Motion: Respects `prefers-reduced-motion` media query
+2. Install dependencies
 
-### Motion System
-- **Fast**: 120ms (hover states)
-- **Base**: 180ms (transitions)
-- **Slow**: 260ms (complex animations)
-- **Easing**: `cubic-bezier(.2,.8,.2,1)`
+   ```bash
+   npm install
+   ```
 
-## Development
+3. Start development server
 
-```bash
-npm run dev     # Start development server on port 3000
-npm run build   # Production build
-npm run lint    # ESLint check
-npm run typecheck # TypeScript check
-```
+   ```bash
+   npm run dev
+   ```
 
-## Components Architecture
+4. Open your browser and go to `http://localhost:5173`
+
+## Tech Stack
+
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui components
+- Lucide React icons
+
+## Project Structure
 
 ```
-components/
-├── Header.tsx          # Sticky navigation with backdrop blur
-├── Hero.tsx            # Asymmetric 7/5 layout with live availability
-├── WaveEdge.tsx        # SVG wave/ECG motif
-├── BenefitsGrid.tsx    # 4 staggered cards (measurable outcomes)
-├── QuickActions.tsx    # 4 action tiles
-├── FindDoctor.tsx      # Filterable doctor cards
-├── DepartmentsGrid.tsx # Compact specialty list
-├── Testimonials.tsx    # 2 short quotes
-├── Insurance.tsx       # Accepted insurers + security note
-├── CtaBand.tsx         # Wave-edged CTA section
-└── Footer.tsx          # Mega footer with emergency band
+src/
+├── components/        # UI components
+│   ├── auth/         # Login/authentication
+│   ├── billing/      # Payment components
+│   ├── doctor/       # Doctor management
+│   ├── patient/      # Patient management
+│   ├── layout/       # Layout components
+│   └── ui/           # Base UI components
+├── app/              # App pages
+└── utils/            # Utility functions
 ```
 
-## Mock Data
+## Available Scripts
 
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+
+## Environment Variables
+
+Create a `.env.local` file:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
-data/
-├── doctors.json        # 6 sample doctors with specialties, languages, slots
-└── specialties.json    # 8 medical departments
-```
 
-## Anti-Patterns Avoided
+## Original Design
 
-❌ Centered "3 equal feature cards" under hero  
-❌ Multiple illustration styles  
-❌ 3D clay or pastel blob graphics  
-❌ Centered headings everywhere  
-❌ Heavy shadows  
-❌ Generic templates  
-
-## Distinctive Design Choices
-
-✅ Asymmetric 7/5 and 8/4 grids  
-✅ One consistent wave/ECG edge SVG  
-✅ Live availability data in hero  
-✅ Staggered benefit cards (not equal)  
-✅ Measurable metrics over platitudes  
-✅ Left-aligned content hierarchy  
-✅ Documentary-style approach  
-
-## Browser Support
-
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- Mobile: iOS Safari 14+, Chrome Android 90+
+Based on the Figma design: https://www.figma.com/design/Ydz6JIJk4Ny6bkctzxbJP3/Hospital-Management-System
 
 ## License
 
-Proprietary - Hospital Management System V2
+MIT License

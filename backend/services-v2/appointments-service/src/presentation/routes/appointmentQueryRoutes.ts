@@ -21,7 +21,7 @@ export function createAppointmentQueryRoutes(): Router {
   const controller = container.getAppointmentQueryController();
 
   /**
-   * GET /api/v2/appointments/:id
+   * GET /api/v1/appointments/:id
    * Get appointment details with patient/doctor info (Read Model)
    */
   router.get(
@@ -31,7 +31,7 @@ export function createAppointmentQueryRoutes(): Router {
   );
 
   /**
-   * GET /api/v2/appointments
+   * GET /api/v1/appointments
    * List appointments with filters and pagination (Read Model)
    */
   router.get(
@@ -41,7 +41,7 @@ export function createAppointmentQueryRoutes(): Router {
   );
 
   /**
-   * GET /api/v2/patients/:patientId/appointments
+   * GET /api/v1/patients/:patientId/appointments
    * Get appointments for a specific patient (Read Model)
    */
   router.get(
@@ -51,7 +51,7 @@ export function createAppointmentQueryRoutes(): Router {
   );
 
   /**
-   * GET /api/v2/doctors/:doctorId/appointments
+   * GET /api/v1/doctors/:doctorId/appointments
    * Get appointments for a specific doctor (Read Model)
    */
   router.get(

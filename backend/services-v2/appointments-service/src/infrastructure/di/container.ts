@@ -16,6 +16,8 @@ import { IQueueRepository } from '../../domain/repositories/IQueueRepository';
 import { SupabaseQueueRepository } from '../persistence/SupabaseQueueRepository';
 import { IProviderScheduleRepository } from '../../domain/repositories/IProviderScheduleRepository';
 import { SupabaseProviderScheduleRepository } from '../persistence/SupabaseProviderScheduleRepository';
+import { IAppointmentWaitlistRepository } from '../../domain/repositories/IAppointmentWaitlistRepository';
+import { SupabaseAppointmentWaitlistRepository } from '../repositories/SupabaseAppointmentWaitlistRepository';
 
 // Event Publishing
 import { IDomainEventPublisher } from '@shared/domain/events/IDomainEventPublisher';
@@ -73,6 +75,11 @@ import { GetAppointmentStatisticsUseCase } from '../../application/use-cases/Get
 import { CreateEmergencyAppointmentUseCase } from '../../application/use-cases/CreateEmergencyAppointment.use-case';
 import { TransferAppointmentUseCase } from '../../application/use-cases/TransferAppointment.use-case';
 import { FindAvailableTimeSlotsUseCase } from '../../application/use-cases/FindAvailableTimeSlotsUseCase';
+import { AddToWaitlistUseCase } from '../../application/use-cases/AddToWaitlistUseCase';
+import { GetWaitlistUseCase } from '../../application/use-cases/GetWaitlistUseCase';
+import { UpdateWaitlistEntryUseCase } from '../../application/use-cases/UpdateWaitlistEntryUseCase';
+import { RemoveFromWaitlistUseCase } from '../../application/use-cases/RemoveFromWaitlistUseCase';
+import { ConvertWaitlistToAppointmentUseCase } from '../../application/use-cases/ConvertWaitlistToAppointmentUseCase';
 
 // Queries
 import { GetAppointmentDetailsQuery } from '../../application/queries/GetAppointmentDetailsQuery';
@@ -86,6 +93,7 @@ import { EventSubscriptions, createEventSubscriptions } from '../events/EventSub
 import { AppointmentController } from '../../presentation/controllers/AppointmentController';
 import { AppointmentQueryController } from '../../presentation/controllers/AppointmentQueryController';
 import { AvailabilityController } from '../../presentation/controllers/AvailabilityController';
+import { WaitlistController } from '../../presentation/controllers/WaitlistController';
 
 // Config & Health
 import { AppConfig, loadConfig } from '../config/ConfigValidator';
@@ -104,6 +112,7 @@ export class DIContainer {
   private appointmentReadModelRepository: IAppointmentReadModelRepository;
   private queueRepository: IQueueRepository;
   private providerScheduleRepository: IProviderScheduleRepository;
+  private waitlistRepository: IAppointmentWaitlistRepository;
   
   // Read Model Repositories (Pure Outbox Pattern)
   private patientReadModelRepository: PatientReadModelRepository;
@@ -157,6 +166,11 @@ export class DIContainer {
   private createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase;
   private transferAppointmentUseCase: TransferAppointmentUseCase;
   private findAvailableTimeSlotsUseCase: FindAvailableTimeSlotsUseCase;
+  private addToWaitlistUseCase: AddToWaitlistUseCase;
+  private getWaitlistUseCase: GetWaitlistUseCase;
+  private updateWaitlistEntryUseCase: UpdateWaitlistEntryUseCase;
+  private removeFromWaitlistUseCase: RemoveFromWaitlistUseCase;
+  private convertWaitlistToAppointmentUseCase: ConvertWaitlistToAppointmentUseCase;
 
   // Queries
   private getAppointmentDetailsQuery: GetAppointmentDetailsQuery;
@@ -170,6 +184,7 @@ export class DIContainer {
   private appointmentController: AppointmentController;
   private appointmentQueryController: AppointmentQueryController;
   private availabilityController: AvailabilityController;
+  private waitlistController: WaitlistController;
 
   constructor() {
     // Load and validate configuration
@@ -286,7 +301,15 @@ export class DIContainer {
       this.config.supabase.url,
       this.config.supabase.serviceRoleKey
     );
-    
+
+    // Waitlist Repository
+    const { createClient } = require('@supabase/supabase-js');
+    const supabaseClient = createClient(
+      this.config.supabase.url,
+      this.config.supabase.serviceRoleKey
+    );
+    this.waitlistRepository = new SupabaseAppointmentWaitlistRepository(supabaseClient);
+
     // Pure Outbox Pattern - Read Model Repositories
     this.patientReadModelRepository = new PatientReadModelRepository(
       this.config.supabase.url,
@@ -303,8 +326,8 @@ export class DIContainer {
       this.config.supabase.serviceRoleKey
     );
 
-    console.log('[DI] ✅ Repositories initialized (7 total)');
-    console.log('[DI]    - Appointment, ReadModel, Queue, ProviderSchedule');
+    console.log('[DI] ✅ Repositories initialized (8 total)');
+    console.log('[DI]    - Appointment, ReadModel, Queue, ProviderSchedule, Waitlist');
     console.log('[DI]    - PatientReadModel, ProviderReadModel, Inbox (Pure Outbox)');
   }
 
@@ -496,7 +519,28 @@ export class DIContainer {
       this.appointmentRepository
     );
 
-    console.log('[DI] ✅ Use cases initialized (24 total)');
+    // Waitlist Use Cases
+    this.addToWaitlistUseCase = new AddToWaitlistUseCase(
+      this.waitlistRepository
+    );
+
+    this.getWaitlistUseCase = new GetWaitlistUseCase(
+      this.waitlistRepository
+    );
+
+    this.updateWaitlistEntryUseCase = new UpdateWaitlistEntryUseCase(
+      this.waitlistRepository
+    );
+
+    this.removeFromWaitlistUseCase = new RemoveFromWaitlistUseCase(
+      this.waitlistRepository
+    );
+
+    this.convertWaitlistToAppointmentUseCase = new ConvertWaitlistToAppointmentUseCase(
+      this.waitlistRepository
+    );
+
+    console.log('[DI] ✅ Use cases initialized (29 total)');
   }
 
   /**
@@ -588,7 +632,15 @@ export class DIContainer {
       this.providerScheduleRepository
     );
 
-    console.log('[DI] ✅ Controllers initialized (3 total)');
+    this.waitlistController = new WaitlistController(
+      this.addToWaitlistUseCase,
+      this.getWaitlistUseCase,
+      this.updateWaitlistEntryUseCase,
+      this.removeFromWaitlistUseCase,
+      this.convertWaitlistToAppointmentUseCase
+    );
+
+    console.log('[DI] ✅ Controllers initialized (4 total)');
   }
 
   /**
@@ -603,6 +655,13 @@ export class DIContainer {
    */
   public getAppointmentQueryController(): AppointmentQueryController {
     return this.appointmentQueryController;
+  }
+
+  /**
+   * Get waitlist controller
+   */
+  public getWaitlistController(): WaitlistController {
+    return this.waitlistController;
   }
 
   /**

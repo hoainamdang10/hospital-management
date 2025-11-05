@@ -39,6 +39,8 @@ export const TYPES = {
   DiagnosticReportRepository: Symbol.for("DiagnosticReportRepository"),
   PrescriptionRepository: Symbol.for("PrescriptionRepository"),
   TreatmentPlanRepository: Symbol.for("TreatmentPlanRepository"),
+  LabResultRepository: Symbol.for("LabResultRepository"),
+  MedicalImagingRepository: Symbol.for("MedicalImagingRepository"),
   OutboxRepository: Symbol.for("OutboxRepository"),
 
   // =====================================================
@@ -74,6 +76,10 @@ export const TYPES = {
   // FHIR Compliance
   ExportToFHIRUseCase: Symbol.for("ExportToFHIRUseCase"),
   ValidateFHIRComplianceUseCase: Symbol.for("ValidateFHIRComplianceUseCase"),
+  BulkExportFHIRUseCase: Symbol.for("BulkExportFHIRUseCase"),
+
+  // Audit Logs (HIPAA Compliance)
+  GetAuditLogsUseCase: Symbol.for("GetAuditLogsUseCase"),
 
   // Reports
   GenerateMedicalReportUseCase: Symbol.for("GenerateMedicalReportUseCase"),
@@ -116,6 +122,22 @@ export const TYPES = {
   CompleteTreatmentPlanUseCase: Symbol.for("CompleteTreatmentPlanUseCase"),
 
   // =====================================================
+  // APPLICATION - USE CASES (Lab Results)
+  // =====================================================
+  CreateLabResultUseCase: Symbol.for("CreateLabResultUseCase"),
+  GetLabResultUseCase: Symbol.for("GetLabResultUseCase"),
+  UpdateLabResultUseCase: Symbol.for("UpdateLabResultUseCase"),
+  GetPatientLabResultsUseCase: Symbol.for("GetPatientLabResultsUseCase"),
+
+  // =====================================================
+  // APPLICATION - USE CASES (Medical Imaging)
+  // =====================================================
+  CreateMedicalImagingUseCase: Symbol.for("CreateMedicalImagingUseCase"),
+  GetMedicalImagingUseCase: Symbol.for("GetMedicalImagingUseCase"),
+  UpdateMedicalImagingUseCase: Symbol.for("UpdateMedicalImagingUseCase"),
+  GetPatientMedicalImagingUseCase: Symbol.for("GetPatientMedicalImagingUseCase"),
+
+  // =====================================================
   // APPLICATION - SERVICES
   // =====================================================
   MedicalRecordService: Symbol.for("MedicalRecordService"),
@@ -124,6 +146,7 @@ export const TYPES = {
   TreatmentService: Symbol.for("TreatmentService"),
   TokenVerifier: Symbol.for("TokenVerifier"),
   AuditLogService: Symbol.for("AuditLogService"),
+  FHIRExportService: Symbol.for("FHIRExportService"),
 
   // =====================================================
   // PRESENTATION - CONTROLLERS
@@ -133,6 +156,10 @@ export const TYPES = {
   DiagnosticReportController: Symbol.for("DiagnosticReportController"),
   PrescriptionController: Symbol.for("PrescriptionController"),
   TreatmentPlanController: Symbol.for("TreatmentPlanController"),
+  LabResultController: Symbol.for("LabResultController"),
+  MedicalImagingController: Symbol.for("MedicalImagingController"),
+  AuditController: Symbol.for("AuditController"),
+  FHIRController: Symbol.for("FHIRController"),
   HealthController: Symbol.for("HealthController"),
 
   // =====================================================
