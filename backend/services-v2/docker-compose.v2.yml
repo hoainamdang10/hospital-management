@@ -1,10 +1,10 @@
 # Hospital Management System - Services V2
 # Clean Architecture + DDD + CQRS + Event-Driven Implementation
-# 
+#
 # @author Hospital Management Team
 # @version 2.0.0
 
-version: '3.8'
+version: "3.8"
 
 networks:
   hospital-v2-network:
@@ -20,7 +20,7 @@ services:
     image: redis:7-alpine
     container_name: hospital-redis-v2
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
       - redis-v2-data:/data
     command: redis-server --appendonly yes
@@ -35,8 +35,8 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: hospital-rabbitmq-v2
     ports:
-      - "5673:5672"
-      - "15673:15672"
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq-v2-data:/var/lib/rabbitmq
     environment:
@@ -58,7 +58,8 @@ services:
     ports:
       - "3101:3101"
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - PORT=3101
       # Supabase Configuration (for JWT validation)
       - SUPABASE_URL=${SUPABASE_URL}
@@ -142,9 +143,10 @@ services:
       dockerfile: ./identity-service/Dockerfile
     container_name: hospital-identity-service-v2
     ports:
-      - "3021:3001"
+      - "3001:3001"
     environment:
-      - NODE_ENV=test
+      # - NODE_ENV=test # Commented for production mode
+      - NODE_ENV=production
       - PORT=3001
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -159,9 +161,13 @@ services:
       # Email Verification Configuration
       - RESEND_API_KEY=${RESEND_API_KEY}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - EMAIL_DELIVERY_MODE=${EMAIL_DELIVERY_MODE}
+      - AUTO_VERIFY_PENDING=${AUTO_VERIFY_PENDING}
       - EMAIL_FROM=${EMAIL_FROM}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
       - FRONTEND_URL=${FRONTEND_URL}
+      # Internal service authentication (disabled for demo/development)
+      - INTERNAL_AUTH_ENABLED=false
     depends_on:
       - redis-v2
       - rabbitmq-v2
@@ -185,9 +191,10 @@ services:
       dockerfile: ./identity-service/Dockerfile
     container_name: hospital-identity-service-v2-test
     ports:
-      - "3021:3001"
+      - "3001:3001"
     environment:
-      - NODE_ENV=test
+      # - NODE_ENV=test # Commented for production mode
+      - NODE_ENV=production
       - PORT=3001
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -226,9 +233,10 @@ services:
       dockerfile: ./patient-registry-service/Dockerfile
     container_name: hospital-patient-registry-v2
     ports:
-      - "3023:3003"
+      - "3003:3003"
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - PORT=3003
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -238,6 +246,8 @@ services:
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
       - DATABASE_SCHEMA=patient_schema
       - IDENTITY_SERVICE_URL=http://identity-service:3001
+      - BYPASS_AUTH=${BYPASS_AUTH}
+      - BYPASS_AUTH_USER_ID=${BYPASS_AUTH_USER_ID}
     depends_on:
       - redis-v2
       - rabbitmq-v2
@@ -255,9 +265,9 @@ services:
       dockerfile: ./provider-staff-service/Dockerfile
     container_name: hospital-provider-staff-v2
     ports:
-      - "3022:3002"
+      - "3002:3002"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3002
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -269,6 +279,8 @@ services:
       - IDENTITY_SERVICE_URL=http://identity-service:3001
       - DEPARTMENT_SERVICE_URL=http://department-service:3025
       - DEPARTMENT_SERVICE_TIMEOUT=5000
+      - BYPASS_AUTH=true # Enable auth bypass for development/testing
+      - DISABLE_RATE_LIMIT=true # Disable rate limiting for development
     depends_on:
       - redis-v2
       - rabbitmq-v2
@@ -290,7 +302,7 @@ services:
     ports:
       - "3025:3025"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3025
       - SERVICE_NAME=department-service
       - SUPABASE_URL=${SUPABASE_URL}
@@ -298,6 +310,7 @@ services:
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - REDIS_URL=redis://redis-v2:6379
       - CORS_ORIGIN=http://localhost:3000
+      - STAFF_SERVICE_URL=http://provider-staff-service:3002
     depends_on:
       - redis-v2
     networks:
@@ -314,9 +327,10 @@ services:
       dockerfile: ./appointments-service/Dockerfile
     container_name: hospital-appointments-v2
     ports:
-      - "3024:3004"
+      - "3004:3004"
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - PORT=3004
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -328,14 +342,16 @@ services:
       - IDENTITY_SERVICE_URL=http://identity-service:3001
       - PATIENT_SERVICE_URL=http://patient-registry-service:3003
       - PROVIDER_SERVICE_URL=http://provider-staff-service:3002
-      - SCHEDULER_SERVICE_URL=http://scheduler-api:3030
+      - SCHEDULER_SERVICE_URL=http://scheduler-service:3030
       - SCHEDULER_API_KEY=${SCHEDULER_API_KEY}
+      - OUTBOX_RESERVED_TIMEOUT_MINUTES=5
     depends_on:
       - redis-v2
       - rabbitmq-v2
       - identity-service
       - patient-registry-service
       - provider-staff-service
+      - scheduler-service
     networks:
       - hospital-v2-network
     profiles:
@@ -345,13 +361,14 @@ services:
 
   clinical-emr-service:
     build:
-      context: .
-      dockerfile: ./clinical-emr-service/Dockerfile
+      context: ./clinical-emr-service
+      dockerfile: Dockerfile
     container_name: hospital-clinical-emr-v2
     ports:
-      - "3027:3007"
+      - "3007:3007"
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - PORT=3007
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -379,15 +396,56 @@ services:
       - full
 
   # Supporting Services
+  scheduler-service:
+    build:
+      context: ./scheduler-service
+      dockerfile: Dockerfile
+    container_name: hospital-scheduler-v2
+    ports:
+      - "3030:3030"
+    environment:
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
+      - PORT=3030
+      - COMPONENT=api
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=redis://redis-v2:6379
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
+      - DEFAULT_TENANT_ID=hospital-1
+      - WORKER_CONCURRENCY=10
+      - WORKER_POLL_INTERVAL=5000
+      - WORKER_LEASE_TTL=60000
+      - MATERIALIZATION_INTERVAL=60000
+      - MATERIALIZATION_LOOKAHEAD_HOURS=48
+      - PUBLISH_BATCH_SIZE=100
+      - PUBLISH_INTERVAL=1000
+      - RATE_LIMIT_WINDOW_MS=60000
+      - RATE_LIMIT_MAX_REQUESTS=100
+      - LOG_LEVEL=info
+      - METRICS_PORT=9090
+    depends_on:
+      - redis-v2
+      - rabbitmq-v2
+    networks:
+      - hospital-v2-network
+    profiles:
+      - supporting
+      - dev
+      - full
+
   billing-service:
     build:
       context: .
       dockerfile: ./billing-service/Dockerfile
     container_name: hospital-billing-v2
     ports:
-      - "3029:3009"
+      - "3009:3009"
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - PORT=3009
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -402,6 +460,8 @@ services:
       - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID}
       - PAYOS_API_KEY=${PAYOS_API_KEY}
       - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY}
+      - PAYOS_RETURN_URL=http://localhost:3000/patient/billing/success
+      - PAYOS_CANCEL_URL=http://localhost:3000/patient/billing/cancel
     depends_on:
       - redis-v2
       - rabbitmq-v2
@@ -421,9 +481,10 @@ services:
       dockerfile: ./notifications-service/Dockerfile
     container_name: hospital-notifications-v2
     ports:
-      - "3031:3011"
+      - "3011:3011"
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - PORT=3011
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -453,7 +514,8 @@ services:
       dockerfile: ./notifications-service/Dockerfile.consumer
     container_name: hospital-notifications-consumer-v2
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
@@ -482,7 +544,8 @@ services:
     ports:
       - "3101:3101"
     environment:
-      - NODE_ENV=development
+      # - NODE_ENV=development # Commented for production mode
+      - NODE_ENV=production
       - PORT=3101
       - IDENTITY_SERVICE_URL=http://identity-service:3001
       - PATIENT_SERVICE_URL=http://patient-registry-service:3003

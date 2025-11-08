@@ -1,48 +1,38 @@
 /**
  * Dependency Injection Container - Clinical EMR Service
- * Container setup for all dependencies
+ * Complete container setup with all dependencies
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.1.0
  * @compliance Clean Architecture, DI Pattern, IoC
+ * @updated 2025-11-02 - Registered all 40+ use cases and controllers
  */
-import { Container } from 'inversify';
-/**
- * Create and configure the DI container
- */
-export declare function createContainer(): Container;
-/**
- * Global container instance
- */
+import { Container } from "inversify";
 export declare const container: Container;
 /**
- * Helper functions to get services from container
+ * Initialize and configure the DI container
  */
-export declare const getService: <T>(serviceIdentifier: symbol) => T;
-export declare const getServices: <T>(serviceIdentifier: symbol) => T[];
-/**
- * Container health check
- */
-export declare const checkContainerHealth: () => {
-    healthy: boolean;
-    errors: string[];
-};
-/**
- * Container cleanup
- */
-export declare const cleanupContainer: () => Promise<void>;
-/**
- * Container configuration validation
- */
-export declare const validateContainerConfiguration: () => {
-    valid: boolean;
-    errors: string[];
-};
-/**
- * Initialize container with health checks
- */
-export declare const initializeContainer: () => Promise<{
+export declare function initializeContainer(): Promise<{
     success: boolean;
     errors: string[];
 }>;
+/**
+ * Check container health
+ */
+export declare function checkContainerHealth(): Promise<{
+    healthy: boolean;
+    errors: string[];
+}>;
+/**
+ * Cleanup container resources
+ */
+export declare function cleanupContainer(): Promise<void>;
+/**
+ * Get a service from the container (helper)
+ */
+export declare function resolve<T>(serviceIdentifier: symbol): T;
+/**
+ * Export container instance
+ */
+export { container as DIContainer };
 //# sourceMappingURL=container.d.ts.map

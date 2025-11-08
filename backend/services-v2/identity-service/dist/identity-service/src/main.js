@@ -15,10 +15,8 @@ exports.bootstrap = bootstrap;
 // Load environment variables first
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-const fs_1 = __importDefault(require("fs"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
-const yamljs_1 = __importDefault(require("yamljs"));
-const path_1 = __importDefault(require("path"));
+const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
 // Bootstrap modules
 const bootstrap_1 = require("./bootstrap");
 // Routes
@@ -75,23 +73,25 @@ async function bootstrap() {
             }
         });
         logger.info('Prometheus metrics endpoint registered at /metrics (protected)');
-        // Swagger documentation (protected)
-        try {
-            const swaggerCandidates = [
-                path_1.default.join(__dirname, '../docs/api/openapi.yaml'),
-                path_1.default.join(__dirname, '../../docs/api/openapi.yaml')
-            ];
-            const swaggerPath = swaggerCandidates.find((candidate) => fs_1.default.existsSync(candidate));
-            if (!swaggerPath) {
-                throw new Error('openapi.yaml not found in expected locations');
+        // Swagger API Documentation
+        // Accessible at: http://localhost:3021/api-docs
+        app.use('/api-docs', swagger_ui_express_1.default.serve);
+        app.get('/api-docs', swagger_ui_express_1.default.setup(swagger_config_1.swaggerSpec, {
+            customSiteTitle: 'Identity Service API',
+            customCss: '.swagger-ui .topbar { display: none }',
+            swaggerOptions: {
+                persistAuthorization: true,
+                displayRequestDuration: true,
+                filter: true,
+                tryItOutEnabled: true
             }
-            const swaggerDocument = yamljs_1.default.load(swaggerPath);
-            app.use('/api-docs', metricsAuth, swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
-            logger.info('Swagger documentation registered at /api-docs (protected)', { swaggerPath });
-        }
-        catch (error) {
-            logger.warn('Failed to load Swagger documentation', { error });
-        }
+        }));
+        // OpenAPI JSON spec
+        app.get('/api-docs/json', (_req, res) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(swagger_config_1.swaggerSpec);
+        });
+        logger.info('Swagger UI available at http://localhost:' + config.port + '/api-docs');
         // Step 8: Register error handlers (MUST be last)
         logger.info('Registering error handlers...');
         (0, bootstrap_1.registerErrorHandlers)(app, logger);

@@ -47,7 +47,6 @@
     "../shared/examples/**/*",
     "../shared/testing/**/*",
     "../shared/workflows/**/*",
-    "../shared/infrastructure/**/*",
     "../shared/domain/events/domain-events.ts",
     "../shared/domain/events/IDomainEventPublisher.ts",
     "../shared/domain/repositories/**/*"

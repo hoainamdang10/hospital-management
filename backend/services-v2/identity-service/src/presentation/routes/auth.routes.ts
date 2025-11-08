@@ -227,6 +227,39 @@ export function createAuthRoutes(deps: RouteDependencies): Router {
     }
   });
 
+  // Validate Staff Invitation Token endpoint (PUBLIC)
+  // Frontend calls this to check if token is valid before showing activation form
+  router.get('/validate-invitation', async (req, res) => {
+    try {
+      const token = req.query.token as string;
+
+      if (!token || typeof token !== 'string' || token.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          isValid: false,
+          error: 'Token không hợp lệ',
+          errorCode: 'MISSING_TOKEN'
+        });
+      }
+
+      const request = {
+        invitationToken: token
+      };
+
+      const result = await deps.validateStaffInvitationUseCase.execute(request);
+      const statusCode = result.success ? 200 : 400;
+      return res.status(statusCode).json(result);
+    } catch (error) {
+      logger.error('Validate staff invitation endpoint error', { error: getErrorMessage(error) });
+      return res.status(500).json({
+        success: false,
+        isValid: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau',
+        errorCode: 'SYSTEM_ERROR'
+      });
+    }
+  });
+
   // Accept Staff Invitation endpoint (PUBLIC)
   // Staff clicks link from invitation email and sets password
   router.post('/activate-staff', async (req, res) => {

@@ -39,7 +39,10 @@ export class RateLimitMiddleware {
       });
     },
     skip: (req: Request) => {
-      // Skip rate limiting for health checks
+      // Skip rate limiting for health checks and test environment
+      if (process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMIT === 'true') {
+        return true;
+      }
       return req.path === '/health' || req.path === '/info';
     }
   });
@@ -73,11 +76,11 @@ export class RateLimitMiddleware {
 
   /**
    * Search endpoints rate limiter
-   * 30 requests per 1 minute per IP
+   * 10000 requests per 1 minute per IP (effectively disabled for development)
    */
   static search = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 30, // Limit each IP to 30 requests per windowMs
+    max: 10000, // Limit each IP to 10000 requests per windowMs
     message: {
       success: false,
       error: 'SEARCH_RATE_LIMIT_EXCEEDED',
@@ -124,6 +127,10 @@ export class RateLimitMiddleware {
       });
     },
     skip: (req: Request) => {
+      // Skip in test environment
+      if (process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMIT === 'true') {
+        return true;
+      }
       // Only apply to write operations
       return !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
     }
@@ -180,6 +187,10 @@ export class RateLimitMiddleware {
         requestId: (req as any).requestId || 'unknown',
         retryAfter: 600 // 10 minutes in seconds
       });
+    },
+    skip: (_req: Request) => {
+      // Skip in test environment
+      return process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMIT === 'true';
     }
   });
 }

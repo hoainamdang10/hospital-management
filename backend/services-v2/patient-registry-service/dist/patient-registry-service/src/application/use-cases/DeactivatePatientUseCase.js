@@ -10,6 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeactivatePatientUseCase = void 0;
+const crypto_1 = require("crypto");
 const PatientId_1 = require("../../domain/value-objects/PatientId");
 class DeactivatePatientUseCase {
     constructor(patientRepository, eventBus, logger, auditService) {
@@ -136,20 +137,20 @@ class DeactivatePatientUseCase {
         try {
             // Log to audit_logs table (HIPAA compliance)
             await this.auditService.logAudit({
-                eventId: `patient-deactivation-${patient.getPatientId()}-${Date.now()}`,
-                eventType: 'patient.deactivated',
-                aggregateType: 'Patient',
-                aggregateId: patient.getPatientId() || 'unknown',
-                action: 'PATIENT_DEACTIVATION',
+                eventId: (0, crypto_1.randomUUID)(),
+                eventType: "patient.deactivated",
+                aggregateType: "Patient",
+                aggregateId: patient.getPatientId() || "unknown",
+                action: "PATIENT_DEACTIVATION",
                 userId: request.performedBy ?? undefined,
                 patientId: patient.getPatientId() ?? undefined,
                 containsPHI: true,
                 changedFields: {
-                    dataAccessed: 'patient_status',
-                    requestedBy: request.performedBy || 'system',
+                    dataAccessed: "patient_status",
+                    requestedBy: request.performedBy || "system",
                     reason: request.reason,
                 },
-                complianceLevel: 'hipaa',
+                complianceLevel: "hipaa",
             });
             this.logger.info("Patient deactivation audited successfully", {
                 patientId: patient.getPatientId(),
@@ -158,7 +159,7 @@ class DeactivatePatientUseCase {
         catch (error) {
             this.logger.error("Failed to audit patient deactivation", {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
         }
     }

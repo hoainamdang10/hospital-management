@@ -42,7 +42,6 @@ export class AdvancedRateLimitMiddleware {
       max: this.config.global.max,
       
       store: new RedisStore({
-        // @ts-expect-error - RedisStore types are not fully compatible with redis v4
         sendCommand: (...args: string[]) => this.redisClient.getClient().sendCommand(args),
         prefix: 'rl:global:',
       }),
@@ -79,7 +78,6 @@ export class AdvancedRateLimitMiddleware {
       max: this.config.perUser.max,
       
       store: new RedisStore({
-        // @ts-expect-error - RedisStore types are not fully compatible with redis v4
         sendCommand: (...args: string[]) => this.redisClient.getClient().sendCommand(args),
         prefix: 'rl:user:',
       }),
@@ -126,7 +124,6 @@ export class AdvancedRateLimitMiddleware {
       max: endpointConfig.max,
       
       store: new RedisStore({
-        // @ts-expect-error - RedisStore types are not fully compatible with redis v4
         sendCommand: (...args: string[]) => this.redisClient.getClient().sendCommand(args),
         prefix: `rl:endpoint:${endpoint}:`,
       }),
@@ -164,7 +161,6 @@ export class AdvancedRateLimitMiddleware {
       max: 5,
       
       store: new RedisStore({
-        // @ts-expect-error - RedisStore types are not fully compatible with redis v4
         sendCommand: (...args: string[]) => this.redisClient.getClient().sendCommand(args),
         prefix: 'rl:strict:',
       }),
@@ -204,7 +200,6 @@ export class AdvancedRateLimitMiddleware {
       max: config.max,
       
       store: new RedisStore({
-        // @ts-expect-error - RedisStore types are not fully compatible with redis v4
         sendCommand: (...args: string[]) => this.redisClient.getClient().sendCommand(args),
         prefix: config.prefix,
       }),

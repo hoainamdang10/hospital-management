@@ -66,9 +66,10 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
   // Use PersonalInfo.create() directly in mappers
 
   private static isValidVietnamesePhone(phone: string): boolean {
-    // Vietnamese phone: 10 digits, starts with 0
-    const phoneRegex = /^0\d{9}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
+    // Vietnamese SIMs: current numbers = 10 digits, legacy = 11 digits -> accept 10-11 digits starting with 0
+    const normalized = phone.replace(/\s+/g, '');
+    const phoneRegex = /^0\d{9,10}$/;
+    return phoneRegex.test(normalized);
   }
 
   private static isValidCitizenId(citizenId: string): boolean {

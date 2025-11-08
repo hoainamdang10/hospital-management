@@ -6,40 +6,41 @@
  * @version 3.0.0
  * @compliance Clean Architecture, SOLID
  */
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';
-import { IQueueRepository } from '../../domain/repositories/IQueueRepository';
-import { IProviderScheduleRepository } from '../../domain/repositories/IProviderScheduleRepository';
-import { PatientReadModelRepository } from '../repositories/PatientReadModelRepository';
-import { ProviderReadModelRepository } from '../repositories/ProviderReadModelRepository';
-import { InboxRepository } from '../inbox/InboxRepository';
-import { PatientEventConsumer } from '../events/PatientEventConsumer';
-import { ProviderEventConsumer } from '../events/ProviderEventConsumer';
-import { RescheduleAppointmentUseCase } from '../../application/use-cases/RescheduleAppointment.use-case';
-import { CheckInAppointmentUseCase } from '../../application/use-cases/CheckInAppointment.use-case';
-import { MarkAsNoShowUseCase } from '../../application/use-cases/MarkAsNoShow.use-case';
-import { StartAppointmentUseCase } from '../../application/use-cases/StartAppointment.use-case';
-import { CallNextPatientUseCase } from '../../application/use-cases/CallNextPatient.use-case';
-import { JoinQueueUseCase } from '../../application/use-cases/JoinQueue.use-case';
-import { LeaveQueueUseCase } from '../../application/use-cases/LeaveQueue.use-case';
-import { GetQueueStatusUseCase } from '../../application/use-cases/GetQueueStatus.use-case';
-import { ValidateCancellationPolicyUseCase } from '../../application/use-cases/ValidateCancellationPolicy.use-case';
-import { ManageAppointmentRemindersUseCase } from '../../application/use-cases/ManageAppointmentReminders.use-case';
-import { CreateRecurringAppointmentSeriesUseCase } from '../../application/use-cases/CreateRecurringAppointmentSeries.use-case';
-import { BulkRescheduleAppointmentsUseCase } from '../../application/use-cases/BulkRescheduleAppointments.use-case';
-import { GetAppointmentHistoryUseCase } from '../../application/use-cases/GetAppointmentHistory.use-case';
-import { GetAppointmentStatisticsUseCase } from '../../application/use-cases/GetAppointmentStatistics.use-case';
-import { CreateEmergencyAppointmentUseCase } from '../../application/use-cases/CreateEmergencyAppointment.use-case';
-import { TransferAppointmentUseCase } from '../../application/use-cases/TransferAppointment.use-case';
-import { FindAvailableTimeSlotsUseCase } from '../../application/use-cases/FindAvailableTimeSlotsUseCase';
-import { AppointmentReadModelEventHandler } from '../events/AppointmentReadModelEventHandler';
-import { EventSubscriptions } from '../events/EventSubscriptions';
-import { AppointmentController } from '../../presentation/controllers/AppointmentController';
-import { AppointmentQueryController } from '../../presentation/controllers/AppointmentQueryController';
-import { AvailabilityController } from '../../presentation/controllers/AvailabilityController';
-import { AppConfig } from '../config/ConfigValidator';
-import { HealthCheckService } from '../health/HealthCheckService';
-import { MetricsService } from '../metrics/MetricsService';
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
+import { IAppointmentReadModelRepository } from "../../domain/repositories/IAppointmentReadModelRepository";
+import { IQueueRepository } from "../../domain/repositories/IQueueRepository";
+import { IProviderScheduleRepository } from "../../domain/repositories/IProviderScheduleRepository";
+import { PatientReadModelRepository } from "../repositories/PatientReadModelRepository";
+import { ProviderReadModelRepository } from "../repositories/ProviderReadModelRepository";
+import { InboxRepository } from "../inbox/InboxRepository";
+import { PatientEventConsumer } from "../events/PatientEventConsumer";
+import { ProviderEventConsumer } from "../events/ProviderEventConsumer";
+import { RescheduleAppointmentUseCase } from "../../application/use-cases/RescheduleAppointment.use-case";
+import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
+import { MarkAsNoShowUseCase } from "../../application/use-cases/MarkAsNoShow.use-case";
+import { StartAppointmentUseCase } from "../../application/use-cases/StartAppointment.use-case";
+import { CallNextPatientUseCase } from "../../application/use-cases/CallNextPatient.use-case";
+import { JoinQueueUseCase } from "../../application/use-cases/JoinQueue.use-case";
+import { LeaveQueueUseCase } from "../../application/use-cases/LeaveQueue.use-case";
+import { GetQueueStatusUseCase } from "../../application/use-cases/GetQueueStatus.use-case";
+import { ValidateCancellationPolicyUseCase } from "../../application/use-cases/ValidateCancellationPolicy.use-case";
+import { ManageAppointmentRemindersUseCase } from "../../application/use-cases/ManageAppointmentReminders.use-case";
+import { CreateRecurringAppointmentSeriesUseCase } from "../../application/use-cases/CreateRecurringAppointmentSeries.use-case";
+import { BulkRescheduleAppointmentsUseCase } from "../../application/use-cases/BulkRescheduleAppointments.use-case";
+import { GetAppointmentHistoryUseCase } from "../../application/use-cases/GetAppointmentHistory.use-case";
+import { GetAppointmentStatisticsUseCase } from "../../application/use-cases/GetAppointmentStatistics.use-case";
+import { CreateEmergencyAppointmentUseCase } from "../../application/use-cases/CreateEmergencyAppointment.use-case";
+import { TransferAppointmentUseCase } from "../../application/use-cases/TransferAppointment.use-case";
+import { FindAvailableTimeSlotsUseCase } from "../../application/use-cases/FindAvailableTimeSlotsUseCase";
+import { AppointmentReadModelEventHandler } from "../events/AppointmentReadModelEventHandler";
+import { EventSubscriptions } from "../events/EventSubscriptions";
+import { AppointmentController } from "../../presentation/controllers/AppointmentController";
+import { AppointmentQueryController } from "../../presentation/controllers/AppointmentQueryController";
+import { AvailabilityController } from "../../presentation/controllers/AvailabilityController";
+import { WaitlistController } from "../../presentation/controllers/WaitlistController";
+import { AppConfig } from "../config/ConfigValidator";
+import { HealthCheckService } from "../health/HealthCheckService";
+import { MetricsService } from "../metrics/MetricsService";
 /**
  * DI Container
  */
@@ -49,6 +50,7 @@ export declare class DIContainer {
     private appointmentReadModelRepository;
     private queueRepository;
     private providerScheduleRepository;
+    private waitlistRepository;
     private patientReadModelRepository;
     private providerReadModelRepository;
     private inboxRepository;
@@ -88,6 +90,11 @@ export declare class DIContainer {
     private createEmergencyAppointmentUseCase;
     private transferAppointmentUseCase;
     private findAvailableTimeSlotsUseCase;
+    private addToWaitlistUseCase;
+    private getWaitlistUseCase;
+    private updateWaitlistEntryUseCase;
+    private removeFromWaitlistUseCase;
+    private convertWaitlistToAppointmentUseCase;
     private getAppointmentDetailsQuery;
     private listAppointmentsQuery;
     private appointmentReadModelEventHandler;
@@ -95,6 +102,7 @@ export declare class DIContainer {
     private appointmentController;
     private appointmentQueryController;
     private availabilityController;
+    private waitlistController;
     constructor();
     /**
      * Initialize cache service and circuit breaker
@@ -153,6 +161,10 @@ export declare class DIContainer {
      * Get appointment query controller
      */
     getAppointmentQueryController(): AppointmentQueryController;
+    /**
+     * Get waitlist controller
+     */
+    getWaitlistController(): WaitlistController;
     /**
      * Get appointment read model event handler
      */

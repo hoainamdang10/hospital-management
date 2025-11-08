@@ -1,4 +1,5 @@
-import { getErrorMessage } from '../../utils/error-helper';
+import { getErrorMessage } from "../../utils/error-helper";
+import { VerifyEmailResponse } from "./VerifyEmailUseCase";
 /**
  * Register User Use Case - Verify-First Approach
  * Handles user registration with email verification BEFORE creating user
@@ -13,19 +14,24 @@ import { getErrorMessage } from '../../utils/error-helper';
  * @version 3.0.0 - Verify-First Approach
  */
 
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
-import { IUserRepository } from '../repositories/IUserRepository';
-import { ICircuitBreaker } from '../services/ICircuitBreaker';
-import { Email } from '../../domain/value-objects/Email';
-import { IEventPublisher } from '../services/IEventPublisher';
-import { ILogger } from '../services/ILogger';
-import { IEmailService } from '../services/IEmailService';
-import { IPendingRegistrationRepository } from '../../domain/repositories/IPendingRegistrationRepository';
-import { PendingRegistration } from '../../domain/entities/PendingRegistration';
-import { EmailVerificationToken } from '../../domain/value-objects/EmailVerificationToken';
-import { PendingRegistrationCreatedEvent } from '../../domain/events/PendingRegistrationCreatedEvent';
-import * as bcrypt from 'bcrypt';
+import { IUseCase } from "@shared/application/use-cases/base/use-case.interface";
+import { IUserRepository } from "../repositories/IUserRepository";
+import { ICircuitBreaker } from "../services/ICircuitBreaker";
+import { Email } from "../../domain/value-objects/Email";
+import { IEventPublisher } from "../services/IEventPublisher";
+import { ILogger } from "../services/ILogger";
+import { IEmailService } from "../services/IEmailService";
+import { IPendingRegistrationRepository } from "../../domain/repositories/IPendingRegistrationRepository";
+import { PendingRegistration } from "../../domain/entities/PendingRegistration";
+import { EmailVerificationToken } from "../../domain/value-objects/EmailVerificationToken";
+import { PendingRegistrationCreatedEvent } from "../../domain/events/PendingRegistrationCreatedEvent";
+import { encryptPassword } from "../../utils/password-crypto";
+import * as bcrypt from "bcrypt";
 
+interface AutoVerificationConfig {
+  enabled: boolean;
+  verifyToken: (token: string) => Promise<VerifyEmailResponse>;
+}
 export interface RegisterUserRequest {
   email: string;
   password: string;
@@ -55,7 +61,9 @@ export interface RegisterUserResponse {
  * and creates the actual user ONLY after email verification is completed.
  * This prevents database pollution from unverified users.
  */
-export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, RegisterUserResponse> {
+export class RegisterUserUseCase
+  implements IUseCase<RegisterUserRequest, RegisterUserResponse>
+{
   private readonly BCRYPT_ROUNDS = 10; // Bcrypt salt rounds
 
   constructor(
@@ -66,34 +74,38 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
     private emailService: IEmailService,
     private jwtSecret: string,
     private frontendUrl: string,
-    private eventPublisher?: IEventPublisher // Optional for backward compatibility
+    private eventPublisher?: IEventPublisher, // Optional for backward compatibility
+    private autoVerification?: AutoVerificationConfig,
   ) {}
 
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
     return await this.circuitBreaker.execute(
       async () => this.executeImpl(request),
       async () => {
-        this.logger.error('Circuit breaker open for RegisterUserUseCase');
+        this.logger.error("Circuit breaker open for RegisterUserUseCase");
         return {
           success: false,
-          message: 'Dịch vụ đăng ký tạm thời không khả dụng. Vui lòng thử lại sau.',
+          message:
+            "Dịch vụ đăng ký tạm thời không khả dụng. Vui lòng thử lại sau.",
           requiresEmailVerification: false,
-          error: 'SERVICE_UNAVAILABLE'
+          error: "SERVICE_UNAVAILABLE",
         };
-      }
+      },
     );
   }
 
-  private async executeImpl(request: RegisterUserRequest): Promise<RegisterUserResponse> {
+  private async executeImpl(
+    request: RegisterUserRequest,
+  ): Promise<RegisterUserResponse> {
     try {
       // SECURITY: Hardcode roleType = 'PATIENT' for public registration
       // This prevents privilege escalation attacks where users try to register as ADMIN/DOCTOR
       // Staff accounts (DOCTOR, NURSE, ADMIN) must be created by admins via separate endpoint
-      const roleType = 'PATIENT';
+      const roleType = "PATIENT";
 
-      this.logger.info('Starting user registration (Verify-First)', {
+      this.logger.info("Starting user registration (Verify-First)", {
         email: request.email,
-        roleType: roleType // Always PATIENT for public registration
+        roleType: roleType, // Always PATIENT for public registration
       });
 
       // 1. Validate input (no role validation needed - always PATIENT)
@@ -103,7 +115,7 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
           success: false,
           message: validationError,
           requiresEmailVerification: false,
-          error: 'VALIDATION_ERROR'
+          error: "VALIDATION_ERROR",
         };
       }
 
@@ -111,36 +123,46 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
       const email = Email.create(request.email);
       const existingUser = await this.userRepository.findByEmail(email);
       if (existingUser) {
-        this.logger.warn('User already exists', { email: request.email });
+        this.logger.warn("User already exists", { email: request.email });
         return {
           success: false,
-          message: 'Email đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.',
+          message:
+            "Email đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.",
           requiresEmailVerification: false,
-          error: 'USER_ALREADY_EXISTS'
+          error: "USER_ALREADY_EXISTS",
         };
       }
 
       // 3. Check if email has active pending registration
-      const hasPending = await this.pendingRegistrationRepository.hasActivePendingRegistration(email);
+      const hasPending =
+        await this.pendingRegistrationRepository.hasActivePendingRegistration(
+          email,
+        );
       if (hasPending) {
-        this.logger.warn('Email has active pending registration', { email: request.email });
+        this.logger.warn("Email has active pending registration", {
+          email: request.email,
+        });
         return {
           success: false,
-          message: 'Email đã có đăng ký đang chờ xác thực. Vui lòng kiểm tra email hoặc đợi hết hạn để đăng ký lại.',
+          message:
+            "Email đã có đăng ký đang chờ xác thực. Vui lòng kiểm tra email hoặc đợi hết hạn để đăng ký lại.",
           requiresEmailVerification: false,
-          error: 'PENDING_REGISTRATION_EXISTS'
+          error: "PENDING_REGISTRATION_EXISTS",
         };
       }
 
       // 4. Hash password (will be used to create user after verification)
-      const passwordHash = await bcrypt.hash(request.password, this.BCRYPT_ROUNDS);
+      const passwordHash = await bcrypt.hash(
+        request.password,
+        this.BCRYPT_ROUNDS,
+      );
 
       // 5. Generate verification token (24h expiry)
       const verificationToken = EmailVerificationToken.generate(
-        'pending', // Temporary ID, will be replaced with actual user ID after verification
+        "pending", // Temporary ID, will be replaced with actual user ID after verification
         email,
         this.jwtSecret,
-        24 // 24 hours
+        24, // 24 hours
       );
 
       // 6. Create pending registration entity
@@ -151,22 +173,28 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
           fullName: request.fullName,
           phoneNumber: request.phoneNumber,
           citizenId: request.citizenId,
-          dateOfBirth: request.dateOfBirth ? new Date(request.dateOfBirth) : undefined,
-          gender: request.gender,
+          dateOfBirth: request.dateOfBirth
+            ? new Date(request.dateOfBirth)
+            : undefined,
+          gender: request.gender ? request.gender.toLowerCase() : undefined,
           address: request.address,
-          roleType: roleType.toLowerCase() // Always 'patient'
+          roleType: roleType.toLowerCase(), // Always 'patient'
+          rawPasswordEncrypted: encryptPassword(
+            request.password,
+            this.jwtSecret,
+          ),
         },
         verificationToken.token,
-        24 // 24 hours expiry
+        24, // 24 hours expiry
       );
 
       // 7. Store pending registration in database
       await this.pendingRegistrationRepository.store(pendingRegistration);
 
-      this.logger.info('Pending registration created successfully', {
+      this.logger.info("Pending registration created successfully", {
         pendingRegistrationId: pendingRegistration.id,
         email: request.email,
-        expiresAt: pendingRegistration.expiresAt
+        expiresAt: pendingRegistration.expiresAt,
       });
 
       // 8. Send verification email
@@ -175,48 +203,65 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
         await this.emailService.sendVerificationEmail({
           email: email.value,
           userName: request.fullName,
-          verificationUrl
+          verificationUrl,
         });
 
         // Mark email as sent successfully
-        await this.pendingRegistrationRepository.updateStatus(pendingRegistration.id, 'EMAIL_SENT');
+        await this.pendingRegistrationRepository.updateStatus(
+          pendingRegistration.id,
+          "EMAIL_SENT",
+        );
 
-        this.logger.info('Verification email sent successfully', {
+        this.logger.info("Verification email sent successfully", {
           pendingRegistrationId: pendingRegistration.id,
-          email: email.value
+          email: email.value,
         });
       } catch (error) {
-        this.logger.error('Failed to send verification email', {
+        this.logger.error("Failed to send verification email", {
           pendingRegistrationId: pendingRegistration.id,
-          error: getErrorMessage(error)
+          error: getErrorMessage(error),
         });
 
         // Rollback: Delete pending registration if email sending fails
         // ENHANCED: Add retry mechanism and fallback to prevent orphaned records
         try {
-          await this.pendingRegistrationRepository.delete(pendingRegistration.id);
-          this.logger.info('Pending registration deleted after email failure', {
-            pendingRegistrationId: pendingRegistration.id
+          await this.pendingRegistrationRepository.delete(
+            pendingRegistration.id,
+          );
+          this.logger.info("Pending registration deleted after email failure", {
+            pendingRegistrationId: pendingRegistration.id,
           });
         } catch (deleteError) {
-          this.logger.error('CRITICAL: Failed to rollback pending registration', {
-            pendingRegistrationId: pendingRegistration.id,
-            email: email.value,
-            error: getErrorMessage(deleteError)
-          });
+          this.logger.error(
+            "CRITICAL: Failed to rollback pending registration",
+            {
+              pendingRegistrationId: pendingRegistration.id,
+              email: email.value,
+              error: getErrorMessage(deleteError),
+            },
+          );
 
           // Fallback: Mark as FAILED to prevent blocking re-registration
           // This allows cleanup job to remove it later
           try {
-            await this.pendingRegistrationRepository.updateStatus(pendingRegistration.id, 'FAILED');
-            this.logger.warn('Marked pending registration as FAILED (fallback)', {
-              pendingRegistrationId: pendingRegistration.id
-            });
+            await this.pendingRegistrationRepository.updateStatus(
+              pendingRegistration.id,
+              "FAILED",
+            );
+            this.logger.warn(
+              "Marked pending registration as FAILED (fallback)",
+              {
+                pendingRegistrationId: pendingRegistration.id,
+              },
+            );
           } catch (statusError) {
-            this.logger.error('CRITICAL: Failed to mark pending registration as FAILED', {
-              pendingRegistrationId: pendingRegistration.id,
-              error: getErrorMessage(statusError)
-            });
+            this.logger.error(
+              "CRITICAL: Failed to mark pending registration as FAILED",
+              {
+                pendingRegistrationId: pendingRegistration.id,
+                error: getErrorMessage(statusError),
+              },
+            );
             // At this point, record is orphaned and will need manual cleanup
             // or cleanup job to remove it
           }
@@ -224,10 +269,18 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
 
         return {
           success: false,
-          message: 'Không thể gửi email xác thực. Vui lòng thử lại sau.',
+          message: "Không thể gửi email xác thực. Vui lòng thử lại sau.",
           requiresEmailVerification: false,
-          error: 'EMAIL_SENDING_FAILED'
+          error: "EMAIL_SENDING_FAILED",
         };
+      }
+
+      if (this.autoVerification?.enabled) {
+        await this.autoVerifyPendingRegistration(
+          verificationToken.token,
+          pendingRegistration.id,
+          email.value,
+        );
       }
 
       // 9. Publish domain event
@@ -238,18 +291,18 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
             email.value,
             request.fullName,
             roleType, // Always 'PATIENT'
-            pendingRegistration.expiresAt
+            pendingRegistration.expiresAt,
           );
 
           await this.eventPublisher.publishDomainEvents([event]);
 
-          this.logger.info('PendingRegistrationCreated event published', {
-            pendingRegistrationId: pendingRegistration.id
+          this.logger.info("PendingRegistrationCreated event published", {
+            pendingRegistrationId: pendingRegistration.id,
           });
         } catch (error) {
-          this.logger.error('Failed to publish domain event', {
+          this.logger.error("Failed to publish domain event", {
             pendingRegistrationId: pendingRegistration.id,
-            error: getErrorMessage(error)
+            error: getErrorMessage(error),
           });
           // Don't fail registration if event publishing fails
         }
@@ -260,21 +313,22 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
         success: true,
         pendingRegistrationId: pendingRegistration.id,
         email: email.value,
-        message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực có hiệu lực trong 24 giờ.',
-        requiresEmailVerification: true
+        message:
+          "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực có hiệu lực trong 24 giờ.",
+        requiresEmailVerification: !this.autoVerification?.enabled,
       };
-
     } catch (error) {
-      this.logger.error('User registration failed', {
+      this.logger.error("User registration failed", {
         email: request.email,
-        error: getErrorMessage(error)
+        error: getErrorMessage(error),
       });
 
       return {
         success: false,
-        message: 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.',
+        message:
+          "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.",
         requiresEmailVerification: false,
-        error: 'REGISTRATION_FAILED'
+        error: "REGISTRATION_FAILED",
       };
     }
   }
@@ -283,29 +337,62 @@ export class RegisterUserUseCase implements IUseCase<RegisterUserRequest, Regist
     // Email format: basic RFC-compliant check (no spaces, must contain @ and a dot in domain)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!request.email || !emailRegex.test(request.email)) {
-      return 'Email không hợp lệ';
+      return "Email không hợp lệ";
     }
 
     if (!request.password || request.password.length < 8) {
-      return 'Mật khẩu phải có ít nhất 8 ký tự';
+      return "Mật khẩu phải có ít nhất 8 ký tự";
     }
 
     if (!request.fullName || request.fullName.trim().length < 2) {
-      return 'Họ tên phải có ít nhất 2 ký tự';
+      return "Họ tên phải có ít nhất 2 ký tự";
     }
 
     // NO role validation - always PATIENT for public registration
     // Staff accounts must be created by admins via separate endpoint
 
     if (request.phoneNumber && !/^[0-9]{10,11}$/.test(request.phoneNumber)) {
-      return 'Số điện thoại không hợp lệ (phải có 10-11 chữ số)';
+      return "Số điện thoại không hợp lệ (phải có 10-11 chữ số)";
     }
 
     if (request.citizenId && !/^[0-9]{9,12}$/.test(request.citizenId)) {
-      return 'Số CMND/CCCD không hợp lệ (phải có 9-12 chữ số)';
+      return "Số CMND/CCCD không hợp lệ (phải có 9-12 chữ số)";
     }
 
     return null;
   }
-}
 
+  private async autoVerifyPendingRegistration(
+    verificationToken: string,
+    pendingRegistrationId: string,
+    email: string,
+  ): Promise<void> {
+    if (!this.autoVerification?.verifyToken) {
+      return;
+    }
+
+    try {
+      const result = await this.autoVerification.verifyToken(verificationToken);
+
+      if (result.success) {
+        this.logger.info("Auto verification completed successfully", {
+          pendingRegistrationId,
+          email,
+        });
+      } else {
+        this.logger.warn("Auto verification failed", {
+          pendingRegistrationId,
+          email,
+          error: result.error,
+          message: result.message,
+        });
+      }
+    } catch (error) {
+      this.logger.error("Auto verification encountered an error", {
+        pendingRegistrationId,
+        email,
+        error: getErrorMessage(error),
+      });
+    }
+  }
+}

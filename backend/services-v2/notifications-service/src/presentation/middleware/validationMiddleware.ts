@@ -35,6 +35,30 @@ interface ValidationError {
   value?: any;
 }
 
+/**
+ * Validation middleware using express-validator
+ */
+import { validationResult } from 'express-validator';
+
+export function validateRequest(req: Request, res: Response, next: NextFunction): void {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: errors.array().map(err => ({
+        field: err.type === 'field' ? (err as any).path : 'unknown',
+        message: err.msg,
+        code: 'VALIDATION_ERROR'
+      }))
+    });
+    return;
+  }
+
+  next();
+}
+
 export const validationMiddleware = (schema: ValidationSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {

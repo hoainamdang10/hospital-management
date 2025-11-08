@@ -1,0 +1,1 @@
+{"version":3,"file":"fhirRoutes.d.ts","sourceRoot":"","sources":["../../../../../src/presentation/routes/fhirRoutes.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,OAAO,EAAE,MAAM,EAAE,MAAM,SAAS,CAAC;AACjC,OAAO,EAAE,cAAc,EAAE,MAAM,+BAA+B,CAAC;AAK/D,wBAAgB,gBAAgB,CAAC,cAAc,EAAE,cAAc,GAAG,MAAM,CA6BvE"}

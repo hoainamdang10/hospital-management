@@ -7,11 +7,11 @@
  * @compliance Clean Architecture, DDD
  */
 
-import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { StaffId } from '../../domain/value-objects/StaffId';
-import { ILogger } from '../interfaces/ILogger';
-import { IAuditService } from '../interfaces/IAuditService';
-import { DepartmentAssignment } from '../../domain/entities/DepartmentAssignment';
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
+import { StaffId } from "../../domain/value-objects/StaffId";
+import { ILogger } from "../interfaces/ILogger";
+import { IAuditService } from "../interfaces/IAuditService";
+import { DepartmentAssignment } from "../../domain/entities/DepartmentAssignment";
 
 export interface AssignStaffToDepartmentRequest {
   staffId: string;
@@ -51,15 +51,17 @@ export class AssignStaffToDepartmentUseCase {
   constructor(
     private staffRepository: IProviderStaffRepository,
     private logger: ILogger,
-    private auditService?: IAuditService
+    private auditService?: IAuditService,
   ) {}
 
-  async execute(request: AssignStaffToDepartmentRequest): Promise<AssignStaffToDepartmentResponse> {
+  async execute(
+    request: AssignStaffToDepartmentRequest,
+  ): Promise<AssignStaffToDepartmentResponse> {
     try {
-      this.logger.info('Assigning staff to department', {
+      this.logger.info("Assigning staff to department", {
         staffId: request.staffId,
         departmentId: request.departmentId,
-        assignedBy: request.assignedBy
+        assignedBy: request.assignedBy,
       });
 
       // Validate request
@@ -67,8 +69,8 @@ export class AssignStaffToDepartmentUseCase {
       if (validationErrors.length > 0) {
         return {
           success: false,
-          message: 'Dữ liệu phân công không hợp lệ',
-          errors: validationErrors
+          message: "Dữ liệu phân công không hợp lệ",
+          errors: validationErrors,
         };
       }
 
@@ -78,8 +80,8 @@ export class AssignStaffToDepartmentUseCase {
       if (!staff) {
         return {
           success: false,
-          message: 'Không tìm thấy nhân viên',
-          errors: ['STAFF_NOT_FOUND']
+          message: "Không tìm thấy nhân viên",
+          errors: ["STAFF_NOT_FOUND"],
         };
       }
 
@@ -87,15 +89,15 @@ export class AssignStaffToDepartmentUseCase {
       if (!staff.isActive) {
         return {
           success: false,
-          message: 'Nhân viên không hoạt động, không thể phân công',
-          errors: ['STAFF_INACTIVE']
+          message: "Nhân viên không hoạt động, không thể phân công",
+          errors: ["STAFF_INACTIVE"],
         };
       }
 
       // Create department assignment
       // Extract department code from ID (e.g., DEPT-CARDIO -> CARD)
-      const deptCode = request.departmentId.includes('-')
-        ? request.departmentId.split('-')[1].substring(0, 4).toUpperCase()
+      const deptCode = request.departmentId.includes("-")
+        ? request.departmentId.split("-")[1].substring(0, 4).toUpperCase()
         : request.departmentId.substring(0, 4).toUpperCase();
 
       const assignment = DepartmentAssignment.create({
@@ -106,7 +108,7 @@ export class AssignStaffToDepartmentUseCase {
         role: request.role,
         isPrimary: request.isPrimary || false,
         startDate: request.startDate || new Date(),
-        isActive: true
+        isActive: true,
       });
 
       // Assign to department (this will replace existing assignment to same department)
@@ -118,8 +120,8 @@ export class AssignStaffToDepartmentUseCase {
       // Audit log
       if (this.auditService && this.auditService.logAction) {
         await this.auditService.logAction({
-          action: 'ASSIGN_STAFF_TO_DEPARTMENT',
-          entityType: 'ProviderStaff',
+          action: "ASSIGN_STAFF_TO_DEPARTMENT",
+          entityType: "ProviderStaff",
           entityId: staff.id,
           performedBy: request.assignedBy,
           performedByRole: request.assignedByRole,
@@ -129,42 +131,41 @@ export class AssignStaffToDepartmentUseCase {
             role: request.role,
             isPrimary: request.isPrimary,
             ipAddress: request.requestMetadata?.ipAddress,
-            userAgent: request.requestMetadata?.userAgent
+            userAgent: request.requestMetadata?.userAgent,
           },
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
-      this.logger.info('Staff assigned to department successfully', {
+      this.logger.info("Staff assigned to department successfully", {
         staffId: request.staffId,
         departmentId: request.departmentId,
-        assignedBy: request.assignedBy
+        assignedBy: request.assignedBy,
       });
 
       return {
         success: true,
-        message: 'Phân công nhân viên thành công',
+        message: "Phân công nhân viên thành công",
         data: {
           staffId: staff.id,
           departmentId: assignment.departmentId,
           departmentName: assignment.departmentNameEn,
           role: assignment.role,
           isPrimary: request.isPrimary || false,
-          startDate: assignment.startDate.toISOString()
-        }
+          startDate: assignment.startDate.toISOString(),
+        },
       };
-
     } catch (error) {
-      this.logger.error('Error assigning staff to department', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.logger.error("Error assigning staff to department", {
+        error: error instanceof Error ? error.message : "Unknown error",
         staffId: request.staffId,
-        departmentId: request.departmentId
+        departmentId: request.departmentId,
       });
 
       return {
         success: false,
-        message: 'Lỗi khi phân công nhân viên',
-        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+        message: "Lỗi khi phân công nhân viên",
+        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
       };
     }
   }
@@ -173,44 +174,48 @@ export class AssignStaffToDepartmentUseCase {
     const errors: string[] = [];
 
     if (!request.staffId || request.staffId.trim().length === 0) {
-      errors.push('Staff ID không được để trống');
+      errors.push("Staff ID không được để trống");
     }
 
     if (!request.departmentId || request.departmentId.trim().length === 0) {
-      errors.push('Department ID không được để trống');
+      errors.push("Department ID không được để trống");
     }
 
     if (!request.departmentName || request.departmentName.trim().length === 0) {
-      errors.push('Tên khoa/phòng ban không được để trống');
+      errors.push("Tên khoa/phòng ban không được để trống");
     }
 
     if (!request.role || request.role.trim().length === 0) {
-      errors.push('Vai trò trong khoa/phòng ban không được để trống');
+      errors.push("Vai trò trong khoa/phòng ban không được để trống");
     }
 
     if (!request.assignedBy || request.assignedBy.trim().length === 0) {
-      errors.push('Người phân công không được để trống');
+      errors.push("Người phân công không được để trống");
     }
 
     if (!request.assignedByRole || request.assignedByRole.trim().length === 0) {
-      errors.push('Vai trò người phân công không được để trống');
+      errors.push("Vai trò người phân công không được để trống");
     }
 
     // Only ADMIN or SUPER_ADMIN can assign staff to departments
-    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
-    if (!allowedRoles.includes(request.assignedByRole)) {
-      errors.push('Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền phân công nhân viên');
+    const allowedRoles = ["ADMIN", "SUPER_ADMIN"];
+    const requesterRole = request.assignedByRole
+      ? request.assignedByRole.toUpperCase()
+      : "";
+    if (!allowedRoles.includes(requesterRole)) {
+      errors.push(
+        "Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền phân công nhân viên",
+      );
     }
 
     // Validate start date if provided
     if (request.startDate && request.startDate > new Date()) {
       // Allow future start dates for planned assignments
-      this.logger.info('Future start date provided for department assignment', {
-        startDate: request.startDate
+      this.logger.info("Future start date provided for department assignment", {
+        startDate: request.startDate,
       });
     }
 
     return errors;
   }
 }
-

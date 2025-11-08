@@ -1,6 +1,6 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-export type OutboxStatus = 'PENDING' | 'RESERVED' | 'SENT' | 'FAILED';
+export type OutboxStatus = "PENDING" | "RESERVED" | "SENT" | "FAILED";
 
 export interface OutboxEventRecord {
   id: string;
@@ -26,15 +26,24 @@ export interface EnqueueParams {
 }
 
 export class OutboxRepository {
-  private supabase: SupabaseClient<any, 'appointments_schema'>;
-  private readonly table = 'outbox_events';
+  private supabase: SupabaseClient<any, "appointments_schema">;
+  private readonly table = "outbox_events";
+  private readonly reservedTimeoutMinutes: number;
 
-  constructor(private supabaseUrl: string, private supabaseKey: string) {
+  constructor(
+    private supabaseUrl: string,
+    private supabaseKey: string,
+    reservedTimeoutMinutes: number = 5,
+  ) {
     this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { autoRefreshToken: false, persistSession: false },
-      db: { schema: 'appointments_schema' },
-      global: { headers: { 'X-Client-Info': 'appointments-outbox' } }
-    }) as SupabaseClient<any, 'appointments_schema'>;
+      db: { schema: "appointments_schema" },
+      global: { headers: { "X-Client-Info": "appointments-outbox" } },
+    }) as SupabaseClient<any, "appointments_schema">;
+    this.reservedTimeoutMinutes =
+      Number.isFinite(reservedTimeoutMinutes) && reservedTimeoutMinutes > 0
+        ? reservedTimeoutMinutes
+        : 5;
   }
 
   async enqueue(params: EnqueueParams): Promise<void> {
@@ -44,35 +53,53 @@ export class OutboxRepository {
       aggregate_id: params.aggregateId,
       payload_json: params.payload,
       dedup_key: params.dedupKey ?? null,
-      status: 'PENDING'
+      status: "PENDING",
     });
 
     if (error) {
       // Unique violation on dedup_key -> treat as idempotent success
-      if ((error as any).code === '23505') return;
+      if ((error as any).code === "23505") return;
       throw new Error(`Outbox enqueue failed: ${error.message}`);
     }
   }
 
   async claimBatch(limit: number): Promise<OutboxEventRecord[]> {
     // Use RPC function created by migration for SKIP LOCKED claim
-    const { data, error } = await (this.supabase as any).rpc('claim_outbox_events', { batch_size: limit });
+    const { data, error } = await (this.supabase as any).rpc(
+      "claim_outbox_events",
+      {
+        batch_size: limit,
+        reserved_timeout_minutes: this.reservedTimeoutMinutes,
+      },
+    );
     if (error) throw new Error(`Outbox claim failed: ${error.message}`);
     return (data || []) as OutboxEventRecord[];
   }
 
   async markSent(id: string): Promise<void> {
-    const { error } = await this.supabase.from(this.table)
-      .update({ status: 'SENT', updated_at: new Date().toISOString() })
-      .eq('id', id);
+    const { error } = await this.supabase
+      .from(this.table)
+      .update({ status: "SENT", updated_at: new Date().toISOString() })
+      .eq("id", id);
     if (error) throw new Error(`Outbox markSent failed: ${error.message}`);
   }
 
-  async markFailed(id: string, lastError: string, nextRetryAt: Date, attempts: number): Promise<void> {
-    const { error } = await this.supabase.from(this.table)
-      .update({ status: 'FAILED', last_error: lastError, next_retry_at: nextRetryAt.toISOString(), attempts, updated_at: new Date().toISOString() })
-      .eq('id', id);
+  async markFailed(
+    id: string,
+    lastError: string,
+    nextRetryAt: Date,
+    attempts: number,
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .from(this.table)
+      .update({
+        status: "FAILED",
+        last_error: lastError,
+        next_retry_at: nextRetryAt.toISOString(),
+        attempts,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
     if (error) throw new Error(`Outbox markFailed failed: ${error.message}`);
   }
 }
-

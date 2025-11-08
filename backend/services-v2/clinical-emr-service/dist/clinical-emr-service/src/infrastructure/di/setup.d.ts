@@ -18,6 +18,8 @@ export declare const ServiceTokens: {
     readonly AUTHENTICATION_MIDDLEWARE: "AuthenticationMiddleware";
     readonly MEDICAL_RECORD_REPOSITORY: "MedicalRecordRepository";
     readonly FHIR_EXPORT_SERVICE: "FHIRExportService";
+    readonly FHIR_EXPORT_SERVICE_ADAPTER: "FHIRExportServiceAdapter";
+    readonly AUDIT_LOG_SERVICE_ADAPTER: "AuditLogServiceAdapter";
     readonly OUTBOX_REPOSITORY: "OutboxRepository";
     readonly BASE_MEDICAL_RECORD_REPOSITORY: "BaseMedicalRecordRepository";
     readonly OUTBOX_PUBLISHER_WORKER: "OutboxPublisherWorker";
@@ -28,6 +30,8 @@ export declare const ServiceTokens: {
     readonly SEARCH_MEDICAL_RECORDS_USE_CASE: "SearchMedicalRecordsUseCase";
     readonly GENERATE_MEDICAL_REPORT_USE_CASE: "GenerateMedicalReportUseCase";
     readonly EXPORT_TO_FHIR_USE_CASE: "ExportToFHIRUseCase";
+    readonly GET_AUDIT_LOGS_USE_CASE: "GetAuditLogsUseCase";
+    readonly BULK_EXPORT_FHIR_USE_CASE: "BulkExportFHIRUseCase";
     readonly ADD_DIAGNOSIS_COMMAND_HANDLER: "AddDiagnosisCommandHandler";
     readonly ADD_MEDICATION_COMMAND_HANDLER: "AddMedicationCommandHandler";
     readonly GET_MEDICAL_RECORD_DETAILS_QUERY_HANDLER: "GetMedicalRecordDetailsQueryHandler";

@@ -169,23 +169,97 @@ export class OutboxPublisherWorker {
    * Reconstruct domain event from outbox payload
    */
   private reconstructDomainEvent(outboxEvent: OutboxEvent): DomainEvent {
-    // The payload contains the full domain event
-    const payload = outboxEvent.payload;
+    const rawPayload = outboxEvent.payload || {};
+    const serializedPayload = rawPayload.eventData
+      ? rawPayload
+      : {
+          eventId: rawPayload.eventId ?? outboxEvent.event_id,
+          eventType: rawPayload.eventType ?? outboxEvent.event_type,
+          aggregateId: rawPayload.aggregateId ?? outboxEvent.aggregate_id,
+          aggregateType: rawPayload.aggregateType ?? outboxEvent.aggregate_type,
+          eventVersion:
+            rawPayload.eventVersion ?? outboxEvent.metadata?.version ?? 1,
+          occurredAt: rawPayload.occurredAt ?? outboxEvent.created_at,
+          eventData: rawPayload.payload ?? rawPayload,
+          correlationId:
+            rawPayload.correlationId ?? outboxEvent.metadata?.correlationId,
+          causationId: rawPayload.causationId,
+          userId: rawPayload.userId,
+          metadata: rawPayload.metadata ?? outboxEvent.metadata ?? {},
+        };
 
-    // Create a domain event object
-    const domainEvent: any = {
-      eventId: outboxEvent.event_id,
-      eventType: outboxEvent.event_type,
-      aggregateId: outboxEvent.aggregate_id,
-      aggregateType: outboxEvent.aggregate_type,
-      occurredAt: new Date(outboxEvent.created_at),
-      eventVersion: outboxEvent.metadata?.version || 1,
-      payload: payload.payload || payload,
-      getEventData: () => payload.payload || payload,
-      getAggregateType: () => outboxEvent.aggregate_type,
+    const occurredAt = new Date(
+      serializedPayload.occurredAt ?? outboxEvent.created_at
+    );
+    const metadata = {
+      source: 'domain',
+      priority: 'normal',
+      retryable: true,
+      ...serializedPayload.metadata,
     };
+    const eventData =
+      serializedPayload.eventData ?? rawPayload.payload ?? rawPayload ?? {};
 
-    return domainEvent;
+    const aggregateType =
+      serializedPayload.aggregateType ?? outboxEvent.aggregate_type;
+    const aggregateId =
+      serializedPayload.aggregateId ?? outboxEvent.aggregate_id;
+    const eventType = serializedPayload.eventType ?? outboxEvent.event_type;
+    const eventVersion =
+      serializedPayload.eventVersion ?? outboxEvent.metadata?.version ?? 1;
+    const correlationId =
+      serializedPayload.correlationId ?? outboxEvent.metadata?.correlationId;
+
+    const containsPHI =
+      typeof (metadata as any).containsPHI === 'boolean'
+        ? (metadata as any).containsPHI
+        : Array.isArray((metadata as any).tags) &&
+          (metadata as any).tags.includes('phi');
+
+    return {
+      eventId: serializedPayload.eventId ?? outboxEvent.event_id,
+      eventType,
+      aggregateId,
+      aggregateType,
+      eventVersion,
+      occurredAt,
+      correlationId,
+      causationId: serializedPayload.causationId,
+      userId: serializedPayload.userId,
+      metadata,
+      getEventData: () => eventData,
+      containsPHI: () => containsPHI,
+      getPatientId: () => {
+        if (typeof (metadata as any).patientId === 'string') {
+          return (metadata as any).patientId;
+        }
+        if (typeof (eventData as any)?.patientId === 'string') {
+          return (eventData as any).patientId;
+        }
+        return null;
+      },
+      getStreamName: () => `${aggregateType}-${aggregateId}`,
+      getRoutingKey: () =>
+        `${aggregateType.toLowerCase()}.${eventType.toLowerCase()}`,
+      shouldPublishExternally: () =>
+        (metadata as any).publishExternal !== false,
+      getPriority: () => (metadata as any).priority ?? 'normal',
+      isRetryable: () => (metadata as any).retryable !== false,
+      toJSON: () => ({
+        eventId: serializedPayload.eventId ?? outboxEvent.event_id,
+        eventType,
+        aggregateId,
+        aggregateType,
+        eventVersion,
+        occurredAt: occurredAt.toISOString(),
+        eventData,
+        correlationId,
+        causationId: serializedPayload.causationId,
+        userId: serializedPayload.userId,
+        metadata,
+      }),
+    } as DomainEvent;
   }
+
 }
 

@@ -96,8 +96,8 @@ export function createHealthRoutes(deps: HealthRouteDependencies): Router {
         '# HELP patient_registry_component_health Component health status (1=healthy, 0=unhealthy)',
         '# TYPE patient_registry_component_health gauge',
         `patient_registry_component_health{component="database",service="patient-registry"} ${health.components?.database?.status === 'HEALTHY' ? 1 : 0}`,
-        `patient_registry_component_health{component="cache",service="patient-registry"} ${health.components?.cache?.status === 'HEALTHY' ? 1 : 0}`,
-        `patient_registry_component_health{component="eventBus",service="patient-registry"} ${health.components?.eventBus?.status === 'HEALTHY' ? 1 : 0}`,
+        `patient_registry_component_health{component="eventPublisher",service="patient-registry"} ${health.components?.eventPublisher?.status === 'HEALTHY' ? 1 : 0}`,
+        `patient_registry_component_health{component="patientMatching",service="patient-registry"} ${health.components?.patientMatching?.status === 'HEALTHY' ? 1 : 0}`,
         ''
       ].join('\n');
 

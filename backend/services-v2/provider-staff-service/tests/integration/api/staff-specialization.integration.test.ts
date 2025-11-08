@@ -35,7 +35,7 @@ describe('Staff Specialization Management Integration Tests', () => {
     const adminUser = await getOrCreateTestUser(
       supabaseClient,
       'admin-specialization@hospital.vn',
-      'Admin123!@#',
+      'TestPassword123!@#',
       'ADMIN'
     );
     adminUserId = adminUser.userId;

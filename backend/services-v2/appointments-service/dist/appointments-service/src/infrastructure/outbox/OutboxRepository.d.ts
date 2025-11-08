@@ -1,4 +1,4 @@
-export type OutboxStatus = 'PENDING' | 'RESERVED' | 'SENT' | 'FAILED';
+export type OutboxStatus = "PENDING" | "RESERVED" | "SENT" | "FAILED";
 export interface OutboxEventRecord {
     id: string;
     event_type: string;
@@ -25,7 +25,8 @@ export declare class OutboxRepository {
     private supabaseKey;
     private supabase;
     private readonly table;
-    constructor(supabaseUrl: string, supabaseKey: string);
+    private readonly reservedTimeoutMinutes;
+    constructor(supabaseUrl: string, supabaseKey: string, reservedTimeoutMinutes?: number);
     enqueue(params: EnqueueParams): Promise<void>;
     claimBatch(limit: number): Promise<OutboxEventRecord[]>;
     markSent(id: string): Promise<void>;

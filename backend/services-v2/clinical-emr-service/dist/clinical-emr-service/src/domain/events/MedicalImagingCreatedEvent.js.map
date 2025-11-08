@@ -1,0 +1,1 @@
+{"version":3,"file":"MedicalImagingCreatedEvent.js","sourceRoot":"","sources":["../../../../../src/domain/events/MedicalImagingCreatedEvent.ts"],"names":[],"mappings":";AAAA;;;;;;;GAOG;;;AAEH,4DAAyD;AAUzD,MAAa,0BAA2B,SAAQ,yBAA8C;IAC5F,YAAY,OAA0C;QACpD,KAAK,CAAC,kCAAkC,EAAE,OAAO,CAAC,CAAC;IACrD,CAAC;CACF;AAJD,gEAIC"}

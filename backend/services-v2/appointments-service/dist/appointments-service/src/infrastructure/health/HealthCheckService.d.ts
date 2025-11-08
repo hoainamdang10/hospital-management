@@ -5,11 +5,11 @@
  * @author Hospital Management Team
  * @version 1.0.0
  */
-import { RedisCacheService } from '../cache/RedisCacheService';
-import { AppConfig } from '../config/ConfigValidator';
-import type { EventSubscriptions } from '../events/EventSubscriptions';
+import { RedisCacheService } from "../cache/RedisCacheService";
+import { AppConfig } from "../config/ConfigValidator";
+import type { EventSubscriptions } from "../events/EventSubscriptions";
 export interface HealthStatus {
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     timestamp: string;
     service: string;
     version: string;
@@ -26,7 +26,7 @@ export interface HealthStatus {
     };
 }
 export interface HealthCheckResult {
-    status: 'up' | 'down' | 'degraded';
+    status: "up" | "down" | "degraded";
     responseTime?: number;
     message?: string;
     error?: string;
@@ -70,5 +70,9 @@ export declare class HealthCheckService {
      * Get service version
      */
     getVersion(): string;
+    /**
+     * Attach EventSubscriptions after they are initialized
+     */
+    attachEventSubscriptions(eventSubscriptions: EventSubscriptions): void;
 }
 //# sourceMappingURL=HealthCheckService.d.ts.map

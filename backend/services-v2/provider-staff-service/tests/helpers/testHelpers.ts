@@ -154,28 +154,28 @@ export async function createTestUsersForRoles(
   const admin = await getOrCreateTestUser(
     supabaseClient,
     'admin-test@hospital.vn',
-    'Admin123!@#456',
+    'TestPassword123!@#',
     'ADMIN'
   );
 
   const doctor = await getOrCreateTestUser(
     supabaseClient,
     'doctor-test@hospital.vn',
-    'Doctor123!@#456',
+    'TestPassword123!@#',
     'DOCTOR'
   );
 
   const nurse = await getOrCreateTestUser(
     supabaseClient,
     'nurse-test@hospital.vn',
-    'Nurse123!@#456',
+    'TestPassword123!@#',
     'NURSE'
   );
 
   const departmentManager = await getOrCreateTestUser(
     supabaseClient,
     'dept-manager-test@hospital.vn',
-    'Manager123!@#456',
+    'TestPassword123!@#',
     'DEPARTMENT_MANAGER'
   );
 
@@ -190,30 +190,97 @@ export async function cleanupTestData(
   options: {
     staffIds?: string[];
     userIds?: string[];
-  }
+  } = {}
 ): Promise<void> {
-  // Delete staff profiles
-  if (options.staffIds && options.staffIds.length > 0) {
+  try {
+    // Delete staff profiles
+    if (options.staffIds && options.staffIds.length > 0) {
+      await supabaseClient
+        .schema('provider_schema')
+        .from('staff_profiles')
+        .delete()
+        .in('staff_id', options.staffIds);
+    }
+
+    // Delete credentials
+    if (options.staffIds && options.staffIds.length > 0) {
+      await supabaseClient
+        .schema('provider_schema')
+        .from('staff_credentials')
+        .delete()
+        .in('staff_id', options.staffIds);
+    }
+
+    // Delete work schedules
+    if (options.staffIds && options.staffIds.length > 0) {
+      await supabaseClient
+        .schema('provider_schema')
+        .from('staff_work_schedules')
+        .delete()
+        .in('staff_id', options.staffIds);
+    }
+
+    // Delete read model data
+    if (options.staffIds && options.staffIds.length > 0) {
+      await supabaseClient
+        .schema('provider_schema')
+        .from('staff_read_model')
+        .delete()
+        .in('staff_id', options.staffIds);
+    }
+  } catch (error) {
+    console.warn('Error cleaning up test data:', error);
+  }
+}
+
+/**
+ * Clean up test users from Supabase Auth
+ */
+export async function cleanupTestUsers(
+  supabaseClient: SupabaseClient,
+  userIds?: string[]
+): Promise<void> {
+  try {
+    if (!userIds || userIds.length === 0) {
+      return;
+    }
+
+    // Delete user roles
     await supabaseClient
+      .schema('auth_schema')
+      .from('user_roles')
+      .delete()
+      .in('user_id', userIds);
+
+    // Note: Cannot delete users from auth.users via client
+    // Users will be cleaned up manually or via admin API
+  } catch (error) {
+    console.warn('Error cleaning up test users:', error);
+  }
+}
+
+/**
+ * Clean up all test data (comprehensive cleanup)
+ */
+export async function cleanupAllTestData(
+  supabaseClient: SupabaseClient
+): Promise<void> {
+  try {
+    // Delete all test staff profiles (those with TEST in staff_id)
+    await supabaseClient
+      .schema('provider_schema')
       .from('staff_profiles')
       .delete()
-      .in('staff_id', options.staffIds);
-  }
+      .like('staff_id', '%TEST%');
 
-  // Delete credentials
-  if (options.staffIds && options.staffIds.length > 0) {
+    // Delete all test read model data
     await supabaseClient
-      .from('staff_credentials')
+      .schema('provider_schema')
+      .from('staff_read_model')
       .delete()
-      .in('staff_id', options.staffIds);
-  }
-
-  // Delete work schedules
-  if (options.staffIds && options.staffIds.length > 0) {
-    await supabaseClient
-      .from('staff_work_schedules')
-      .delete()
-      .in('staff_id', options.staffIds);
+      .like('staff_id', '%TEST%');
+  } catch (error) {
+    console.warn('Error cleaning up all test data:', error);
   }
 }
 

@@ -35,7 +35,7 @@ describe('Staff Update & Delete API Integration Tests', () => {
     const adminUser = await getOrCreateTestUser(
       supabaseClient,
       'admin-update-delete@hospital.vn',
-      'Admin123!@#',
+      'TestPassword123!@#',
       'ADMIN'
     );
     adminUserId = adminUser.userId;

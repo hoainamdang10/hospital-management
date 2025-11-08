@@ -1,73 +1,38 @@
-/**
- * CreatePrescriptionUseCase - Create new prescription
- * @compliance Clean Architecture, DDD, CQRS
- */
-
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import Joi from 'joi';
+import { IUseCase } from '../interfaces/IUseCase';
 import { IPrescriptionRepository } from '../../domain/repositories/IPrescriptionRepository';
-import { PrescriptionAggregate } from '../../domain/aggregates/Prescription.aggregate';
-import { PrescriptionId } from '../../domain/value-objects/PrescriptionId';
-import {
-  CreatePrescriptionRequest,
-  CreatePrescriptionResponse,
-  validateCreatePrescriptionRequest,
-} from '../dto/PrescriptionRequest';
+import { Prescription } from '../../domain/entities/Prescription';
+import { PrescriptionDTO, CreatePrescriptionDTO } from '../dto/PrescriptionDTO';
+import { mappers } from '../dto/mappers';
 
-export class CreatePrescriptionUseCase implements IUseCase<CreatePrescriptionRequest, CreatePrescriptionResponse> {
-  constructor(private readonly prescriptionRepository: IPrescriptionRepository) {}
+const schema = Joi.object<CreatePrescriptionDTO>({
+  recordId: Joi.string().uuid().required(),
+  medicationName: Joi.string().required(),
+  dosage: Joi.string().required(),
+  frequency: Joi.string().required(),
+  route: Joi.string().required(),
+  startDate: Joi.date().iso().required(),
+  endDate: Joi.date().iso().optional(),
+  instructions: Joi.string().allow('', null),
+});
 
-  async execute(request: CreatePrescriptionRequest): Promise<CreatePrescriptionResponse> {
-    const validation = validateCreatePrescriptionRequest(request);
-    if (!validation.valid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-    }
+export class CreatePrescriptionUseCase implements IUseCase<CreatePrescriptionDTO, PrescriptionDTO> {
+  constructor(private readonly repository: IPrescriptionRepository) {}
 
-    const now = new Date();
-    const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-    const sequence = await this.prescriptionRepository.getNextSequence(yearMonth);
-    const prescriptionId = PrescriptionId.generate(sequence);
-
-    const prescribedDate = new Date(request.prescribedDate);
-    const validUntil = request.validUntil ? new Date(request.validUntil) : undefined;
-
-    const prescription = PrescriptionAggregate.create(
-      prescriptionId,
-      request.medicalRecordId,
-      request.patientId,
-      request.prescribedBy,
-      request.medications,
-      prescribedDate,
-      request.createdBy,
-      {
-        diagnosis: request.diagnosis,
-        diagnosisCode: request.diagnosisCode,
-        generalInstructions: request.generalInstructions,
-        precautions: request.precautions,
-        validUntil,
-        refillsAllowed: request.refillsAllowed,
-      }
-    );
-
-    await this.prescriptionRepository.save(prescription);
-
-    return {
-      prescriptionId: prescriptionId.value,
-      medicationCount: prescription.medications.length,
-      status: prescription.status,
-      createdAt: prescription.createdAt.toISOString(),
-      message: 'Tạo đơn thuốc thành công',
-    };
-  }
-
-  async authorize(request: CreatePrescriptionRequest, userId: string): Promise<boolean> {
-    return request.prescribedBy === userId || request.createdBy === userId;
-  }
-
-  involvesPHI(request: CreatePrescriptionRequest): boolean {
-    return true;
-  }
-
-  getPatientId(request: CreatePrescriptionRequest): string | null {
-    return request.patientId || null;
+  async execute(request: CreatePrescriptionDTO): Promise<PrescriptionDTO> {
+    const payload = await schema.validateAsync(request, { abortEarly: false });
+    const entity = Prescription.create({
+      recordId: payload.recordId,
+      medicationName: payload.medicationName,
+      dosage: payload.dosage,
+      frequency: payload.frequency,
+      route: payload.route,
+      startDate: new Date(payload.startDate),
+      endDate: payload.endDate ? new Date(payload.endDate) : undefined,
+      instructions: payload.instructions,
+      status: 'active',
+    });
+    const persisted = await this.repository.save(entity.toJSON());
+    return mappers.prescription(persisted);
   }
 }

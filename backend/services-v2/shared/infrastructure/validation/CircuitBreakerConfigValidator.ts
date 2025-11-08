@@ -144,7 +144,7 @@ export class CircuitBreakerConfigValidator {
 
   private static validateRelationships(
     config: CircuitBreakerConfigValidation,
-    errors: string[],
+    _errors: string[],
     warnings: string[]
   ): void {
     if (config.resetTimeout < config.monitoringPeriod) {

@@ -8,6 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
+import { randomUUID } from "crypto";
 import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
 import { PatientId } from "../../domain/value-objects/PatientId";
 import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
@@ -44,6 +45,7 @@ export interface UpdatePatientInfoRequest {
       ward: string;
       district: string;
       city: string;
+      province: string;
       postalCode?: string;
       country: string;
     };
@@ -262,20 +264,20 @@ export class UpdatePatientInfoUseCase {
     try {
       // Log to audit_logs table (HIPAA compliance)
       await this.auditService.logAudit({
-        eventId: `patient-update-${patient.getPatientId()}-${Date.now()}`,
-        eventType: 'patient.updated',
-        aggregateType: 'Patient',
-        aggregateId: patient.getPatientId() || 'unknown',
-        action: 'PATIENT_INFO_UPDATE',
+        eventId: randomUUID(),
+        eventType: "patient.updated",
+        aggregateType: "Patient",
+        aggregateId: patient.getPatientId() || "unknown",
+        action: "PATIENT_INFO_UPDATE",
         userId: request.updatedBy ?? undefined,
         patientId: patient.getPatientId() ?? undefined,
         containsPHI: true,
         changedFields: {
-          dataAccessed: updatedFields.join(','),
-          requestedBy: request.updatedBy || 'system',
+          dataAccessed: updatedFields.join(","),
+          requestedBy: request.updatedBy || "system",
           updatedFields: updatedFields,
         },
-        complianceLevel: 'hipaa',
+        complianceLevel: "hipaa",
       });
 
       this.logger.info("Patient update audited successfully", {
@@ -284,7 +286,7 @@ export class UpdatePatientInfoUseCase {
     } catch (error) {
       this.logger.error("Failed to audit patient update", {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

@@ -54,11 +54,15 @@ const helmet_1 = __importDefault(require("helmet"));
 const compression_1 = __importDefault(require("compression"));
 const morgan_1 = __importDefault(require("morgan"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 // Infrastructure
 const container_1 = require("./infrastructure/di/container");
 const types_1 = require("./infrastructure/di/types");
+const PrometheusMetrics_1 = require("./infrastructure/monitoring/PrometheusMetrics");
+const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
 // Routes
 const medical_record_routes_1 = require("./presentation/routes/medical-record.routes");
+const index_1 = require("./presentation/routes/index");
 // Middleware
 const error_handling_middleware_1 = require("./presentation/middleware/error-handling.middleware");
 const request_logging_middleware_1 = require("./presentation/middleware/request-logging.middleware");
@@ -82,52 +86,52 @@ async function createApp() {
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                scriptSrc: ["'self'"],
-                imgSrc: ["'self'", "data:", "https:"],
+                styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+                imgSrc: ["'self'", "data:", "https:", "cdn.jsdelivr.net"],
                 connectSrc: ["'self'"],
-                fontSrc: ["'self'"],
+                fontSrc: ["'self'", "data:", "cdn.jsdelivr.net"],
                 objectSrc: ["'none'"],
                 mediaSrc: ["'self'"],
-                frameSrc: ["'none'"]
-            }
+                frameSrc: ["'none'"],
+            },
         },
-        crossOriginEmbedderPolicy: false
+        crossOriginEmbedderPolicy: false,
     }));
     // CORS configuration
     app.use((0, cors_1.default)({
         origin: config.corsOrigins,
         credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowedHeaders: [
-            'Origin',
-            'X-Requested-With',
-            'Content-Type',
-            'Accept',
-            'Authorization',
-            'X-User-ID',
-            'X-User-Roles',
-            'X-Request-ID',
-            'X-Correlation-ID'
-        ]
+            "Origin",
+            "X-Requested-With",
+            "Content-Type",
+            "Accept",
+            "Authorization",
+            "X-User-ID",
+            "X-User-Roles",
+            "X-Request-ID",
+            "X-Correlation-ID",
+        ],
     }));
     // Rate limiting
     const limiter = (0, express_rate_limit_1.default)({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 1000, // limit each IP to 1000 requests per windowMs
         message: {
-            error: 'Quá nhiều yêu cầu từ IP này',
-            message: 'Vui lòng thử lại sau 15 phút',
-            retryAfter: 15 * 60
+            error: "Quá nhiều yêu cầu từ IP này",
+            message: "Vui lòng thử lại sau 15 phút",
+            retryAfter: 15 * 60,
         },
         standardHeaders: true,
         legacyHeaders: false,
         skip: (req) => {
             // Skip rate limiting for health checks
-            return req.path.includes('/health') ||
-                req.path.includes('/ready') ||
-                req.path.includes('/live');
-        }
+            return (req.path.includes("/health") ||
+                req.path.includes("/ready") ||
+                req.path.includes("/live"));
+        },
     });
     app.use(limiter);
     // =====================================================
@@ -137,41 +141,42 @@ async function createApp() {
     app.use((0, compression_1.default)());
     // Body parsing
     app.use(express_1.default.json({
-        limit: '10mb',
+        limit: "10mb",
         verify: (req, res, buf) => {
             req.rawBody = buf;
-        }
+        },
     }));
     app.use(express_1.default.urlencoded({
         extended: true,
-        limit: '10mb'
+        limit: "10mb",
     }));
     // Request logging
     if (config.isDevelopment()) {
-        app.use((0, morgan_1.default)('dev'));
+        app.use((0, morgan_1.default)("dev"));
     }
     else {
-        app.use((0, morgan_1.default)('combined'));
+        app.use((0, morgan_1.default)("combined"));
     }
     // Custom request logging middleware
     app.use(request_logging_middleware_1.requestLoggingMiddleware);
     // Request ID middleware
     app.use((req, res, next) => {
-        req.headers['x-request-id'] = req.headers['x-request-id'] ||
-            `clinical-emr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        res.setHeader('X-Request-ID', req.headers['x-request-id']);
+        req.headers["x-request-id"] =
+            req.headers["x-request-id"] ||
+                `clinical-emr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        res.setHeader("X-Request-ID", req.headers["x-request-id"]);
         next();
     });
     // =====================================================
     // HEALTH CHECK ENDPOINTS
     // =====================================================
-    app.use('/health', health_check_middleware_1.healthCheckMiddleware);
-    app.get('/health', (req, res) => {
+    app.use("/health", health_check_middleware_1.healthCheckMiddleware);
+    app.get("/health", (req, res) => {
         const eventStatus = getEventSubscriptionsStatus();
         res.status(200).json({
-            service: 'clinical-emr-service',
-            version: '2.0.0',
-            status: 'healthy',
+            service: "clinical-emr-service",
+            version: "2.0.0",
+            status: "healthy",
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             environment: config.environment,
@@ -183,102 +188,172 @@ async function createApp() {
                 medications: true,
                 vitalSigns: true,
                 fhirExport: true,
-                eventDriven: eventStatus.enabled
-            }
+                eventDriven: eventStatus.enabled,
+            },
         });
     });
-    app.get('/ready', async (req, res) => {
+    app.get("/ready", async (req, res) => {
         try {
             // Check container health
-            const { healthy, errors } = await Promise.resolve().then(() => __importStar(require('./infrastructure/di/container'))).then(m => m.checkContainerHealth());
+            const { healthy, errors } = await Promise.resolve().then(() => __importStar(require("./infrastructure/di/container"))).then((m) => m.checkContainerHealth());
             if (healthy) {
                 res.status(200).json({
-                    status: 'ready',
+                    status: "ready",
                     timestamp: new Date().toISOString(),
-                    service: 'clinical-emr-service',
-                    version: '2.0.0'
+                    service: "clinical-emr-service",
+                    version: "2.0.0",
                 });
             }
             else {
                 res.status(503).json({
-                    status: 'not ready',
+                    status: "not ready",
                     timestamp: new Date().toISOString(),
-                    errors
+                    errors,
                 });
             }
         }
         catch (error) {
             res.status(503).json({
-                status: 'not ready',
+                status: "not ready",
                 timestamp: new Date().toISOString(),
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : "Unknown error",
             });
         }
     });
-    app.get('/live', (req, res) => {
+    app.get("/live", (req, res) => {
         res.status(200).json({
-            status: 'alive',
+            status: "alive",
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             memory: process.memoryUsage(),
-            pid: process.pid
+            pid: process.pid,
         });
+    });
+    // Prometheus metrics endpoint
+    app.get("/metrics", async (req, res) => {
+        try {
+            res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+            const metrics = await PrometheusMetrics_1.prometheusMetrics.getMetrics();
+            res.send(metrics);
+        }
+        catch (error) {
+            console.error('Failed to generate Prometheus metrics', { error });
+            res.status(500).send('Failed to generate metrics');
+        }
+    });
+    // Swagger API Documentation
+    app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_config_1.swaggerSpec, {
+        explorer: true,
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'Clinical EMR Service API Documentation',
+        swaggerOptions: {
+            persistAuthorization: true,
+            displayRequestDuration: true,
+            filter: true,
+            tryItOutEnabled: true
+        }
+    }));
+    // OpenAPI JSON spec
+    app.get('/api-docs/json', (req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(swagger_config_1.swaggerSpec);
+    });
+    console.log('[Swagger] Swagger UI available at http://localhost:' + config.port + '/api-docs');
+    // Legacy metrics endpoint (for backward compatibility)
+    app.get("/metrics/legacy", async (req, res) => {
+        try {
+            const eventStatus = getEventSubscriptionsStatus();
+            const isHealthy = eventStatus.enabled && eventStatus.connected;
+            // Prometheus text format
+            const metrics = [
+                '# HELP clinical_emr_health_status Health status of the service (1=healthy, 0=unhealthy)',
+                '# TYPE clinical_emr_health_status gauge',
+                `clinical_emr_health_status{service="clinical-emr"} ${isHealthy ? 1 : 0}`,
+                '',
+                '# HELP clinical_emr_uptime_seconds Service uptime in seconds',
+                '# TYPE clinical_emr_uptime_seconds counter',
+                `clinical_emr_uptime_seconds{service="clinical-emr"} ${process.uptime()}`,
+                '',
+                '# HELP clinical_emr_memory_usage_bytes Memory usage in bytes',
+                '# TYPE clinical_emr_memory_usage_bytes gauge',
+                `clinical_emr_memory_usage_bytes{type="rss",service="clinical-emr"} ${process.memoryUsage().rss}`,
+                `clinical_emr_memory_usage_bytes{type="heapTotal",service="clinical-emr"} ${process.memoryUsage().heapTotal}`,
+                `clinical_emr_memory_usage_bytes{type="heapUsed",service="clinical-emr"} ${process.memoryUsage().heapUsed}`,
+                '',
+                '# HELP clinical_emr_component_health Component health status (1=healthy, 0=unhealthy)',
+                '# TYPE clinical_emr_component_health gauge',
+                `clinical_emr_component_health{component="database",service="clinical-emr"} ${isHealthy ? 1 : 0}`,
+                `clinical_emr_component_health{component="eventBus",service="clinical-emr"} ${eventStatus.connected ? 1 : 0}`,
+                `clinical_emr_component_health{component="fhir",service="clinical-emr"} ${isHealthy ? 1 : 0}`,
+                ''
+            ].join('\n');
+            res.set('Content-Type', 'text/plain; version=0.0.4');
+            res.send(metrics);
+        }
+        catch (error) {
+            res.status(500).send('# Error collecting metrics\n');
+        }
     });
     // =====================================================
     // API ROUTES
     // =====================================================
+    // Note: Clinical EMR uses /api/v2/clinical-emr prefix instead of /api/v1/
+    // Reason: FHIR R4 compliance and clinical data specificity require separate versioning
+    // This allows independent evolution of clinical APIs without affecting other services
     // API version info
-    app.get('/api/v2/clinical-emr', (req, res) => {
+    app.get("/api/v2/clinical-emr", (req, res) => {
         res.json({
-            service: 'clinical-emr-service',
-            version: '2.0.0',
-            description: 'Clinical EMR Service - Simplified medical records management for graduation thesis',
-            author: 'Hospital Management Team',
+            service: "clinical-emr-service",
+            version: "2.0.0",
+            description: "Clinical EMR Service - Simplified medical records management for graduation thesis",
+            author: "Hospital Management Team",
             endpoints: {
-                health: '/health',
-                ready: '/ready',
-                live: '/live',
-                medicalRecords: '/api/v2/clinical-emr/medical-records',
-                patients: '/api/v2/clinical-emr/patients/:patientId/medical-records',
-                doctors: '/api/v2/clinical-emr/doctors/:doctorId/medical-records',
-                statistics: '/api/v2/clinical-emr/statistics'
+                health: "/health",
+                ready: "/ready",
+                live: "/live",
+                medicalRecords: "/api/v2/clinical-emr/medical-records",
+                patients: "/api/v2/clinical-emr/patients/:patientId/medical-records",
+                doctors: "/api/v2/clinical-emr/doctors/:doctorId/medical-records",
+                statistics: "/api/v2/clinical-emr/statistics",
             },
             features: [
-                'Basic medical records CRUD',
-                'Simple vital signs tracking',
-                'Patient medical history',
-                'Doctor medical records',
-                'Vietnamese language support',
-                'HIPAA compliance',
-                'Role-based access control',
-                'Audit logging'
+                "Basic medical records CRUD",
+                "Simple vital signs tracking",
+                "Patient medical history",
+                "Doctor medical records",
+                "Vietnamese language support",
+                "HIPAA compliance",
+                "Role-based access control",
+                "Audit logging",
             ],
             compliance: [
-                'Clean Architecture',
-                'Domain-Driven Design',
-                'CQRS Pattern',
-                'Event-Driven Architecture',
-                'HIPAA Standards',
-                'Vietnamese Healthcare Standards'
-            ]
+                "Clean Architecture",
+                "Domain-Driven Design",
+                "CQRS Pattern",
+                "Event-Driven Architecture",
+                "HIPAA Standards",
+                "Vietnamese Healthcare Standards",
+            ],
         });
     });
     // Mount medical record routes
-    app.use('/api/v2/clinical-emr', (0, medical_record_routes_1.createMedicalRecordRoutes)());
+    app.use("/api/v2/clinical-emr", (0, medical_record_routes_1.createMedicalRecordRoutes)());
+    // Mount all other clinical routes (Clinical Notes, Diagnostic Reports, Treatment Plans, Prescriptions)
+    (0, index_1.setupRoutes)(app, container_1.container);
     // =====================================================
     // ERROR HANDLING
     // =====================================================
     // 404 handler
-    app.use('*', (req, res) => {
+    app.use("*", (req, res) => {
         res.status(404).json({
             success: false,
-            message: 'Endpoint không tồn tại',
+            message: "Endpoint không tồn tại",
             error: {
-                code: 'ENDPOINT_NOT_FOUND',
+                code: "ENDPOINT_NOT_FOUND",
                 path: req.originalUrl,
                 method: req.method,
-                timestamp: new Date().toISOString()
-            }
+                timestamp: new Date().toISOString(),
+            },
         });
     });
     // Global error handler
@@ -286,20 +361,20 @@ async function createApp() {
     // =====================================================
     // GRACEFUL SHUTDOWN HANDLERS
     // =====================================================
-    process.on('SIGTERM', async () => {
-        console.log('SIGTERM received, shutting down gracefully...');
+    process.on("SIGTERM", async () => {
+        console.log("SIGTERM received, shutting down gracefully...");
         await gracefulShutdown();
     });
-    process.on('SIGINT', async () => {
-        console.log('SIGINT received, shutting down gracefully...');
+    process.on("SIGINT", async () => {
+        console.log("SIGINT received, shutting down gracefully...");
         await gracefulShutdown();
     });
-    process.on('uncaughtException', (error) => {
-        console.error('Uncaught Exception:', error);
+    process.on("uncaughtException", (error) => {
+        console.error("Uncaught Exception:", error);
         process.exit(1);
     });
-    process.on('unhandledRejection', (reason, promise) => {
-        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.on("unhandledRejection", (reason, promise) => {
+        console.error("Unhandled Rejection at:", promise, "reason:", reason);
         process.exit(1);
     });
     return app;
@@ -309,21 +384,21 @@ async function createApp() {
  */
 async function gracefulShutdown() {
     try {
-        console.log('🛑 Starting graceful shutdown...');
+        console.log("🛑 Starting graceful shutdown...");
         // Disconnect event subscriptions first
-        console.log('📡 Disconnecting event subscriptions...');
+        console.log("📡 Disconnecting event subscriptions...");
         await cleanupEventSubscriptions();
-        console.log('✅ Event subscriptions disconnected');
+        console.log("✅ Event subscriptions disconnected");
         // Cleanup container
-        console.log('🧹 Cleaning up DI container...');
-        const { cleanupContainer } = await Promise.resolve().then(() => __importStar(require('./infrastructure/di/container')));
+        console.log("🧹 Cleaning up DI container...");
+        const { cleanupContainer } = await Promise.resolve().then(() => __importStar(require("./infrastructure/di/container")));
         await cleanupContainer();
-        console.log('✅ Container cleaned up');
-        console.log('✅ Graceful shutdown completed');
+        console.log("✅ Container cleaned up");
+        console.log("✅ Graceful shutdown completed");
         process.exit(0);
     }
     catch (error) {
-        console.error('❌ Error during graceful shutdown:', error);
+        console.error("❌ Error during graceful shutdown:", error);
         process.exit(1);
     }
 }
@@ -332,27 +407,27 @@ async function gracefulShutdown() {
  */
 async function initializeApp() {
     try {
-        console.log('🏥 Initializing Clinical EMR Service...');
+        console.log("🏥 Initializing Clinical EMR Service...");
         // Initialize container
-        console.log('📦 Initializing DI Container...');
+        console.log("📦 Initializing DI Container...");
         const { success, errors } = await (0, container_1.initializeContainer)();
         if (!success) {
-            throw new Error(`Container initialization failed: ${errors.join(', ')}`);
+            throw new Error(`Container initialization failed: ${errors.join(", ")}`);
         }
-        console.log('✅ DI Container initialized');
+        console.log("✅ DI Container initialized");
         // Create Express app
-        console.log('🚀 Creating Express application...');
+        console.log("🚀 Creating Express application...");
         const app = await createApp();
-        console.log('✅ Express app created');
+        console.log("✅ Express app created");
         // Initialize event subscriptions
-        console.log('📡 Initializing event subscriptions...');
+        console.log("📡 Initializing event subscriptions...");
         await initializeEventSubscriptions();
-        console.log('✅ Event subscriptions initialized');
-        console.log('✅ Clinical EMR Service initialized successfully');
+        console.log("✅ Event subscriptions initialized");
+        console.log("✅ Clinical EMR Service initialized successfully");
         return app;
     }
     catch (error) {
-        console.error('💥 Failed to initialize Clinical EMR Service:', error);
+        console.error("💥 Failed to initialize Clinical EMR Service:", error);
         throw error;
     }
 }
@@ -369,11 +444,11 @@ async function initializeEventSubscriptions() {
         eventSubscriptions = (0, EventSubscriptions_1.createEventSubscriptions)(clinicalEMRHandler, domainEventHandler, logger);
         // Connect to event bus
         await eventSubscriptions.connect();
-        console.log('✅ Event bus connected and listening for events');
+        console.log("✅ Event bus connected and listening for events");
     }
     catch (error) {
-        console.error('⚠️  Event subscriptions failed to initialize:', error);
-        console.warn('⚠️  Service will run without event handling capabilities');
+        console.error("⚠️  Event subscriptions failed to initialize:", error);
+        console.warn("⚠️  Service will run without event handling capabilities");
         // Don't throw - allow service to run without events in development
     }
 }
@@ -393,12 +468,12 @@ function getEventSubscriptionsStatus() {
     if (!eventSubscriptions) {
         return {
             enabled: false,
-            message: 'Event subscriptions not initialized'
+            message: "Event subscriptions not initialized",
         };
     }
     return {
         enabled: true,
-        ...eventSubscriptions.getStatus()
+        ...eventSubscriptions.getStatus(),
     };
 }
 //# sourceMappingURL=app.js.map

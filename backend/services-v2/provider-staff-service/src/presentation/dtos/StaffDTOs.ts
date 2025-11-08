@@ -7,7 +7,11 @@
  * @compliance Clean Architecture, RESTful API
  */
 
-import { StaffType, StaffStatus, EmploymentType } from '../../domain/aggregates/ProviderStaff';
+import {
+  StaffType,
+  StaffStatus,
+  EmploymentType,
+} from "../../domain/aggregates/ProviderStaff";
 
 // ==================== REQUEST DTOs ====================
 
@@ -17,36 +21,36 @@ export interface RegisterStaffRequestDto {
   personalInfo: {
     fullName: string;
     dateOfBirth: string;
-    gender: 'male' | 'female' | 'other';
+    gender: "male" | "female" | "other";
     nationalId: string;
-    nationality: string;
+    nationality?: string;
     phoneNumber: string;
     email?: string;
-    address: {
-      street: string;
-      ward: string;
-      district: string;
-      city: string;
-      province: string;
-      country: string;
+    address?: {
+      street?: string;
+      ward?: string;
+      district?: string;
+      city?: string;
+      province?: string;
+      country?: string;
     };
   };
   professionalInfo: {
     title: string;
     department: string;
     position: string;
-    education: string[];
-    languages: string[];
+    education?: string[];
+    languages?: string[];
     bio?: string;
   };
-  workSchedule: {
-    workingDays: string[];
-    workingHours: {
-      start: string;
-      end: string;
+  workSchedule?: {
+    workingDays?: string[];
+    workingHours?: {
+      start?: string;
+      end?: string;
     };
-    timeZone: string;
-    isFlexible: boolean;
+    timeZone?: string;
+    isFlexible?: boolean;
   };
   licenseNumber: string;
   employmentType: EmploymentType;
@@ -111,7 +115,7 @@ export interface AddStaffCredentialRequestDto {
   issuingAuthority: string;
   issueDate: string;
   expiryDate?: string;
-  verificationStatus: 'pending' | 'verified' | 'rejected';
+  verificationStatus: "pending" | "verified" | "rejected";
 }
 
 export interface AssignStaffToDepartmentRequestDto {
@@ -263,4 +267,3 @@ export interface ErrorResponse {
   timestamp?: string;
   path?: string;
 }
-

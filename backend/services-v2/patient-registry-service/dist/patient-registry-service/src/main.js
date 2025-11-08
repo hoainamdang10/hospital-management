@@ -19,9 +19,12 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const compression_1 = __importDefault(require("compression"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
 // Infrastructure imports
 const SupabasePatientRepository_1 = require("./infrastructure/repositories/SupabasePatientRepository");
 const HealthChecks_1 = require("./infrastructure/monitoring/HealthChecks");
+const PrometheusMetrics_1 = require("./infrastructure/monitoring/PrometheusMetrics");
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
 const PatientCache_1 = require("./infrastructure/cache/PatientCache");
 const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegradation");
@@ -56,6 +59,7 @@ const GetConsentDetailsUseCase_1 = require("./application/use-cases/GetConsentDe
 const RevokeConsentUseCase_1 = require("./application/use-cases/RevokeConsentUseCase");
 const GetActiveConsentsUseCase_1 = require("./application/use-cases/GetActiveConsentsUseCase");
 const GetInsuranceInfoUseCase_1 = require("./application/use-cases/GetInsuranceInfoUseCase");
+const AddInsuranceInfoUseCase_1 = require("./application/use-cases/AddInsuranceInfoUseCase");
 const UpdateInsuranceInfoUseCase_1 = require("./application/use-cases/UpdateInsuranceInfoUseCase");
 const VerifyInsuranceUseCase_1 = require("./application/use-cases/VerifyInsuranceUseCase");
 const MarkAsDeceasedUseCase_1 = require("./application/use-cases/MarkAsDeceasedUseCase");
@@ -78,6 +82,7 @@ const PatientController_1 = require("./presentation/controllers/PatientControlle
 const CommandController_1 = require("./presentation/controllers/CommandController");
 const patientRoutes_1 = require("./presentation/routes/patientRoutes");
 const commandRoutes_1 = require("./presentation/routes/commandRoutes");
+const healthRoutes_1 = require("./presentation/routes/healthRoutes");
 const ErrorHandlingMiddleware_1 = require("./presentation/middleware/ErrorHandlingMiddleware");
 const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
 // Configuration
@@ -230,6 +235,7 @@ class PatientRegistryServiceApp {
             this.revokeConsentUseCase = new RevokeConsentUseCase_1.RevokeConsentUseCase(this.patientRepository, this.eventBus, logger, this.auditService);
             this.getActiveConsentsUseCase = new GetActiveConsentsUseCase_1.GetActiveConsentsUseCase(this.patientRepository, logger);
             this.getInsuranceInfoUseCase = new GetInsuranceInfoUseCase_1.GetInsuranceInfoUseCase(this.patientRepository, logger);
+            this.addInsuranceInfoUseCase = new AddInsuranceInfoUseCase_1.AddInsuranceInfoUseCase(this.patientRepository, logger);
             this.updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase_1.UpdateInsuranceInfoUseCase(this.patientRepository, this.eventBus, logger);
             this.verifyInsuranceUseCase = new VerifyInsuranceUseCase_1.VerifyInsuranceUseCase(this.patientRepository, logger);
             this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(this.patientRepository);
@@ -253,7 +259,7 @@ class PatientRegistryServiceApp {
             // Initialize Command Handlers (CQRS)
             this.patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(this.registerPatientUseCase, this.updatePatientInfoUseCase, this.deactivatePatientUseCase, this.grantConsentUseCase, this.addEmergencyContactUseCase, logger);
             // Initialize Presentation Layer
-            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.getEmergencyContactsUseCase, this.updateEmergencyContactUseCase, this.removeEmergencyContactUseCase, this.setPrimaryEmergencyContactUseCase, this.grantConsentUseCase, this.getConsentsUseCase, this.getConsentDetailsUseCase, this.revokeConsentUseCase, this.getActiveConsentsUseCase, this.getInsuranceInfoUseCase, this.updateInsuranceInfoUseCase, this.verifyInsuranceUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase, this.getPatientStatisticsUseCase, this.uploadPatientPhotoUseCase, this.getPatientPhotoUseCase, this.deletePatientPhotoUseCase, this.updateCommunicationPreferencesUseCase, this.getCommunicationPreferencesUseCase, this.getPatientHistoryUseCase, this.patientQueryHandlers);
+            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.getEmergencyContactsUseCase, this.updateEmergencyContactUseCase, this.removeEmergencyContactUseCase, this.setPrimaryEmergencyContactUseCase, this.grantConsentUseCase, this.getConsentsUseCase, this.getConsentDetailsUseCase, this.revokeConsentUseCase, this.getActiveConsentsUseCase, this.getInsuranceInfoUseCase, this.addInsuranceInfoUseCase, this.updateInsuranceInfoUseCase, this.verifyInsuranceUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase, this.getPatientStatisticsUseCase, this.uploadPatientPhotoUseCase, this.getPatientPhotoUseCase, this.deletePatientPhotoUseCase, this.updateCommunicationPreferencesUseCase, this.getCommunicationPreferencesUseCase, this.getPatientHistoryUseCase, this.patientQueryHandlers);
             this.commandController = new CommandController_1.CommandController(logger, this.patientCommandHandlers);
             this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
             // Initialize Authentication Middleware
@@ -337,7 +343,7 @@ class PatientRegistryServiceApp {
         this.app.use(express_1.default.json({ limit: "10mb" }));
         this.app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
         // Rate limiting (disabled in test environment)
-        if (process.env.NODE_ENV !== 'test') {
+        if (process.env.NODE_ENV !== "test") {
             const limiter = (0, express_rate_limit_1.default)({
                 windowMs: 15 * 60 * 1000, // 15 minutes
                 max: 100, // limit each IP to 100 requests per windowMs
@@ -348,7 +354,7 @@ class PatientRegistryServiceApp {
             this.app.use("/api/", limiter);
             logger.info("Rate limiting enabled", {
                 windowMs: "15 minutes",
-                maxRequests: 100
+                maxRequests: 100,
             });
         }
         else {
@@ -370,24 +376,44 @@ class PatientRegistryServiceApp {
      */
     setupRoutes() {
         logger.info("Setting up routes...");
-        // Health check
-        this.app.get("/health", async (_req, res) => {
+        // Health & Metrics routes
+        const healthRoutes = (0, healthRoutes_1.createHealthRoutes)({
+            healthCheck: this.healthCheck,
+            logger,
+        });
+        this.app.use("/", healthRoutes);
+        // Prometheus metrics endpoint
+        this.app.get("/metrics", async (_req, res) => {
             try {
-                const health = await this.healthCheck.checkHealth();
-                const statusCode = health.overall === "HEALTHY" ? 200 : 503;
-                res.status(statusCode).json(health);
+                res.set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+                const metrics = await PrometheusMetrics_1.prometheusMetrics.getMetrics();
+                res.send(metrics);
             }
             catch (error) {
-                logger.error("Health check failed", {
-                    error: error instanceof Error ? error.message : "Unknown error",
-                });
-                res.status(503).json({
-                    overall: "UNHEALTHY",
-                    error: error instanceof Error ? error.message : "Unknown error",
-                    timestamp: new Date(),
-                });
+                logger.error("Failed to generate metrics", { error });
+                res.status(500).send("Failed to generate metrics");
             }
         });
+        logger.info("Prometheus metrics endpoint registered at /metrics");
+        // Swagger API Documentation
+        // Accessible at: http://localhost:3023/api-docs
+        this.app.use("/api-docs", swagger_ui_express_1.default.serve);
+        this.app.get("/api-docs", swagger_ui_express_1.default.setup(swagger_config_1.swaggerSpec, {
+            customSiteTitle: "Patient Registry Service API",
+            customCss: ".swagger-ui .topbar { display: none }",
+            swaggerOptions: {
+                persistAuthorization: true,
+                displayRequestDuration: true,
+                filter: true,
+                tryItOutEnabled: true,
+            },
+        }));
+        // OpenAPI JSON spec
+        this.app.get("/api-docs/json", (_req, res) => {
+            res.setHeader("Content-Type", "application/json");
+            res.send(swagger_config_1.swaggerSpec);
+        });
+        logger.info("Swagger UI available at http://localhost:" + config.port + "/api-docs");
         // Degradation status endpoint
         this.app.get("/degradation", (_req, res) => {
             try {

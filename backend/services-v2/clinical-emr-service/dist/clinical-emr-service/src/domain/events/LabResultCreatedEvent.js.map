@@ -1,0 +1,1 @@
+{"version":3,"file":"LabResultCreatedEvent.js","sourceRoot":"","sources":["../../../../../src/domain/events/LabResultCreatedEvent.ts"],"names":[],"mappings":";AAAA;;;;;;GAMG;;;AAEH,mEAA+D;AAY/D,MAAa,qBAAsB,SAAQ,0BAAyC;IAClF,YAAY,OAAqC;QAC/C,KAAK,CAAC,6BAA6B,EAAE,OAAO,CAAC,CAAC;IAChD,CAAC;CACF;AAJD,sDAIC"}

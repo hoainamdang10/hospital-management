@@ -12,6 +12,10 @@ import { randomUUID } from 'crypto';
 // Load environment variables from .env file
 config();
 
+// Set test environment variables
+process.env.NODE_ENV = 'test';
+process.env.DISABLE_RATE_LIMIT = 'true';
+
 // Mock uuid module
 jest.mock('uuid', () => ({
   v4: jest.fn(() => '00000000-0000-0000-0000-000000000000')
@@ -183,7 +187,7 @@ export class TestDataFactory {
       dateOfBirth: this.normalizeDate(overrides.dateOfBirth || personalInfoOverrides.dateOfBirth || '1985-01-01'),
       gender: overrides.gender || personalInfoOverrides.gender || 'male',
       nationalId: overrides.nationalId || personalInfoOverrides.nationalId || TestUtils.generateRandomNationalId(),
-      nationality: overrides.nationality || personalInfoOverrides.nationality || 'Vietnamese',
+      nationality: overrides.nationality || personalInfoOverrides.nationality || 'Vietnam',
       phoneNumber: overrides.phoneNumber || personalInfoOverrides.phoneNumber || TestUtils.generateRandomPhone(),
       email: overrides.email || personalInfoOverrides.email || TestUtils.generateRandomEmail(),
       address: {
@@ -250,9 +254,13 @@ export class TestDataFactory {
       consultationFee: overrides.consultationFee ?? professionalOverrides.consultationFee ?? (staffType === 'doctor' ? 500000 : 0),
       specializations,
       vietnameseHealthcareLicense:
-        overrides.vietnameseHealthcareLicense ?? professionalOverrides.vietnameseHealthcareLicense,
+        overrides.vietnameseHealthcareLicense ??
+        professionalOverrides.vietnameseHealthcareLicense ??
+        `VN-HC-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`,
       mohRegistrationNumber:
-        overrides.mohRegistrationNumber ?? professionalOverrides.mohRegistrationNumber
+        overrides.mohRegistrationNumber ??
+        professionalOverrides.mohRegistrationNumber ??
+        `MOH-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`
     };
   }
 

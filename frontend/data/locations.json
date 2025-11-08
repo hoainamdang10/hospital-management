@@ -1,0 +1,66 @@
+[
+  {
+    "id": "hcm-dist1",
+    "name": "Quận 1, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận 1",
+    "address": "Các cơ sở y tế tại Quận 1",
+    "coordinates": { "lat": 10.7769, "lng": 106.7009 }
+  },
+  {
+    "id": "hcm-dist3",
+    "name": "Quận 3, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận 3",
+    "address": "Các cơ sở y tế tại Quận 3",
+    "coordinates": { "lat": 10.7867, "lng": 106.6836 }
+  },
+  {
+    "id": "hcm-dist5",
+    "name": "Quận 5, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận 5",
+    "address": "Các cơ sở y tế tại Quận 5",
+    "coordinates": { "lat": 10.7540, "lng": 106.6668 }
+  },
+  {
+    "id": "hcm-dist7",
+    "name": "Quận 7, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận 7",
+    "address": "Các cơ sở y tế tại Quận 7",
+    "coordinates": { "lat": 10.7333, "lng": 106.7192 }
+  },
+  {
+    "id": "hcm-dist10",
+    "name": "Quận 10, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận 10",
+    "address": "Các cơ sở y tế tại Quận 10",
+    "coordinates": { "lat": 10.7726, "lng": 106.6707 }
+  },
+  {
+    "id": "hcm-binhtan",
+    "name": "Bình Tân, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận Bình Tân",
+    "address": "Các cơ sở y tế tại Bình Tân",
+    "coordinates": { "lat": 10.7402, "lng": 106.6054 }
+  },
+  {
+    "id": "hcm-govap",
+    "name": "Gò Vấp, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận Gò Vấp",
+    "address": "Các cơ sở y tế tại Gò Vấp",
+    "coordinates": { "lat": 10.8376, "lng": 106.6761 }
+  },
+  {
+    "id": "hcm-dist2",
+    "name": "Quận 2, TP.HCM",
+    "city": "TP. Hồ Chí Minh",
+    "district": "Quận 2",
+    "address": "Các cơ sở y tế tại Quận 2",
+    "coordinates": { "lat": 10.7896, "lng": 106.7454 }
+  }
+]

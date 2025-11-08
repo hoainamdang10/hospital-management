@@ -11,10 +11,10 @@ import { HealthcareValueObject } from '@shared/domain/base/value-object';
 
 export interface Address {
   street: string;
-  ward: string;
+  ward?: string; // Optional for legacy data compatibility
   district: string;
   city: string;
-  province: string;
+  province?: string; // Optional for legacy data compatibility
   country: string;
 }
 
@@ -101,14 +101,15 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
   }
 
   public static fromPersistence(data: any): PersonalInfo {
+    // Handle both snake_case (old) and camelCase (new) formats from database
     return PersonalInfo.create({
-      fullName: data.full_name,
-      dateOfBirth: new Date(data.date_of_birth),
+      fullName: data.fullName || data.full_name,
+      dateOfBirth: new Date(data.dateOfBirth || data.date_of_birth),
       gender: data.gender,
-      nationalId: data.national_id,
-      nationality: data.nationality,
-      phoneNumber: data.phone_number,
-      email: data.email,
+      nationalId: data.nationalId || data.national_id,
+      nationality: data.nationality || 'Vietnamese', // Default if not provided
+      phoneNumber: data.contact?.phone || data.phoneNumber || data.phone_number,
+      email: data.contact?.email || data.email,
       address: data.address
     });
   }
@@ -211,13 +212,15 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
   private validateAddress(): void {
     const addr = this.props.address;
     
+    // Required fields (flexible for legacy data)
     if (!addr.street || addr.street.trim().length === 0) {
       throw new Error('Địa chỉ đường/phố không được để trống');
     }
 
-    if (!addr.ward || addr.ward.trim().length === 0) {
-      throw new Error('Phường/xã không được để trống');
-    }
+    // Ward is optional for legacy data compatibility
+    // if (!addr.ward || addr.ward.trim().length === 0) {
+    //   throw new Error('Phường/xã không được để trống');
+    // }
 
     if (!addr.district || addr.district.trim().length === 0) {
       throw new Error('Quận/huyện không được để trống');
@@ -227,9 +230,10 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
       throw new Error('Thành phố không được để trống');
     }
 
-    if (!addr.province || addr.province.trim().length === 0) {
-      throw new Error('Tỉnh/thành phố không được để trống');
-    }
+    // Province is optional (city might be enough)
+    // if (!addr.province || addr.province.trim().length === 0) {
+    //   throw new Error('Tỉnh/thành phố không được để trống');
+    // }
 
     if (!addr.country || addr.country.trim().length === 0) {
       throw new Error('Quốc gia không được để trống');
@@ -246,9 +250,24 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
   }
 
   private isValidVietnamesePhoneNumber(phoneNumber: string): boolean {
-    // Vietnamese phone number: 10 digits starting with 0
-    const phoneRegex = /^0\d{9}$/;
-    return phoneRegex.test(phoneNumber.replace(/[\s-]/g, ''));
+    // Vietnamese phone number formats:
+    // - Local: 0XXXXXXXXX (10 digits starting with 0)
+    // - International: +84XXXXXXXXX (9 digits after +84)
+    const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
+    
+    // Check local format
+    const localPhoneRegex = /^0\d{9}$/;
+    if (localPhoneRegex.test(cleanPhone)) {
+      return true;
+    }
+    
+    // Check international format
+    const intlPhoneRegex = /^\+84\d{9,10}$/;
+    if (intlPhoneRegex.test(cleanPhone)) {
+      return true;
+    }
+    
+    return false;
   }
 
   private isValidEmail(email: string): boolean {

@@ -2,17 +2,23 @@
  * GetStaffProfileUseCase - Application Use Case
  * V2 Clean Architecture + DDD Implementation
  * Retrieves staff profile with authorization and HIPAA compliance
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/base/base-healthcare-use-case';
-import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { ProviderStaff, StaffType } from '../../domain/aggregates/ProviderStaff';
-import { StaffId } from '../../domain/value-objects/StaffId';
-import { ILogger } from '../interfaces/ILogger';
+import {
+  BaseHealthcareUseCase,
+  ValidationResult,
+} from "@shared/application/base/base-healthcare-use-case";
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
+import {
+  ProviderStaff,
+  StaffType,
+} from "../../domain/aggregates/ProviderStaff";
+import { StaffId } from "../../domain/value-objects/StaffId";
+import { ILogger } from "../interfaces/ILogger";
 
 export interface GetStaffProfileRequest {
   staffId?: string;
@@ -105,10 +111,13 @@ export interface GetStaffProfileResponse {
  * Get Staff Profile Use Case
  * Retrieves staff profile with proper authorization and data masking
  */
-export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfileRequest, GetStaffProfileResponse> {
+export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
+  GetStaffProfileRequest,
+  GetStaffProfileResponse
+> {
   constructor(
     private readonly staffRepository: IProviderStaffRepository,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
   ) {
     super();
   }
@@ -116,13 +125,15 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
   /**
    * Execute get staff profile
    */
-  protected async executeImpl(request: GetStaffProfileRequest): Promise<GetStaffProfileResponse> {
+  protected async executeImpl(
+    request: GetStaffProfileRequest,
+  ): Promise<GetStaffProfileResponse> {
     try {
-      this.logger.info('Getting staff profile', {
+      this.logger.info("Getting staff profile", {
         staffId: request.staffId,
         userId: request.userId,
         requestedBy: request.requestedBy,
-        requestedByRole: request.requestedByRole
+        requestedByRole: request.requestedByRole,
       });
 
       // 1. Validate request
@@ -130,77 +141,82 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
       if (!validationResult.isValid) {
         return {
           success: false,
-          message: 'Yêu cầu không hợp lệ',
-          errors: validationResult.errors
+          message: "Yêu cầu không hợp lệ",
+          errors: validationResult.errors,
         };
       }
 
       // 2. Find staff
       let staff: ProviderStaff | null = null;
-      
+
       if (request.staffId) {
         const staffId = StaffId.fromString(request.staffId);
         staff = await this.staffRepository.findById(staffId);
       } else if (request.userId) {
         staff = await this.staffRepository.findByUserId(request.userId);
       } else if (request.licenseNumber) {
-        staff = await this.staffRepository.findByLicenseNumber(request.licenseNumber);
+        staff = await this.staffRepository.findByLicenseNumber(
+          request.licenseNumber,
+        );
       }
 
       if (!staff) {
         return {
           success: false,
-          message: 'Không tìm thấy thông tin nhân viên'
+          message: "Không tìm thấy thông tin nhân viên",
         };
       }
 
       // 3. Check authorization
       const authResult = this.checkAuthorization(staff, request);
       if (!authResult.authorized) {
-        this.logger.warn('Unauthorized staff profile access attempt', {
+        this.logger.warn("Unauthorized staff profile access attempt", {
           staffId: staff.id,
           requestedBy: request.requestedBy,
           requestedByRole: request.requestedByRole,
-          reason: authResult.reason
+          reason: authResult.reason,
         });
 
         return {
           success: false,
-          message: 'Không có quyền truy cập thông tin nhân viên này'
+          message: "Không có quyền truy cập thông tin nhân viên này",
         };
       }
 
       // 4. Prepare response data with appropriate masking
-      const responseData = this.prepareStaffData(staff, request, authResult.accessLevel);
+      const responseData = this.prepareStaffData(
+        staff,
+        request,
+        authResult.accessLevel,
+      );
 
       // 5. HIPAA audit logging
       await this.auditStaffAccess(staff, request, authResult.accessLevel);
 
-      this.logger.info('Staff profile retrieved successfully', {
+      this.logger.info("Staff profile retrieved successfully", {
         staffId: staff.id,
         requestedBy: request.requestedBy,
-        accessLevel: authResult.accessLevel
+        accessLevel: authResult.accessLevel,
       });
 
       return {
         success: true,
-        message: 'Lấy thông tin nhân viên thành công',
+        message: "Lấy thông tin nhân viên thành công",
         data: {
-          staff: responseData
-        }
+          staff: responseData,
+        },
       };
-
     } catch (error) {
-      this.logger.error('Error getting staff profile', {
+      this.logger.error("Error getting staff profile", {
         staffId: request.staffId,
         userId: request.userId,
         requestedBy: request.requestedBy,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
       return {
         success: false,
-        message: 'Lỗi hệ thống khi lấy thông tin nhân viên'
+        message: "Lỗi hệ thống khi lấy thông tin nhân viên",
       };
     }
   }
@@ -208,82 +224,96 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
   /**
    * Validate request
    */
-  protected override async validateRequest(request: GetStaffProfileRequest): Promise<ValidationResult> {
+  protected override async validateRequest(
+    request: GetStaffProfileRequest,
+  ): Promise<ValidationResult> {
     const errors: string[] = [];
 
-    // Must have either staffId or userId
-    if (!request.staffId && !request.userId) {
-      errors.push('Phải cung cấp ID nhân viên hoặc ID người dùng');
+    // Must have at least one identifier
+    if (!request.staffId && !request.userId && !request.licenseNumber) {
+      errors.push(
+        "Phải cung cấp ID nhân viên, ID người dùng hoặc số giấy phép hành nghề",
+      );
     }
 
     // Requested by validation
     if (!request.requestedBy || request.requestedBy.trim().length === 0) {
-      errors.push('Thông tin người yêu cầu không được để trống');
+      errors.push("Thông tin người yêu cầu không được để trống");
     }
 
     // Role validation
-    if (!request.requestedByRole || request.requestedByRole.trim().length === 0) {
-      errors.push('Vai trò người yêu cầu không được để trống');
+    if (
+      !request.requestedByRole ||
+      request.requestedByRole.trim().length === 0
+    ) {
+      errors.push("Vai trò người yêu cầu không được để trống");
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   /**
    * Check authorization for staff data access
    */
-  private checkAuthorization(staff: ProviderStaff, request: GetStaffProfileRequest): {
+  private checkAuthorization(
+    staff: ProviderStaff,
+    request: GetStaffProfileRequest,
+  ): {
     authorized: boolean;
-    accessLevel: 'full' | 'limited' | 'basic';
+    accessLevel: "full" | "limited" | "basic";
     reason?: string;
   } {
     const { requestedBy, requestedByRole } = request;
 
     // Staff can access their own data
     if (staff.userId === requestedBy) {
-      return { authorized: true, accessLevel: 'full' };
+      return { authorized: true, accessLevel: "full" };
     }
 
     // Admin has full access
-    if (requestedByRole === 'admin') {
-      return { authorized: true, accessLevel: 'full' };
+    if (requestedByRole === "admin") {
+      return { authorized: true, accessLevel: "full" };
     }
 
     // Department head has full access to their department staff
-    if (requestedByRole === 'department_head') {
-      return { authorized: true, accessLevel: 'full' };
+    if (requestedByRole === "department_head") {
+      return { authorized: true, accessLevel: "full" };
     }
 
     // Doctor has limited access to other staff
-    if (requestedByRole === 'doctor') {
-      return { authorized: true, accessLevel: 'limited' };
+    if (requestedByRole === "doctor") {
+      return { authorized: true, accessLevel: "limited" };
     }
 
     // Nurse has basic access to other staff
-    if (requestedByRole === 'nurse') {
-      return { authorized: true, accessLevel: 'basic' };
+    if (requestedByRole === "nurse") {
+      return { authorized: true, accessLevel: "basic" };
     }
 
     // Receptionist has basic access for scheduling purposes
-    if (requestedByRole === 'receptionist') {
-      return { authorized: true, accessLevel: 'basic' };
+    if (requestedByRole === "receptionist") {
+      return { authorized: true, accessLevel: "basic" };
     }
 
     // Default: no access
     return {
       authorized: false,
-      accessLevel: 'basic',
-      reason: `Role ${requestedByRole} not authorized for staff data access`
+      accessLevel: "basic",
+      reason: `Role ${requestedByRole} not authorized for staff data access`,
     };
   }
 
   /**
    * Prepare staff data with appropriate masking based on access level
    */
-  private prepareStaffData(staff: ProviderStaff, request: GetStaffProfileRequest, accessLevel: string): any {
+  private prepareStaffData(
+    staff: ProviderStaff,
+    request: GetStaffProfileRequest,
+    accessLevel: string,
+  ): any {
     const baseData = {
       id: staff.id,
       userId: staff.userId,
@@ -291,7 +321,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
       personalInfo: {
         fullName: staff.personalInfo.fullName,
         gender: staff.personalInfo.gender,
-        nationality: staff.personalInfo.nationality
+        nationality: staff.personalInfo.nationality,
       },
       professionalInfo: {
         title: staff.professionalInfo.title,
@@ -299,13 +329,13 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
         position: staff.professionalInfo.position,
         education: staff.professionalInfo.education,
         languages: staff.professionalInfo.languages,
-        bio: staff.professionalInfo.bio
+        bio: staff.professionalInfo.bio,
       },
-      specializations: staff.getActiveSpecializations().map(spec => ({
+      specializations: staff.getActiveSpecializations().map((spec) => ({
         code: spec.code,
         name: spec.name,
         description: spec.description,
-        isActive: spec.isActive
+        isActive: spec.isActive,
       })),
       employmentInfo: {
         employmentType: staff.employmentType,
@@ -313,65 +343,73 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
         contractEndDate: staff.contractEndDate?.toISOString(),
         yearsOfExperience: staff.getTotalExperience(),
         status: staff.status,
-        isActive: staff.isActive
+        isActive: staff.isActive,
       },
       registrationInfo: {
         registrationDate: staff.registrationDate.toISOString(),
-        lastActiveDate: staff.lastActiveDate?.toISOString()
-      }
+        lastActiveDate: staff.lastActiveDate?.toISOString(),
+      },
     };
 
     // Add sensitive data based on access level
-    if (accessLevel === 'full') {
+    if (accessLevel === "full") {
       return {
         ...baseData,
         personalInfo: {
           ...baseData.personalInfo,
-          dateOfBirth: staff.personalInfo.dateOfBirth.toISOString().split('T')[0],
+          dateOfBirth: staff.personalInfo.dateOfBirth
+            .toISOString()
+            .split("T")[0],
           nationalId: staff.personalInfo.nationalId,
           phoneNumber: staff.personalInfo.phoneNumber,
-          email: staff.personalInfo.email
+          email: staff.personalInfo.email,
         },
-        workSchedule: request.includeFullSchedule ? {
-          workingDays: staff.workSchedule.workingDays,
-          workingHours: staff.workSchedule.workingHours,
-          timeZone: staff.workSchedule.timeZone,
-          isFlexible: staff.workSchedule.isFlexible
-        } : undefined,
-        credentials: request.includeSensitiveInfo ? staff.getValidCredentials().map(cred => ({
-          credentialNumber: this.maskString(cred.credentialNumber),
-          credentialType: cred.credentialType,
-          issuingAuthority: cred.issuingAuthority,
-          isValid: cred.isValid,
-          expiryDate: cred.expiryDate?.toISOString().split('T')[0]
-        })) : undefined,
+        workSchedule: request.includeFullSchedule
+          ? {
+              workingDays: staff.workSchedule.workingDays,
+              workingHours: staff.workSchedule.workingHours,
+              timeZone: staff.workSchedule.timeZone,
+              isFlexible: staff.workSchedule.isFlexible,
+            }
+          : undefined,
+        credentials: request.includeSensitiveInfo
+          ? staff.getValidCredentials().map((cred) => ({
+              credentialNumber: this.maskString(cred.credentialNumber),
+              credentialType: cred.credentialType,
+              issuingAuthority: cred.issuingAuthority,
+              isValid: cred.isValid,
+              expiryDate: cred.expiryDate?.toISOString().split("T")[0],
+            }))
+          : undefined,
         performanceInfo: {
           // REMOVED: rating, totalPatients, isAcceptingNewPatients - Belong to other services
           // These should be fetched from Review Service and Scheduling Service via API Gateway
-          consultationFee: staff.consultationFee
+          consultationFee: staff.consultationFee,
         },
         registrationInfo: {
           ...baseData.registrationInfo,
-          vietnameseHealthcareLicense: staff.vietnameseHealthcareLicense ?
-            this.maskString(staff.vietnameseHealthcareLicense) : undefined,
-          mohRegistrationNumber: staff.mohRegistrationNumber ?
-            this.maskString(staff.mohRegistrationNumber) : undefined
-        }
+          vietnameseHealthcareLicense: staff.vietnameseHealthcareLicense
+            ? this.maskString(staff.vietnameseHealthcareLicense)
+            : undefined,
+          mohRegistrationNumber: staff.mohRegistrationNumber
+            ? this.maskString(staff.mohRegistrationNumber)
+            : undefined,
+        },
       };
     }
 
-    if (accessLevel === 'limited') {
+    if (accessLevel === "limited") {
       return {
         ...baseData,
         personalInfo: {
           ...baseData.personalInfo,
           phoneNumber: this.maskPhoneNumber(staff.personalInfo.phoneNumber),
-          email: this.maskEmail(staff.personalInfo.email)
+          email: this.maskEmail(staff.personalInfo.email),
         },
         performanceInfo: {
           // REMOVED: rating, isAcceptingNewPatients - Belong to other services
-          consultationFee: staff.consultationFee
-        }
+          consultationFee: staff.consultationFee,
+        },
       };
     }
 
@@ -383,33 +421,43 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
    * Mask sensitive string data
    */
   private maskString(value: string, visibleChars: number = 4): string {
-    if (!value || value.length <= visibleChars) return '***';
-    return value.substring(0, visibleChars) + '*'.repeat(value.length - visibleChars);
+    if (!value || value.length <= visibleChars) return "***";
+    return (
+      value.substring(0, visibleChars) + "*".repeat(value.length - visibleChars)
+    );
   }
 
   /**
    * Mask phone number
    */
   private maskPhoneNumber(phoneNumber?: string): string {
-    if (!phoneNumber) return '';
-    return phoneNumber.substring(0, 3) + '***' + phoneNumber.substring(phoneNumber.length - 2);
+    if (!phoneNumber) return "";
+    return (
+      phoneNumber.substring(0, 3) +
+      "***" +
+      phoneNumber.substring(phoneNumber.length - 2)
+    );
   }
 
   /**
    * Mask email address
    */
   private maskEmail(email?: string): string {
-    if (!email) return '';
-    const [username, domain] = email.split('@');
-    return username.substring(0, 2) + '***@' + domain;
+    if (!email) return "";
+    const [username, domain] = email.split("@");
+    return username.substring(0, 2) + "***@" + domain;
   }
 
   /**
    * HIPAA audit logging for staff access
    */
-  private async auditStaffAccess(staff: ProviderStaff, request: GetStaffProfileRequest, accessLevel: string): Promise<void> {
-    this.logger.info('HIPAA Audit: Staff profile access', {
-      action: 'STAFF_PROFILE_ACCESS',
+  private async auditStaffAccess(
+    staff: ProviderStaff,
+    request: GetStaffProfileRequest,
+    accessLevel: string,
+  ): Promise<void> {
+    this.logger.info("HIPAA Audit: Staff profile access", {
+      action: "STAFF_PROFILE_ACCESS",
       staffId: staff.id,
       requestedBy: request.requestedBy,
       requestedByRole: request.requestedByRole,
@@ -419,28 +467,35 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<GetStaffProfil
       userAgent: request.requestMetadata?.userAgent,
       sessionId: request.requestMetadata?.sessionId,
       dataAccessed: this.getDataAccessedList(accessLevel, request),
-      complianceLevel: 'hipaa'
+      complianceLevel: "hipaa",
     });
   }
 
   /**
    * Get list of data accessed for audit
    */
-  private getDataAccessedList(accessLevel: string, request: GetStaffProfileRequest): string {
-    const baseData = ['staff_basic_info', 'professional_info', 'employment_info'];
-    
-    if (accessLevel === 'full') {
-      baseData.push('staff_personal_info', 'staff_contact_info');
+  private getDataAccessedList(
+    accessLevel: string,
+    request: GetStaffProfileRequest,
+  ): string {
+    const baseData = [
+      "staff_basic_info",
+      "professional_info",
+      "employment_info",
+    ];
+
+    if (accessLevel === "full") {
+      baseData.push("staff_personal_info", "staff_contact_info");
       if (request.includeFullSchedule) {
-        baseData.push('work_schedule');
+        baseData.push("work_schedule");
       }
       if (request.includeSensitiveInfo) {
-        baseData.push('credentials', 'sensitive_professional_data');
+        baseData.push("credentials", "sensitive_professional_data");
       }
-    } else if (accessLevel === 'limited') {
-      baseData.push('masked_contact_info', 'performance_info');
+    } else if (accessLevel === "limited") {
+      baseData.push("masked_contact_info", "performance_info");
     }
-    
-    return baseData.join(',');
+
+    return baseData.join(",");
   }
 }

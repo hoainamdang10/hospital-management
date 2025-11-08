@@ -1,5 +1,5 @@
-import { Entity } from '@shared/domain/base/entity';
-import { UserId } from '../value-objects/UserId';
+import { Entity } from "@shared/domain/base/entity";
+import { UserId } from "../value-objects/UserId";
 
 export interface AuthenticatedUserProps {
   userId: UserId;
@@ -7,6 +7,8 @@ export interface AuthenticatedUserProps {
   roles: string[];
   permissions: string[];
   sessionId?: string;
+  patientId?: string;
+  providerId?: string;
   issuedAt: Date;
   expiresAt: Date;
 }
@@ -42,6 +44,14 @@ export class AuthenticatedUser extends Entity<AuthenticatedUserProps> {
     return this.props.sessionId;
   }
 
+  public get patientId(): string | undefined {
+    return this.props.patientId;
+  }
+
+  public get providerId(): string | undefined {
+    return this.props.providerId;
+  }
+
   public get issuedAt(): Date {
     return this.props.issuedAt;
   }
@@ -55,11 +65,11 @@ export class AuthenticatedUser extends Entity<AuthenticatedUserProps> {
   }
 
   public hasAnyRole(roles: string[]): boolean {
-    return roles.some(role => this.props.roles.includes(role));
+    return roles.some((role) => this.props.roles.includes(role));
   }
 
   public hasAllRoles(roles: string[]): boolean {
-    return roles.every(role => this.props.roles.includes(role));
+    return roles.every((role) => this.props.roles.includes(role));
   }
 
   public hasPermission(permission: string): boolean {
@@ -67,11 +77,15 @@ export class AuthenticatedUser extends Entity<AuthenticatedUserProps> {
   }
 
   public hasAnyPermission(permissions: string[]): boolean {
-    return permissions.some(permission => this.props.permissions.includes(permission));
+    return permissions.some((permission) =>
+      this.props.permissions.includes(permission),
+    );
   }
 
   public hasAllPermissions(permissions: string[]): boolean {
-    return permissions.every(permission => this.props.permissions.includes(permission));
+    return permissions.every((permission) =>
+      this.props.permissions.includes(permission),
+    );
   }
 
   public isExpired(): boolean {
@@ -88,29 +102,29 @@ export class AuthenticatedUser extends Entity<AuthenticatedUserProps> {
 
   override validate(): void {
     if (!this.props.userId) {
-      throw new Error('User ID is required');
+      throw new Error("User ID is required");
     }
 
     if (!this.props.email || this.props.email.trim().length === 0) {
-      throw new Error('Email is required');
+      throw new Error("Email is required");
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.props.email)) {
-      throw new Error('Invalid email format');
+      throw new Error("Invalid email format");
     }
 
     if (!this.props.roles || this.props.roles.length === 0) {
-      throw new Error('User must have at least one role');
+      throw new Error("User must have at least one role");
     }
 
     if (!this.props.permissions || this.props.permissions.length === 0) {
-      throw new Error('User must have at least one permission');
+      throw new Error("User must have at least one permission");
     }
 
     if (this.props.issuedAt >= this.props.expiresAt) {
-      throw new Error('Token expiration time must be after issued time');
+      throw new Error("Token expiration time must be after issued time");
     }
   }
 
@@ -121,9 +135,10 @@ export class AuthenticatedUser extends Entity<AuthenticatedUserProps> {
       roles: this.props.roles,
       permissions: this.props.permissions,
       sessionId: this.props.sessionId,
+      patientId: this.props.patientId,
+      providerId: this.props.providerId,
       issuedAt: this.props.issuedAt.toISOString(),
-      expiresAt: this.props.expiresAt.toISOString()
+      expiresAt: this.props.expiresAt.toISOString(),
     };
   }
 }
-

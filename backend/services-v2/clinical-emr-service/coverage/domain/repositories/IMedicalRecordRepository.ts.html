@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">41.66% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>5/12</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">41.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>5/12</span>
             </div>
         
             
@@ -630,32 +630,32 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -968,32 +968,32 @@ export interface DoctorMedicalRecordStatistics {
 /**
  * Repository error types
  */
-<span class="cstat-no" title="statement not covered" >export class M</span>edicalRecordRepositoryError extends Error {
+export class MedicalRecordRepositoryError extends Error {
 <span class="fstat-no" title="function not covered" >  constructor(m</span>essage: string, public readonly <span class="cstat-no" title="statement not covered" >code: string)</span> {
 <span class="cstat-no" title="statement not covered" >    super(message);</span>
 <span class="cstat-no" title="statement not covered" >    this.name = 'MedicalRecordRepositoryError';</span>
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class M</span>edicalRecordNotFoundError extends MedicalRecordRepositoryError {
+export class MedicalRecordNotFoundError extends MedicalRecordRepositoryError {
 <span class="fstat-no" title="function not covered" >  constructor(r</span>ecordId: string) {
 <span class="cstat-no" title="statement not covered" >    super(`Không tìm thấy hồ sơ bệnh án với ID: ${recordId}`, 'MEDICAL_RECORD_NOT_FOUND');</span>
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class M</span>edicalRecordAlreadyExistsError extends MedicalRecordRepositoryError {
+export class MedicalRecordAlreadyExistsError extends MedicalRecordRepositoryError {
 <span class="fstat-no" title="function not covered" >  constructor(r</span>ecordId: string) {
 <span class="cstat-no" title="statement not covered" >    super(`Hồ sơ bệnh án với ID ${recordId} đã tồn tại`, 'MEDICAL_RECORD_ALREADY_EXISTS');</span>
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class M</span>edicalRecordConcurrencyError extends MedicalRecordRepositoryError {
+export class MedicalRecordConcurrencyError extends MedicalRecordRepositoryError {
 <span class="fstat-no" title="function not covered" >  constructor(r</span>ecordId: string) {
 <span class="cstat-no" title="statement not covered" >    super(`Hồ sơ bệnh án ${recordId} đã được cập nhật bởi người khác`, 'MEDICAL_RECORD_CONCURRENCY_ERROR');</span>
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class M</span>edicalRecordValidationError extends MedicalRecordRepositoryError {
+export class MedicalRecordValidationError extends MedicalRecordRepositoryError {
 <span class="fstat-no" title="function not covered" >  constructor(m</span>essage: string) {
 <span class="cstat-no" title="statement not covered" >    super(`Lỗi validation hồ sơ bệnh án: ${message}`, 'MEDICAL_RECORD_VALIDATION_ERROR');</span>
   }
@@ -1084,7 +1084,7 @@ export interface RepositoryStatistics {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-02T05:18:17.095Z
+                at 2025-11-08T09:37:17.067Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

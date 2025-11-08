@@ -10,6 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegisterPatientUseCase = void 0;
+const crypto_1 = require("crypto");
 const Patient_1 = require("../../domain/aggregates/Patient");
 const PatientId_1 = require("../../domain/value-objects/PatientId");
 const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
@@ -70,17 +71,20 @@ class RegisterPatientUseCase {
                 dateOfBirth: new Date(request.personalInfo.dateOfBirth),
                 gender: request.personalInfo.gender,
                 nationalId: request.personalInfo.nationalId,
-                nationality: request.personalInfo.nationality,
+                nationality: request.personalInfo.nationality?.trim() ||
+                    DEFAULT_PATIENT_NATIONALITY,
                 ethnicity: request.personalInfo.ethnicity,
                 occupation: request.personalInfo.occupation,
                 maritalStatus: request.personalInfo.maritalStatus,
             });
+            const preferredContactMethod = request.contactInfo.preferredContactMethod ?? "phone";
             const contactInfo = ContactInfo_1.ContactInfo.create({
-                primaryPhone: request.contactInfo.primaryPhone,
-                secondaryPhone: request.contactInfo.secondaryPhone,
+                primaryPhone: normalizeVietnamesePhoneNumber(request.contactInfo.primaryPhone) ||
+                    request.contactInfo.primaryPhone,
+                secondaryPhone: normalizeVietnamesePhoneNumber(request.contactInfo.secondaryPhone),
                 email: request.contactInfo.email,
-                preferredContactMethod: request.contactInfo.preferredContactMethod,
-                address: request.contactInfo.address,
+                preferredContactMethod,
+                address: buildSafePatientAddress(request.contactInfo.address),
             });
             const basicMedicalInfo = request.basicMedicalInfo
                 ? BasicMedicalInfo_1.BasicMedicalInfo.create({
@@ -106,7 +110,7 @@ class RegisterPatientUseCase {
                 });
             }
             // 7. Create emergency contact entities
-            const emergencyContacts = request.emergencyContacts.map((contact) => EmergencyContact_1.EmergencyContact.create(contact.name, contact.relationship, contact.primaryPhone, contact.secondaryPhone, contact.email, contact.address, contact.isPrimary));
+            const emergencyContacts = (request.emergencyContacts ?? []).map((contact) => EmergencyContact_1.EmergencyContact.create(contact.name, contact.relationship, contact.primaryPhone, contact.secondaryPhone, contact.email, contact.address, contact.isPrimary));
             // 8. Generate PatientId from database sequence (thread-safe)
             const patientId = await PatientId_1.PatientId.generateFromDB(this.supabaseClient);
             // 9. Register patient (create aggregate with pre-generated ID)
@@ -181,19 +185,19 @@ class RegisterPatientUseCase {
         try {
             // Log to audit_logs table (HIPAA compliance)
             await this.auditService.logAudit({
-                eventId: `patient-registration-${patient.getPatientId()}-${Date.now()}`,
-                eventType: 'patient.registered',
-                aggregateType: 'Patient',
-                aggregateId: patient.getPatientId() || 'unknown',
-                action: 'PATIENT_REGISTRATION',
+                eventId: (0, crypto_1.randomUUID)(),
+                eventType: "patient.registered",
+                aggregateType: "Patient",
+                aggregateId: patient.getPatientId() || "unknown",
+                action: "PATIENT_REGISTRATION",
                 userId: request.userId ?? undefined,
                 patientId: patient.getPatientId() ?? undefined,
                 containsPHI: true,
                 changedFields: {
-                    dataAccessed: 'patient_personal_info,patient_contact_info,patient_medical_info,insurance_info',
-                    requestedBy: request.requestedBy || 'system',
+                    dataAccessed: "patient_personal_info,patient_contact_info,patient_medical_info,insurance_info",
+                    requestedBy: request.requestedBy || "system",
                 },
-                complianceLevel: 'hipaa',
+                complianceLevel: "hipaa",
             });
             this.logger.info("Patient registration audited successfully", {
                 patientId: patient.getPatientId(),
@@ -203,10 +207,43 @@ class RegisterPatientUseCase {
             // Log error but don't fail the registration
             this.logger.error("Failed to audit patient registration", {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
         }
     }
 }
 exports.RegisterPatientUseCase = RegisterPatientUseCase;
+const DEFAULT_PATIENT_NATIONALITY = "Vietnamese";
+const DEFAULT_PATIENT_ADDRESS_TEXT = "Chưa cập nhật";
+const DEFAULT_PATIENT_CITY = "TP. Hồ Chí Minh";
+const DEFAULT_PATIENT_COUNTRY = "Việt Nam";
+function buildSafePatientAddress(address) {
+    const fallbackCity = address?.city?.trim() || DEFAULT_PATIENT_CITY;
+    return {
+        street: address?.street?.trim() || DEFAULT_PATIENT_ADDRESS_TEXT,
+        ward: address?.ward?.trim() || DEFAULT_PATIENT_ADDRESS_TEXT,
+        district: address?.district?.trim() || DEFAULT_PATIENT_ADDRESS_TEXT,
+        city: fallbackCity,
+        province: address?.province?.trim() || fallbackCity,
+        postalCode: address?.postalCode?.trim(),
+        country: address?.country?.trim() || DEFAULT_PATIENT_COUNTRY,
+    };
+}
+function normalizeVietnamesePhoneNumber(phone) {
+    if (!phone) {
+        return undefined;
+    }
+    const sanitized = phone.replace(/[\s-]/g, "");
+    if (sanitized.startsWith("+84")) {
+        const rest = sanitized.slice(3);
+        if (!rest) {
+            return undefined;
+        }
+        return `0${rest}`;
+    }
+    if (sanitized.startsWith("84") && sanitized.length >= 11) {
+        return `0${sanitized.slice(2)}`;
+    }
+    return sanitized;
+}
 //# sourceMappingURL=RegisterPatientUseCase.js.map

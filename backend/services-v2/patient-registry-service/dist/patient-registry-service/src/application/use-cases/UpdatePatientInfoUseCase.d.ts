@@ -34,6 +34,7 @@ export interface UpdatePatientInfoRequest {
             ward: string;
             district: string;
             city: string;
+            province: string;
             postalCode?: string;
             country: string;
         };

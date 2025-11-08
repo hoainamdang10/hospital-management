@@ -36,10 +36,16 @@ class SupabasePatientRepository {
             try {
                 const cachedPatient = await this.patientCache.get(patientId);
                 if (cachedPatient) {
-                    this.logger.debug("Patient found in cache", {
+                    if (typeof cachedPatient.isActive === "function") {
+                        this.logger.debug("Patient found in cache", {
+                            patientId: patientId.getValue(),
+                        });
+                        return cachedPatient;
+                    }
+                    this.logger.warn("Cached patient is stale, invalidating entry", {
                         patientId: patientId.getValue(),
                     });
-                    return cachedPatient;
+                    await this.patientCache.invalidate(patientId);
                 }
             }
             catch (cacheError) {
@@ -80,7 +86,9 @@ class SupabasePatientRepository {
                 catch (cacheError) {
                     this.logger.warn("Failed to cache patient", {
                         patientId: patientId.getValue(),
-                        error: cacheError instanceof Error ? cacheError.message : "Unknown error",
+                        error: cacheError instanceof Error
+                            ? cacheError.message
+                            : "Unknown error",
                     });
                 }
             }
@@ -193,6 +201,10 @@ class SupabasePatientRepository {
             if (!patientIdValue) {
                 throw new Error("Patient ID is required");
             }
+            this.logger.info("Persisting patient record", {
+                patientId: patientIdValue,
+                userId: patientRecord.user_id,
+            });
             // ✅ Use PostgreSQL function for transaction support
             const { data, error } = await this.supabaseClient.rpc("save_patient_transaction", {
                 p_patient_data: patientRecord,
@@ -218,6 +230,19 @@ class SupabasePatientRepository {
                     patientId: patientIdValue,
                     result: data,
                 });
+            }
+            if (this.patientCache) {
+                try {
+                    await this.patientCache.invalidate(patient.getPatientIdObject());
+                }
+                catch (cacheError) {
+                    this.logger.warn("Patient cache invalidation failed after save", {
+                        patientId: patientIdValue,
+                        error: cacheError instanceof Error
+                            ? cacheError.message
+                            : "Unknown error",
+                    });
+                }
             }
             // Publish domain events
             await this.publishDomainEvents(patient);
@@ -333,65 +358,82 @@ class SupabasePatientRepository {
      */
     async findWithFilters(filters, pagination) {
         return await this.circuitBreaker.execute(async () => {
-            let query = this.supabaseClient
-                .from("patients")
-                .select("*", { count: "exact" });
-            // Apply filters
-            if (filters.isActive !== undefined) {
-                query = query.eq("status", filters.isActive ? "active" : "inactive");
-            }
-            if (filters.registrationDateFrom) {
-                query = query.gte("created_at", filters.registrationDateFrom);
-            }
-            if (filters.registrationDateTo) {
-                query = query.lte("created_at", filters.registrationDateTo);
-            }
-            if (filters.city) {
-                query = query.eq("contact_info->>city", filters.city);
-            }
-            if (filters.hasInsurance !== undefined) {
-                const insuredPatientIds = await this.getActiveInsurancePatientIds();
-                if (filters.hasInsurance) {
-                    if (insuredPatientIds.length === 0) {
-                        return { patients: [], total: 0 };
+            try {
+                let query = this.supabaseClient
+                    .from("patients")
+                    .select("*", { count: "exact" });
+                // Apply filters
+                if (filters.isActive !== undefined) {
+                    query = query.eq("status", filters.isActive ? "active" : "inactive");
+                }
+                if (filters.registrationDateFrom) {
+                    query = query.gte("created_at", filters.registrationDateFrom);
+                }
+                if (filters.registrationDateTo) {
+                    query = query.lte("created_at", filters.registrationDateTo);
+                }
+                if (filters.city) {
+                    query = query.eq("contact_info->address->>city", filters.city);
+                }
+                if (filters.province) {
+                    query = query.eq("contact_info->address->>province", filters.province);
+                }
+                if (filters.hasInsurance !== undefined) {
+                    const insuredPatientIds = await this.getActiveInsurancePatientIds();
+                    if (filters.hasInsurance) {
+                        if (insuredPatientIds.length === 0) {
+                            return { patients: [], total: 0 };
+                        }
+                        query = query.in("patient_id", insuredPatientIds);
                     }
-                    query = query.in("patient_id", insuredPatientIds);
+                    else if (insuredPatientIds.length > 0) {
+                        query = query.not("patient_id", "in", this.buildInClause(insuredPatientIds));
+                    }
                 }
-                else if (insuredPatientIds.length > 0) {
-                    query = query.not("patient_id", "in", this.buildInClause(insuredPatientIds));
+                // Apply pagination
+                if (pagination) {
+                    const offset = (pagination.page - 1) * pagination.limit;
+                    query = query.range(offset, offset + pagination.limit - 1);
+                    if (pagination.sorting) {
+                        query = query.order(pagination.sorting.field, {
+                            ascending: pagination.sorting.direction === "asc",
+                        });
+                    }
                 }
-            }
-            // Apply pagination
-            if (pagination) {
-                const offset = (pagination.page - 1) * pagination.limit;
-                query = query.range(offset, offset + pagination.limit - 1);
-                if (pagination.sorting) {
-                    query = query.order(pagination.sorting.field, {
-                        ascending: pagination.sorting.direction === "asc",
+                const { data, error, count } = await query;
+                if (error) {
+                    this.logger.error("[PatientRepository] findWithFilters query failed", {
+                        error: error.message,
+                        details: error?.details,
+                        hint: error?.hint,
+                        code: error?.code,
                     });
+                    throw new Error(`Failed to find patients with filters: ${error.message}`);
                 }
+                // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+                const patientIds = (data || []).map((record) => record.patient_id);
+                const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
+                    this.fetchInsuranceBatch(patientIds),
+                    this.fetchEmergencyContactsBatch(patientIds),
+                    this.fetchConsentsBatch(patientIds),
+                    this.fetchLinksBatch(patientIds),
+                ]);
+                // Map to domain with pre-fetched data
+                const patients = (data || []).map((record) => {
+                    const patientId = record.patient_id;
+                    return PatientMapper_1.PatientMapper.toDomain(record, insuranceMap.get(patientId) || null, contactsMap.get(patientId) || [], consentsMap.get(patientId) || [], linksMap.get(patientId) || []);
+                });
+                return {
+                    patients,
+                    total: count || 0,
+                };
             }
-            const { data, error, count } = await query;
-            if (error) {
-                throw new Error(`Failed to find patients with filters: ${error.message}`);
+            catch (error) {
+                this.logger.error("[PatientRepository] findWithFilters execution failed", {
+                    error: error instanceof Error ? error.message : "Unknown error",
+                });
+                throw error;
             }
-            // ✅ FIX N+1 PROBLEM: Batch fetch all related data
-            const patientIds = (data || []).map((record) => record.patient_id);
-            const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
-                this.fetchInsuranceBatch(patientIds),
-                this.fetchEmergencyContactsBatch(patientIds),
-                this.fetchConsentsBatch(patientIds),
-                this.fetchLinksBatch(patientIds),
-            ]);
-            // Map to domain with pre-fetched data
-            const patients = (data || []).map((record) => {
-                const patientId = record.patient_id;
-                return PatientMapper_1.PatientMapper.toDomain(record, insuranceMap.get(patientId) || null, contactsMap.get(patientId) || [], consentsMap.get(patientId) || [], linksMap.get(patientId) || []);
-            });
-            return {
-                patients,
-                total: count || 0,
-            };
         }, async () => {
             this.logger.warn("Circuit breaker fallback for findWithFilters");
             return { patients: [], total: 0 };
@@ -402,52 +444,66 @@ class SupabasePatientRepository {
      */
     async searchPatients(searchTerm, filters, pagination) {
         return await this.circuitBreaker.execute(async () => {
-            let query = this.supabaseClient
-                .from("patients")
-                .select("*", { count: "exact" })
-                .or([
-                `personal_info->>fullName.ilike.%${searchTerm}%`,
-                `personal_info->>nationalId.ilike.%${searchTerm}%`,
-                `contact_info->>primaryPhone.ilike.%${searchTerm}%`,
-                `contact_info->>email.ilike.%${searchTerm}%`,
-            ].join(","));
-            if (filters?.isActive !== undefined) {
-                query = query.eq("status", filters.isActive ? "active" : "inactive");
-            }
-            if (filters?.hasInsurance !== undefined) {
-                const insuredPatientIds = await this.getActiveInsurancePatientIds();
-                if (filters.hasInsurance) {
-                    if (insuredPatientIds.length === 0) {
-                        return { patients: [], total: 0 };
+            try {
+                let query = this.supabaseClient
+                    .from("patients")
+                    .select("*", { count: "exact" })
+                    .or([
+                    `personal_info->>fullName.ilike.%${searchTerm}%`,
+                    `personal_info->>nationalId.ilike.%${searchTerm}%`,
+                    `contact_info->>primaryPhone.ilike.%${searchTerm}%`,
+                    `contact_info->>email.ilike.%${searchTerm}%`,
+                ].join(","));
+                if (filters?.isActive !== undefined) {
+                    query = query.eq("status", filters.isActive ? "active" : "inactive");
+                }
+                if (filters?.hasInsurance !== undefined) {
+                    const insuredPatientIds = await this.getActiveInsurancePatientIds();
+                    if (filters.hasInsurance) {
+                        if (insuredPatientIds.length === 0) {
+                            return { patients: [], total: 0 };
+                        }
+                        query = query.in("patient_id", insuredPatientIds);
                     }
-                    query = query.in("patient_id", insuredPatientIds);
+                    else if (insuredPatientIds.length > 0) {
+                        query = query.not("patient_id", "in", this.buildInClause(insuredPatientIds));
+                    }
                 }
-                else if (insuredPatientIds.length > 0) {
-                    query = query.not("patient_id", "in", this.buildInClause(insuredPatientIds));
+                if (pagination) {
+                    const offset = (pagination.page - 1) * pagination.limit;
+                    query = query.range(offset, offset + pagination.limit - 1);
                 }
+                const { data, error, count } = await query;
+                if (error) {
+                    this.logger.error("[PatientRepository] searchPatients query failed", {
+                        error: error.message,
+                        details: error?.details,
+                        hint: error?.hint,
+                        code: error?.code,
+                    });
+                    throw new Error(`Failed to search patients: ${error.message}`);
+                }
+                // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+                const patientIds = (data || []).map((record) => record.patient_id);
+                const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
+                    this.fetchInsuranceBatch(patientIds),
+                    this.fetchEmergencyContactsBatch(patientIds),
+                    this.fetchConsentsBatch(patientIds),
+                    this.fetchLinksBatch(patientIds),
+                ]);
+                // Map to domain with pre-fetched data
+                const patients = (data || []).map((record) => {
+                    const patientId = record.patient_id;
+                    return PatientMapper_1.PatientMapper.toDomain(record, insuranceMap.get(patientId) || null, contactsMap.get(patientId) || [], consentsMap.get(patientId) || [], linksMap.get(patientId) || []);
+                });
+                return { patients, total: count || 0 };
             }
-            if (pagination) {
-                const offset = (pagination.page - 1) * pagination.limit;
-                query = query.range(offset, offset + pagination.limit - 1);
+            catch (error) {
+                this.logger.error("[PatientRepository] searchPatients execution failed", {
+                    error: error instanceof Error ? error.message : "Unknown error",
+                });
+                throw error;
             }
-            const { data, error, count } = await query;
-            if (error) {
-                throw new Error(`Failed to search patients: ${error.message}`);
-            }
-            // ✅ FIX N+1 PROBLEM: Batch fetch all related data
-            const patientIds = (data || []).map((record) => record.patient_id);
-            const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
-                this.fetchInsuranceBatch(patientIds),
-                this.fetchEmergencyContactsBatch(patientIds),
-                this.fetchConsentsBatch(patientIds),
-                this.fetchLinksBatch(patientIds),
-            ]);
-            // Map to domain with pre-fetched data
-            const patients = (data || []).map((record) => {
-                const patientId = record.patient_id;
-                return PatientMapper_1.PatientMapper.toDomain(record, insuranceMap.get(patientId) || null, contactsMap.get(patientId) || [], consentsMap.get(patientId) || [], linksMap.get(patientId) || []);
-            });
-            return { patients, total: count || 0 };
         }, async () => {
             this.logger.warn("Circuit breaker fallback for searchPatients");
             return { patients: [], total: 0 };
@@ -924,7 +980,7 @@ class SupabasePatientRepository {
             // Get insurance type distribution
             const { data: insuranceData, error: insuranceError } = await this.supabaseClient
                 .from("insurance_info")
-                .select("insurance_type");
+                .select("coverage_type");
             if (insuranceError) {
                 throw new Error(`Failed to get insurance data: ${insuranceError.message}`);
             }
@@ -935,7 +991,7 @@ class SupabasePatientRepository {
                 selfPay: total || 0,
             };
             insuranceData?.forEach((row) => {
-                const type = row.insurance_type?.toLowerCase();
+                const type = row.coverage_type?.toLowerCase();
                 if (type === "bhyt") {
                     byInsuranceType.bhyt++;
                     byInsuranceType.selfPay--;
@@ -1022,20 +1078,20 @@ class SupabasePatientRepository {
             });
             // Build query for audit_logs (schema already set in client config)
             let auditQuery = this.supabaseClient
-                .from('audit_logs')
-                .select('*', { count: 'exact' })
-                .eq('patient_id', patientId.getValue())
-                .order('created_at', { ascending: false })
+                .from("audit_logs")
+                .select("*", { count: "exact" })
+                .eq("patient_id", patientId.getValue())
+                .order("created_at", { ascending: false })
                 .range(offset, offset + limit - 1);
             // Apply filters
             if (options?.dateFrom) {
-                auditQuery = auditQuery.gte('created_at', options.dateFrom.toISOString());
+                auditQuery = auditQuery.gte("created_at", options.dateFrom.toISOString());
             }
             if (options?.dateTo) {
-                auditQuery = auditQuery.lte('created_at', options.dateTo.toISOString());
+                auditQuery = auditQuery.lte("created_at", options.dateTo.toISOString());
             }
             if (options?.eventTypes && options.eventTypes.length > 0) {
-                auditQuery = auditQuery.in('event_type', options.eventTypes);
+                auditQuery = auditQuery.in("event_type", options.eventTypes);
             }
             const { data: auditLogs, error: auditError, count } = await auditQuery;
             if (auditError) {
@@ -1047,16 +1103,16 @@ class SupabasePatientRepository {
             }
             // Build query for phi_access_logs (schema already set in client config)
             let phiQuery = this.supabaseClient
-                .from('phi_access_logs')
-                .select('*')
-                .eq('patient_id', patientId.getValue())
-                .order('accessed_at', { ascending: false })
+                .from("phi_access_logs")
+                .select("*")
+                .eq("patient_id", patientId.getValue())
+                .order("accessed_at", { ascending: false })
                 .range(offset, offset + limit - 1);
             if (options?.dateFrom) {
-                phiQuery = phiQuery.gte('accessed_at', options.dateFrom.toISOString());
+                phiQuery = phiQuery.gte("accessed_at", options.dateFrom.toISOString());
             }
             if (options?.dateTo) {
-                phiQuery = phiQuery.lte('accessed_at', options.dateTo.toISOString());
+                phiQuery = phiQuery.lte("accessed_at", options.dateTo.toISOString());
             }
             const { data: phiLogs, error: phiError } = await phiQuery;
             if (phiError) {
@@ -1085,7 +1141,7 @@ class SupabasePatientRepository {
                     userId: log.user_id,
                     userRole: log.user_role,
                     timestamp: new Date(log.accessed_at),
-                    accessedFields: log.data_accessed?.split(',') || [],
+                    accessedFields: log.data_accessed?.split(",") || [],
                     ipAddress: log.ip_address,
                     userAgent: log.user_agent,
                 })),

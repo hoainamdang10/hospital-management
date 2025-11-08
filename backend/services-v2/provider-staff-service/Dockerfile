@@ -4,60 +4,109 @@
 # @author Hospital Management Team
 # @version 2.0.0
 # @compliance Production-Ready, Security Hardened
+#
+# Build context should be: backend/services-v2
+# Build command: docker build --no-cache -f provider-staff-service/Dockerfile -t provider-staff-service:latest .
 
-# Build stage
-FROM node:18-alpine AS builder
+# ============================================
+# Stage 1: Dependencies
+# ============================================
+FROM node:18-alpine AS dependencies
 
-# Set working directory
-WORKDIR /app
+# Add build arguments for cache busting
+ARG BUILD_DATE
+ARG VERSION=2.0.0
 
-# Copy entire provider-staff-service and shared folders to maintain structure
-COPY provider-staff-service/ ./provider-staff-service/
-COPY shared/ ./shared/
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
-# Change to provider-staff-service directory
 WORKDIR /app/provider-staff-service
 
+# Copy package files
+COPY provider-staff-service/package*.json ./
+
 # Install ALL dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
+# Use --legacy-peer-deps to handle peer dependency conflicts
+RUN npm install --legacy-peer-deps && \
+    npm cache clean --force
 
-# Create symlink for node_modules at parent level so shared can access it
-RUN ln -s /app/provider-staff-service/node_modules /app/node_modules
+# ============================================
+# Stage 2: Builder
+# ============================================
+FROM node:18-alpine AS builder
 
-# Build the application (tsconfig will find ../shared and ../node_modules)
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /app/provider-staff-service/node_modules ./provider-staff-service/node_modules
+
+# Copy source code and shared modules
+COPY provider-staff-service ./provider-staff-service
+COPY shared ./shared
+
+# Install uuid globally in shared module for build
+RUN cd /app/shared && npm init -y && npm install uuid @types/uuid --save
+
+# Change to service directory
+WORKDIR /app/provider-staff-service
+
+# Install uuid for provider-staff-service (needed during build)
+RUN npm install uuid @types/uuid --save-dev
+
+# Build TypeScript
 RUN npm run build
 
-# Production stage
+# ============================================
+# Stage 3: Production
+# ============================================
 FROM node:18-alpine AS production
+
+# Add build arguments
+ARG BUILD_DATE
+ARG VERSION=2.0.0
+ARG VCS_REF
+
+# Add image labels for better management
+LABEL org.opencontainers.image.title="Provider Staff Service" \
+      org.opencontainers.image.description="Hospital Management System - Provider/Staff Management Service" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.vendor="Hospital Management Team" \
+      maintainer="Hospital Management Team"
+
+# Install dumb-init for proper signal handling and curl for healthcheck
+RUN apk add --no-cache dumb-init curl
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-  adduser -S provider -u 1001
+    adduser -S provider -u 1001 -G nodejs
 
-# Set working directory to match build structure
 WORKDIR /app/provider-staff-service
 
-# Copy entire structure from builder maintaining relative paths
-COPY --from=builder --chown=provider:nodejs /app/provider-staff-service/package*.json ./
+# Copy package files
+COPY --chown=provider:nodejs provider-staff-service/package*.json ./
+
+# Install production dependencies only
+RUN npm install --only=production --legacy-peer-deps && \
+    npm cache clean --force
+
+# Copy built application from builder
 COPY --from=builder --chown=provider:nodejs /app/provider-staff-service/dist ./dist
-COPY --from=builder --chown=provider:nodejs /app/provider-staff-service/node_modules ./node_modules
 COPY --from=builder --chown=provider:nodejs /app/shared ../shared
 
-# Install production dependencies only (if needed)
-RUN npm prune --production && npm cache clean --force
-
 # Create necessary directories
-RUN mkdir -p /app/provider-staff-service/logs && chown provider:nodejs /app/provider-staff-service/logs
+RUN mkdir -p logs && chown -R provider:nodejs logs
 
 # Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3022
-ENV SERVICE_NAME=provider-staff-service
-ENV SERVICE_VERSION=2.0.0
+ENV NODE_ENV=production \
+    PORT=3002 \
+    SERVICE_NAME=provider-staff-service \
+    SERVICE_VERSION=2.0.0
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3022/health', (res) => { \
+  CMD node -e "require('http').get('http://localhost:3002/health', (res) => { \
   if (res.statusCode === 200) process.exit(0); else process.exit(1); \
   }).on('error', () => process.exit(1))"
 
@@ -65,7 +114,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 USER provider
 
 # Expose port
-EXPOSE 3022
+EXPOSE 3002
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/provider-staff-service/src/main.js"]

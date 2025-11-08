@@ -1,0 +1,76 @@
+# Node modules
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+dist
+build
+*.tsbuildinfo
+
+# Test files
+tests
+coverage
+*.test.ts
+*.spec.ts
+__tests__
+__mocks__
+
+# Documentation
+*.md
+docs
+README.md
+CHANGELOG.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Development
+.editorconfig
+.prettierrc
+.eslintrc
+.eslintignore
+tsconfig.json
+jest.config.js
+playwright.config.ts
+
+# Monitoring
+monitoring
+
+# Scripts
+scripts
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+compose.yml
+

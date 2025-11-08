@@ -6,11 +6,12 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, CQRS
  */
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
 export interface ReactivatePatientCommand {
     patientId: string;
     reason: string;
     performedBy: string;
+    allowDeceasedReactivate?: boolean;
 }
 export interface ReactivatePatientResult {
     success: boolean;

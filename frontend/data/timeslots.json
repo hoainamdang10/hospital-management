@@ -1,0 +1,29 @@
+{
+  "slots": [
+    { "id": "slot-1", "time": "08:00", "label": "08:00 - 08:30" },
+    { "id": "slot-2", "time": "08:30", "label": "08:30 - 09:00" },
+    { "id": "slot-3", "time": "09:00", "label": "09:00 - 09:30" },
+    { "id": "slot-4", "time": "09:30", "label": "09:30 - 10:00" },
+    { "id": "slot-5", "time": "10:00", "label": "10:00 - 10:30" },
+    { "id": "slot-6", "time": "10:30", "label": "10:30 - 11:00" },
+    { "id": "slot-7", "time": "11:00", "label": "11:00 - 11:30" },
+    { "id": "slot-8", "time": "14:00", "label": "14:00 - 14:30" },
+    { "id": "slot-9", "time": "14:30", "label": "14:30 - 15:00" },
+    { "id": "slot-10", "time": "15:00", "label": "15:00 - 15:30" },
+    { "id": "slot-11", "time": "15:30", "label": "15:30 - 16:00" },
+    { "id": "slot-12", "time": "16:00", "label": "16:00 - 16:30" },
+    { "id": "slot-13", "time": "16:30", "label": "16:30 - 17:00" }
+  ],
+  "availability": {
+    "dr-nguyen-van-a": {
+      "2025-01-20": ["slot-1", "slot-2", "slot-3", "slot-8", "slot-9"],
+      "2025-01-21": ["slot-4", "slot-5", "slot-10", "slot-11"],
+      "2025-01-22": ["slot-1", "slot-6", "slot-7", "slot-12", "slot-13"]
+    },
+    "dr-tran-thi-b": {
+      "2025-01-20": ["slot-2", "slot-3", "slot-4", "slot-9", "slot-10"],
+      "2025-01-21": ["slot-1", "slot-5", "slot-8", "slot-11", "slot-12"],
+      "2025-01-22": ["slot-3", "slot-6", "slot-9", "slot-13"]
+    }
+  }
+}

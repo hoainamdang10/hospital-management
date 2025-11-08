@@ -14,8 +14,8 @@ import { Router } from 'express';
  * Uses DI container for dependency injection
  *
  * Routes:
- * - GET /api/appointments/providers/:providerId/available-slots
- * - GET /api/appointments/providers/:providerId/schedule
+ * - GET /api/v1/appointments/providers/:providerId/available-slots
+ * - GET /api/v1/appointments/providers/:providerId/schedule
  */
 export declare function createAvailabilityRoutes(): Router;
 //# sourceMappingURL=availability.routes.d.ts.map

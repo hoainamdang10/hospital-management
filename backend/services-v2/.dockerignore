@@ -1,16 +1,18 @@
 # ============================================
-# Docker Ignore for Identity Service Build
+# Docker Ignore for Services Build
 # Build Context: backend/services-v2
 # ============================================
 
-# Exclude all services except identity-service, appointments-service and shared
-api-gateway
+# Exclude services not being built
+# Comment out the service you want to build
+# api-gateway
 billing-service
 clinical-emr-service
-department-service
+# department-service
 notifications-service
-provider-staff-service
+# provider-staff-service
 scheduler-service
+# patient-registry-service
 
 # Dependencies (will be installed during build)
 **/node_modules
@@ -21,12 +23,12 @@ scheduler-service
 
 # Keep package-lock.json for npm ci
 # Exclude other services' package-lock.json
-api-gateway/package-lock.json
+# api-gateway/package-lock.json
 billing-service/package-lock.json
 clinical-emr-service/package-lock.json
-department-service/package-lock.json
+# department-service/package-lock.json
 notifications-service/package-lock.json
-provider-staff-service/package-lock.json
+# provider-staff-service/package-lock.json
 scheduler-service/package-lock.json
 
 # Testing
@@ -68,7 +70,7 @@ scheduler-service/package-lock.json
 **/*.tsbuildinfo
 
 # Monitoring (keep identity-service monitoring, exclude others)
-api-gateway/monitoring
+# api-gateway/monitoring
 appointments-service/monitoring
 billing-service/monitoring
 clinical-emr-service/monitoring

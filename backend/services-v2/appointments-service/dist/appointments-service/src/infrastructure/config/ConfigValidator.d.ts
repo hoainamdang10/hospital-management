@@ -42,6 +42,7 @@ export interface AppConfig {
         batchSize: number;
         baseDelayMs: number;
         maxDelayMs: number;
+        reservedTimeoutMinutes: number;
     };
     tenantId: string;
     logging: {

@@ -7,10 +7,10 @@
  * @compliance Clean Architecture, DDD
  */
 
-import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { StaffId } from '../../domain/value-objects/StaffId';
-import { ILogger } from '../interfaces/ILogger';
-import { IAuditService } from '../interfaces/IAuditService';
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
+import { StaffId } from "../../domain/value-objects/StaffId";
+import { ILogger } from "../interfaces/ILogger";
+import { IAuditService } from "../interfaces/IAuditService";
 
 export interface RemoveStaffFromDepartmentRequest {
   staffId: string;
@@ -45,15 +45,17 @@ export class RemoveStaffFromDepartmentUseCase {
   constructor(
     private staffRepository: IProviderStaffRepository,
     private logger: ILogger,
-    private auditService?: IAuditService
+    private auditService?: IAuditService,
   ) {}
 
-  async execute(request: RemoveStaffFromDepartmentRequest): Promise<RemoveStaffFromDepartmentResponse> {
+  async execute(
+    request: RemoveStaffFromDepartmentRequest,
+  ): Promise<RemoveStaffFromDepartmentResponse> {
     try {
-      this.logger.info('Removing staff from department', {
+      this.logger.info("Removing staff from department", {
         staffId: request.staffId,
         departmentId: request.departmentId,
-        removedBy: request.removedBy
+        removedBy: request.removedBy,
       });
 
       // Validate request
@@ -61,8 +63,8 @@ export class RemoveStaffFromDepartmentUseCase {
       if (validationErrors.length > 0) {
         return {
           success: false,
-          message: 'Dữ liệu xóa phân công không hợp lệ',
-          errors: validationErrors
+          message: "Dữ liệu xóa phân công không hợp lệ",
+          errors: validationErrors,
         };
       }
 
@@ -72,21 +74,21 @@ export class RemoveStaffFromDepartmentUseCase {
       if (!staff) {
         return {
           success: false,
-          message: 'Không tìm thấy nhân viên',
-          errors: ['STAFF_NOT_FOUND']
+          message: "Không tìm thấy nhân viên",
+          errors: ["STAFF_NOT_FOUND"],
         };
       }
 
       // Find department assignment
       const assignment = staff.departmentAssignments.find(
-        a => a.departmentId === request.departmentId && a.isActive
+        (a) => a.departmentId === request.departmentId && a.isActive,
       );
 
       if (!assignment) {
         return {
           success: false,
-          message: 'Không tìm thấy phân công khoa/phòng ban',
-          errors: ['DEPARTMENT_ASSIGNMENT_NOT_FOUND']
+          message: "Không tìm thấy phân công khoa/phòng ban",
+          errors: ["DEPARTMENT_ASSIGNMENT_NOT_FOUND"],
         };
       }
 
@@ -100,8 +102,8 @@ export class RemoveStaffFromDepartmentUseCase {
       // Audit log
       if (this.auditService && this.auditService.logAction) {
         await this.auditService.logAction({
-          action: 'REMOVE_STAFF_FROM_DEPARTMENT',
-          entityType: 'ProviderStaff',
+          action: "REMOVE_STAFF_FROM_DEPARTMENT",
+          entityType: "ProviderStaff",
           entityId: staff.id,
           performedBy: request.removedBy,
           performedByRole: request.removedByRole,
@@ -110,39 +112,38 @@ export class RemoveStaffFromDepartmentUseCase {
             endDate: endDate.toISOString(),
             reason: request.reason,
             ipAddress: request.requestMetadata?.ipAddress,
-            userAgent: request.requestMetadata?.userAgent
+            userAgent: request.requestMetadata?.userAgent,
           },
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
-      this.logger.info('Staff removed from department successfully', {
+      this.logger.info("Staff removed from department successfully", {
         staffId: request.staffId,
         departmentId: request.departmentId,
-        removedBy: request.removedBy
+        removedBy: request.removedBy,
       });
 
       return {
         success: true,
-        message: 'Xóa phân công nhân viên thành công',
+        message: "Xóa phân công nhân viên thành công",
         data: {
           staffId: staff.id,
           departmentId: request.departmentId,
-          endDate: endDate.toISOString()
-        }
+          endDate: endDate.toISOString(),
+        },
       };
-
     } catch (error) {
-      this.logger.error('Error removing staff from department', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.logger.error("Error removing staff from department", {
+        error: error instanceof Error ? error.message : "Unknown error",
         staffId: request.staffId,
-        departmentId: request.departmentId
+        departmentId: request.departmentId,
       });
 
       return {
         success: false,
-        message: 'Lỗi khi xóa phân công nhân viên',
-        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+        message: "Lỗi khi xóa phân công nhân viên",
+        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
       };
     }
   }
@@ -151,33 +152,37 @@ export class RemoveStaffFromDepartmentUseCase {
     const errors: string[] = [];
 
     if (!request.staffId || request.staffId.trim().length === 0) {
-      errors.push('Staff ID không được để trống');
+      errors.push("Staff ID không được để trống");
     }
 
     if (!request.departmentId || request.departmentId.trim().length === 0) {
-      errors.push('Department ID không được để trống');
+      errors.push("Department ID không được để trống");
     }
 
     if (!request.removedBy || request.removedBy.trim().length === 0) {
-      errors.push('Người xóa phân công không được để trống');
+      errors.push("Người xóa phân công không được để trống");
     }
 
     if (!request.removedByRole || request.removedByRole.trim().length === 0) {
-      errors.push('Vai trò người xóa phân công không được để trống');
+      errors.push("Vai trò người xóa phân công không được để trống");
     }
 
     // Only ADMIN or SUPER_ADMIN can remove staff from departments
-    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
-    if (!allowedRoles.includes(request.removedByRole)) {
-      errors.push('Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền xóa phân công nhân viên');
+    const allowedRoles = ["ADMIN", "SUPER_ADMIN"];
+    const removerRole = request.removedByRole
+      ? request.removedByRole.toUpperCase()
+      : "";
+    if (!allowedRoles.includes(removerRole)) {
+      errors.push(
+        "Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền xóa phân công nhân viên",
+      );
     }
 
     // Validate end date if provided
     if (request.endDate && request.endDate > new Date()) {
-      errors.push('Ngày kết thúc không thể trong tương lai');
+      errors.push("Ngày kết thúc không thể trong tương lai");
     }
 
     return errors;
   }
 }
-

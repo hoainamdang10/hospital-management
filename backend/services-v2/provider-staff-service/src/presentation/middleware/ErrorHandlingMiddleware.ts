@@ -7,8 +7,8 @@
  * @compliance Clean Architecture, Error Handling Best Practices
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { ILogger } from '@shared/infrastructure/logging/logger.interface';
+import { Request, Response, NextFunction } from "express";
+import { ILogger } from "@shared/infrastructure/logging/logger.interface";
 
 // ==================== ERROR CLASSES ====================
 
@@ -17,53 +17,53 @@ export class ApplicationError extends Error {
     public override message: string,
     public statusCode: number = 500,
     public code?: string,
-    public details?: any
+    public details?: any,
   ) {
     super(message);
-    this.name = 'ApplicationError';
+    this.name = "ApplicationError";
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
 export class DomainError extends ApplicationError {
   constructor(message: string, details?: any) {
-    super(message, 400, 'DOMAIN_ERROR', details);
-    this.name = 'DomainError';
+    super(message, 400, "DOMAIN_ERROR", details);
+    this.name = "DomainError";
   }
 }
 
 export class NotFoundError extends ApplicationError {
   constructor(resource: string, identifier: string) {
-    super(`${resource} với ID ${identifier} không tồn tại`, 404, 'NOT_FOUND');
-    this.name = 'NotFoundError';
+    super(`${resource} với ID ${identifier} không tồn tại`, 404, "NOT_FOUND");
+    this.name = "NotFoundError";
   }
 }
 
 export class ValidationError extends ApplicationError {
   constructor(message: string, details?: any) {
-    super(message, 400, 'VALIDATION_ERROR', details);
-    this.name = 'ValidationError';
+    super(message, 400, "VALIDATION_ERROR", details);
+    this.name = "ValidationError";
   }
 }
 
 export class UnauthorizedError extends ApplicationError {
-  constructor(message: string = 'Không có quyền truy cập') {
-    super(message, 401, 'UNAUTHORIZED');
-    this.name = 'UnauthorizedError';
+  constructor(message: string = "Không có quyền truy cập") {
+    super(message, 401, "UNAUTHORIZED");
+    this.name = "UnauthorizedError";
   }
 }
 
 export class ForbiddenError extends ApplicationError {
-  constructor(message: string = 'Không đủ quyền thực hiện thao tác này') {
-    super(message, 403, 'FORBIDDEN');
-    this.name = 'ForbiddenError';
+  constructor(message: string = "Không đủ quyền thực hiện thao tác này") {
+    super(message, 403, "FORBIDDEN");
+    this.name = "ForbiddenError";
   }
 }
 
 export class ConflictError extends ApplicationError {
   constructor(message: string, details?: any) {
-    super(message, 409, 'CONFLICT', details);
-    this.name = 'ConflictError';
+    super(message, 409, "CONFLICT", details);
+    this.name = "ConflictError";
   }
 }
 
@@ -76,45 +76,50 @@ export class ErrorHandlingMiddleware {
    * Handle errors
    */
   handle() {
-    return (err: Error, req: Request, res: Response, _next: NextFunction): void => {
+    return (
+      err: Error,
+      req: Request,
+      res: Response,
+      _next: NextFunction,
+    ): void => {
       // Log error
-      this.logger.error('Request error', {
+      this.logger.error("Request error", {
         error: err.message,
         stack: err.stack,
         path: req.path,
         method: req.method,
         body: req.body,
         query: req.query,
-        params: req.params
+        params: req.params,
       });
 
       // Handle known application errors
       if (err instanceof ApplicationError) {
         res.status(err.statusCode).json({
           success: false,
-          error: err.code || 'APPLICATION_ERROR',
+          error: err.code || "APPLICATION_ERROR",
           message: err.message,
-          details: err.details
+          details: err.details,
         });
         return;
       }
 
       // Handle domain errors (from domain layer)
-      if (err.name === 'DomainError' || err.message.includes('không được')) {
+      if (err.name === "DomainError" || err.message.includes("không được")) {
         res.status(400).json({
           success: false,
-          error: 'DOMAIN_ERROR',
-          message: err.message
+          error: "DOMAIN_ERROR",
+          message: err.message,
         });
         return;
       }
 
       // Handle validation errors
-      if (err.name === 'ValidationError') {
+      if (err.name === "ValidationError") {
         res.status(400).json({
           success: false,
-          error: 'VALIDATION_ERROR',
-          message: err.message
+          error: "VALIDATION_ERROR",
+          message: err.message,
         });
         return;
       }
@@ -122,8 +127,8 @@ export class ErrorHandlingMiddleware {
       // Default error response
       res.status(500).json({
         success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Đã xảy ra lỗi hệ thống, vui lòng thử lại sau'
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau",
       });
     };
   }
@@ -144,18 +149,27 @@ export class ResponseHelper {
   /**
    * Success response
    */
-  static success<T>(res: Response, data: T, message: string = 'Thành công', statusCode: number = 200): void {
+  static success<T>(
+    res: Response,
+    data: T,
+    message: string = "Thành công",
+    statusCode: number = 200,
+  ): void {
     res.status(statusCode).json({
       success: true,
       message,
-      data
+      data,
     });
   }
 
   /**
    * Created response
    */
-  static created<T>(res: Response, data: T, message: string = 'Tạo mới thành công'): void {
+  static created<T>(
+    res: Response,
+    data: T,
+    message: string = "Tạo mới thành công",
+  ): void {
     ResponseHelper.success(res, data, message, 201);
   }
 
@@ -164,22 +178,25 @@ export class ResponseHelper {
    */
   static paginated<T>(
     res: Response,
-    data: T[],
+    items: T[],
     page: number,
     limit: number,
     total: number,
-    message: string = 'Thành công'
+    message: string = "Thành công",
   ): void {
+    const safeLimit = limit > 0 ? limit : 1;
     res.status(200).json({
       success: true,
       message,
-      data,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      data: {
+        items,
+        pagination: {
+          page,
+          limit: safeLimit,
+          total,
+          totalPages: total > 0 ? Math.ceil(total / safeLimit) : 0,
+        },
+      },
     });
   }
 
@@ -196,9 +213,9 @@ export class ResponseHelper {
   static badRequest(res: Response, message: string, errors?: any): void {
     res.status(400).json({
       success: false,
-      error: 'BAD_REQUEST',
+      error: "BAD_REQUEST",
       message,
-      errors
+      errors,
     });
   }
 
@@ -209,14 +226,14 @@ export class ResponseHelper {
     res: Response,
     message: string,
     statusCode: number = 500,
-    errorCode: string = 'ERROR',
-    details?: any
+    errorCode: string = "ERROR",
+    details?: any,
   ): void {
     res.status(statusCode).json({
       success: false,
       error: errorCode,
       message,
-      details
+      details,
     });
   }
 }
@@ -227,14 +244,14 @@ export class ResponseHelper {
  * Get user ID from request
  */
 export function getUserId(req: any): string {
-  return req.user?.userId || req.user?.id || 'system';
+  return req.user?.userId || req.user?.id || "system";
 }
 
 /**
  * Get user role from request
  */
 export function getUserRole(req: any): string {
-  return req.user?.roles?.[0] || req.user?.role || 'patient';
+  return req.user?.roles?.[0] || req.user?.role || "patient";
 }
 
 /**
@@ -243,7 +260,7 @@ export function getUserRole(req: any): string {
 export function hasRole(req: any, roles: string | string[]): boolean {
   const userRoles = req.user?.roles || [];
   const requiredRoles = Array.isArray(roles) ? roles : [roles];
-  return requiredRoles.some(role => userRoles.includes(role));
+  return requiredRoles.some((role) => userRoles.includes(role));
 }
 
 /**
@@ -253,4 +270,3 @@ export function hasPermission(req: any, permission: string): boolean {
   const permissions = req.user?.permissions || [];
   return permissions.includes(permission);
 }
-

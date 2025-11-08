@@ -7,7 +7,7 @@
  * @port 3024
  * @schema appointments_schema
  */
-import { Application } from 'express';
+import { Application } from "express";
 declare const app: Application;
 export default app;
 //# sourceMappingURL=main.d.ts.map

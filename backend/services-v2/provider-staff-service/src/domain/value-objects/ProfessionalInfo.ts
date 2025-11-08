@@ -68,13 +68,14 @@ export class ProfessionalInfo extends HealthcareValueObject<ProfessionalInfoProp
   }
 
   public static fromPersistence(data: any): ProfessionalInfo {
+    // Handle both old schema and new seed data format
     return ProfessionalInfo.create({
-      title: data.title,
-      department: data.department,
-      position: data.position,
-      education: data.education,
-      languages: data.languages,
-      bio: data.bio
+      title: data.title || 'Doctor',
+      department: data.department || data.specialization || 'General',
+      position: data.position || data.title || 'Doctor',
+      education: data.education || (data.medicalSchool ? [data.medicalSchool] : []),
+      languages: data.languages || ['vi'],
+      bio: data.bio || data.professionalSummary || ''
     });
   }
 

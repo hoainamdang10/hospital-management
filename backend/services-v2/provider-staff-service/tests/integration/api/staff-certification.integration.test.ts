@@ -36,7 +36,7 @@ describe('Staff Certification Management Integration Tests', () => {
     const adminUser = await getOrCreateTestUser(
       supabaseClient,
       'admin-certification@hospital.vn',
-      'Admin123!@#',
+      'TestPassword123!@#',
       'ADMIN'
     );
     adminUserId = adminUser.userId;

@@ -10,7 +10,7 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+// import rateLimit from 'express-rate-limit'; // Disabled for development
 import dotenv from 'dotenv';
 
 import { SupabaseDepartmentRepository } from './infrastructure/persistence/SupabaseDepartmentRepository';
@@ -52,13 +52,13 @@ app.use(cors({ origin: CORS_ORIGIN })); // CORS
 app.use(express.json()); // JSON body parser
 app.use(express.urlencoded({ extended: true })); // URL-encoded body parser
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later'
-});
-app.use('/api/', limiter);
+// Rate limiting - DISABLED for development
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // Limit each IP to 100 requests per windowMs
+//   message: 'Too many requests from this IP, please try again later'
+// });
+// app.use('/api/', limiter);
 
 // Request logging middleware
 app.use((_req: Request, res: Response, next) => {

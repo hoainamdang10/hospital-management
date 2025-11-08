@@ -832,38 +832,50 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Note: id (UUID) is the primary key, staff_id is the business identifier
    */
   toPersistence(): any {
-    return {
-      id: this._id,
-      staff_id: this.props.id.value,
-      user_id: this.props.userId,
-      staff_type: this.props.staffType,
-      personal_info: this.props.personalInfo.toPersistence(),
-      professional_info: this.props.professionalInfo.toPersistence(),
-      work_schedule: this.props.workSchedule.toPersistence(),
-      specializations: this.props.specializations.map(s => s.toPersistence()),
-      credentials: this.props.credentials.map(c => c.toPersistence()),
-      certifications: this.props.certifications.map(c => c.toPersistence()),
-      // REMOVED: availability - Belongs to Scheduling/Appointment Service
-      // REMOVED: reviews - Belongs to Review/Rating Service
-      department_assignments: this.props.departmentAssignments.map(d => d.toPersistence()),
-      license_number: this.props.licenseNumber,
-      employment_type: this.props.employmentType,
-      hire_date: this.props.hireDate.toISOString(),
-      contract_end_date: this.props.contractEndDate?.toISOString(),
-      consultation_fee: this.props.consultationFee,
-      years_of_experience: this.props.yearsOfExperience,
-      // REMOVED: rating - Belongs to Review/Rating Service
-      // REMOVED: total_patients - Belongs to Scheduling/Appointment Service
-      // REMOVED: is_accepting_new_patients - Belongs to Scheduling/Appointment Service
-      status: this.props.status,
-      is_active: this.props.isActive,
-      registration_date: this.props.registrationDate.toISOString(),
-      last_active_date: this.props.lastActiveDate?.toISOString(),
-      vietnamese_healthcare_license: this.props.vietnameseHealthcareLicense,
-      moh_registration_number: this.props.mohRegistrationNumber,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString()
-    };
+    try {
+      return {
+        id: this._id,
+        staff_id: this.props.id.value,
+        user_id: this.props.userId,
+        staff_type: this.props.staffType,
+        personal_info: this.props.personalInfo.toPersistence(),
+        professional_info: this.props.professionalInfo.toPersistence(),
+        work_schedule: this.props.workSchedule.toPersistence(),
+        specializations: this.props.specializations.map(s => s.toPersistence()),
+        credentials: this.props.credentials.map(c => c.toPersistence()),
+        certifications: this.props.certifications.map(c => c.toPersistence()),
+        // REMOVED: availability - Belongs to Scheduling/Appointment Service
+        // REMOVED: reviews - Belongs to Review/Rating Service
+        department_assignments: this.props.departmentAssignments.map(d => d.toPersistence()),
+        license_number: this.props.licenseNumber,
+        employment_type: this.props.employmentType,
+        hire_date: this.props.hireDate ? this.props.hireDate.toISOString() : new Date().toISOString(),
+        contract_end_date: this.props.contractEndDate?.toISOString() || null,
+        consultation_fee: this.props.consultationFee,
+        years_of_experience: this.props.yearsOfExperience,
+        // REMOVED: rating - Belongs to Review/Rating Service
+        // REMOVED: total_patients - Belongs to Scheduling/Appointment Service
+        // REMOVED: is_accepting_new_patients - Belongs to Scheduling/Appointment Service
+        status: this.props.status,
+        is_active: this.props.isActive,
+        registration_date: this.props.registrationDate ? this.props.registrationDate.toISOString() : new Date().toISOString(),
+        last_active_date: this.props.lastActiveDate?.toISOString() || null,
+        vietnamese_healthcare_license: this.props.vietnameseHealthcareLicense,
+        moh_registration_number: this.props.mohRegistrationNumber,
+        created_at: this.props.createdAt ? this.props.createdAt.toISOString() : new Date().toISOString(),
+        updated_at: this.props.updatedAt ? this.props.updatedAt.toISOString() : new Date().toISOString()
+      };
+    } catch (error: any) {
+      console.error('[ProviderStaff] toPersistence error:', {
+        staffId: this.props.id.value,
+        error: error.message,
+        hireDate: this.props.hireDate,
+        registrationDate: this.props.registrationDate,
+        createdAt: this.props.createdAt,
+        updatedAt: this.props.updatedAt
+      });
+      throw error;
+    }
   }
 
   /**
@@ -872,14 +884,41 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Note: data.id is UUID (primary key), data.staff_id is the business identifier
    */
   public static fromPersistenceData(data: any): ProviderStaff {
+    // Ensure staff_id exists and is not a UUID
+    const staffIdValue = data.staff_id || data.staffId;
+    
+    // DEBUG: Log what we're getting from database
+    console.log('[ProviderStaff] fromPersistenceData DEBUG:', {
+      uuid: data.id?.substring(0, 8),
+      staff_id_snake: data.staff_id?.substring(0, 20),
+      staffId_camel: data.staffId?.substring(0, 20),
+      using: staffIdValue?.substring(0, 20)
+    });
+    
+    if (!staffIdValue) {
+      console.error('[ProviderStaff] Missing staff_id in data:', { id: data.id, hasStaffId: !!data.staff_id, hasStaffIdCamel: !!data.staffId });
+      throw new Error(`Missing staff_id for record with UUID: ${data.id}`);
+    }
+    
     const props: ProviderStaffProps = {
-      id: StaffId.fromString(data.staff_id),
-      userId: data.user_id,
-      staffType: data.staff_type,
+      id: StaffId.fromString(staffIdValue),
+      userId: data.user_id || data.userId,
+      staffType: data.staff_type || data.staffType,
       personalInfo: PersonalInfo.fromPersistence(data.personal_info),
       professionalInfo: ProfessionalInfo.fromPersistence(data.professional_info),
       workSchedule: WorkSchedule.fromPersistence(data.work_schedule),
-      specializations: (data.specializations || []).map((s: any) => Specialization.fromPersistenceData(s)),
+      specializations: (data.specializations || []).map((s: any) => {
+        // Handle both string format (legacy) and object format
+        if (typeof s === 'string') {
+          return Specialization.fromPersistenceData({
+            code: s.toUpperCase().replace(/\s+/g, '_'),
+            name: s,
+            description: '',
+            isActive: true
+          });
+        }
+        return Specialization.fromPersistenceData(s);
+      }),
       credentials: (data.credentials || []).map((c: any) => StaffCredential.fromPersistenceData(c)),
       certifications: (data.certifications || []).map((c: any) => StaffCertification.fromPersistenceData(c)),
       // REMOVED: availability - Belongs to Scheduling/Appointment Service

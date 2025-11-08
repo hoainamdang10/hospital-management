@@ -12,6 +12,7 @@ import { logger } from '../../infrastructure/logging/logger';
 import { RegisterStaffUseCase } from '../../application/use-cases/RegisterStaffUseCase';
 import { GetStaffProfileUseCase } from '../../application/use-cases/GetStaffProfileUseCase';
 import { AssignStaffToDepartmentUseCase } from '../../application/use-cases/AssignStaffToDepartmentUseCase';
+import { SetDepartmentHeadUseCase } from '../../application/use-cases/SetDepartmentHeadUseCase';
 import { AddStaffCredentialUseCase } from '../../application/use-cases/AddStaffCredentialUseCase';
 import { RemoveStaffCredentialUseCase } from '../../application/use-cases/RemoveStaffCredentialUseCase';
 import { RenewStaffCredentialUseCase } from '../../application/use-cases/RenewStaffCredentialUseCase';
@@ -34,6 +35,7 @@ export function setupRoutes(
   registerStaffUseCase: RegisterStaffUseCase,
   getStaffProfileUseCase: GetStaffProfileUseCase,
   assignStaffToDepartmentUseCase: AssignStaffToDepartmentUseCase,
+  setDepartmentHeadUseCase: SetDepartmentHeadUseCase,
   staffCommandHandlers: StaffCommandHandlers,
   staffQueryHandlers: StaffQueryHandlers,
   addStaffCredentialUseCase: AddStaffCredentialUseCase,
@@ -57,6 +59,7 @@ export function setupRoutes(
     registerStaffUseCase,
     getStaffProfileUseCase,
     assignStaffToDepartmentUseCase,
+    setDepartmentHeadUseCase,
     staffCommandHandlers,
     staffQueryHandlers,
     addStaffCredentialUseCase,

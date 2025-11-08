@@ -39,21 +39,35 @@ export function createStaffRoutes(controller: StaffController): Router {
   const router = Router();
   const asyncHandler = ErrorHandlingMiddleware.asyncHandler;
 
+  // Check if auth bypass is enabled (for development/testing)
+  const bypassAuth = process.env.BYPASS_AUTH === 'true';
+
   // Create authentication middleware
-  const requireAuth = AuthenticationMiddleware.requireAuth(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  );
+  const requireAuth = bypassAuth 
+    ? AuthenticationMiddleware.bypassAuth
+    : AuthenticationMiddleware.requireAuth(
+        process.env.SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
 
-  const adminOnly = AuthenticationMiddleware.adminOnly(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  );
+  const adminOnly = bypassAuth
+    ? AuthenticationMiddleware.bypassAuth
+    : AuthenticationMiddleware.adminOnly(
+        process.env.SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
 
-  const healthcareStaffOnly = AuthenticationMiddleware.healthcareStaffOnly(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  );
+  const healthcareStaffOnly = bypassAuth
+    ? AuthenticationMiddleware.bypassAuth
+    : AuthenticationMiddleware.healthcareStaffOnly(
+        process.env.SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+  // Log auth bypass status
+  if (bypassAuth) {
+    console.warn('[SECURITY WARNING] Authentication bypass is ENABLED. This should only be used in development/testing!');
+  }
 
   // Apply general rate limiting to all routes
   router.use(RateLimitMiddleware.general);
@@ -331,6 +345,18 @@ export function createStaffRoutes(controller: StaffController): Router {
     adminOnly,
     validateStaffId,
     asyncHandler(controller.removeStaffSpecialization.bind(controller))
+  );
+
+  /**
+   * Set department head
+   * PUT /api/v1/staff/:staffId/department-head
+   */
+  router.put(
+    '/:staffId/department-head',
+    RateLimitMiddleware.writeOperations,
+    adminOnly,
+    validateStaffId,
+    asyncHandler(controller.setDepartmentHead.bind(controller))
   );
 
   return router;

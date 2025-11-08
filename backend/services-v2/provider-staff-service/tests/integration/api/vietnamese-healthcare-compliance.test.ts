@@ -35,7 +35,7 @@ describe('Vietnamese Healthcare Compliance Integration Tests', () => {
     const adminUser = await getOrCreateTestUser(
       supabaseClient,
       'admin-compliance@hospital.vn',
-      'Admin123!@#',
+      'TestPassword123!@#',
       'ADMIN'
     );
     adminUserId = adminUser.userId;

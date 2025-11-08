@@ -6,14 +6,14 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD
  */
-import { Patient } from '../../domain/aggregates/Patient';
+import { Patient } from "../../domain/aggregates/Patient";
 /**
  * DTO for PersonalInfo JSONB field
  */
 export interface PersonalInfoDTO {
     fullName: string;
     dateOfBirth: string;
-    gender: 'male' | 'female' | 'other';
+    gender: "male" | "female" | "other";
     nationalId: string;
     nationality: string;
     ethnicity?: string;
@@ -36,7 +36,7 @@ export interface ContactInfoDTO {
         postalCode?: string;
         country: string;
     };
-    preferredContactMethod: 'phone' | 'email' | 'sms';
+    preferredContactMethod: "phone" | "email" | "sms";
 }
 /**
  * DTO for BasicMedicalInfo JSONB field
@@ -58,9 +58,9 @@ export interface PatientRecord {
     basic_medical_info: BasicMedicalInfoDTO;
     photo_url?: string | null;
     communication_preference?: {
-        language: 'vi' | 'en';
+        language: "vi" | "en";
         preferred: boolean;
-        contactMethod: 'email' | 'sms' | 'phone';
+        contactMethod: "email" | "sms" | "phone";
         timezone: string;
     } | null;
     status: string;

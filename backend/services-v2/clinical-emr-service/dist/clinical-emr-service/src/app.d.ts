@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Express.js, HIPAA, Vietnamese Healthcare Standards
  */
-import { Application } from 'express';
+import { Application } from "express";
 /**
  * Create and configure Express application
  */

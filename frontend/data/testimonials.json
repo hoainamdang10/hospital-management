@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "avatar": "https://i.pravatar.cc/150?img=65",
+    "name": "Nguyễn Thị Lan",
+    "region": "TP. Hồ Chí Minh",
+    "rating": 5,
+    "quote": "Đặt lịch rất nhanh chóng và tiện lợi. Bác sĩ tận tâm, khám rất kỹ. Tôi rất hài lòng với dịch vụ!",
+    "date": "2025-01-10"
+  },
+  {
+    "id": 2,
+    "avatar": "https://i.pravatar.cc/150?img=28",
+    "name": "Trần Văn Minh",
+    "region": "Hà Nội",
+    "rating": 5,
+    "quote": "Lần đầu đặt lịch online, mọi thứ diễn ra suôn sẻ. Nhân viên hỗ trợ nhiệt tình, không phải chờ đợi lâu.",
+    "date": "2025-01-08"
+  },
+  {
+    "id": 3,
+    "avatar": "https://i.pravatar.cc/150?img=49",
+    "name": "Lê Thị Hương",
+    "region": "Đà Nẵng",
+    "rating": 5,
+    "quote": "Hệ thống rất dễ sử dụng, có thể chọn bác sĩ và giờ khám theo ý muốn. Giá cả minh bạch, không phát sinh chi phí ẩn.",
+    "date": "2025-01-05"
+  },
+  {
+    "id": 4,
+    "avatar": "https://i.pravatar.cc/150?img=51",
+    "name": "Phạm Đức An",
+    "region": "TP. Hồ Chí Minh",
+    "rating": 5,
+    "quote": "Đưa con đi khám nhi khoa, bác sĩ rất giỏi và dễ thương với trẻ nhỏ. Sẽ tiếp tục sử dụng dịch vụ!",
+    "date": "2025-01-03"
+  },
+  {
+    "id": 5,
+    "avatar": "https://i.pravatar.cc/150?img=24",
+    "name": "Võ Minh Tuấn",
+    "region": "Cần Thơ",
+    "rating": 5,
+    "quote": "Tìm được bác sĩ chuyên khoa phù hợp rất dễ dàng. Hỗ trợ BHYT, thanh toán online tiện lợi. Rất đáng tin cậy!",
+    "date": "2024-12-28"
+  }
+]

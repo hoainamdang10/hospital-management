@@ -112,7 +112,7 @@ export class IdentityEventConsumer {
 
       // Assert dead letter exchange
       const dlxName = this.config.deadLetterExchange || `${this.config.exchangeName}.dlx`;
-      await this.channel.assertExchange(dlxName, 'direct', {
+      await this.channel.assertExchange(dlxName, 'topic', {
         durable: true
       });
 
@@ -122,8 +122,8 @@ export class IdentityEventConsumer {
         durable: true
       });
 
-      // Bind DLQ to DLX
-      await this.channel.bindQueue(dlqName, dlxName, 'failed');
+      // Bind DLQ to DLX (use # for topic exchange to catch all messages)
+      await this.channel.bindQueue(dlqName, dlxName, '#');
 
       this.logger.info('Dead letter queue configured', {
         dlxName,

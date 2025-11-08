@@ -24,6 +24,7 @@ import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateSt
 import { AddStaffCertificationUseCase } from "../../application/use-cases/AddStaffCertificationUseCase";
 // REMOVED: UpdateStaffAvailabilityUseCase - Belongs to Scheduling/Appointment Service
 import { AssignStaffToDepartmentUseCase } from "../../application/use-cases/AssignStaffToDepartmentUseCase";
+import { SetDepartmentHeadUseCase } from "../../application/use-cases/SetDepartmentHeadUseCase";
 import { AddStaffCredentialUseCase } from "../../application/use-cases/AddStaffCredentialUseCase";
 import { RemoveStaffCredentialUseCase } from "../../application/use-cases/RemoveStaffCredentialUseCase";
 import { RenewStaffCredentialUseCase } from "../../application/use-cases/RenewStaffCredentialUseCase";
@@ -86,6 +87,7 @@ export const ServiceTokens = {
   ADD_STAFF_CERTIFICATION_USE_CASE: "AddStaffCertificationUseCase",
   // REMOVED: UPDATE_STAFF_AVAILABILITY_USE_CASE - Belongs to Scheduling/Appointment Service
   ASSIGN_STAFF_TO_DEPARTMENT_USE_CASE: "AssignStaffToDepartmentUseCase",
+  SET_DEPARTMENT_HEAD_USE_CASE: "SetDepartmentHeadUseCase",
   ADD_STAFF_CREDENTIAL_USE_CASE: "AddStaffCredentialUseCase",
   REMOVE_STAFF_CREDENTIAL_USE_CASE: "RemoveStaffCredentialUseCase",
   RENEW_STAFF_CREDENTIAL_USE_CASE: "RenewStaffCredentialUseCase",
@@ -365,6 +367,22 @@ export function setupDependencies(): DIContainer {
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
       return new AssignStaffToDepartmentUseCase(
+        staffRepository,
+        logger,
+        auditService
+      );
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.registerFactory(
+    ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+      const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
+
+      return new SetDepartmentHeadUseCase(
         staffRepository,
         logger,
         auditService

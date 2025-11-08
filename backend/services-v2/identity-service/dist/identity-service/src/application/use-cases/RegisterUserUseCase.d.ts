@@ -1,3 +1,4 @@
+import { VerifyEmailResponse } from "./VerifyEmailUseCase";
 /**
  * Register User Use Case - Verify-First Approach
  * Handles user registration with email verification BEFORE creating user
@@ -11,13 +12,17 @@
  * @author Hospital Management Team
  * @version 3.0.0 - Verify-First Approach
  */
-import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { IUserRepository } from '../repositories/IUserRepository';
-import { ICircuitBreaker } from '../services/ICircuitBreaker';
-import { IEventPublisher } from '../services/IEventPublisher';
-import { ILogger } from '../services/ILogger';
-import { IEmailService } from '../services/IEmailService';
-import { IPendingRegistrationRepository } from '../../domain/repositories/IPendingRegistrationRepository';
+import { IUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
+import { IUserRepository } from "../repositories/IUserRepository";
+import { ICircuitBreaker } from "../services/ICircuitBreaker";
+import { IEventPublisher } from "../services/IEventPublisher";
+import { ILogger } from "../services/ILogger";
+import { IEmailService } from "../services/IEmailService";
+import { IPendingRegistrationRepository } from "../../domain/repositories/IPendingRegistrationRepository";
+interface AutoVerificationConfig {
+    enabled: boolean;
+    verifyToken: (token: string) => Promise<VerifyEmailResponse>;
+}
 export interface RegisterUserRequest {
     email: string;
     password: string;
@@ -54,10 +59,14 @@ export declare class RegisterUserUseCase implements IUseCase<RegisterUserRequest
     private jwtSecret;
     private frontendUrl;
     private eventPublisher?;
+    private autoVerification?;
     private readonly BCRYPT_ROUNDS;
-    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, emailService: IEmailService, jwtSecret: string, frontendUrl: string, eventPublisher?: IEventPublisher | undefined);
+    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, emailService: IEmailService, jwtSecret: string, frontendUrl: string, eventPublisher?: IEventPublisher | undefined, // Optional for backward compatibility
+    autoVerification?: AutoVerificationConfig | undefined);
     execute(request: RegisterUserRequest): Promise<RegisterUserResponse>;
     private executeImpl;
     private validateRequest;
+    private autoVerifyPendingRegistration;
 }
+export {};
 //# sourceMappingURL=RegisterUserUseCase.d.ts.map

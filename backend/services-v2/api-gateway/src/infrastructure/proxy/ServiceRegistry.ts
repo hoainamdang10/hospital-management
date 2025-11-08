@@ -210,7 +210,7 @@ export class ServiceRegistry implements IServiceRegistry {
   }> {
     const stats: Array<any> = [];
 
-    for (const [serviceName, circuitBreaker] of this.circuitBreakers.entries()) {
+    for (const [, circuitBreaker] of this.circuitBreakers.entries()) {
       stats.push(circuitBreaker.getStats());
     }
 

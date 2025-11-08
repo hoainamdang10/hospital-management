@@ -1,0 +1,72 @@
+[
+  {
+    "id": "general",
+    "name": "Khám tổng quát",
+    "icon": "🏥",
+    "count": 25,
+    "description": "Khám sức khỏe định kỳ, tư vấn sức khỏe"
+  },
+  {
+    "id": "pediatrics",
+    "name": "Nhi khoa",
+    "icon": "👶",
+    "count": 18,
+    "description": "Chăm sóc sức khỏe trẻ em"
+  },
+  {
+    "id": "dermatology",
+    "name": "Da liễu",
+    "icon": "🧴",
+    "count": 12,
+    "description": "Điều trị bệnh về da, thẩm mỹ da"
+  },
+  {
+    "id": "cardiology",
+    "name": "Tim mạch",
+    "icon": "❤️",
+    "count": 15,
+    "description": "Khám và điều trị bệnh tim mạch"
+  },
+  {
+    "id": "orthopedics",
+    "name": "Cơ xương khớp",
+    "icon": "🦴",
+    "count": 14,
+    "description": "Điều trị chấn thương, bệnh xương khớp"
+  },
+  {
+    "id": "dental",
+    "name": "Nha khoa",
+    "icon": "🦷",
+    "count": 20,
+    "description": "Khám và điều trị răng miệng"
+  },
+  {
+    "id": "ophthalmology",
+    "name": "Mắt",
+    "icon": "👁️",
+    "count": 10,
+    "description": "Khám và điều trị bệnh về mắt"
+  },
+  {
+    "id": "ent",
+    "name": "Tai Mũi Họng",
+    "icon": "👂",
+    "count": 13,
+    "description": "Khám và điều trị bệnh tai mũi họng"
+  },
+  {
+    "id": "gynecology",
+    "name": "Sản phụ khoa",
+    "icon": "👩",
+    "count": 16,
+    "description": "Chăm sóc sức khỏe phụ nữ"
+  },
+  {
+    "id": "neurology",
+    "name": "Thần kinh",
+    "icon": "🧠",
+    "count": 11,
+    "description": "Điều trị bệnh thần kinh"
+  }
+]

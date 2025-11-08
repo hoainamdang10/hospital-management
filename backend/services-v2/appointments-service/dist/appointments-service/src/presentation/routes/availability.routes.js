@@ -57,8 +57,8 @@ const providerIdSchema = joi_1.default.object({
  * Uses DI container for dependency injection
  *
  * Routes:
- * - GET /api/appointments/providers/:providerId/available-slots
- * - GET /api/appointments/providers/:providerId/schedule
+ * - GET /api/v1/appointments/providers/:providerId/available-slots
+ * - GET /api/v1/appointments/providers/:providerId/schedule
  */
 function createAvailabilityRoutes() {
     const router = (0, express_1.Router)();
@@ -66,7 +66,7 @@ function createAvailabilityRoutes() {
     // Get AvailabilityController from DI container
     const availabilityController = container.getAvailabilityController();
     /**
-     * GET /api/appointments/providers/:providerId/available-slots
+     * GET /api/v1/appointments/providers/:providerId/available-slots
      *
      * Get available time slots for provider on specific date
      *
@@ -74,7 +74,7 @@ function createAvailabilityRoutes() {
      * - date: YYYY-MM-DD (required)
      * - duration: number in minutes (optional, default: 30)
      *
-     * Example: GET /api/appointments/providers/DEPT-DOC-202510-001/available-slots?date=2025-10-24&duration=30
+     * Example: GET /api/v1/appointments/providers/DEPT-DOC-202510-001/available-slots?date=2025-10-24&duration=30
      */
     router.get('/providers/:providerId/available-slots', AuthMiddleware_1.authenticate, (0, ValidationMiddleware_1.validateRequest)(providerIdSchema, 'params'), (0, ValidationMiddleware_1.validateRequest)(availableSlotsSchema, 'query'), (req, res) => availabilityController.getAvailableTimeSlots(req, res));
     /**

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/21</span>
+                <span class='fraction'>14/21</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">35.71% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>5/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>1/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/21</span>
+                <span class='fraction'>14/21</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -177,7 +177,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -192,7 +192,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -213,7 +213,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -224,18 +224,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -282,7 +282,7 @@
  * @compliance Clean Architecture, DDD, Event-Driven, FHIR R4
  */
 &nbsp;
-<span class="cstat-no" title="statement not covered" >import { DomainEvent } from '@shared/domain/base/domain-event';</span>
+import { DomainEvent } from '@shared/domain/base/domain-event';
 &nbsp;
 export interface TreatmentPlanCreatedEventPayload {
   planId: string;
@@ -297,7 +297,7 @@ export interface TreatmentPlanCreatedEventPayload {
   createdAt: Date;
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class T</span>reatmentPlanCreatedEvent extends DomainEvent {
+export class TreatmentPlanCreatedEvent extends DomainEvent {
   private readonly payload: TreatmentPlanCreatedEventPayload;
   public readonly planId: string;
   public readonly medicalRecordId: string;
@@ -310,15 +310,15 @@ export interface TreatmentPlanCreatedEventPayload {
   public readonly createdBy: string;
   public readonly createdAt: Date;
 &nbsp;
-<span class="fstat-no" title="function not covered" >  constructor(</span>
+  constructor(
     payload: TreatmentPlanCreatedEventPayload,
     aggregateId?: string,
-    eventVersion: number = <span class="branch-0 cbranch-no" title="branch not covered" >1,</span>
+    eventVersion: number = 1,
     correlationId?: string,
     causationId?: string,
     userId?: string
   ) {
-<span class="cstat-no" title="statement not covered" >    super(</span>
+    super(
       'TreatmentPlanCreated',
       aggregateId || payload.planId,
       'TreatmentPlan',
@@ -329,18 +329,18 @@ export interface TreatmentPlanCreatedEventPayload {
       userId || payload.createdBy,
       { source: 'domain', priority: 'normal', retryable: true }
     );
-<span class="cstat-no" title="statement not covered" >    this.payload = payload;</span>
+    this.payload = payload;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    this.planId = payload.planId;</span>
-<span class="cstat-no" title="statement not covered" >    this.medicalRecordId = payload.medicalRecordId;</span>
-<span class="cstat-no" title="statement not covered" >    this.patientId = payload.patientId;</span>
-<span class="cstat-no" title="statement not covered" >    this.primaryDoctorId = payload.primaryDoctorId;</span>
-<span class="cstat-no" title="statement not covered" >    this.diagnosis = payload.diagnosis;</span>
-<span class="cstat-no" title="statement not covered" >    this.treatmentGoals = payload.treatmentGoals;</span>
-<span class="cstat-no" title="statement not covered" >    this.startDate = payload.startDate;</span>
-<span class="cstat-no" title="statement not covered" >    this.patientConsent = payload.patientConsent;</span>
-<span class="cstat-no" title="statement not covered" >    this.createdBy = payload.createdBy;</span>
-<span class="cstat-no" title="statement not covered" >    this.createdAt = payload.createdAt;</span>
+    this.planId = payload.planId;
+    this.medicalRecordId = payload.medicalRecordId;
+    this.patientId = payload.patientId;
+    this.primaryDoctorId = payload.primaryDoctorId;
+    this.diagnosis = payload.diagnosis;
+    this.treatmentGoals = payload.treatmentGoals;
+    this.startDate = payload.startDate;
+    this.patientConsent = payload.patientConsent;
+    this.createdBy = payload.createdBy;
+    this.createdAt = payload.createdAt;
   }
 &nbsp;
   public <span class="fstat-no" title="function not covered" >toPrimitives(</span>): any {
@@ -385,7 +385,7 @@ export interface TreatmentPlanCreatedEventPayload {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-02T05:18:17.095Z
+                at 2025-11-08T09:37:17.067Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Vietnamese Healthcare Standards
  */
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 /**
  * Handle validation errors
  */
@@ -67,6 +67,7 @@ export declare const validateAddEmergencyContact: (((req: Request, res: Response
  * Validate grant consent request
  */
 export declare const validateGrantConsent: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
+export declare const validateAddInsuranceInfo: (((req: Request, res: Response, next: NextFunction) => void) | import("express-validator").ValidationChain)[];
 /**
  * Validate revoke consent request
  */

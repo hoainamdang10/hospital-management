@@ -16,6 +16,8 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
 
 // Infrastructure imports
 import { SupabasePatientRepository } from "./infrastructure/repositories/SupabasePatientRepository";
@@ -63,6 +65,7 @@ import { GetConsentDetailsUseCase } from "./application/use-cases/GetConsentDeta
 import { RevokeConsentUseCase } from "./application/use-cases/RevokeConsentUseCase";
 import { GetActiveConsentsUseCase } from "./application/use-cases/GetActiveConsentsUseCase";
 import { GetInsuranceInfoUseCase } from "./application/use-cases/GetInsuranceInfoUseCase";
+import { AddInsuranceInfoUseCase } from "./application/use-cases/AddInsuranceInfoUseCase";
 import { UpdateInsuranceInfoUseCase } from "./application/use-cases/UpdateInsuranceInfoUseCase";
 import { VerifyInsuranceUseCase } from "./application/use-cases/VerifyInsuranceUseCase";
 import { MarkAsDeceasedUseCase } from "./application/use-cases/MarkAsDeceasedUseCase";
@@ -158,6 +161,7 @@ class PatientRegistryServiceApp {
   private revokeConsentUseCase!: RevokeConsentUseCase;
   private getActiveConsentsUseCase!: GetActiveConsentsUseCase;
   private getInsuranceInfoUseCase!: GetInsuranceInfoUseCase;
+  private addInsuranceInfoUseCase!: AddInsuranceInfoUseCase;
   private updateInsuranceInfoUseCase!: UpdateInsuranceInfoUseCase;
   private verifyInsuranceUseCase!: VerifyInsuranceUseCase;
   private markAsDeceasedUseCase!: MarkAsDeceasedUseCase;
@@ -452,6 +456,11 @@ class PatientRegistryServiceApp {
         logger,
       );
 
+      this.addInsuranceInfoUseCase = new AddInsuranceInfoUseCase(
+        this.patientRepository,
+        logger,
+      );
+
       this.updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase(
         this.patientRepository,
         this.eventBus,
@@ -548,6 +557,7 @@ class PatientRegistryServiceApp {
         this.revokeConsentUseCase,
         this.getActiveConsentsUseCase,
         this.getInsuranceInfoUseCase,
+        this.addInsuranceInfoUseCase,
         this.updateInsuranceInfoUseCase,
         this.verifyInsuranceUseCase,
         this.markAsDeceasedUseCase,
@@ -689,7 +699,7 @@ class PatientRegistryServiceApp {
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
     // Rate limiting (disabled in test environment)
-    if (process.env.NODE_ENV !== 'test') {
+    if (process.env.NODE_ENV !== "test") {
       const limiter = rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100, // limit each IP to 100 requests per windowMs
@@ -700,7 +710,7 @@ class PatientRegistryServiceApp {
       this.app.use("/api/", limiter);
       logger.info("Rate limiting enabled", {
         windowMs: "15 minutes",
-        maxRequests: 100
+        maxRequests: 100,
       });
     } else {
       logger.info("Rate limiting disabled for test environment");
@@ -728,22 +738,49 @@ class PatientRegistryServiceApp {
     // Health & Metrics routes
     const healthRoutes = createHealthRoutes({
       healthCheck: this.healthCheck,
-      logger
+      logger,
     });
-    this.app.use('/', healthRoutes);
+    this.app.use("/", healthRoutes);
 
     // Prometheus metrics endpoint
-    this.app.get('/metrics', async (_req, res) => {
+    this.app.get("/metrics", async (_req, res) => {
       try {
-        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        res.set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
         const metrics = await prometheusMetrics.getMetrics();
         res.send(metrics);
       } catch (error) {
-        logger.error('Failed to generate metrics', { error });
-        res.status(500).send('Failed to generate metrics');
+        logger.error("Failed to generate metrics", { error });
+        res.status(500).send("Failed to generate metrics");
       }
     });
-    logger.info('Prometheus metrics endpoint registered at /metrics');
+    logger.info("Prometheus metrics endpoint registered at /metrics");
+
+    // Swagger API Documentation
+    // Accessible at: http://localhost:3023/api-docs
+    this.app.use("/api-docs", swaggerUi.serve);
+    this.app.get(
+      "/api-docs",
+      swaggerUi.setup(swaggerSpec, {
+        customSiteTitle: "Patient Registry Service API",
+        customCss: ".swagger-ui .topbar { display: none }",
+        swaggerOptions: {
+          persistAuthorization: true,
+          displayRequestDuration: true,
+          filter: true,
+          tryItOutEnabled: true,
+        },
+      }),
+    );
+
+    // OpenAPI JSON spec
+    this.app.get("/api-docs/json", (_req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      res.send(swaggerSpec);
+    });
+
+    logger.info(
+      "Swagger UI available at http://localhost:" + config.port + "/api-docs",
+    );
 
     // Degradation status endpoint
     this.app.get("/degradation", (_req, res) => {

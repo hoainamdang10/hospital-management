@@ -74,6 +74,41 @@ function createHealthRoutes(deps) {
             res.status(500).json({ error: 'Failed to get circuit breaker status' });
         }
     });
+    // Metrics endpoint (Prometheus-compatible)
+    router.get('/metrics', async (_req, res) => {
+        try {
+            const health = await deps.healthCheck.checkHealth();
+            // Prometheus text format
+            const metrics = [
+                '# HELP identity_health_status Health status of the service (1=healthy, 0.5=degraded, 0=unhealthy)',
+                '# TYPE identity_health_status gauge',
+                `identity_health_status{service="identity"} ${health.overall === 'HEALTHY' ? 1 : health.overall === 'DEGRADED' ? 0.5 : 0}`,
+                '',
+                '# HELP identity_uptime_seconds Service uptime in seconds',
+                '# TYPE identity_uptime_seconds counter',
+                `identity_uptime_seconds{service="identity"} ${process.uptime()}`,
+                '',
+                '# HELP identity_memory_usage_bytes Memory usage in bytes',
+                '# TYPE identity_memory_usage_bytes gauge',
+                `identity_memory_usage_bytes{type="rss",service="identity"} ${process.memoryUsage().rss}`,
+                `identity_memory_usage_bytes{type="heapTotal",service="identity"} ${process.memoryUsage().heapTotal}`,
+                `identity_memory_usage_bytes{type="heapUsed",service="identity"} ${process.memoryUsage().heapUsed}`,
+                '',
+                '# HELP identity_component_health Component health status (1=healthy, 0=unhealthy)',
+                '# TYPE identity_component_health gauge',
+                `identity_component_health{component="database",service="identity"} ${health.components?.database?.status === 'HEALTHY' ? 1 : 0}`,
+                `identity_component_health{component="authentication",service="identity"} ${health.components?.authentication?.status === 'HEALTHY' ? 1 : 0}`,
+                `identity_component_health{component="authorization",service="identity"} ${health.components?.authorization?.status === 'HEALTHY' ? 1 : 0}`,
+                ''
+            ].join('\n');
+            res.set('Content-Type', 'text/plain; version=0.0.4');
+            res.send(metrics);
+        }
+        catch (error) {
+            logger.error('Metrics collection failed', { error: getErrorMessage(error) });
+            res.status(500).send('# Error collecting metrics\n');
+        }
+    });
     return router;
 }
 //# sourceMappingURL=health.routes.js.map

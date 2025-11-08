@@ -44,15 +44,15 @@
  * @see RemoteSchedulerAdapter for Scheduler Service integration
  */
 
-import { IAppointmentReminderRepository } from '../../domain/repositories/IAppointmentReminderRepository';
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { 
+import { IAppointmentReminderRepository } from "../../domain/repositories/IAppointmentReminderRepository";
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
+import {
   AppointmentReminder,
   ReminderType,
   ReminderChannel,
   RecipientType,
-  ReminderPriority
-} from '../../domain/entities/AppointmentReminder.entity';
+  ReminderPriority,
+} from "../../domain/entities/AppointmentReminder.entity";
 
 export interface CreateReminderCommand {
   appointmentId: string;
@@ -82,41 +82,46 @@ export interface CreateReminderResult {
 export class CreateAppointmentReminderUseCase {
   constructor(
     private readonly reminderRepository: IAppointmentReminderRepository,
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: IAppointmentRepository,
   ) {}
 
   async execute(command: CreateReminderCommand): Promise<CreateReminderResult> {
     try {
       // 1. Validate appointment exists
-      const appointment = await this.appointmentRepository.findById(command.appointmentId);
+      const appointment = await this.appointmentRepository.findByAppointmentId(
+        command.appointmentId,
+      );
       if (!appointment) {
         return {
           success: false,
-          error: 'Appointment not found'
+          error: "Appointment not found",
         };
       }
 
       // 2. Get appointment time slot
       const appointmentTime = (appointment as any).props.timeSlot.startTime;
-      
+
       // 3. Calculate scheduled time (appointment time - sendBeforeMinutes)
-      const scheduledAt = new Date(appointmentTime.getTime() - (command.sendBeforeMinutes * 60 * 1000));
+      const scheduledAt = new Date(
+        appointmentTime.getTime() - command.sendBeforeMinutes * 60 * 1000,
+      );
 
       // 4. Validate scheduled time is in the future
       if (scheduledAt <= new Date()) {
         return {
           success: false,
-          error: 'Reminder scheduled time must be in the future'
+          error: "Reminder scheduled time must be in the future",
         };
       }
 
       // 5. Get recipient info from appointment
       const appointmentProps = (appointment as any).props;
-      const recipientId = command.recipientType === RecipientType.PATIENT 
-        ? appointmentProps.patientId 
-        : command.recipientType === RecipientType.DOCTOR
-        ? appointmentProps.doctorId
-        : appointmentProps.patientId; // Default to patient for 'both'
+      const recipientId =
+        command.recipientType === RecipientType.PATIENT
+          ? appointmentProps.patientId
+          : command.recipientType === RecipientType.DOCTOR
+            ? appointmentProps.doctorId
+            : appointmentProps.patientId; // Default to patient for 'both'
 
       // 6. Create reminder entity
       const reminder = AppointmentReminder.create({
@@ -137,7 +142,7 @@ export class CreateAppointmentReminderUseCase {
         priority: command.priority || ReminderPriority.NORMAL,
         maxRetries: command.maxRetries || 3,
         metadata: command.metadata,
-        createdBy: command.createdBy
+        createdBy: command.createdBy,
       });
 
       // 7. Save reminder
@@ -145,15 +150,13 @@ export class CreateAppointmentReminderUseCase {
 
       return {
         success: true,
-        reminderId: reminder.reminderId
+        reminderId: reminder.reminderId,
       };
-
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
 }
-

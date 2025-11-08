@@ -7,17 +7,24 @@
  * @compliance Clean Architecture, DDD
  */
 
-import { Patient, PatientProps } from '../../domain/aggregates/Patient';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
-import { ContactInfo, Address } from '../../domain/value-objects/ContactInfo';
-import { BasicMedicalInfo, BloodType } from '../../domain/value-objects/BasicMedicalInfo';
-import { PatientStatus } from '../../domain/value-objects/PatientStatus';
-import { PatientLink } from '../../domain/value-objects/PatientLink';
-import { CommunicationPreference } from '../../domain/value-objects/CommunicationPreference';
-import { InsuranceInfo } from '../../domain/entities/InsuranceInfo';
-import { EmergencyContact } from '../../domain/entities/EmergencyContact';
-import { PatientConsent } from '../../domain/entities/PatientConsent';
+import { Patient, PatientProps } from "../../domain/aggregates/Patient";
+import { PatientId } from "../../domain/value-objects/PatientId";
+import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
+import { ContactInfo, Address } from "../../domain/value-objects/ContactInfo";
+import {
+  BasicMedicalInfo,
+  BloodType,
+} from "../../domain/value-objects/BasicMedicalInfo";
+import { PatientStatus } from "../../domain/value-objects/PatientStatus";
+import { PatientLink } from "../../domain/value-objects/PatientLink";
+import {
+  CommunicationPreference,
+  Language,
+  ContactMethod,
+} from "../../domain/value-objects/CommunicationPreference";
+import { InsuranceInfo } from "../../domain/entities/InsuranceInfo";
+import { EmergencyContact } from "../../domain/entities/EmergencyContact";
+import { PatientConsent } from "../../domain/entities/PatientConsent";
 
 /**
  * DTO for PersonalInfo JSONB field
@@ -25,7 +32,7 @@ import { PatientConsent } from '../../domain/entities/PatientConsent';
 export interface PersonalInfoDTO {
   fullName: string;
   dateOfBirth: string; // ISO date string
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   nationalId: string;
   nationality: string;
   ethnicity?: string;
@@ -49,7 +56,7 @@ export interface ContactInfoDTO {
     postalCode?: string;
     country: string;
   };
-  preferredContactMethod: 'phone' | 'email' | 'sms';
+  preferredContactMethod: "phone" | "email" | "sms";
 }
 
 /**
@@ -73,9 +80,9 @@ export interface PatientRecord {
   basic_medical_info: BasicMedicalInfoDTO; // JSONB
   photo_url?: string | null; // FHIR: photo field
   communication_preference?: {
-    language: 'vi' | 'en';
+    language: "vi" | "en";
     preferred: boolean;
-    contactMethod: 'email' | 'sms' | 'phone';
+    contactMethod: "email" | "sms" | "phone";
     timezone: string;
   } | null; // FHIR: communication field
   status: string;
@@ -164,7 +171,7 @@ export class PatientMapper {
     insuranceRecord?: InsuranceRecord | null,
     emergencyContactRecords?: EmergencyContactRecord[],
     consentRecords?: PatientConsentRecord[],
-    linkRecords?: PatientLinkRecord[]
+    linkRecords?: PatientLinkRecord[],
   ): Patient {
     try {
       // Map PersonalInfo from JSONB
@@ -176,7 +183,7 @@ export class PatientMapper {
         nationality: patientRecord.personal_info.nationality,
         ethnicity: patientRecord.personal_info.ethnicity,
         occupation: patientRecord.personal_info.occupation,
-        maritalStatus: patientRecord.personal_info.maritalStatus
+        maritalStatus: patientRecord.personal_info.maritalStatus,
       });
 
       // Map ContactInfo from JSONB
@@ -185,14 +192,18 @@ export class PatientMapper {
         secondaryPhone: patientRecord.contact_info.secondaryPhone,
         email: patientRecord.contact_info.email,
         address: patientRecord.contact_info.address as Address,
-        preferredContactMethod: patientRecord.contact_info.preferredContactMethod
+        preferredContactMethod:
+          patientRecord.contact_info.preferredContactMethod,
       });
 
       // Map BasicMedicalInfo from JSONB
       const basicMedicalInfo = BasicMedicalInfo.create({
-        bloodType: patientRecord.basic_medical_info.bloodType as BloodType | undefined,
+        bloodType: patientRecord.basic_medical_info.bloodType as
+          | BloodType
+          | undefined,
         knownAllergies: patientRecord.basic_medical_info.knownAllergies || [],
-        emergencyMedicalInfo: patientRecord.basic_medical_info.emergencyMedicalInfo
+        emergencyMedicalInfo:
+          patientRecord.basic_medical_info.emergencyMedicalInfo,
       });
 
       // Map InsuranceInfo if exists
@@ -205,18 +216,22 @@ export class PatientMapper {
           groupNumber: insuranceRecord.group_number || undefined,
           validFrom: new Date(insuranceRecord.valid_from),
           validTo: new Date(insuranceRecord.valid_to),
-          coverageType: insuranceRecord.coverage_type as 'BHYT' | 'BHTN' | 'private' | 'self_pay',
+          coverageType: insuranceRecord.coverage_type as
+            | "BHYT"
+            | "BHTN"
+            | "private"
+            | "self_pay",
           isVietnameseInsurance: insuranceRecord.is_vietnamese_insurance,
           bhytNumber: insuranceRecord.bhyt_number || undefined,
           isPrimary: insuranceRecord.is_primary,
           isActive: insuranceRecord.is_active,
           createdAt: new Date(insuranceRecord.created_at),
-          updatedAt: new Date(insuranceRecord.updated_at)
+          updatedAt: new Date(insuranceRecord.updated_at),
         });
       }
 
       // Map EmergencyContacts
-      const emergencyContacts = (emergencyContactRecords || []).map(record =>
+      const emergencyContacts = (emergencyContactRecords || []).map((record) =>
         EmergencyContact.reconstitute({
           id: record.id,
           name: record.name,
@@ -228,42 +243,65 @@ export class PatientMapper {
           isPrimary: record.is_primary,
           isActive: record.is_active ?? true,
           createdAt: new Date(record.created_at),
-          updatedAt: new Date(record.updated_at)
-        })
+          updatedAt: new Date(record.updated_at),
+        }),
       );
 
       // Map PatientConsents
-      const consents = (consentRecords || []).map(record =>
+      const consents = (consentRecords || []).map((record) =>
         PatientConsent.reconstitute({
           id: record.id,
           patientId: PatientId.fromString(patientRecord.patient_id),
           consentType: record.consent_type,
           isActive: record.is_active ?? true,
-          grantedAt: record.granted_at ? new Date(record.granted_at) : new Date(),
-          withdrawnAt: record.revoked_at ? new Date(record.revoked_at) : undefined,
-          expiresAt: record.expires_at ? new Date(record.expires_at) : undefined,
+          grantedAt: record.granted_at
+            ? new Date(record.granted_at)
+            : new Date(),
+          withdrawnAt: record.revoked_at
+            ? new Date(record.revoked_at)
+            : undefined,
+          expiresAt: record.expires_at
+            ? new Date(record.expires_at)
+            : undefined,
           createdAt: new Date(record.created_at),
-          updatedAt: new Date(record.updated_at)
-        })
+          updatedAt: new Date(record.updated_at),
+        }),
       );
 
       // Map PatientLinks
-      const links = (linkRecords || []).map(record =>
+      const links = (linkRecords || []).map((record) =>
         PatientLink.create(
           PatientId.fromString(record.other_patient_id),
-          record.link_type as 'refer' | 'seealso',
-          record.created_by
-        )
+          record.link_type as "refer" | "seealso",
+          record.created_by,
+        ),
       );
 
       // Map CommunicationPreference if exists
       let communicationPreference: CommunicationPreference | undefined;
       if (patientRecord.communication_preference) {
+        const preference = patientRecord.communication_preference as Record<
+          string,
+          any
+        >;
+        const language = (preference.language as Language) || "vi";
+        const contactMethod =
+          (preference.contactMethod as ContactMethod) ||
+          (preference.preferredChannel as ContactMethod) ||
+          (patientRecord.contact_info
+            .preferredContactMethod as ContactMethod) ||
+          "phone";
+        const preferred =
+          typeof preference.preferred === "boolean"
+            ? preference.preferred
+            : true;
+        const timezone = preference.timezone || "Asia/Ho_Chi_Minh";
+
         communicationPreference = CommunicationPreference.create({
-          language: patientRecord.communication_preference.language,
-          preferred: patientRecord.communication_preference.preferred,
-          contactMethod: patientRecord.communication_preference.contactMethod,
-          timezone: patientRecord.communication_preference.timezone
+          language,
+          preferred,
+          contactMethod,
+          timezone,
         });
       }
 
@@ -280,18 +318,21 @@ export class PatientMapper {
         emergencyContacts,
         consents,
         status: patientRecord.status as PatientStatus,
-        mergedInto: patientRecord.merged_into ? PatientId.fromString(patientRecord.merged_into) : undefined,
+        mergedInto: patientRecord.merged_into
+          ? PatientId.fromString(patientRecord.merged_into)
+          : undefined,
         links,
         createdAt: new Date(patientRecord.created_at),
         updatedAt: new Date(patientRecord.updated_at),
         createdBy: patientRecord.created_by,
-        updatedBy: patientRecord.updated_by
+        updatedBy: patientRecord.updated_by,
       };
 
       return Patient.reconstitute(patientProps);
-
     } catch (error) {
-      throw new Error(`Failed to map patient to domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to map patient to domain: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -314,34 +355,36 @@ export class PatientMapper {
       user_id: props.userId,
       personal_info: {
         fullName: props.personalInfo.fullName,
-        dateOfBirth: props.personalInfo.dateOfBirth.toISOString().split('T')[0],
+        dateOfBirth: props.personalInfo.dateOfBirth.toISOString().split("T")[0],
         gender: props.personalInfo.gender,
         nationalId: props.personalInfo.nationalId,
         nationality: props.personalInfo.nationality,
         ethnicity: props.personalInfo.ethnicity,
         occupation: props.personalInfo.occupation,
-        maritalStatus: props.personalInfo.maritalStatus
+        maritalStatus: props.personalInfo.maritalStatus,
       },
       contact_info: {
         primaryPhone: props.contactInfo.primaryPhone,
         secondaryPhone: props.contactInfo.secondaryPhone,
         email: props.contactInfo.email,
         address: props.contactInfo.address,
-        preferredContactMethod: props.contactInfo.preferredContactMethod
+        preferredContactMethod: props.contactInfo.preferredContactMethod,
       },
       basic_medical_info: {
         bloodType: props.basicMedicalInfo.bloodType,
         knownAllergies: props.basicMedicalInfo.knownAllergies,
-        emergencyMedicalInfo: props.basicMedicalInfo.emergencyMedicalInfo
+        emergencyMedicalInfo: props.basicMedicalInfo.emergencyMedicalInfo,
       },
       photo_url: props.photoUrl || null,
-      communication_preference: props.communicationPreference ? props.communicationPreference.toDTO() : null,
+      communication_preference: props.communicationPreference
+        ? props.communicationPreference.toDTO()
+        : null,
       status: props.status,
       merged_into: props.mergedInto?.value || null,
       created_at: props.createdAt.toISOString(),
       updated_at: props.updatedAt.toISOString(),
       created_by: props.createdBy,
-      updated_by: props.updatedBy
+      updated_by: props.updatedBy,
     };
 
     // Map insurance info
@@ -353,18 +396,18 @@ export class PatientMapper {
         provider: props.insuranceInfo.provider,
         policy_number: props.insuranceInfo.policyNumber,
         group_number: props.insuranceInfo.groupNumber || null,
-        valid_from: props.insuranceInfo.validFrom.toISOString().split('T')[0],
-        valid_to: props.insuranceInfo.validTo.toISOString().split('T')[0],
+        valid_from: props.insuranceInfo.validFrom.toISOString().split("T")[0],
+        valid_to: props.insuranceInfo.validTo.toISOString().split("T")[0],
         coverage_type: props.insuranceInfo.coverageType,
         is_vietnamese_insurance: props.insuranceInfo.isVietnameseInsurance,
         bhyt_number: props.insuranceInfo.bhytNumber || null,
         is_primary: props.insuranceInfo.isPrimary,
-        is_active: props.insuranceInfo.isActive
+        is_active: props.insuranceInfo.isActive,
       };
     }
 
     // Map emergency contacts
-    const emergencyContactRecords = props.emergencyContacts.map(contact => ({
+    const emergencyContactRecords = props.emergencyContacts.map((contact) => ({
       id: contact.id,
       patient_id: props.id.getValue(),
       name: contact.name,
@@ -373,11 +416,11 @@ export class PatientMapper {
       secondary_phone: contact.secondaryPhone || null,
       email: contact.email || null,
       address: contact.address || null,
-      is_primary: contact.isPrimary
+      is_primary: contact.isPrimary,
     }));
 
     // Map consents
-    const consentRecords = props.consents.map(consent => ({
+    const consentRecords = props.consents.map((consent) => ({
       id: consent.getId(),
       patient_id: props.id.value,
       consent_type: consent.consentType,
@@ -385,16 +428,16 @@ export class PatientMapper {
       is_granted: consent.isGranted(),
       granted_at: consent.grantedAt.toISOString(),
       revoked_at: consent.revokedAt()?.toISOString() || null,
-      expires_at: consent.expiresAt?.toISOString() || null
+      expires_at: consent.expiresAt?.toISOString() || null,
     }));
 
     // Map links
-    const linkRecords = props.links.map(link => ({
+    const linkRecords = props.links.map((link) => ({
       patient_id: props.id.value,
       other_patient_id: link.otherPatientId.value,
       link_type: link.linkType,
       created_at: link.createdAt.toISOString(),
-      created_by: link.createdBy
+      created_by: link.createdBy,
     }));
 
     return {
@@ -402,8 +445,7 @@ export class PatientMapper {
       insuranceRecord,
       emergencyContactRecords,
       consentRecords,
-      linkRecords
+      linkRecords,
     };
   }
 }
-

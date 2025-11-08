@@ -14,6 +14,7 @@ interface DepartmentAssignmentProps {
   departmentNameVi: string;      // Vietnamese name
   role: string;
   isPrimary?: boolean;           // Is this the primary department assignment?
+  isHead?: boolean;              // Is this staff the department head?
   startDate: Date;
   endDate?: Date;
   isActive: boolean;
@@ -39,6 +40,7 @@ export class DepartmentAssignment extends Entity<DepartmentAssignmentProps> {
       departmentNameVi: data.department_name_vi || data.departmentNameVi || data.department_name || data.departmentName,
       role: data.role,
       isPrimary: data.is_primary || data.isPrimary || false,
+      isHead: data.is_head || data.isHead || false,
       startDate: new Date(data.start_date || data.startDate),
       endDate: data.end_date || data.endDate ? new Date(data.end_date || data.endDate) : undefined,
       isActive: data.is_active !== undefined ? data.is_active : (data.isActive !== undefined ? data.isActive : true),
@@ -65,6 +67,15 @@ export class DepartmentAssignment extends Entity<DepartmentAssignmentProps> {
 
   public get isPrimary(): boolean {
     return this.props.isPrimary || false;
+  }
+
+  public get isHead(): boolean {
+    return this.props.isHead || false;
+  }
+
+  public set isHead(value: boolean) {
+    this.props.isHead = value;
+    this.touch();
   }
 
   public get role(): string {
@@ -104,11 +115,12 @@ export class DepartmentAssignment extends Entity<DepartmentAssignmentProps> {
       departmentNameVi: this.props.departmentNameVi,
       role: this.props.role,
       isPrimary: this.props.isPrimary || false,
-      startDate: this.props.startDate.toISOString(),
-      endDate: this.props.endDate?.toISOString(),
+      isHead: this.props.isHead || false,
+      startDate: this.props.startDate ? this.props.startDate.toISOString() : new Date().toISOString(),
+      endDate: this.props.endDate?.toISOString() || null,
       isActive: this.props.isActive,
-      createdAt: this.props.createdAt.toISOString(),
-      updatedAt: this.props.updatedAt.toISOString()
+      createdAt: this.props.createdAt ? this.props.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: this.props.updatedAt ? this.props.updatedAt.toISOString() : new Date().toISOString()
     };
   }
 }

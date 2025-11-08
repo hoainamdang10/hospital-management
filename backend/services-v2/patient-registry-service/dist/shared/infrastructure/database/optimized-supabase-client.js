@@ -299,7 +299,7 @@ const createProviderStaffClient = () => createOptimizedSupabaseClient({
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     serviceName: 'provider-staff-service',
-    schemaName: 'doctor_schema',
+    schemaName: 'provider_schema',
     enableOptimizations: process.env.NODE_ENV !== 'test',
 });
 exports.createProviderStaffClient = createProviderStaffClient;

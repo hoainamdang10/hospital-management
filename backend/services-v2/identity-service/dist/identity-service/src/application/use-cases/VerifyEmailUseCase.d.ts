@@ -11,13 +11,13 @@
  * @author Hospital Management Team
  * @version 3.0.0 - Verify-First Approach
  */
-import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { IUserRepository } from '../repositories/IUserRepository';
-import { IPendingRegistrationRepository } from '../../domain/repositories/IPendingRegistrationRepository';
-import { IEmailService } from '../services/IEmailService';
-import { ICircuitBreaker } from '../services/ICircuitBreaker';
-import { IEventPublisher } from '../services/IEventPublisher';
-import { ILogger } from '../services/ILogger';
+import { IUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
+import { IUserRepository } from "../repositories/IUserRepository";
+import { IPendingRegistrationRepository } from "../../domain/repositories/IPendingRegistrationRepository";
+import { IEmailService } from "../services/IEmailService";
+import { ICircuitBreaker } from "../services/ICircuitBreaker";
+import { IEventPublisher } from "../services/IEventPublisher";
+import { ILogger } from "../services/ILogger";
 export interface VerifyEmailRequest {
     token: string;
 }
@@ -39,5 +39,6 @@ export declare class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, 
     constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, emailService: IEmailService, logger: ILogger, circuitBreaker: ICircuitBreaker, jwtSecret: string, eventPublisher?: IEventPublisher | undefined);
     execute(request: VerifyEmailRequest): Promise<VerifyEmailResponse>;
     private executeImpl;
+    private decryptPendingPassword;
 }
 //# sourceMappingURL=VerifyEmailUseCase.d.ts.map

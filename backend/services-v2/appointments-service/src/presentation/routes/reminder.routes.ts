@@ -22,14 +22,14 @@
  * @compliance Clean Architecture, REST API
  */
 
-import { Router } from 'express';
-import { ReminderController } from '../controllers/ReminderController';
-import { body, param } from 'express-validator';
-import { validateRequest } from '../middleware/validateRequest';
+import { Router, Request, Response } from "express";
+import { ReminderController } from "../controllers/ReminderController";
+import { body, param } from "express-validator";
+import { validateRequest } from "../middleware/validateRequest";
 
 /**
  * Create reminder routes
- * 
+ *
  * Routes are mounted at /api/v1/appointments in main.ts
  * So these routes become:
  * - POST   /api/v1/appointments/:appointmentId/reminders
@@ -45,43 +45,41 @@ export function createReminderRoutes(controller: ReminderController): Router {
    * Create a new reminder for an appointment
    */
   router.post(
-    '/:appointmentId/reminders',
+    "/:appointmentId/reminders",
     [
-      param('appointmentId').isUUID().withMessage('Invalid appointment ID'),
-      body('reminderType')
-        .isIn(['email', 'sms', 'push', 'in_app'])
-        .withMessage('Invalid reminder type'),
-      body('reminderChannel')
-        .isIn(['email', 'sms', 'push_notification', 'in_app_notification'])
-        .withMessage('Invalid reminder channel'),
-      body('sendBeforeMinutes')
+      param("appointmentId").isUUID().withMessage("Invalid appointment ID"),
+      body("reminderType")
+        .isIn(["email", "sms", "push", "in_app"])
+        .withMessage("Invalid reminder type"),
+      body("reminderChannel")
+        .isIn(["email", "sms", "push_notification", "in_app_notification"])
+        .withMessage("Invalid reminder channel"),
+      body("sendBeforeMinutes")
         .isInt({ min: 1 })
-        .withMessage('Send before minutes must be positive'),
-      body('message')
-        .notEmpty()
-        .withMessage('Message is required'),
-      body('recipientType')
-        .isIn(['patient', 'doctor', 'both'])
-        .withMessage('Invalid recipient type'),
-      body('recipientEmail')
+        .withMessage("Send before minutes must be positive"),
+      body("message").notEmpty().withMessage("Message is required"),
+      body("recipientType")
+        .isIn(["patient", "doctor", "both"])
+        .withMessage("Invalid recipient type"),
+      body("recipientEmail")
         .optional()
         .isEmail()
-        .withMessage('Invalid email address'),
-      body('recipientPhone')
+        .withMessage("Invalid email address"),
+      body("recipientPhone")
         .optional()
         .matches(/^\+?[1-9]\d{1,14}$/)
-        .withMessage('Invalid phone number'),
-      body('priority')
+        .withMessage("Invalid phone number"),
+      body("priority")
         .optional()
-        .isIn(['low', 'normal', 'high', 'urgent'])
-        .withMessage('Invalid priority'),
-      body('maxRetries')
+        .isIn(["low", "normal", "high", "urgent"])
+        .withMessage("Invalid priority"),
+      body("maxRetries")
         .optional()
         .isInt({ min: 0, max: 10 })
-        .withMessage('Max retries must be between 0 and 10'),
-      validateRequest
+        .withMessage("Max retries must be between 0 and 10"),
+      validateRequest,
     ],
-    (req, res) => controller.createReminder(req, res)
+    (req: Request, res: Response) => controller.createReminder(req, res),
   );
 
   /**
@@ -89,12 +87,12 @@ export function createReminderRoutes(controller: ReminderController): Router {
    * Get all reminders for an appointment
    */
   router.get(
-    '/:appointmentId/reminders',
+    "/:appointmentId/reminders",
     [
-      param('appointmentId').isUUID().withMessage('Invalid appointment ID'),
-      validateRequest
+      param("appointmentId").isUUID().withMessage("Invalid appointment ID"),
+      validateRequest,
     ],
-    (req, res) => controller.getReminders(req, res)
+    (req: Request, res: Response) => controller.getReminders(req, res),
   );
 
   /**
@@ -102,28 +100,28 @@ export function createReminderRoutes(controller: ReminderController): Router {
    * Update a reminder
    */
   router.put(
-    '/reminders/:reminderId',
+    "/reminders/:reminderId",
     [
-      param('reminderId').isUUID().withMessage('Invalid reminder ID'),
-      body('subject')
+      param("reminderId").isUUID().withMessage("Invalid reminder ID"),
+      body("subject")
         .optional()
         .isString()
-        .withMessage('Subject must be a string'),
-      body('message')
+        .withMessage("Subject must be a string"),
+      body("message")
         .optional()
         .isString()
-        .withMessage('Message must be a string'),
-      body('priority')
+        .withMessage("Message must be a string"),
+      body("priority")
         .optional()
-        .isIn(['low', 'normal', 'high', 'urgent'])
-        .withMessage('Invalid priority'),
-      body('metadata')
+        .isIn(["low", "normal", "high", "urgent"])
+        .withMessage("Invalid priority"),
+      body("metadata")
         .optional()
         .isObject()
-        .withMessage('Metadata must be an object'),
-      validateRequest
+        .withMessage("Metadata must be an object"),
+      validateRequest,
     ],
-    (req, res) => controller.updateReminder(req, res)
+    (req: Request, res: Response) => controller.updateReminder(req, res),
   );
 
   /**
@@ -131,14 +129,13 @@ export function createReminderRoutes(controller: ReminderController): Router {
    * Delete a reminder
    */
   router.delete(
-    '/reminders/:reminderId',
+    "/reminders/:reminderId",
     [
-      param('reminderId').isUUID().withMessage('Invalid reminder ID'),
-      validateRequest
+      param("reminderId").isUUID().withMessage("Invalid reminder ID"),
+      validateRequest,
     ],
-    (req, res) => controller.deleteReminder(req, res)
+    (req: Request, res: Response) => controller.deleteReminder(req, res),
   );
 
   return router;
 }
-

@@ -29,6 +29,7 @@ export interface HealthCheckResult {
     database: ComponentHealth;
     rabbitmq?: ComponentHealth;
     redis?: ComponentHealth;
+    eventBus?: ComponentHealth;
   };
 }
 
@@ -36,7 +37,7 @@ export interface HealthCheckResult {
  * Provider/Staff Service Health Check
  */
 export class ProviderStaffHealthCheck {
-  private supabaseClient: SupabaseClient;
+  private supabaseClient: SupabaseClient<any, 'provider_schema'>;
   private readonly serviceName = 'provider-staff-service';
   private readonly version = '2.0.0';
 
@@ -49,7 +50,8 @@ export class ProviderStaffHealthCheck {
       auth: {
         autoRefreshToken: false,
         persistSession: false
-      }
+      },
+      db: { schema: 'provider_schema' }
     });
   }
 

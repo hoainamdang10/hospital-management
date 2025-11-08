@@ -1,0 +1,103 @@
+# ============================================
+# Docker Ignore for Provider Staff Service Build
+# Build Context: backend/services-v2
+# ============================================
+
+# Exclude all services except provider-staff-service and shared
+api-gateway
+billing-service
+clinical-emr-service
+department-service
+notifications-service
+identity-service
+patient-registry-service
+appointments-service
+scheduler-service
+
+# Dependencies (will be installed during build)
+**/node_modules
+**/npm-debug.log
+**/yarn-error.log
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Testing
+**/coverage
+**/*.test.ts
+**/*.spec.ts
+**/tests
+**/test-results
+**/test-results.json
+**/test-results.log
+**/test-results.txt
+**/playwright-report
+
+# Development
+.git
+.gitignore
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.development
+**/.env.test
+
+# IDE & Editors
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+
+# Documentation (except README)
+**/*.md
+!**/README.md
+
+# Build artifacts (will be built fresh)
+**/dist
+**/build
+**/*.log
+**/*.tsbuildinfo
+
+# Test scripts
+**/test-*.sh
+**/test-*.ps1
+**/*.postman_collection.json
+**/debug-*.js
+
+# Temporary files
+**/tmp
+**/temp
+**/.cache
+
+# CI/CD
+**/.github
+**/.gitlab-ci.yml
+**/.travis.yml
+
+# Migration scripts (not needed in production)
+**/migrations
+
+# Docker files
+**/Dockerfile
+**/.dockerignore
+**/docker-compose*.yml
+**/compose*.yml
+
+# Assessment and scripts directories
+assessment
+scripts
+migration
+
+# Root level configs
+docker-compose.v2.yml
+PORT-MAPPING.md
+README.md
+
+# Service specific files not needed
+**/*.FullName
+**/integration-test.log
+**/generate-jwt.js
+**/test-api.http
+**/test-api.ps1
+

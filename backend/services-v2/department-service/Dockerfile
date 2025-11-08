@@ -1,8 +1,9 @@
 # Department Service Dockerfile
+# Build context: backend/services-v2
 FROM node:18-alpine
 
 # Set working directory
-WORKDIR /app
+WORKDIR /app/department-service
 
 # Copy package files
 COPY department-service/package*.json ./

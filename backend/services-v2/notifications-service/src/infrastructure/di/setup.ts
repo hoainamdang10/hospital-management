@@ -28,6 +28,10 @@ import { SendNotificationUseCase } from "../../application/use-cases/SendNotific
 // import { ProcessNotificationQueueUseCase } from "../../application/use-cases/ProcessNotificationQueueUseCase";
 // import { NotificationCommandHandlers } from "../../application/handlers/NotificationCommandHandlers";
 // import { NotificationQueryHandlers } from "../../application/handlers/NotificationQueryHandlers";
+import { GetTemplatesUseCase } from "../../application/use-cases/GetTemplatesUseCase";
+import { CreateTemplateUseCase } from "../../application/use-cases/CreateTemplateUseCase";
+import { UpdateTemplateUseCase } from "../../application/use-cases/UpdateTemplateUseCase";
+import { DeleteTemplateUseCase } from "../../application/use-cases/DeleteTemplateUseCase";
 
 // Infrastructure Layer
 import { SupabaseNotificationRepository } from "../persistence/SupabaseNotificationRepository";
@@ -59,6 +63,10 @@ export const ServiceTokens = {
   SCHEDULE_NOTIFICATION_USE_CASE: "ScheduleNotificationUseCase",
   SEND_NOTIFICATION_USE_CASE: "SendNotificationUseCase",
   PROCESS_NOTIFICATION_QUEUE_USE_CASE: "ProcessNotificationQueueUseCase",
+  GET_TEMPLATES_USE_CASE: "GetTemplatesUseCase",
+  CREATE_TEMPLATE_USE_CASE: "CreateTemplateUseCase",
+  UPDATE_TEMPLATE_USE_CASE: "UpdateTemplateUseCase",
+  DELETE_TEMPLATE_USE_CASE: "DeleteTemplateUseCase",
 
   // Handlers
   NOTIFICATION_COMMAND_HANDLERS: "NotificationCommandHandlers",
@@ -262,6 +270,43 @@ export function setupDependencies(container: DIContainer): void {
   //   },
   //   ServiceLifetime.SCOPED
   // );
+
+  // Register template management use cases
+  container.registerFactory(
+    ServiceTokens.GET_TEMPLATES_USE_CASE,
+    (container) => {
+      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+      return new GetTemplatesUseCase(templateService);
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  container.registerFactory(
+    ServiceTokens.CREATE_TEMPLATE_USE_CASE,
+    (container) => {
+      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+      return new CreateTemplateUseCase(templateService);
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  container.registerFactory(
+    ServiceTokens.UPDATE_TEMPLATE_USE_CASE,
+    (container) => {
+      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+      return new UpdateTemplateUseCase(templateService);
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  container.registerFactory(
+    ServiceTokens.DELETE_TEMPLATE_USE_CASE,
+    (container) => {
+      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+      return new DeleteTemplateUseCase(templateService);
+    },
+    ServiceLifetime.SCOPED
+  );
 
   // Register application services
   container.registerFactory(

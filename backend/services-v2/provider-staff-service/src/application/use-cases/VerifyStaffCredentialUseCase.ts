@@ -7,10 +7,10 @@
  * @compliance Clean Architecture, DDD
  */
 
-import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { StaffId } from '../../domain/value-objects/StaffId';
-import { ILogger } from '../interfaces/ILogger';
-import { IAuditService } from '../interfaces/IAuditService';
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
+import { StaffId } from "../../domain/value-objects/StaffId";
+import { ILogger } from "../interfaces/ILogger";
+import { IAuditService } from "../interfaces/IAuditService";
 
 export interface VerifyStaffCredentialRequest {
   staffId: string;
@@ -45,15 +45,17 @@ export class VerifyStaffCredentialUseCase {
   constructor(
     private staffRepository: IProviderStaffRepository,
     private logger: ILogger,
-    private auditService?: IAuditService
+    private auditService?: IAuditService,
   ) {}
 
-  async execute(request: VerifyStaffCredentialRequest): Promise<VerifyStaffCredentialResponse> {
+  async execute(
+    request: VerifyStaffCredentialRequest,
+  ): Promise<VerifyStaffCredentialResponse> {
     try {
-      this.logger.info('Verifying staff credential', {
+      this.logger.info("Verifying staff credential", {
         staffId: request.staffId,
         credentialId: request.credentialId,
-        verifiedBy: request.verifiedBy
+        verifiedBy: request.verifiedBy,
       });
 
       // Validate request
@@ -61,8 +63,8 @@ export class VerifyStaffCredentialUseCase {
       if (validationErrors.length > 0) {
         return {
           success: false,
-          message: 'Dữ liệu xác thực chứng chỉ không hợp lệ',
-          errors: validationErrors
+          message: "Dữ liệu xác thực chứng chỉ không hợp lệ",
+          errors: validationErrors,
         };
       }
 
@@ -72,18 +74,20 @@ export class VerifyStaffCredentialUseCase {
       if (!staff) {
         return {
           success: false,
-          message: 'Không tìm thấy nhân viên',
-          errors: ['STAFF_NOT_FOUND']
+          message: "Không tìm thấy nhân viên",
+          errors: ["STAFF_NOT_FOUND"],
         };
       }
 
       // Find credential by ID
-      const credential = staff.credentials.find(c => c.id === request.credentialId);
+      const credential = staff.credentials.find(
+        (c) => c.id === request.credentialId,
+      );
       if (!credential) {
         return {
           success: false,
-          message: 'Không tìm thấy chứng chỉ',
-          errors: ['CREDENTIAL_NOT_FOUND']
+          message: "Không tìm thấy chứng chỉ",
+          errors: ["CREDENTIAL_NOT_FOUND"],
         };
       }
 
@@ -91,8 +95,8 @@ export class VerifyStaffCredentialUseCase {
       if (credential.isValid) {
         return {
           success: false,
-          message: 'Chứng chỉ đã được xác thực trước đó',
-          errors: ['CREDENTIAL_ALREADY_VERIFIED']
+          message: "Chứng chỉ đã được xác thực trước đó",
+          errors: ["CREDENTIAL_ALREADY_VERIFIED"],
         };
       }
 
@@ -100,8 +104,8 @@ export class VerifyStaffCredentialUseCase {
       if (credential.isExpired()) {
         return {
           success: false,
-          message: 'Chứng chỉ đã hết hạn, không thể xác thực',
-          errors: ['CREDENTIAL_EXPIRED']
+          message: "Chứng chỉ đã hết hạn, không thể xác thực",
+          errors: ["CREDENTIAL_EXPIRED"],
         };
       }
 
@@ -114,8 +118,8 @@ export class VerifyStaffCredentialUseCase {
       // Audit log
       if (this.auditService && this.auditService.logAction) {
         await this.auditService.logAction({
-          action: 'VERIFY_STAFF_CREDENTIAL',
-          entityType: 'ProviderStaff',
+          action: "VERIFY_STAFF_CREDENTIAL",
+          entityType: "ProviderStaff",
           entityId: staff.id,
           performedBy: request.verifiedBy,
           performedByRole: request.verifiedByRole,
@@ -124,41 +128,40 @@ export class VerifyStaffCredentialUseCase {
             credentialNumber: credential.credentialNumber,
             credentialType: credential.credentialType,
             ipAddress: request.requestMetadata?.ipAddress,
-            userAgent: request.requestMetadata?.userAgent
+            userAgent: request.requestMetadata?.userAgent,
           },
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
-      this.logger.info('Staff credential verified successfully', {
+      this.logger.info("Staff credential verified successfully", {
         staffId: request.staffId,
         credentialId: credential.id,
-        verifiedBy: request.verifiedBy
+        verifiedBy: request.verifiedBy,
       });
 
       return {
         success: true,
-        message: 'Xác thực chứng chỉ thành công',
+        message: "Xác thực chứng chỉ thành công",
         data: {
           staffId: staff.id,
           credentialId: credential.id,
           credentialNumber: credential.credentialNumber,
           verifiedAt: new Date().toISOString(),
-          verifiedBy: request.verifiedBy
-        }
+          verifiedBy: request.verifiedBy,
+        },
       };
-
     } catch (error) {
-      this.logger.error('Error verifying staff credential', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.logger.error("Error verifying staff credential", {
+        error: error instanceof Error ? error.message : "Unknown error",
         staffId: request.staffId,
-        credentialId: request.credentialId
+        credentialId: request.credentialId,
       });
 
       return {
         success: false,
-        message: 'Lỗi khi xác thực chứng chỉ nhân viên',
-        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+        message: "Lỗi khi xác thực chứng chỉ nhân viên",
+        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
       };
     }
   }
@@ -167,28 +170,30 @@ export class VerifyStaffCredentialUseCase {
     const errors: string[] = [];
 
     if (!request.staffId || request.staffId.trim().length === 0) {
-      errors.push('Staff ID không được để trống');
+      errors.push("Staff ID không được để trống");
     }
 
     if (!request.credentialId || request.credentialId.trim().length === 0) {
-      errors.push('Credential ID không được để trống');
+      errors.push("Credential ID không được để trống");
     }
 
     if (!request.verifiedBy || request.verifiedBy.trim().length === 0) {
-      errors.push('Người xác thực không được để trống');
+      errors.push("Người xác thực không được để trống");
     }
 
     if (!request.verifiedByRole || request.verifiedByRole.trim().length === 0) {
-      errors.push('Vai trò người xác thực không được để trống');
+      errors.push("Vai trò người xác thực không được để trống");
     }
 
     // Only ADMIN or SUPER_ADMIN can verify credentials
-    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
-    if (!allowedRoles.includes(request.verifiedByRole)) {
-      errors.push('Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền xác thực chứng chỉ');
+    const allowedRoles = ["ADMIN", "SUPER_ADMIN"];
+    const verifierRole = request.verifiedByRole
+      ? request.verifiedByRole.toUpperCase()
+      : "";
+    if (!allowedRoles.includes(verifierRole)) {
+      errors.push("Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền xác thực chứng chỉ");
     }
 
     return errors;
   }
 }
-

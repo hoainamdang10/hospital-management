@@ -25,7 +25,7 @@ function createClinicalNoteRoutes(controller) {
     // =====================================================
     /**
      * Create new clinical note
-     * POST /api/v2/clinical-emr/clinical-notes
+     * POST /api/v2/clinical-emr/notes
      * @access Doctor, Nurse, Admin
      * @audit PHI Access - Create Clinical Note
      */
@@ -33,21 +33,21 @@ function createClinicalNoteRoutes(controller) {
     (req, res, next) => controller.createNote(req, res, next));
     /**
      * Get clinical note by ID
-     * GET /api/v2/clinical-emr/clinical-notes/:noteId
+     * GET /api/v2/clinical-emr/notes/:noteId
      * @access Healthcare Staff (view clinical documentation)
      * @audit PHI Access - View Clinical Note
      */
     router.get('/:noteId', authMiddleware.authenticate(), authMiddleware.requireHealthcareStaff(), (req, res, next) => controller.getNote(req, res, next));
     /**
      * Update clinical note
-     * PUT /api/v2/clinical-emr/clinical-notes/:noteId
+     * PUT /api/v2/clinical-emr/notes/:noteId
      * @access Doctor, Nurse (original author), Admin
      * @audit PHI Access - Update Clinical Note
      */
     router.put('/:noteId', authMiddleware.authenticate(), authMiddleware.requireHealthcareStaff(), (req, res, next) => controller.updateNote(req, res, next));
     /**
      * Cosign clinical note (supervisor approval)
-     * POST /api/v2/clinical-emr/clinical-notes/:noteId/cosign
+     * POST /api/v2/clinical-emr/notes/:noteId/cosign
      * @access Doctor (supervisor), Admin
      * @audit PHI Access - Cosign Clinical Note (Critical)
      */
@@ -55,7 +55,7 @@ function createClinicalNoteRoutes(controller) {
     (req, res, next) => controller.cosignNote(req, res, next));
     /**
      * List clinical notes with filtering
-     * GET /api/v2/clinical-emr/clinical-notes
+     * GET /api/v2/clinical-emr/notes
      * @access Healthcare Staff
      * @audit PHI Access - List Clinical Notes
      * @query patientId, authorId, type, startDate, endDate

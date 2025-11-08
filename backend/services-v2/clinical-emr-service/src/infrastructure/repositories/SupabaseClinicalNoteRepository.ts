@@ -1,373 +1,66 @@
-/**
- * SupabaseClinicalNoteRepository - Supabase Implementation
- * Maps between domain aggregates and database records
- *
- * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, DDD, Repository Pattern
- */
+import { supabaseClient } from "../db/supabase-client";
+import { IClinicalNoteRepository } from "../../domain/repositories/IClinicalNoteRepository";
+import { ClinicalNoteProps } from "../../domain/entities/ClinicalNote";
+import { ApplicationError } from "../../application/errors/ApplicationError";
+import { PaginationParams } from "../../shared/types/pagination";
+import { getRange } from "../../shared/utils/pagination";
 
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IClinicalNoteRepository } from '../../domain/repositories/IClinicalNoteRepository';
-import { ClinicalNoteAggregate, ClinicalNoteType, ClinicalNoteStatus } from '../../domain/aggregates/ClinicalNote.aggregate';
-import { NoteId } from '../../domain/value-objects/NoteId';
-
-interface ClinicalNoteRecord {
-  note_id: string;
-  medical_record_id: string;
-  patient_id: string;
-  encounter_id?: string;
-  note_type: ClinicalNoteType;
-  title: string;
-  content: any; // JSONB
-  template_id?: string;
-  soap_format?: any; // JSONB
-  created_by: string;
-  created_at: string;
-  updated_by?: string;
-  updated_at?: string;
-  signed_by?: string;
-  signed_at?: string;
-  cosigned_by?: string;
-  cosigned_at?: string;
-  status: ClinicalNoteStatus;
-  tags?: string[];
-  attachments?: any[];
-  version: number;
-  previous_version_id?: string;
-  is_locked: boolean;
-  locked_by?: string;
-  locked_at?: string;
-  access_log?: any[];
-}
+const TABLE = "clinical_notes";
 
 export class SupabaseClinicalNoteRepository implements IClinicalNoteRepository {
-  private readonly tableName = 'clinical_notes';
-  private readonly schema = 'clinical_schema';
+  async listByRecord(
+    recordId: string,
+    pagination: PaginationParams,
+  ): Promise<ClinicalNoteProps[]> {
+    const { from, to } = getRange(pagination);
+    const { data, error } = await supabaseClient
+      .from(TABLE)
+      .select("*")
+      .eq("record_id", recordId)
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-  constructor(private readonly supabase: SupabaseClient) {}
-
-  async save(note: ClinicalNoteAggregate): Promise<void> {
-    const record = this.toDatabase(note);
-    const { error } = await this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .upsert(record);
-
-    if (error) throw new Error(`Failed to save clinical note: ${error.message}`);
+    if (error) throw new ApplicationError(500, error.message);
+    return (data ?? []).map(this.toDomain);
   }
 
-  async findById(noteId: NoteId): Promise<ClinicalNoteAggregate | null> {
-    const { data, error } = await this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('note_id', noteId.value)
+  async save(note: ClinicalNoteProps): Promise<ClinicalNoteProps> {
+    const { data, error } = await supabaseClient
+      .from(TABLE)
+      .insert({
+        id: note.id,
+        record_id: note.recordId,
+        author_id: note.authorId,
+        type: note.type,
+        content: note.content,
+        created_at: note.createdAt.toISOString(),
+        updated_at: note.updatedAt.toISOString(),
+      })
+      .select("*")
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(`Failed to find clinical note: ${error.message}`);
-    }
-
-    return data ? this.toDomain(data) : null;
+    if (error) throw new ApplicationError(500, error.message);
+    return this.toDomain(data);
   }
 
-  async findByMedicalRecordId(
-    medicalRecordId: string,
-    options?: { limit?: number; offset?: number }
-  ): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('medical_record_id', medicalRecordId)
-      .order('created_at', { ascending: false });
-
-    if (options?.limit) query = query.limit(options.limit);
-    if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to find notes by medical record: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async findByPatientId(
-    patientId: string,
-    options?: { noteType?: ClinicalNoteType; limit?: number; offset?: number }
-  ): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('created_at', { ascending: false });
-
-    if (options?.noteType) query = query.eq('note_type', options.noteType);
-    if (options?.limit) query = query.limit(options.limit);
-    if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to find notes by patient: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async findByEncounterId(encounterId: string): Promise<ClinicalNoteAggregate[]> {
-    const { data, error } = await this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('encounter_id', encounterId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw new Error(`Failed to find notes by encounter: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async findByCreatedBy(
-    authorId: string,
-    options?: { noteType?: ClinicalNoteType; status?: ClinicalNoteStatus; limit?: number; offset?: number }
-  ): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('created_by', authorId)
-      .order('created_at', { ascending: false });
-
-    if (options?.noteType) query = query.eq('note_type', options.noteType);
-    if (options?.status) query = query.eq('status', options.status);
-    if (options?.limit) query = query.limit(options.limit);
-    if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to find notes by author: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async findUnsignedNotes(options?: { authorId?: string; limit?: number }): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('status', 'draft')
-      .is('signed_by', null)
-      .order('created_at', { ascending: false });
-
-    if (options?.authorId) query = query.eq('created_by', options.authorId);
-    if (options?.limit) query = query.limit(options.limit);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to find unsigned notes: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async findPendingCosignNotes(cosignerId: string, options?: { limit?: number }): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('status', 'pending_cosign')
-      .is('cosigned_by', null)
-      .order('created_at', { ascending: false });
-
-    if (options?.limit) query = query.limit(options.limit);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to find pending cosign notes: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async findByDateRange(
-    startDate: Date,
-    endDate: Date,
-    options?: { patientId?: string; noteType?: ClinicalNoteType }
-  ): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .order('created_at', { ascending: false });
-
-    if (options?.patientId) query = query.eq('patient_id', options.patientId);
-    if (options?.noteType) query = query.eq('note_type', options.noteType);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to find notes by date range: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async findByTemplateId(templateId: string, options?: { limit?: number }): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .eq('template_id', templateId)
-      .order('created_at', { ascending: false });
-
-    if (options?.limit) query = query.limit(options.limit);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to find notes by template: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async search(filters: {
-    patientId?: string;
-    noteType?: ClinicalNoteType;
-    status?: ClinicalNoteStatus;
-    authorId?: string;
-    fromDate?: Date;
-    toDate?: Date;
-    tags?: string[];
-    searchText?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<ClinicalNoteAggregate[]> {
-    let query = this.supabase.schema(this.schema).from(this.tableName).select('*');
-
-    if (filters.patientId) query = query.eq('patient_id', filters.patientId);
-    if (filters.noteType) query = query.eq('note_type', filters.noteType);
-    if (filters.status) query = query.eq('status', filters.status);
-    if (filters.authorId) query = query.eq('created_by', filters.authorId);
-    if (filters.fromDate) query = query.gte('created_at', filters.fromDate.toISOString());
-    if (filters.toDate) query = query.lte('created_at', filters.toDate.toISOString());
-    if (filters.tags && filters.tags.length > 0) query = query.contains('tags', filters.tags);
-    if (filters.searchText) query = query.or(`title.ilike.%${filters.searchText}%,content->>text.ilike.%${filters.searchText}%`);
-
-    query = query.order('created_at', { ascending: false });
-    if (filters.limit) query = query.limit(filters.limit);
-    if (filters.offset) query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Failed to search notes: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  async count(filters: Partial<{ patientId: string; noteType: ClinicalNoteType; status: ClinicalNoteStatus }>): Promise<number> {
-    let query = this.supabase.schema(this.schema).from(this.tableName).select('*', { count: 'exact', head: true });
-
-    if (filters.patientId) query = query.eq('patient_id', filters.patientId);
-    if (filters.noteType) query = query.eq('note_type', filters.noteType);
-    if (filters.status) query = query.eq('status', filters.status);
-
-    const { count, error } = await query;
-    if (error) throw new Error(`Failed to count notes: ${error.message}`);
-    return count || 0;
-  }
-
-  async delete(noteId: NoteId): Promise<void> {
-    const { error } = await this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
+  async delete(recordId: string, noteId: string): Promise<void> {
+    const { error } = await supabaseClient
+      .from(TABLE)
       .delete()
-      .eq('note_id', noteId.value);
-
-    if (error) throw new Error(`Failed to delete clinical note: ${error.message}`);
+      .eq("id", noteId)
+      .eq("record_id", recordId);
+    if (error) throw new ApplicationError(500, error.message);
   }
 
-  async exists(noteId: NoteId): Promise<boolean> {
-    const { count, error } = await this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*', { count: 'exact', head: true })
-      .eq('note_id', noteId.value);
-
-    if (error) throw new Error(`Failed to check note existence: ${error.message}`);
-    return (count || 0) > 0;
-  }
-
-  async getNextSequence(yearMonth: string): Promise<number> {
-    const { data, error } = await this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('note_id')
-      .like('note_id', `NOTE-${yearMonth}-%`)
-      .order('note_id', { ascending: false })
-      .limit(1);
-
-    if (error) throw new Error(`Failed to get next sequence: ${error.message}`);
-
-    if (!data || data.length === 0) return 1;
-
-    const lastId = data[0].note_id;
-    const lastSeq = parseInt(lastId.split('-')[2], 10);
-    return lastSeq + 1;
-  }
-
-  async findNoteVersions(originalNoteId: NoteId): Promise<ClinicalNoteAggregate[]> {
-    const { data, error } = await this.supabase
-      .schema(this.schema)
-      .from(this.tableName)
-      .select('*')
-      .or(`note_id.eq.${originalNoteId.value},previous_version_id.eq.${originalNoteId.value}`)
-      .order('version', { ascending: true });
-
-    if (error) throw new Error(`Failed to find note versions: ${error.message}`);
-    return data ? data.map(r => this.toDomain(r)) : [];
-  }
-
-  private toDatabase(note: ClinicalNoteAggregate): ClinicalNoteRecord {
+  private toDomain(row: any): ClinicalNoteProps {
     return {
-      note_id: note.noteId.value,
-      medical_record_id: note.medicalRecordId,
-      patient_id: note.patientId,
-      encounter_id: note.encounterId,
-      note_type: note.noteType,
-      title: note.title,
-      content: note.content,
-      template_id: note.templateId,
-      soap_format: note.soapFormat,
-      created_by: note.createdBy,
-      created_at: note.createdAt.toISOString(),
-      updated_by: note.updatedBy,
-      updated_at: note.updatedAt?.toISOString(),
-      signed_by: note.signedBy,
-      signed_at: note.signedAt?.toISOString(),
-      cosigned_by: note.cosignedBy,
-      cosigned_at: note.cosignedAt?.toISOString(),
-      status: note.status,
-      tags: note.tags,
-      attachments: note.attachments,
-      version: note.version,
-      previous_version_id: note.previousVersionId,
-      is_locked: note.isLocked,
-      locked_by: note.lockedBy,
-      locked_at: note.lockedAt?.toISOString(),
-      access_log: note.accessLog,
+      id: row.id,
+      recordId: row.record_id,
+      authorId: row.author_id,
+      type: row.type,
+      content: row.content ?? {},
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
     };
-  }
-
-  private toDomain(record: ClinicalNoteRecord): ClinicalNoteAggregate {
-    const noteId = NoteId.create(record.note_id);
-
-    const props = {
-      noteId,
-      medicalRecordId: record.medical_record_id,
-      patientId: record.patient_id,
-      authorId: record.created_by,
-      noteType: record.note_type,
-      noteTitle: record.title,
-      noteContent: typeof record.content === 'string' ? record.content : JSON.stringify(record.content),
-      clinicalFindings: record.soap_format?.subjective || record.soap_format?.objective,
-      assessment: record.soap_format?.assessment,
-      plan: record.soap_format?.plan,
-      requiresCosign: !!record.cosigned_by || record.status === 'pending_cosign',
-      cosignedBy: record.cosigned_by,
-      cosignedAt: record.cosigned_at ? new Date(record.cosigned_at) : undefined,
-      cosignComment: undefined,
-      status: record.status,
-      createdAt: new Date(record.created_at),
-      updatedAt: record.updated_at ? new Date(record.updated_at) : new Date(record.created_at),
-      createdBy: record.created_by,
-      updatedBy: record.updated_by,
-      accessLog: record.access_log,
-      lastAccessedAt: record.access_log?.[record.access_log.length - 1]?.accessedAt,
-      lastAccessedBy: record.access_log?.[record.access_log.length - 1]?.accessedBy,
-    };
-
-    return ClinicalNoteAggregate.reconstitute(props, record.note_id);
   }
 }

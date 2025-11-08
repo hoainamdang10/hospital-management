@@ -16,6 +16,7 @@ const SupabaseAppointmentRepository_1 = require("../persistence/SupabaseAppointm
 const SupabaseAppointmentReadModelRepository_1 = require("../persistence/SupabaseAppointmentReadModelRepository");
 const SupabaseQueueRepository_1 = require("../persistence/SupabaseQueueRepository");
 const SupabaseProviderScheduleRepository_1 = require("../persistence/SupabaseProviderScheduleRepository");
+const SupabaseAppointmentWaitlistRepository_1 = require("../repositories/SupabaseAppointmentWaitlistRepository");
 const EventBusAdapter_1 = require("../events/EventBusAdapter");
 // Services - PURE OUTBOX PATTERN (No HTTP)
 const LocalPatientReadModelService_1 = require("../services/LocalPatientReadModelService");
@@ -59,6 +60,11 @@ const GetAppointmentStatistics_use_case_1 = require("../../application/use-cases
 const CreateEmergencyAppointment_use_case_1 = require("../../application/use-cases/CreateEmergencyAppointment.use-case");
 const TransferAppointment_use_case_1 = require("../../application/use-cases/TransferAppointment.use-case");
 const FindAvailableTimeSlotsUseCase_1 = require("../../application/use-cases/FindAvailableTimeSlotsUseCase");
+const AddToWaitlistUseCase_1 = require("../../application/use-cases/AddToWaitlistUseCase");
+const GetWaitlistUseCase_1 = require("../../application/use-cases/GetWaitlistUseCase");
+const UpdateWaitlistEntryUseCase_1 = require("../../application/use-cases/UpdateWaitlistEntryUseCase");
+const RemoveFromWaitlistUseCase_1 = require("../../application/use-cases/RemoveFromWaitlistUseCase");
+const ConvertWaitlistToAppointmentUseCase_1 = require("../../application/use-cases/ConvertWaitlistToAppointmentUseCase");
 // Queries
 const GetAppointmentDetailsQuery_1 = require("../../application/queries/GetAppointmentDetailsQuery");
 const ListAppointmentsQuery_1 = require("../../application/queries/ListAppointmentsQuery");
@@ -69,6 +75,7 @@ const EventSubscriptions_1 = require("../events/EventSubscriptions");
 const AppointmentController_1 = require("../../presentation/controllers/AppointmentController");
 const AppointmentQueryController_1 = require("../../presentation/controllers/AppointmentQueryController");
 const AvailabilityController_1 = require("../../presentation/controllers/AvailabilityController");
+const WaitlistController_1 = require("../../presentation/controllers/WaitlistController");
 // Config & Health
 const ConfigValidator_1 = require("../config/ConfigValidator");
 const HealthCheckService_1 = require("../health/HealthCheckService");
@@ -111,11 +118,11 @@ class DIContainer {
         this.circuitBreaker = new CircuitBreakerService_1.CircuitBreakerService();
         try {
             await this.cacheService.connect();
-            console.log('[DI] ✅ Cache service initialized');
-            console.log('[DI] ✅ Circuit breaker initialized');
+            console.log("[DI] ✅ Cache service initialized");
+            console.log("[DI] ✅ Circuit breaker initialized");
         }
         catch (error) {
-            console.warn('[DI] ⚠️ Cache service failed to connect - continuing without cache');
+            console.warn("[DI] ⚠️ Cache service failed to connect - continuing without cache");
         }
     }
     /**
@@ -125,7 +132,7 @@ class DIContainer {
         // Note: EventSubscriptions might not be initialized yet, so pass undefined initially
         // It will be updated later via updateHealthCheckDependencies()
         this.healthCheckService = new HealthCheckService_1.HealthCheckService(this.config, this.cacheService, undefined);
-        console.log('[DI] ✅ Health check service initialized (EventSubscriptions will be injected later)');
+        console.log("[DI] ✅ Health check service initialized (EventSubscriptions will be injected later)");
     }
     /**
      * Update health check service with EventSubscriptions dependency
@@ -133,8 +140,8 @@ class DIContainer {
      */
     updateHealthCheckDependencies() {
         if (this.healthCheckService && this.eventSubscriptions) {
-            this.healthCheckService = new HealthCheckService_1.HealthCheckService(this.config, this.cacheService, this.eventSubscriptions);
-            console.log('[DI] ✅ Health check service updated with EventSubscriptions');
+            this.healthCheckService.attachEventSubscriptions(this.eventSubscriptions);
+            console.log("[DI] ✅ Health check service updated with EventSubscriptions");
         }
     }
     /**
@@ -142,7 +149,7 @@ class DIContainer {
      */
     initializeMetricsService() {
         this.metricsService = new MetricsService_1.MetricsService();
-        console.log('[DI] ✅ Metrics service initialized');
+        console.log("[DI] ✅ Metrics service initialized");
     }
     /**
      * Initialize repositories
@@ -150,16 +157,21 @@ class DIContainer {
     initializeRepositories() {
         // Initialize without event publisher first
         this.appointmentRepository = new SupabaseAppointmentRepository_1.SupabaseAppointmentRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
-        this.appointmentReadModelRepository = new SupabaseAppointmentReadModelRepository_1.SupabaseAppointmentReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
+        this.appointmentReadModelRepository =
+            new SupabaseAppointmentReadModelRepository_1.SupabaseAppointmentReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.queueRepository = new SupabaseQueueRepository_1.SupabaseQueueRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.providerScheduleRepository = new SupabaseProviderScheduleRepository_1.SupabaseProviderScheduleRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
+        // Waitlist Repository
+        const { createClient } = require("@supabase/supabase-js");
+        const supabaseClient = createClient(this.config.supabase.url, this.config.supabase.serviceRoleKey);
+        this.waitlistRepository = new SupabaseAppointmentWaitlistRepository_1.SupabaseAppointmentWaitlistRepository(supabaseClient);
         // Pure Outbox Pattern - Read Model Repositories
         this.patientReadModelRepository = new PatientReadModelRepository_1.PatientReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.providerReadModelRepository = new ProviderReadModelRepository_1.ProviderReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.inboxRepository = new InboxRepository_1.InboxRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
-        console.log('[DI] ✅ Repositories initialized (7 total)');
-        console.log('[DI]    - Appointment, ReadModel, Queue, ProviderSchedule');
-        console.log('[DI]    - PatientReadModel, ProviderReadModel, Inbox (Pure Outbox)');
+        console.log("[DI] ✅ Repositories initialized (8 total)");
+        console.log("[DI]    - Appointment, ReadModel, Queue, ProviderSchedule, Waitlist");
+        console.log("[DI]    - PatientReadModel, ProviderReadModel, Inbox (Pure Outbox)");
     }
     /**
      * Initialize event publisher and wire it to repository
@@ -172,7 +184,7 @@ class DIContainer {
         // Wire event publisher to repository using reflection
         // This is a workaround since we can't inject it in constructor due to circular dependency
         this.appointmentRepository.eventPublisher = this.eventPublisher;
-        console.log('[DI] ✅ Event publisher initialized and wired to repository');
+        console.log("[DI] ✅ Event publisher initialized and wired to repository");
     }
     /**
      * Initialize external services
@@ -185,22 +197,22 @@ class DIContainer {
             baseUrl: this.config.services.schedulerServiceUrl,
             apiKey: this.config.services.schedulerApiKey,
             timeout: 5000,
-            circuitBreaker: this.circuitBreaker
+            circuitBreaker: this.circuitBreaker,
         });
         // NEW: Authorization, Conflict Resolution & Reminder Services
         this.authorizationService = new AuthorizationService_1.AuthorizationService(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.conflictResolutionService = new ConflictResolutionService_1.ConflictResolutionService(this.appointmentRepository);
         // Create scheduler adapter wrapper for ReminderService
-        const schedulerWrapper = new SchedulerAdapterWrapper_1.SchedulerAdapterWrapper(this.schedulerAdapter, this.config.tenantId || 'default');
+        const schedulerWrapper = new SchedulerAdapterWrapper_1.SchedulerAdapterWrapper(this.schedulerAdapter, this.config.tenantId || "default");
         this.reminderService = new ReminderService_1.ReminderService(schedulerWrapper);
-        console.log('[DI] ✅ Services initialized (Pure Outbox Pattern)');
-        console.log('[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ⚡');
-        console.log('[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ⚡');
+        console.log("[DI] ✅ Services initialized (Pure Outbox Pattern)");
+        console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ⚡");
+        console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ⚡");
         console.log(`[DI]    - Scheduler Service: ${this.config.services.schedulerServiceUrl}`);
-        console.log('[DI]    - Authorization Service: RBAC enabled 🔐');
-        console.log('[DI]    - Reminder Service: Scheduler integration enabled 🔔');
-        console.log('[DI]    - Performance: <10ms queries vs 150ms HTTP (15x faster)');
-        console.log('[DI]    - Availability: 100% (zero network dependencies)');
+        console.log("[DI]    - Authorization Service: RBAC enabled 🔐");
+        console.log("[DI]    - Reminder Service: Scheduler integration enabled 🔔");
+        console.log("[DI]    - Performance: <10ms queries vs 150ms HTTP (15x faster)");
+        console.log("[DI]    - Availability: 100% (zero network dependencies)");
     }
     /**
      * Initialize use cases
@@ -214,8 +226,7 @@ class DIContainer {
         this.getAppointmentUseCase = new GetAppointment_use_case_1.GetAppointmentUseCase(this.appointmentRepository);
         this.listAppointmentsUseCase = new ListAppointments_use_case_1.ListAppointmentsUseCase(this.appointmentRepository);
         this.rescheduleAppointmentUseCase = new RescheduleAppointment_use_case_1.RescheduleAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.reminderService);
-        this.checkInAppointmentUseCase = new CheckInAppointment_use_case_1.CheckInAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.queueRepository // Add queue integration
-        );
+        this.checkInAppointmentUseCase = new CheckInAppointment_use_case_1.CheckInAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.queueRepository);
         this.markAsNoShowUseCase = new MarkAsNoShow_use_case_1.MarkAsNoShowUseCase(this.appointmentRepository, this.authorizationService);
         this.startAppointmentUseCase = new StartAppointment_use_case_1.StartAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         // Phase 2: Queue Management Use Cases
@@ -223,18 +234,30 @@ class DIContainer {
         this.joinQueueUseCase = new JoinQueue_use_case_1.JoinQueueUseCase(this.queueRepository);
         this.leaveQueueUseCase = new LeaveQueue_use_case_1.LeaveQueueUseCase(this.queueRepository, this.authorizationService);
         this.queueStatusUseCase = new GetQueueStatus_use_case_1.GetQueueStatusUseCase(this.queueRepository, this.authorizationService);
-        this.validateCancellationPolicyUseCase = new ValidateCancellationPolicy_use_case_1.ValidateCancellationPolicyUseCase(this.appointmentRepository);
-        this.manageAppointmentRemindersUseCase = new ManageAppointmentReminders_use_case_1.ManageAppointmentRemindersUseCase(this.appointmentRepository, this.reminderService, this.authorizationService);
-        this.createRecurringSeriesUseCase = new CreateRecurringAppointmentSeries_use_case_1.CreateRecurringAppointmentSeriesUseCase(this.scheduleAppointmentUseCase);
+        this.validateCancellationPolicyUseCase =
+            new ValidateCancellationPolicy_use_case_1.ValidateCancellationPolicyUseCase(this.appointmentRepository);
+        this.manageAppointmentRemindersUseCase =
+            new ManageAppointmentReminders_use_case_1.ManageAppointmentRemindersUseCase(this.appointmentRepository, this.reminderService, this.authorizationService);
+        this.createRecurringSeriesUseCase =
+            new CreateRecurringAppointmentSeries_use_case_1.CreateRecurringAppointmentSeriesUseCase(this.scheduleAppointmentUseCase);
         // Phase 3: Nice-to-Have Use Cases
-        this.bulkRescheduleAppointmentsUseCase = new BulkRescheduleAppointments_use_case_1.BulkRescheduleAppointmentsUseCase(this.appointmentRepository, this.authorizationService);
+        this.bulkRescheduleAppointmentsUseCase =
+            new BulkRescheduleAppointments_use_case_1.BulkRescheduleAppointmentsUseCase(this.appointmentRepository, this.authorizationService);
         this.appointmentHistoryUseCase = new GetAppointmentHistory_use_case_1.GetAppointmentHistoryUseCase(this.appointmentRepository, this.authorizationService);
         this.appointmentStatisticsUseCase = new GetAppointmentStatistics_use_case_1.GetAppointmentStatisticsUseCase(this.appointmentRepository, this.queueRepository, this.authorizationService);
-        this.createEmergencyAppointmentUseCase = new CreateEmergencyAppointment_use_case_1.CreateEmergencyAppointmentUseCase(this.appointmentRepository, this.queueRepository, this.authorizationService);
+        this.createEmergencyAppointmentUseCase =
+            new CreateEmergencyAppointment_use_case_1.CreateEmergencyAppointmentUseCase(this.appointmentRepository, this.queueRepository, this.authorizationService);
         this.transferAppointmentUseCase = new TransferAppointment_use_case_1.TransferAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         // Availability Use Case
         this.findAvailableTimeSlotsUseCase = new FindAvailableTimeSlotsUseCase_1.FindAvailableTimeSlotsUseCase(this.providerScheduleRepository, this.appointmentRepository);
-        console.log('[DI] ✅ Use cases initialized (24 total)');
+        // Waitlist Use Cases
+        this.addToWaitlistUseCase = new AddToWaitlistUseCase_1.AddToWaitlistUseCase(this.waitlistRepository);
+        this.getWaitlistUseCase = new GetWaitlistUseCase_1.GetWaitlistUseCase(this.waitlistRepository);
+        this.updateWaitlistEntryUseCase = new UpdateWaitlistEntryUseCase_1.UpdateWaitlistEntryUseCase(this.waitlistRepository);
+        this.removeFromWaitlistUseCase = new RemoveFromWaitlistUseCase_1.RemoveFromWaitlistUseCase(this.waitlistRepository);
+        this.convertWaitlistToAppointmentUseCase =
+            new ConvertWaitlistToAppointmentUseCase_1.ConvertWaitlistToAppointmentUseCase(this.waitlistRepository);
+        console.log("[DI] ✅ Use cases initialized (29 total)");
     }
     /**
      * Initialize queries
@@ -242,20 +265,21 @@ class DIContainer {
     initializeQueries() {
         this.getAppointmentDetailsQuery = new GetAppointmentDetailsQuery_1.GetAppointmentDetailsQuery(this.appointmentReadModelRepository);
         this.listAppointmentsQuery = new ListAppointmentsQuery_1.ListAppointmentsQuery(this.appointmentReadModelRepository);
-        console.log('[DI] ✅ Queries initialized');
+        console.log("[DI] ✅ Queries initialized");
     }
     /**
      * Initialize event handlers
      */
     initializeEventHandlers() {
-        this.appointmentReadModelEventHandler = new AppointmentReadModelEventHandler_1.AppointmentReadModelEventHandler(this.appointmentReadModelRepository, this.patientService, this.providerService);
+        this.appointmentReadModelEventHandler =
+            new AppointmentReadModelEventHandler_1.AppointmentReadModelEventHandler(this.appointmentReadModelRepository, this.patientService, this.providerService);
         // Pure Outbox Pattern - Event Consumers
         this.patientEventConsumer = new PatientEventConsumer_1.PatientEventConsumer(this.patientReadModelRepository, this.inboxRepository);
         this.providerEventConsumer = new ProviderEventConsumer_1.ProviderEventConsumer(this.providerReadModelRepository, this.inboxRepository);
-        console.log('[DI] ✅ Event handlers initialized (3 total)');
-        console.log('[DI]    - AppointmentReadModelEventHandler');
-        console.log('[DI]    - PatientEventConsumer (Pure Outbox)');
-        console.log('[DI]    - ProviderEventConsumer (Pure Outbox)');
+        console.log("[DI] ✅ Event handlers initialized (3 total)");
+        console.log("[DI]    - AppointmentReadModelEventHandler");
+        console.log("[DI]    - PatientEventConsumer (Pure Outbox)");
+        console.log("[DI]    - ProviderEventConsumer (Pure Outbox)");
     }
     /**
      * Initialize event subscriptions
@@ -263,7 +287,7 @@ class DIContainer {
     initializeEventSubscriptions() {
         // Pass Pure Outbox Pattern event consumers to EventSubscriptions
         this.eventSubscriptions = (0, EventSubscriptions_1.createEventSubscriptions)(this.appointmentReadModelEventHandler, this.patientEventConsumer, this.providerEventConsumer);
-        console.log('[DI] ✅ Event subscriptions initialized with Pure Outbox Pattern consumers');
+        console.log("[DI] ✅ Event subscriptions initialized with Pure Outbox Pattern consumers");
     }
     /**
      * Initialize controllers
@@ -272,7 +296,8 @@ class DIContainer {
         this.appointmentController = new AppointmentController_1.AppointmentController(this.scheduleAppointmentUseCase, this.cancelAppointmentUseCase, this.confirmAppointmentUseCase, this.completeAppointmentUseCase, this.getAppointmentUseCase, this.listAppointmentsUseCase, this.rescheduleAppointmentUseCase, this.checkInAppointmentUseCase, this.markAsNoShowUseCase, this.startAppointmentUseCase, this.bulkRescheduleAppointmentsUseCase, this.appointmentHistoryUseCase, this.appointmentStatisticsUseCase, this.createEmergencyAppointmentUseCase, this.transferAppointmentUseCase, this.createRecurringSeriesUseCase);
         this.appointmentQueryController = new AppointmentQueryController_1.AppointmentQueryController(this.getAppointmentDetailsQuery, this.listAppointmentsQuery);
         this.availabilityController = new AvailabilityController_1.AvailabilityController(this.findAvailableTimeSlotsUseCase, this.providerScheduleRepository);
-        console.log('[DI] ✅ Controllers initialized (3 total)');
+        this.waitlistController = new WaitlistController_1.WaitlistController(this.addToWaitlistUseCase, this.getWaitlistUseCase, this.updateWaitlistEntryUseCase, this.removeFromWaitlistUseCase, this.convertWaitlistToAppointmentUseCase);
+        console.log("[DI] ✅ Controllers initialized (4 total)");
     }
     /**
      * Get appointment controller
@@ -285,6 +310,12 @@ class DIContainer {
      */
     getAppointmentQueryController() {
         return this.appointmentQueryController;
+    }
+    /**
+     * Get waitlist controller
+     */
+    getWaitlistController() {
+        return this.waitlistController;
     }
     /**
      * Get appointment read model event handler
@@ -487,9 +518,9 @@ let containerInstance = null;
  */
 function getContainer() {
     if (!containerInstance) {
-        console.log('[DI] 🔧 Initializing DI Container...');
+        console.log("[DI] 🔧 Initializing DI Container...");
         containerInstance = new DIContainer();
-        console.log('[DI] ✅ DI Container ready');
+        console.log("[DI] ✅ DI Container ready");
     }
     return containerInstance;
 }

@@ -4,60 +4,109 @@
 # @author Hospital Management Team
 # @version 2.0.0
 # @compliance Production-Ready, Security Hardened
+#
+# Build context should be: backend/services-v2
+# Build command: docker build --no-cache -f patient-registry-service/Dockerfile -t patient-registry-service:latest .
 
-# Build stage
-FROM node:18-alpine AS builder
+# ============================================
+# Stage 1: Dependencies
+# ============================================
+FROM node:18-alpine AS dependencies
 
-# Set working directory
-WORKDIR /app
+# Add build arguments for cache busting
+ARG BUILD_DATE
+ARG VERSION=2.0.0
 
-# Copy entire patient-registry-service and shared folders to maintain structure
-COPY patient-registry-service/ ./patient-registry-service/
-COPY shared/ ./shared/
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
-# Change to patient-registry-service directory
 WORKDIR /app/patient-registry-service
 
+# Copy package files
+COPY patient-registry-service/package*.json ./
+
 # Install ALL dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
+# Use --legacy-peer-deps to handle peer dependency conflicts
+RUN npm install --legacy-peer-deps && \
+    npm cache clean --force
 
-# Create symlink for node_modules at parent level so shared can access it
-RUN ln -s /app/patient-registry-service/node_modules /app/node_modules
+# ============================================
+# Stage 2: Builder
+# ============================================
+FROM node:18-alpine AS builder
 
-# Build the application (tsconfig will find ../shared and ../node_modules)
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /app/patient-registry-service/node_modules ./patient-registry-service/node_modules
+
+# Copy source code and shared modules
+COPY patient-registry-service ./patient-registry-service
+COPY shared ./shared
+
+# Install dependencies in shared module for build
+RUN cd /app/shared && npm init -y && npm install uuid @types/uuid @supabase/supabase-js --save
+
+# Change to service directory
+WORKDIR /app/patient-registry-service
+
+# Install additional dependencies for patient-registry-service (needed during build)
+RUN npm install uuid @types/uuid --save-dev
+
+# Build TypeScript
 RUN npm run build
 
-# Production stage
+# ============================================
+# Stage 3: Production
+# ============================================
 FROM node:18-alpine AS production
+
+# Add build arguments
+ARG BUILD_DATE
+ARG VERSION=2.0.0
+ARG VCS_REF
+
+# Add image labels for better management
+LABEL org.opencontainers.image.title="Patient Registry Service" \
+      org.opencontainers.image.description="Hospital Management System - Patient Registry Service" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.vendor="Hospital Management Team" \
+      maintainer="Hospital Management Team"
+
+# Install dumb-init for proper signal handling and curl for healthcheck
+RUN apk add --no-cache dumb-init curl
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-  adduser -S patient -u 1001
+    adduser -S patient -u 1001 -G nodejs
 
-# Set working directory to match build structure
 WORKDIR /app/patient-registry-service
 
-# Copy entire structure from builder maintaining relative paths
-COPY --from=builder --chown=patient:nodejs /app/patient-registry-service/package*.json ./
+# Copy package files
+COPY --chown=patient:nodejs patient-registry-service/package*.json ./
+
+# Install production dependencies only
+RUN npm install --only=production --legacy-peer-deps && \
+    npm cache clean --force
+
+# Copy built application from builder
 COPY --from=builder --chown=patient:nodejs /app/patient-registry-service/dist ./dist
-COPY --from=builder --chown=patient:nodejs /app/patient-registry-service/node_modules ./node_modules
 COPY --from=builder --chown=patient:nodejs /app/shared ../shared
 
-# Install production dependencies only (if needed)
-RUN npm prune --production && npm cache clean --force
-
 # Create necessary directories
-RUN mkdir -p /app/patient-registry-service/logs && chown patient:nodejs /app/patient-registry-service/logs
+RUN mkdir -p logs && chown -R patient:nodejs logs
 
 # Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3023
-ENV SERVICE_NAME=patient-registry-service
-ENV SERVICE_VERSION=2.0.0
+ENV NODE_ENV=production \
+    PORT=3003 \
+    SERVICE_NAME=patient-registry-service \
+    SERVICE_VERSION=2.0.0
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3023/health', (res) => { \
+  CMD node -e "require('http').get('http://localhost:3003/health', (res) => { \
   if (res.statusCode === 200) process.exit(0); else process.exit(1); \
   }).on('error', () => process.exit(1))"
 
@@ -65,7 +114,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 USER patient
 
 # Expose port
-EXPOSE 3023
+EXPOSE 3003
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
 CMD ["node", "dist/patient-registry-service/src/main.js"]

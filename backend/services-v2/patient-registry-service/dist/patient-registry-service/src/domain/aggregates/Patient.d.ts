@@ -8,18 +8,18 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
  */
-import { HealthcareAggregateRoot } from '../../../../shared/domain/base/aggregate-root';
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
-import { PatientId } from '../value-objects/PatientId';
-import { PersonalInfo } from '../value-objects/PersonalInfo';
-import { ContactInfo } from '../value-objects/ContactInfo';
-import { BasicMedicalInfo } from '../value-objects/BasicMedicalInfo';
-import { PatientLink } from '../value-objects/PatientLink';
-import { PatientStatus } from '../value-objects/PatientStatus';
-import { CommunicationPreference } from '../value-objects/CommunicationPreference';
-import { InsuranceInfo } from '../entities/InsuranceInfo';
-import { EmergencyContact } from '../entities/EmergencyContact';
-import { PatientConsent } from '../entities/PatientConsent';
+import { HealthcareAggregateRoot } from "../../../../shared/domain/base/aggregate-root";
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
+import { PatientId } from "../value-objects/PatientId";
+import { PersonalInfo } from "../value-objects/PersonalInfo";
+import { ContactInfo } from "../value-objects/ContactInfo";
+import { BasicMedicalInfo } from "../value-objects/BasicMedicalInfo";
+import { PatientLink } from "../value-objects/PatientLink";
+import { PatientStatus } from "../value-objects/PatientStatus";
+import { CommunicationPreference } from "../value-objects/CommunicationPreference";
+import { InsuranceInfo } from "../entities/InsuranceInfo";
+import { EmergencyContact } from "../entities/EmergencyContact";
+import { PatientConsent } from "../entities/PatientConsent";
 export interface PatientProps {
     id: PatientId;
     userId: string;
@@ -90,7 +90,7 @@ export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
     /**
      * Link to another patient
      */
-    linkTo(otherPatientId: PatientId, linkType: 'refer' | 'seealso', performedBy: string): void;
+    linkTo(otherPatientId: PatientId, linkType: "refer" | "seealso", performedBy: string): void;
     /**
      * Deactivate patient
      */
@@ -100,9 +100,11 @@ export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
      */
     markAsDeceased(performedBy: string): void;
     /**
-     * Reactivate patient (from INACTIVE status)
+     * Reactivate patient (from INACTIVE status or, when allowed, DECEASED)
      */
-    reactivate(_reason: string, performedBy: string): void;
+    reactivate(_reason: string, performedBy: string, options?: {
+        allowDeceased?: boolean;
+    }): void;
     getPatientId(): string | null;
     getPatientIdObject(): PatientId;
     getUserId(): string;

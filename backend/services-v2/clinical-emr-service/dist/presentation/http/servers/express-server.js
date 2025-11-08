@@ -1,0 +1,97 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createHttpServer = createHttpServer;
+const express_1 = __importDefault(require("express"));
+const helmet_1 = __importDefault(require("helmet"));
+const cors_1 = __importDefault(require("cors"));
+const morgan_1 = __importDefault(require("morgan"));
+const env_1 = require("../../../infrastructure/config/env");
+const SupabaseMedicalRecordRepository_1 = require("../../../infrastructure/repositories/SupabaseMedicalRecordRepository");
+const SupabaseClinicalNoteRepository_1 = require("../../../infrastructure/repositories/SupabaseClinicalNoteRepository");
+const SupabaseLabResultRepository_1 = require("../../../infrastructure/repositories/SupabaseLabResultRepository");
+const SupabaseImagingStudyRepository_1 = require("../../../infrastructure/repositories/SupabaseImagingStudyRepository");
+const SupabasePrescriptionRepository_1 = require("../../../infrastructure/repositories/SupabasePrescriptionRepository");
+const SupabaseTreatmentPlanRepository_1 = require("../../../infrastructure/repositories/SupabaseTreatmentPlanRepository");
+const SupabaseAuditLogRepository_1 = require("../../../infrastructure/repositories/SupabaseAuditLogRepository");
+const ListMedicalRecordsUseCase_1 = require("../../../application/use-cases/ListMedicalRecordsUseCase");
+const GetMedicalRecordUseCase_1 = require("../../../application/use-cases/GetMedicalRecordUseCase");
+const CreateMedicalRecordUseCase_1 = require("../../../application/use-cases/CreateMedicalRecordUseCase");
+const UpdateMedicalRecordUseCase_1 = require("../../../application/use-cases/UpdateMedicalRecordUseCase");
+const CreateClinicalNoteUseCase_1 = require("../../../application/use-cases/CreateClinicalNoteUseCase");
+const ListClinicalNotesUseCase_1 = require("../../../application/use-cases/ListClinicalNotesUseCase");
+const DeleteClinicalNoteUseCase_1 = require("../../../application/use-cases/DeleteClinicalNoteUseCase");
+const CreateLabResultUseCase_1 = require("../../../application/use-cases/CreateLabResultUseCase");
+const ListLabResultsUseCase_1 = require("../../../application/use-cases/ListLabResultsUseCase");
+const DeleteLabResultUseCase_1 = require("../../../application/use-cases/DeleteLabResultUseCase");
+const CreateImagingStudyUseCase_1 = require("../../../application/use-cases/CreateImagingStudyUseCase");
+const ListImagingStudiesUseCase_1 = require("../../../application/use-cases/ListImagingStudiesUseCase");
+const DeleteImagingStudyUseCase_1 = require("../../../application/use-cases/DeleteImagingStudyUseCase");
+const CreatePrescriptionUseCase_1 = require("../../../application/use-cases/CreatePrescriptionUseCase");
+const ListPrescriptionsUseCase_1 = require("../../../application/use-cases/ListPrescriptionsUseCase");
+const DeletePrescriptionUseCase_1 = require("../../../application/use-cases/DeletePrescriptionUseCase");
+const CreateTreatmentPlanUseCase_1 = require("../../../application/use-cases/CreateTreatmentPlanUseCase");
+const ListTreatmentPlansUseCase_1 = require("../../../application/use-cases/ListTreatmentPlansUseCase");
+const UpdateTreatmentPlanStatusUseCase_1 = require("../../../application/use-cases/UpdateTreatmentPlanStatusUseCase");
+const DeleteTreatmentPlanUseCase_1 = require("../../../application/use-cases/DeleteTreatmentPlanUseCase");
+const CreateAuditLogUseCase_1 = require("../../../application/use-cases/CreateAuditLogUseCase");
+const ListAuditLogsUseCase_1 = require("../../../application/use-cases/ListAuditLogsUseCase");
+const MedicalRecordController_1 = require("../controllers/MedicalRecordController");
+const ClinicalNoteController_1 = require("../controllers/ClinicalNoteController");
+const LabResultController_1 = require("../controllers/LabResultController");
+const ImagingStudyController_1 = require("../controllers/ImagingStudyController");
+const PrescriptionController_1 = require("../controllers/PrescriptionController");
+const TreatmentPlanController_1 = require("../controllers/TreatmentPlanController");
+const AuditLogController_1 = require("../controllers/AuditLogController");
+const medical_record_routes_1 = require("../routes/medical-record.routes");
+const clinical_note_routes_1 = require("../routes/clinical-note.routes");
+const lab_result_routes_1 = require("../routes/lab-result.routes");
+const imaging_study_routes_1 = require("../routes/imaging-study.routes");
+const prescription_routes_1 = require("../routes/prescription.routes");
+const treatment_plan_routes_1 = require("../routes/treatment-plan.routes");
+const audit_log_routes_1 = require("../routes/audit-log.routes");
+const error_middleware_1 = require("../middlewares/error.middleware");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+function createHttpServer() {
+    const app = (0, express_1.default)();
+    app.use((0, helmet_1.default)());
+    app.use((0, cors_1.default)());
+    app.use(express_1.default.json({ limit: "1mb" }));
+    app.use((0, morgan_1.default)(env_1.env.nodeEnv === "development" ? "dev" : "combined"));
+    app.get("/health", (_req, res) => {
+        res.json({
+            status: "ok",
+            service: "clinical-emr-service",
+            timestamp: new Date().toISOString(),
+        });
+    });
+    const medicalRecordRepo = new SupabaseMedicalRecordRepository_1.SupabaseMedicalRecordRepository();
+    const clinicalNoteRepo = new SupabaseClinicalNoteRepository_1.SupabaseClinicalNoteRepository();
+    const labResultRepo = new SupabaseLabResultRepository_1.SupabaseLabResultRepository();
+    const imagingRepo = new SupabaseImagingStudyRepository_1.SupabaseImagingStudyRepository();
+    const prescriptionRepo = new SupabasePrescriptionRepository_1.SupabasePrescriptionRepository();
+    const treatmentPlanRepo = new SupabaseTreatmentPlanRepository_1.SupabaseTreatmentPlanRepository();
+    const auditLogRepo = new SupabaseAuditLogRepository_1.SupabaseAuditLogRepository();
+    const auditLogUseCase = new CreateAuditLogUseCase_1.CreateAuditLogUseCase(auditLogRepo);
+    const listMedicalRecordsUseCase = new ListMedicalRecordsUseCase_1.ListMedicalRecordsUseCase(medicalRecordRepo);
+    const getMedicalRecordUseCase = new GetMedicalRecordUseCase_1.GetMedicalRecordUseCase(medicalRecordRepo);
+    const medicalRecordController = new MedicalRecordController_1.MedicalRecordController(listMedicalRecordsUseCase, getMedicalRecordUseCase, new CreateMedicalRecordUseCase_1.CreateMedicalRecordUseCase(medicalRecordRepo), new UpdateMedicalRecordUseCase_1.UpdateMedicalRecordUseCase(medicalRecordRepo), auditLogUseCase);
+    const clinicalNoteController = new ClinicalNoteController_1.ClinicalNoteController(new CreateClinicalNoteUseCase_1.CreateClinicalNoteUseCase(clinicalNoteRepo), new ListClinicalNotesUseCase_1.ListClinicalNotesUseCase(clinicalNoteRepo), new DeleteClinicalNoteUseCase_1.DeleteClinicalNoteUseCase(clinicalNoteRepo), auditLogUseCase, getMedicalRecordUseCase);
+    const labResultController = new LabResultController_1.LabResultController(new CreateLabResultUseCase_1.CreateLabResultUseCase(labResultRepo), new ListLabResultsUseCase_1.ListLabResultsUseCase(labResultRepo), new DeleteLabResultUseCase_1.DeleteLabResultUseCase(labResultRepo), auditLogUseCase, getMedicalRecordUseCase);
+    const imagingStudyController = new ImagingStudyController_1.ImagingStudyController(new CreateImagingStudyUseCase_1.CreateImagingStudyUseCase(imagingRepo), new ListImagingStudiesUseCase_1.ListImagingStudiesUseCase(imagingRepo), new DeleteImagingStudyUseCase_1.DeleteImagingStudyUseCase(imagingRepo), auditLogUseCase, getMedicalRecordUseCase);
+    const prescriptionController = new PrescriptionController_1.PrescriptionController(new CreatePrescriptionUseCase_1.CreatePrescriptionUseCase(prescriptionRepo), new ListPrescriptionsUseCase_1.ListPrescriptionsUseCase(prescriptionRepo), auditLogUseCase, new DeletePrescriptionUseCase_1.DeletePrescriptionUseCase(prescriptionRepo), getMedicalRecordUseCase);
+    const treatmentPlanController = new TreatmentPlanController_1.TreatmentPlanController(new CreateTreatmentPlanUseCase_1.CreateTreatmentPlanUseCase(treatmentPlanRepo), new ListTreatmentPlansUseCase_1.ListTreatmentPlansUseCase(treatmentPlanRepo), new UpdateTreatmentPlanStatusUseCase_1.UpdateTreatmentPlanStatusUseCase(treatmentPlanRepo), new DeleteTreatmentPlanUseCase_1.DeleteTreatmentPlanUseCase(treatmentPlanRepo), auditLogUseCase, getMedicalRecordUseCase);
+    const auditLogController = new AuditLogController_1.AuditLogController(new ListAuditLogsUseCase_1.ListAuditLogsUseCase(auditLogRepo), auditLogUseCase, getMedicalRecordUseCase);
+    app.use(auth_middleware_1.authenticationMiddleware);
+    app.use("/api/v2/clinical-emr", (0, medical_record_routes_1.createMedicalRecordRouter)(medicalRecordController));
+    app.use("/api/v2/clinical-emr/medical-records/:recordId/notes", (0, clinical_note_routes_1.createClinicalNoteRouter)(clinicalNoteController));
+    app.use("/api/v2/clinical-emr/medical-records/:recordId/lab-results", (0, lab_result_routes_1.createLabResultRouter)(labResultController));
+    app.use("/api/v2/clinical-emr/medical-records/:recordId/imaging-studies", (0, imaging_study_routes_1.createImagingStudyRouter)(imagingStudyController));
+    app.use("/api/v2/clinical-emr/medical-records/:recordId/prescriptions", (0, prescription_routes_1.createPrescriptionRouter)(prescriptionController));
+    app.use("/api/v2/clinical-emr/medical-records/:recordId/treatment-plans", (0, treatment_plan_routes_1.createTreatmentPlanRouter)(treatmentPlanController));
+    app.use("/api/v2/clinical-emr/medical-records/:recordId/audit-logs", (0, audit_log_routes_1.createAuditLogRouter)(auditLogController));
+    app.use(error_middleware_1.errorMiddleware);
+    return app;
+}

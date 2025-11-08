@@ -7,39 +7,41 @@
  * @compliance Clean Architecture, RESTful API
  */
 
-import { Request, Response } from 'express';
-import { ILogger } from '../../application/interfaces/ILogger';
-import { RegisterStaffUseCase } from '../../application/use-cases/RegisterStaffUseCase';
-import { GetStaffProfileUseCase } from '../../application/use-cases/GetStaffProfileUseCase';
-import { AssignStaffToDepartmentUseCase } from '../../application/use-cases/AssignStaffToDepartmentUseCase';
-import { AddStaffCredentialUseCase } from '../../application/use-cases/AddStaffCredentialUseCase';
-import { RemoveStaffCredentialUseCase } from '../../application/use-cases/RemoveStaffCredentialUseCase';
-import { RenewStaffCredentialUseCase } from '../../application/use-cases/RenewStaffCredentialUseCase';
-import { GetExpiringCredentialsUseCase } from '../../application/use-cases/GetExpiringCredentialsUseCase';
-import { ActivateStaffUseCase } from '../../application/use-cases/ActivateStaffUseCase';
-import { SuspendStaffUseCase } from '../../application/use-cases/SuspendStaffUseCase';
-import { ReactivateStaffUseCase } from '../../application/use-cases/ReactivateStaffUseCase';
-import { TerminateStaffUseCase } from '../../application/use-cases/TerminateStaffUseCase';
-import { UpdateEmploymentStatusUseCase } from '../../application/use-cases/UpdateEmploymentStatusUseCase';
-import { UpdateStaffScheduleUseCase } from '../../application/use-cases/UpdateStaffScheduleUseCase';
+import { Request, Response } from "express";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { RegisterStaffUseCase } from "../../application/use-cases/RegisterStaffUseCase";
+import { GetStaffProfileUseCase } from "../../application/use-cases/GetStaffProfileUseCase";
+import { AssignStaffToDepartmentUseCase } from "../../application/use-cases/AssignStaffToDepartmentUseCase";
+import { SetDepartmentHeadUseCase } from "../../application/use-cases/SetDepartmentHeadUseCase";
+import { AddStaffCredentialUseCase } from "../../application/use-cases/AddStaffCredentialUseCase";
+import { RemoveStaffCredentialUseCase } from "../../application/use-cases/RemoveStaffCredentialUseCase";
+import { RenewStaffCredentialUseCase } from "../../application/use-cases/RenewStaffCredentialUseCase";
+import { GetExpiringCredentialsUseCase } from "../../application/use-cases/GetExpiringCredentialsUseCase";
+import { ActivateStaffUseCase } from "../../application/use-cases/ActivateStaffUseCase";
+import { SuspendStaffUseCase } from "../../application/use-cases/SuspendStaffUseCase";
+import { ReactivateStaffUseCase } from "../../application/use-cases/ReactivateStaffUseCase";
+import { TerminateStaffUseCase } from "../../application/use-cases/TerminateStaffUseCase";
+import { UpdateEmploymentStatusUseCase } from "../../application/use-cases/UpdateEmploymentStatusUseCase";
+import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateStaffScheduleUseCase";
 // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
-import { GetStaffSpecializationsUseCase } from '../../application/use-cases/GetStaffSpecializationsUseCase';
-import { AddStaffSpecializationUseCase } from '../../application/use-cases/AddStaffSpecializationUseCase';
-import { RemoveStaffSpecializationUseCase } from '../../application/use-cases/RemoveStaffSpecializationUseCase';
-import { StaffCommandHandlers } from '../../application/handlers/StaffCommandHandlers';
-import { StaffQueryHandlers } from '../../application/handlers/StaffQueryHandlers';
+import { GetStaffSpecializationsUseCase } from "../../application/use-cases/GetStaffSpecializationsUseCase";
+import { AddStaffSpecializationUseCase } from "../../application/use-cases/AddStaffSpecializationUseCase";
+import { RemoveStaffSpecializationUseCase } from "../../application/use-cases/RemoveStaffSpecializationUseCase";
+import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
+import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
 import {
   ResponseHelper,
   DomainError,
   NotFoundError,
   getUserId,
-  getUserRole
-} from '../middleware/ErrorHandlingMiddleware';
+  getUserRole,
+} from "../middleware/ErrorHandlingMiddleware";
 import {
   RegisterStaffRequestDto,
   UpdateStaffInfoRequestDto,
-  AssignStaffToDepartmentRequestDto
-} from '../dtos/StaffDTOs';
+  AssignStaffToDepartmentRequestDto,
+} from "../dtos/StaffDTOs";
+import { StaffStatus, StaffType } from "../../domain/aggregates/ProviderStaff";
 
 /**
  * Staff Controller
@@ -50,6 +52,7 @@ export class StaffController {
     private registerStaffUseCase: RegisterStaffUseCase,
     private getStaffProfileUseCase: GetStaffProfileUseCase,
     private assignStaffToDepartmentUseCase: AssignStaffToDepartmentUseCase,
+    private setDepartmentHeadUseCase: SetDepartmentHeadUseCase,
     private staffCommandHandlers: StaffCommandHandlers,
     private staffQueryHandlers: StaffQueryHandlers,
     private addStaffCredentialUseCase: AddStaffCredentialUseCase,
@@ -65,7 +68,7 @@ export class StaffController {
     // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
     private getStaffSpecializationsUseCase: GetStaffSpecializationsUseCase,
     private addStaffSpecializationUseCase: AddStaffSpecializationUseCase,
-    private removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase
+    private removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase,
   ) {}
 
   /**
@@ -77,10 +80,10 @@ export class StaffController {
       const requestData: RegisterStaffRequestDto = req.body;
       const requestedBy = getUserId(req);
 
-      this.logger.info('Registering new staff', {
+      this.logger.info("Registering new staff", {
         userId: requestData.userId,
         staffType: requestData.staffType,
-        requestedBy
+        requestedBy,
       });
 
       const result = await this.registerStaffUseCase.execute({
@@ -88,25 +91,24 @@ export class StaffController {
         requestedBy,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
       if (!result.success) {
         // Business validation error - return 400 Bad Request
-        this.logger.warn('Staff registration validation failed', {
+        this.logger.warn("Staff registration validation failed", {
           message: result.message,
-          errors: result.errors
+          errors: result.errors,
         });
         return ResponseHelper.badRequest(res, result.message, result.errors);
       }
 
       ResponseHelper.created(res, result.data, result.message);
-
     } catch (error) {
-      this.logger.error('Error registering staff', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error registering staff", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -122,26 +124,25 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Getting staff by ID', { staffId, requestedBy });
+      this.logger.info("Getting staff by ID", { staffId, requestedBy });
 
       const result = await this.getStaffProfileUseCase.execute({
         staffId,
         requestedBy,
         requestedByRole,
         includeFullSchedule: true,
-        includeSensitiveInfo: requestedByRole === 'admin'
+        includeSensitiveInfo: requestedByRole === "admin",
       });
 
       if (!result.success) {
-        throw new NotFoundError('Nhân viên', staffId);
+        throw new NotFoundError("Nhân viên", staffId);
       }
 
       ResponseHelper.success(res, result.data!.staff);
-
     } catch (error) {
-      this.logger.error('Error getting staff', {
+      this.logger.error("Error getting staff", {
         staffId: req.params.staffId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -157,25 +158,24 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Getting staff by user ID', { userId, requestedBy });
+      this.logger.info("Getting staff by user ID", { userId, requestedBy });
 
       const result = await this.getStaffProfileUseCase.execute({
         userId,
         requestedBy,
         requestedByRole,
-        includeFullSchedule: true
+        includeFullSchedule: true,
       });
 
       if (!result.success) {
-        throw new NotFoundError('Nhân viên', userId);
+        throw new NotFoundError("Nhân viên", userId);
       }
 
       ResponseHelper.success(res, result.data!.staff);
-
     } catch (error) {
-      this.logger.error('Error getting staff by user ID', {
+      this.logger.error("Error getting staff by user ID", {
         userId: req.params.userId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -191,32 +191,34 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Getting staff by license number', { licenseNumber, requestedBy });
+      this.logger.info("Getting staff by license number", {
+        licenseNumber,
+        requestedBy,
+      });
 
       const query = {
         queryId: `query_${Date.now()}`,
-        queryType: 'GetStaffProfile' as const,
+        queryType: "GetStaffProfile" as const,
         timestamp: new Date(),
         requestedBy,
         data: {
           licenseNumber,
           requestedBy,
-          requestedByRole
-        }
+          requestedByRole,
+        },
       };
 
       const result = await this.staffQueryHandlers.handleQuery(query);
 
       if (!result.success) {
-        throw new NotFoundError('Nhân viên', licenseNumber);
+        throw new NotFoundError("Nhân viên", licenseNumber);
       }
 
       ResponseHelper.success(res, result.data);
-
     } catch (error) {
-      this.logger.error('Error getting staff by license number', {
+      this.logger.error("Error getting staff by license number", {
         licenseNumber: req.params.licenseNumber,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -228,45 +230,111 @@ export class StaffController {
    */
   async searchStaff(req: Request, res: Response): Promise<void> {
     try {
-      const {
-        searchTerm,
-        staffType,
-        departmentId,
-        specialization,
-        status,
-        isActive,
-        isAcceptingNewPatients,
-        page = '1',
-        limit = '20'
-      } = req.query as any;
+      const queryParams = req.query as Record<string, string | undefined>;
+      const toStaffType = (value?: string): StaffType | undefined => {
+        if (!value) {
+          return undefined;
+        }
+        const normalized = value.toLowerCase() as StaffType;
+        const allowed: StaffType[] = [
+          "doctor",
+          "nurse",
+          "technician",
+          "pharmacist",
+          "therapist",
+          "admin",
+          "receptionist",
+        ];
+        return allowed.includes(normalized) ? normalized : undefined;
+      };
+      const toStaffStatus = (value?: string): StaffStatus | undefined => {
+        if (!value) {
+          return undefined;
+        }
+        const normalized = value.toLowerCase();
+        if (normalized === "on-leave") {
+          return "on_leave";
+        }
+        const allowed: StaffStatus[] = [
+          "active",
+          "inactive",
+          "suspended",
+          "on_leave",
+          "terminated",
+        ];
+        return allowed.includes(normalized as StaffStatus)
+          ? (normalized as StaffStatus)
+          : undefined;
+      };
+      const parseBoolean = (value?: string): boolean | undefined => {
+        if (value === undefined) {
+          return undefined;
+        }
+        if (value === "true") {
+          return true;
+        }
+        if (value === "false") {
+          return false;
+        }
+        return undefined;
+      };
+      const safePage = Number.parseInt(queryParams.page || "1", 10);
+      const safeLimitSource = queryParams.limit || queryParams.pageSize || "20";
+      const safeLimit = Number.parseInt(safeLimitSource, 10);
+      const pageNumber = Number.isNaN(safePage) || safePage < 1 ? 1 : safePage;
+      const limitNumber =
+        Number.isNaN(safeLimit) || safeLimit < 1 ? 20 : safeLimit;
+      const sortField =
+        queryParams.sortBy || queryParams.sortField || undefined;
+      const sortDirection =
+        queryParams.sortOrder || queryParams.sortDirection || undefined;
+      const normalizedSearchTerm = (queryParams.searchTerm || "").trim();
+      const effectiveSearchTerm =
+        normalizedSearchTerm.length > 0 ? normalizedSearchTerm : undefined;
+      const resolvedSortDirection: "asc" | "desc" =
+        sortDirection === "desc" ? "desc" : "asc";
 
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Searching staff', { searchTerm, page, limit });
+      this.logger.info("Searching staff", {
+        searchTerm: effectiveSearchTerm,
+        page: pageNumber,
+        limit: limitNumber,
+        sortBy: sortField,
+        sortDirection,
+      });
 
       const query = {
         queryId: `query_${Date.now()}`,
-        queryType: 'SearchStaff' as const,
+        queryType: "SearchStaff" as const,
         timestamp: new Date(),
         requestedBy,
         data: {
-          searchTerm: searchTerm || '',
+          searchTerm: effectiveSearchTerm,
           filters: {
-            staffType,
-            departmentId,
-            specialization,
-            status,
-            isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
-            isAcceptingNewPatients: isAcceptingNewPatients === 'true' ? true : isAcceptingNewPatients === 'false' ? false : undefined
+            staffType: toStaffType(queryParams.staffType),
+            departmentId: queryParams.departmentId,
+            specialization: queryParams.specialization,
+            status: toStaffStatus(queryParams.status),
+            isActive: parseBoolean(queryParams.isActive),
+            isAcceptingNewPatients: parseBoolean(
+              queryParams.isAcceptingNewPatients,
+            ),
           },
           pagination: {
-            page: parseInt(page) || 1,
-            limit: parseInt(limit) || 20
+            page: pageNumber,
+            limit: limitNumber,
           },
+          sorting: sortField
+            ? {
+                field: sortField,
+                direction: resolvedSortDirection,
+              }
+            : undefined,
           requestedBy,
-          requestedByRole
-        }
+          requestedByRole,
+        },
       };
 
       const result = await this.staffQueryHandlers.handleSearchStaff(query);
@@ -280,12 +348,11 @@ export class StaffController {
         result.data.staff,
         result.data.pagination.page,
         result.data.pagination.limit,
-        result.data.pagination.total
+        result.data.pagination.total,
       );
-
     } catch (error) {
-      this.logger.error('Error searching staff', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error searching staff", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -302,37 +369,38 @@ export class StaffController {
       const assignedBy = getUserId(req);
       const assignedByRole = getUserRole(req);
 
-      this.logger.info('Assigning staff to department', {
+      this.logger.info("Assigning staff to department", {
         staffId,
         departmentId: requestData.departmentId,
-        assignedBy
+        assignedBy,
       });
 
       const result = await this.assignStaffToDepartmentUseCase.execute({
         staffId,
         departmentId: requestData.departmentId,
-        departmentName: requestData.departmentName || 'Unknown Department',
+        departmentName: requestData.departmentName || "Unknown Department",
         role: requestData.role,
         isPrimary: requestData.isPrimary,
-        startDate: requestData.startDate ? new Date(requestData.startDate) : undefined,
+        startDate: requestData.startDate
+          ? new Date(requestData.startDate)
+          : undefined,
         assignedBy,
         assignedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
       if (!result.success) {
         throw new DomainError(result.message, result.errors);
       }
 
-      ResponseHelper.success(res, result.data, result.message);
-
+      ResponseHelper.success(res, result.data, result.message, 201);
     } catch (error) {
-      this.logger.error('Error assigning staff to department', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error assigning staff to department", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -348,14 +416,14 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Updating staff info', {
+      this.logger.info("Updating staff info", {
         staffId: requestData.staffId,
-        requestedBy
+        requestedBy,
       });
 
       const command = {
         commandId: `cmd_${Date.now()}`,
-        commandType: 'UpdateStaffInfo' as const,
+        commandType: "UpdateStaffInfo" as const,
         timestamp: new Date(),
         requestedBy,
         data: {
@@ -364,24 +432,28 @@ export class StaffController {
             personalInfo: requestData.personalInfo,
             professionalInfo: requestData.professionalInfo,
             workSchedule: requestData.workSchedule,
-            consultationFee: requestData.consultationFee
+            consultationFee: requestData.consultationFee,
           },
           requestedBy,
-          requestedByRole
-        }
+          requestedByRole,
+        },
       };
 
-      const result = await this.staffCommandHandlers.handleUpdateStaffInfo(command);
+      const result =
+        await this.staffCommandHandlers.handleUpdateStaffInfo(command);
 
       if (!result.success) {
         throw new DomainError(result.message);
       }
 
-      ResponseHelper.success(res, { staffId: requestData.staffId }, result.message);
-
+      ResponseHelper.success(
+        res,
+        { staffId: requestData.staffId },
+        result.message,
+      );
     } catch (error) {
-      this.logger.error('Error updating staff info', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error updating staff info", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -397,10 +469,10 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Adding staff credential', {
+      this.logger.info("Adding staff credential", {
         staffId,
         credentialType: req.body.credentialType,
-        requestedBy
+        requestedBy,
       });
 
       const result = await this.addStaffCredentialUseCase.execute({
@@ -414,9 +486,9 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
       if (!result.success) {
@@ -424,10 +496,9 @@ export class StaffController {
       }
 
       ResponseHelper.created(res, result.data, result.message);
-
     } catch (error) {
-      this.logger.error('Error adding staff credential', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error adding staff credential", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -443,10 +514,10 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Removing staff credential', {
+      this.logger.info("Removing staff credential", {
         staffId,
         credentialNumber,
-        requestedBy
+        requestedBy,
       });
 
       const result = await this.removeStaffCredentialUseCase.execute({
@@ -457,9 +528,9 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
       if (!result.success) {
@@ -467,10 +538,9 @@ export class StaffController {
       }
 
       ResponseHelper.success(res, result.data, result.message);
-
     } catch (error) {
-      this.logger.error('Error removing staff credential', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error removing staff credential", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -486,11 +556,11 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Renewing staff credential', {
+      this.logger.info("Renewing staff credential", {
         staffId,
         credentialNumber,
         newExpiryDate: req.body.newExpiryDate,
-        requestedBy
+        requestedBy,
       });
 
       const result = await this.renewStaffCredentialUseCase.execute({
@@ -501,9 +571,9 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
       if (!result.success) {
@@ -511,10 +581,9 @@ export class StaffController {
       }
 
       ResponseHelper.success(res, result.data, result.message);
-
     } catch (error) {
-      this.logger.error('Error renewing staff credential', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error renewing staff credential", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -529,22 +598,24 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Getting expiring credentials', {
+      this.logger.info("Getting expiring credentials", {
         daysThreshold: req.query.daysThreshold,
-        requestedBy
+        requestedBy,
       });
 
       const result = await this.getExpiringCredentialsUseCase.execute({
-        daysThreshold: req.query.daysThreshold ? parseInt(req.query.daysThreshold as string) : undefined,
+        daysThreshold: req.query.daysThreshold
+          ? parseInt(req.query.daysThreshold as string)
+          : undefined,
         staffType: req.query.staffType as string,
         departmentId: req.query.departmentId as string,
         requestedBy,
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
       if (!result.success) {
@@ -552,10 +623,9 @@ export class StaffController {
       }
 
       ResponseHelper.success(res, result.data, result.message);
-
     } catch (error) {
-      this.logger.error('Error getting expiring credentials', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error getting expiring credentials", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -571,7 +641,7 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Activating staff', { staffId, requestedBy });
+      this.logger.info("Activating staff", { staffId, requestedBy });
 
       const result = await this.activateStaffUseCase.execute({
         staffId,
@@ -579,16 +649,15 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
-      ResponseHelper.success(res, result, 'Kích hoạt nhân viên thành công');
-
+      ResponseHelper.success(res, result, "Kích hoạt nhân viên thành công");
     } catch (error) {
-      this.logger.error('Error activating staff', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error activating staff", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -604,7 +673,11 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Suspending staff', { staffId, reason: req.body.reason, requestedBy });
+      this.logger.info("Suspending staff", {
+        staffId,
+        reason: req.body.reason,
+        requestedBy,
+      });
 
       const result = await this.suspendStaffUseCase.execute({
         staffId,
@@ -615,16 +688,15 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
-      ResponseHelper.success(res, result, 'Tạm ngưng nhân viên thành công');
-
+      ResponseHelper.success(res, result, "Tạm ngưng nhân viên thành công");
     } catch (error) {
-      this.logger.error('Error suspending staff', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error suspending staff", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -640,7 +712,7 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Reactivating staff', { staffId, requestedBy });
+      this.logger.info("Reactivating staff", { staffId, requestedBy });
 
       const result = await this.reactivateStaffUseCase.execute({
         staffId,
@@ -648,16 +720,15 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
-      ResponseHelper.success(res, result, 'Kích hoạt lại nhân viên thành công');
-
+      ResponseHelper.success(res, result, "Kích hoạt lại nhân viên thành công");
     } catch (error) {
-      this.logger.error('Error reactivating staff', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error reactivating staff", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -673,7 +744,11 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Terminating staff', { staffId, reason: req.body.reason, requestedBy });
+      this.logger.info("Terminating staff", {
+        staffId,
+        reason: req.body.reason,
+        requestedBy,
+      });
 
       const result = await this.terminateStaffUseCase.execute({
         staffId,
@@ -683,16 +758,19 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
-      ResponseHelper.success(res, result, 'Chấm dứt hợp đồng nhân viên thành công');
-
+      ResponseHelper.success(
+        res,
+        result,
+        "Chấm dứt hợp đồng nhân viên thành công",
+      );
     } catch (error) {
-      this.logger.error('Error terminating staff', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error terminating staff", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -708,7 +786,11 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Updating employment status', { staffId, employmentType: req.body.employmentType, requestedBy });
+      this.logger.info("Updating employment status", {
+        staffId,
+        employmentType: req.body.employmentType,
+        requestedBy,
+      });
 
       const result = await this.updateEmploymentStatusUseCase.execute({
         staffId,
@@ -718,16 +800,19 @@ export class StaffController {
         requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
-      ResponseHelper.success(res, result, 'Cập nhật loại hình làm việc thành công');
-
+      ResponseHelper.success(
+        res,
+        result,
+        "Cập nhật loại hình làm việc thành công",
+      );
     } catch (error) {
-      this.logger.error('Error updating employment status', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error updating employment status", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -743,9 +828,9 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Updating staff schedule', {
+      this.logger.info("Updating staff schedule", {
         staffId,
-        requestedBy
+        requestedBy,
       });
 
       const result = await this.updateStaffScheduleUseCase.execute({
@@ -756,16 +841,15 @@ export class StaffController {
         updatedByRole: requestedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
-      ResponseHelper.success(res, result, 'Cập nhật lịch làm việc thành công');
-
+      ResponseHelper.success(res, result, "Cập nhật lịch làm việc thành công");
     } catch (error) {
-      this.logger.error('Error updating staff schedule', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error updating staff schedule", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -781,9 +865,9 @@ export class StaffController {
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
 
-      this.logger.info('Getting staff schedule', {
+      this.logger.info("Getting staff schedule", {
         staffId,
-        requestedBy
+        requestedBy,
       });
 
       // Get staff profile which includes work schedule
@@ -794,27 +878,31 @@ export class StaffController {
         includeFullSchedule: true,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.headers['x-session-id'] as string
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
       });
 
       if (!result.success || !result.data) {
-        ResponseHelper.error(res, 'Không tìm thấy thông tin nhân viên', 404, 'NOT_FOUND');
+        ResponseHelper.error(
+          res,
+          "Không tìm thấy thông tin nhân viên",
+          404,
+          "NOT_FOUND",
+        );
         return;
       }
 
       // Extract schedule from staff profile
       const scheduleData = {
         staffId: result.data.staff.id,
-        workSchedule: result.data.staff.workSchedule
+        workSchedule: result.data.staff.workSchedule,
       };
 
-      ResponseHelper.success(res, scheduleData, 'Lấy lịch làm việc thành công');
-
+      ResponseHelper.success(res, scheduleData, "Lấy lịch làm việc thành công");
     } catch (error) {
-      this.logger.error('Error getting staff schedule', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error getting staff schedule", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -839,11 +927,11 @@ export class StaffController {
       const { staffId } = req.params;
       const requestedBy = getUserId(req);
       const requestedByRole = getUserRole(req);
-      const includeInactive = req.query.includeInactive === 'true';
+      const includeInactive = req.query.includeInactive === "true";
 
-      this.logger.info('Getting staff specializations', {
+      this.logger.info("Getting staff specializations", {
         staffId,
-        requestedBy
+        requestedBy,
       });
 
       const result = await this.getStaffSpecializationsUseCase.execute({
@@ -853,22 +941,29 @@ export class StaffController {
         includeInactive,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.get('x-session-id')
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.get("x-session-id"),
+        },
       });
 
       if (!result.success) {
-        const errorDetails = result.errors ? result.errors.join(', ') : undefined;
-        ResponseHelper.error(res, result.message, 400, 'VALIDATION_ERROR', errorDetails);
+        const errorDetails = result.errors
+          ? result.errors.join(", ")
+          : undefined;
+        ResponseHelper.error(
+          res,
+          result.message,
+          400,
+          "VALIDATION_ERROR",
+          errorDetails,
+        );
         return;
       }
 
       ResponseHelper.success(res, result.data, result.message);
-
     } catch (error) {
-      this.logger.error('Error getting staff specializations', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error getting staff specializations", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -885,10 +980,10 @@ export class StaffController {
       const addedBy = getUserId(req);
       const addedByRole = getUserRole(req);
 
-      this.logger.info('Adding staff specialization', {
+      this.logger.info("Adding staff specialization", {
         staffId,
         code,
-        addedBy
+        addedBy,
       });
 
       const result = await this.addStaffSpecializationUseCase.execute({
@@ -901,22 +996,29 @@ export class StaffController {
         addedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.get('x-session-id')
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.get("x-session-id"),
+        },
       });
 
       if (!result.success) {
-        const errorDetails = result.errors ? result.errors.join(', ') : undefined;
-        ResponseHelper.error(res, result.message, 400, 'VALIDATION_ERROR', errorDetails);
+        const errorDetails = result.errors
+          ? result.errors.join(", ")
+          : undefined;
+        ResponseHelper.error(
+          res,
+          result.message,
+          400,
+          "VALIDATION_ERROR",
+          errorDetails,
+        );
         return;
       }
 
       ResponseHelper.success(res, result.data, result.message, 201);
-
     } catch (error) {
-      this.logger.error('Error adding staff specialization', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error adding staff specialization", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -932,10 +1034,10 @@ export class StaffController {
       const removedBy = getUserId(req);
       const removedByRole = getUserRole(req);
 
-      this.logger.info('Removing staff specialization', {
+      this.logger.info("Removing staff specialization", {
         staffId,
         specializationCode,
-        removedBy
+        removedBy,
       });
 
       const result = await this.removeStaffSpecializationUseCase.execute({
@@ -945,26 +1047,99 @@ export class StaffController {
         removedByRole,
         requestMetadata: {
           ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          sessionId: req.get('x-session-id')
-        }
+          userAgent: req.get("user-agent"),
+          sessionId: req.get("x-session-id"),
+        },
       });
 
       if (!result.success) {
-        const errorDetails = result.errors ? result.errors.join(', ') : undefined;
-        ResponseHelper.error(res, result.message, 400, 'VALIDATION_ERROR', errorDetails);
+        const errorDetails = result.errors
+          ? result.errors.join(", ")
+          : undefined;
+        ResponseHelper.error(
+          res,
+          result.message,
+          400,
+          "VALIDATION_ERROR",
+          errorDetails,
+        );
         return;
       }
 
       ResponseHelper.success(res, null, result.message);
-
     } catch (error) {
-      this.logger.error('Error removing staff specialization', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error removing staff specialization", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
   }
 
-}
+  /**
+   * Set department head
+   * PUT /api/v1/staff/:staffId/department-head
+   */
+  async setDepartmentHead(req: Request, res: Response): Promise<void> {
+    try {
+      const { staffId } = req.params;
+      const { departmentId } = req.body;
+      
+      // Get user info from JWT or use defaults
+      // TODO: In production, should validate JWT and reject if missing
+      // const assignedBy = getUserId(req) || (process.env.NODE_ENV === 'development' ? 'dev-admin' : undefined);
+      // const assignedByRole = getUserRole(req) || (process.env.NODE_ENV === 'development' ? 'admin' : undefined);
+      const assignedBy = getUserId(req) || 'dev-admin';
+      const assignedByRole = getUserRole(req) || 'admin';
 
+      this.logger.info("Setting department head", {
+        staffId,
+        departmentId,
+        assignedBy,
+        assignedByRole,
+      });
+
+      if (!departmentId) {
+        ResponseHelper.error(
+          res,
+          "departmentId là bắt buộc",
+          400,
+          "VALIDATION_ERROR",
+        );
+        return;
+      }
+
+      const result = await this.setDepartmentHeadUseCase.execute({
+        staffId,
+        departmentId,
+        assignedBy,
+        assignedByRole,
+        requestMetadata: {
+          ipAddress: req.ip,
+          userAgent: req.get("user-agent"),
+          sessionId: req.get("x-session-id"),
+        },
+      });
+
+      if (!result.success) {
+        const errorDetails = result.errors
+          ? result.errors.join(", ")
+          : undefined;
+        ResponseHelper.error(
+          res,
+          result.message,
+          400,
+          "VALIDATION_ERROR",
+          errorDetails,
+        );
+        return;
+      }
+
+      ResponseHelper.success(res, result.data, result.message);
+    } catch (error) {
+      this.logger.error("Error setting department head", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+}

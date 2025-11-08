@@ -33,34 +33,34 @@ export interface RegisterStaffRequest {
     dateOfBirth: string;
     gender: "male" | "female" | "other";
     nationalId: string; // CMND/CCCD
-    nationality: string;
+    nationality?: string;
     phoneNumber: string;
     email?: string;
-    address: {
-      street: string;
-      ward: string;
-      district: string;
-      city: string;
-      province: string;
-      country: string;
+    address?: {
+      street?: string;
+      ward?: string;
+      district?: string;
+      city?: string;
+      province?: string;
+      country?: string;
     };
   };
   professionalInfo: {
     title: string; // Dr., Nurse, etc.
     department: string;
     position: string;
-    education: string[];
-    languages: string[];
+    education?: string[];
+    languages?: string[];
     bio?: string;
   };
-  workSchedule: {
-    workingDays: string[]; // ['monday', 'tuesday', ...]
-    workingHours: {
-      start: string; // '08:00'
-      end: string; // '17:00'
+  workSchedule?: {
+    workingDays?: string[]; // ['monday', 'tuesday', ...]
+    workingHours?: {
+      start?: string; // '08:00'
+      end?: string; // '17:00'
     };
-    timeZone: string;
-    isFlexible: boolean;
+    timeZone?: string;
+    isFlexible?: boolean;
   };
   licenseNumber: string;
   employmentType: EmploymentType;
@@ -172,27 +172,31 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
         dateOfBirth: new Date(request.personalInfo.dateOfBirth),
         gender: request.personalInfo.gender,
         nationalId: request.personalInfo.nationalId,
-        nationality: request.personalInfo.nationality,
+        nationality:
+          request.personalInfo.nationality?.trim() || DEFAULT_STAFF_NATIONALITY,
         phoneNumber: request.personalInfo.phoneNumber,
         email: request.personalInfo.email,
-        address: request.personalInfo.address,
+        address: buildSafeStaffAddress(request.personalInfo.address),
       });
 
       const professionalInfo = ProfessionalInfo.create({
         title: request.professionalInfo.title,
         department: request.professionalInfo.department,
         position: request.professionalInfo.position,
-        education: request.professionalInfo.education,
-        languages: request.professionalInfo.languages,
+        education: ensureNonEmptyArray(
+          request.professionalInfo.education,
+          DEFAULT_EDUCATION,
+        ),
+        languages: ensureNonEmptyArray(
+          request.professionalInfo.languages,
+          DEFAULT_LANGUAGES,
+        ),
         bio: request.professionalInfo.bio,
       });
 
-      const workSchedule = WorkSchedule.create({
-        workingDays: request.workSchedule.workingDays,
-        workingHours: request.workSchedule.workingHours,
-        timeZone: request.workSchedule.timeZone,
-        isFlexible: request.workSchedule.isFlexible,
-      });
+      const workSchedule = WorkSchedule.create(
+        buildSafeWorkSchedule(request.workSchedule),
+      );
 
       // 5. Create specializations if provided
       const specializations: Specialization[] = [];
@@ -466,4 +470,59 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
       complianceLevel: "hipaa",
     });
   }
+}
+
+const DEFAULT_STAFF_NATIONALITY = "Vietnamese";
+const DEFAULT_STAFF_ADDRESS_TEXT = "Chưa cập nhật";
+const DEFAULT_STAFF_CITY = "TP. Hồ Chí Minh";
+const DEFAULT_STAFF_COUNTRY = "Việt Nam";
+const DEFAULT_EDUCATION = ["General Medicine"];
+const DEFAULT_LANGUAGES = ["vi"];
+const DEFAULT_WORKING_DAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+];
+const DEFAULT_WORKING_HOURS = { start: "08:00", end: "17:00" };
+const DEFAULT_TIME_ZONE = "Asia/Ho_Chi_Minh";
+
+type StaffAddressInput =
+  | RegisterStaffRequest["personalInfo"]["address"]
+  | undefined;
+type StaffScheduleInput = RegisterStaffRequest["workSchedule"] | undefined;
+
+function buildSafeStaffAddress(address?: StaffAddressInput) {
+  return {
+    street: address?.street?.trim() || DEFAULT_STAFF_ADDRESS_TEXT,
+    ward: address?.ward?.trim(),
+    district: address?.district?.trim() || DEFAULT_STAFF_ADDRESS_TEXT,
+    city: address?.city?.trim() || DEFAULT_STAFF_CITY,
+    province:
+      address?.province?.trim() || address?.city?.trim() || DEFAULT_STAFF_CITY,
+    country: address?.country?.trim() || DEFAULT_STAFF_COUNTRY,
+  };
+}
+
+function ensureNonEmptyArray<T>(value: T[] | undefined, fallback: T[]): T[] {
+  if (value && value.length > 0) {
+    return value;
+  }
+  return fallback;
+}
+
+function buildSafeWorkSchedule(schedule?: StaffScheduleInput) {
+  return {
+    workingDays:
+      schedule?.workingDays && schedule.workingDays.length > 0
+        ? schedule.workingDays
+        : DEFAULT_WORKING_DAYS,
+    workingHours: {
+      start: schedule?.workingHours?.start ?? DEFAULT_WORKING_HOURS.start,
+      end: schedule?.workingHours?.end ?? DEFAULT_WORKING_HOURS.end,
+    },
+    timeZone: schedule?.timeZone ?? DEFAULT_TIME_ZONE,
+    isFlexible: schedule?.isFlexible ?? false,
+  };
 }

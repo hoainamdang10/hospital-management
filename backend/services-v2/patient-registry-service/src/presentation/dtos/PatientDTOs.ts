@@ -18,9 +18,9 @@ export interface RegisterPatientRequest {
   // Personal Info
   fullName: string;
   dateOfBirth: string; // ISO date string
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   nationalId: string; // CMND/CCCD
-  nationality: string;
+  nationality?: string;
   ethnicity?: string;
   occupation?: string;
   maritalStatus?: string;
@@ -29,19 +29,19 @@ export interface RegisterPatientRequest {
   primaryPhone: string;
   secondaryPhone?: string;
   email?: string;
-  address: {
-    street: string;
-    ward: string;
-    district: string;
-    city: string;
-    province: string; // Province/City level (e.g., "Hồ Chí Minh", "Đồng Nai")
+  address?: {
+    street?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+    province?: string; // Province/City level (e.g., "Hồ Chí Minh", "Đồng Nai")
     postalCode?: string;
     country?: string;
   };
-  preferredContactMethod: 'phone' | 'email' | 'sms';
+  preferredContactMethod?: "phone" | "email" | "sms";
 
   // Basic Medical Info
-  bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  bloodType?: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
   knownAllergies?: string[];
   emergencyMedicalInfo?: string;
 
@@ -52,7 +52,7 @@ export interface RegisterPatientRequest {
     groupNumber?: string;
     validFrom: string; // ISO date string
     validTo: string; // ISO date string
-    coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
+    coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
     bhytNumber?: string;
   };
 
@@ -75,7 +75,7 @@ export interface UpdatePatientRequest {
   // Personal Info
   fullName?: string;
   dateOfBirth?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: "male" | "female" | "other";
   nationalId?: string;
   nationality?: string;
   ethnicity?: string;
@@ -87,18 +87,18 @@ export interface UpdatePatientRequest {
   secondaryPhone?: string;
   email?: string;
   address?: {
-    street: string;
-    ward: string;
-    district: string;
-    city: string;
-    province: string; // Province/City level
+    street?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+    province?: string; // Province/City level
     postalCode?: string;
     country?: string;
   };
-  preferredContactMethod?: 'phone' | 'email' | 'sms';
+  preferredContactMethod?: "phone" | "email" | "sms";
 
   // Basic Medical Info
-  bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  bloodType?: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
   knownAllergies?: string[];
   emergencyMedicalInfo?: string;
 }
@@ -112,8 +112,24 @@ export interface UpdateInsuranceRequest {
   groupNumber?: string;
   validFrom: string;
   validTo: string;
-  coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
+  coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
   bhytNumber?: string;
+}
+
+/**
+ * Add insurance request
+ */
+export interface AddInsuranceRequest {
+  provider: string;
+  policyNumber: string;
+  groupNumber?: string;
+  validFrom: string;
+  validTo: string;
+  coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+  isVietnameseInsurance: boolean;
+  bhytNumber?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
 }
 
 /**
@@ -163,7 +179,7 @@ export interface MergePatientsRequest {
  */
 export interface LinkPatientsRequest {
   otherPatientId: string;
-  linkType: 'refer' | 'seealso';
+  linkType: "refer" | "seealso";
 }
 
 /**
@@ -188,7 +204,7 @@ export interface FilterPatientsRequest {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
 }
 
 /**
@@ -308,7 +324,7 @@ export interface PatientResponse {
  */
 export interface PatientMatchResponse {
   patient: PatientResponse;
-  matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
+  matchGrade: "certain" | "probable" | "possible" | "certainly-not";
   score: number;
   matchDetails: {
     fullNameMatch: boolean;
@@ -370,6 +386,7 @@ export interface MarkAsDeceasedRequest {
  */
 export interface ReactivatePatientRequest {
   reason: string;
+  allowDeceasedReactivate?: boolean;
 }
 
 /**

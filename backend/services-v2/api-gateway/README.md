@@ -11,7 +11,10 @@ API Gateway là **entry point duy nhất** cho tất cả client requests vào H
 - ✅ **Request Routing**: Proxy requests to appropriate microservices
 - ✅ **Cross-Cutting Concerns**: Rate limiting, logging, error handling
 - ✅ **Security**: CORS, Helmet, Security headers
-- ⚠️ **Resilience**: Request timeout (30s), graceful error handling
+- ✅ **Resilience**: Circuit breaker, retry policy, timeout handling
+- ✅ **API Documentation**: Swagger UI for interactive API testing
+- ✅ **Monitoring**: Visual dashboard & performance metrics
+- ✅ **i18n**: Vietnamese error messages for better UX
 
 ## 🏗️ Architecture
 
@@ -166,6 +169,15 @@ docker-compose up api-gateway
 
 ## 📡 API Routes
 
+### Documentation & Monitoring
+
+```bash
+GET /api-docs            # 📚 Swagger UI - Interactive API documentation
+GET /dashboard           # 📊 Visual dashboard - Service health monitoring
+GET /api/metrics         # 📈 Performance metrics - Request stats & analytics
+GET /api/metrics/summary # 📋 Metrics summary - Quick overview
+```
+
 ### Health Checks
 
 ```bash
@@ -233,6 +245,54 @@ X-Forwarded-For: client-ip
 
 ## 📊 Monitoring & Logging
 
+### Visual Dashboard
+
+Access the visual dashboard at `http://localhost:3101/dashboard` để xem:
+
+- ✅ Trạng thái real-time của tất cả services
+- ✅ Service health indicators (healthy/unhealthy)
+- ✅ Auto-refresh mỗi 5 giây
+- ✅ Responsive design (mobile-friendly)
+
+### Performance Metrics
+
+Access performance metrics tại `http://localhost:3101/api/metrics`:
+
+```json
+{
+  "success": true,
+  "timestamp": "2025-01-11T10:00:00.000Z",
+  "metrics": {
+    "totalRequests": 1500,
+    "successfulRequests": 1450,
+    "failedRequests": 50,
+    "avgResponseTime": 125.5,
+    "requestsPerMinute": 25.5,
+    "errorRate": 3.33,
+    "slowestEndpoints": [
+      {
+        "path": "/api/v1/clinical/records",
+        "avgTime": 450.2,
+        "count": 100
+      }
+    ],
+    "errorsByStatusCode": {
+      "404": 30,
+      "500": 20
+    }
+  }
+}
+```
+
+### API Documentation
+
+Access Swagger UI tại `http://localhost:3101/api-docs` để:
+
+- ✅ Xem tất cả API endpoints
+- ✅ Test API trực tiếp từ browser
+- ✅ Xem request/response schemas
+- ✅ Copy curl commands
+
 ### Log Levels
 
 - `error`: Errors and exceptions
@@ -287,6 +347,28 @@ npm run test:watch
 3. Update documentation
 4. Follow TypeScript best practices
 5. Run linter before committing
+
+## 🌐 Vietnamese Error Messages
+
+API Gateway trả về error messages bằng tiếng Việt để cải thiện UX:
+
+```json
+{
+  "success": false,
+  "error": "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+  "code": "UNAUTHORIZED",
+  "requestId": "uuid"
+}
+```
+
+**Supported Error Codes:**
+
+- `UNAUTHORIZED` (401): Chưa đăng nhập hoặc token hết hạn
+- `FORBIDDEN` (403): Không có quyền truy cập
+- `NOT_FOUND` (404): Không tìm thấy tài nguyên
+- `VALIDATION_ERROR` (422): Dữ liệu không hợp lệ
+- `RATE_LIMIT_EXCEEDED` (429): Vượt quá giới hạn request
+- `INTERNAL_SERVER_ERROR` (500): Lỗi hệ thống
 
 ## 📝 License
 

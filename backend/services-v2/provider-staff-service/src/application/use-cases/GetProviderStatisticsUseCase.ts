@@ -110,7 +110,37 @@ export class GetProviderStatisticsUseCase extends BaseHealthcareUseCase<GetProvi
       }
 
       // 3. Get statistics from repository
-      const statistics = await this.staffRepository.getStatistics(request.departmentId, request.staffType);
+      const repoStats = await this.staffRepository.getStatistics();
+
+      // Map repository stats to response format
+      const statistics = {
+        totalProviders: repoStats.total,
+        activeProviders: repoStats.active,
+        inactiveProviders: repoStats.inactive,
+        suspendedProviders: 0, // TODO: Add suspended count to repository
+        byType: {
+          doctors: repoStats.byType?.doctor || 0,
+          nurses: repoStats.byType?.nurse || 0,
+          technicians: repoStats.byType?.technician || 0,
+          pharmacists: repoStats.byType?.pharmacist || 0,
+          admins: repoStats.byType?.admin || 0,
+          others: 0
+        },
+        byDepartment: [], // TODO: Add department stats to repository
+        byStatus: {
+          active: repoStats.byStatus?.active || 0,
+          onLeave: repoStats.byStatus?.on_leave || 0,
+          suspended: repoStats.byStatus?.suspended || 0,
+          terminated: repoStats.byStatus?.terminated || 0
+        },
+        credentials: {
+          totalCredentials: 0, // TODO: Add credential stats to repository
+          validCredentials: 0,
+          expiringCredentials: 0,
+          expiredCredentials: 0
+        },
+        generatedAt: new Date().toISOString()
+      };
 
       this.logger.info('Provider statistics retrieved successfully', {
         requestedBy: request.requestedBy,
@@ -121,10 +151,7 @@ export class GetProviderStatisticsUseCase extends BaseHealthcareUseCase<GetProvi
         success: true,
         message: 'Lấy thống kê nhà cung cấp thành công',
         data: {
-          statistics: {
-            ...statistics,
-            generatedAt: new Date().toISOString()
-          }
+          statistics
         }
       };
 

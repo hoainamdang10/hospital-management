@@ -46,40 +46,41 @@
  * @see RemoteSchedulerAdapter for Scheduler Service integration
  */
 
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from "@shared/domain/base/entity";
+import crypto from "crypto";
 
 export enum ReminderType {
-  EMAIL = 'email',
-  SMS = 'sms',
-  PUSH = 'push',
-  IN_APP = 'in_app'
+  EMAIL = "email",
+  SMS = "sms",
+  PUSH = "push",
+  IN_APP = "in_app",
 }
 
 export enum ReminderChannel {
-  EMAIL = 'email',
-  SMS = 'sms',
-  PUSH_NOTIFICATION = 'push_notification',
-  IN_APP_NOTIFICATION = 'in_app_notification'
+  EMAIL = "email",
+  SMS = "sms",
+  PUSH_NOTIFICATION = "push_notification",
+  IN_APP_NOTIFICATION = "in_app_notification",
 }
 
 export enum ReminderStatus {
-  PENDING = 'pending',
-  SENT = 'sent',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  PENDING = "pending",
+  SENT = "sent",
+  FAILED = "failed",
+  CANCELLED = "cancelled",
 }
 
 export enum RecipientType {
-  PATIENT = 'patient',
-  DOCTOR = 'doctor',
-  BOTH = 'both'
+  PATIENT = "patient",
+  DOCTOR = "doctor",
+  BOTH = "both",
 }
 
 export enum ReminderPriority {
-  LOW = 'low',
-  NORMAL = 'normal',
-  HIGH = 'high',
-  URGENT = 'urgent'
+  LOW = "low",
+  NORMAL = "normal",
+  HIGH = "high",
+  URGENT = "urgent",
 }
 
 export interface AppointmentReminderProps {
@@ -123,24 +124,35 @@ export class AppointmentReminder extends Entity<AppointmentReminderProps> {
   /**
    * Factory method to create a new reminder
    */
-  public static create(props: Omit<AppointmentReminderProps, 'reminderId' | 'createdAt' | 'updatedAt' | 'status' | 'retryCount'>): AppointmentReminder {
+  public static create(
+    props: Omit<
+      AppointmentReminderProps,
+      "reminderId" | "createdAt" | "updatedAt" | "status" | "retryCount"
+    >,
+  ): AppointmentReminder {
     const now = new Date();
-    
+
     // Validation
     if (props.sendBeforeMinutes <= 0) {
-      throw new Error('Send before minutes must be positive');
+      throw new Error("Send before minutes must be positive");
     }
 
     if (props.scheduledAt <= now) {
-      throw new Error('Scheduled time must be in the future');
+      throw new Error("Scheduled time must be in the future");
     }
 
-    if (props.reminderChannel === ReminderChannel.EMAIL && !props.recipientEmail) {
-      throw new Error('Email address required for email reminders');
+    if (
+      props.reminderChannel === ReminderChannel.EMAIL &&
+      !props.recipientEmail
+    ) {
+      throw new Error("Email address required for email reminders");
     }
 
-    if (props.reminderChannel === ReminderChannel.SMS && !props.recipientPhone) {
-      throw new Error('Phone number required for SMS reminders');
+    if (
+      props.reminderChannel === ReminderChannel.SMS &&
+      !props.recipientPhone
+    ) {
+      throw new Error("Phone number required for SMS reminders");
     }
 
     const reminderProps: AppointmentReminderProps = {
@@ -149,7 +161,7 @@ export class AppointmentReminder extends Entity<AppointmentReminderProps> {
       status: ReminderStatus.PENDING,
       retryCount: 0,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     return new AppointmentReminder(reminderProps);
@@ -158,29 +170,53 @@ export class AppointmentReminder extends Entity<AppointmentReminderProps> {
   /**
    * Reconstitute from persistence
    */
-  public static reconstitute(props: AppointmentReminderProps): AppointmentReminder {
+  public static reconstitute(
+    props: AppointmentReminderProps,
+  ): AppointmentReminder {
     return new AppointmentReminder(props);
   }
 
   // Getters
-  public get reminderId(): string { return this.props.reminderId; }
-  public get appointmentId(): string { return this.props.appointmentId; }
-  public get tenantId(): string { return this.props.tenantId; }
-  public get reminderType(): ReminderType { return this.props.reminderType; }
-  public get reminderChannel(): ReminderChannel { return this.props.reminderChannel; }
-  public get scheduledAt(): Date { return this.props.scheduledAt; }
-  public get sendBeforeMinutes(): number { return this.props.sendBeforeMinutes; }
-  public get status(): ReminderStatus { return this.props.status; }
-  public get message(): string { return this.props.message; }
-  public get recipientType(): RecipientType { return this.props.recipientType; }
-  public get priority(): ReminderPriority { return this.props.priority; }
+  public get reminderId(): string {
+    return this.props.reminderId;
+  }
+  public get appointmentId(): string {
+    return this.props.appointmentId;
+  }
+  public get tenantId(): string {
+    return this.props.tenantId;
+  }
+  public get reminderType(): ReminderType {
+    return this.props.reminderType;
+  }
+  public get reminderChannel(): ReminderChannel {
+    return this.props.reminderChannel;
+  }
+  public get scheduledAt(): Date {
+    return this.props.scheduledAt;
+  }
+  public get sendBeforeMinutes(): number {
+    return this.props.sendBeforeMinutes;
+  }
+  public get status(): ReminderStatus {
+    return this.props.status;
+  }
+  public get message(): string {
+    return this.props.message;
+  }
+  public get recipientType(): RecipientType {
+    return this.props.recipientType;
+  }
+  public get priority(): ReminderPriority {
+    return this.props.priority;
+  }
 
   /**
    * Mark reminder as sent
    */
   public markAsSent(): void {
     if (this.props.status !== ReminderStatus.PENDING) {
-      throw new Error('Only pending reminders can be marked as sent');
+      throw new Error("Only pending reminders can be marked as sent");
     }
     this.props.status = ReminderStatus.SENT;
     this.props.sentAt = new Date();
@@ -203,7 +239,7 @@ export class AppointmentReminder extends Entity<AppointmentReminderProps> {
    */
   public cancel(): void {
     if (this.props.status === ReminderStatus.SENT) {
-      throw new Error('Cannot cancel already sent reminder');
+      throw new Error("Cannot cancel already sent reminder");
     }
     this.props.status = ReminderStatus.CANCELLED;
     this.props.updatedAt = new Date();
@@ -213,8 +249,25 @@ export class AppointmentReminder extends Entity<AppointmentReminderProps> {
    * Check if reminder can be retried
    */
   public canRetry(): boolean {
-    return this.props.status === ReminderStatus.FAILED && 
-           this.props.retryCount < this.props.maxRetries;
+    return (
+      this.props.status === ReminderStatus.FAILED &&
+      this.props.retryCount < this.props.maxRetries
+    );
+  }
+
+  public override validate(): void {
+    if (!this.props.appointmentId) {
+      throw new Error("Appointment ID is required for reminder");
+    }
+    if (!this.props.message || this.props.message.trim().length === 0) {
+      throw new Error("Reminder message is required");
+    }
+    if (!this.props.recipientId) {
+      throw new Error("Recipient ID is required");
+    }
+  }
+
+  public override toPersistence(): AppointmentReminderProps {
+    return { ...this.props };
   }
 }
-

@@ -23,6 +23,8 @@ const GetMedicalRecordUseCase_1 = require("../../application/use-cases/GetMedica
 const SearchMedicalRecordsUseCase_1 = require("../../application/use-cases/SearchMedicalRecordsUseCase");
 const GenerateMedicalReportUseCase_1 = require("../../application/use-cases/GenerateMedicalReportUseCase");
 const ExportToFHIRUseCase_1 = require("../../application/use-cases/ExportToFHIRUseCase");
+const GetAuditLogsUseCase_1 = require("../../application/use-cases/GetAuditLogsUseCase");
+const BulkExportFHIRUseCase_1 = require("../../application/use-cases/BulkExportFHIRUseCase");
 // Infrastructure Layer
 const SupabaseMedicalRecordRepository_1 = require("../persistence/SupabaseMedicalRecordRepository");
 const FHIRExportService_1 = require("../external/FHIRExportService");
@@ -34,6 +36,8 @@ const ClinicalEMREventHandler_1 = require("../events/ClinicalEMREventHandler");
 const SupabaseOutboxRepository_1 = require("../outbox/SupabaseOutboxRepository");
 const OutboxMedicalRecordRepository_1 = require("../outbox/OutboxMedicalRecordRepository");
 const OutboxPublisherWorker_1 = require("../outbox/OutboxPublisherWorker");
+const FHIRExportServiceAdapter_1 = require("../services/FHIRExportServiceAdapter");
+const AuditLogServiceAdapter_1 = require("../services/AuditLogServiceAdapter");
 // Middleware
 const AuthenticationMiddleware_1 = require("../../presentation/middleware/AuthenticationMiddleware");
 // Service Tokens
@@ -51,6 +55,8 @@ exports.ServiceTokens = {
     MEDICAL_RECORD_REPOSITORY: "MedicalRecordRepository",
     // External Services
     FHIR_EXPORT_SERVICE: "FHIRExportService",
+    FHIR_EXPORT_SERVICE_ADAPTER: "FHIRExportServiceAdapter",
+    AUDIT_LOG_SERVICE_ADAPTER: "AuditLogServiceAdapter",
     // Outbox Pattern
     OUTBOX_REPOSITORY: "OutboxRepository",
     BASE_MEDICAL_RECORD_REPOSITORY: "BaseMedicalRecordRepository",
@@ -63,6 +69,8 @@ exports.ServiceTokens = {
     SEARCH_MEDICAL_RECORDS_USE_CASE: "SearchMedicalRecordsUseCase",
     GENERATE_MEDICAL_REPORT_USE_CASE: "GenerateMedicalReportUseCase",
     EXPORT_TO_FHIR_USE_CASE: "ExportToFHIRUseCase",
+    GET_AUDIT_LOGS_USE_CASE: "GetAuditLogsUseCase",
+    BULK_EXPORT_FHIR_USE_CASE: "BulkExportFHIRUseCase",
     // Command Handlers
     ADD_DIAGNOSIS_COMMAND_HANDLER: "AddDiagnosisCommandHandler",
     ADD_MEDICATION_COMMAND_HANDLER: "AddMedicationCommandHandler",
@@ -209,6 +217,27 @@ function setupDependencies(container) {
         const generateReportUseCase = container.resolve(exports.ServiceTokens.GENERATE_MEDICAL_REPORT_USE_CASE);
         const logger = container.resolve(exports.ServiceTokens.LOGGER);
         return new ClinicalEMREventHandler_1.ClinicalEMREventHandler(createUseCase, updateUseCase, generateReportUseCase, logger);
+    }), container_1.ServiceLifetime.SCOPED);
+    // Register FHIR Export Service Adapter
+    container.register(exports.ServiceTokens.FHIR_EXPORT_SERVICE_ADAPTER, ((container) => {
+        const fhirExportService = container.resolve(exports.ServiceTokens.FHIR_EXPORT_SERVICE);
+        return new FHIRExportServiceAdapter_1.FHIRExportServiceAdapter(fhirExportService);
+    }), container_1.ServiceLifetime.SINGLETON);
+    // Register Audit Log Service Adapter
+    container.register(exports.ServiceTokens.AUDIT_LOG_SERVICE_ADAPTER, ((container) => {
+        const auditLogService = container.resolve(exports.ServiceTokens.AUDIT_LOG_SERVICE);
+        return new AuditLogServiceAdapter_1.AuditLogServiceAdapter(auditLogService);
+    }), container_1.ServiceLifetime.SINGLETON);
+    // Register GetAuditLogsUseCase
+    container.register(exports.ServiceTokens.GET_AUDIT_LOGS_USE_CASE, ((container) => {
+        const auditLogServiceAdapter = container.resolve(exports.ServiceTokens.AUDIT_LOG_SERVICE_ADAPTER);
+        return new GetAuditLogsUseCase_1.GetAuditLogsUseCase(auditLogServiceAdapter);
+    }), container_1.ServiceLifetime.SCOPED);
+    // Register BulkExportFHIRUseCase
+    container.register(exports.ServiceTokens.BULK_EXPORT_FHIR_USE_CASE, ((container) => {
+        const medicalRecordRepository = container.resolve(exports.ServiceTokens.MEDICAL_RECORD_REPOSITORY);
+        const fhirExportServiceAdapter = container.resolve(exports.ServiceTokens.FHIR_EXPORT_SERVICE_ADAPTER);
+        return new BulkExportFHIRUseCase_1.BulkExportFHIRUseCase(medicalRecordRepository, fhirExportServiceAdapter);
     }), container_1.ServiceLifetime.SCOPED);
     // Register application services
     container.register(exports.ServiceTokens.CLINICAL_EMR_APPLICATION_SERVICE, ((container) => {

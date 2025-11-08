@@ -8,6 +8,7 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
+import { randomUUID } from "crypto";
 import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
 import { PatientId } from "../../domain/value-objects/PatientId";
 import { Patient } from "../../domain/aggregates/Patient";
@@ -176,20 +177,20 @@ export class DeactivatePatientUseCase {
     try {
       // Log to audit_logs table (HIPAA compliance)
       await this.auditService.logAudit({
-        eventId: `patient-deactivation-${patient.getPatientId()}-${Date.now()}`,
-        eventType: 'patient.deactivated',
-        aggregateType: 'Patient',
-        aggregateId: patient.getPatientId() || 'unknown',
-        action: 'PATIENT_DEACTIVATION',
+        eventId: randomUUID(),
+        eventType: "patient.deactivated",
+        aggregateType: "Patient",
+        aggregateId: patient.getPatientId() || "unknown",
+        action: "PATIENT_DEACTIVATION",
         userId: request.performedBy ?? undefined,
         patientId: patient.getPatientId() ?? undefined,
         containsPHI: true,
         changedFields: {
-          dataAccessed: 'patient_status',
-          requestedBy: request.performedBy || 'system',
+          dataAccessed: "patient_status",
+          requestedBy: request.performedBy || "system",
           reason: request.reason,
         },
-        complianceLevel: 'hipaa',
+        complianceLevel: "hipaa",
       });
 
       this.logger.info("Patient deactivation audited successfully", {
@@ -198,7 +199,7 @@ export class DeactivatePatientUseCase {
     } catch (error) {
       this.logger.error("Failed to audit patient deactivation", {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

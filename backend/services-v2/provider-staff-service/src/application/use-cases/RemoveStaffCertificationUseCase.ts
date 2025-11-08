@@ -7,10 +7,10 @@
  * @compliance Clean Architecture, DDD
  */
 
-import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { StaffId } from '../../domain/value-objects/StaffId';
-import { ILogger } from '../interfaces/ILogger';
-import { IAuditService } from '../interfaces/IAuditService';
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
+import { StaffId } from "../../domain/value-objects/StaffId";
+import { ILogger } from "../interfaces/ILogger";
+import { IAuditService } from "../interfaces/IAuditService";
 
 export interface RemoveStaffCertificationRequest {
   staffId: string;
@@ -44,15 +44,17 @@ export class RemoveStaffCertificationUseCase {
   constructor(
     private staffRepository: IProviderStaffRepository,
     private logger: ILogger,
-    private auditService?: IAuditService
+    private auditService?: IAuditService,
   ) {}
 
-  async execute(request: RemoveStaffCertificationRequest): Promise<RemoveStaffCertificationResponse> {
+  async execute(
+    request: RemoveStaffCertificationRequest,
+  ): Promise<RemoveStaffCertificationResponse> {
     try {
-      this.logger.info('Removing staff certification', {
+      this.logger.info("Removing staff certification", {
         staffId: request.staffId,
         certificationId: request.certificationId,
-        removedBy: request.removedBy
+        removedBy: request.removedBy,
       });
 
       // Validate request
@@ -60,8 +62,8 @@ export class RemoveStaffCertificationUseCase {
       if (validationErrors.length > 0) {
         return {
           success: false,
-          message: 'Dữ liệu xóa chứng chỉ không hợp lệ',
-          errors: validationErrors
+          message: "Dữ liệu xóa chứng chỉ không hợp lệ",
+          errors: validationErrors,
         };
       }
 
@@ -71,21 +73,21 @@ export class RemoveStaffCertificationUseCase {
       if (!staff) {
         return {
           success: false,
-          message: 'Không tìm thấy nhân viên',
-          errors: ['STAFF_NOT_FOUND']
+          message: "Không tìm thấy nhân viên",
+          errors: ["STAFF_NOT_FOUND"],
         };
       }
 
       // Find certification
       const certification = staff.certifications.find(
-        c => c.id === request.certificationId
+        (c) => c.id === request.certificationId,
       );
 
       if (!certification) {
         return {
           success: false,
-          message: 'Không tìm thấy chứng chỉ',
-          errors: ['CERTIFICATION_NOT_FOUND']
+          message: "Không tìm thấy chứng chỉ",
+          errors: ["CERTIFICATION_NOT_FOUND"],
         };
       }
 
@@ -98,8 +100,8 @@ export class RemoveStaffCertificationUseCase {
       // Audit log
       if (this.auditService && this.auditService.logAction) {
         await this.auditService.logAction({
-          action: 'REMOVE_STAFF_CERTIFICATION',
-          entityType: 'ProviderStaff',
+          action: "REMOVE_STAFF_CERTIFICATION",
+          entityType: "ProviderStaff",
           entityId: staff.id,
           performedBy: request.removedBy,
           performedByRole: request.removedByRole,
@@ -109,39 +111,38 @@ export class RemoveStaffCertificationUseCase {
             issuingOrganization: certification.issuingOrganization,
             reason: request.reason,
             ipAddress: request.requestMetadata?.ipAddress,
-            userAgent: request.requestMetadata?.userAgent
+            userAgent: request.requestMetadata?.userAgent,
           },
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
-      this.logger.info('Staff certification removed successfully', {
+      this.logger.info("Staff certification removed successfully", {
         staffId: request.staffId,
         certificationId: request.certificationId,
-        removedBy: request.removedBy
+        removedBy: request.removedBy,
       });
 
       return {
         success: true,
-        message: 'Xóa chứng chỉ thành công',
+        message: "Xóa chứng chỉ thành công",
         data: {
           staffId: staff.id,
           certificationId: request.certificationId,
-          removedAt: new Date().toISOString()
-        }
+          removedAt: new Date().toISOString(),
+        },
       };
-
     } catch (error) {
-      this.logger.error('Error removing staff certification', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.logger.error("Error removing staff certification", {
+        error: error instanceof Error ? error.message : "Unknown error",
         staffId: request.staffId,
-        certificationId: request.certificationId
+        certificationId: request.certificationId,
       });
 
       return {
         success: false,
-        message: 'Lỗi khi xóa chứng chỉ nhân viên',
-        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR']
+        message: "Lỗi khi xóa chứng chỉ nhân viên",
+        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
       };
     }
   }
@@ -150,28 +151,33 @@ export class RemoveStaffCertificationUseCase {
     const errors: string[] = [];
 
     if (!request.staffId || request.staffId.trim().length === 0) {
-      errors.push('Staff ID không được để trống');
+      errors.push("Staff ID không được để trống");
     }
 
-    if (!request.certificationId || request.certificationId.trim().length === 0) {
-      errors.push('Certification ID không được để trống');
+    if (
+      !request.certificationId ||
+      request.certificationId.trim().length === 0
+    ) {
+      errors.push("Certification ID không được để trống");
     }
 
     if (!request.removedBy || request.removedBy.trim().length === 0) {
-      errors.push('Người xóa chứng chỉ không được để trống');
+      errors.push("Người xóa chứng chỉ không được để trống");
     }
 
     if (!request.removedByRole || request.removedByRole.trim().length === 0) {
-      errors.push('Vai trò người xóa chứng chỉ không được để trống');
+      errors.push("Vai trò người xóa chứng chỉ không được để trống");
     }
 
     // Only ADMIN or SUPER_ADMIN can remove certifications
-    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
-    if (!allowedRoles.includes(request.removedByRole)) {
-      errors.push('Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền xóa chứng chỉ');
+    const allowedRoles = ["ADMIN", "SUPER_ADMIN"];
+    const removerRole = request.removedByRole
+      ? request.removedByRole.toUpperCase()
+      : "";
+    if (!allowedRoles.includes(removerRole)) {
+      errors.push("Chỉ ADMIN hoặc SUPER_ADMIN mới có quyền xóa chứng chỉ");
     }
 
     return errors;
   }
 }
-

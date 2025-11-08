@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { AuthenticateRequestUseCase } from '@application/use-cases/AuthenticateRequestUseCase';
-import { v4 as uuidv4 } from 'uuid';
+import { Request, Response, NextFunction } from "express";
+import { AuthenticateRequestUseCase } from "@application/use-cases/AuthenticateRequestUseCase";
+import { v4 as uuidv4 } from "uuid";
+import { getErrorMessage } from "@infrastructure/i18n/ErrorMessages";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -9,6 +10,9 @@ export interface AuthenticatedRequest extends Request {
     roles: string[];
     permissions: string[];
     sessionId?: string;
+    patientId?: string;
+    providerId?: string;
+    primaryRole?: string;
   };
   requestId?: string;
 }
@@ -17,7 +21,11 @@ export class AuthenticationMiddleware {
   constructor(private authenticateRequestUseCase: AuthenticateRequestUseCase) {}
 
   authenticate() {
-    return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    return async (
+      req: AuthenticatedRequest,
+      res: Response,
+      next: NextFunction,
+    ): Promise<void> => {
       try {
         const requestId = uuidv4();
         req.requestId = requestId;
@@ -25,15 +33,32 @@ export class AuthenticationMiddleware {
         const result = await this.authenticateRequestUseCase.execute({
           authorizationHeader: req.headers.authorization,
           requestId,
-          ip: req.ip || 'unknown',
-          path: req.path
+          ip: req.ip || "unknown",
+          path: req.path,
         });
 
         if (!result.success || !result.user) {
+          // Determine error context based on error message
+          let context: string | undefined;
+          const errorMsg = result.error?.toLowerCase() || "";
+
+          if (errorMsg.includes("missing authorization")) {
+            context = "missing_token";
+          } else if (errorMsg.includes("invalid authorization header")) {
+            context = "invalid_token";
+          } else if (
+            errorMsg.includes("expired") ||
+            errorMsg.includes("jwt expired")
+          ) {
+            context = "token_expired";
+          }
+
+          const errorInfo = getErrorMessage(401, context);
           res.status(401).json({
             success: false,
-            error: result.error || 'Authentication failed',
-            requestId
+            error: errorInfo.userMessage,
+            code: errorInfo.code,
+            requestId,
           });
           return;
         }
@@ -41,19 +66,24 @@ export class AuthenticationMiddleware {
         req.user = result.user;
 
         next();
-
       } catch (error) {
+        const errorInfo = getErrorMessage(500);
         res.status(500).json({
           success: false,
-          error: 'Internal authentication error',
-          requestId: req.requestId
+          error: errorInfo.userMessage,
+          code: errorInfo.code,
+          requestId: req.requestId,
         });
       }
     };
   }
 
   optionalAuthenticate() {
-    return async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
+    return async (
+      req: AuthenticatedRequest,
+      _res: Response,
+      next: NextFunction,
+    ): Promise<void> => {
       try {
         const requestId = uuidv4();
         req.requestId = requestId;
@@ -66,8 +96,8 @@ export class AuthenticationMiddleware {
         const result = await this.authenticateRequestUseCase.execute({
           authorizationHeader: req.headers.authorization,
           requestId,
-          ip: req.ip || 'unknown',
-          path: req.path
+          ip: req.ip || "unknown",
+          path: req.path,
         });
 
         if (result.success && result.user) {
@@ -75,11 +105,9 @@ export class AuthenticationMiddleware {
         }
 
         next();
-
       } catch (error) {
         next();
       }
     };
   }
 }
-

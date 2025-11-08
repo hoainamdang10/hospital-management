@@ -79,6 +79,7 @@ import { AssignRoleUseCase } from "../application/use-cases/AssignRoleUseCase";
 // Use Cases - Staff Management
 import { ProvisionStaffUseCase } from "../application/use-cases/ProvisionStaffUseCase";
 import { AcceptStaffInvitationUseCase } from "../application/use-cases/AcceptStaffInvitationUseCase";
+import { ValidateStaffInvitationUseCase } from "../application/use-cases/ValidateStaffInvitationUseCase";
 import { ListStaffInvitationsUseCase } from "../application/use-cases/ListStaffInvitationsUseCase";
 import { GetStaffInvitationUseCase } from "../application/use-cases/GetStaffInvitationUseCase";
 import { CancelStaffInvitationUseCase } from "../application/use-cases/CancelStaffInvitationUseCase";
@@ -192,6 +193,7 @@ export class DependencyContainer {
   // Use Cases - Staff Management
   private provisionStaffUseCase!: ProvisionStaffUseCase;
   private acceptStaffInvitationUseCase!: AcceptStaffInvitationUseCase;
+  private validateStaffInvitationUseCase!: ValidateStaffInvitationUseCase;
   private listStaffInvitationsUseCase!: ListStaffInvitationsUseCase;
   private getStaffInvitationUseCase!: GetStaffInvitationUseCase;
   private cancelStaffInvitationUseCase!: CancelStaffInvitationUseCase;
@@ -451,8 +453,14 @@ export class DependencyContainer {
     // Email service
     const sendgridApiKey = this.config.sendgridApiKey;
     const isProduction = this.config.nodeEnv === "production";
+    const forceMockEmail = this.config.emailDeliveryMode === "mock";
 
-    if (!sendgridApiKey || sendgridApiKey.trim() === "") {
+    if (forceMockEmail) {
+      this.logger.warn(
+        "Email delivery mode set to MOCK - emails will not be sent",
+      );
+      this.emailService = new MockEmailService(this.logger);
+    } else if (!sendgridApiKey || sendgridApiKey.trim() === "") {
       if (isProduction) {
         this.logger.error("SENDGRID_API_KEY is required in production");
         throw new Error("SENDGRID_API_KEY is required in production");
@@ -527,17 +535,6 @@ export class DependencyContainer {
       this.eventPublisher,
     );
 
-    this.registerUserUseCase = new RegisterUserUseCase(
-      this.userRepository,
-      this.pendingRegistrationRepository,
-      this.logger,
-      CircuitBreakerFactory.getBreaker("register-user-use-case"),
-      this.emailService,
-      this.config.jwtSecret,
-      this.config.frontendUrl,
-      this.eventPublisher,
-    );
-
     this.forgotPasswordUseCase = new ForgotPasswordUseCase(
       this.authService,
       this.userRepository,
@@ -559,6 +556,22 @@ export class DependencyContainer {
       CircuitBreakerFactory.getBreaker("verify-email-use-case"),
       this.config.jwtSecret,
       this.eventPublisher,
+    );
+
+    this.registerUserUseCase = new RegisterUserUseCase(
+      this.userRepository,
+      this.pendingRegistrationRepository,
+      this.logger,
+      CircuitBreakerFactory.getBreaker("register-user-use-case"),
+      this.emailService,
+      this.config.jwtSecret,
+      this.config.frontendUrl,
+      this.eventPublisher,
+      {
+        enabled: this.config.autoVerifyPendingRegistrations,
+        verifyToken: (token: string) =>
+          this.verifyEmailUseCase.execute({ token }),
+      },
     );
 
     this.resendVerificationEmailUseCase = new ResendVerificationEmailUseCase(
@@ -675,6 +688,11 @@ export class DependencyContainer {
       this.userRepository,
       this.logger,
       this.eventPublisher,
+    );
+
+    this.validateStaffInvitationUseCase = new ValidateStaffInvitationUseCase(
+      this.userRepository,
+      this.logger,
     );
 
     this.listStaffInvitationsUseCase = new ListStaffInvitationsUseCase(
@@ -1125,6 +1143,7 @@ export class DependencyContainer {
       // Staff Management Use Cases
       provisionStaffUseCase: this.provisionStaffUseCase,
       acceptStaffInvitationUseCase: this.acceptStaffInvitationUseCase,
+      validateStaffInvitationUseCase: this.validateStaffInvitationUseCase,
       listStaffInvitationsUseCase: this.listStaffInvitationsUseCase,
       getStaffInvitationUseCase: this.getStaffInvitationUseCase,
       cancelStaffInvitationUseCase: this.cancelStaffInvitationUseCase,

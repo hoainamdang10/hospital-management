@@ -5,10 +5,10 @@
  * @author Hospital Management Team
  * @version 3.0.0
  */
-import { IEventBus, EventBusConfig } from '../../../../shared/infrastructure/event-bus/EventBus';
-import { AppointmentReadModelEventHandler } from './AppointmentReadModelEventHandler';
-import { PatientEventConsumer } from './PatientEventConsumer';
-import { ProviderEventConsumer } from './ProviderEventConsumer';
+import { IEventBus, EventBusConfig } from "../../../../shared/infrastructure/event-bus/EventBus";
+import { AppointmentReadModelEventHandler } from "./AppointmentReadModelEventHandler";
+import { PatientEventConsumer } from "./PatientEventConsumer";
+import { ProviderEventConsumer } from "./ProviderEventConsumer";
 /**
  * Setup event subscriptions for Scheduling Service
  */

@@ -20,7 +20,7 @@ export interface RegisterPatientRequest {
         dateOfBirth: string;
         gender: "male" | "female" | "other";
         nationalId: string;
-        nationality: string;
+        nationality?: string;
         ethnicity?: string;
         occupation?: string;
         maritalStatus?: string;
@@ -29,14 +29,15 @@ export interface RegisterPatientRequest {
         primaryPhone: string;
         secondaryPhone?: string;
         email?: string;
-        preferredContactMethod: "phone" | "email" | "sms";
-        address: {
-            street: string;
-            ward: string;
-            district: string;
-            city: string;
+        preferredContactMethod?: "phone" | "email" | "sms";
+        address?: {
+            street?: string;
+            ward?: string;
+            district?: string;
+            city?: string;
+            province?: string;
             postalCode?: string;
-            country: string;
+            country?: string;
         };
     };
     basicMedicalInfo?: {
@@ -55,7 +56,7 @@ export interface RegisterPatientRequest {
         bhytNumber?: string;
         isPrimary: boolean;
     };
-    emergencyContacts: Array<{
+    emergencyContacts?: Array<{
         name: string;
         relationship: string;
         primaryPhone: string;

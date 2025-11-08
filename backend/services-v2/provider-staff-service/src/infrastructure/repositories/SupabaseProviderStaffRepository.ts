@@ -2,45 +2,48 @@
  * SupabaseProviderStaffRepository - Infrastructure Repository
  * V2 Clean Architecture + DDD Implementation
  * Provider Staff repository with Vietnamese healthcare compliance and HIPAA audit logging
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
-import { StaffId } from '../../domain/value-objects/StaffId';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { ILogger } from '../../application/interfaces/ILogger';
-import { IAuditService } from '../../application/interfaces/IAuditService';
-import { CircuitBreakerFactory } from '../resilience/CircuitBreaker';
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
+import { ProviderStaff } from "../../domain/aggregates/ProviderStaff";
+import { StaffId } from "../../domain/value-objects/StaffId";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { IAuditService } from "../../application/interfaces/IAuditService";
+import { CircuitBreakerFactory } from "../resilience/CircuitBreaker";
 
 /**
  * Supabase Provider Staff Repository
  * Handles all provider staff data persistence with Vietnamese healthcare compliance
  * Uses Circuit Breaker pattern for resilience
  */
-export class SupabaseProviderStaffRepository implements IProviderStaffRepository {
+export class SupabaseProviderStaffRepository
+  implements IProviderStaffRepository
+{
   private readonly supabaseClient: SupabaseClient;
   private readonly logger: ILogger;
   private readonly auditService: IAuditService;
   private readonly tableName: string;
   private readonly fullTableName: string;
-  private readonly circuitBreaker = CircuitBreakerFactory.getBreaker('staff-repository');
+  private readonly circuitBreaker =
+    CircuitBreakerFactory.getBreaker("staff-repository");
 
   constructor(
     supabaseUrl: string,
     supabaseKey: string,
     logger: ILogger,
     auditService: IAuditService,
-    schema: string = 'provider_schema',
-    tableName: string = 'staff_profiles'
+    schema: string = "provider_schema",
+    tableName: string = "staff_profiles",
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: { autoRefreshToken: false, persistSession: false },
       db: { schema },
-      global: { headers: { 'X-Client-Info': 'provider-staff-service' } }
+      global: { headers: { "X-Client-Info": "provider-staff-service" } },
     }) as any;
 
     this.logger = logger;
@@ -59,21 +62,21 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Finding staff by business ID', {
+          this.logger.info("Finding staff by business ID", {
             staffId: staffId.value,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           const { data, error } = await this.supabaseClient
             .from(this.fullTableName)
-            .select('*')
-            .eq('staff_id', staffId.value)
+            .select("*")
+            .eq("staff_id", staffId.value)
             .single();
 
           if (error) {
-            if (error.code === 'PGRST116') {
+            if (error.code === "PGRST116") {
               // No rows returned
-              this.logger.info('Staff not found', { staffId: staffId.value });
+              this.logger.info("Staff not found", { staffId: staffId.value });
               return null;
             }
             throw new Error(`Lỗi truy vấn cơ sở dữ liệu: ${error.message}`);
@@ -85,40 +88,41 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
 
           // HIPAA audit logging
           await this.auditService.logDataAccess({
-            action: 'STAFF_READ',
-            resourceType: 'provider_staff',
+            action: "STAFF_READ",
+            resourceType: "provider_staff",
             resourceId: data.id,
-            userId: 'system',
+            userId: "system",
             timestamp: new Date(),
             details: {
-              operation: 'findById',
-              dataAccessed: 'staff_profile',
-              complianceLevel: 'hipaa'
-            }
+              operation: "findById",
+              dataAccessed: "staff_profile",
+              complianceLevel: "hipaa",
+            },
           });
 
           const staff = ProviderStaff.fromPersistenceData(data);
 
-          this.logger.info('Staff found successfully', {
+          this.logger.info("Staff found successfully", {
             staffId: staffId.value,
             staffType: staff.staffType,
-            isActive: staff.isActive
+            isActive: staff.isActive,
           });
 
           return staff;
-
         } catch (error) {
-          this.logger.error('Error finding staff by business ID', {
+          this.logger.error("Error finding staff by business ID", {
             staffId: staffId.value,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for findById', { staffId: staffId.value });
+        this.logger.warn("Circuit breaker fallback for findById", {
+          staffId: staffId.value,
+        });
         return null;
-      }
+      },
     );
   }
 
@@ -129,21 +133,21 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Finding staff by user ID', {
+          this.logger.info("Finding staff by user ID", {
             userId,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           const { data, error } = await this.supabaseClient
             .from(this.fullTableName)
-            .select('*')
-            .eq('user_id', userId)
+            .select("*")
+            .eq("user_id", userId)
             .single();
 
           if (error) {
-            if (error.code === 'PGRST116') {
+            if (error.code === "PGRST116") {
               // No rows returned
-              this.logger.info('Staff not found for user', { userId });
+              this.logger.info("Staff not found for user", { userId });
               return null;
             }
             throw new Error(`Lỗi truy vấn cơ sở dữ liệu: ${error.message}`);
@@ -155,116 +159,144 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
 
           // HIPAA audit logging
           await this.auditService.logDataAccess({
-            action: 'STAFF_READ',
-            resourceType: 'provider_staff',
+            action: "STAFF_READ",
+            resourceType: "provider_staff",
             resourceId: data.id,
-            userId: 'system',
+            userId: "system",
             timestamp: new Date(),
             details: {
-              operation: 'findByUserId',
+              operation: "findByUserId",
               searchUserId: userId,
-              dataAccessed: 'staff_profile',
-              complianceLevel: 'hipaa'
-            }
+              dataAccessed: "staff_profile",
+              complianceLevel: "hipaa",
+            },
           });
 
           const staff = ProviderStaff.fromPersistenceData(data);
 
-          this.logger.info('Staff found by user ID', {
+          this.logger.info("Staff found by user ID", {
             userId,
             staffId: staff.id,
-            staffType: staff.staffType
+            staffType: staff.staffType,
           });
 
           return staff;
-
         } catch (error) {
-          this.logger.error('Error finding staff by user ID', {
+          this.logger.error("Error finding staff by user ID", {
             userId,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for findByUserId', { userId });
+        this.logger.warn("Circuit breaker fallback for findByUserId", {
+          userId,
+        });
         return null;
-      }
+      },
     );
   }
 
   /**
-   * Find staff by license number
+   * Find staff by license or registration number
+   * Accepts professional license, MOH registration, or Vietnamese healthcare license
    */
-  async findByLicenseNumber(licenseNumber: string): Promise<ProviderStaff | null> {
+  async findByLicenseNumber(
+    licenseNumber: string,
+  ): Promise<ProviderStaff | null> {
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Finding staff by license number', {
-            licenseNumber: this.maskLicenseNumber(licenseNumber),
-            repository: 'SupabaseProviderStaffRepository'
-          });
-
-          const { data, error } = await this.supabaseClient
-            .from(this.fullTableName)
-            .select('*')
-            .eq('license_number', licenseNumber)
-            .single();
-
-          if (error) {
-            if (error.code === 'PGRST116') {
-              // No rows returned
-              this.logger.info('Staff not found for license number', {
-                licenseNumber: this.maskLicenseNumber(licenseNumber)
-              });
-              return null;
-            }
-            throw new Error(`Lỗi truy vấn cơ sở dữ liệu: ${error.message}`);
+          const normalizedLicense = (licenseNumber || "").trim();
+          if (!normalizedLicense) {
+            throw new Error("Số giấy phép hành nghề không được để trống");
           }
 
-          if (!data) {
+          const maskedIdentifier = this.maskLicenseNumber(normalizedLicense);
+
+          this.logger.info("Finding staff by license/registration identifier", {
+            licenseNumber: maskedIdentifier,
+            repository: "SupabaseProviderStaffRepository",
+          });
+
+          const searchTargets = [
+            { column: "license_number", description: "professional_license" },
+            {
+              column: "moh_registration_number",
+              description: "moh_registration",
+            },
+            {
+              column: "vietnamese_healthcare_license",
+              description: "healthcare_license",
+            },
+          ] as const;
+
+          let matchedRecord: any | null = null;
+          let matchedColumn: string | null = null;
+
+          for (const target of searchTargets) {
+            const record = await this.fetchStaffRecordByIdentifier(
+              target.column,
+              normalizedLicense,
+            );
+
+            if (record) {
+              matchedRecord = record;
+              matchedColumn = target.description;
+              break;
+            }
+          }
+
+          if (!matchedRecord) {
+            this.logger.info(
+              "Staff not found for license/registration identifier",
+              {
+                licenseNumber: maskedIdentifier,
+              },
+            );
             return null;
           }
 
           // HIPAA audit logging
           await this.auditService.logDataAccess({
-            action: 'STAFF_READ',
-            resourceType: 'provider_staff',
-            resourceId: data.id,
-            userId: 'system',
+            action: "STAFF_READ",
+            resourceType: "provider_staff",
+            resourceId: matchedRecord.id,
+            userId: "system",
             timestamp: new Date(),
             details: {
-              operation: 'findByLicenseNumber',
-              searchCriteria: 'license_number',
-              dataAccessed: 'staff_profile',
-              complianceLevel: 'hipaa'
-            }
+              operation: "findByLicenseNumber",
+              searchCriteria: matchedColumn,
+              dataAccessed: "staff_profile",
+              complianceLevel: "hipaa",
+            },
           });
 
-          const staff = ProviderStaff.fromPersistenceData(data);
+          const staff = ProviderStaff.fromPersistenceData(matchedRecord);
 
-          this.logger.info('Staff found by license number', {
-            licenseNumber: this.maskLicenseNumber(licenseNumber),
+          this.logger.info("Staff found by license/registration identifier", {
+            licenseNumber: maskedIdentifier,
+            matchType: matchedColumn,
             staffId: staff.id,
-            staffType: staff.staffType
+            staffType: staff.staffType,
           });
 
           return staff;
-
         } catch (error) {
-          this.logger.error('Error finding staff by license number', {
+          this.logger.error("Error finding staff by license number", {
             licenseNumber: this.maskLicenseNumber(licenseNumber),
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for findByLicenseNumber', {
-          licenseNumber: this.maskLicenseNumber(licenseNumber)
+        this.logger.warn("Circuit breaker fallback for findByLicenseNumber", {
+          licenseNumber: this.maskLicenseNumber(licenseNumber),
         });
         return null;
-      }
+      },
     );
   }
 
@@ -275,11 +307,11 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Saving staff', {
+          this.logger.info("Saving staff", {
             staffId: staff.id,
             staffType: staff.staffType,
             isActive: staff.isActive,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           // Convert to persistence format
@@ -294,7 +326,7 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
             const { error } = await this.supabaseClient
               .from(this.fullTableName)
               .update(persistenceData)
-              .eq('staff_id', staff.staffIdValue)
+              .eq("staff_id", staff.staffIdValue)
               .select()
               .single();
 
@@ -316,43 +348,48 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
 
           // HIPAA audit logging
           await this.auditService.logDataAccess({
-            action: isUpdate ? 'STAFF_UPDATE' : 'STAFF_CREATE',
-            resourceType: 'provider_staff',
+            action: isUpdate ? "STAFF_UPDATE" : "STAFF_CREATE",
+            resourceType: "provider_staff",
             resourceId: persistenceData.id,
-            userId: 'system',
+            userId: "system",
             timestamp: new Date(),
             details: {
-              operation: isUpdate ? 'update' : 'create',
+              operation: isUpdate ? "update" : "create",
               staffType: staff.staffType,
-              dataModified: 'staff_profile',
-              complianceLevel: 'hipaa',
-              vietnameseHealthcareCompliant: staff.isVietnameseHealthcareCompliant(),
-              hipaaCompliant: staff.isHIPAACompliant()
-            }
+              dataModified: "staff_profile",
+              complianceLevel: "hipaa",
+              vietnameseHealthcareCompliant:
+                staff.isVietnameseHealthcareCompliant(),
+              hipaaCompliant: staff.isHIPAACompliant(),
+            },
           });
 
-          this.logger.info('Staff saved successfully', {
+          this.logger.info("Staff saved successfully", {
             staffId: staff.staffIdValue,
-            operation: isUpdate ? 'update' : 'create',
+            operation: isUpdate ? "update" : "create",
             staffType: staff.staffType,
-            isActive: staff.isActive
+            isActive: staff.isActive,
           });
-
         } catch (error) {
-          this.logger.error('Error saving staff', {
+          this.logger.error("Error saving staff", {
             staffId: staff.staffIdValue,
             staffType: staff.staffType,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.error('Circuit breaker fallback for save - operation failed', {
-          staffId: staff.id
-        });
-        throw new Error('Unable to save staff - service temporarily unavailable');
-      }
+        this.logger.error(
+          "Circuit breaker fallback for save - operation failed",
+          {
+            staffId: staff.id,
+          },
+        );
+        throw new Error(
+          "Unable to save staff - service temporarily unavailable",
+        );
+      },
     );
   }
 
@@ -363,10 +400,10 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Updating staff', {
+          this.logger.info("Updating staff", {
             staffId: staff.id,
             staffType: staff.staffType,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           const persistenceData = staff.toPersistence();
@@ -375,44 +412,45 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
           const { error } = await this.supabaseClient
             .from(this.fullTableName)
             .update(persistenceData)
-            .eq('staff_id', staff.staffIdValue);
+            .eq("staff_id", staff.staffIdValue);
 
           if (error) {
             throw new Error(`Lỗi cập nhật nhân viên: ${error.message}`);
           }
 
           await this.auditService.logDataAccess({
-            action: 'STAFF_UPDATE',
-            resourceType: 'provider_staff',
+            action: "STAFF_UPDATE",
+            resourceType: "provider_staff",
             resourceId: staff.staffIdValue,
-            userId: 'system',
+            userId: "system",
             timestamp: new Date(),
             details: {
-              operation: 'update',
+              operation: "update",
               staffType: staff.staffType,
-              dataModified: 'staff_profile',
-              complianceLevel: 'hipaa'
-            }
+              dataModified: "staff_profile",
+              complianceLevel: "hipaa",
+            },
           });
 
-          this.logger.info('Staff updated successfully', {
-            staffId: staff.id
-          });
-
-        } catch (error) {
-          this.logger.error('Error updating staff', {
+          this.logger.info("Staff updated successfully", {
             staffId: staff.id,
-            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        } catch (error) {
+          this.logger.error("Error updating staff", {
+            staffId: staff.id,
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.error('Circuit breaker fallback for update', {
-          staffId: staff.id
+        this.logger.error("Circuit breaker fallback for update", {
+          staffId: staff.id,
         });
-        throw new Error('Unable to update staff - service temporarily unavailable');
-      }
+        throw new Error(
+          "Unable to update staff - service temporarily unavailable",
+        );
+      },
     );
   }
 
@@ -423,9 +461,9 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Deleting staff', {
+          this.logger.info("Deleting staff", {
             staffId: staffId.value,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           // Soft delete by setting is_active to false
@@ -433,10 +471,10 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
             .from(this.fullTableName)
             .update({
               is_active: false,
-              status: 'terminated',
-              updated_at: new Date().toISOString()
+              status: "terminated",
+              updated_at: new Date().toISOString(),
             })
-            .eq('staff_id', staffId.value);
+            .eq("staff_id", staffId.value);
 
           if (error) {
             throw new Error(`Lỗi xóa nhân viên: ${error.message}`);
@@ -444,36 +482,40 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
 
           // HIPAA audit logging
           await this.auditService.logDataAccess({
-            action: 'STAFF_DELETE',
-            resourceType: 'provider_staff',
+            action: "STAFF_DELETE",
+            resourceType: "provider_staff",
             resourceId: staffId.value,
-            userId: 'system',
+            userId: "system",
             timestamp: new Date(),
             details: {
-              operation: 'soft_delete',
-              dataModified: 'staff_status',
-              complianceLevel: 'hipaa'
-            }
+              operation: "soft_delete",
+              dataModified: "staff_status",
+              complianceLevel: "hipaa",
+            },
           });
 
-          this.logger.info('Staff deleted successfully', {
-            staffId: staffId.value
-          });
-
-        } catch (error) {
-          this.logger.error('Error deleting staff', {
+          this.logger.info("Staff deleted successfully", {
             staffId: staffId.value,
-            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        } catch (error) {
+          this.logger.error("Error deleting staff", {
+            staffId: staffId.value,
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.error('Circuit breaker fallback for delete - operation failed', {
-          staffId: staffId.value
-        });
-        throw new Error('Unable to delete staff - service temporarily unavailable');
-      }
+        this.logger.error(
+          "Circuit breaker fallback for delete - operation failed",
+          {
+            staffId: staffId.value,
+          },
+        );
+        throw new Error(
+          "Unable to delete staff - service temporarily unavailable",
+        );
+      },
     );
   }
 
@@ -484,23 +526,23 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Finding all staff', {
+          this.logger.info("Finding all staff", {
             filters,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
-          let query = this.supabaseClient.from(this.fullTableName).select('*');
+          let query = this.supabaseClient.from(this.fullTableName).select("*");
 
           // Apply filters
           if (filters) {
             if (filters.staffType) {
-              query = query.eq('staff_type', filters.staffType);
+              query = query.eq("staff_type", filters.staffType);
             }
             if (filters.status) {
-              query = query.eq('status', filters.status);
+              query = query.eq("status", filters.status);
             }
             if (filters.isActive !== undefined) {
-              query = query.eq('is_active', filters.isActive);
+              query = query.eq("is_active", filters.isActive);
             }
             if (filters.departmentId) {
               // This would require a join with department assignments
@@ -511,46 +553,49 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
           const { data, error } = await query;
 
           if (error) {
-            throw new Error(`Lỗi truy vấn danh sách nhân viên: ${error.message}`);
+            throw new Error(
+              `Lỗi truy vấn danh sách nhân viên: ${error.message}`,
+            );
           }
 
-          const staff = (data || []).map(item => ProviderStaff.fromPersistenceData(item));
+          const staff = (data || []).map((item) =>
+            ProviderStaff.fromPersistenceData(item),
+          );
 
           // HIPAA audit logging
           await this.auditService.logDataAccess({
-            action: 'STAFF_LIST',
-            resourceType: 'provider_staff',
-            resourceId: 'multiple',
-            userId: 'system',
+            action: "STAFF_LIST",
+            resourceType: "provider_staff",
+            resourceId: "multiple",
+            userId: "system",
             timestamp: new Date(),
             details: {
-              operation: 'findAll',
+              operation: "findAll",
               resultCount: staff.length,
               filters: filters || {},
-              dataAccessed: 'staff_list',
-              complianceLevel: 'hipaa'
-            }
+              dataAccessed: "staff_list",
+              complianceLevel: "hipaa",
+            },
           });
 
-          this.logger.info('Staff list retrieved', {
+          this.logger.info("Staff list retrieved", {
             count: staff.length,
-            filters
+            filters,
           });
 
           return staff;
-
         } catch (error) {
-          this.logger.error('Error finding all staff', {
+          this.logger.error("Error finding all staff", {
             filters,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for findAll', { filters });
+        this.logger.warn("Circuit breaker fallback for findAll", { filters });
         return [];
-      }
+      },
     );
   }
 
@@ -564,35 +609,34 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
           // Simple health check - try to count records
           const { count, error } = await this.supabaseClient
             .from(this.fullTableName)
-            .select('*', { count: 'exact', head: true });
+            .select("*", { count: "exact", head: true });
 
           if (error) {
-            this.logger.error('Repository health check failed', {
+            this.logger.error("Repository health check failed", {
               error: error.message,
-              repository: 'SupabaseProviderStaffRepository'
+              repository: "SupabaseProviderStaffRepository",
             });
             return false;
           }
 
-          this.logger.info('Repository health check passed', {
+          this.logger.info("Repository health check passed", {
             recordCount: count,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           return true;
-
         } catch (error) {
-          this.logger.error('Repository health check error', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            repository: 'SupabaseProviderStaffRepository'
+          this.logger.error("Repository health check error", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            repository: "SupabaseProviderStaffRepository",
           });
           return false;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for isHealthy');
+        this.logger.warn("Circuit breaker fallback for isHealthy");
         return false;
-      }
+      },
     );
   }
 
@@ -602,44 +646,43 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
    */
   async findByDepartment(departmentId: string): Promise<ProviderStaff[]> {
     try {
-      this.logger.info('Finding staff by department', {
+      this.logger.info("Finding staff by department", {
         departmentId,
-        repository: 'SupabaseProviderStaffRepository'
+        repository: "SupabaseProviderStaffRepository",
       });
 
       // Query using JSONB containment operator with proper JSONB format
       // GIN index on department_assignments enables fast queries
       const { data, error } = await this.supabaseClient
         .from(this.fullTableName)
-        .select('*')
-        .contains('department_assignments', JSON.stringify([{ departmentId }]));
+        .select("*")
+        .contains("department_assignments", JSON.stringify([{ departmentId }]));
 
       if (error) {
-        this.logger.error('Supabase query error in findByDepartment', {
+        this.logger.error("Supabase query error in findByDepartment", {
           departmentId,
           error: error.message,
-          code: error.code
+          code: error.code,
         });
         throw new Error(`Failed to find staff by department: ${error.message}`);
       }
 
       if (!data || data.length === 0) {
-        this.logger.info('No staff found for department', { departmentId });
+        this.logger.info("No staff found for department", { departmentId });
         return [];
       }
 
-      this.logger.info('Staff found for department', {
+      this.logger.info("Staff found for department", {
         departmentId,
-        count: data.length
+        count: data.length,
       });
 
       // Map database records to domain entities
-      return data.map(record => ProviderStaff.fromPersistenceData(record));
-
+      return data.map((record) => ProviderStaff.fromPersistenceData(record));
     } catch (error) {
-      this.logger.error('Error finding staff by department', {
+      this.logger.error("Error finding staff by department", {
         departmentId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -648,47 +691,57 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
   /**
    * Find staff by specialization
    */
-  async findBySpecialization(specializationCode: string): Promise<ProviderStaff[]> {
+  async findBySpecialization(
+    specializationCode: string,
+  ): Promise<ProviderStaff[]> {
     try {
-      this.logger.info('Finding staff by specialization', {
+      this.logger.info("Finding staff by specialization", {
         specializationCode,
-        repository: 'SupabaseProviderStaffRepository'
+        repository: "SupabaseProviderStaffRepository",
       });
 
       // Query staff with matching specialization in JSONB array with proper format
       const { data, error } = await this.supabaseClient
         .from(this.fullTableName)
-        .select('*')
-        .contains('specializations', JSON.stringify([{ code: specializationCode }]))
-        .eq('is_active', true);
+        .select("*")
+        .contains(
+          "specializations",
+          JSON.stringify([{ code: specializationCode }]),
+        )
+        .eq("is_active", true);
 
       if (error) {
-        this.logger.error('Supabase error finding staff by specialization', {
+        this.logger.error("Supabase error finding staff by specialization", {
           error: error.message,
-          specializationCode
+          specializationCode,
         });
-        throw new Error(`Failed to find staff by specialization: ${error.message}`);
+        throw new Error(
+          `Failed to find staff by specialization: ${error.message}`,
+        );
       }
 
       if (!data || data.length === 0) {
-        this.logger.info('No staff found with specialization', { specializationCode });
+        this.logger.info("No staff found with specialization", {
+          specializationCode,
+        });
         return [];
       }
 
       // Map to domain entities
-      const staffList = data.map(row => ProviderStaff.fromPersistenceData(row));
+      const staffList = data.map((row) =>
+        ProviderStaff.fromPersistenceData(row),
+      );
 
-      this.logger.info('Staff found by specialization', {
+      this.logger.info("Staff found by specialization", {
         specializationCode,
-        count: staffList.length
+        count: staffList.length,
       });
 
       return staffList;
-
     } catch (error) {
-      this.logger.error('Error finding staff by specialization', {
+      this.logger.error("Error finding staff by specialization", {
         specializationCode,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -706,32 +759,38 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Finding available staff', {
+          this.logger.info("Finding available staff", {
             filters,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           // Query active staff with availability data in JSONB
           let query = this.supabaseClient
             .from(this.fullTableName)
-            .select('*')
-            .eq('is_active', true);
+            .select("*")
+            .eq("is_active", true);
 
           if (filters.staffType) {
-            query = query.eq('staff_type', filters.staffType);
+            query = query.eq("staff_type", filters.staffType);
           }
 
           if (filters.departmentId) {
-            query = query.contains('department_assignments', [{ departmentId: filters.departmentId }]);
+            query = query.contains("department_assignments", [
+              { departmentId: filters.departmentId },
+            ]);
           }
 
           const { data, error } = await query;
 
           if (error) {
-            throw new Error(`Lỗi truy vấn nhân viên khả dụng: ${error.message}`);
+            throw new Error(
+              `Lỗi truy vấn nhân viên khả dụng: ${error.message}`,
+            );
           }
 
-          const staff = (data || []).map(item => ProviderStaff.fromPersistenceData(item));
+          const staff = (data || []).map((item) =>
+            ProviderStaff.fromPersistenceData(item),
+          );
 
           // REMOVED: date/time filtering - Belongs to Scheduling/Appointment Service
           // Appointments Service should:
@@ -739,25 +798,26 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
           // 2. Get work schedule templates via StaffScheduleUpdatedEvent
           // 3. Calculate runtime availability = template - booked appointments
 
-          this.logger.info('Available staff found', {
+          this.logger.info("Available staff found", {
             count: staff.length,
-            filters
+            filters,
           });
 
           return staff;
-
         } catch (error) {
-          this.logger.error('Error finding available staff', {
+          this.logger.error("Error finding available staff", {
             filters,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for findAvailableStaff', { filters });
+        this.logger.warn("Circuit breaker fallback for findAvailableStaff", {
+          filters,
+        });
         return [];
-      }
+      },
     );
   }
 
@@ -769,9 +829,9 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
       const staff = await this.findById(staffId);
       return staff !== null;
     } catch (error) {
-      this.logger.error('Error checking staff existence', {
+      this.logger.error("Error checking staff existence", {
         staffId: staffId.value,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       return false;
     }
@@ -788,24 +848,24 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
     return await this.circuitBreaker.execute(
       async () => {
         try {
-          this.logger.info('Counting staff', {
+          this.logger.info("Counting staff", {
             filters,
-            repository: 'SupabaseProviderStaffRepository'
+            repository: "SupabaseProviderStaffRepository",
           });
 
           let query = this.supabaseClient
             .from(this.fullTableName)
-            .select('*', { count: 'exact', head: true });
+            .select("*", { count: "exact", head: true });
 
           if (filters) {
             if (filters.staffType) {
-              query = query.eq('staff_type', filters.staffType);
+              query = query.eq("staff_type", filters.staffType);
             }
             if (filters.status) {
-              query = query.eq('status', filters.status);
+              query = query.eq("status", filters.status);
             }
             if (filters.isActive !== undefined) {
-              query = query.eq('is_active', filters.isActive);
+              query = query.eq("is_active", filters.isActive);
             }
           }
 
@@ -815,25 +875,24 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
             throw new Error(`Lỗi đếm nhân viên: ${error.message}`);
           }
 
-          this.logger.info('Staff counted', {
+          this.logger.info("Staff counted", {
             count: count || 0,
-            filters
+            filters,
           });
 
           return count || 0;
-
         } catch (error) {
-          this.logger.error('Error counting staff', {
+          this.logger.error("Error counting staff", {
             filters,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for count', { filters });
+        this.logger.warn("Circuit breaker fallback for count", { filters });
         return 0;
-      }
+      },
     );
   }
 
@@ -846,39 +905,38 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
         try {
           const { count: totalCount } = await this.supabaseClient
             .from(this.fullTableName)
-            .select('*', { count: 'exact', head: true });
+            .select("*", { count: "exact", head: true });
 
           const { count: activeCount } = await this.supabaseClient
             .from(this.fullTableName)
-            .select('*', { count: 'exact', head: true })
-            .eq('is_active', true);
+            .select("*", { count: "exact", head: true })
+            .eq("is_active", true);
 
           return {
             total: totalCount || 0,
             active: activeCount || 0,
             inactive: (totalCount || 0) - (activeCount || 0),
-            repository: 'SupabaseProviderStaffRepository',
-            lastUpdated: new Date().toISOString()
+            repository: "SupabaseProviderStaffRepository",
+            lastUpdated: new Date().toISOString(),
           };
-
         } catch (error) {
-          this.logger.error('Error getting repository statistics', {
-            error: error instanceof Error ? error.message : 'Unknown error'
+          this.logger.error("Error getting repository statistics", {
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for getStatistics');
+        this.logger.warn("Circuit breaker fallback for getStatistics");
         return {
           total: 0,
           active: 0,
           inactive: 0,
-          repository: 'SupabaseProviderStaffRepository',
+          repository: "SupabaseProviderStaffRepository",
           lastUpdated: new Date().toISOString(),
-          fallback: true
+          fallback: true,
         };
-      }
+      },
     );
   }
 
@@ -886,8 +944,32 @@ export class SupabaseProviderStaffRepository implements IProviderStaffRepository
    * Mask license number for logging
    */
   private maskLicenseNumber(licenseNumber: string): string {
-    if (licenseNumber.length <= 4) return '***';
-    return licenseNumber.substring(0, 4) + '*'.repeat(licenseNumber.length - 4);
+    if (licenseNumber.length <= 4) return "***";
+    return licenseNumber.substring(0, 4) + "*".repeat(licenseNumber.length - 4);
+  }
+
+  /**
+   * Fetch staff record by identifier column with case-insensitive comparison
+   */
+  private async fetchStaffRecordByIdentifier(
+    column: string,
+    value: string,
+  ): Promise<any | null> {
+    const { data, error } = await this.supabaseClient
+      .from(this.fullTableName)
+      .select("*")
+      .ilike(column, value)
+      .limit(1);
+
+    if (error) {
+      throw new Error(`Lỗi truy vấn cột ${column}: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    return data[0];
   }
 
   // REMOVED: isTimeSlotAvailable() - Belongs to Scheduling/Appointment Service (bounded context violation)
