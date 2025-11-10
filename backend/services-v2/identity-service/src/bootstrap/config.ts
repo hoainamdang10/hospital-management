@@ -38,6 +38,7 @@ export interface AppConfig {
   // RabbitMQ
   rabbitmqUrl: string;
   rabbitmqEnabled: boolean;
+  rabbitmqExchange: string;
 
   // Email (SendGrid)
   sendgridApiKey: string;
@@ -220,6 +221,7 @@ export function loadConfig(): AppConfig {
     rabbitmqUrl:
       process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
     rabbitmqEnabled: !!process.env.RABBITMQ_URL,
+    rabbitmqExchange: process.env.RABBITMQ_EXCHANGE || "hospital.events",
 
     // Email (SendGrid)
     sendgridApiKey: process.env.SENDGRID_API_KEY || "",

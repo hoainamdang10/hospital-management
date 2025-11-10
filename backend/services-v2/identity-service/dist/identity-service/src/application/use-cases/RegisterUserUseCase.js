@@ -134,7 +134,7 @@ class RegisterUserUseCase {
                     : undefined,
                 gender: request.gender ? request.gender.toLowerCase() : undefined,
                 address: request.address,
-                roleType: roleType.toLowerCase(), // Always 'patient'
+                roleType: roleType.toLowerCase(), // Convert to lowercase to match database
                 rawPasswordEncrypted: (0, password_crypto_1.encryptPassword)(request.password, this.jwtSecret),
             }, verificationToken.token, 24);
             // 7. Store pending registration in database

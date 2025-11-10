@@ -11,7 +11,7 @@
 # ============================================
 # Stage 1: Dependencies
 # ============================================
-FROM node:18-alpine AS dependencies
+FROM node:20-alpine AS dependencies
 
 # Add build arguments for cache busting
 ARG BUILD_DATE
@@ -33,7 +33,7 @@ RUN npm ci --prefer-offline --no-audit --legacy-peer-deps && \
 # ============================================
 # Stage 2: Builder
 # ============================================
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -44,8 +44,14 @@ COPY --from=dependencies /app/identity-service/node_modules ./identity-service/n
 COPY identity-service ./identity-service
 COPY shared ./shared
 
-# Install uuid globally in shared module for build
-RUN cd /app/shared && npm init -y && npm install uuid @types/uuid --save
+# Install dependencies in shared module for build
+RUN cd /app/shared && \
+    if [ -f package.json ]; then \
+      npm install; \
+    else \
+      npm init -y && \
+      npm install uuid @types/uuid @supabase/supabase-js pino pino-pretty amqplib @types/amqplib redis --save; \
+    fi
 
 # Change to service directory
 WORKDIR /app/identity-service
@@ -59,7 +65,7 @@ RUN npm run build
 # ============================================
 # Stage 3: Production
 # ============================================
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Add build arguments
 ARG BUILD_DATE

@@ -105,6 +105,7 @@ const config = {
   supabaseUrl: process.env.SUPABASE_URL || "",
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
+  rabbitmqExchange: process.env.RABBITMQ_EXCHANGE || "hospital.events",
   redisUrl: process.env.REDIS_URL || "redis://localhost:6380",
   nodeEnv: process.env.NODE_ENV || "development",
   serviceName: "patient-registry-service",
@@ -115,6 +116,13 @@ const config = {
   identityServiceUrl:
     process.env.IDENTITY_SERVICE_URL || "http://localhost:3021",
 };
+
+const rabbitmqConnectionRetries = Number(
+  process.env.RABBITMQ_CONNECT_MAX_RETRIES || 5,
+);
+const rabbitmqConnectionRetryDelayMs = Number(
+  process.env.RABBITMQ_CONNECT_RETRY_DELAY_MS || 3000,
+);
 
 // Logger setup - HIPAA-compliant Pino logger with PHI/PII redaction
 const logger: ILogger = createProductionLogger(config.serviceName);
@@ -206,15 +214,19 @@ class PatientRegistryServiceApp {
       // Validate configuration
       this.validateConfiguration();
 
+      const exchangeName = config.rabbitmqExchange;
+
       // Initialize Event Publisher
       this.eventPublisher = new RabbitMQEventPublisher(
         {
           url: config.rabbitmqUrl,
-          exchange: "patient-registry-events",
+          exchange: exchangeName,
           exchangeType: "topic",
           durable: true,
           autoDelete: false,
           serviceName: "patient-registry",
+          connectionRetries: rabbitmqConnectionRetries,
+          connectionRetryDelayMs: rabbitmqConnectionRetryDelayMs,
         },
         {
           enableRetry: true,
@@ -236,13 +248,13 @@ class PatientRegistryServiceApp {
       } else {
         this.eventBus = new RabbitMQEventBus({
           rabbitmqUrl: config.rabbitmqUrl,
-          exchangeName: "patient-registry-events",
+          exchangeName,
           serviceName: config.serviceName,
         });
         await this.eventBus.connect();
         logger.info("EventBus initialized (RabbitMQEventBus)", {
           url: config.rabbitmqUrl.replace(/:[^:@]+@/, ":****@"), // Hide password
-          exchange: "patient-registry-events",
+          exchange: exchangeName,
         });
       }
 
@@ -609,13 +621,16 @@ class PatientRegistryServiceApp {
           queueName: "patient.identity.queue",
           exchangeName: "hospital.events",
           routingKeys: [
-            "user.user_created_event",
-            "user.user_deleted_event",
-            "user.user_updated_event",
+            "user.created.event",      // UserCreatedEvent
+            "user.deleted.event",      // UserDeletedEvent
+            "user.updated.event",      // UserUpdatedEvent
+            "user.activated.event",    // UserActivatedEvent (bonus)
           ],
           deadLetterExchange: "hospital.events.dlx",
           deadLetterQueue: "patient.identity.queue.dlq",
           maxRetries: 3,
+          connectionRetries: rabbitmqConnectionRetries,
+          connectionRetryDelayMs: rabbitmqConnectionRetryDelayMs,
         },
         logger,
         userCreatedHandler,

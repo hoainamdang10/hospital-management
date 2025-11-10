@@ -2,20 +2,21 @@
 
 import { Users, CheckCircle, Clock, Activity } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
+import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Nurse Dashboard Page
  * Route: /nurse/dashboard
  */
 export default function NurseDashboardPage() {
+  const { user } = useAuth();
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Y tá</h1>
-          <p className="mt-2 text-gray-600">Tổng quan công việc hôm nay</p>
-        </div>
+        {/* Welcome Header */}
+        <WelcomeHeader userName={user?.fullName || user?.email || 'Y tá'} />
 
         {/* Stats */}
         <div className="grid gap-6 md:grid-cols-4">

@@ -63,7 +63,7 @@ export function DoctorSelector({
                 <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold ${
                   isSelected ? 'bg-primary text-white' : 'bg-primary-100 text-primary-600'
                 }`}>
-                  {doctor.fullName.split(' ').pop()?.charAt(0) || 'BS'}
+                  {doctor.personalInfo?.fullName?.split(' ').pop()?.charAt(0) || 'BS'}
                 </div>
 
                 {/* Info */}
@@ -71,7 +71,7 @@ export function DoctorSelector({
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3 className="font-semibold text-gray-900 text-lg">
-                        BS. {doctor.fullName}
+                        BS. {doctor.personalInfo?.fullName || 'Chưa cập nhật'}
                       </h3>
                       {doctor.specialization && doctor.specialization.length > 0 && (
                         <p className="text-sm text-gray-600 mt-0.5">

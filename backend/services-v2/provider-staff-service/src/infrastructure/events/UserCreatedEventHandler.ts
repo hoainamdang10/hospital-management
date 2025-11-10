@@ -18,6 +18,7 @@ import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
 import { StaffId } from '../../domain/value-objects/StaffId';
 import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
 import { ProfessionalInfo } from '../../domain/value-objects/ProfessionalInfo';
+import { Specialization } from '../../domain/entities/Specialization';
 import { WorkSchedule } from '../../domain/value-objects/WorkSchedule';
 
 /**
@@ -46,10 +47,12 @@ export class UserCreatedEventHandler {
 
       // Only create staff profile for healthcare roles
       const healthcareRoles = ['doctor', 'nurse', 'technician', 'pharmacist', 'therapist'];
-      if (!healthcareRoles.includes(event.roleType)) {
+      const normalizedRole = event.roleType.toLowerCase();
+      if (!healthcareRoles.includes(normalizedRole)) {
         this.logger.info('User role is not healthcare staff, skipping staff profile creation', {
           userId: event.userId,
-          roleType: event.roleType
+          roleType: event.roleType,
+          normalizedRole
         });
         return;
       }
@@ -64,27 +67,30 @@ export class UserCreatedEventHandler {
         return;
       }
 
-      // Map role type to staff type
-      const staffType = this.mapRoleToStaffType(event.roleType);
+      // Map role type to staff type (use normalized lowercase role)
+      const staffType = this.mapRoleToStaffType(normalizedRole);
 
       // Generate staff ID
       const staffId = await this.generateStaffId(staffType);
 
+      // Fallback: Use email prefix if fullName is not provided
+      const fullName = event.fullName || event.email.split('@')[0];
+
       // Create PersonalInfo
       const personalInfo = PersonalInfo.create({
-        fullName: event.fullName,
+        fullName: fullName,
         dateOfBirth: new Date('1990-01-01'), // Default, should be updated later
         gender: 'other', // Default, should be updated later
-        nationalId: event.citizenId || '',
+        nationalId: event.citizenId || '000000000', // Default 9-digit CMND for validation
         nationality: 'Vietnamese',
-        phoneNumber: event.phoneNumber || '',
+        phoneNumber: event.phoneNumber || '0000000000', // Default phone number
         email: event.email,
         address: {
-          street: '',
-          ward: '',
-          district: '',
-          city: '',
-          province: '',
+          street: 'Chưa cập nhật',
+          ward: 'Chưa cập nhật',
+          district: 'Chưa cập nhật',
+          city: 'Chưa cập nhật',
+          province: 'Chưa cập nhật',
           country: 'Vietnam'
         }
       });
@@ -109,6 +115,16 @@ export class UserCreatedEventHandler {
         isFlexible: false
       });
 
+      // Create default specializations (required for doctors)
+      const specializations = staffType === 'doctor' 
+        ? [Specialization.create({
+            code: 'GENMED',
+            name: 'General Medicine',
+            description: 'Tổng quát - Cần cập nhật',
+            isActive: true
+          })]
+        : [];
+
       // Create ProviderStaff aggregate
       const staff = ProviderStaff.create(
         event.userId,
@@ -119,7 +135,8 @@ export class UserCreatedEventHandler {
         `TEMP-${staffId.value}`, // licenseNumber - Temporary, should be updated
         'full_time', // employmentType - Default
         new Date(), // hireDate
-        0 // yearsOfExperience - Default
+        0, // yearsOfExperience - Default
+        specializations // Add specializations (required for doctors)
       );
 
       // Save staff profile

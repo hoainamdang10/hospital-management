@@ -285,6 +285,80 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   /**
+   * Create patient from user creation event
+   * Auto-creates patient record when Identity Service creates a PATIENT user
+   */
+  async createFromUserEvent(userData: {
+    userId: string;
+    email: string;
+    fullName: string;
+    phoneNumber?: string;
+    address?: string;
+    dateOfBirth?: Date;
+    gender?: 'male' | 'female' | 'other';
+    citizenId?: string;
+  }): Promise<Patient> {
+    return await this.circuitBreaker.execute(async () => {
+      this.logger.info('Creating patient from user event', {
+        userId: userData.userId,
+        email: userData.email,
+        fullName: userData.fullName
+      });
+
+      // Import required value objects
+      const PersonalInfo = (await import('../../domain/value-objects/PersonalInfo')).PersonalInfo;
+      const ContactInfo = (await import('../../domain/value-objects/ContactInfo')).ContactInfo;
+      const BasicMedicalInfo = (await import('../../domain/value-objects/BasicMedicalInfo')).BasicMedicalInfo;
+
+      // Create patient using Patient aggregate factory method
+      const patient = Patient.register(
+        userData.userId,
+        PersonalInfo.create({
+          fullName: userData.fullName,
+          dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'),
+          gender: userData.gender || 'other',
+          nationalId: userData.citizenId || '000000000', // Default 9-digit CMND for validation
+          nationality: 'VN',
+          ethnicity: undefined,
+          occupation: undefined,
+          maritalStatus: undefined
+        }),
+        ContactInfo.create({
+          primaryPhone: userData.phoneNumber || '0000000000',
+          email: userData.email,
+          address: {
+            street: userData.address || 'Chưa cập nhật',
+            ward: 'Chưa cập nhật',
+            district: 'Chưa cập nhật',
+            city: 'Chưa cập nhật',
+            province: 'Chưa cập nhật',
+            postalCode: undefined,
+            country: 'Vietnam'
+          },
+          preferredContactMethod: 'email'
+        }),
+        BasicMedicalInfo.create({
+          bloodType: undefined,
+          knownAllergies: []
+        }),
+        undefined, // insuranceInfo
+        [], // emergencyContacts
+        userData.userId // createdBy - use userId since auto-created from Identity Service event
+      );
+
+      // Save patient to database
+      await this.save(patient);
+
+      this.logger.info('Patient created successfully from user event', {
+        userId: userData.userId,
+        patientId: patient.getPatientId()
+      });
+
+      return patient;
+    });
+  }
+
+  /**
    * Save patient (create or update)
    * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
    */

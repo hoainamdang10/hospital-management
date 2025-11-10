@@ -3,12 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MedicalRecordController = void 0;
 const pagination_1 = require("../../../shared/utils/pagination");
 class MedicalRecordController {
-    constructor(listUseCase, getUseCase, createUseCase, updateUseCase, auditLogUseCase) {
+    constructor(listUseCase, getUseCase, createUseCase, updateUseCase, auditLogUseCase, eventDispatcher) {
         this.listUseCase = listUseCase;
         this.getUseCase = getUseCase;
         this.createUseCase = createUseCase;
         this.updateUseCase = updateUseCase;
         this.auditLogUseCase = auditLogUseCase;
+        this.eventDispatcher = eventDispatcher;
         this.list = async (req, res, next) => {
             try {
                 const pagination = (0, pagination_1.parsePagination)(req.query);
@@ -47,6 +48,7 @@ class MedicalRecordController {
             try {
                 const data = await this.createUseCase.execute(req.body);
                 await this.logAudit(req, data.id, "medical_record.created");
+                await this.eventDispatcher.medicalRecordCreated(data, req.user?.id);
                 res.status(201).json({ success: true, data });
             }
             catch (error) {
@@ -60,6 +62,7 @@ class MedicalRecordController {
                     payload: req.body,
                 });
                 await this.logAudit(req, data.id, "medical_record.updated");
+                await this.eventDispatcher.medicalRecordUpdated(data, req.user?.id);
                 res.json({ success: true, data });
             }
             catch (error) {

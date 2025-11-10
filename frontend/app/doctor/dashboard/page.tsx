@@ -2,6 +2,7 @@
 
 import { Calendar, Users, CheckCircle, Clock } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
+import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
@@ -14,15 +15,8 @@ export default function DoctorDashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Chào BS. {user?.email?.split('@')[0] || 'Bác sĩ'}!
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Tổng quan công việc hôm nay
-          </p>
-        </div>
+        {/* Welcome Header */}
+        <WelcomeHeader userName={user?.fullName || user?.email || 'Bác sĩ'} />
 
         {/* Quick Stats */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

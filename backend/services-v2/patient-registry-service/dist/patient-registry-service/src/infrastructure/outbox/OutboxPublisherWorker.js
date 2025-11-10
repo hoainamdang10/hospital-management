@@ -9,6 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OutboxPublisherWorker = void 0;
+const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 class OutboxPublisherWorker {
     constructor(outboxRepository, logger, publishEvent, config) {
         this.outboxRepository = outboxRepository;
@@ -193,7 +194,7 @@ class OutboxPublisherWorker {
                 return null;
             },
             getStreamName: () => `${aggregateType}-${aggregateId}`,
-            getRoutingKey: () => `${aggregateType.toLowerCase()}.${eventType.toLowerCase()}`,
+            getRoutingKey: () => (0, domain_event_1.buildRoutingKey)(aggregateType, eventType),
             shouldPublishExternally: () => metadata.publishExternal !== false,
             getPriority: () => metadata.priority ?? 'normal',
             isRetryable: () => metadata.retryable !== false,

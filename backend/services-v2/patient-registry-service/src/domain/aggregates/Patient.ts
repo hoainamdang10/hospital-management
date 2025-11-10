@@ -21,7 +21,13 @@ import { CommunicationPreference } from "../value-objects/CommunicationPreferenc
 import { InsuranceInfo } from "../entities/InsuranceInfo";
 import { EmergencyContact } from "../entities/EmergencyContact";
 import { PatientConsent } from "../entities/PatientConsent";
-import { PatientRegisteredEvent } from "../events/PatientRegisteredEvent";
+import {
+  PatientRegisteredEvent,
+  PatientRegisteredEventAdditionalData,
+  PatientRegisteredEventContactInfo,
+  PatientRegisteredEventEmergencyContact,
+  PatientRegisteredEventInsuranceInfo,
+} from "../events/PatientRegisteredEvent";
 import { PatientUpdatedEvent } from "../events/PatientUpdatedEvent";
 import { PatientMergedEvent } from "../events/PatientMergedEvent";
 import { PatientLinkedEvent } from "../events/PatientLinkedEvent";
@@ -116,6 +122,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
         personalInfo.dateOfBirth,
         personalInfo.gender,
         personalInfo.nationalId,
+        Patient.buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts),
       ),
     );
 
@@ -164,6 +171,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
         personalInfo.dateOfBirth,
         personalInfo.gender,
         personalInfo.nationalId,
+        Patient.buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts),
       ),
     );
 
@@ -175,6 +183,87 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
    */
   public static reconstitute(props: PatientProps): Patient {
     return new Patient(props);
+  }
+
+  private static buildRegisteredEventData(
+    contactInfo: ContactInfo,
+    insuranceInfo: InsuranceInfo | undefined,
+    emergencyContacts: EmergencyContact[],
+  ): PatientRegisteredEventAdditionalData {
+    return {
+      contactInfo: Patient.mapContactInfo(contactInfo),
+      insurance: Patient.mapInsuranceInfo(insuranceInfo) ?? null,
+      emergencyContacts: Patient.mapEmergencyContacts(emergencyContacts),
+    };
+  }
+
+  private static mapContactInfo(
+    contactInfo?: ContactInfo,
+  ): PatientRegisteredEventContactInfo | undefined {
+    if (!contactInfo) {
+      return undefined;
+    }
+
+    const address = contactInfo.address;
+
+    return {
+      primaryPhone: contactInfo.primaryPhone,
+      secondaryPhone: contactInfo.secondaryPhone,
+      email: contactInfo.email,
+      address: address
+        ? {
+            street: address.street,
+            ward: address.ward,
+            district: address.district,
+            city: address.city,
+            province: address.province,
+            postalCode: address.postalCode,
+            country: address.country,
+          }
+        : undefined,
+      preferredContactMethod: contactInfo.preferredContactMethod,
+    };
+  }
+
+  private static mapInsuranceInfo(
+    insuranceInfo?: InsuranceInfo,
+  ): PatientRegisteredEventInsuranceInfo | undefined {
+    if (!insuranceInfo) {
+      return undefined;
+    }
+
+    return {
+      provider: insuranceInfo.provider,
+      policyNumber: insuranceInfo.policyNumber,
+      groupNumber: insuranceInfo.groupNumber,
+      coverageType: insuranceInfo.coverageType,
+      validFrom: insuranceInfo.validFrom,
+      validTo: insuranceInfo.validTo,
+      bhytNumber: insuranceInfo.bhytNumber ?? undefined,
+      isPrimary: insuranceInfo.isPrimary,
+      isActive: insuranceInfo.isActive,
+      isVietnameseInsurance: insuranceInfo.isVietnameseInsurance,
+    };
+  }
+
+  private static mapEmergencyContacts(
+    contacts: EmergencyContact[],
+  ): PatientRegisteredEventEmergencyContact[] | undefined {
+    if (!contacts || contacts.length === 0) {
+      return undefined;
+    }
+
+    return contacts.map((contact) => ({
+      id: contact.getId(),
+      name: contact.name,
+      relationship: contact.relationship,
+      primaryPhone: contact.primaryPhone,
+      secondaryPhone: contact.secondaryPhone,
+      email: contact.email,
+      address: contact.address,
+      isPrimary: contact.isPrimary,
+      isActive: contact.isActive,
+    }));
   }
 
   // ==================== Business Methods ====================

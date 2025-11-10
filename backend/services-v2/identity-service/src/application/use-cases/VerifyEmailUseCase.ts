@@ -20,8 +20,10 @@ import { IEmailService } from "../services/IEmailService";
 import { ICircuitBreaker } from "../services/ICircuitBreaker";
 import { EmailVerificationToken } from "../../domain/value-objects/EmailVerificationToken";
 import { Email } from "../../domain/value-objects/Email";
+import { UserId } from "../../domain/value-objects/UserId";
 import { IEventPublisher } from "../services/IEventPublisher";
 import { UserActivatedEvent } from "../../domain/events/UserActivatedEvent";
+import { UserCreatedEvent } from "../../domain/events/UserCreatedEvent";
 import { ILogger } from "../services/ILogger";
 import { decryptPassword } from "../../utils/password-crypto";
 
@@ -247,12 +249,17 @@ export class VerifyEmailUseCase
       // 10. Publish domain events
       if (this.eventPublisher) {
         try {
-          // Publish UserCreated event from user aggregate
-          const userEvents = user.getUncommittedEvents();
-          if (userEvents.length > 0) {
-            await this.eventPublisher.publishDomainEvents(userEvents);
-            user.markEventsAsCommitted();
-          }
+          // Create UserCreatedEvent manually since user was reconstituted from database
+          // and doesn't have uncommitted events
+          const userCreatedEvent = new UserCreatedEvent(
+            UserId.fromString(user.id),
+            user.email,
+            user.healthcareRoles[0], // Primary role
+            user.personalInfo, // Include personal info for patient creation
+          );
+
+          // Publish UserCreated event
+          await this.eventPublisher.publishDomainEvents([userCreatedEvent]);
 
           // Publish UserActivated event
           const activatedEvent = new UserActivatedEvent(
@@ -264,7 +271,7 @@ export class VerifyEmailUseCase
 
           this.logger.info("Domain events published", {
             userId: user.id,
-            eventCount: userEvents.length + 1,
+            eventCount: 2, // UserCreated + UserActivated
           });
         } catch (error) {
           this.logger.error("Failed to publish domain events", {

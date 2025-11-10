@@ -11,9 +11,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [isRegisterLoading, setIsRegisterLoading] = useState(false);
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -39,29 +39,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updatedAt: new Date().toISOString(),
           };
           setUser(mockUser);
-          setAccessToken('dev-mock-token');
           setIsLoading(false);
           return;
         }
 
-        const storedToken = localStorage.getItem('accessToken');
-        const storedRefreshToken = localStorage.getItem('refreshToken');
-        const storedUser = localStorage.getItem('user');
-
-        if (storedToken && storedUser) {
-          setAccessToken(storedToken);
-          setRefreshToken(storedRefreshToken);
-          setUser(JSON.parse(storedUser));
-
-          // Optionally verify token is still valid
-          try {
-            const currentUser = await authService.getCurrentUser();
-            setUser(currentUser);
-            localStorage.setItem('user', JSON.stringify(currentUser));
-          } catch (error) {
-            // Token invalid, clear auth
-            handleLogout();
+        // Fetch user from session cookie
+        // Session cookie automatically sent with request
+        try {
+          const response = await authService.getCurrentUser();
+          
+          if (response.success && response.user) {
+            setUser(response.user);
           }
+        } catch (error: any) {
+          // 401 or network error - no active session
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -75,33 +66,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (credentials: LoginRequest) => {
+      console.log('[AuthContext] Login started', { email: credentials.email });
+      setIsLoginLoading(true);
       try {
-        const response = await authService.login(credentials);
+        // Step 1: Authenticate user (sets session cookie)
+        const loginResponse = await authService.login(credentials);
+        
+        if (!loginResponse.success) {
+          throw new Error('Login failed');
+        }
 
-        // Save to state
-        // Handle missing user object in response (Identity Service bug)
-        const responseWithUserId = response as any;
-        const user = response.user || {
-          id: responseWithUserId.userId || 'unknown',
-          userId: responseWithUserId.userId || 'unknown',
-          email: credentials.email,
-          username: credentials.email.split('@')[0],
-          fullName: 'User',
-          role: 'ADMIN' as const,
-          isActive: true,
-          isEmailVerified: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+        // Step 2: Fetch full user data from /auth/me (uses session cookie)
+        console.log('[AuthContext] Login successful, fetching user data...');
+        const userResponse = await authService.getCurrentUser();
+        
+        if (!userResponse.success || !userResponse.user) {
+          throw new Error('Failed to fetch user data');
+        }
 
+        const user = userResponse.user;
         setUser(user);
-        setAccessToken(response.accessToken);
-        setRefreshToken(response.refreshToken);
 
-        // Save to localStorage
-        localStorage.setItem('accessToken', response.accessToken);
-        localStorage.setItem('refreshToken', response.refreshToken);
-        localStorage.setItem('user', JSON.stringify(user));
+        console.log('[AuthContext] User data fetched', {
+          userId: user.userId,
+          fullName: user.fullName,
+          role: user.role
+        });
 
         toast.success('Đăng nhập thành công!', {
           description: `Chào mừng ${user.fullName}`,
@@ -109,7 +99,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Redirect based on role
         const redirectPath = getRedirectPath(user.role);
-        router.push(redirectPath);
+        console.log('[AuthContext] Redirecting to dashboard...', {
+          role: user.role,
+          redirectPath
+        });
+        
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          router.push(redirectPath);
+        }, 100);
       } catch (error: any) {
         const errorMessage =
           error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
@@ -117,6 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: errorMessage,
         });
         throw error;
+      } finally {
+        setIsLoginLoading(false);
       }
     },
     [router]
@@ -124,33 +124,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(
     async (data: RegisterRequest) => {
+      setIsRegisterLoading(true);
       try {
-        const response = await authService.register(data);
+        // Normalize role to uppercase for backend compatibility
+        // Backend accepts: ADMIN, DOCTOR, NURSE, PATIENT, RECEPTIONIST
+        const normalizedRole = data.role?.toUpperCase() || 'PATIENT';
+        const registerData = {
+          ...data,
+          role: normalizedRole as any,
+        };
+        
+        const response = await authService.register(registerData);
+        
+        console.log('Register response:', response);
 
         // Verify-First approach: User NOT created yet, only pending registration
-        // No tokens returned, user must verify email first
-        if (response.requiresEmailVerification) {
+        // Always redirect to verify-email if we have pendingRegistrationId or no tokens
+        if (response.pendingRegistrationId || !response.accessToken) {
           toast.success('Đăng ký thành công!', {
             description: 'Vui lòng kiểm tra email để xác thực tài khoản',
             duration: 6000,
           });
-          // Don't save tokens or redirect - let the page show success message
+          // Redirect to verify-email page with email in query
+          router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
           return;
         }
 
         // Legacy path (if backend returns tokens immediately - shouldn't happen with verify-first)
-        if (response.user && response.accessToken) {
+        if (response.user) {
           setUser(response.user);
-          setAccessToken(response.accessToken);
-          setRefreshToken(response.refreshToken);
-
-          localStorage.setItem('accessToken', response.accessToken);
-          localStorage.setItem('refreshToken', response.refreshToken);
           localStorage.setItem('user', JSON.stringify(response.user));
+
+          // Session cookie set by backend (legacy path)
+          // Note: Session-based auth doesn't need local token storage
+          localStorage.setItem('user', JSON.stringify(response.user));
+          
+          // Save to cookies
+          document.cookie = `accessToken=${response.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
+          if (response.refreshToken) {
+            document.cookie = `refreshToken=${response.refreshToken}; path=/; max-age=${30 * 24 * 60 * 60}`;
+          }
 
           toast.success('Đăng ký thành công!');
           router.push('/patient/dashboard');
         }
+        
+        // If we reach here without redirecting, something went wrong
+        console.warn('Register completed but no redirect triggered. Response:', response);
       } catch (error: any) {
         const errorMessage =
           error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
@@ -158,6 +178,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: errorMessage,
         });
         throw error;
+      } finally {
+        setIsRegisterLoading(false);
       }
     },
     [router]
@@ -174,30 +196,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleLogout = () => {
-    // Clear state
     setUser(null);
-    setAccessToken(null);
-    setRefreshToken(null);
-
-    // Clear localStorage
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-
+    
+    // Session cookie is cleared by backend on logout
+    // No localStorage to clear (session-based auth)
+    
     toast.info('Đã đăng xuất');
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   const updateUser = useCallback((updatedUser: User) => {
     setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    // User data will be re-fetched from /auth/me on next page load
   }, []);
 
   const verifyEmail = useCallback(async (token: string) => {
     try {
       const response = await authService.verifyEmail({ token });
       toast.success('Xác thực email thành công!');
-      router.push('/login?verified=true');
+      router.push('/auth/login?verified=true');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Xác thực email thất bại');
       throw error;
@@ -216,10 +233,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    accessToken,
-    refreshToken,
-    isAuthenticated: !!user && !!accessToken,
     isLoading,
+    isLoginLoading,
+    isRegisterLoading,
+    isAuthenticated: user !== null,
     login,
     register,
     logout,
@@ -241,7 +258,10 @@ export function useAuth() {
 
 // Helper function to determine redirect path based on role
 function getRedirectPath(role: string): string {
-  switch (role) {
+  // Normalize role to uppercase for comparison
+  const normalizedRole = role.toUpperCase();
+  
+  switch (normalizedRole) {
     case 'PATIENT':
       return '/patient/dashboard';
     case 'DOCTOR':
@@ -249,6 +269,7 @@ function getRedirectPath(role: string): string {
     case 'NURSE':
       return '/nurse/dashboard';
     case 'ADMIN':
+    case 'RECEPTIONIST':
       return '/admin/dashboard';
     case 'STAFF':
       return '/staff/dashboard';

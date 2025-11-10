@@ -42,19 +42,21 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MockEventPublisher = exports.RabbitMQEventPublisher = void 0;
 const amqp = __importStar(require("amqplib"));
+const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 const DomainEventMapper_1 = require("./DomainEventMapper");
 class RabbitMQEventPublisher {
-    constructor(rabbitMQUrl, logger) {
+    constructor(rabbitMQUrl, logger, exchangeName) {
         this.rabbitMQUrl = rabbitMQUrl;
         this.logger = logger;
         this.connection = null;
         this.channel = null;
-        this.exchangeName = "hospital.events";
         this.isConnected = false;
         this.pendingEvents = [];
         this.flushingPending = false;
         this.maxPublishAttempts = 3;
         this.publishRetryDelayMs = 500;
+        this.exchangeName =
+            exchangeName || process.env.RABBITMQ_EXCHANGE || "hospital.events";
     }
     /**
      * Initialize RabbitMQ connection and channel
@@ -162,28 +164,17 @@ class RabbitMQEventPublisher {
         }
     }
     /**
-     * Get routing key for event
-     * Format: {aggregateType}.{eventType}
-     * Example: user.registered, user.activated, user.role_changed
+     * Build AMQP routing key using shared helper for consistent naming
      */
     getRoutingKey(event) {
-        const servicePrefix = "identity";
-        const entity = event.aggregateType
-            .replace(/event$/i, "")
-            .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-            .replace(/[_\s]+/g, "-")
-            .toLowerCase() || "generic";
-        const rawAction = event.eventType.replace(/Event$/, "");
-        const aggregateRegex = new RegExp(`^${event.aggregateType}`, "i");
-        const trimmedAction = rawAction.replace(aggregateRegex, "") || rawAction;
-        const action = trimmedAction
-            .replace(/([a-z0-9])([A-Z])/g, "$1.$2")
-            .replace(/([A-Z]+)([A-Z][a-z])/g, "$1.$2")
-            .replace(/[_\s]+/g, ".")
-            .replace(/\.+/g, ".")
-            .replace(/^\./, "")
-            .toLowerCase() || "event";
-        return `${servicePrefix}.${entity}.${action}`;
+        const routingKey = (0, domain_event_1.buildRoutingKey)(event.aggregateType, event.eventType);
+        if (routingKey && routingKey.length > 0) {
+            return routingKey;
+        }
+        const fallbackAggregate = event.aggregateType?.trim().replace(/\s+/g, "-").toLowerCase() ||
+            "identity";
+        const fallbackEvent = event.eventType?.replace(/\s+/g, ".").toLowerCase() || "event";
+        return `${fallbackAggregate}.${fallbackEvent}`;
     }
     async publishWithRetry(event, attempt = 1) {
         if (!this.channel) {

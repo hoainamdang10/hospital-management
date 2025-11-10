@@ -37,7 +37,26 @@ export function createAuthRoutes(deps: RouteDependencies): Router {
 
       const result = await deps.authenticateUserUseCase.execute(request);
       
+      // Set HTTP-only session cookie for enhanced security
+      if (result.success && result.accessToken) {
+        const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        
+        res.cookie('session_token', result.accessToken, {
+          httpOnly: true,           // Cannot be accessed by JavaScript
+          secure: false,            // Must be false for localhost (no HTTPS)
+          sameSite: 'lax',          // CSRF protection (works with Next.js API proxy)
+          maxAge: maxAge,
+          path: '/'
+        });
+
+        logger.info('Session cookie set successfully', {
+          userId: result.userId,
+          expiresIn: '30 days'
+        });
+      }
+      
       const statusCode = result.success ? 200 : 401;
+      // Still return tokens in response for backward compatibility
       res.status(statusCode).json(result);
     } catch (error) {
       logger.error('Authentication endpoint error', { error: getErrorMessage(error) });
@@ -307,10 +326,66 @@ export function createAuthRoutes(deps: RouteDependencies): Router {
       };
 
       const result = await deps.logoutUserUseCase.execute(request);
+      
+      // Clear session cookie
+      res.clearCookie('session_token', {
+        httpOnly: true,
+        path: '/'
+      });
+      
+      logger.info('Session cookie cleared successfully', {
+        userId: req.user.userId
+      });
+      
       res.status(200).json(result);
     } catch (error) {
       logger.error('Logout endpoint error', { error: getErrorMessage(error) });
       res.status(500).json({
+        success: false,
+        error: 'Lỗi hệ thống, vui lòng thử lại sau'
+      });
+    }
+  });
+
+  // Get current user from session (PROTECTED)
+  router.get('/me',
+    deps.authMiddleware.authenticate(),
+    async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication required'
+        });
+      }
+
+      // Return user info from authenticated session
+      logger.info('Get current user', {
+        userId: req.user.userId,
+        email: req.user.email
+      });
+
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: req.user.userId,
+          userId: req.user.userId,
+          email: req.user.email,
+          username: req.user.email?.split('@')[0] || 'user',
+          fullName: req.user.fullName || req.user.email?.split('@')[0] || 'User',
+          role: req.user.roles?.[0]?.toUpperCase() || 'PATIENT',
+          roles: req.user.roles || ['patient'],
+          permissions: req.user.permissions || [],
+          isActive: true,
+          isEmailVerified: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      logger.error('Get current user endpoint error', { error: getErrorMessage(error) });
+      return res.status(500).json({
         success: false,
         error: 'Lỗi hệ thống, vui lòng thử lại sau'
       });

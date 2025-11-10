@@ -24,8 +24,8 @@ const admin_routes_1 = require("./admin.routes");
 function registerRoutes(app, deps) {
     // Health & Monitoring routes
     app.use("/", (0, health_routes_1.createHealthRoutes)(deps));
-    // Authentication routes
-    app.use("/auth", (0, auth_routes_1.createAuthRoutes)(deps));
+    // Authentication routes - mounted at /api/auth to match API Gateway
+    app.use("/api/auth", (0, auth_routes_1.createAuthRoutes)(deps));
     // User management routes
     app.use("/api/v1/users", (0, user_routes_1.createUserRoutes)(deps));
     // Session management routes (nested under users)

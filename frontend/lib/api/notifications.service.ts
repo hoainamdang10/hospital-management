@@ -60,7 +60,7 @@ export async function getPatientNotifications(
   patientId: string,
   limit: number = 10
 ): Promise<NotificationsResponse> {
-  const response = await apiClient.get(`/api/v1/notifications/patient/${patientId}`, {
+  const response = await apiClient.get(`/v1/notifications/patient/${patientId}`, {
     params: { limit, sortBy: 'createdAt', sortOrder: 'DESC' }
   });
   return response.data;

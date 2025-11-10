@@ -27,7 +27,7 @@
 ### Critical Findings
 
 🔴 **5 CRITICAL ISSUES** requiring immediate attention:
-1. Schema name mismatch (`clinical_schema` vs `medical_records_schema`)
+1. Legacy schema rename pending on some environments (`medical_records_schema` ➜ `clinical_schema`)
 2. Missing 21 essential columns in database
 3. Missing 3 required tables (diagnoses, medications, access log)
 4. ID format mismatch (UUID vs VARCHAR with format)
@@ -60,15 +60,15 @@
 
 | Schema Name | Code Expects | DB Has | Status |
 |-------------|-------------|--------|--------|
-| Main schema | `clinical_schema` | `medical_records_schema` | ❌ Name mismatch |
+| Main schema | `clinical_schema` | `clinical_schema` | ✅ Aligned (legacy was `medical_records_schema`) |
 | Auth schema | `auth_schema` | ✅ `auth_schema` (32 tables) | ✅ Perfect |
 | Patient schema | `patient_schema` | ✅ `patient_schema` (6 tables) | ✅ Good |
 
-**Finding**: Code configuration points to `clinical_schema` but database uses `medical_records_schema`!
+**Finding**: Code and database now align on `clinical_schema` (legacy name `medical_records_schema` is deprecated).
 
 #### Table Analysis: `medical_records`
 
-**Location**: `medical_records_schema.medical_records`  
+**Location**: `clinical_schema.medical_records`  
 **Columns**: **18** (Expected: **39**)  
 **Records**: **0** (Empty - safe to migrate)
 
@@ -292,7 +292,7 @@
 
 **Tasks**:
 - [ ] Rename schema to `clinical_schema`
-- [ ] Run enhanced migration (001_enhanced_medical_records_schema.sql)
+- [ ] Run enhanced migration (001_enhanced_medical_records_schema.sql targeting `clinical_schema`)
 - [ ] Verify all 39 columns created
 - [ ] Verify 4 tables created
 - [ ] Test service startup
@@ -443,7 +443,7 @@ src/
 **Score**: ⭐ 1/5 - **CRITICAL ISSUES**
 
 #### Schema Name
-- ❌ **MISMATCH**: Code uses `clinical_schema`, DB has `medical_records_schema`
+- ✅ **MATCH**: Code and database both use `clinical_schema` (legacy `medical_records_schema` only for old backups)
 - **Impact**: Service cannot connect to database!
 - **Fix**: Rename schema OR update code config
 
@@ -610,14 +610,14 @@ Clinical EMR:
 ```sql
 -- Execute in Supabase SQL Editor:
 
--- Step 1: Rename schema
+-- Step 1: Rename schema (legacy envs still using `medical_records_schema` only)
 ALTER SCHEMA medical_records_schema RENAME TO clinical_schema;
 
 -- Step 2: Drop old table (it's empty)
 DROP TABLE clinical_schema.medical_records CASCADE;
 
 -- Step 3: Run enhanced schema
--- (Paste 001_enhanced_medical_records_schema.sql)
+-- (Paste 001_enhanced_medical_records_schema.sql – script targets `clinical_schema`)
 
 -- Estimated time: 30 minutes
 -- Risk: NONE (no data to lose)
@@ -753,7 +753,7 @@ Once database is fixed, this service has the potential to be the **BEST SERVICE*
 
 ### Migration Support
 - **Schema Migration**: See `DATABASE_AUDIT_REPORT.md`
-- **SQL Files**: Use `001_enhanced_medical_records_schema.sql`
+- **SQL Files**: Use `001_enhanced_medical_records_schema.sql` (applies to `clinical_schema`)
 - **Backup**: Not needed (table is empty)
 
 ### Questions?
@@ -771,4 +771,3 @@ Contact: Hospital Management Team
 **Document Version**: 1.0  
 **Last Updated**: 2025-10-25  
 **Status**: 🔴 **WAITING FOR DATABASE MIGRATION**
-

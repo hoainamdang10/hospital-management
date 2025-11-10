@@ -29,8 +29,8 @@ export function registerRoutes(
   // Health & Monitoring routes
   app.use("/", createHealthRoutes(deps));
 
-  // Authentication routes
-  app.use("/auth", createAuthRoutes(deps));
+  // Authentication routes - mounted at /api/auth to match API Gateway
+  app.use("/api/auth", createAuthRoutes(deps));
 
   // User management routes
   app.use("/api/v1/users", createUserRoutes(deps));

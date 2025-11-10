@@ -1,19 +1,10 @@
 /**
  * Departments API Service
- * Calls Department Service backend (microservice architecture)
- * Backend: http://localhost:3025
+ * Calls Department Service backend through API Gateway
+ * Backend: API Gateway (/api) -> Department Service (3025)
  */
 
-import axios from 'axios';
-
-const DEPARTMENT_API_URL = process.env.NEXT_PUBLIC_DEPARTMENT_API || 'http://localhost:3025';
-
-const departmentClient = axios.create({
-  baseURL: DEPARTMENT_API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import apiClient from './axios';
 
 export interface Department {
   id: string;
@@ -44,7 +35,7 @@ export interface DepartmentResponse {
  */
 export async function getDepartments(): Promise<Department[]> {
   try {
-    const response = await departmentClient.get<DepartmentResponse>('/api/departments');
+    const response = await apiClient.get<DepartmentResponse>('/departments');
     
     if (response.data.success && Array.isArray(response.data.data)) {
       return response.data.data;
@@ -62,7 +53,7 @@ export async function getDepartments(): Promise<Department[]> {
  */
 export async function getDepartmentById(id: string): Promise<{ success: boolean; data: Department }> {
   try {
-    const response = await departmentClient.get<DepartmentResponse>(`/api/departments/${id}`);
+    const response = await apiClient.get<DepartmentResponse>(`/departments/${id}`);
     
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
@@ -83,7 +74,7 @@ export async function getDepartmentById(id: string): Promise<{ success: boolean;
  */
 export async function getDepartmentByCode(code: string): Promise<{ success: boolean; data: Department }> {
   try {
-    const response = await departmentClient.get<DepartmentResponse>(`/api/departments/code/${code}`);
+    const response = await apiClient.get<DepartmentResponse>(`/departments/code/${code}`);
     
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
@@ -130,7 +121,7 @@ export async function createDepartment(data: {
   isActive?: boolean;
 }): Promise<{ success: boolean; data: Department; message?: string }> {
   try {
-    const response = await departmentClient.post<DepartmentResponse>('/api/departments', data);
+    const response = await apiClient.post<DepartmentResponse>('/departments', data);
     
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
@@ -164,7 +155,7 @@ export async function updateDepartment(
   }
 ): Promise<{ success: boolean; data: Department; message?: string }> {
   try {
-    const response = await departmentClient.put<DepartmentResponse>(`/api/departments/${id}`, data);
+    const response = await apiClient.put<DepartmentResponse>(`/departments/${id}`, data);
     
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
@@ -186,7 +177,7 @@ export async function updateDepartment(
  */
 export async function deleteDepartment(id: string): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await departmentClient.delete<{ success: boolean; message: string }>(`/api/departments/${id}`);
+    const response = await apiClient.delete<{ success: boolean; message: string }>(`/departments/${id}`);
     
     return {
       success: response.data.success,
@@ -208,7 +199,7 @@ export async function getDepartmentStaff(departmentId: string): Promise<{
   department?: Department;
 }> {
   try {
-    const response = await departmentClient.get(`/api/departments/${departmentId}/staff`);
+    const response = await apiClient.get(`/departments/${departmentId}/staff`);
     
     return {
       success: response.data.success,
@@ -235,7 +226,7 @@ export async function addStaffToDepartment(
   staffId: string
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await departmentClient.post(`/api/departments/${departmentId}/staff`, {
+    const response = await apiClient.post(`/departments/${departmentId}/staff`, {
       staffId,
     });
     
@@ -257,7 +248,7 @@ export async function removeStaffFromDepartment(
   staffId: string
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await departmentClient.delete(`/api/departments/${departmentId}/staff/${staffId}`);
+    const response = await apiClient.delete(`/departments/${departmentId}/staff/${staffId}`);
     
     return {
       success: response.data.success,
@@ -278,7 +269,7 @@ export async function getDepartmentHead(departmentId: string): Promise<{
   department?: Department;
 }> {
   try {
-    const response = await departmentClient.get(`/api/departments/${departmentId}/head`);
+    const response = await apiClient.get(`/departments/${departmentId}/head`);
     
     return {
       success: response.data.success,
@@ -303,7 +294,7 @@ export async function setDepartmentHead(
   staffId: string
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await departmentClient.put(`/api/departments/${departmentId}/head`, {
+    const response = await apiClient.put(`/departments/${departmentId}/head`, {
       staffId,
     });
     

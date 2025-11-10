@@ -22,6 +22,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
     email: string;
+    fullName?: string;
     roles: string[];
     permissions: string[];
     sessionId?: string;
@@ -102,10 +103,16 @@ export class AuthenticationMiddleware {
           // Continue without session_id - not critical for authentication
         }
 
+        // Extract fullName from user metadata
+        const fullName = (user.user_metadata as any)?.full_name || 
+                        (user.user_metadata as any)?.fullName ||
+                        user.email?.split('@')[0];
+
         // Attach user info to request
         req.user = {
           userId: user.id,
           email: user.email!,
+          fullName,
           roles,
           permissions: permissionsArray,
           sessionId
@@ -171,9 +178,15 @@ export class AuthenticationMiddleware {
             });
           }
 
+          // Extract fullName from user metadata
+          const fullName = (user.user_metadata as any)?.full_name || 
+                          (user.user_metadata as any)?.fullName ||
+                          user.email?.split('@')[0];
+
           req.user = {
             userId: user.id,
             email: user.email!,
+            fullName,
             roles,
             permissions: permissionsArray,
             sessionId

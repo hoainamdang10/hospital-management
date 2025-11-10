@@ -77,8 +77,8 @@ export class ProvisionStaffUseCase {
         };
       }
 
-      // Use normalized role for consistency
-      request.roleType = normalizedRole;
+      // Keep UPPERCASE for domain logic (matches HealthcareRoleType)
+      // request.roleType stays as normalizedRole (UPPERCASE)
 
       // Check if email already exists
       const email = Email.create(request.email);
@@ -99,10 +99,10 @@ export class ProvisionStaffUseCase {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
       // Store invitation in staff_invitations table
-      // Note: User profile will be created when staff accepts invitation and sets password
+      // Note: Convert to lowercase to match database constraint (consistent with user_profiles.role_type)
       await this.userRepository.storeStaffInvitation({
         email: request.email,
-        role: request.roleType,
+        role: normalizedRole.toLowerCase(), // Convert to lowercase for database
         invitedBy: request.requesterId,
         invitationToken,
         expiresAt,

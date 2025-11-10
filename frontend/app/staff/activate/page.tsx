@@ -116,7 +116,7 @@ export default function StaffActivationPage() {
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        router.push('/login?activated=true');
+        router.push('/auth/login?activated=true');
       }, 3000);
       
     } catch (err: any) {
@@ -306,7 +306,7 @@ export default function StaffActivationPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Đã có tài khoản?{' '}
-            <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+            <Link href="/auth/login" className="text-primary-600 hover:text-primary-700 font-medium">
               Đăng nhập
             </Link>
           </p>

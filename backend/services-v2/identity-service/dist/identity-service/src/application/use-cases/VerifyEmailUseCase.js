@@ -4,7 +4,9 @@ exports.VerifyEmailUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
 const EmailVerificationToken_1 = require("../../domain/value-objects/EmailVerificationToken");
 const Email_1 = require("../../domain/value-objects/Email");
+const UserId_1 = require("../../domain/value-objects/UserId");
 const UserActivatedEvent_1 = require("../../domain/events/UserActivatedEvent");
+const UserCreatedEvent_1 = require("../../domain/events/UserCreatedEvent");
 const password_crypto_1 = require("../../utils/password-crypto");
 class VerifyEmailUseCase {
     constructor(userRepository, pendingRegistrationRepository, emailService, logger, circuitBreaker, jwtSecret, eventPublisher) {
@@ -180,18 +182,17 @@ class VerifyEmailUseCase {
             // 10. Publish domain events
             if (this.eventPublisher) {
                 try {
-                    // Publish UserCreated event from user aggregate
-                    const userEvents = user.getUncommittedEvents();
-                    if (userEvents.length > 0) {
-                        await this.eventPublisher.publishDomainEvents(userEvents);
-                        user.markEventsAsCommitted();
-                    }
+                    // Create UserCreatedEvent manually since user was reconstituted from database
+                    // and doesn't have uncommitted events
+                    const userCreatedEvent = new UserCreatedEvent_1.UserCreatedEvent(UserId_1.UserId.fromString(user.id), user.email, user.healthcareRoles[0]);
+                    // Publish UserCreated event
+                    await this.eventPublisher.publishDomainEvents([userCreatedEvent]);
                     // Publish UserActivated event
                     const activatedEvent = new UserActivatedEvent_1.UserActivatedEvent(user.id, user.email.value, new Date());
                     await this.eventPublisher.publishDomainEvents([activatedEvent]);
                     this.logger.info("Domain events published", {
                         userId: user.id,
-                        eventCount: userEvents.length + 1,
+                        eventCount: 2, // UserCreated + UserActivated
                     });
                 }
                 catch (error) {

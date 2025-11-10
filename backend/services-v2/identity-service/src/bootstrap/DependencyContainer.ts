@@ -158,6 +158,7 @@ export class DependencyContainer {
       this.eventPublisher = new RabbitMQEventPublisher(
         this.config.rabbitmqUrl,
         this.logger,
+        this.config.rabbitmqExchange,
       );
       try {
         await this.eventPublisher.initialize?.();

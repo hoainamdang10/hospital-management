@@ -71,8 +71,46 @@ export function createProxyRoute(
     pathRewrite: config.pathRewrite,
     timeout: timeouts.proxy.request,
     proxyTimeout: timeouts.proxy.upstream,
+    
+    // Cookie domain rewrite - forward cookies from downstream services to client
+    cookieDomainRewrite: {
+      "*": "" // Remove domain from cookies so they work across all localhost ports
+    },
 
     onProxyReq: (proxyReq, req: AuthenticatedRequest) => {
+      // Forward session cookie as Authorization header for downstream services
+      // Parse cookie manually from header (cookie-parser may not work in proxy context)
+      let sessionToken: string | undefined;
+      
+      // @ts-ignore - cookies added by cookie-parser middleware
+      if (req.cookies?.session_token) {
+        sessionToken = req.cookies.session_token;
+      } else if (req.headers.cookie) {
+        // Manual cookie parsing as fallback
+        const cookies = req.headers.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          if (key && value) acc[key] = value;
+          return acc;
+        }, {} as Record<string, string>);
+        sessionToken = cookies.session_token;
+      }
+      
+      logger.info("Proxy request debug", {
+        requestId: req.requestId,
+        path: req.path,
+        hasCookieHeader: !!req.headers.cookie,
+        hasSessionToken: !!sessionToken,
+        cookieHeaderPreview: req.headers.cookie?.substring(0, 60)
+      });
+      
+      if (sessionToken && !req.headers.authorization) {
+        proxyReq.setHeader("Authorization", `Bearer ${sessionToken}`);
+        logger.info("✓ Forwarded session cookie as Authorization header", {
+          requestId: req.requestId,
+          path: req.path
+        });
+      }
+      
       if (req.user) {
         proxyReq.setHeader("X-User-Id", req.user.userId);
         proxyReq.setHeader("X-User-Email", req.user.email);
@@ -172,11 +210,14 @@ export function createProxyRoute(
     },
 
     onProxyRes: (proxyRes, req: AuthenticatedRequest) => {
+      // http-proxy-middleware automatically forwards headers including Set-Cookie
+      // cookieDomainRewrite option ensures cookies work across localhost ports
       logger.debug("Proxy response received", {
         requestId: req.requestId,
         path: req.path,
         statusCode: proxyRes.statusCode,
         userId: req.user?.userId,
+        hasCookies: Boolean(proxyRes.headers['set-cookie'])
       });
     },
 

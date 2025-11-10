@@ -15,7 +15,8 @@ import type {
 
 /**
  * Authentication Service
- * Handles all auth-related API calls to Identity Service
+ * Handles all auth-related API calls via API Gateway
+ * Routes: /auth/* (proxied to Identity Service)
  */
 export const authService = {
   /**
@@ -33,6 +34,15 @@ export const authService = {
    */
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     const response = await apiClient.post<RegisterResponse>('/auth/register', data);
+    return response.data;
+  },
+
+  /**
+   * Get current user from session
+   * GET /auth/me
+   */
+  async getCurrentUser(): Promise<{ success: boolean; user: any }> {
+    const response = await apiClient.get('/auth/me');
     return response.data;
   },
 
@@ -56,10 +66,10 @@ export const authService = {
 
   /**
    * Verify email
-   * POST /auth/verify-email
+   * GET /auth/verify-email?token=xxx
    */
   async verifyEmail(data: VerifyEmailRequest): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post('/auth/verify-email', data);
+    const response = await apiClient.get(`/auth/verify-email?token=${data.token}`);
     return response.data;
   },
 
@@ -88,14 +98,5 @@ export const authService = {
   async changePassword(data: ChangePasswordRequest): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post('/auth/change-password', data);
     return response.data;
-  },
-
-  /**
-   * Get current user profile
-   * GET /auth/me
-   */
-  async getCurrentUser(): Promise<LoginResponse['user']> {
-    const response = await apiClient.get('/auth/me');
-    return response.data.user;
   },
 };

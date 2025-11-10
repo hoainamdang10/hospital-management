@@ -16,6 +16,14 @@ export interface IdentityUserCreatedEventData {
     userId: string;
     email: string;
     role: string;
+    personalInfo?: {
+        fullName: string;
+        phoneNumber?: string;
+        address?: string;
+        dateOfBirth?: Date;
+        gender?: 'male' | 'female' | 'other';
+        citizenId?: string;
+    };
 }
 /**
  * Identity User Created Event Handler

@@ -1,7 +1,7 @@
 /**
  * Comprehensive Health Checks for Patient Registry Service
  * Monitors all critical components and dependencies
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant Monitoring
@@ -199,13 +199,16 @@ export class PatientRegistryHealthCheck {
         };
       }
 
+      const exchangeName =
+        process.env.RABBITMQ_EXCHANGE || 'hospital.events';
+
       // Try to connect to RabbitMQ
       const amqp = await import('amqplib');
       const connection = await amqp.connect(rabbitmqUrl);
       const channel = await connection.createChannel();
 
       // Verify exchange exists
-      await channel.checkExchange('patient-registry-events');
+      await channel.checkExchange(exchangeName);
 
       // Cleanup
       await channel.close();
@@ -219,7 +222,7 @@ export class PatientRegistryHealthCheck {
         responseTime,
         details: {
           connected: true,
-          exchange: 'patient-registry-events'
+          exchange: exchangeName
         }
       };
     } catch (error) {
@@ -412,20 +415,19 @@ export class PatientRegistryHealthCheck {
    */
   private calculateOverallHealth(components: Record<string, HealthCheckResult>): HealthStatus {
     const statuses = Object.values(components).map((comp: HealthCheckResult) => comp.status);
-    
+
     if (statuses.every(status => status === HealthStatus.HEALTHY)) {
       return HealthStatus.HEALTHY;
     }
-    
+
     if (statuses.some(status => status === HealthStatus.UNHEALTHY)) {
       return HealthStatus.UNHEALTHY;
     }
-    
+
     if (statuses.some(status => status === HealthStatus.DEGRADED)) {
       return HealthStatus.DEGRADED;
     }
-    
+
     return HealthStatus.UNKNOWN;
   }
 }
-

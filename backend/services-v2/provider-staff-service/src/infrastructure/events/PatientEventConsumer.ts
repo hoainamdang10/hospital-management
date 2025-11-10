@@ -1,18 +1,19 @@
 /**
  * PatientEventConsumer - RabbitMQ Consumer for Patient Registry Service Events
  * Provider/Staff Service V2
- * 
+ *
  * Subscribes to Patient Registry Service events via RabbitMQ and routes to appropriate handlers
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Clean Architecture, HIPAA
  */
 
-import * as amqp from 'amqplib';
-import { ILogger } from '../../application/interfaces/ILogger';
-import { PatientRegisteredEventHandler } from './PatientRegisteredEventHandler';
-import { PatientUpdatedEventHandler } from './PatientUpdatedEventHandler';
+import * as amqp from "amqplib";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { PatientRegisteredEventHandler } from "./PatientRegisteredEventHandler";
+import { PatientUpdatedEventHandler } from "./PatientUpdatedEventHandler";
+import { connectRabbitMQWithRetry } from "@shared/infrastructure/event-bus/rabbitmq-connection";
 
 export interface PatientEventConsumerConfig {
   rabbitmqUrl: string;
@@ -22,6 +23,8 @@ export interface PatientEventConsumerConfig {
   prefetchCount?: number;
   retryAttempts?: number;
   retryDelayMs?: number;
+  connectionRetries?: number;
+  connectionRetryDelayMs?: number;
 }
 
 /**
@@ -37,7 +40,7 @@ export class PatientEventConsumer {
     private config: PatientEventConsumerConfig,
     private logger: ILogger,
     private patientRegisteredHandler: PatientRegisteredEventHandler,
-    private patientUpdatedHandler: PatientUpdatedEventHandler
+    private patientUpdatedHandler: PatientUpdatedEventHandler,
   ) {}
 
   /**
@@ -45,31 +48,47 @@ export class PatientEventConsumer {
    */
   async connect(): Promise<void> {
     try {
-      this.logger.info('Connecting to RabbitMQ for Patient events', {
-        url: this.config.rabbitmqUrl.replace(/\/\/.*@/, '//***@'), // Mask credentials
+      this.logger.info("Connecting to RabbitMQ for Patient events", {
+        url: this.config.rabbitmqUrl.replace(/\/\/.*@/, "//***@"), // Mask credentials
         exchange: this.config.exchange,
-        queue: this.config.queueName
+        queue: this.config.queueName,
       });
 
-      // Create connection
-      this.connection = await amqp.connect(this.config.rabbitmqUrl) as any;
+      const connectionName = "PatientEventConsumer";
+      const connectionRetries =
+        this.config.connectionRetries ??
+        Number(process.env.RABBITMQ_CONNECT_MAX_RETRIES || 5);
+      const connectionRetryDelayMs =
+        this.config.connectionRetryDelayMs ??
+        Number(process.env.RABBITMQ_CONNECT_RETRY_DELAY_MS || 3000);
+
+      // Create connection with retry logic
+      this.connection = await connectRabbitMQWithRetry(
+        () => amqp.connect(this.config.rabbitmqUrl) as any,
+        this.logger,
+        {
+          connectionName,
+          maxAttempts: connectionRetries,
+          initialDelayMs: connectionRetryDelayMs,
+        },
+      );
       this.channel = await (this.connection as any).createChannel();
 
       // Set prefetch count
       await this.channel!.prefetch(this.config.prefetchCount || 10);
 
       // Assert exchange
-      await this.channel!.assertExchange(this.config.exchange, 'topic', {
-        durable: true
+      await this.channel!.assertExchange(this.config.exchange, "topic", {
+        durable: true,
       });
 
       // Assert queue
       await this.channel!.assertQueue(this.config.queueName, {
         durable: true,
         arguments: {
-          'x-message-ttl': 86400000, // 24 hours
-          'x-max-length': 10000
-        }
+          "x-message-ttl": 86400000, // 24 hours
+          "x-max-length": 10000,
+        },
       });
 
       // Bind queue to routing keys
@@ -77,11 +96,11 @@ export class PatientEventConsumer {
         await this.channel!.bindQueue(
           this.config.queueName,
           this.config.exchange,
-          routingKey
+          routingKey,
         );
-        this.logger.info('Bound queue to routing key', {
+        this.logger.info("Bound queue to routing key", {
           queue: this.config.queueName,
-          routingKey
+          routingKey,
         });
       }
 
@@ -93,31 +112,30 @@ export class PatientEventConsumer {
             await this.handleMessage(msg);
           }
         },
-        { noAck: false }
+        { noAck: false },
       );
 
       this.isConnected = true;
-      this.logger.info('PatientEventConsumer connected successfully', {
+      this.logger.info("PatientEventConsumer connected successfully", {
         queue: this.config.queueName,
-        routingKeys: this.config.routingKeys
+        routingKeys: this.config.routingKeys,
       });
 
       // Handle connection errors
-      (this.connection as any).on('error', (err: Error) => {
-        this.logger.error('RabbitMQ connection error', {
-          error: err.message
+      (this.connection as any).on("error", (err: Error) => {
+        this.logger.error("RabbitMQ connection error", {
+          error: err.message,
         });
         this.isConnected = false;
       });
 
-      (this.connection as any).on('close', () => {
-        this.logger.warn('RabbitMQ connection closed');
+      (this.connection as any).on("close", () => {
+        this.logger.warn("RabbitMQ connection closed");
         this.isConnected = false;
       });
-
     } catch (error) {
-      this.logger.error('Failed to connect PatientEventConsumer', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Failed to connect PatientEventConsumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -130,10 +148,10 @@ export class PatientEventConsumer {
     const content = msg.content.toString();
     const routingKey = msg.fields.routingKey;
 
-    this.logger.info('Received message from Patient Registry Service', {
+    this.logger.info("Received message from Patient Registry Service", {
       routingKey,
       messageId: msg.properties.messageId,
-      timestamp: msg.properties.timestamp
+      timestamp: msg.properties.timestamp,
     });
 
     try {
@@ -141,33 +159,32 @@ export class PatientEventConsumer {
 
       // Route to appropriate handler based on event type
       switch (event.eventType) {
-        case 'PatientRegistered':
+        case "PatientRegistered":
           await this.handlePatientRegistered(event);
           break;
 
-        case 'PatientUpdated':
+        case "PatientUpdated":
           await this.handlePatientUpdated(event);
           break;
 
-        case 'PatientDeactivated':
+        case "PatientDeactivated":
           await this.handlePatientDeactivated(event);
           break;
 
         default:
-          this.logger.warn('Unknown event type from Patient Registry Service', {
+          this.logger.warn("Unknown event type from Patient Registry Service", {
             eventType: event.eventType,
-            eventId: event.eventId
+            eventId: event.eventId,
           });
       }
 
       // Acknowledge message
       this.channel?.ack(msg);
-
     } catch (error) {
-      this.logger.error('Error parsing or handling message', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.logger.error("Error parsing or handling message", {
+        error: error instanceof Error ? error.message : "Unknown error",
         routingKey,
-        messageId: msg.properties.messageId
+        messageId: msg.properties.messageId,
       });
 
       // Reject and requeue message for retry
@@ -186,7 +203,7 @@ export class PatientEventConsumer {
       gender: eventData.gender || eventData.eventData?.gender,
       phoneNumber: eventData.phoneNumber || eventData.eventData?.phoneNumber,
       email: eventData.email || eventData.eventData?.email,
-      registeredAt: eventData.registeredAt || eventData.occurredAt
+      registeredAt: eventData.registeredAt || eventData.occurredAt,
     });
   }
 
@@ -196,9 +213,10 @@ export class PatientEventConsumer {
   private async handlePatientUpdated(eventData: any): Promise<void> {
     await this.patientUpdatedHandler.handle({
       patientId: eventData.patientId || eventData.aggregateId,
-      updatedFields: eventData.updatedFields || eventData.eventData?.updatedFields || {},
+      updatedFields:
+        eventData.updatedFields || eventData.eventData?.updatedFields || {},
       updatedBy: eventData.updatedBy || eventData.eventData?.updatedBy,
-      updatedAt: eventData.updatedAt || eventData.occurredAt
+      updatedAt: eventData.updatedAt || eventData.occurredAt,
     });
   }
 
@@ -207,10 +225,11 @@ export class PatientEventConsumer {
    */
   private async handlePatientDeactivated(eventData: any): Promise<void> {
     // Log for audit purposes - Provider/Staff service doesn't need to take action
-    this.logger.info('Patient deactivated', {
+    this.logger.info("Patient deactivated", {
       patientId: eventData.patientId || eventData.aggregateId,
-      deactivatedBy: eventData.deactivatedBy || eventData.eventData?.deactivatedBy,
-      reason: eventData.reason || eventData.eventData?.reason
+      deactivatedBy:
+        eventData.deactivatedBy || eventData.eventData?.deactivatedBy,
+      reason: eventData.reason || eventData.eventData?.reason,
     });
   }
 
@@ -222,10 +241,10 @@ export class PatientEventConsumer {
       await this.channel?.close();
       await (this.connection as any)?.close();
       this.isConnected = false;
-      this.logger.info('PatientEventConsumer disconnected');
+      this.logger.info("PatientEventConsumer disconnected");
     } catch (error) {
-      this.logger.error('Error disconnecting PatientEventConsumer', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error disconnecting PatientEventConsumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -237,4 +256,3 @@ export class PatientEventConsumer {
     return this.isConnected;
   }
 }
-

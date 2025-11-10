@@ -1,20 +1,25 @@
 /**
  * IdentityEventConsumer - RabbitMQ Consumer for Identity Service Events
  * Provider/Staff Service V2
- * 
+ *
  * Subscribes to Identity Service events via RabbitMQ and routes to appropriate handlers
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Clean Architecture, HIPAA
  */
 
-import * as amqp from 'amqplib';
-import { ILogger } from '../../application/interfaces/ILogger';
-import { UserCreatedEventHandler } from './UserCreatedEventHandler';
-import { UserDeactivatedEventHandler } from './UserDeactivatedEventHandler';
-import { UserRoleChangedEventHandler } from './UserRoleChangedEventHandler';
-import { UserCreatedEvent, UserDeactivatedEvent, UserRoleChangedEvent } from '@shared/domain/events/domain-events';
+import * as amqp from "amqplib";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { UserCreatedEventHandler } from "./UserCreatedEventHandler";
+import { UserDeactivatedEventHandler } from "./UserDeactivatedEventHandler";
+import { UserRoleChangedEventHandler } from "./UserRoleChangedEventHandler";
+import {
+  UserCreatedEvent,
+  UserDeactivatedEvent,
+  UserRoleChangedEvent,
+} from "@shared/domain/events/domain-events";
+import { connectRabbitMQWithRetry } from "@shared/infrastructure/event-bus/rabbitmq-connection";
 
 export interface IdentityEventConsumerConfig {
   rabbitmqUrl: string;
@@ -24,6 +29,8 @@ export interface IdentityEventConsumerConfig {
   prefetchCount?: number;
   retryAttempts?: number;
   retryDelayMs?: number;
+  connectionRetries?: number;
+  connectionRetryDelayMs?: number;
 }
 
 /**
@@ -40,7 +47,7 @@ export class IdentityEventConsumer {
     private logger: ILogger,
     private userCreatedHandler: UserCreatedEventHandler,
     private userDeactivatedHandler: UserDeactivatedEventHandler,
-    private userRoleChangedHandler: UserRoleChangedEventHandler
+    private userRoleChangedHandler: UserRoleChangedEventHandler,
   ) {}
 
   /**
@@ -48,33 +55,49 @@ export class IdentityEventConsumer {
    */
   async connect(): Promise<void> {
     try {
-      this.logger.info('Connecting to RabbitMQ for Identity Service events', {
+      this.logger.info("Connecting to RabbitMQ for Identity Service events", {
         url: this.config.rabbitmqUrl,
         exchange: this.config.exchange,
-        queueName: this.config.queueName
+        queueName: this.config.queueName,
       });
 
-      // Create connection
-      this.connection = await amqp.connect(this.config.rabbitmqUrl) as any;
+      const connectionName = "IdentityEventConsumer";
+      const connectionRetries =
+        this.config.connectionRetries ??
+        Number(process.env.RABBITMQ_CONNECT_MAX_RETRIES || 5);
+      const connectionRetryDelayMs =
+        this.config.connectionRetryDelayMs ??
+        Number(process.env.RABBITMQ_CONNECT_RETRY_DELAY_MS || 3000);
+
+      // Create connection with retry logic
+      this.connection = await connectRabbitMQWithRetry(
+        () => amqp.connect(this.config.rabbitmqUrl) as any,
+        this.logger,
+        {
+          connectionName,
+          maxAttempts: connectionRetries,
+          initialDelayMs: connectionRetryDelayMs,
+        },
+      );
       this.channel = await (this.connection as any).createChannel();
 
       // Set prefetch count for fair dispatch
       await this.channel!.prefetch(this.config.prefetchCount || 1);
 
       // Assert exchange (should already exist, created by Identity Service)
-      await this.channel!.assertExchange(this.config.exchange, 'topic', {
-        durable: true
+      await this.channel!.assertExchange(this.config.exchange, "topic", {
+        durable: true,
       });
 
       // Assert queue
       await this.channel!.assertQueue(this.config.queueName, {
         durable: true,
         arguments: {
-          'x-message-ttl': 86400000, // 24 hours
-          'x-max-length': 10000,
-          'x-dead-letter-exchange': `${this.config.exchange}.dlx`,
-          'x-dead-letter-routing-key': 'dead-letter'
-        }
+          "x-message-ttl": 86400000, // 24 hours
+          "x-max-length": 10000,
+          "x-dead-letter-exchange": `${this.config.exchange}.dlx`,
+          "x-dead-letter-routing-key": "dead-letter",
+        },
       });
 
       // Bind queue to exchange with routing keys
@@ -82,12 +105,12 @@ export class IdentityEventConsumer {
         await this.channel!.bindQueue(
           this.config.queueName,
           this.config.exchange,
-          routingKey
+          routingKey,
         );
-        this.logger.info('Queue bound to exchange', {
+        this.logger.info("Queue bound to exchange", {
           queue: this.config.queueName,
           exchange: this.config.exchange,
-          routingKey
+          routingKey,
         });
       }
 
@@ -101,13 +124,14 @@ export class IdentityEventConsumer {
             await this.handleMessage(msg);
             this.channel!.ack(msg);
           } catch (error) {
-            this.logger.error('Error processing message', {
-              error: error instanceof Error ? error.message : 'Unknown error',
-              messageId: msg.properties.messageId
+            this.logger.error("Error processing message", {
+              error: error instanceof Error ? error.message : "Unknown error",
+              messageId: msg.properties.messageId,
             });
 
             // Retry logic
-            const retryCount = (msg.properties.headers?.['x-retry-count'] || 0) as number;
+            const retryCount = (msg.properties.headers?.["x-retry-count"] ||
+              0) as number;
             const maxRetries = this.config.retryAttempts || 3;
 
             if (retryCount < maxRetries) {
@@ -123,31 +147,33 @@ export class IdentityEventConsumer {
             }
           }
         },
-        { noAck: false }
+        { noAck: false },
       );
 
       this.isConnected = true;
-      this.logger.info('Successfully connected to RabbitMQ and started consuming Identity Service events', {
-        queueName: this.config.queueName,
-        routingKeys: this.config.routingKeys
-      });
+      this.logger.info(
+        "Successfully connected to RabbitMQ and started consuming Identity Service events",
+        {
+          queueName: this.config.queueName,
+          routingKeys: this.config.routingKeys,
+        },
+      );
 
       // Handle connection errors
-      this.connection!.on('error', (err) => {
-        this.logger.error('RabbitMQ connection error', { error: err.message });
+      this.connection!.on("error", (err) => {
+        this.logger.error("RabbitMQ connection error", { error: err.message });
         this.isConnected = false;
       });
 
-      this.connection!.on('close', () => {
-        this.logger.warn('RabbitMQ connection closed');
+      this.connection!.on("close", () => {
+        this.logger.warn("RabbitMQ connection closed");
         this.isConnected = false;
         // Attempt reconnection after delay
         setTimeout(() => this.connect(), 5000);
       });
-
     } catch (error) {
-      this.logger.error('Failed to connect to RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Failed to connect to RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -160,10 +186,10 @@ export class IdentityEventConsumer {
     const content = msg.content.toString();
     const routingKey = msg.fields.routingKey;
 
-    this.logger.info('Received message from Identity Service', {
+    this.logger.info("Received message from Identity Service", {
       routingKey,
       messageId: msg.properties.messageId,
-      timestamp: msg.properties.timestamp
+      timestamp: msg.properties.timestamp,
     });
 
     try {
@@ -171,32 +197,31 @@ export class IdentityEventConsumer {
 
       // Route to appropriate handler based on event type
       switch (event.eventType) {
-        case 'UserCreatedEvent':
+        case "UserCreatedEvent":
           await this.handleUserCreated(event);
           break;
 
-        case 'UserDeletedEvent':
-        case 'UserDeactivatedEvent':
+        case "UserDeletedEvent":
+        case "UserDeactivatedEvent":
           // Handle both UserDeletedEvent (soft delete) and UserDeactivatedEvent
           await this.handleUserDeactivated(event);
           break;
 
-        case 'UserRoleChangedEvent':
+        case "UserRoleChangedEvent":
           await this.handleUserRoleChanged(event);
           break;
 
         default:
-          this.logger.warn('Unknown event type from Identity Service', {
+          this.logger.warn("Unknown event type from Identity Service", {
             eventType: event.eventType,
-            eventId: event.eventId
+            eventId: event.eventId,
           });
       }
-
     } catch (error) {
-      this.logger.error('Error parsing or handling message', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.logger.error("Error parsing or handling message", {
+        error: error instanceof Error ? error.message : "Unknown error",
         routingKey,
-        messageId: msg.properties.messageId
+        messageId: msg.properties.messageId,
       });
       throw error;
     }
@@ -210,10 +235,10 @@ export class IdentityEventConsumer {
     const event = new UserCreatedEvent(
       payload.userId || eventData.aggregateId,
       payload.email,
-      payload.fullName || '',
+      payload.fullName || "",
       payload.role || payload.roleType,
       payload.citizenId,
-      payload.phoneNumber
+      payload.phoneNumber,
     );
 
     await this.userCreatedHandler.handle(event);
@@ -227,8 +252,8 @@ export class IdentityEventConsumer {
     const event = new UserDeactivatedEvent(
       payload.userId || eventData.aggregateId,
       payload.email,
-      payload.reason || 'User deactivated',
-      payload.deactivatedBy || payload.deletedBy || 'system'
+      payload.reason || "User deactivated",
+      payload.deactivatedBy || payload.deletedBy || "system",
     );
 
     await this.userDeactivatedHandler.handle(event);
@@ -243,8 +268,8 @@ export class IdentityEventConsumer {
       payload.userId || eventData.aggregateId,
       payload.oldRole,
       payload.newRole,
-      payload.changedBy || 'system',
-      payload.reason
+      payload.changedBy || "system",
+      payload.reason,
     );
 
     await this.userRoleChangedHandler.handle(event);
@@ -266,10 +291,10 @@ export class IdentityEventConsumer {
       }
 
       this.isConnected = false;
-      this.logger.info('Disconnected from RabbitMQ');
+      this.logger.info("Disconnected from RabbitMQ");
     } catch (error) {
-      this.logger.error('Error disconnecting from RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error disconnecting from RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -278,7 +303,11 @@ export class IdentityEventConsumer {
    * Check if consumer is connected
    */
   isHealthy(): boolean {
-    return this.isConnected && this.connection !== undefined && this.channel !== undefined;
+    return (
+      this.isConnected &&
+      this.connection !== undefined &&
+      this.channel !== undefined
+    );
   }
 
   /**
@@ -290,7 +319,7 @@ export class IdentityEventConsumer {
       queueName: this.config.queueName,
       exchange: this.config.exchange,
       routingKeys: this.config.routingKeys,
-      prefetchCount: this.config.prefetchCount || 1
+      prefetchCount: this.config.prefetchCount || 1,
     };
   }
 }

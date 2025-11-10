@@ -55,6 +55,10 @@ export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
      * Factory method: Reconstitute from persistence
      */
     static reconstitute(props: PatientProps): Patient;
+    private static buildRegisteredEventData;
+    private static mapContactInfo;
+    private static mapInsuranceInfo;
+    private static mapEmergencyContacts;
     /**
      * Update personal information
      */

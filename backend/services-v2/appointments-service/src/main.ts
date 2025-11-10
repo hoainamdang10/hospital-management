@@ -280,8 +280,9 @@ console.log(
 app.use("/api/v1", createAppointmentRoutes());
 
 // Query routes (Read operations - CQRS Queries with denormalized data)
-// Moved from /api/v2 to /api/v1 for consistency
+// Mounted on both v1 and v2 for backward compatibility
 app.use("/api/v1", createAppointmentQueryRoutes());
+app.use("/api/v2", createAppointmentQueryRoutes()); // For API Gateway v2 routes
 
 // Availability routes (Provider schedule & available slots)
 // Moved from /api/appointments to /api/v1/appointments for consistency

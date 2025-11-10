@@ -18,6 +18,14 @@ export interface IdentityUserCreatedEventData {
   userId: string;
   email: string;
   role: string;
+  personalInfo?: {
+    fullName: string;
+    phoneNumber?: string;
+    address?: string;
+    dateOfBirth?: Date;
+    gender?: 'male' | 'female' | 'other';
+    citizenId?: string;
+  };
 }
 
 /**
@@ -51,7 +59,7 @@ export class IdentityUserCreatedEventHandler {
 
       // Check if patient already exists for this user
       const existingPatient = await this.patientRepository.findByUserId(eventData.userId);
-      
+
       if (existingPatient) {
         this.logger.warn('Patient already exists for user', {
           userId: eventData.userId,
@@ -60,10 +68,32 @@ export class IdentityUserCreatedEventHandler {
         return;
       }
 
-      // Log that patient registration is pending
-      // Actual patient creation happens via RegisterPatientUseCase
-      this.logger.info('User created with PATIENT role - awaiting patient registration', {
+      // Auto-create patient record from user information
+      // Use minimal required data - personalInfo is optional
+      const fullName = eventData.personalInfo?.fullName || eventData.email.split('@')[0];
+
+      this.logger.info('Auto-creating patient record from user creation event', {
         userId: eventData.userId,
+        email: eventData.email,
+        fullName: fullName,
+        hasPersonalInfo: !!eventData.personalInfo
+      });
+
+      // Create patient using repository with minimal required data
+      const patient = await this.patientRepository.createFromUserEvent({
+        userId: eventData.userId,
+        email: eventData.email,
+        fullName: fullName,
+        phoneNumber: eventData.personalInfo?.phoneNumber,
+        address: eventData.personalInfo?.address,
+        dateOfBirth: eventData.personalInfo?.dateOfBirth,
+        gender: eventData.personalInfo?.gender,
+        citizenId: eventData.personalInfo?.citizenId
+      });
+
+      this.logger.info('Patient record created successfully', {
+        userId: eventData.userId,
+        patientId: patient.id,
         email: eventData.email
       });
 

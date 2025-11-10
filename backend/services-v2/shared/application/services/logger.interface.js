@@ -16,21 +16,20 @@ class ConsoleLogger {
     constructor(serviceName = 'service') {
         this.serviceName = serviceName;
     }
-    debug(message, meta) {
-        console.log(`[DEBUG] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, meta || '');
+    debug(message, meta = {}) {
+        console.log(`[DEBUG] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
     }
-    info(message, meta) {
-        console.log(`[INFO] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, meta || '');
+    info(message, meta = {}) {
+        console.log(`[INFO] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
     }
-    warn(message, meta) {
-        console.warn(`[WARN] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, meta || '');
+    warn(message, meta = {}) {
+        console.warn(`[WARN] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
     }
-    error(message, meta) {
-        console.error(`[ERROR] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, meta || '');
+    error(message, meta = {}) {
+        console.error(`[ERROR] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
     }
-    fatal(message, meta) {
-        console.error(`[FATAL] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, meta || '');
+    fatal(message, meta = {}) {
+        console.error(`[FATAL] [${this.serviceName}] ${new Date().toISOString()} - ${message}`, Object.keys(meta).length ? meta : '');
     }
 }
 exports.ConsoleLogger = ConsoleLogger;
-//# sourceMappingURL=logger.interface.js.map

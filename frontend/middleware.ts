@@ -13,9 +13,9 @@ const publicRoutes = [
   '/doctors',
   '/contact',
   '/faq',
-  '/login',
-  '/register',
-  '/verify-email',
+  '/auth/login',
+  '/auth/register',
+  '/auth/verify-email',
   '/forgot-password',
   '/reset-password',
   '/activate-staff',
@@ -28,16 +28,16 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // DEVELOPMENT MODE: Bypass authentication if DEV_MODE is enabled
-  // Force bypass in development (NODE_ENV check as fallback)
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true' || process.env.NODE_ENV === 'development';
+  // Only check NEXT_PUBLIC_DEV_MODE, not NODE_ENV
+  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
   
-  // Debug log
-  console.log('[MIDDLEWARE DEBUG]', {
-    pathname,
-    devMode: process.env.NEXT_PUBLIC_DEV_MODE,
-    nodeEnv: process.env.NODE_ENV,
-    isDevMode,
-  });
+  // Debug log (commented out for cleaner logs)
+  // console.log('[MIDDLEWARE DEBUG]', {
+  //   pathname,
+  //   devMode: process.env.NEXT_PUBLIC_DEV_MODE,
+  //   nodeEnv: process.env.NODE_ENV,
+  //   isDevMode,
+  // });
   
   if (isDevMode) {
     console.log('[DEV MODE] Authentication bypassed for:', pathname);
@@ -50,21 +50,23 @@ export function middleware(request: NextRequest) {
   // Check if route requires authentication
   const requiresAuth = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
   
-  // Get access token from cookies or headers
-  const accessToken = request.cookies.get('accessToken')?.value;
+  // Get session cookie (set by backend)
+  const sessionToken = request.cookies.get('session_token')?.value;
   
-  // Redirect to login if accessing protected route without token
-  if (requiresAuth && !accessToken) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+  // Redirect to login if accessing protected route without session
+  // TEMPORARILY DISABLED FOR DEBUGGING
+  if (requiresAuth && !sessionToken) {
+    console.log('[Middleware] No session cookie for protected route:', pathname);
+    // const loginUrl = new URL('/auth/login', request.url);
+    // loginUrl.searchParams.set('redirect', pathname);
+    // return NextResponse.redirect(loginUrl);
   }
   
-  // Redirect to appropriate dashboard if accessing auth pages while logged in
-  if (isPublicRoute && accessToken && (pathname === '/login' || pathname === '/register')) {
-    // TODO: Decode token to get user role and redirect to appropriate dashboard
-    return NextResponse.redirect(new URL('/patient/dashboard', request.url));
-  }
+  // Don't redirect from auth pages - let AuthContext handle it
+  // Middleware can't verify if session is still valid without making API call
+  // if (isPublicRoute && sessionToken && (pathname === '/auth/login' || pathname === '/auth/register')) {
+  //   return NextResponse.redirect(new URL('/patient/dashboard', request.url));
+  // }
   
   return NextResponse.next();
 }

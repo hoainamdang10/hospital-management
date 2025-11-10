@@ -1,186 +1,85 @@
-/**
- * CreatePayOSPaymentLinkUseCase - Application Layer
- * Use case for creating PayOS payment link
- * 
- * @author Hospital Management Team
- * @version 2.0.0
- */
-
-import { IBillingRepository } from '../../domain/repositories/IBillingRepository';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
-import { InvoiceId } from '../../domain/value-objects/InvoiceId';
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/BaseHealthcareUseCase';
-import * as crypto from 'crypto';
+import { BaseHealthcareUseCase } from '@shared/application/base/base-healthcare-use-case';
+import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { PayOSIntegrationService } from '../../infrastructure/services/PayOSIntegrationService';
 
 export interface CreatePayOSPaymentLinkRequest {
   invoiceId: string;
-  returnUrl: string;
-  cancelUrl: string;
-  description?: string;
+  buyerName?: string;
+  buyerEmail?: string;
+  buyerPhone?: string;
+  returnUrl?: string;
+  cancelUrl?: string;
 }
 
 export interface CreatePayOSPaymentLinkResponse {
   success: boolean;
-  data?: {
-    checkoutUrl: string;
-    qrCode: string;
-    deepLink: string;
-    orderCode: string;
-    amount: number;
-    currency: string;
-    expiresAt: Date;
-  };
-  message: string;
-  errors?: Array<{
-    field: string;
-    message: string;
-    code: string;
-  }>;
+  checkoutUrl: string;
+  qrCode: string;
+  paymentLinkId: string;
+  orderCode: number;
+  amount: number;
 }
 
 export class CreatePayOSPaymentLinkUseCase extends BaseHealthcareUseCase<CreatePayOSPaymentLinkRequest, CreatePayOSPaymentLinkResponse> {
-  private readonly PAYOS_API_URL = process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn';
-  private readonly PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || '';
-  private readonly PAYOS_API_KEY = process.env.PAYOS_API_KEY || '';
-  private readonly PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY || '';
+  protected readonly logger: ILogger;
 
   constructor(
-    private readonly billingRepository: IBillingRepository,
+    private readonly invoiceRepository: IInvoiceRepository,
+    private readonly payosService: PayOSIntegrationService,
     logger: ILogger
   ) {
-    super(logger);
+    super();
+    this.logger = logger;
   }
 
-  protected async executeCore(request: CreatePayOSPaymentLinkRequest): Promise<CreatePayOSPaymentLinkResponse> {
-    try {
-      this.logger.info('Creating PayOS payment link', { 
-        invoiceId: request.invoiceId
-      });
+  protected async executeImpl(request: CreatePayOSPaymentLinkRequest): Promise<CreatePayOSPaymentLinkResponse> {
+    this.logger.info('Creating PayOS payment link', { invoiceId: request.invoiceId });
 
-      // Validate invoice ID
-      const invoiceId = InvoiceId.create(request.invoiceId);
-
-      // Get invoice
-      const billing = await this.billingRepository.findById(invoiceId);
-
-      if (!billing) {
-        return {
-          success: false,
-          message: 'Không tìm thấy hóa đơn',
-          errors: [{
-            field: 'invoiceId',
-            message: 'Hóa đơn không tồn tại',
-            code: 'INVOICE_NOT_FOUND'
-          }]
-        };
-      }
-
-      // Check if invoice can be paid
-      if (billing.status === 'PAID') {
-        return {
-          success: false,
-          message: 'Hóa đơn đã được thanh toán',
-          errors: [{
-            field: 'status',
-            message: 'Không thể tạo link thanh toán cho hóa đơn đã thanh toán',
-            code: 'ALREADY_PAID'
-          }]
-        };
-      }
-
-      if (billing.status === 'CANCELLED') {
-        return {
-          success: false,
-          message: 'Hóa đơn đã bị hủy',
-          errors: [{
-            field: 'status',
-            message: 'Không thể tạo link thanh toán cho hóa đơn đã hủy',
-            code: 'INVOICE_CANCELLED'
-          }]
-        };
-      }
-
-      // Generate order code
-      const orderCode = this.generateOrderCode(billing.invoiceId.value);
-
-      // Calculate amount to pay (patient payable amount)
-      const amount = billing.patientPaymentAmount.amount;
-
-      // Create PayOS payment data
-      const paymentData = {
-        orderCode,
-        amount,
-        description: request.description || `Thanh toán hóa đơn ${billing.invoiceId.value}`,
-        returnUrl: request.returnUrl,
-        cancelUrl: request.cancelUrl,
-        items: billing.items.map(item => ({
-          name: item.vietnameseDescription || item.description,
-          quantity: item.quantity,
-          price: item.unitPrice
-        })),
-        buyerName: billing.patientId,
-        buyerEmail: '', // TODO: Get from patient service
-        buyerPhone: '', // TODO: Get from patient service
-        expiredAt: Math.floor(Date.now() / 1000) + 15 * 60 // 15 minutes
-      };
-
-      // Generate signature
-      const signature = this.generateSignature(paymentData);
-
-      // Call PayOS API (mock for now)
-      const payosResponse = await this.callPayOSAPI(paymentData, signature);
-
-      return {
-        success: true,
-        data: {
-          checkoutUrl: payosResponse.checkoutUrl,
-          qrCode: payosResponse.qrCode,
-          deepLink: payosResponse.deepLink,
-          orderCode,
-          amount,
-          currency: 'VND',
-          expiresAt: new Date(paymentData.expiredAt * 1000)
-        },
-        message: 'Tạo link thanh toán PayOS thành công'
-      };
-
-    } catch (error) {
-      this.logger.error('Error creating PayOS payment link', { error, request });
-      throw error;
+    const invoice = await this.invoiceRepository.findById(request.invoiceId);
+    if (!invoice) {
+      throw new Error('Invoice not found');
     }
-  }
 
-  private generateOrderCode(invoiceId: string): string {
-    const timestamp = Date.now();
-    return `${invoiceId}-${timestamp}`;
-  }
+    if (invoice.status.value === 'cancelled') {
+      throw new Error('Cannot create payment link for cancelled invoice');
+    }
 
-  private generateSignature(data: any): string {
-    const sortedData = this.sortObject(data);
-    const dataString = JSON.stringify(sortedData);
-    return crypto
-      .createHmac('sha256', this.PAYOS_CHECKSUM_KEY)
-      .update(dataString)
-      .digest('hex');
-  }
+    if (invoice.status.value === 'paid') {
+      throw new Error('Invoice is already paid');
+    }
 
-  private sortObject(obj: any): any {
-    return Object.keys(obj)
-      .sort()
-      .reduce((result: any, key) => {
-        result[key] = obj[key];
-        return result;
-      }, {});
-  }
+    const orderCode = PayOSIntegrationService.generateOrderCode();
 
-  private async callPayOSAPI(data: any, signature: string): Promise<any> {
-    // TODO: Replace with actual PayOS API call
-    // For now, return mock response
+    const paymentLink = await this.payosService.createPaymentLink({
+      orderCode,
+      amount: invoice.outstandingAmount.amount,
+      description: `Thanh toán hóa đơn ${invoice.invoiceNumber || invoice.id}`,
+      items: invoice.items.map(item => ({
+        name: item.description,
+        quantity: item.quantity,
+        price: item.unitPrice.amount
+      })),
+      buyerName: request.buyerName,
+      buyerEmail: request.buyerEmail,
+      buyerPhone: request.buyerPhone,
+      returnUrl: request.returnUrl || `${process.env.FRONTEND_URL}/billing/payment/success`,
+      cancelUrl: request.cancelUrl || `${process.env.FRONTEND_URL}/billing/payment/cancel`
+    });
+
+    this.logger.info('PayOS payment link created', { 
+      invoiceId: request.invoiceId,
+      orderCode,
+      paymentLinkId: paymentLink.paymentLinkId 
+    });
+
     return {
-      checkoutUrl: `https://pay.payos.vn/web/${data.orderCode}`,
-      qrCode: `https://img.vietqr.io/image/payos-${data.orderCode}.png`,
-      deepLink: `payos://pay/${data.orderCode}`
+      success: true,
+      checkoutUrl: paymentLink.checkoutUrl,
+      qrCode: paymentLink.qrCode,
+      paymentLinkId: paymentLink.paymentLinkId,
+      orderCode: paymentLink.orderCode,
+      amount: paymentLink.amount
     };
   }
 }
-

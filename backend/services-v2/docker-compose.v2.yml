@@ -55,6 +55,9 @@ services:
       context: .
       dockerfile: ./api-gateway/Dockerfile
     container_name: hospital-api-gateway-v2
+    env_file:
+      - .env.docker
+      - ./api-gateway/.env.docker
     ports:
       - "3101:3101"
     environment:
@@ -76,6 +79,8 @@ services:
       - CLINICAL_EMR_SERVICE_URL=http://clinical-emr-service:3007
       - BILLING_SERVICE_URL=http://billing-service:3009
       - NOTIFICATIONS_SERVICE_URL=http://notifications-service:3011
+      - DEPARTMENT_SERVICE_URL=http://department-service:3025
+      - SCHEDULER_SERVICE_URL=http://scheduler-service:3030
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3101
       # Redis Configuration (for distributed rate limiting)
       - REDIS_URL=redis://redis-v2:6379
@@ -142,6 +147,9 @@ services:
       context: .
       dockerfile: ./identity-service/Dockerfile
     container_name: hospital-identity-service-v2
+    env_file:
+      - .env.docker
+      - ./identity-service/.env.docker
     ports:
       - "3001:3001"
     environment:
@@ -163,8 +171,8 @@ services:
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
       - EMAIL_DELIVERY_MODE=${EMAIL_DELIVERY_MODE}
       - AUTO_VERIFY_PENDING=${AUTO_VERIFY_PENDING}
-      - EMAIL_FROM=${EMAIL_FROM}
-      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
+      - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME}
       - FRONTEND_URL=${FRONTEND_URL}
       # Internal service authentication (disabled for demo/development)
       - INTERNAL_AUTH_ENABLED=false
@@ -210,8 +218,8 @@ services:
       # Email Verification Configuration
       - RESEND_API_KEY=${RESEND_API_KEY}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
-      - EMAIL_FROM=${EMAIL_FROM}
-      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
+      - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME}
       - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - redis-v2
@@ -232,6 +240,9 @@ services:
       context: .
       dockerfile: ./patient-registry-service/Dockerfile
     container_name: hospital-patient-registry-v2
+    env_file:
+      - .env.docker
+      - ./patient-registry-service/.env.docker
     ports:
       - "3003:3003"
     environment:
@@ -264,6 +275,9 @@ services:
       context: .
       dockerfile: ./provider-staff-service/Dockerfile
     container_name: hospital-provider-staff-v2
+    env_file:
+      - .env.docker
+      - ./provider-staff-service/.env.docker
     ports:
       - "3002:3002"
     environment:
@@ -299,6 +313,9 @@ services:
       context: .
       dockerfile: ./department-service/Dockerfile
     container_name: hospital-department-v2
+    env_file:
+      - .env.docker
+      - ./department-service/.env.docker
     ports:
       - "3025:3025"
     environment:
@@ -326,6 +343,9 @@ services:
       context: .
       dockerfile: ./appointments-service/Dockerfile
     container_name: hospital-appointments-v2
+    env_file:
+      - .env.docker
+      - ./appointments-service/.env.docker
     ports:
       - "3004:3004"
     environment:
@@ -364,6 +384,9 @@ services:
       context: ./clinical-emr-service
       dockerfile: Dockerfile
     container_name: hospital-clinical-emr-v2
+    env_file:
+      - .env.docker
+      - ./clinical-emr-service/.env.docker
     ports:
       - "3007:3007"
     environment:
@@ -401,6 +424,9 @@ services:
       context: ./scheduler-service
       dockerfile: Dockerfile
     container_name: hospital-scheduler-v2
+    env_file:
+      - .env.docker
+      - ./scheduler-service/.env.docker
     ports:
       - "3030:3030"
     environment:
@@ -441,6 +467,9 @@ services:
       context: .
       dockerfile: ./billing-service/Dockerfile
     container_name: hospital-billing-v2
+    env_file:
+      - .env.docker
+      - ./billing-service/.env.docker
     ports:
       - "3009:3009"
     environment:
@@ -471,15 +500,24 @@ services:
     networks:
       - hospital-v2-network
     profiles:
-      - supporting
+      - business
       - dev
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3009/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   notifications-service:
     build:
       context: .
       dockerfile: ./notifications-service/Dockerfile
     container_name: hospital-notifications-v2
+    env_file:
+      - .env.docker
+      - ./notifications-service/.env.docker
     ports:
       - "3011:3011"
     environment:

@@ -1,186 +1,141 @@
-/**
- * GetRevenueReportUseCase - Application Layer
- * Use case for generating revenue report
- * 
- * @author Hospital Management Team
- * @version 2.0.0
- */
-
-import { IBillingRepository } from '../../domain/repositories/IBillingRepository';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/BaseHealthcareUseCase';
+import { BaseHealthcareUseCase } from '@shared/application/base/base-healthcare-use-case';
+import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface GetRevenueReportRequest {
-  dateFrom: Date;
-  dateTo: Date;
-  groupBy: 'day' | 'week' | 'month';
-  doctorId?: string;
-  insuranceType?: string;
+  fromDate: Date;
+  toDate: Date;
+  groupBy?: 'day' | 'week' | 'month';
 }
 
-export interface GetRevenueReportResponse {
-  success: boolean;
-  data?: {
-    period: {
-      from: Date;
-      to: Date;
-      groupBy: string;
-    };
-    summary: {
-      totalRevenue: number;
-      totalInvoices: number;
-      averageInvoiceAmount: number;
-      paidInvoices: number;
-      pendingInvoices: number;
-      currency: string;
-    };
-    breakdown: Array<{
-      period: string;
-      date: Date;
-      revenue: number;
-      invoiceCount: number;
-      averageAmount: number;
-    }>;
-    byPaymentMethod?: {
-      cash: number;
-      card: number;
-      bankTransfer: number;
-      payos: number;
-      insurance: number;
-    };
-    byInsuranceType?: {
-      bhyt: number;
-      bhtn: number;
-      private: number;
-      none: number;
-    };
+export interface RevenueBreakdown {
+  period: string;
+  totalRevenue: number;
+  invoiceCount: number;
+  averageInvoiceAmount: number;
+}
+
+export interface RevenueReport {
+  period: {
+    from: Date;
+    to: Date;
   };
-  message: string;
-  errors?: Array<{
-    field: string;
-    message: string;
-    code: string;
-  }>;
+  summary: {
+    totalRevenue: number;
+    totalInvoices: number;
+    averageInvoiceAmount: number;
+    paidInvoices: number;
+    pendingInvoices: number;
+  };
+  breakdown: RevenueBreakdown[];
+  byPaymentMethod: {
+    [method: string]: number;
+  };
+  byInsuranceType: {
+    [type: string]: number;
+  };
 }
 
-export class GetRevenueReportUseCase extends BaseHealthcareUseCase<GetRevenueReportRequest, GetRevenueReportResponse> {
+export class GetRevenueReportUseCase extends BaseHealthcareUseCase<GetRevenueReportRequest, RevenueReport> {
+  protected readonly logger: ILogger;
+
   constructor(
-    private readonly billingRepository: IBillingRepository,
+    private readonly invoiceRepository: IInvoiceRepository,
     logger: ILogger
   ) {
-    super(logger);
+    super();
+    this.logger = logger;
   }
 
-  protected async executeCore(request: GetRevenueReportRequest): Promise<GetRevenueReportResponse> {
-    try {
-      this.logger.info('Generating revenue report', { 
-        dateFrom: request.dateFrom,
-        dateTo: request.dateTo,
-        groupBy: request.groupBy
-      });
+  protected async executeImpl(request: GetRevenueReportRequest): Promise<RevenueReport> {
+    this.logger.info('Generating revenue report', { 
+      fromDate: request.fromDate,
+      toDate: request.toDate 
+    });
 
-      // Validate date range
-      if (request.dateFrom > request.dateTo) {
-        return {
-          success: false,
-          message: 'Ngày bắt đầu không thể sau ngày kết thúc',
-          errors: [{
-            field: 'dateRange',
-            message: 'Khoảng thời gian không hợp lệ',
-            code: 'INVALID_DATE_RANGE'
-          }]
-        };
-      }
+    const invoices = await this.invoiceRepository.search({
+      fromDate: request.fromDate,
+      toDate: request.toDate
+    });
 
-      // Validate date range not too large
-      const daysDiff = Math.floor((request.dateTo.getTime() - request.dateFrom.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysDiff > 365) {
-        return {
-          success: false,
-          message: 'Khoảng thời gian không được vượt quá 1 năm',
-          errors: [{
-            field: 'dateRange',
-            message: 'Khoảng thời gian quá dài',
-            code: 'DATE_RANGE_TOO_LARGE'
-          }]
-        };
-      }
-
-      // TODO: Implement repository method getRevenueByPeriod()
-      const invoices: any[] = [];
-
-      // Calculate summary
-      const summary = this.calculateSummary(invoices);
-
-      // Group by period
-      const breakdown = this.groupByPeriod(invoices, request.groupBy);
-
-      // Calculate payment method breakdown
-      const byPaymentMethod = this.calculatePaymentMethodBreakdown(invoices);
-
-      // Calculate insurance type breakdown
-      const byInsuranceType = this.calculateInsuranceTypeBreakdown(invoices);
-
-      return {
-        success: true,
-        data: {
-          period: {
-            from: request.dateFrom,
-            to: request.dateTo,
-            groupBy: request.groupBy
-          },
-          summary,
-          breakdown,
-          byPaymentMethod,
-          byInsuranceType
-        },
-        message: 'Tạo báo cáo doanh thu thành công'
-      };
-
-    } catch (error) {
-      this.logger.error('Error generating revenue report', { error, request });
-      throw error;
-    }
-  }
-
-  private calculateSummary(invoices: any[]) {
-    const paidInvoices = invoices.filter(inv => inv.status === 'PAID');
+    const paidInvoices = invoices.filter(inv => inv.status.value === 'paid');
     const totalRevenue = paidInvoices.reduce((sum, inv) => sum + inv.totalAmount.amount, 0);
 
-    return {
+    const summary = {
       totalRevenue,
       totalInvoices: invoices.length,
-      averageInvoiceAmount: invoices.length > 0 ? totalRevenue / paidInvoices.length : 0,
+      averageInvoiceAmount: paidInvoices.length > 0 ? totalRevenue / paidInvoices.length : 0,
       paidInvoices: paidInvoices.length,
-      pendingInvoices: invoices.filter(inv => inv.status === 'PENDING').length,
-      currency: 'VND'
+      pendingInvoices: invoices.filter(inv => inv.status.value === 'pending').length
     };
-  }
 
-  private groupByPeriod(invoices: any[], groupBy: string) {
-    // TODO: Implement grouping logic
-    return [];
-  }
+    const breakdown = this.groupByPeriod(paidInvoices, request.groupBy || 'month');
 
-  private calculatePaymentMethodBreakdown(invoices: any[]) {
-    // TODO: Implement payment method breakdown
+    const byPaymentMethod: { [method: string]: number } = {};
+    paidInvoices.forEach(invoice => {
+      invoice.payments.forEach(payment => {
+        if (payment.status === 'completed') {
+          byPaymentMethod[payment.method] = (byPaymentMethod[payment.method] || 0) + payment.amount.amount;
+        }
+      });
+    });
+
+    const byInsuranceType: { [type: string]: number } = {};
+    paidInvoices.forEach(invoice => {
+      if (invoice.insurance) {
+        const type = invoice.insurance.provider;
+        byInsuranceType[type] = (byInsuranceType[type] || 0) + invoice.insuranceCoverage.amount;
+      }
+    });
+
+    this.logger.info('Revenue report generated', { 
+      totalRevenue,
+      totalInvoices: invoices.length 
+    });
+
     return {
-      cash: 0,
-      card: 0,
-      bankTransfer: 0,
-      payos: 0,
-      insurance: 0
+      period: {
+        from: request.fromDate,
+        to: request.toDate
+      },
+      summary,
+      breakdown,
+      byPaymentMethod,
+      byInsuranceType
     };
   }
 
-  private calculateInsuranceTypeBreakdown(invoices: any[]) {
-    // TODO: Implement insurance type breakdown
-    return {
-      bhyt: 0,
-      bhtn: 0,
-      private: 0,
-      none: 0
-    };
+  private groupByPeriod(invoices: any[], groupBy: 'day' | 'week' | 'month'): RevenueBreakdown[] {
+    const groups: { [key: string]: any[] } = {};
+
+    invoices.forEach(invoice => {
+      const date = new Date(invoice.createdAt);
+      let key: string;
+
+      if (groupBy === 'day') {
+        key = date.toISOString().split('T')[0];
+      } else if (groupBy === 'week') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split('T')[0];
+      } else {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(invoice);
+    });
+
+    return Object.entries(groups).map(([period, periodInvoices]) => {
+      const totalRevenue = periodInvoices.reduce((sum, inv) => sum + inv.totalAmount.amount, 0);
+      return {
+        period,
+        totalRevenue,
+        invoiceCount: periodInvoices.length,
+        averageInvoiceAmount: totalRevenue / periodInvoices.length
+      };
+    }).sort((a, b) => a.period.localeCompare(b.period));
   }
 }
-

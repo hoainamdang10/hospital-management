@@ -119,9 +119,10 @@ export class AuthenticatedUser extends Entity<AuthenticatedUserProps> {
       throw new Error("User must have at least one role");
     }
 
-    if (!this.props.permissions || this.props.permissions.length === 0) {
-      throw new Error("User must have at least one permission");
-    }
+    // Permissions are optional - user may only have roles
+    // if (!this.props.permissions || this.props.permissions.length === 0) {
+    //   throw new Error("User must have at least one permission");
+    // }
 
     if (this.props.issuedAt >= this.props.expiresAt) {
       throw new Error("Token expiration time must be after issued time");

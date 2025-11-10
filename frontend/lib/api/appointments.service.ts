@@ -20,7 +20,7 @@ export const appointmentsService = {
    */
   async schedule(data: ScheduleAppointmentRequest): Promise<ScheduleAppointmentResponse> {
     const response = await apiClient.post<ScheduleAppointmentResponse>(
-      '/api/v1/appointments',
+      '/v1/appointments',
       data
     );
     return response.data;
@@ -31,7 +31,7 @@ export const appointmentsService = {
    * GET /api/v2/appointments
    */
   async list(params?: ListAppointmentsParams): Promise<ListAppointmentsResponse> {
-    const response = await apiClient.get<ListAppointmentsResponse>('/api/v2/appointments', {
+    const response = await apiClient.get<ListAppointmentsResponse>('/v2/appointments', {
       params,
     });
     return response.data;
@@ -42,7 +42,7 @@ export const appointmentsService = {
    * GET /api/v2/appointments/:id
    */
   async getById(id: string): Promise<AppointmentReadModel> {
-    const response = await apiClient.get<AppointmentReadModel>(`/api/v2/appointments/${id}`);
+    const response = await apiClient.get<AppointmentReadModel>(`/v2/appointments/${id}`);
     return response.data;
   },
 
@@ -52,7 +52,7 @@ export const appointmentsService = {
    */
   async confirm(id: string): Promise<SuccessResponse> {
     const response = await apiClient.post<SuccessResponse>(
-      `/api/v1/appointments/${id}/confirm`
+      `/v1/appointments/${id}/confirm`
     );
     return response.data;
   },
@@ -63,7 +63,7 @@ export const appointmentsService = {
    */
   async cancel(id: string, data: CancelAppointmentRequest): Promise<SuccessResponse> {
     const response = await apiClient.post<SuccessResponse>(
-      `/api/v1/appointments/${id}/cancel`,
+      `/v1/appointments/${id}/cancel`,
       data
     );
     return response.data;
@@ -82,7 +82,7 @@ export const appointmentsService = {
     }
   ): Promise<SuccessResponse> {
     const response = await apiClient.post<SuccessResponse>(
-      `/api/v1/appointments/${id}/reschedule`,
+      `/v1/appointments/${id}/reschedule`,
       data
     );
     return response.data;
@@ -90,7 +90,7 @@ export const appointmentsService = {
 
   /**
    * Get appointments for a specific patient
-   * GET /api/v1/patients/:patientId/appointments
+   * GET /api/v2/patients/:patientId/appointments
    */
   async getPatientAppointments(
     patientId: string,
@@ -103,7 +103,7 @@ export const appointmentsService = {
     }
   ): Promise<ListAppointmentsResponse> {
     const response = await apiClient.get<ListAppointmentsResponse>(
-      `/api/v1/patients/${patientId}/appointments`,
+      `/v2/patients/${patientId}/appointments`,
       { params }
     );
     return response.data;

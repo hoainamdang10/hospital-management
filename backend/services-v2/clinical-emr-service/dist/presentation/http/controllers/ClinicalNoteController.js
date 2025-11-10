@@ -3,12 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClinicalNoteController = void 0;
 const pagination_1 = require("../../../shared/utils/pagination");
 class ClinicalNoteController {
-    constructor(createUseCase, listUseCase, deleteUseCase, auditLogUseCase, recordAccessUseCase) {
+    constructor(createUseCase, listUseCase, deleteUseCase, auditLogUseCase, recordAccessUseCase, eventDispatcher) {
         this.createUseCase = createUseCase;
         this.listUseCase = listUseCase;
         this.deleteUseCase = deleteUseCase;
         this.auditLogUseCase = auditLogUseCase;
         this.recordAccessUseCase = recordAccessUseCase;
+        this.eventDispatcher = eventDispatcher;
         this.list = async (req, res, next) => {
             try {
                 await this.ensureRecordAccess(req);
@@ -32,6 +33,10 @@ class ClinicalNoteController {
                     recordId: req.params.recordId,
                 });
                 res.status(201).json({ success: true, data: dto });
+                const patientId = await this.getPatientId(req.params.recordId);
+                if (patientId) {
+                    await this.eventDispatcher.clinicalNoteCreated(dto, patientId, req.user?.id);
+                }
                 await this.logAudit(req, "clinical_note.created");
             }
             catch (error) {
@@ -80,6 +85,13 @@ class ClinicalNoteController {
             id: req.params.recordId,
             patientId: req.user?.role === "patient" ? req.user.patientId : undefined,
         });
+    }
+    async getPatientId(recordId) {
+        if (!this.recordAccessUseCase) {
+            return null;
+        }
+        const record = await this.recordAccessUseCase.execute({ id: recordId });
+        return record?.patientId ?? null;
     }
 }
 exports.ClinicalNoteController = ClinicalNoteController;

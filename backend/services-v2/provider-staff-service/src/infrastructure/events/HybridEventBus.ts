@@ -1,14 +1,14 @@
 /**
  * Hybrid Event Bus
  * Publishes events to both Supabase (local) and RabbitMQ (cross-service)
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Clean Architecture
  */
 
 import { IEventBus } from '@shared/events/event-bus.interface';
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent, buildRoutingKey } from '@shared/domain/base/domain-event';
 import { ILogger } from '../../application/interfaces/ILogger';
 import { SupabaseEventBus } from '../messaging/SupabaseEventBus';
 import { RabbitMQEventPublisher, IntegrationEvent } from './RabbitMQEventPublisher';
@@ -170,23 +170,47 @@ export class HybridEventBus implements IEventBus {
    * Convert DomainEvent to IntegrationEvent for RabbitMQ
    */
   private convertToIntegrationEvent(event: DomainEvent): IntegrationEvent {
+    const normalizedEventType = this.buildEventType(event);
+    const originalEventType = event.eventType;
+
     return {
       eventId: event.eventId,
-      eventType: event.eventType,
+      eventType: normalizedEventType,
       aggregateId: event.aggregateId,
       aggregateType: event.aggregateType || 'ProviderStaff',
       occurredAt: (event as any).timestamp || new Date(),
       serviceName: this.serviceName,
       eventData: this.extractEventData(event),
+      routingKey: normalizedEventType,
       metadata: {
-        priority: this.determineEventPriority(event.eventType),
+        priority: this.determineEventPriority(originalEventType),
         complianceLevel: 'hipaa',
-        containsPHI: this.containsPHI(event.eventType),
+        containsPHI: this.containsPHI(originalEventType),
         eventCategory: 'provider-staff',
-        eventSubcategory: this.getEventSubcategory(event.eventType),
-        vietnameseDescription: this.getVietnameseDescription(event.eventType)
+        eventSubcategory: this.getEventSubcategory(originalEventType),
+        vietnameseDescription: this.getVietnameseDescription(originalEventType),
+        originalEventType
       }
     };
+  }
+
+  private buildEventType(event: DomainEvent): string {
+    const aggregateType = event.aggregateType || 'ProviderStaff';
+    const routingKey = buildRoutingKey(aggregateType, event.eventType);
+    if (routingKey && routingKey.length > 0) {
+      return routingKey;
+    }
+
+    const aggregateSegment = aggregateType
+      .replace(/([a-z0-9])([A-Z])/g, '$1.$2')
+      .replace(/[\s_-]+/g, '.')
+      .toLowerCase();
+    const eventSegment = event.eventType
+      .replace(/([a-z0-9])([A-Z])/g, '$1.$2')
+      .replace(/[\s_-]+/g, '.')
+      .toLowerCase();
+
+    return `${aggregateSegment}.${eventSegment}`;
   }
 
   /**
@@ -194,7 +218,7 @@ export class HybridEventBus implements IEventBus {
    */
   private extractEventData(event: DomainEvent): any {
     const data: any = { ...event };
-    
+
     // Remove metadata fields
     delete data.eventId;
     delete data.eventType;
@@ -213,7 +237,7 @@ export class HybridEventBus implements IEventBus {
   private determineEventPriority(eventType: string): 'low' | 'normal' | 'high' | 'critical' {
     const criticalEvents = ['StaffStatusChanged', 'StaffEmploymentStatusUpdated'];
     const highEvents = ['StaffRegistered', 'StaffCredentialVerified'];
-    
+
     if (criticalEvents.includes(eventType)) return 'critical';
     if (highEvents.includes(eventType)) return 'high';
     return 'normal';
@@ -287,4 +311,3 @@ export class HybridEventBus implements IEventBus {
     };
   }
 }
-

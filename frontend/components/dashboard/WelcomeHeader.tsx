@@ -4,6 +4,16 @@ import { Calendar, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function WelcomeHeader({ userName = 'Bệnh nhân' }: { userName?: string }) {
+  const getDisplayName = (name: string) => {
+    // If it's an email, extract the part before @ or use a default
+    if (name.includes('@')) {
+      const emailPart = name.split('@')[0];
+      return emailPart.charAt(0).toUpperCase() + emailPart.slice(1);
+    }
+    return name;
+  };
+
+  const displayName = getDisplayName(userName);
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return '☀️ Chào buổi sáng';
@@ -35,7 +45,7 @@ export function WelcomeHeader({ userName = 'Bệnh nhân' }: { userName?: string
             <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-white/40 to-white/10 blur-sm" />
             <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm ring-2 ring-white/30">
               <span className="text-2xl font-bold text-white">
-                {userName.charAt(0).toUpperCase()}
+                {displayName.charAt(0).toUpperCase()}
               </span>
             </div>
           </div>
@@ -43,7 +53,7 @@ export function WelcomeHeader({ userName = 'Bệnh nhân' }: { userName?: string
           {/* Welcome text */}
           <div>
             <h1 className="text-3xl font-bold text-white">
-              {getGreeting()}, {userName}!
+              {getGreeting()}, {displayName}!
             </h1>
             <p className="mt-1 flex items-center text-primary-50">
               <Calendar className="mr-2 h-4 w-4" />

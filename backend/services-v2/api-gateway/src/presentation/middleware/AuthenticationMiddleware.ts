@@ -30,8 +30,17 @@ export class AuthenticationMiddleware {
         const requestId = uuidv4();
         req.requestId = requestId;
 
+        // Accept authentication from either Bearer token OR session cookie
+        // Priority: Bearer token (for backward compat) > Session cookie (new secure method)
+        let authHeader = req.headers.authorization;
+        
+        // If no Bearer token, check for session cookie
+        if (!authHeader && req.cookies?.session_token) {
+          authHeader = `Bearer ${req.cookies.session_token}`;
+        }
+
         const result = await this.authenticateRequestUseCase.execute({
-          authorizationHeader: req.headers.authorization,
+          authorizationHeader: authHeader,
           requestId,
           ip: req.ip || "unknown",
           path: req.path,

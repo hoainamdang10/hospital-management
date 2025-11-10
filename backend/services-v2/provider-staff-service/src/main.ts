@@ -23,6 +23,7 @@ import swaggerUi from "swagger-ui-express";
 // Infrastructure imports
 import { RabbitMQEventPublisher } from "./infrastructure/events/RabbitMQEventPublisher";
 import { HybridEventBus } from "./infrastructure/events/HybridEventBus";
+import { IdentityEventConsumer } from "./infrastructure/events/IdentityEventConsumer";
 import { ProviderStaffHealthCheck } from "./infrastructure/monitoring/HealthChecks";
 import { prometheusMetrics } from "./infrastructure/monitoring/PrometheusMetrics";
 import { logger } from "./infrastructure/logging/logger";
@@ -81,6 +82,7 @@ class ProviderStaffServiceApp {
   private container!: ReturnType<typeof setupDependencies>;
   private eventPublisher!: RabbitMQEventPublisher | null;
   private eventBus!: HybridEventBus | null;
+  private identityEventConsumer!: IdentityEventConsumer | null;
   private healthCheck!: ProviderStaffHealthCheck;
 
   // Use Cases
@@ -216,6 +218,9 @@ class ProviderStaffServiceApp {
 
       // Initialize RabbitMQ Event Publisher
       await this.initializeEventPublisher();
+
+      // Initialize Identity Event Consumer
+      await this.initializeIdentityEventConsumer();
 
       // Initialize error handling middleware
       // this.errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
@@ -369,6 +374,25 @@ class ProviderStaffServiceApp {
         error: error instanceof Error ? error.message : "Unknown error",
       });
       // Graceful degradation: continue without billing event subscriptions
+    }
+  }
+
+  /**
+   * Initialize Identity Event Consumer
+   */
+  private async initializeIdentityEventConsumer(): Promise<void> {
+    try {
+      this.identityEventConsumer = this.container.resolve<IdentityEventConsumer>(
+        ServiceTokens.IDENTITY_EVENT_CONSUMER,
+      );
+      await this.identityEventConsumer.connect();
+      logger.info("Identity Event Consumer connected successfully");
+    } catch (error) {
+      logger.error("Failed to initialize Identity Event Consumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      logger.warn("Continuing without Identity event consumption");
+      this.identityEventConsumer = null;
     }
   }
 

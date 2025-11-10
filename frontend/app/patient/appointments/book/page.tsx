@@ -85,14 +85,12 @@ export default function BookAppointmentPage() {
   async function loadDepartments() {
     try {
       setLoadingDepartments(true);
-      const response = await getDepartments();
-      if (response.success) {
-        // Filter out non-clinical departments
-        const clinicalDepts = response.data.filter(
-          d => !['ADMI', 'LABO', 'RADI'].includes(d.code)
-        );
-        setDepartments(clinicalDepts);
-      }
+      const allDepartments = await getDepartments();
+      // Filter out non-clinical departments
+      const clinicalDepts = allDepartments.filter(
+        d => !['ADMI', 'LABO', 'RADI'].includes(d.code)
+      );
+      setDepartments(clinicalDepts);
     } catch (error) {
       console.error('Error loading departments:', error);
       toast.error('Không thể tải danh sách khoa');

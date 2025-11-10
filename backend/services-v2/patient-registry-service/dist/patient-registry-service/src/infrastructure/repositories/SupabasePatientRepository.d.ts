@@ -46,6 +46,20 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      */
     findByBHYTNumber(bhytNumber: string): Promise<Patient | null>;
     /**
+     * Create patient from user creation event
+     * Auto-creates patient record when Identity Service creates a PATIENT user
+     */
+    createFromUserEvent(userData: {
+        userId: string;
+        email: string;
+        fullName: string;
+        phoneNumber?: string;
+        address?: string;
+        dateOfBirth?: Date;
+        gender?: 'male' | 'female' | 'other';
+        citizenId?: string;
+    }): Promise<Patient>;
+    /**
      * Save patient (create or update)
      * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
      */

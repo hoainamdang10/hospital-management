@@ -178,7 +178,7 @@ export class RegisterUserUseCase
             : undefined,
           gender: request.gender ? request.gender.toLowerCase() : undefined,
           address: request.address,
-          roleType: roleType.toLowerCase(), // Always 'patient'
+          roleType: roleType.toLowerCase(), // Convert to lowercase to match database
           rawPasswordEncrypted: encryptPassword(
             request.password,
             this.jwtSecret,

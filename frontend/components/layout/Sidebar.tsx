@@ -67,8 +67,8 @@ export function Sidebar() {
   // Don't show sidebar on public/auth pages
   const isPublicPage =
     pathname === '/' ||
-    pathname?.startsWith('/login') ||
-    pathname?.startsWith('/register') ||
+    pathname?.startsWith('/auth/login') ||
+    pathname?.startsWith('/auth/register') ||
     pathname?.startsWith('/about') ||
     pathname?.startsWith('/services') ||
     pathname?.startsWith('/doctors') ||

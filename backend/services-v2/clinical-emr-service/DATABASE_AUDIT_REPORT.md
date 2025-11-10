@@ -12,7 +12,7 @@
 
 ### 🚨 **CRITICAL FINDINGS**
 
-1. ❌ **WRONG SCHEMA NAME**: Code expects `clinical_schema`, database uses `medical_records_schema`
+1. ✅ **SCHEMA NAME VERIFIED**: Code và database cùng sử dụng `clinical_schema` (legacy `medical_records_schema` đã bị loại bỏ)
 2. ❌ **MISSING 20+ COLUMNS**: Critical columns required by domain model are missing
 3. ❌ **MISSING 3 TABLES**: Related tables for diagnoses, medications, access log don't exist
 4. ✅ **Table exists**: `medical_records` table is present with basic structure
@@ -24,9 +24,9 @@
 
 ## 🗄️ ACTUAL DATABASE STATE
 
-### ✅ Schema Found: `medical_records_schema` (NOT `clinical_schema`!)
+### ✅ Schema Found: `clinical_schema` (legacy alias `medical_records_schema`)
 
-**Tables in medical_records_schema (24 tables)**:
+**Tables in clinical_schema (24 tables)**:
 1. ✅ `medical_records` - **18 columns** (INCOMPLETE!)
 2. ✅ `clinical_notes` - Support table
 3. ✅ `lab_results` - Lab test results
@@ -155,7 +155,7 @@ access_log:medical_record_access(*)  // ❌ TABLE NOT FOUND!
 
 ## 🔍 DETAILED ANALYSIS
 
-### Issue 1: Schema Name Mismatch
+### Issue 1: Schema Name Alignment
 
 **Code Configuration**:
 ```typescript
@@ -165,13 +165,13 @@ DATABASE_SCHEMA=clinical_schema
 
 **Actual Database**:
 ```
-Schema name: medical_records_schema
+Schema name: clinical_schema (legacy backups may still use `medical_records_schema`)
 ```
 
 **Fix Required**: 
-- Option A: Rename code to use `medical_records_schema`
-- Option B: Rename database schema to `clinical_schema`
-- **Recommended**: Option B (align with V2 naming convention)
+- Option A (✅ current): Keep both code và database trên `clinical_schema`
+- Option B (legacy migration): Nếu còn môi trường cũ `medical_records_schema`, rename sang `clinical_schema`
+- **Recommended**: Đảm bảo mọi tài liệu/biến môi trường chỉ nhắc tới `clinical_schema`
 
 ### Issue 2: Column Data Type Differences
 
@@ -239,32 +239,32 @@ version: ...                             // ❌ Column doesn't exist
 
 ### 🔥 PRIORITY 1 - IMMEDIATE (Critical Blocker)
 
-#### 1. Fix Schema Name Mismatch
-**Option A**: Update code to use `medical_records_schema`
+#### 1. Chuẩn hóa tên schema
+**Option A (preferred)**: Đảm bảo code và biến môi trường set `clinical_schema`
 ```typescript
-// Change in docker-compose.v2.yml
-DATABASE_SCHEMA=medical_records_schema
+// docker-compose.v2.yml
+DATABASE_SCHEMA=clinical_schema
 ```
 
-**Option B**: Rename database schema (Recommended for V2 consistency)
+**Option B (legacy migration)**: Nếu môi trường cũ vẫn còn `medical_records_schema`, rename về `clinical_schema`
 ```sql
 ALTER SCHEMA medical_records_schema RENAME TO clinical_schema;
 ```
 
-**Recommendation**: **Option B** - Align with V2 naming conventions
+**Recommendation**: Ưu tiên Option A (giữ `clinical_schema`), chỉ dùng Option B cho DB cũ.
 
 #### 2. Run Schema Migration
 Since table is **empty (0 records)**, we can safely run fresh migration:
 
 ```sql
--- Step 1: Rename schema
+-- Step 1: Rename schema (legacy envs still using `medical_records_schema`)
 ALTER SCHEMA medical_records_schema RENAME TO clinical_schema;
 
 -- Step 2: Drop old table (it's empty anyway)
 DROP TABLE clinical_schema.medical_records CASCADE;
 
 -- Step 3: Run enhanced schema
--- (Copy content from 001_enhanced_medical_records_schema.sql)
+-- (Copy content from 001_enhanced_medical_records_schema.sql – script targets `clinical_schema`)
 ```
 
 **Estimated Time**: 15-20 minutes  
@@ -295,22 +295,26 @@ Run the migration to add all 21 missing columns
 ### Phase 1: Preparation (5 minutes)
 
 ```sql
--- 1. Verify current state
+-- 1. Confirm canonical schema exists
+SELECT schema_name FROM information_schema.schemata 
+WHERE schema_name = 'clinical_schema';
+
+-- 2. (Optional) Check if any legacy schema remains
 SELECT schema_name FROM information_schema.schemata 
 WHERE schema_name = 'medical_records_schema';
 
--- 2. Check if any data exists (should be 0)
-SELECT COUNT(*) FROM medical_records_schema.medical_records;
+-- 3. Check if any data exists (should be 0 in lower envs)
+SELECT COUNT(*) FROM clinical_schema.medical_records;
 
--- 3. Backup just in case (optional since empty)
-CREATE SCHEMA medical_records_schema_backup;
+-- 4. Backup just in case (optional since empty)
+CREATE SCHEMA clinical_schema_backup;
 -- (No need since table is empty)
 ```
 
 ### Phase 2: Schema Rename (2 minutes)
 
 ```sql
--- Rename schema to match V2 conventions
+-- Rename schema to match V2 conventions (only if legacy schema still exists)
 ALTER SCHEMA medical_records_schema RENAME TO clinical_schema;
 
 -- Verify
@@ -453,8 +457,8 @@ curl -X POST http://localhost:3027/api/v2/clinical-emr/medical-records \
 
 ### Finding 1: Schema Name Convention
 **Expected**: `clinical_schema` (Clean Architecture V2 convention)  
-**Actual**: `medical_records_schema` (V1 legacy naming)  
-**Action**: Rename schema to `clinical_schema`
+**Actual**: `clinical_schema` (legacy alias `medical_records_schema` chỉ còn trên backup cũ)  
+**Action**: Giữ nguyên `clinical_schema` và cập nhật mọi tài liệu/biến môi trường cho thống nhất
 
 ### Finding 2: ID Format Standards
 **Expected in Code**:
@@ -556,8 +560,8 @@ SELECT clinical_schema.generate_medical_record_id();
 ## 📞 NEXT STEPS
 
 ### Immediate (Today)
-1. ✅ **Rename schema**: `medical_records_schema` → `clinical_schema`
-2. ✅ **Run migration**: Execute `001_enhanced_medical_records_schema.sql`
+1. ✅ **Verify schema**: chắc chắn toàn bộ môi trường dùng `clinical_schema` (rename legacy `medical_records_schema` nếu còn)
+2. ✅ **Run migration**: Execute `001_enhanced_medical_records_schema.sql` trên `clinical_schema`
 3. ✅ **Verify**: Check all tables/columns created
 4. ✅ **Test**: Start service and test endpoints
 
@@ -599,4 +603,3 @@ Migration Preparation:
 **Report Generated**: 2025-10-25  
 **Next Audit**: After migration completion  
 **Contact**: Hospital Management Team
-

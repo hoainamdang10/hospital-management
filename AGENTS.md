@@ -731,7 +731,7 @@ GET  /health
 - Medical imaging references
 - Audit trail
 
-**Schema**: `medical_records_schema`
+**Schema**: `clinical_schema`
 
 **Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
 

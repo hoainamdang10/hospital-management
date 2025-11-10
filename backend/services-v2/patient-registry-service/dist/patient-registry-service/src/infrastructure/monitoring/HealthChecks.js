@@ -179,12 +179,13 @@ class PatientRegistryHealthCheck {
                     }
                 };
             }
+            const exchangeName = process.env.RABBITMQ_EXCHANGE || 'hospital.events';
             // Try to connect to RabbitMQ
             const amqp = await Promise.resolve().then(() => __importStar(require('amqplib')));
             const connection = await amqp.connect(rabbitmqUrl);
             const channel = await connection.createChannel();
             // Verify exchange exists
-            await channel.checkExchange('patient-registry-events');
+            await channel.checkExchange(exchangeName);
             // Cleanup
             await channel.close();
             await connection.close();
@@ -195,7 +196,7 @@ class PatientRegistryHealthCheck {
                 responseTime,
                 details: {
                     connected: true,
-                    exchange: 'patient-registry-events'
+                    exchange: exchangeName
                 }
             };
         }

@@ -44,9 +44,15 @@ frontend/.env*
 backend/.env*
 **/.env*
 .env.local
+.env.docker
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Ignore multi-env files (keep .env.example for templates)
+**/.env.local
+**/.env.docker
+!**/.env.example
 
 # Logs
 logs

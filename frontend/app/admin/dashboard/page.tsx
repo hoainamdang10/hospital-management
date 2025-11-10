@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Users, Calendar, DollarSign, UserCog, TrendingUp, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
+import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
+import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { 
@@ -21,9 +23,25 @@ import {
  * Route: /admin/dashboard
  */
 export default function AdminDashboardPage() {
+  const { user } = useAuth();
   const [dateRange, setDateRange] = useState('Nov 01, 2025 - Nov 07, 2025');
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Helper function to map height to Tailwind class
+  const getHeightClass = (height: number) => {
+    // Map height values to Tailwind's arbitrary value classes
+    if (height <= 20) return 'h-[20px]';
+    if (height <= 40) return 'h-[40px]';
+    if (height <= 60) return 'h-[60px]';
+    if (height <= 80) return 'h-[80px]';
+    if (height <= 100) return 'h-[100px]';
+    if (height <= 120) return 'h-[120px]';
+    if (height <= 140) return 'h-[140px]';
+    if (height <= 160) return 'h-[160px]';
+    if (height <= 180) return 'h-[180px]';
+    return 'h-[200px]';
+  };
   const [stats, setStats] = useState<AdminDashboardStats>({
     totalRevenue: 0,
     revenueChange: '0%',
@@ -65,24 +83,8 @@ export default function AdminDashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Bảng điều khiển</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Chào mừng trở lại, Quản trị viên! Đây là những gì đang diễn ra hôm nay.
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button className="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              <Calendar className="h-4 w-4" />
-              <span>{dateRange}</span>
-            </button>
-            <button className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
-              Xuất báo cáo
-            </button>
-          </div>
-        </div>
+        {/* Welcome Header */}
+        <WelcomeHeader userName={user?.fullName || user?.email || 'Quản trị viên'} />
 
         {/* Stats Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -202,8 +204,7 @@ export default function AdminDashboardPage() {
                           <div key={index} className="flex flex-1 flex-col items-center space-y-2">
                             <div className="relative w-full group">
                               <div
-                                className="w-full rounded-t-lg bg-blue-500 transition-all hover:bg-blue-600"
-                                style={{ height: `${height}px` }}
+                                className={`w-full rounded-t-lg bg-blue-500 transition-all hover:bg-blue-600 ${getHeightClass(height)}`}
                                 title={`${data.month}: ${data.patients} bệnh nhân`}
                               />
                               {/* Tooltip on hover */}

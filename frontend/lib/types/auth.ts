@@ -25,13 +25,11 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  fullName: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  fullName: string;
   phoneNumber?: string;
   role?: UserRole;
-  acceptTerms: boolean;
 }
 
 export interface LoginResponse {
@@ -41,6 +39,8 @@ export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: number; // seconds
+  roles?: string[]; // Backend returns roles array
+  userId?: string; // Backend returns userId
 }
 
 export interface RegisterResponse {
@@ -93,10 +93,10 @@ export interface ChangePasswordRequest {
 
 export interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
+  isLoginLoading: boolean;
+  isRegisterLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 export interface AuthContextType extends AuthState {

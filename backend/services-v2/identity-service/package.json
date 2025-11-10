@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "start": "node dist/identity-service/src/main.js",
-    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
+    "dev": "ts-node-dev --exit-child --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
     "test": "jest --coverage=false",
     "test:fast": "jest --coverage=false",
     "test:ci": "jest --coverage",

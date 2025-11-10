@@ -1,21 +1,25 @@
 /**
  * RabbitMQ Event Publisher
  * Publishes domain events to RabbitMQ for inter-service communication
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Clean Architecture
  */
 
-import amqp, { Channel, Connection } from 'amqplib';
-import { ILogger } from '../../application/interfaces/ILogger';
+import amqp, { Channel, Connection } from "amqplib";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { connectRabbitMQWithRetry } from "@shared/infrastructure/event-bus/rabbitmq-connection";
+import { buildRoutingKey } from "@shared/domain/base/domain-event";
 
 export interface RabbitMQConfig {
   url: string;
   exchange: string;
-  exchangeType: 'topic' | 'direct' | 'fanout';
+  exchangeType: "topic" | "direct" | "fanout";
   durable: boolean;
   autoDelete: boolean;
+  connectionRetries?: number;
+  connectionRetryDelayMs?: number;
 }
 
 export interface PublisherConfig {
@@ -33,13 +37,15 @@ export interface IntegrationEvent {
   occurredAt: Date;
   serviceName: string;
   eventData: any;
+  routingKey?: string;
   metadata?: {
-    priority?: 'low' | 'normal' | 'high' | 'critical';
-    complianceLevel?: 'hipaa' | 'gdpr' | 'vietnamese-healthcare';
+    priority?: "low" | "normal" | "high" | "critical";
+    complianceLevel?: "hipaa" | "gdpr" | "vietnamese-healthcare";
     containsPHI?: boolean;
     eventCategory?: string;
     eventSubcategory?: string;
     vietnameseDescription?: string;
+    originalEventType?: string;
   };
 }
 
@@ -55,7 +61,7 @@ export class RabbitMQEventPublisher {
   constructor(
     private readonly config: RabbitMQConfig,
     private readonly publisherConfig: PublisherConfig,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
   ) {}
 
   /**
@@ -63,36 +69,54 @@ export class RabbitMQEventPublisher {
    */
   async connect(): Promise<void> {
     if (this.isConnected && this.channel) {
-      this.logger.warn('RabbitMQ connection already established, skipping reconnect attempt');
+      this.logger.warn(
+        "RabbitMQ connection already established, skipping reconnect attempt",
+      );
       return;
     }
 
     try {
-      this.logger.info('Connecting to RabbitMQ...', {
-        url: this.config.url.replace(/\/\/.*@/, '//***@'), // Hide credentials
-        exchange: this.config.exchange
+      this.logger.info("Connecting to RabbitMQ...", {
+        url: this.config.url.replace(/\/\/.*@/, "//***@"), // Hide credentials
+        exchange: this.config.exchange,
       });
 
       // Reset intentionally closed flag
       this.intentionallyClosed = false;
 
-      // Create connection
-      this.connection = await amqp.connect(this.config.url) as any;
+      const connectionName = "ProviderRabbitMQPublisher";
+      const connectionRetries =
+        this.config.connectionRetries ??
+        Number(process.env.RABBITMQ_CONNECT_MAX_RETRIES || 5);
+      const connectionRetryDelayMs =
+        this.config.connectionRetryDelayMs ??
+        Number(process.env.RABBITMQ_CONNECT_RETRY_DELAY_MS || 3000);
+
+      // Create connection with retry logic
+      this.connection = await connectRabbitMQWithRetry(
+        () => amqp.connect(this.config.url) as any,
+        this.logger,
+        {
+          connectionName,
+          maxAttempts: connectionRetries,
+          initialDelayMs: connectionRetryDelayMs,
+        },
+      );
 
       // Handle connection errors
-      (this.connection as any).on('error', (err: Error) => {
-        this.logger.error('RabbitMQ connection error', { error: err.message });
+      (this.connection as any).on("error", (err: Error) => {
+        this.logger.error("RabbitMQ connection error", { error: err.message });
         this.isConnected = false;
       });
 
       // Handle connection close
-      (this.connection as any).on('close', () => {
-        this.logger.warn('RabbitMQ connection closed');
+      (this.connection as any).on("close", () => {
+        this.logger.warn("RabbitMQ connection closed");
         this.isConnected = false;
 
         // Auto-reconnect if not intentionally closed
         if (!this.intentionallyClosed) {
-          this.logger.info('Attempting to reconnect to RabbitMQ...');
+          this.logger.info("Attempting to reconnect to RabbitMQ...");
           setTimeout(() => this.connect(), 5000);
         }
       });
@@ -106,26 +130,25 @@ export class RabbitMQEventPublisher {
         this.config.exchangeType,
         {
           durable: this.config.durable,
-          autoDelete: this.config.autoDelete
-        }
+          autoDelete: this.config.autoDelete,
+        },
       );
 
       this.isConnected = true;
-      this.logger.info('Connected to RabbitMQ successfully', {
+      this.logger.info("Connected to RabbitMQ successfully", {
         exchange: this.config.exchange,
-        exchangeType: this.config.exchangeType
+        exchangeType: this.config.exchangeType,
+      });
+    } catch (error) {
+      this.logger.error("Failed to connect to RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
-    } catch (error) {
-      this.logger.error('Failed to connect to RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
       // Retry connection after delay
       if (!this.intentionallyClosed) {
         setTimeout(() => this.connect(), 5000);
       }
-      
+
       throw error;
     }
   }
@@ -135,9 +158,9 @@ export class RabbitMQEventPublisher {
    */
   async publish(event: IntegrationEvent): Promise<void> {
     if (!this.isConnected || !this.channel) {
-      const error = new Error('Not connected to RabbitMQ');
-      this.logger.error('Cannot publish event: RabbitMQ not connected', {
-        eventType: event.eventType
+      const error = new Error("Not connected to RabbitMQ");
+      this.logger.error("Cannot publish event: RabbitMQ not connected", {
+        eventType: event.eventType,
       });
       throw error;
     }
@@ -145,9 +168,9 @@ export class RabbitMQEventPublisher {
     try {
       await this.attemptPublish(event);
     } catch (error) {
-      this.logger.error('Failed to publish event', {
+      this.logger.error("Failed to publish event", {
         eventType: event.eventType,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
       // Retry if enabled
@@ -171,20 +194,25 @@ export class RabbitMQEventPublisher {
   /**
    * Retry publishing event
    */
-  private async retryPublish(event: IntegrationEvent, attempt: number): Promise<void> {
+  private async retryPublish(
+    event: IntegrationEvent,
+    attempt: number,
+  ): Promise<void> {
     if (attempt > this.publisherConfig.maxRetries) {
-      this.logger.error('Max retries exceeded for event', {
+      this.logger.error("Max retries exceeded for event", {
         eventType: event.eventType,
         eventId: event.eventId,
-        attempts: attempt - 1
+        attempts: attempt - 1,
       });
-      throw new Error(`Failed to publish event after ${this.publisherConfig.maxRetries} attempts`);
+      throw new Error(
+        `Failed to publish event after ${this.publisherConfig.maxRetries} attempts`,
+      );
     }
 
-    this.logger.warn('Retrying event publish', {
+    this.logger.warn("Retrying event publish", {
       eventType: event.eventType,
       attempt,
-      maxRetries: this.publisherConfig.maxRetries
+      maxRetries: this.publisherConfig.maxRetries,
     });
 
     await this.delay(this.publisherConfig.retryDelayMs);
@@ -201,7 +229,7 @@ export class RabbitMQEventPublisher {
    */
   private async attemptPublish(event: IntegrationEvent): Promise<void> {
     if (!this.channel) {
-      throw new Error('RabbitMQ channel not available');
+      throw new Error("RabbitMQ channel not available");
     }
 
     const routingKey = this.getRoutingKey(event);
@@ -213,26 +241,26 @@ export class RabbitMQEventPublisher {
       Buffer.from(message),
       {
         persistent: true,
-        contentType: 'application/json',
+        contentType: "application/json",
         timestamp: Date.now(),
         messageId: event.eventId,
         type: event.eventType,
         headers: {
           aggregateId: event.aggregateId,
-          occurredAt: event.occurredAt.toISOString()
-        }
-      }
+          occurredAt: event.occurredAt.toISOString(),
+        },
+      },
     );
 
     if (!published) {
-      throw new Error('Failed to publish event - channel buffer full');
+      throw new Error("Failed to publish event - channel buffer full");
     }
 
     if (this.publisherConfig.enableLogging) {
-      this.logger.info('Event published', {
+      this.logger.info("Event published", {
         eventType: event.eventType,
         eventId: event.eventId,
-        routingKey
+        routingKey,
       });
     }
   }
@@ -241,17 +269,33 @@ export class RabbitMQEventPublisher {
    * Delay helper for retries
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * Get routing key for event
    */
   private getRoutingKey(event: IntegrationEvent): string {
-    // Format: provider.{aggregate}.{action}
-    // Example: provider.staff.registered, provider.doctor.availability.changed
-    const parts = event.eventType.split('.');
-    return parts.join('.');
+    if (event.routingKey && event.routingKey.length > 0) {
+      return event.routingKey;
+    }
+
+    if (event.eventType?.includes(".")) {
+      return event.eventType;
+    }
+
+    const routingKey = buildRoutingKey(event.aggregateType, event.eventType);
+    if (routingKey && routingKey.length > 0) {
+      return routingKey;
+    }
+
+    const aggregate =
+      event.aggregateType?.trim().toLowerCase().replace(/\s+/g, "-") ||
+      "provider-staff";
+    const action =
+      event.eventType?.trim().toLowerCase().replace(/\s+/g, ".") || "event";
+
+    return `${aggregate}.${action}`;
   }
 
   /**
@@ -260,7 +304,7 @@ export class RabbitMQEventPublisher {
   private serializeEvent(event: IntegrationEvent): string {
     return JSON.stringify({
       ...event,
-      occurredAt: event.occurredAt.toISOString()
+      occurredAt: event.occurredAt.toISOString(),
     });
   }
 
@@ -282,11 +326,10 @@ export class RabbitMQEventPublisher {
       }
 
       this.isConnected = false;
-      this.logger.info('Disconnected from RabbitMQ');
-
+      this.logger.info("Disconnected from RabbitMQ");
     } catch (error) {
-      this.logger.error('Error disconnecting from RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error disconnecting from RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -298,4 +341,3 @@ export class RabbitMQEventPublisher {
     return this.isConnected && this.channel !== null;
   }
 }
-

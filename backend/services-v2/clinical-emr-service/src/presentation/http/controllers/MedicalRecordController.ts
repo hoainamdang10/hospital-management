@@ -5,6 +5,7 @@ import { CreateMedicalRecordUseCase } from "../../../application/use-cases/Creat
 import { UpdateMedicalRecordUseCase } from "../../../application/use-cases/UpdateMedicalRecordUseCase";
 import { CreateAuditLogUseCase } from "../../../application/use-cases/CreateAuditLogUseCase";
 import { parsePagination } from "../../../shared/utils/pagination";
+import { ClinicalEventDispatcher } from "../../../application/services/ClinicalEventDispatcher";
 
 export class MedicalRecordController {
   constructor(
@@ -13,6 +14,7 @@ export class MedicalRecordController {
     private readonly createUseCase: CreateMedicalRecordUseCase,
     private readonly updateUseCase: UpdateMedicalRecordUseCase,
     private readonly auditLogUseCase: CreateAuditLogUseCase,
+    private readonly eventDispatcher: ClinicalEventDispatcher,
   ) {}
 
   list = async (req: Request, res: Response, next: NextFunction) => {
@@ -57,6 +59,7 @@ export class MedicalRecordController {
     try {
       const data = await this.createUseCase.execute(req.body);
       await this.logAudit(req, data.id, "medical_record.created");
+      await this.eventDispatcher.medicalRecordCreated(data, req.user?.id);
       res.status(201).json({ success: true, data });
     } catch (error) {
       next(error);
@@ -70,6 +73,7 @@ export class MedicalRecordController {
         payload: req.body,
       });
       await this.logAudit(req, data.id, "medical_record.updated");
+      await this.eventDispatcher.medicalRecordUpdated(data, req.user?.id);
       res.json({ success: true, data });
     } catch (error) {
       next(error);

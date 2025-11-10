@@ -15,8 +15,18 @@ import { getPatientDashboardStats, type DashboardStats } from '@/lib/api/dashboa
  * Route: /patient/dashboard
  */
 export default function PatientDashboardPage() {
-  const { user } = useAuth();
-  const { patient, patientId, isLoading: isLoadingPatient } = usePatient();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { patient, patientId } = usePatient();
+  
+  // Debug log only - middleware handles auth redirect
+  useEffect(() => {
+    console.log('[PatientDashboard] State', {
+      isAuthLoading,
+      user,
+      patient,
+      patientId,
+    });
+  }, [isAuthLoading, user, patient, patientId]);
   const [stats, setStats] = useState<DashboardStats>({
     upcomingAppointments: 0,
     totalMedicalRecords: 0,
@@ -49,7 +59,7 @@ export default function PatientDashboardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Welcome Header */}
-        <WelcomeHeader userName={user?.email || 'Bệnh nhân'} />
+        <WelcomeHeader userName={user?.fullName || user?.email || 'Bệnh nhân'} />
 
         {/* Quick Stats */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

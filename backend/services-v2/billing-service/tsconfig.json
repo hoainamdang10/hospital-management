@@ -5,7 +5,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,53 +13,43 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "removeComments": false,
-    "noImplicitAny": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": false,
-    "noUncheckedIndexedAccess": false,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
+    "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false,
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"],
-      "@domain/*": ["domain/*"],
-      "@application/*": ["application/*"],
-      "@infrastructure/*": ["infrastructure/*"],
-      "@presentation/*": ["presentation/*"],
-      "@shared/*": ["../../shared/*"]
-    },
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ],
-    "types": [
-      "node",
-      "jest"
-    ]
+      "@/*": ["src/*"],
+      "@domain/*": ["src/domain/*"],
+      "@application/*": ["src/application/*"],
+      "@infrastructure/*": ["src/infrastructure/*"],
+      "@presentation/*": ["src/presentation/*"],
+      "@tests/*": ["tests/*"],
+      "@shared/*": ["../shared/*"]
+    }
   },
   "include": [
     "src/**/*",
-    "tests/**/*"
+    "../shared/domain/**/*",
+    "../shared/application/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "coverage",
     "**/*.spec.ts",
-    "**/*.test.ts"
-  ],
-  "ts-node": {
-    "require": ["tsconfig-paths/register"],
-    "files": true,
-    "experimentalSpecifierResolution": "node"
-  }
+    "**/*.test.ts",
+    "**/*.old.ts",
+    "**/*.backup.ts",
+    "../shared/examples/**/*",
+    "../shared/testing/**/*",
+    "../shared/workflows/**/*",
+    "../shared/infrastructure/**/*",
+    "../shared/domain/events/domain-events.ts",
+    "../shared/domain/events/IDomainEventPublisher.ts",
+    "../shared/domain/repositories/**/*"
+  ]
 }

@@ -25,6 +25,7 @@ import { ListUsersUseCase } from "../../application/use-cases/ListUsersUseCase";
 import { RefreshTokenUseCase } from "../../application/use-cases/RefreshTokenUseCase";
 import { ProvisionStaffUseCase } from "../../application/use-cases/ProvisionStaffUseCase";
 import { AcceptStaffInvitationUseCase } from "../../application/use-cases/AcceptStaffInvitationUseCase";
+import { ValidateStaffInvitationUseCase } from "../../application/use-cases/ValidateStaffInvitationUseCase";
 import { ListStaffInvitationsUseCase } from "../../application/use-cases/ListStaffInvitationsUseCase";
 import { GetStaffInvitationUseCase } from "../../application/use-cases/GetStaffInvitationUseCase";
 import { CancelStaffInvitationUseCase } from "../../application/use-cases/CancelStaffInvitationUseCase";
@@ -84,6 +85,7 @@ export interface RouteDependencies {
     assignRoleUseCase: AssignRoleUseCase;
     provisionStaffUseCase: ProvisionStaffUseCase;
     acceptStaffInvitationUseCase: AcceptStaffInvitationUseCase;
+    validateStaffInvitationUseCase: ValidateStaffInvitationUseCase;
     listStaffInvitationsUseCase: ListStaffInvitationsUseCase;
     getStaffInvitationUseCase: GetStaffInvitationUseCase;
     cancelStaffInvitationUseCase: CancelStaffInvitationUseCase;

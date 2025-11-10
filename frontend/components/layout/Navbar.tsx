@@ -8,6 +8,14 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/lib/constants';
 import { useSidebar } from '@/lib/contexts/SidebarContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 /**
  * Navbar Component
@@ -18,16 +26,21 @@ export function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const { toggle: toggleSidebar } = useSidebar();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // DEV_MODE: Bypass authentication check
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
   const showAuthenticatedUI = isAuthenticated || isDevMode;
 
-  const handleLogout = () => {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      logout();
-    }
+  const handleLogoutClick = () => {
+    setIsDropdownOpen(false);
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutConfirm = () => {
+    setShowLogoutModal(false);
+    logout();
   };
 
   // Close dropdown when clicking outside
@@ -43,26 +56,26 @@ export function Navbar() {
   }, []);
 
   // Don't show navbar on auth pages
-  if (pathname?.startsWith('/login') || pathname?.startsWith('/register')) {
+  if (pathname?.startsWith('/auth/login') || pathname?.startsWith('/auth/register') || pathname?.startsWith('/auth/verify-email')) {
     return null;
   }
 
   // In DEV_MODE, detect role from pathname
-  let displayEmail = user?.email || 'Bệnh nhân';
+  let displayName = user?.fullName || user?.email || 'Bệnh nhân';
   let displayRole = user?.role || 'PATIENT';
   
   if (isDevMode && !user) {
     if (pathname?.startsWith('/patient')) {
-      displayEmail = 'Bệnh nhân';
+      displayName = 'Bệnh nhân';
       displayRole = 'PATIENT';
     } else if (pathname?.startsWith('/doctor')) {
-      displayEmail = 'Bác sĩ';
+      displayName = 'Bác sĩ';
       displayRole = 'DOCTOR';
     } else if (pathname?.startsWith('/nurse')) {
-      displayEmail = 'Y tá';
+      displayName = 'Y tá';
       displayRole = 'NURSE';
     } else if (pathname?.startsWith('/admin')) {
-      displayEmail = 'Quản trị viên';
+      displayName = 'Quản trị viên';
       displayRole = 'ADMIN';
     }
   }
@@ -117,7 +130,7 @@ export function Navbar() {
                 >
                   <div className="hidden text-right sm:block">
                     <p className="text-sm font-medium text-gray-900">
-                      {displayEmail}
+                      {displayName}
                     </p>
                     <p className="text-xs text-gray-500 capitalize">
                       {displayRole?.toLowerCase().replace('_', ' ') || 'Guest'}
@@ -140,8 +153,7 @@ export function Navbar() {
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
                   <div 
-                    className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200"
-                    style={{ zIndex: 9999 }}
+                    className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50"
                   >
                     <div className="py-1">
                       <Link
@@ -153,10 +165,7 @@ export function Navbar() {
                         <span className="font-medium">Cài đặt</span>
                       </Link>
                       <button
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          handleLogout();
-                        }}
+                        onClick={handleLogoutClick}
                         className="flex w-full items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         <LogOut className="h-5 w-5 text-gray-500" />
@@ -168,17 +177,52 @@ export function Navbar() {
               </div>
             </>
           ) : (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Link href={ROUTES.LOGIN}>
-                <Button variant="ghost">Đăng nhập</Button>
+                <Button 
+                  variant="outline" 
+                  className="border-gray-300 bg-white/80 backdrop-blur-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 hover:shadow-md"
+                >
+                  Đăng nhập
+                </Button>
               </Link>
               <Link href={ROUTES.REGISTER}>
-                <Button>Đăng ký</Button>
+                <Button 
+                  className="bg-linear-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                >
+                  Đăng ký
+                </Button>
               </Link>
             </div>
           )}
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <Dialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Đăng xuất</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn đăng xuất?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutModal(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleLogoutConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Đăng xuất
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </nav>
   );
 }

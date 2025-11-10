@@ -69,7 +69,7 @@ clients.forEach((client) => {
         if (!isDevMode && typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
-          window.location.href = '/login';
+          window.location.href = '/auth/login';
         } else if (isDevMode) {
           console.log('[DEV MODE] 401 Unauthorized - redirect skipped');
         }

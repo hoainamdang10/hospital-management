@@ -9,7 +9,38 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseDomainEventHandler = exports.IntegrationEvent = exports.HealthcareDomainEvent = exports.DomainEvent = void 0;
+exports.buildRoutingKey = buildRoutingKey;
 const uuid_1 = require("uuid");
+/**
+ * Normalize aggregate + event names into dot-delimited routing keys
+ * Examples:
+ *   (Patient, PatientRegistered) => patient.registered
+ *   (ProviderStaff, StaffUpdated) => provider.staff.updated
+ *   (Appointment, AppointmentCompleted) => appointment.completed
+ */
+function buildRoutingKey(aggregateType, eventType) {
+    const aggregateSegments = splitToSegments(aggregateType);
+    const eventSegments = splitToSegments(eventType);
+    if (aggregateSegments.length > 0 &&
+        eventSegments.length > 0 &&
+        eventSegments[0] === aggregateSegments[aggregateSegments.length - 1]) {
+        eventSegments.shift();
+    }
+    const segments = [...aggregateSegments, ...eventSegments].filter((segment) => segment.length > 0);
+    return segments.join('.');
+}
+function splitToSegments(value) {
+    if (!value) {
+        return [];
+    }
+    return value
+        .replace(/([a-z0-9])([A-Z])/g, '$1.$2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1.$2')
+        .replace(/[\s_-]+/g, '.')
+        .split('.')
+        .map((segment) => segment.trim().toLowerCase())
+        .filter(Boolean);
+}
 /**
  * Abstract base class for all domain events
  */
@@ -41,7 +72,7 @@ class DomainEvent {
      * Get event routing key for message bus
      */
     getRoutingKey() {
-        return `${this.aggregateType.toLowerCase()}.${this.eventType.toLowerCase()}`;
+        return buildRoutingKey(this.aggregateType, this.eventType);
     }
     /**
      * Check if event should be published externally

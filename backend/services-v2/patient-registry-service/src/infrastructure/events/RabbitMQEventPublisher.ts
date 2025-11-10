@@ -7,18 +7,24 @@
  * @compliance Event-Driven Architecture, Clean Architecture
  */
 
-import amqp, { Channel, ChannelModel } from 'amqplib';
-import { DomainEvent } from '@shared/domain/base/domain-event';
-import { IDomainEventPublisher, DomainEventPublisherConfig } from '@shared/domain/events/IDomainEventPublisher';
-import { ILogger } from '@shared/application/services/logger.interface';
+import amqp, { Channel, ChannelModel } from "amqplib";
+import { DomainEvent, buildRoutingKey } from "@shared/domain/base/domain-event";
+import {
+  IDomainEventPublisher,
+  DomainEventPublisherConfig,
+} from "@shared/domain/events/IDomainEventPublisher";
+import { ILogger } from "@shared/application/services/logger.interface";
+import { connectRabbitMQWithRetry } from "@shared/infrastructure/event-bus/rabbitmq-connection";
 
 export interface RabbitMQConfig {
   url: string;
   exchange: string;
-  exchangeType: 'topic' | 'fanout' | 'direct';
+  exchangeType: "topic" | "fanout" | "direct";
   durable: boolean;
   autoDelete: boolean;
   serviceName?: string;
+  connectionRetries?: number;
+  connectionRetryDelayMs?: number;
 }
 
 /**
@@ -38,7 +44,7 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
   constructor(
     private readonly config: RabbitMQConfig,
     private readonly publisherConfig: DomainEventPublisherConfig,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
   ) {}
 
   /**
@@ -46,25 +52,37 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
    */
   async connect(): Promise<void> {
     try {
-      this.logger.info('Connecting to RabbitMQ...', {
-        url: this.config.url.replace(/\/\/.*@/, '//***@'), // Hide credentials
-        exchange: this.config.exchange
+      this.logger.info("Connecting to RabbitMQ...", {
+        url: this.config.url.replace(/\/\/.*@/, "//***@"), // Hide credentials
+        exchange: this.config.exchange,
       });
 
       // Reset intentionally closed flag
       this.intentionallyClosed = false;
 
-      // Create connection
-      this.connection = await amqp.connect(this.config.url);
+      const connectionName = this.config.serviceName
+        ? `${this.config.serviceName}-publisher`
+        : "RabbitMQ Event Publisher";
+
+      // Create connection with retry logic
+      this.connection = await connectRabbitMQWithRetry(
+        () => amqp.connect(this.config.url),
+        this.logger,
+        {
+          connectionName,
+          maxAttempts: this.config.connectionRetries,
+          initialDelayMs: this.config.connectionRetryDelayMs,
+        },
+      );
 
       // Handle connection errors
-      this.connection.on('error', (err: Error) => {
-        this.logger.error('RabbitMQ connection error', { error: err.message });
+      this.connection.on("error", (err: Error) => {
+        this.logger.error("RabbitMQ connection error", { error: err.message });
         this.isConnected = false;
       });
 
-      this.connection.on('close', () => {
-        this.logger.warn('RabbitMQ connection closed');
+      this.connection.on("close", () => {
+        this.logger.warn("RabbitMQ connection closed");
         this.isConnected = false;
 
         // Only reconnect if not intentionally closed
@@ -75,7 +93,7 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
 
       // Create channel
       if (!this.connection) {
-        throw new Error('Connection is null after connect');
+        throw new Error("Connection is null after connect");
       }
 
       this.channel = await this.connection.createChannel();
@@ -86,19 +104,19 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
         this.config.exchangeType,
         {
           durable: this.config.durable,
-          autoDelete: this.config.autoDelete
-        }
+          autoDelete: this.config.autoDelete,
+        },
       );
 
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
-      this.logger.info('RabbitMQ Event Publisher connected', {
-        exchange: this.config.exchange
+      this.logger.info("RabbitMQ Event Publisher connected", {
+        exchange: this.config.exchange,
       });
     } catch (error) {
-      this.logger.error('Failed to connect to RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Failed to connect to RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -115,19 +133,21 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
     }
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.logger.error('Max reconnect attempts reached. Giving up.');
+      this.logger.error("Max reconnect attempts reached. Giving up.");
       return;
     }
 
     this.reconnectAttempts++;
-    this.logger.info(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    this.logger.info(
+      `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`,
+    );
 
     this.reconnectTimer = setTimeout(async () => {
       try {
         await this.connect();
       } catch (error) {
-        this.logger.error('Reconnect failed', {
-          error: error instanceof Error ? error.message : 'Unknown error'
+        this.logger.error("Reconnect failed", {
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }, this.reconnectDelayMs);
@@ -138,7 +158,7 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
    */
   async publish(event: DomainEvent): Promise<void> {
     if (!this.isConnected || !this.channel) {
-      throw new Error('RabbitMQ publisher is not connected');
+      throw new Error("RabbitMQ publisher is not connected");
     }
 
     try {
@@ -151,32 +171,32 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
         Buffer.from(message),
         {
           persistent: true,
-          contentType: 'application/json',
+          contentType: "application/json",
           timestamp: Date.now(),
           messageId: event.eventId,
           type: event.eventType,
           headers: {
             aggregateId: event.aggregateId,
-            occurredAt: event.occurredAt.toISOString()
-          }
-        }
+            occurredAt: event.occurredAt.toISOString(),
+          },
+        },
       );
 
       if (!published) {
-        throw new Error('Failed to publish event - channel buffer full');
+        throw new Error("Failed to publish event - channel buffer full");
       }
 
       if (this.publisherConfig.enableLogging) {
-        this.logger.info('Event published', {
+        this.logger.info("Event published", {
           eventType: event.eventType,
           eventId: event.eventId,
-          routingKey
+          routingKey,
         });
       }
     } catch (error) {
-      this.logger.error('Failed to publish event', {
+      this.logger.error("Failed to publish event", {
         eventType: event.eventType,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -187,7 +207,7 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
    */
   async publishBatch(events: DomainEvent[]): Promise<void> {
     if (!this.isConnected || !this.channel) {
-      throw new Error('RabbitMQ publisher is not connected');
+      throw new Error("RabbitMQ publisher is not connected");
     }
 
     try {
@@ -196,13 +216,13 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
       }
 
       if (this.publisherConfig.enableLogging) {
-        this.logger.info('Batch events published', {
-          count: events.length
+        this.logger.info("Batch events published", {
+          count: events.length,
         });
       }
     } catch (error) {
-      this.logger.error('Failed to publish batch events', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Failed to publish batch events", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -211,7 +231,10 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
   /**
    * Publish event with retry mechanism
    */
-  async publishWithRetry(event: DomainEvent, maxRetries: number = 3): Promise<void> {
+  async publishWithRetry(
+    event: DomainEvent,
+    maxRetries: number = 3,
+  ): Promise<void> {
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -219,21 +242,25 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
         await this.publish(event);
         return; // Success
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
+        lastError = error instanceof Error ? error : new Error("Unknown error");
         this.logger.warn(`Publish attempt ${attempt}/${maxRetries} failed`, {
           eventType: event.eventType,
-          error: lastError.message
+          error: lastError.message,
         });
 
         if (attempt < maxRetries) {
           // Wait before retry with exponential backoff
           const delayMs = this.publisherConfig.retryDelayMs || 1000;
-          await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+          await new Promise((resolve) =>
+            setTimeout(resolve, delayMs * attempt),
+          );
         }
       }
     }
 
-    throw new Error(`Failed to publish event after ${maxRetries} attempts: ${lastError?.message}`);
+    throw new Error(
+      `Failed to publish event after ${maxRetries} attempts: ${lastError?.message}`,
+    );
   }
 
   /**
@@ -253,17 +280,17 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
       try {
         await this.publish(event);
       } catch (error) {
-        this.logger.error('Failed to publish scheduled event', {
+        this.logger.error("Failed to publish scheduled event", {
           eventType: event.eventType,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }, delayMs);
 
-    this.logger.info('Event scheduled', {
+    this.logger.info("Event scheduled", {
       eventType: event.eventType,
       publishAt: publishAt.toISOString(),
-      delayMs
+      delayMs,
     });
   }
 
@@ -299,10 +326,10 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
       }
 
       this.isConnected = false;
-      this.logger.info('RabbitMQ Event Publisher disconnected');
+      this.logger.info("RabbitMQ Event Publisher disconnected");
     } catch (error) {
-      this.logger.error('Error closing RabbitMQ connection', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error closing RabbitMQ connection", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -311,15 +338,16 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
    * Get routing key for event
    */
   private getRoutingKey(event: DomainEvent): string {
-    // Format: entity.action (matching EventBusConfiguration)
-    // Example: patient.registered, patient.updated, patient.deleted
-    // Convert PascalCase eventType to dot.notation
-    // PatientRegistered -> patient.registered
-    const serviceName = this.getServiceName();
-    const aggregate = event.aggregateType.toLowerCase();
-    const eventType = event.eventType.toLowerCase();
+    try {
+      const routingKey = event.getRoutingKey();
+      if (routingKey && routingKey.length > 0) {
+        return routingKey;
+      }
+    } catch {
+      // Fall back to manual builder below
+    }
 
-    return `${serviceName}.${aggregate}.${eventType}`;
+    return buildRoutingKey(event.aggregateType, event.eventType);
   }
 
   /**
@@ -330,18 +358,4 @@ export class RabbitMQEventPublisher implements IDomainEventPublisher {
     return JSON.stringify(event.toJSON());
   }
 
-  /**
-   * Resolve service name for routing keys
-   */
-  private getServiceName(): string {
-    if (this.config.serviceName && this.config.serviceName.trim().length > 0) {
-      return this.config.serviceName.toLowerCase();
-    }
-
-    if (this.config.exchange && this.config.exchange.trim().length > 0) {
-      return this.config.exchange.replace(/[-_]?events$/i, '').toLowerCase();
-    }
-
-    return 'domain';
-  }
 }

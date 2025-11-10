@@ -3,7 +3,8 @@ import { IncomingMessage } from "http";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
-import rateLimit from "express-rate-limit";
+// import rateLimit from "express-rate-limit"; // Disabled for development
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 
 import { WinstonLogger } from "@infrastructure/logging/WinstonLogger";
@@ -11,7 +12,7 @@ import { SupabaseJWTTokenVerifier } from "@infrastructure/auth/SupabaseJWTTokenV
 import { IdentityServiceClient } from "@infrastructure/auth/IdentityServiceClient";
 import { ServiceRegistry } from "@infrastructure/proxy/ServiceRegistry";
 import { RedisRateLimitClient } from "@infrastructure/cache/RedisRateLimitClient";
-import { AdvancedRateLimitMiddleware } from "@presentation/middleware/AdvancedRateLimitMiddleware";
+// import { AdvancedRateLimitMiddleware } from "@presentation/middleware/AdvancedRateLimitMiddleware"; // Disabled for development
 
 import { AuthenticateRequestUseCase } from "@application/use-cases/AuthenticateRequestUseCase";
 import { AuthorizeRequestUseCase } from "@application/use-cases/AuthorizeRequestUseCase";
@@ -50,7 +51,7 @@ class ApiGatewayApplication {
   private loggingMiddleware: LoggingMiddleware;
   private errorHandlingMiddleware: ErrorHandlingMiddleware;
   private redisRateLimitClient?: RedisRateLimitClient;
-  private rateLimitMiddleware?: AdvancedRateLimitMiddleware;
+  // private rateLimitMiddleware?: AdvancedRateLimitMiddleware; // Disabled for development
   private sizeLimitMiddleware: SizeLimitMiddleware;
   private performanceMonitor: PerformanceMonitor;
 
@@ -189,75 +190,75 @@ class ApiGatewayApplication {
       await this.redisRateLimitClient.connect();
       logger.info("Redis rate limit client connected successfully");
 
-      // Initialize advanced rate limiting
-      const rateLimitConfig = {
-        global: {
-          windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"),
-          max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "1000"),
-        },
-        perUser: {
-          windowMs: parseInt(process.env.RATE_LIMIT_USER_WINDOW_MS || "900000"),
-          max: parseInt(process.env.RATE_LIMIT_USER_MAX_REQUESTS || "500"),
-        },
-        perEndpoint: {
-          "/api/v1/auth/login": {
-            windowMs: 15 * 60 * 1000,
-            max: 5,
-          },
-          "/api/v1/auth/register": {
-            windowMs: 60 * 60 * 1000,
-            max: 3,
-          },
-          "/api/v1/auth/password/reset": {
-            windowMs: 60 * 60 * 1000,
-            max: 3,
-          },
-          "/api/v1/patients": {
-            windowMs: 60 * 1000,
-            max: 100,
-          },
-          "/api/v1/patients/*/medical-history": {
-            windowMs: 60 * 1000,
-            max: 50,
-          },
-          "/api/v1/providers/*/schedule": {
-            windowMs: 60 * 1000,
-            max: 100,
-          },
-          "/api/v1/appointments": {
-            windowMs: 60 * 1000,
-            max: 50,
-          },
-          "/api/v1/clinical/records": {
-            windowMs: 60 * 1000,
-            max: 50,
-          },
-          "/api/v1/billing/payments": {
-            windowMs: 60 * 1000,
-            max: 10,
-          },
-          "/api/v1/billing/invoices": {
-            windowMs: 60 * 1000,
-            max: 50,
-          },
-          "/api/v1/schedules": {
-            windowMs: 60 * 1000,
-            max: 100, // Higher limit for schedule management operations
-          },
-        },
-      };
+      // DISABLED FOR DEVELOPMENT - Advanced rate limiting
+      // const rateLimitConfig = {
+      //   global: {
+      //     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"),
+      //     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "1000"),
+      //   },
+      //   perUser: {
+      //     windowMs: parseInt(process.env.RATE_LIMIT_USER_WINDOW_MS || "900000"),
+      //     max: parseInt(process.env.RATE_LIMIT_USER_MAX_REQUESTS || "500"),
+      //   },
+      //   perEndpoint: {
+      //     "/api/v1/auth/login": {
+      //       windowMs: 15 * 60 * 1000,
+      //       max: 5,
+      //     },
+      //     "/api/v1/auth/register": {
+      //       windowMs: 60 * 60 * 1000,
+      //       max: 3,
+      //     },
+      //     "/api/v1/auth/password/reset": {
+      //       windowMs: 60 * 60 * 1000,
+      //       max: 3,
+      //     },
+      //     "/api/v1/patients": {
+      //       windowMs: 60 * 1000,
+      //       max: 100,
+      //     },
+      //     "/api/v1/patients/*/medical-history": {
+      //       windowMs: 60 * 1000,
+      //       max: 50,
+      //     },
+      //     "/api/v1/providers/*/schedule": {
+      //       windowMs: 60 * 1000,
+      //       max: 100,
+      //     },
+      //     "/api/v1/appointments": {
+      //       windowMs: 60 * 1000,
+      //       max: 50,
+      //     },
+      //     "/api/v1/clinical/records": {
+      //       windowMs: 60 * 1000,
+      //       max: 50,
+      //     },
+      //     "/api/v1/billing/payments": {
+      //       windowMs: 60 * 1000,
+      //       max: 10,
+      //     },
+      //     "/api/v1/billing/invoices": {
+      //       windowMs: 60 * 1000,
+      //       max: 50,
+      //     },
+      //     "/api/v1/schedules": {
+      //       windowMs: 60 * 1000,
+      //       max: 100, // Higher limit for schedule management operations
+      //     },
+      //   },
+      // };
 
-      this.rateLimitMiddleware = new AdvancedRateLimitMiddleware(
-        this.redisRateLimitClient,
-        rateLimitConfig,
-        logger,
-      );
+      // this.rateLimitMiddleware = new AdvancedRateLimitMiddleware(
+      //   this.redisRateLimitClient,
+      //   rateLimitConfig,
+      //   logger,
+      // );
 
-      logger.info("Advanced rate limiting configured", {
-        globalMax: rateLimitConfig.global.max,
-        perUserMax: rateLimitConfig.perUser.max,
-        endpointCount: Object.keys(rateLimitConfig.perEndpoint).length,
-      });
+      // logger.info("Advanced rate limiting configured", {
+      //   globalMax: rateLimitConfig.global.max,
+      //   perUserMax: rateLimitConfig.perUser.max,
+      //   endpointCount: Object.keys(rateLimitConfig.perEndpoint).length,
+      // });
     } catch (error) {
       logger.error("Failed to initialize Redis rate limiting", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -281,7 +282,7 @@ class ApiGatewayApplication {
         serviceName: "identity-service",
         baseUrl:
           process.env.IDENTITY_SERVICE_URL || "http://identity-service:3001",
-        pathPrefix: "/auth",
+        pathPrefix: "/api/auth",
         requiresAuth: false,
       }),
 
@@ -297,14 +298,24 @@ class ApiGatewayApplication {
       }),
 
       // Provider/Staff Service - Doctor/Staff Management (internal port 3002, external 3022)
+      // Note: Removed permission check - patients need to search/view doctors for booking
       ServiceRoute.create({
         serviceName: "provider-staff-service",
         baseUrl:
           process.env.PROVIDER_STAFF_SERVICE_URL ||
-          "http://provider-staff-service:3002",
+          "http://localhost:3002",
         pathPrefix: "/api/v1/staff",
         requiresAuth: true,
-        requiredPermissions: ["provider:read"],
+      }),
+
+      // Department Service - Department Management (internal port 3025, external 3025)
+      ServiceRoute.create({
+        serviceName: "department-service",
+        baseUrl:
+          process.env.DEPARTMENT_SERVICE_URL ||
+          "http://department-service:3025",
+        pathPrefix: "/api/departments",
+        requiresAuth: false, // Public endpoint for department list
       }),
 
       // Appointments Service - Appointment Booking & Scheduling (port 3004)
@@ -313,10 +324,42 @@ class ApiGatewayApplication {
         serviceName: "appointments-service",
         baseUrl:
           process.env.APPOINTMENTS_SERVICE_URL ||
-          "http://appointments-service:3004",
+          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
         pathPrefix: "/api/v1/appointments",
         requiresAuth: true,
         requiredPermissions: ["appointment:read"],
+      }),
+
+      // Appointments Service V2 - Read Model with denormalized data (port 3004)
+      ServiceRoute.create({
+        serviceName: "appointments-service",
+        baseUrl:
+          process.env.APPOINTMENTS_SERVICE_URL ||
+          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
+        pathPrefix: "/api/v2/appointments",
+        requiresAuth: true,
+        requiredPermissions: ["appointment:read"],
+      }),
+
+      // Appointments Service V2 - Patient appointments endpoint (port 3004)
+      // No permission check - patients can view their own appointments
+      ServiceRoute.create({
+        serviceName: "appointments-service",
+        baseUrl:
+          process.env.APPOINTMENTS_SERVICE_URL ||
+          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
+        pathPrefix: "/api/v2/patients",
+        requiresAuth: true,
+      }),
+
+      // Appointments Service V2 - Doctor appointments endpoint (port 3004)
+      ServiceRoute.create({
+        serviceName: "appointments-service",
+        baseUrl:
+          process.env.APPOINTMENTS_SERVICE_URL ||
+          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
+        pathPrefix: "/api/v2/doctors",
+        requiresAuth: true,
       }),
 
       // Clinical EMR Service - Electronic Medical Records (port 3027)
@@ -341,15 +384,15 @@ class ApiGatewayApplication {
         requiredPermissions: ["billing:read"],
       }),
 
-      // Notifications Service - Multi-channel Notifications (port 3031)
+      // Notifications Service - Multi-channel Notifications (port 3011)
+      // No permission check - let service handle authorization
       ServiceRoute.create({
         serviceName: "notifications-service",
         baseUrl:
           process.env.NOTIFICATIONS_SERVICE_URL ||
-          "http://notifications-service:3031",
+          "http://localhost:3011",
         pathPrefix: "/api/v1/notifications",
         requiresAuth: true,
-        requiredPermissions: ["notification:read"],
       }),
 
       // Scheduler Service - Job Scheduling & Cron Management (port 3030)
@@ -403,6 +446,9 @@ class ApiGatewayApplication {
     );
 
     this.app.use(compression());
+    
+    // Cookie parser for session authentication
+    this.app.use(cookieParser());
 
     const defaultLimit = process.env.REQUEST_SIZE_LIMIT || "1mb";
 
@@ -477,33 +523,35 @@ class ApiGatewayApplication {
     });
 
     // Apply rate limiting (Redis-based if available, fallback to in-memory)
-    if (this.rateLimitMiddleware) {
-      logger.info("Applying Redis-based distributed rate limiting");
-      this.app.use("/api/", this.rateLimitMiddleware.globalLimiter());
-      this.app.use("/api/", this.rateLimitMiddleware.perUserLimiter());
+    // DISABLED FOR DEVELOPMENT
+    // if (this.rateLimitMiddleware) {
+    //   logger.info("Applying Redis-based distributed rate limiting");
+    //   this.app.use("/api/", this.rateLimitMiddleware.globalLimiter());
+    //   this.app.use("/api/", this.rateLimitMiddleware.perUserLimiter());
 
-      // Apply strict rate limiting to sensitive endpoints
-      this.app.use(
-        "/api/v1/auth/login",
-        this.rateLimitMiddleware.strictLimiter(),
-      );
-      this.app.use(
-        "/api/v1/auth/register",
-        this.rateLimitMiddleware.strictLimiter(),
-      );
-    } else {
-      logger.warn(
-        "Using in-memory rate limiting (not recommended for production)",
-      );
-      const globalLimiter = rateLimit({
-        windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"),
-        max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "1000"),
-        message: "Too many requests from this IP, please try again later",
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
-      this.app.use("/api/", globalLimiter);
-    }
+    //   // Apply strict rate limiting to sensitive endpoints
+    //   this.app.use(
+    //     "/api/v1/auth/login",
+    //     this.rateLimitMiddleware.strictLimiter(),
+    //   );
+    //   this.app.use(
+    //     "/api/v1/auth/register",
+    //     this.rateLimitMiddleware.strictLimiter(),
+    //   );
+    // } else {
+    //   logger.warn(
+    //     "Using in-memory rate limiting (not recommended for production)",
+    //   );
+    //   const globalLimiter = rateLimit({
+    //     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"),
+    //     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "1000"),
+    //     message: "Too many requests from this IP, please try again later",
+    //     standardHeaders: true,
+    //     legacyHeaders: false,
+    //   });
+    //   this.app.use("/api/", globalLimiter);
+    // }
+    logger.info("Rate limiting DISABLED for development");
 
     this.app.use(this.loggingMiddleware.logRequests());
 

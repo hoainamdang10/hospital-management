@@ -11,7 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientRegisteredEvent = void 0;
 const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 class PatientRegisteredEvent extends domain_event_1.DomainEvent {
-    constructor(patientId, patientUserId, fullName, dateOfBirth, gender, nationalId, correlationId, causationId, userIdForAudit) {
+    constructor(patientId, patientUserId, fullName, dateOfBirth, gender, nationalId, additionalData, correlationId, causationId, userIdForAudit) {
         const eventData = {
             patientId,
             userId: patientUserId,
@@ -21,6 +21,9 @@ class PatientRegisteredEvent extends domain_event_1.DomainEvent {
                 gender,
                 nationalId
             },
+            contactInfo: additionalData?.contactInfo,
+            insurance: additionalData?.insurance ?? null,
+            emergencyContacts: additionalData?.emergencyContacts,
             registeredAt: new Date()
         };
         super('PatientRegistered', patientId, 'Patient', eventData, 1, correlationId, causationId, userIdForAudit);
@@ -30,6 +33,9 @@ class PatientRegisteredEvent extends domain_event_1.DomainEvent {
         this.gender = gender;
         this.nationalId = nationalId;
         this.patientUserId = patientUserId;
+        this.contactInfo = additionalData?.contactInfo;
+        this.insurance = additionalData?.insurance ?? null;
+        this.emergencyContacts = additionalData?.emergencyContacts;
     }
     getEventData() {
         return {
@@ -41,6 +47,9 @@ class PatientRegisteredEvent extends domain_event_1.DomainEvent {
                 gender: this.gender,
                 nationalId: this.nationalId
             },
+            contactInfo: this.contactInfo,
+            insurance: this.insurance,
+            emergencyContacts: this.emergencyContacts,
             registeredAt: this.occurredAt
         };
     }

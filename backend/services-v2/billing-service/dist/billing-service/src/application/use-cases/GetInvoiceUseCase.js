@@ -1,0 +1,51 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GetInvoiceUseCase = void 0;
+const base_healthcare_use_case_1 = require("../../../../shared/application/base/base-healthcare-use-case");
+class GetInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase {
+    constructor(invoiceRepository, logger) {
+        super();
+        this.invoiceRepository = invoiceRepository;
+        this.logger = logger;
+    }
+    async executeImpl(request) {
+        this.logger.info('Getting invoice', { invoiceId: request.invoiceId });
+        const invoice = await this.invoiceRepository.findById(request.invoiceId);
+        if (!invoice) {
+            throw new Error('Invoice not found');
+        }
+        return {
+            invoiceId: invoice.id,
+            patientId: invoice.patientId,
+            invoiceNumber: invoice.invoiceNumber,
+            items: invoice.items.map(item => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice.amount,
+                totalPrice: item.totalPrice.amount
+            })),
+            subtotal: invoice.subtotal.amount,
+            tax: invoice.tax.amount,
+            insuranceCoverage: invoice.insuranceCoverage.amount,
+            totalAmount: invoice.totalAmount.amount,
+            outstandingAmount: invoice.outstandingAmount.amount,
+            status: invoice.status.value,
+            insurance: invoice.insurance ? {
+                provider: invoice.insurance.provider,
+                policyNumber: invoice.insurance.policyNumber,
+                coveragePercentage: invoice.insurance.coveragePercentage
+            } : undefined,
+            payments: invoice.payments.map(p => ({
+                id: p.id,
+                amount: p.amount.amount,
+                method: p.method,
+                status: p.status,
+                paidAt: p.paidAt
+            })),
+            createdAt: invoice.createdAt,
+            updatedAt: invoice.updatedAt
+        };
+    }
+}
+exports.GetInvoiceUseCase = GetInvoiceUseCase;
+//# sourceMappingURL=GetInvoiceUseCase.js.map

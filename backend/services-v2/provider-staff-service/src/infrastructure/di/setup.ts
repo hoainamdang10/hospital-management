@@ -657,7 +657,7 @@ export function setupDependencies(): DIContainer {
         rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
         exchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
         queueName: 'provider-staff-service.identity-events',
-        routingKeys: ['user.user_created_event', 'user.user_deactivated_event', 'user.user_role_changed_event'],
+        routingKeys: ['user.created.event', 'user.deactivated.event', 'user.role.changed.event'],
         prefetchCount: 1,
         retryAttempts: 3,
         retryDelayMs: 1000

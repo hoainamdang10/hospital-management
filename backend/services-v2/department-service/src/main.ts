@@ -75,10 +75,7 @@ const repository = new SupabaseDepartmentRepository(SUPABASE_URL, SUPABASE_SERVI
 const cache = new RedisDepartmentCache(REDIS_URL);
 const controller = new DepartmentController(repository, cache);
 
-// Routes
-app.use('/api/departments', createDepartmentRoutes(controller));
-
-// Health check endpoint
+// Health check endpoint - MUST BE BEFORE department routes to avoid /:id conflict
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'healthy',
@@ -104,6 +101,10 @@ app.get('/', (_req: Request, res: Response) => {
     }
   });
 });
+
+// Routes
+// Mount department routes at /api/departments - AFTER specific routes to avoid conflicts
+app.use('/api/departments', createDepartmentRoutes(controller));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

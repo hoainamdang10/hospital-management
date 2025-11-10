@@ -8,7 +8,7 @@
  */
 
 import { ILogger } from '@shared/application/services/logger.interface';
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent, buildRoutingKey } from '@shared/domain/base/domain-event';
 import { IOutboxRepository, OutboxEvent } from './SupabaseOutboxRepository';
 
 export interface OutboxWorkerConfig {
@@ -239,8 +239,7 @@ export class OutboxPublisherWorker {
         return null;
       },
       getStreamName: () => `${aggregateType}-${aggregateId}`,
-      getRoutingKey: () =>
-        `${aggregateType.toLowerCase()}.${eventType.toLowerCase()}`,
+      getRoutingKey: () => buildRoutingKey(aggregateType, eventType),
       shouldPublishExternally: () =>
         (metadata as any).publishExternal !== false,
       getPriority: () => (metadata as any).priority ?? 'normal',
@@ -262,4 +261,3 @@ export class OutboxPublisherWorker {
   }
 
 }
-

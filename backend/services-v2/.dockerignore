@@ -1,122 +1,18 @@
-# ============================================
-# Docker Ignore for Services Build
-# Build Context: backend/services-v2
-# ============================================
-
-# Exclude services not being built
-# Comment out the service you want to build
-# api-gateway
-billing-service
-clinical-emr-service
-# department-service
-notifications-service
-# provider-staff-service
-scheduler-service
-# patient-registry-service
-
-# Dependencies (will be installed during build)
-**/node_modules
-**/npm-debug.log
-**/yarn-error.log
-**/yarn.lock
-**/pnpm-lock.yaml
-
-# Keep package-lock.json for npm ci
-# Exclude other services' package-lock.json
-# api-gateway/package-lock.json
-billing-service/package-lock.json
-clinical-emr-service/package-lock.json
-# department-service/package-lock.json
-notifications-service/package-lock.json
-# provider-staff-service/package-lock.json
-scheduler-service/package-lock.json
-
-# Testing
-**/coverage
-**/*.test.ts
-**/*.spec.ts
-**/tests
-**/test-results
-**/test-results.json
-**/test-results.log
-**/test-results.txt
-**/playwright-report
-
-# Development
+# Global ignore rules for Docker build contexts
 .git
-.gitignore
-**/.env
-**/.env.local
-**/.env.*.local
-**/.env.development
-**/.env.test
-
-# IDE & Editors
-**/.vscode
-**/.idea
+.github
+node_modules
+**/node_modules
+**/.env*
+**/.DS_Store
+**/*.log
+**/*.tsbuildinfo
+**/coverage
+**/.cache
+**/tmp
+**/temp
+**/test-results
+**/playwright-report
 **/*.swp
 **/*.swo
 **/*~
-**/.DS_Store
-
-# Documentation (except README)
-**/*.md
-!**/README.md
-
-# Build artifacts (will be built fresh)
-**/dist
-**/build
-**/*.log
-**/*.tsbuildinfo
-
-# Monitoring (keep identity-service monitoring, exclude others)
-# api-gateway/monitoring
-appointments-service/monitoring
-billing-service/monitoring
-clinical-emr-service/monitoring
-notifications-service/monitoring
-provider-staff-service/monitoring
-scheduler-service/monitoring
-
-# Test scripts
-**/test-*.sh
-**/test-*.ps1
-**/*.postman_collection.json
-**/debug-*.js
-
-# Temporary files
-**/tmp
-**/temp
-**/.cache
-
-# CI/CD
-**/.github
-**/.gitlab-ci.yml
-**/.travis.yml
-
-# Migration scripts (not needed in production)
-**/migrations
-identity-service/scripts
-
-# Docker files
-**/Dockerfile
-**/.dockerignore
-**/docker-compose*.yml
-**/compose*.yml
-
-# Assessment and scripts directories
-assessment
-scripts
-migration
-
-# Root level configs
-docker-compose.v2.yml
-PORT-MAPPING.md
-README.md
-
-# Service specific files not needed
-**/*.FullName
-**/integration-test.log
-**/generate-jwt.js
-**/test-api.http
-**/test-api.ps1

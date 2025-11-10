@@ -7,8 +7,42 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabasePatientRepository = void 0;
+const Patient_1 = require("../../domain/aggregates/Patient");
 const PatientId_1 = require("../../domain/value-objects/PatientId");
 const PatientMapper_1 = require("../mappers/PatientMapper");
 const CircuitBreaker_1 = require("../resilience/CircuitBreaker");
@@ -188,6 +222,60 @@ class SupabasePatientRepository {
                 bhytNumber,
             });
             return null;
+        });
+    }
+    /**
+     * Create patient from user creation event
+     * Auto-creates patient record when Identity Service creates a PATIENT user
+     */
+    async createFromUserEvent(userData) {
+        return await this.circuitBreaker.execute(async () => {
+            this.logger.info('Creating patient from user event', {
+                userId: userData.userId,
+                email: userData.email,
+                fullName: userData.fullName
+            });
+            // Import required value objects
+            const PersonalInfo = (await Promise.resolve().then(() => __importStar(require('../../domain/value-objects/PersonalInfo')))).PersonalInfo;
+            const ContactInfo = (await Promise.resolve().then(() => __importStar(require('../../domain/value-objects/ContactInfo')))).ContactInfo;
+            const BasicMedicalInfo = (await Promise.resolve().then(() => __importStar(require('../../domain/value-objects/BasicMedicalInfo')))).BasicMedicalInfo;
+            // Create patient using Patient aggregate factory method
+            const patient = Patient_1.Patient.register(userData.userId, PersonalInfo.create({
+                fullName: userData.fullName,
+                dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'),
+                gender: userData.gender || 'other',
+                nationalId: userData.citizenId || 'UNKNOWN',
+                nationality: 'VN',
+                ethnicity: undefined,
+                occupation: undefined,
+                maritalStatus: undefined
+            }), ContactInfo.create({
+                primaryPhone: userData.phoneNumber || '0000000000',
+                email: userData.email,
+                address: {
+                    street: userData.address || '',
+                    ward: '',
+                    district: '',
+                    city: '',
+                    province: '',
+                    postalCode: undefined,
+                    country: 'Vietnam'
+                },
+                preferredContactMethod: 'email'
+            }), BasicMedicalInfo.create({
+                bloodType: undefined,
+                knownAllergies: []
+            }), undefined, // insuranceInfo
+            [], // emergencyContacts
+            'system' // createdBy - auto-created from Identity Service event
+            );
+            // Save patient to database
+            await this.save(patient);
+            this.logger.info('Patient created successfully from user event', {
+                userId: userData.userId,
+                patientId: patient.getPatientId()
+            });
+            return patient;
         });
     }
     /**

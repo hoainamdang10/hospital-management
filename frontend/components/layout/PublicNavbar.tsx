@@ -40,10 +40,10 @@ export function PublicNavbar() {
 
           {/* Auth Buttons */}
           <div className="hidden items-center space-x-3 md:flex">
-            <Link href="/login">
+            <Link href="/auth/login">
               <Button variant="outline">Đăng nhập</Button>
             </Link>
-            <Link href="/register">
+            <Link href="/auth/register">
               <Button>Đăng ký</Button>
             </Link>
           </div>
@@ -98,12 +98,12 @@ export function PublicNavbar() {
                 Liên hệ
               </Link>
               <div className="flex flex-col space-y-2 pt-3">
-                <Link href="/login">
+                <Link href="/auth/login">
                   <Button variant="outline" className="w-full">
                     Đăng nhập
                   </Button>
                 </Link>
-                <Link href="/register">
+                <Link href="/auth/register">
                   <Button className="w-full">Đăng ký</Button>
                 </Link>
               </div>

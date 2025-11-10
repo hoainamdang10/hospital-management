@@ -290,9 +290,9 @@ app.get("/health", async (_req, res) => {
           status: identityConsumerStatus,
           queue: "provider-staff-service.identity-events",
           routingKeys: [
-            "user.created",
-            "user.deactivated",
-            "user.role-changed",
+            "user.created.event",
+            "user.deactivated.event",
+            "user.role.changed.event",
           ],
         },
       },

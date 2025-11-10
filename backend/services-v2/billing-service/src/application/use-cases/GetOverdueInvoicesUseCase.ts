@@ -1,149 +1,84 @@
-/**
- * GetOverdueInvoicesUseCase - Application Layer
- * Use case for retrieving overdue invoices
- * 
- * @author Hospital Management Team
- * @version 2.0.0
- */
-
-import { IBillingRepository } from '../../domain/repositories/IBillingRepository';
-import { ILogger } from '../../../../shared/infrastructure/logging/logger.interface';
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/BaseHealthcareUseCase';
+import { BaseHealthcareUseCase } from '@shared/application/base/base-healthcare-use-case';
+import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface GetOverdueInvoicesRequest {
-  page: number;
-  limit: number;
-  daysOverdue?: number;
   patientId?: string;
-  sortBy?: 'dueDate' | 'amount' | 'daysOverdue';
-  sortOrder?: 'asc' | 'desc';
+  daysOverdue?: number;
+}
+
+export interface OverdueInvoice {
+  invoiceId: string;
+  invoiceNumber?: string;
+  patientId: string;
+  totalAmount: number;
+  outstandingAmount: number;
+  daysOverdue: number;
+  createdAt: Date;
+  finalizedAt?: Date;
 }
 
 export interface GetOverdueInvoicesResponse {
-  success: boolean;
-  data?: Array<{
-    invoiceId: string;
-    invoiceNumber: string;
-    patientId: string;
-    doctorId: string;
-    totalAmount: number;
-    patientPayable: number;
-    currency: string;
-    dueDate: Date;
-    issuedAt: Date;
-    daysOverdue: number;
-    status: string;
-  }>;
-  total: number;
-  summary?: {
-    totalOverdueAmount: number;
-    averageDaysOverdue: number;
-    oldestOverdueInvoice: number;
-  };
-  message: string;
-  errors?: Array<{
-    field: string;
-    message: string;
-    code: string;
-  }>;
+  invoices: OverdueInvoice[];
+  totalOverdue: number;
+  totalAmount: number;
 }
 
 export class GetOverdueInvoicesUseCase extends BaseHealthcareUseCase<GetOverdueInvoicesRequest, GetOverdueInvoicesResponse> {
+  protected readonly logger: ILogger;
+
   constructor(
-    private readonly billingRepository: IBillingRepository,
+    private readonly invoiceRepository: IInvoiceRepository,
     logger: ILogger
   ) {
-    super(logger);
+    super();
+    this.logger = logger;
   }
 
-  protected async executeCore(request: GetOverdueInvoicesRequest): Promise<GetOverdueInvoicesResponse> {
-    try {
-      this.logger.info('Getting overdue invoices', { 
-        page: request.page,
-        limit: request.limit,
-        daysOverdue: request.daysOverdue
-      });
+  protected async executeImpl(request: GetOverdueInvoicesRequest): Promise<GetOverdueInvoicesResponse> {
+    this.logger.info('Getting overdue invoices', { criteria: request });
 
-      // Validate pagination
-      if (request.page < 1 || request.limit < 1 || request.limit > 100) {
+    // Pass daysOverdue to repository for filtering
+    const invoices = await this.invoiceRepository.findOverdueInvoices(request.daysOverdue);
+
+    const now = new Date();
+    const overdueInvoices: OverdueInvoice[] = invoices
+      .filter(invoice => {
+        if (request.patientId && invoice.patientId !== request.patientId) {
+          return false;
+        }
+        return true;
+      })
+      .map(invoice => {
+        const createdDate = new Date(invoice.createdAt);
+        const daysOverdue = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+        
         return {
-          success: false,
-          total: 0,
-          message: 'Tham số phân trang không hợp lệ',
-          errors: [{
-            field: 'pagination',
-            message: 'Page phải >= 1, limit phải từ 1-100',
-            code: 'INVALID_PAGINATION'
-          }]
-        };
-      }
-
-      // TODO: Implement repository method findOverdueInvoices()
-      const invoices: any[] = [];
-      const total = 0;
-
-      const now = new Date();
-
-      // Calculate days overdue and map to response
-      const data = invoices.map(billing => {
-        const daysOverdue = Math.floor(
-          (now.getTime() - billing.dueDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        return {
-          invoiceId: billing.invoiceId.value,
-          invoiceNumber: billing.vietnameseInvoiceNumber || billing.invoiceId.value,
-          patientId: billing.patientId,
-          doctorId: billing.doctorId,
-          totalAmount: billing.totalAmount.amount,
-          patientPayable: billing.patientPaymentAmount.amount,
-          currency: billing.totalAmount.currency,
-          dueDate: billing.dueDate,
-          issuedAt: billing.issuedAt,
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          patientId: invoice.patientId,
+          totalAmount: invoice.totalAmount.amount,
+          outstandingAmount: invoice.outstandingAmount.amount,
           daysOverdue,
-          status: billing.status
+          createdAt: invoice.createdAt,
+          finalizedAt: undefined // Will be added when we expose this property
         };
+      })
+      .filter(invoice => {
+        if (request.daysOverdue && invoice.daysOverdue < request.daysOverdue) {
+          return false;
+        }
+        return true;
       });
 
-      // Calculate summary statistics
-      const summary = this.calculateSummary(data);
+    const totalAmount = overdueInvoices.reduce((sum, inv) => sum + inv.outstandingAmount, 0);
 
-      return {
-        success: true,
-        data,
-        total,
-        summary,
-        message: `Tìm thấy ${total} hóa đơn quá hạn`
-      };
-
-    } catch (error) {
-      this.logger.error('Error getting overdue invoices', { error, request });
-      throw error;
-    }
-  }
-
-  private calculateSummary(invoices: any[]): {
-    totalOverdueAmount: number;
-    averageDaysOverdue: number;
-    oldestOverdueInvoice: number;
-  } {
-    if (invoices.length === 0) {
-      return {
-        totalOverdueAmount: 0,
-        averageDaysOverdue: 0,
-        oldestOverdueInvoice: 0
-      };
-    }
-
-    const totalOverdueAmount = invoices.reduce((sum, inv) => sum + inv.patientPayable, 0);
-    const averageDaysOverdue = invoices.reduce((sum, inv) => sum + inv.daysOverdue, 0) / invoices.length;
-    const oldestOverdueInvoice = Math.max(...invoices.map(inv => inv.daysOverdue));
+    this.logger.info('Overdue invoices retrieved', { count: overdueInvoices.length });
 
     return {
-      totalOverdueAmount,
-      averageDaysOverdue: Math.round(averageDaysOverdue),
-      oldestOverdueInvoice
+      invoices: overdueInvoices,
+      totalOverdue: overdueInvoices.length,
+      totalAmount
     };
   }
 }
-

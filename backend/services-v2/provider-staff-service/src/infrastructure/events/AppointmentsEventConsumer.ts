@@ -1,19 +1,20 @@
 /**
  * AppointmentsEventConsumer - RabbitMQ Consumer for Appointments Service Events
  * Provider/Staff Service V2
- * 
+ *
  * Subscribes to Appointments Service events via RabbitMQ and routes to appropriate handlers
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Clean Architecture, HIPAA
  */
 
-import * as amqp from 'amqplib';
-import { ILogger } from '../../application/interfaces/ILogger';
-import { AppointmentScheduledEventHandler } from './AppointmentScheduledEventHandler';
-import { AppointmentCancelledEventHandler } from './AppointmentCancelledEventHandler';
-import { AppointmentCompletedEventHandler } from './AppointmentCompletedEventHandler';
+import * as amqp from "amqplib";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { AppointmentScheduledEventHandler } from "./AppointmentScheduledEventHandler";
+import { AppointmentCancelledEventHandler } from "./AppointmentCancelledEventHandler";
+import { AppointmentCompletedEventHandler } from "./AppointmentCompletedEventHandler";
+import { connectRabbitMQWithRetry } from "@shared/infrastructure/event-bus/rabbitmq-connection";
 
 export interface AppointmentsEventConsumerConfig {
   rabbitmqUrl: string;
@@ -23,6 +24,8 @@ export interface AppointmentsEventConsumerConfig {
   prefetchCount?: number;
   retryAttempts?: number;
   retryDelayMs?: number;
+  connectionRetries?: number;
+  connectionRetryDelayMs?: number;
 }
 
 /**
@@ -39,7 +42,7 @@ export class AppointmentsEventConsumer {
     private logger: ILogger,
     private appointmentScheduledHandler: AppointmentScheduledEventHandler,
     private appointmentCancelledHandler: AppointmentCancelledEventHandler,
-    private appointmentCompletedHandler: AppointmentCompletedEventHandler
+    private appointmentCompletedHandler: AppointmentCompletedEventHandler,
   ) {}
 
   /**
@@ -47,31 +50,47 @@ export class AppointmentsEventConsumer {
    */
   async connect(): Promise<void> {
     try {
-      this.logger.info('Connecting to RabbitMQ for Appointments events', {
-        url: this.config.rabbitmqUrl.replace(/\/\/.*@/, '//***@'), // Mask credentials
+      this.logger.info("Connecting to RabbitMQ for Appointments events", {
+        url: this.config.rabbitmqUrl.replace(/\/\/.*@/, "//***@"), // Mask credentials
         exchange: this.config.exchange,
-        queue: this.config.queueName
+        queue: this.config.queueName,
       });
 
-      // Create connection
-      this.connection = await amqp.connect(this.config.rabbitmqUrl) as any;
+      const connectionName = "AppointmentsEventConsumer";
+      const connectionRetries =
+        this.config.connectionRetries ??
+        Number(process.env.RABBITMQ_CONNECT_MAX_RETRIES || 5);
+      const connectionRetryDelayMs =
+        this.config.connectionRetryDelayMs ??
+        Number(process.env.RABBITMQ_CONNECT_RETRY_DELAY_MS || 3000);
+
+      // Create connection with retry logic
+      this.connection = await connectRabbitMQWithRetry(
+        () => amqp.connect(this.config.rabbitmqUrl) as any,
+        this.logger,
+        {
+          connectionName,
+          maxAttempts: connectionRetries,
+          initialDelayMs: connectionRetryDelayMs,
+        },
+      );
       this.channel = await (this.connection as any).createChannel();
 
       // Set prefetch count
       await this.channel!.prefetch(this.config.prefetchCount || 10);
 
       // Assert exchange
-      await this.channel!.assertExchange(this.config.exchange, 'topic', {
-        durable: true
+      await this.channel!.assertExchange(this.config.exchange, "topic", {
+        durable: true,
       });
 
       // Assert queue
       await this.channel!.assertQueue(this.config.queueName, {
         durable: true,
         arguments: {
-          'x-message-ttl': 86400000, // 24 hours
-          'x-max-length': 10000
-        }
+          "x-message-ttl": 86400000, // 24 hours
+          "x-max-length": 10000,
+        },
       });
 
       // Bind queue to routing keys
@@ -79,11 +98,11 @@ export class AppointmentsEventConsumer {
         await this.channel!.bindQueue(
           this.config.queueName,
           this.config.exchange,
-          routingKey
+          routingKey,
         );
-        this.logger.info('Bound queue to routing key', {
+        this.logger.info("Bound queue to routing key", {
           queue: this.config.queueName,
-          routingKey
+          routingKey,
         });
       }
 
@@ -95,31 +114,30 @@ export class AppointmentsEventConsumer {
             await this.handleMessage(msg);
           }
         },
-        { noAck: false }
+        { noAck: false },
       );
 
       this.isConnected = true;
-      this.logger.info('AppointmentsEventConsumer connected successfully', {
+      this.logger.info("AppointmentsEventConsumer connected successfully", {
         queue: this.config.queueName,
-        routingKeys: this.config.routingKeys
+        routingKeys: this.config.routingKeys,
       });
 
       // Handle connection errors
-      (this.connection as any).on('error', (err: Error) => {
-        this.logger.error('RabbitMQ connection error', {
-          error: err.message
+      (this.connection as any).on("error", (err: Error) => {
+        this.logger.error("RabbitMQ connection error", {
+          error: err.message,
         });
         this.isConnected = false;
       });
 
-      (this.connection as any).on('close', () => {
-        this.logger.warn('RabbitMQ connection closed');
+      (this.connection as any).on("close", () => {
+        this.logger.warn("RabbitMQ connection closed");
         this.isConnected = false;
       });
-
     } catch (error) {
-      this.logger.error('Failed to connect AppointmentsEventConsumer', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Failed to connect AppointmentsEventConsumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -132,10 +150,10 @@ export class AppointmentsEventConsumer {
     const content = msg.content.toString();
     const routingKey = msg.fields.routingKey;
 
-    this.logger.info('Received message from Appointments Service', {
+    this.logger.info("Received message from Appointments Service", {
       routingKey,
       messageId: msg.properties.messageId,
-      timestamp: msg.properties.timestamp
+      timestamp: msg.properties.timestamp,
     });
 
     try {
@@ -143,37 +161,36 @@ export class AppointmentsEventConsumer {
 
       // Route to appropriate handler based on event type
       switch (event.eventType) {
-        case 'AppointmentScheduled':
+        case "AppointmentScheduled":
           await this.handleAppointmentScheduled(event);
           break;
 
-        case 'AppointmentCancelled':
+        case "AppointmentCancelled":
           await this.handleAppointmentCancelled(event);
           break;
 
-        case 'AppointmentCompleted':
+        case "AppointmentCompleted":
           await this.handleAppointmentCompleted(event);
           break;
 
-        case 'AppointmentRescheduled':
+        case "AppointmentRescheduled":
           await this.handleAppointmentRescheduled(event);
           break;
 
         default:
-          this.logger.warn('Unknown event type from Appointments Service', {
+          this.logger.warn("Unknown event type from Appointments Service", {
             eventType: event.eventType,
-            eventId: event.eventId
+            eventId: event.eventId,
           });
       }
 
       // Acknowledge message
       this.channel?.ack(msg);
-
     } catch (error) {
-      this.logger.error('Error parsing or handling message', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.logger.error("Error parsing or handling message", {
+        error: error instanceof Error ? error.message : "Unknown error",
         routingKey,
-        messageId: msg.properties.messageId
+        messageId: msg.properties.messageId,
       });
 
       // Reject and requeue message for retry
@@ -189,10 +206,12 @@ export class AppointmentsEventConsumer {
       appointmentId: eventData.appointmentId || eventData.aggregateId,
       patientId: eventData.patientId || eventData.eventData?.patientId,
       doctorId: eventData.doctorId || eventData.eventData?.doctorId,
-      scheduledTime: eventData.scheduledTime || eventData.eventData?.scheduledTime,
+      scheduledTime:
+        eventData.scheduledTime || eventData.eventData?.scheduledTime,
       duration: eventData.duration || eventData.eventData?.duration,
-      appointmentType: eventData.appointmentType || eventData.eventData?.appointmentType,
-      status: eventData.status || eventData.eventData?.status || 'scheduled'
+      appointmentType:
+        eventData.appointmentType || eventData.eventData?.appointmentType,
+      status: eventData.status || eventData.eventData?.status || "scheduled",
     });
   }
 
@@ -204,8 +223,9 @@ export class AppointmentsEventConsumer {
       appointmentId: eventData.appointmentId || eventData.aggregateId,
       doctorId: eventData.doctorId || eventData.eventData?.doctorId,
       cancelledBy: eventData.cancelledBy || eventData.eventData?.cancelledBy,
-      cancellationReason: eventData.cancellationReason || eventData.eventData?.cancellationReason,
-      cancelledAt: eventData.cancelledAt || eventData.occurredAt
+      cancellationReason:
+        eventData.cancellationReason || eventData.eventData?.cancellationReason,
+      cancelledAt: eventData.cancelledAt || eventData.occurredAt,
     });
   }
 
@@ -218,7 +238,7 @@ export class AppointmentsEventConsumer {
       doctorId: eventData.doctorId || eventData.eventData?.doctorId,
       patientId: eventData.patientId || eventData.eventData?.patientId,
       completedAt: eventData.completedAt || eventData.occurredAt,
-      duration: eventData.duration || eventData.eventData?.actualDuration
+      duration: eventData.duration || eventData.eventData?.actualDuration,
     });
   }
 
@@ -229,7 +249,7 @@ export class AppointmentsEventConsumer {
     // Treat as cancelled + scheduled
     await this.handleAppointmentCancelled({
       ...eventData,
-      cancellationReason: 'Rescheduled'
+      cancellationReason: "Rescheduled",
     });
     await this.handleAppointmentScheduled(eventData);
   }
@@ -242,10 +262,10 @@ export class AppointmentsEventConsumer {
       await this.channel?.close();
       await (this.connection as any)?.close();
       this.isConnected = false;
-      this.logger.info('AppointmentsEventConsumer disconnected');
+      this.logger.info("AppointmentsEventConsumer disconnected");
     } catch (error) {
-      this.logger.error('Error disconnecting AppointmentsEventConsumer', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error disconnecting AppointmentsEventConsumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -257,4 +277,3 @@ export class AppointmentsEventConsumer {
     return this.isConnected;
   }
 }
-

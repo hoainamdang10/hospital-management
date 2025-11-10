@@ -22,6 +22,20 @@ export interface IPatientRepository {
      */
     findByNationalId(nationalId: string): Promise<Patient | null>;
     /**
+     * Create patient from user creation event
+     * Used when Identity Service creates a new user with PATIENT role
+     */
+    createFromUserEvent(userData: {
+        userId: string;
+        email: string;
+        fullName: string;
+        phoneNumber?: string;
+        address?: string;
+        dateOfBirth?: Date;
+        gender?: 'male' | 'female' | 'other';
+        citizenId?: string;
+    }): Promise<Patient>;
+    /**
      * Save patient (create or update)
      */
     save(patient: Patient): Promise<void>;

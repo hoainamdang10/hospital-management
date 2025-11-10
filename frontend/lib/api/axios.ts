@@ -1,29 +1,24 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// API Base URL
-// For development: point to department service (3025)
-// In production: use API Gateway (3101)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3025';
-
 // Create axios instance
+// Use Next.js API proxy (/api/*) for same-origin requests
+// This fixes cross-origin cookie issues (localhost:3000 vs localhost:3101)
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  // Use Next.js API proxy for same-origin requests (fixes cookie issues)
+  baseURL: '/api',
   timeout: 30000, // 30 seconds
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Send cookies with requests (session-based auth)
 });
 
-// Request interceptor - Add JWT token
+// Request interceptor - Session-based auth (no need for Bearer token)
+// Cookies are automatically sent with withCredentials: true
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Get token from localStorage
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
+    // No need to manually attach token - session cookie is sent automatically
+    // API Gateway reads session_token from cookies
     return config;
   },
   (error: AxiosError) => {
@@ -31,53 +26,33 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle 401, refresh token
+// Response interceptor - Handle 401 (session expired)
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-    // Handle 401 Unauthorized
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // Get refresh token
-        const refreshToken =
-          typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
-
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        // Call refresh token endpoint
-        const { data } = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
-          refreshToken,
+    // If 401 Unauthorized - session expired or invalid
+    if (error.response?.status === 401) {
+      console.warn('[axios] 401 Unauthorized received', {
+        url: error.config?.url,
+        hasSessionCookie: document.cookie.includes('session_token')
+      });
+      
+      // Only redirect if NOT already on auth pages
+      // TEMPORARILY DISABLED FOR DEBUGGING
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        const isAuthPage = currentPath.startsWith('/auth/');
+        
+        console.warn('[axios] 401 received - Would redirect but DISABLED FOR DEBUG', {
+          currentPath,
+          isAuthPage,
+          url: error.config?.url
         });
-
-        // Save new access token
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('accessToken', data.accessToken);
-          if (data.refreshToken) {
-            localStorage.setItem('refreshToken', data.refreshToken);
-          }
-        }
-
-        // Retry original request with new token
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-        }
-
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed - logout user
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login?session=expired';
-        }
-        return Promise.reject(refreshError);
+        
+        // if (!isAuthPage) {
+        //   console.warn('[axios] Session expired, redirecting to login');
+        //   window.location.href = '/auth/login?session=expired';
+        // }
       }
     }
 

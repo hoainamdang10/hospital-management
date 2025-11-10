@@ -1,13 +1,56 @@
 /**
  * Domain Event Base Class - Clean Architecture + DDD + Event Sourcing
  * Enhanced version with healthcare-specific features
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event Sourcing, HIPAA
  */
 
 import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Normalize aggregate + event names into dot-delimited routing keys
+ * Examples:
+ *   (Patient, PatientRegistered) => patient.registered
+ *   (ProviderStaff, StaffUpdated) => provider.staff.updated
+ *   (Appointment, AppointmentCompleted) => appointment.completed
+ */
+export function buildRoutingKey(
+  aggregateType: string,
+  eventType: string
+): string {
+  const aggregateSegments = splitToSegments(aggregateType);
+  const eventSegments = splitToSegments(eventType);
+
+  if (
+    aggregateSegments.length > 0 &&
+    eventSegments.length > 0 &&
+    eventSegments[0] === aggregateSegments[aggregateSegments.length - 1]
+  ) {
+    eventSegments.shift();
+  }
+
+  const segments = [...aggregateSegments, ...eventSegments].filter(
+    (segment) => segment.length > 0
+  );
+
+  return segments.join('.');
+}
+
+function splitToSegments(value: string): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1.$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1.$2')
+    .replace(/[\s_-]+/g, '.')
+    .split('.')
+    .map((segment) => segment.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 /**
  * Abstract base class for all domain events
@@ -78,7 +121,7 @@ export abstract class DomainEvent {
    * Get event routing key for message bus
    */
   public getRoutingKey(): string {
-    return `${this.aggregateType.toLowerCase()}.${this.eventType.toLowerCase()}`;
+    return buildRoutingKey(this.aggregateType, this.eventType);
   }
 
   /**

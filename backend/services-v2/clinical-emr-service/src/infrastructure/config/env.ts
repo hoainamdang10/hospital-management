@@ -1,7 +1,7 @@
-import dotenv from 'dotenv';
-import path from 'path';
+import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -12,8 +12,29 @@ function requireEnv(name: string): string {
 }
 
 export const env = {
-  nodeEnv: process.env.NODE_ENV ?? 'development',
+  nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 3027),
-  supabaseUrl: requireEnv('SUPABASE_URL'),
-  supabaseServiceRoleKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+  supabaseUrl: requireEnv("SUPABASE_URL"),
+  supabaseServiceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  rabbitmqUrl: process.env.RABBITMQ_URL ?? "amqp://admin:admin@localhost:5673",
+  rabbitmqExchange: process.env.RABBITMQ_EXCHANGE ?? "hospital.events",
+  outbox: {
+    enabled: process.env.OUTBOX_ENABLED !== "false",
+    pollingIntervalMs: Number(process.env.OUTBOX_POLL_INTERVAL_MS ?? 5000),
+    batchSize: Number(process.env.OUTBOX_BATCH_SIZE ?? 50),
+  },
+  integrationConsumer: {
+    enabled: process.env.INTEGRATION_CONSUMER_ENABLED !== "false",
+    queueName:
+      process.env.INTEGRATION_QUEUE ??
+      "clinical-emr-service.integration",
+    prefetch: Number(process.env.INTEGRATION_PREFETCH ?? 5),
+    routingKeys: (
+      process.env.INTEGRATION_ROUTING_KEYS ??
+      "patient.registered,patient.updated,provider.staff.created,provider.staff.updated,provider.staff.deactivated,appointment.completed,appointment.scheduled"
+    )
+      .split(",")
+      .map((key) => key.trim())
+      .filter((key) => key.length > 0),
+  },
 };

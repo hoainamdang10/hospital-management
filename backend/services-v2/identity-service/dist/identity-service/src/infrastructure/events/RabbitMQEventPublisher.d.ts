@@ -19,7 +19,7 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
     private flushingPending;
     private readonly maxPublishAttempts;
     private readonly publishRetryDelayMs;
-    constructor(rabbitMQUrl: string, logger: ILogger);
+    constructor(rabbitMQUrl: string, logger: ILogger, exchangeName?: string);
     /**
      * Initialize RabbitMQ connection and channel
      */
@@ -37,9 +37,7 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
      */
     close(): Promise<void>;
     /**
-     * Get routing key for event
-     * Format: {aggregateType}.{eventType}
-     * Example: user.registered, user.activated, user.role_changed
+     * Build AMQP routing key using shared helper for consistent naming
      */
     private getRoutingKey;
     private publishWithRetry;

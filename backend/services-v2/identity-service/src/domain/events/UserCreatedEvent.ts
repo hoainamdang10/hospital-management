@@ -10,12 +10,14 @@ import { DomainEvent } from '@shared/domain/base/domain-event';
 import { UserId } from '../value-objects/UserId';
 import { Email } from '../value-objects/Email';
 import { HealthcareRole } from '../entities/HealthcareRole';
+import { PersonalInfo } from '../value-objects/PersonalInfo';
 
 export class UserCreatedEvent extends DomainEvent {
   constructor(
     public readonly userIdVO: UserId,
     public readonly userEmail: Email,
-    public readonly userRole: HealthcareRole
+    public readonly userRole: HealthcareRole,
+    public readonly personalInfo?: PersonalInfo // Optional for backward compatibility
   ) {
     super(
       'UserCreated',
@@ -33,7 +35,15 @@ export class UserCreatedEvent extends DomainEvent {
     return {
       userId: this.userIdVO.value,
       email: this.userEmail.value,
-      role: this.userRole.type
+      role: this.userRole.type,
+      personalInfo: this.personalInfo ? {
+        fullName: this.personalInfo.fullName,
+        phoneNumber: this.personalInfo.phoneNumber,
+        address: this.personalInfo.address,
+        dateOfBirth: this.personalInfo.dateOfBirth,
+        gender: this.personalInfo.gender,
+        citizenId: this.personalInfo.citizenId
+      } : undefined
     };
   }
 

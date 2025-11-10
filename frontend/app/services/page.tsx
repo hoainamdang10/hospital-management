@@ -76,7 +76,7 @@ export default function ServicesPage() {
               Đăng ký ngay
             </a>
             <a
-              href="/login"
+              href="/auth/login"
               className="rounded-lg border-2 border-white px-8 py-3 font-semibold text-white transition-colors hover:bg-white/10"
             >
               Đăng nhập

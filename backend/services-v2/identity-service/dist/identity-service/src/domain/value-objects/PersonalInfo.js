@@ -49,9 +49,10 @@ class PersonalInfo extends value_object_1.ValueObject {
     // This method violated Clean Architecture by coupling domain to external concerns
     // Use PersonalInfo.create() directly in mappers
     static isValidVietnamesePhone(phone) {
-        // Vietnamese phone: 10 digits, starts with 0
-        const phoneRegex = /^0\d{9}$/;
-        return phoneRegex.test(phone.replace(/\s/g, ''));
+        // Vietnamese SIMs: current numbers = 10 digits, legacy = 11 digits -> accept 10-11 digits starting with 0
+        const normalized = phone.replace(/\s+/g, '');
+        const phoneRegex = /^0\d{9,10}$/;
+        return phoneRegex.test(normalized);
     }
     static isValidCitizenId(citizenId) {
         // CMND: 9 or 12 digits, CCCD: 12 digits

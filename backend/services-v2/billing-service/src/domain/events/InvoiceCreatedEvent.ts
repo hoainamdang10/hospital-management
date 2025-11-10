@@ -1,45 +1,66 @@
-/**
- * InvoiceCreatedEvent - Domain Event
- * Raised when a new invoice is created
- *
- * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, DDD, Event-Driven Architecture
- */
+import { DomainEvent } from '@shared/domain/base/domain-event';
 
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+export interface InvoiceCreatedEventData {
+  invoiceId: string;
+  patientId: string;
+  totalAmount: number;
+  currency: string;
+  status: string;
+  timestamp: Date;
+}
 
 export class InvoiceCreatedEvent extends DomainEvent {
   constructor(
     public readonly invoiceId: string,
     public readonly patientId: string,
-    public readonly medicalRecordId: string,
-    public readonly doctorId: string,
-    public readonly appointmentId: string,
-    public readonly issuedBy: string
+    public readonly totalAmount: number,
+    public readonly currency: string,
+    public readonly status: string,
+    correlationId?: string,
+    causationId?: string,
+    userIdForAudit?: string
   ) {
-    super(invoiceId, 'InvoiceCreatedEvent', 1);
+    const eventData: InvoiceCreatedEventData = {
+      invoiceId,
+      patientId,
+      totalAmount,
+      currency,
+      status,
+      timestamp: new Date()
+    };
+
+    super(
+      'InvoiceCreated',
+      invoiceId,
+      'Invoice',
+      eventData,
+      1,
+      correlationId,
+      causationId,
+      userIdForAudit
+    );
   }
 
-  /**
-   * Get aggregate type
-   */
-  getAggregateType(): string {
-    return 'BillingAggregate';
+  public containsPHI(): boolean {
+    return true;
   }
 
-  /**
-   * Get event data
-   */
-  getEventData(): any {
+  public getPatientId(): string | null {
+    return this.patientId;
+  }
+
+  public getPayload(): InvoiceCreatedEventData {
     return {
       invoiceId: this.invoiceId,
       patientId: this.patientId,
-      medicalRecordId: this.medicalRecordId,
-      doctorId: this.doctorId,
-      appointmentId: this.appointmentId,
-      issuedBy: this.issuedBy,
-      vietnameseDescription: 'Hóa đơn mới đã được tạo'
+      totalAmount: this.totalAmount,
+      currency: this.currency,
+      status: this.status,
+      timestamp: this.occurredAt
     };
+  }
+
+  public getEventData(): any {
+    return this.getPayload();
   }
 }

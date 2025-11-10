@@ -49,7 +49,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
             updatedBy: createdBy,
         });
         // Publish domain event
-        patient.addDomainEvent(new PatientRegisteredEvent_1.PatientRegisteredEvent(patientId.value, userId, personalInfo.fullName, personalInfo.dateOfBirth, personalInfo.gender, personalInfo.nationalId));
+        patient.addDomainEvent(new PatientRegisteredEvent_1.PatientRegisteredEvent(patientId.value, userId, personalInfo.fullName, personalInfo.dateOfBirth, personalInfo.gender, personalInfo.nationalId, Patient.buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts)));
         return patient;
     }
     /**
@@ -75,7 +75,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
             updatedBy: createdBy,
         });
         // Publish domain event
-        patient.addDomainEvent(new PatientRegisteredEvent_1.PatientRegisteredEvent(patientId.value, userId, personalInfo.fullName, personalInfo.dateOfBirth, personalInfo.gender, personalInfo.nationalId));
+        patient.addDomainEvent(new PatientRegisteredEvent_1.PatientRegisteredEvent(patientId.value, userId, personalInfo.fullName, personalInfo.dateOfBirth, personalInfo.gender, personalInfo.nationalId, Patient.buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts)));
         return patient;
     }
     /**
@@ -83,6 +83,69 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
      */
     static reconstitute(props) {
         return new Patient(props);
+    }
+    static buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts) {
+        return {
+            contactInfo: Patient.mapContactInfo(contactInfo),
+            insurance: Patient.mapInsuranceInfo(insuranceInfo) ?? null,
+            emergencyContacts: Patient.mapEmergencyContacts(emergencyContacts),
+        };
+    }
+    static mapContactInfo(contactInfo) {
+        if (!contactInfo) {
+            return undefined;
+        }
+        const address = contactInfo.address;
+        return {
+            primaryPhone: contactInfo.primaryPhone,
+            secondaryPhone: contactInfo.secondaryPhone,
+            email: contactInfo.email,
+            address: address
+                ? {
+                    street: address.street,
+                    ward: address.ward,
+                    district: address.district,
+                    city: address.city,
+                    province: address.province,
+                    postalCode: address.postalCode,
+                    country: address.country,
+                }
+                : undefined,
+            preferredContactMethod: contactInfo.preferredContactMethod,
+        };
+    }
+    static mapInsuranceInfo(insuranceInfo) {
+        if (!insuranceInfo) {
+            return undefined;
+        }
+        return {
+            provider: insuranceInfo.provider,
+            policyNumber: insuranceInfo.policyNumber,
+            groupNumber: insuranceInfo.groupNumber,
+            coverageType: insuranceInfo.coverageType,
+            validFrom: insuranceInfo.validFrom,
+            validTo: insuranceInfo.validTo,
+            bhytNumber: insuranceInfo.bhytNumber ?? undefined,
+            isPrimary: insuranceInfo.isPrimary,
+            isActive: insuranceInfo.isActive,
+            isVietnameseInsurance: insuranceInfo.isVietnameseInsurance,
+        };
+    }
+    static mapEmergencyContacts(contacts) {
+        if (!contacts || contacts.length === 0) {
+            return undefined;
+        }
+        return contacts.map((contact) => ({
+            id: contact.getId(),
+            name: contact.name,
+            relationship: contact.relationship,
+            primaryPhone: contact.primaryPhone,
+            secondaryPhone: contact.secondaryPhone,
+            email: contact.email,
+            address: contact.address,
+            isPrimary: contact.isPrimary,
+            isActive: contact.isActive,
+        }));
     }
     // ==================== Business Methods ====================
     /**

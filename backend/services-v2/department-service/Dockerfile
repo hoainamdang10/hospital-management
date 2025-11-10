@@ -1,6 +1,6 @@
 # Department Service Dockerfile
 # Build context: backend/services-v2
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app/department-service

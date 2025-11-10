@@ -83,10 +83,15 @@ class AuthenticationMiddleware {
                     });
                     // Continue without session_id - not critical for authentication
                 }
+                // Extract fullName from user metadata
+                const fullName = user.user_metadata?.full_name ||
+                    user.user_metadata?.fullName ||
+                    user.email?.split('@')[0];
                 // Attach user info to request
                 req.user = {
                     userId: user.id,
                     email: user.email,
+                    fullName,
                     roles,
                     permissions: permissionsArray,
                     sessionId
@@ -144,9 +149,14 @@ class AuthenticationMiddleware {
                             error: (0, error_helper_1.getErrorMessage)(error)
                         });
                     }
+                    // Extract fullName from user metadata
+                    const fullName = user.user_metadata?.full_name ||
+                        user.user_metadata?.fullName ||
+                        user.email?.split('@')[0];
                     req.user = {
                         userId: user.id,
                         email: user.email,
+                        fullName,
                         roles,
                         permissions: permissionsArray,
                         sessionId

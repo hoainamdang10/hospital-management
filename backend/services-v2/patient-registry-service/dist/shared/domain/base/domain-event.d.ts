@@ -7,6 +7,14 @@
  * @compliance Clean Architecture, DDD, Event Sourcing, HIPAA
  */
 /**
+ * Normalize aggregate + event names into dot-delimited routing keys
+ * Examples:
+ *   (Patient, PatientRegistered) => patient.registered
+ *   (ProviderStaff, StaffUpdated) => provider.staff.updated
+ *   (Appointment, AppointmentCompleted) => appointment.completed
+ */
+export declare function buildRoutingKey(aggregateType: string, eventType: string): string;
+/**
  * Abstract base class for all domain events
  */
 export declare abstract class DomainEvent {

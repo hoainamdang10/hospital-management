@@ -6,16 +6,18 @@
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Clean Architecture
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
-import { IDomainEventPublisher, DomainEventPublisherConfig } from '../../../../shared/domain/events/IDomainEventPublisher';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
+import { IDomainEventPublisher, DomainEventPublisherConfig } from "../../../../shared/domain/events/IDomainEventPublisher";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface RabbitMQConfig {
     url: string;
     exchange: string;
-    exchangeType: 'topic' | 'fanout' | 'direct';
+    exchangeType: "topic" | "fanout" | "direct";
     durable: boolean;
     autoDelete: boolean;
     serviceName?: string;
+    connectionRetries?: number;
+    connectionRetryDelayMs?: number;
 }
 /**
  * RabbitMQ Event Publisher
@@ -74,9 +76,5 @@ export declare class RabbitMQEventPublisher implements IDomainEventPublisher {
      * Serialize event to JSON
      */
     private serializeEvent;
-    /**
-     * Resolve service name for routing keys
-     */
-    private getServiceName;
 }
 //# sourceMappingURL=RabbitMQEventPublisher.d.ts.map

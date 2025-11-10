@@ -1,16 +1,22 @@
 # notifications-service - Hospital Management System
-FROM node:18-alpine
+FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /app/notifications-service
 
 # Copy package files
-COPY package*.json ./
+COPY notifications-service/package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy source code
-COPY dist/ ./dist/
+# Expose node_modules for shared runtime imports
+RUN ln -s /app/notifications-service/node_modules /app/node_modules
+
+# Copy built source code
+COPY notifications-service/dist ./dist
+
+# Copy shared runtime dependencies
+COPY shared /app/shared
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -25,7 +31,7 @@ EXPOSE 3031
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3031/health || exit 1
+    CMD curl -f http://localhost:3031/health || exit 1
 
 # Start application
 CMD ["node", "dist/index.js"]

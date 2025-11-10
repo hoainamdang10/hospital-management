@@ -11,6 +11,17 @@ import { SupabaseImagingStudyRepository } from "../../../infrastructure/reposito
 import { SupabasePrescriptionRepository } from "../../../infrastructure/repositories/SupabasePrescriptionRepository";
 import { SupabaseTreatmentPlanRepository } from "../../../infrastructure/repositories/SupabaseTreatmentPlanRepository";
 import { SupabaseAuditLogRepository } from "../../../infrastructure/repositories/SupabaseAuditLogRepository";
+import { SupabaseOutboxRepository } from "../../../infrastructure/outbox/SupabaseOutboxRepository";
+import { OutboxPublisherWorker } from "../../../infrastructure/outbox/OutboxPublisherWorker";
+import { ClinicalEventDispatcher } from "../../../application/services/ClinicalEventDispatcher";
+import { RabbitMQEventPublisher } from "../../../infrastructure/events/RabbitMQEventPublisher";
+import { SupabaseIntegrationInboxRepository } from "../../../infrastructure/repositories/SupabaseIntegrationInboxRepository";
+import { SupabasePatientSnapshotRepository } from "../../../infrastructure/repositories/SupabasePatientSnapshotRepository";
+import { SupabaseProviderSnapshotRepository } from "../../../infrastructure/repositories/SupabaseProviderSnapshotRepository";
+import { ClinicalIntegrationSyncService } from "../../../application/services/ClinicalIntegrationSyncService";
+import { ClinicalIntegrationEventConsumer } from "../../../infrastructure/events/ClinicalIntegrationEventConsumer";
+import { supabaseClient } from "../../../infrastructure/db/supabase-client";
+import { ILogger } from "../../../shared/logger";
 
 import { ListMedicalRecordsUseCase } from "../../../application/use-cases/ListMedicalRecordsUseCase";
 import { GetMedicalRecordUseCase } from "../../../application/use-cases/GetMedicalRecordUseCase";
@@ -54,8 +65,32 @@ import { createAuditLogRouter } from "../routes/audit-log.routes";
 import { errorMiddleware } from "../middlewares/error.middleware";
 import { authenticationMiddleware } from "../middlewares/auth.middleware";
 
+const buildLogger = (): ILogger => {
+  const format = (message: string, meta?: Record<string, unknown>) =>
+    meta && Object.keys(meta).length
+      ? `${message} ${JSON.stringify(meta)}`
+      : message;
+
+  return {
+    info: (message: string, meta?: Record<string, unknown>) =>
+      console.log(`[clinical-emr] ${format(message, meta)}`),
+    warn: (message: string, meta?: Record<string, unknown>) =>
+      console.warn(`[clinical-emr] ${format(message, meta)}`),
+    error: (message: string, meta?: Record<string, unknown>) =>
+      console.error(`[clinical-emr] ${format(message, meta)}`),
+    fatal: (message: string, meta?: Record<string, unknown>) =>
+      console.error(`[clinical-emr][fatal] ${format(message, meta)}`),
+    debug: (message: string, meta?: Record<string, unknown>) => {
+      if (env.nodeEnv === "development") {
+        console.debug(`[clinical-emr] ${format(message, meta)}`);
+      }
+    },
+  };
+};
+
 export function createHttpServer() {
   const app = express();
+  const logger = buildLogger();
 
   app.use(helmet());
   app.use(cors());
@@ -77,6 +112,123 @@ export function createHttpServer() {
   const prescriptionRepo = new SupabasePrescriptionRepository();
   const treatmentPlanRepo = new SupabaseTreatmentPlanRepository();
   const auditLogRepo = new SupabaseAuditLogRepository();
+  const outboxRepository = new SupabaseOutboxRepository(
+    supabaseClient,
+    logger,
+  );
+  const integrationInboxRepository = new SupabaseIntegrationInboxRepository(
+    supabaseClient,
+    logger,
+  );
+  const patientSnapshotRepository = new SupabasePatientSnapshotRepository(
+    supabaseClient,
+    logger,
+  );
+  const providerSnapshotRepository = new SupabaseProviderSnapshotRepository(
+    supabaseClient,
+    logger,
+  );
+  const integrationSyncService = new ClinicalIntegrationSyncService(
+    patientSnapshotRepository,
+    providerSnapshotRepository,
+    logger,
+  );
+
+  const rabbitPublisher = new RabbitMQEventPublisher(
+    {
+      url: env.rabbitmqUrl,
+      exchange: env.rabbitmqExchange,
+      exchangeType: "topic",
+      durable: true,
+      autoDelete: false,
+      serviceName: "clinical-emr-service",
+    },
+    {
+      enableRetry: true,
+      maxRetries: 3,
+      retryDelayMs: 1000,
+      enableLogging: env.nodeEnv === "development",
+    },
+    logger,
+  );
+
+  const outboxWorker = new OutboxPublisherWorker(
+    outboxRepository,
+    logger,
+    async (event) => rabbitPublisher.publish(event),
+    {
+      enabled: env.outbox.enabled,
+      pollingIntervalMs: env.outbox.pollingIntervalMs,
+      batchSize: env.outbox.batchSize,
+    },
+  );
+  let integrationConsumer: ClinicalIntegrationEventConsumer | null = null;
+
+  const startOutboxPipeline = async () => {
+    try {
+      await rabbitPublisher.connect();
+    } catch (error) {
+      logger.error("[ClinicalEMR] Failed to connect RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return;
+    }
+
+    try {
+      await outboxWorker.start();
+    } catch (error) {
+      logger.error("[ClinicalEMR] Failed to start outbox worker", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+  void startOutboxPipeline();
+
+  if (
+    env.integrationConsumer.enabled &&
+    env.integrationConsumer.routingKeys.length
+  ) {
+    integrationConsumer = new ClinicalIntegrationEventConsumer(
+      {
+        url: env.rabbitmqUrl,
+        exchange: env.rabbitmqExchange,
+        queueName: env.integrationConsumer.queueName,
+        routingKeys: env.integrationConsumer.routingKeys,
+        prefetch: env.integrationConsumer.prefetch,
+        serviceName: "clinical-emr-service",
+      },
+      logger,
+      integrationInboxRepository,
+      integrationSyncService,
+    );
+
+    integrationConsumer
+      .start()
+      .catch((error) =>
+        logger.error("[ClinicalEMR] Failed to start integration consumer", {
+          error: error instanceof Error ? error.message : "Unknown error",
+        }),
+      );
+  } else {
+    logger.info("[ClinicalEMR] Integration consumer disabled", {
+      enabled: env.integrationConsumer.enabled,
+      routingKeys: env.integrationConsumer.routingKeys.length,
+    });
+  }
+
+  const eventDispatcher = new ClinicalEventDispatcher(outboxRepository, logger);
+
+  const gracefulShutdown = async () => {
+    await outboxWorker.stop().catch(() => undefined);
+    await rabbitPublisher.disconnect().catch(() => undefined);
+    if (integrationConsumer) {
+      await integrationConsumer.stop().catch(() => undefined);
+    }
+  };
+
+  process.once("SIGINT", gracefulShutdown);
+  process.once("SIGTERM", gracefulShutdown);
 
   const auditLogUseCase = new CreateAuditLogUseCase(auditLogRepo);
   const listMedicalRecordsUseCase = new ListMedicalRecordsUseCase(
@@ -92,6 +244,7 @@ export function createHttpServer() {
     new CreateMedicalRecordUseCase(medicalRecordRepo),
     new UpdateMedicalRecordUseCase(medicalRecordRepo),
     auditLogUseCase,
+    eventDispatcher,
   );
 
   const clinicalNoteController = new ClinicalNoteController(
@@ -100,6 +253,7 @@ export function createHttpServer() {
     new DeleteClinicalNoteUseCase(clinicalNoteRepo),
     auditLogUseCase,
     getMedicalRecordUseCase,
+    eventDispatcher,
   );
 
   const labResultController = new LabResultController(
@@ -108,6 +262,7 @@ export function createHttpServer() {
     new DeleteLabResultUseCase(labResultRepo),
     auditLogUseCase,
     getMedicalRecordUseCase,
+    eventDispatcher,
   );
 
   const imagingStudyController = new ImagingStudyController(
@@ -116,6 +271,7 @@ export function createHttpServer() {
     new DeleteImagingStudyUseCase(imagingRepo),
     auditLogUseCase,
     getMedicalRecordUseCase,
+    eventDispatcher,
   );
 
   const prescriptionController = new PrescriptionController(
@@ -124,6 +280,7 @@ export function createHttpServer() {
     auditLogUseCase,
     new DeletePrescriptionUseCase(prescriptionRepo),
     getMedicalRecordUseCase,
+    eventDispatcher,
   );
 
   const treatmentPlanController = new TreatmentPlanController(
@@ -133,6 +290,7 @@ export function createHttpServer() {
     new DeleteTreatmentPlanUseCase(treatmentPlanRepo),
     auditLogUseCase,
     getMedicalRecordUseCase,
+    eventDispatcher,
   );
 
   const auditLogController = new AuditLogController(

@@ -8,7 +8,7 @@
 
 import * as amqp from "amqplib";
 import type { Connection, Channel } from "amqplib";
-import { DomainEvent } from "@shared/domain/base/domain-event";
+import { DomainEvent, buildRoutingKey } from "@shared/domain/base/domain-event";
 import { ILogger } from "../../application/services/ILogger";
 import {
   IEventPublisher,
@@ -19,7 +19,7 @@ import { DomainEventMapper } from "./DomainEventMapper";
 export class RabbitMQEventPublisher implements IEventPublisher {
   private connection: Connection | null = null;
   private channel: Channel | null = null;
-  private readonly exchangeName = "hospital.events";
+  private readonly exchangeName: string;
   private isConnected = false;
   private readonly pendingEvents: IntegrationEventPayload[] = [];
   private flushingPending = false;
@@ -29,7 +29,11 @@ export class RabbitMQEventPublisher implements IEventPublisher {
   constructor(
     private readonly rabbitMQUrl: string,
     private readonly logger: ILogger,
-  ) {}
+    exchangeName?: string,
+  ) {
+    this.exchangeName =
+      exchangeName || process.env.RABBITMQ_EXCHANGE || "hospital.events";
+  }
 
   /**
    * Initialize RabbitMQ connection and channel
@@ -151,34 +155,21 @@ export class RabbitMQEventPublisher implements IEventPublisher {
   }
 
   /**
-   * Get routing key for event
-   * Format: {aggregateType}.{eventType}
-   * Example: user.registered, user.activated, user.role_changed
+   * Build AMQP routing key using shared helper for consistent naming
    */
   private getRoutingKey(event: IntegrationEventPayload): string {
-    const servicePrefix = "identity";
+    const routingKey = buildRoutingKey(event.aggregateType, event.eventType);
+    if (routingKey && routingKey.length > 0) {
+      return routingKey;
+    }
 
-    const entity =
-      event.aggregateType
-        .replace(/event$/i, "")
-        .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-        .replace(/[_\s]+/g, "-")
-        .toLowerCase() || "generic";
+    const fallbackAggregate =
+      event.aggregateType?.trim().replace(/\s+/g, "-").toLowerCase() ||
+      "identity";
+    const fallbackEvent =
+      event.eventType?.replace(/\s+/g, ".").toLowerCase() || "event";
 
-    const rawAction = event.eventType.replace(/Event$/, "");
-    const aggregateRegex = new RegExp(`^${event.aggregateType}`, "i");
-    const trimmedAction = rawAction.replace(aggregateRegex, "") || rawAction;
-
-    const action =
-      trimmedAction
-        .replace(/([a-z0-9])([A-Z])/g, "$1.$2")
-        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1.$2")
-        .replace(/[_\s]+/g, ".")
-        .replace(/\.+/g, ".")
-        .replace(/^\./, "")
-        .toLowerCase() || "event";
-
-    return `${servicePrefix}.${entity}.${action}`;
+    return `${fallbackAggregate}.${fallbackEvent}`;
   }
 
   private async publishWithRetry(

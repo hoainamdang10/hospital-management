@@ -16,6 +16,16 @@ const SupabaseImagingStudyRepository_1 = require("../../../infrastructure/reposi
 const SupabasePrescriptionRepository_1 = require("../../../infrastructure/repositories/SupabasePrescriptionRepository");
 const SupabaseTreatmentPlanRepository_1 = require("../../../infrastructure/repositories/SupabaseTreatmentPlanRepository");
 const SupabaseAuditLogRepository_1 = require("../../../infrastructure/repositories/SupabaseAuditLogRepository");
+const SupabaseOutboxRepository_1 = require("../../../infrastructure/outbox/SupabaseOutboxRepository");
+const OutboxPublisherWorker_1 = require("../../../infrastructure/outbox/OutboxPublisherWorker");
+const ClinicalEventDispatcher_1 = require("../../../application/services/ClinicalEventDispatcher");
+const RabbitMQEventPublisher_1 = require("../../../infrastructure/events/RabbitMQEventPublisher");
+const SupabaseIntegrationInboxRepository_1 = require("../../../infrastructure/repositories/SupabaseIntegrationInboxRepository");
+const SupabasePatientSnapshotRepository_1 = require("../../../infrastructure/repositories/SupabasePatientSnapshotRepository");
+const SupabaseProviderSnapshotRepository_1 = require("../../../infrastructure/repositories/SupabaseProviderSnapshotRepository");
+const ClinicalIntegrationSyncService_1 = require("../../../application/services/ClinicalIntegrationSyncService");
+const ClinicalIntegrationEventConsumer_1 = require("../../../infrastructure/events/ClinicalIntegrationEventConsumer");
+const supabase_client_1 = require("../../../infrastructure/db/supabase-client");
 const ListMedicalRecordsUseCase_1 = require("../../../application/use-cases/ListMedicalRecordsUseCase");
 const GetMedicalRecordUseCase_1 = require("../../../application/use-cases/GetMedicalRecordUseCase");
 const CreateMedicalRecordUseCase_1 = require("../../../application/use-cases/CreateMedicalRecordUseCase");
@@ -54,8 +64,25 @@ const treatment_plan_routes_1 = require("../routes/treatment-plan.routes");
 const audit_log_routes_1 = require("../routes/audit-log.routes");
 const error_middleware_1 = require("../middlewares/error.middleware");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
+const buildLogger = () => {
+    const format = (message, meta) => meta && Object.keys(meta).length
+        ? `${message} ${JSON.stringify(meta)}`
+        : message;
+    return {
+        info: (message, meta) => console.log(`[clinical-emr] ${format(message, meta)}`),
+        warn: (message, meta) => console.warn(`[clinical-emr] ${format(message, meta)}`),
+        error: (message, meta) => console.error(`[clinical-emr] ${format(message, meta)}`),
+        fatal: (message, meta) => console.error(`[clinical-emr][fatal] ${format(message, meta)}`),
+        debug: (message, meta) => {
+            if (env_1.env.nodeEnv === "development") {
+                console.debug(`[clinical-emr] ${format(message, meta)}`);
+            }
+        },
+    };
+};
 function createHttpServer() {
     const app = (0, express_1.default)();
+    const logger = buildLogger();
     app.use((0, helmet_1.default)());
     app.use((0, cors_1.default)());
     app.use(express_1.default.json({ limit: "1mb" }));
@@ -74,15 +101,91 @@ function createHttpServer() {
     const prescriptionRepo = new SupabasePrescriptionRepository_1.SupabasePrescriptionRepository();
     const treatmentPlanRepo = new SupabaseTreatmentPlanRepository_1.SupabaseTreatmentPlanRepository();
     const auditLogRepo = new SupabaseAuditLogRepository_1.SupabaseAuditLogRepository();
+    const outboxRepository = new SupabaseOutboxRepository_1.SupabaseOutboxRepository(supabase_client_1.supabaseClient, logger);
+    const integrationInboxRepository = new SupabaseIntegrationInboxRepository_1.SupabaseIntegrationInboxRepository(supabase_client_1.supabaseClient, logger);
+    const patientSnapshotRepository = new SupabasePatientSnapshotRepository_1.SupabasePatientSnapshotRepository(supabase_client_1.supabaseClient, logger);
+    const providerSnapshotRepository = new SupabaseProviderSnapshotRepository_1.SupabaseProviderSnapshotRepository(supabase_client_1.supabaseClient, logger);
+    const integrationSyncService = new ClinicalIntegrationSyncService_1.ClinicalIntegrationSyncService(patientSnapshotRepository, providerSnapshotRepository, logger);
+    const rabbitPublisher = new RabbitMQEventPublisher_1.RabbitMQEventPublisher({
+        url: env_1.env.rabbitmqUrl,
+        exchange: env_1.env.rabbitmqExchange,
+        exchangeType: "topic",
+        durable: true,
+        autoDelete: false,
+        serviceName: "clinical-emr-service",
+    }, {
+        enableRetry: true,
+        maxRetries: 3,
+        retryDelayMs: 1000,
+        enableLogging: env_1.env.nodeEnv === "development",
+    }, logger);
+    const outboxWorker = new OutboxPublisherWorker_1.OutboxPublisherWorker(outboxRepository, logger, async (event) => rabbitPublisher.publish(event), {
+        enabled: env_1.env.outbox.enabled,
+        pollingIntervalMs: env_1.env.outbox.pollingIntervalMs,
+        batchSize: env_1.env.outbox.batchSize,
+    });
+    let integrationConsumer = null;
+    const startOutboxPipeline = async () => {
+        try {
+            await rabbitPublisher.connect();
+        }
+        catch (error) {
+            logger.error("[ClinicalEMR] Failed to connect RabbitMQ", {
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+            return;
+        }
+        try {
+            await outboxWorker.start();
+        }
+        catch (error) {
+            logger.error("[ClinicalEMR] Failed to start outbox worker", {
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    };
+    void startOutboxPipeline();
+    if (env_1.env.integrationConsumer.enabled &&
+        env_1.env.integrationConsumer.routingKeys.length) {
+        integrationConsumer = new ClinicalIntegrationEventConsumer_1.ClinicalIntegrationEventConsumer({
+            url: env_1.env.rabbitmqUrl,
+            exchange: env_1.env.rabbitmqExchange,
+            queueName: env_1.env.integrationConsumer.queueName,
+            routingKeys: env_1.env.integrationConsumer.routingKeys,
+            prefetch: env_1.env.integrationConsumer.prefetch,
+            serviceName: "clinical-emr-service",
+        }, logger, integrationInboxRepository, integrationSyncService);
+        integrationConsumer
+            .start()
+            .catch((error) => logger.error("[ClinicalEMR] Failed to start integration consumer", {
+            error: error instanceof Error ? error.message : "Unknown error",
+        }));
+    }
+    else {
+        logger.info("[ClinicalEMR] Integration consumer disabled", {
+            enabled: env_1.env.integrationConsumer.enabled,
+            routingKeys: env_1.env.integrationConsumer.routingKeys.length,
+        });
+    }
+    const eventDispatcher = new ClinicalEventDispatcher_1.ClinicalEventDispatcher(outboxRepository, logger);
+    const gracefulShutdown = async () => {
+        await outboxWorker.stop().catch(() => undefined);
+        await rabbitPublisher.disconnect().catch(() => undefined);
+        if (integrationConsumer) {
+            await integrationConsumer.stop().catch(() => undefined);
+        }
+    };
+    process.once("SIGINT", gracefulShutdown);
+    process.once("SIGTERM", gracefulShutdown);
     const auditLogUseCase = new CreateAuditLogUseCase_1.CreateAuditLogUseCase(auditLogRepo);
     const listMedicalRecordsUseCase = new ListMedicalRecordsUseCase_1.ListMedicalRecordsUseCase(medicalRecordRepo);
     const getMedicalRecordUseCase = new GetMedicalRecordUseCase_1.GetMedicalRecordUseCase(medicalRecordRepo);
-    const medicalRecordController = new MedicalRecordController_1.MedicalRecordController(listMedicalRecordsUseCase, getMedicalRecordUseCase, new CreateMedicalRecordUseCase_1.CreateMedicalRecordUseCase(medicalRecordRepo), new UpdateMedicalRecordUseCase_1.UpdateMedicalRecordUseCase(medicalRecordRepo), auditLogUseCase);
-    const clinicalNoteController = new ClinicalNoteController_1.ClinicalNoteController(new CreateClinicalNoteUseCase_1.CreateClinicalNoteUseCase(clinicalNoteRepo), new ListClinicalNotesUseCase_1.ListClinicalNotesUseCase(clinicalNoteRepo), new DeleteClinicalNoteUseCase_1.DeleteClinicalNoteUseCase(clinicalNoteRepo), auditLogUseCase, getMedicalRecordUseCase);
-    const labResultController = new LabResultController_1.LabResultController(new CreateLabResultUseCase_1.CreateLabResultUseCase(labResultRepo), new ListLabResultsUseCase_1.ListLabResultsUseCase(labResultRepo), new DeleteLabResultUseCase_1.DeleteLabResultUseCase(labResultRepo), auditLogUseCase, getMedicalRecordUseCase);
-    const imagingStudyController = new ImagingStudyController_1.ImagingStudyController(new CreateImagingStudyUseCase_1.CreateImagingStudyUseCase(imagingRepo), new ListImagingStudiesUseCase_1.ListImagingStudiesUseCase(imagingRepo), new DeleteImagingStudyUseCase_1.DeleteImagingStudyUseCase(imagingRepo), auditLogUseCase, getMedicalRecordUseCase);
-    const prescriptionController = new PrescriptionController_1.PrescriptionController(new CreatePrescriptionUseCase_1.CreatePrescriptionUseCase(prescriptionRepo), new ListPrescriptionsUseCase_1.ListPrescriptionsUseCase(prescriptionRepo), auditLogUseCase, new DeletePrescriptionUseCase_1.DeletePrescriptionUseCase(prescriptionRepo), getMedicalRecordUseCase);
-    const treatmentPlanController = new TreatmentPlanController_1.TreatmentPlanController(new CreateTreatmentPlanUseCase_1.CreateTreatmentPlanUseCase(treatmentPlanRepo), new ListTreatmentPlansUseCase_1.ListTreatmentPlansUseCase(treatmentPlanRepo), new UpdateTreatmentPlanStatusUseCase_1.UpdateTreatmentPlanStatusUseCase(treatmentPlanRepo), new DeleteTreatmentPlanUseCase_1.DeleteTreatmentPlanUseCase(treatmentPlanRepo), auditLogUseCase, getMedicalRecordUseCase);
+    const medicalRecordController = new MedicalRecordController_1.MedicalRecordController(listMedicalRecordsUseCase, getMedicalRecordUseCase, new CreateMedicalRecordUseCase_1.CreateMedicalRecordUseCase(medicalRecordRepo), new UpdateMedicalRecordUseCase_1.UpdateMedicalRecordUseCase(medicalRecordRepo), auditLogUseCase, eventDispatcher);
+    const clinicalNoteController = new ClinicalNoteController_1.ClinicalNoteController(new CreateClinicalNoteUseCase_1.CreateClinicalNoteUseCase(clinicalNoteRepo), new ListClinicalNotesUseCase_1.ListClinicalNotesUseCase(clinicalNoteRepo), new DeleteClinicalNoteUseCase_1.DeleteClinicalNoteUseCase(clinicalNoteRepo), auditLogUseCase, getMedicalRecordUseCase, eventDispatcher);
+    const labResultController = new LabResultController_1.LabResultController(new CreateLabResultUseCase_1.CreateLabResultUseCase(labResultRepo), new ListLabResultsUseCase_1.ListLabResultsUseCase(labResultRepo), new DeleteLabResultUseCase_1.DeleteLabResultUseCase(labResultRepo), auditLogUseCase, getMedicalRecordUseCase, eventDispatcher);
+    const imagingStudyController = new ImagingStudyController_1.ImagingStudyController(new CreateImagingStudyUseCase_1.CreateImagingStudyUseCase(imagingRepo), new ListImagingStudiesUseCase_1.ListImagingStudiesUseCase(imagingRepo), new DeleteImagingStudyUseCase_1.DeleteImagingStudyUseCase(imagingRepo), auditLogUseCase, getMedicalRecordUseCase, eventDispatcher);
+    const prescriptionController = new PrescriptionController_1.PrescriptionController(new CreatePrescriptionUseCase_1.CreatePrescriptionUseCase(prescriptionRepo), new ListPrescriptionsUseCase_1.ListPrescriptionsUseCase(prescriptionRepo), auditLogUseCase, new DeletePrescriptionUseCase_1.DeletePrescriptionUseCase(prescriptionRepo), getMedicalRecordUseCase, eventDispatcher);
+    const treatmentPlanController = new TreatmentPlanController_1.TreatmentPlanController(new CreateTreatmentPlanUseCase_1.CreateTreatmentPlanUseCase(treatmentPlanRepo), new ListTreatmentPlansUseCase_1.ListTreatmentPlansUseCase(treatmentPlanRepo), new UpdateTreatmentPlanStatusUseCase_1.UpdateTreatmentPlanStatusUseCase(treatmentPlanRepo), new DeleteTreatmentPlanUseCase_1.DeleteTreatmentPlanUseCase(treatmentPlanRepo), auditLogUseCase, getMedicalRecordUseCase, eventDispatcher);
     const auditLogController = new AuditLogController_1.AuditLogController(new ListAuditLogsUseCase_1.ListAuditLogsUseCase(auditLogRepo), auditLogUseCase, getMedicalRecordUseCase);
     app.use(auth_middleware_1.authenticationMiddleware);
     app.use("/api/v2/clinical-emr", (0, medical_record_routes_1.createMedicalRecordRouter)(medicalRecordController));

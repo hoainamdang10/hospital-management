@@ -3,7 +3,7 @@
  * API service for fetching doctors and staff
  */
 
-import { staffClient } from './clients';
+import apiClient from './axios';
 
 export interface Staff {
   id: string;
@@ -99,7 +99,7 @@ export interface SearchStaffResponse {
  * Search staff (doctors, nurses, etc.)
  */
 export const searchStaff = async (params: SearchStaffParams): Promise<SearchStaffResponse> => {
-  const response = await staffClient.get('/api/v1/staff/search', { params });
+  const response = await apiClient.get('/v1/staff/search', { params });
   return response.data;
 };
 
@@ -113,7 +113,7 @@ export async function getDoctorsByDepartment(
   const response = await searchStaff({
     departmentId,
     staffType: 'doctor',
-    status: 'ACTIVE',
+    status: 'active',
     isActive: true,
     limit,
   });
@@ -125,8 +125,8 @@ export async function getDoctorsByDepartment(
  * Get staff by ID
  */
 export async function getStaffById(staffId: string): Promise<Staff> {
-  const response = await staffClient.get<{ success: boolean; data: Staff }>(
-    `/api/v1/staff/${staffId}`
+  const response = await apiClient.get<{ success: boolean; data: Staff }>(
+    `/v1/staff/${staffId}`
   );
   return response.data.data;
 }
