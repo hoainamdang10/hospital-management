@@ -17,7 +17,7 @@
  * @version 2.0.0
  */
 
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Response, NextFunction, RequestHandler } from 'express';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
 import { ILogger } from '@application/services/ILogger';
 import { ServiceRegistry } from '@infrastructure/proxy/ServiceRegistry';
@@ -203,47 +203,10 @@ export class GlobalProxyMiddleware {
           proxyReq.setHeader("X-Forwarded-Host", request.hostname);
           proxyReq.removeHeader("expect");
 
-          // Re-stream parsed request body
-          const rawBody = (request as Request & { rawBody?: Buffer }).rawBody;
-          const hasParsedBody =
-            request.body &&
-            typeof request.body !== "function" &&
-            ((Buffer.isBuffer(request.body) && request.body.length > 0) ||
-              (typeof request.body === "string" && request.body.length > 0) ||
-              (typeof request.body === "object" &&
-                Object.keys(request.body as Record<string, unknown>).length > 0));
-
-          if (
-            request.method &&
-            !["GET", "HEAD"].includes(request.method.toUpperCase()) &&
-            (rawBody?.length || hasParsedBody)
-          ) {
-            const contentType = (request.headers["content-type"] || "").toString();
-            let bodyData: string | Buffer | undefined = rawBody;
-
-            if (!bodyData) {
-              if (Buffer.isBuffer(request.body)) {
-                bodyData = request.body;
-              } else if (contentType.includes("application/json")) {
-                bodyData = JSON.stringify(request.body);
-              } else if (contentType.includes("application/x-www-form-urlencoded")) {
-                bodyData = new URLSearchParams(
-                  request.body as Record<string, string>,
-                ).toString();
-              }
-            }
-
-            if (bodyData) {
-              const length = Buffer.isBuffer(bodyData)
-                ? bodyData.length
-                : Buffer.byteLength(bodyData);
-              proxyReq.setHeader("Content-Length", length);
-              proxyReq.removeHeader("transfer-encoding");
-              proxyReq.removeHeader("expect");
-              proxyReq.write(bodyData);
-              proxyReq.end();
-            }
-          }
+          // ✅ FIX: Don't manually re-stream body - let http-proxy-middleware handle it
+          // The body parsing logic was skipped by shouldParseJson() check in main.ts,
+          // so request body is still in raw stream format and will be auto-piped by proxy
+          // Manually writing body causes conflicts and corruption
 
           this.logger.debug('Global proxy: Request forwarded', {
             requestId: request.requestId,
