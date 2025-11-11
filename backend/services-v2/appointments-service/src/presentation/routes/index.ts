@@ -19,6 +19,7 @@ export function setupRoutes(app: Express, container: DIContainer): void {
     });
   });
 
-  // Availability routes
-  app.use('/api/appointments', createAvailabilityRoutes());
+  // Note: Availability routes are now mounted in main.ts at /api/v1/appointments
+  // This prevents duplicate route registration which was causing conflicts
+  // Gateway handles routing centrally, so services only need to define their routes once
 }
