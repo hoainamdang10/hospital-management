@@ -11,8 +11,8 @@
  * @version 3.0.0 - Pure RBAC
  * @compliance Clean Architecture, DDD, HIPAA, Anti-Pattern Mitigation
  */
-import { HealthcareAggregateRoot } from "@shared/domain/base/aggregate-root";
-import { DomainEvent } from "@shared/domain/base/domain-event";
+import { HealthcareAggregateRoot } from "../../../../shared/domain/base/aggregate-root";
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
 import { UserId } from "../value-objects/UserId";
 import { Email } from "../value-objects/Email";
 import { PersonalInfo } from "../value-objects/PersonalInfo";
@@ -193,6 +193,14 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      * Lock account temporarily (can be unlocked by admin)
      */
     lock(lockedBy: string, reason: string, terminatedSessions?: boolean): void;
+    /**
+     * Record staff activation from invitation acceptance
+     * This is used when a staff account is provisioned and later activated
+     * Emits UserCreatedEvent for downstream services (Staff Service, Patient Registry)
+     *
+     * @param personalInfo - Personal information provided during activation
+     */
+    recordStaffActivation(personalInfo: PersonalInfo): void;
     /**
      * Activate user (only from LOCKED or SUSPENDED status)
      */

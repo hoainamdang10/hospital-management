@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from '../../../../shared/domain/base/value-object';
 interface UserIdProps {
     value: string;
 }

@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { DomainEvent as BaseDomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent as BaseDomainEvent } from '../../../../shared/domain/base/domain-event';
 import { IntegrationEventPayload } from '../../application/services/IEventPublisher';
 export declare class DomainEventMapper {
     /**

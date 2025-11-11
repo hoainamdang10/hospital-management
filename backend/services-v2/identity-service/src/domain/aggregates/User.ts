@@ -630,6 +630,42 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   }
 
   /**
+   * Record staff activation from invitation acceptance
+   * This is used when a staff account is provisioned and later activated
+   * Emits UserCreatedEvent for downstream services (Staff Service, Patient Registry)
+   * 
+   * @param personalInfo - Personal information provided during activation
+   */
+  public recordStaffActivation(personalInfo: PersonalInfo): void {
+    try {
+      // Validate user is in acceptable state for staff activation
+      if (this.props.accountStatus !== AccountStatus.ACTIVE) {
+        throw new Error(`Cannot record staff activation for account with status: ${this.props.accountStatus}`);
+      }
+
+      // Add UserCreatedEvent for downstream services
+      // Use first role as primary role for event
+      const primaryRole = this.props.healthcareRoles[0];
+      if (!primaryRole) {
+        throw new Error('User must have at least one role for staff activation');
+      }
+
+      this.addDomainEvent(
+        new UserCreatedEvent(
+          this.props.id,
+          this.props.email,
+          primaryRole,
+          personalInfo
+        )
+      );
+
+      this.props.updatedAt = new Date();
+    } catch (error) {
+      throw new Error(`Failed to record staff activation: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
    * Activate user (only from LOCKED or SUSPENDED status)
    */
   public activate(_activatedBy: string, _reason?: string): void {

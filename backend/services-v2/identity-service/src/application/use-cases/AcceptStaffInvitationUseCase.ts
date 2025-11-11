@@ -15,14 +15,11 @@
  */
 
 import { IUserRepository } from '../repositories/IUserRepository';
-import { ILogger } from '../services/ILogger';
 import { Email } from '../../domain/value-objects/Email';
-import { UserId } from '../../domain/value-objects/UserId';
+import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
+import { ILogger } from '../services/ILogger';
 import { IEventPublisher } from '../services/IEventPublisher';
 import { getErrorMessage } from '../../utils/error-helper';
-import { UserCreatedEvent } from '../../domain/events/UserCreatedEvent';
-import { HealthcareRole } from '../../domain/entities/HealthcareRole';
-import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
 
 export interface AcceptStaffInvitationRequest {
   invitationToken: string;
@@ -114,7 +111,7 @@ export class AcceptStaffInvitationUseCase {
         role: invitation.role
       });
 
-      // 4.5. Manually add UserCreatedEvent (since user was reconstituted from DB)
+      // 4.5. Record staff activation (emits UserCreatedEvent for downstream services)
       // This is needed for downstream services (Staff Service, Patient Registry) to create profiles
       const personalInfo = PersonalInfo.create({
         fullName: request.fullName,
@@ -125,15 +122,10 @@ export class AcceptStaffInvitationUseCase {
         address: undefined
       });
       
-      const userCreatedEvent = new UserCreatedEvent(
-        UserId.fromString(user.id),
-        Email.create(invitation.email),
-        HealthcareRole.fromRoleType(invitation.role),
-        personalInfo
-      );
-      user.addDomainEvent(userCreatedEvent);
+      // ✅ FIX: Use public domain method instead of calling protected addDomainEvent
+      user.recordStaffActivation(personalInfo);
 
-      this.logger.info('UserCreatedEvent added manually for staff activation', {
+      this.logger.info('Staff activation recorded with UserCreatedEvent', {
         userId: user.id,
         role: invitation.role
       });

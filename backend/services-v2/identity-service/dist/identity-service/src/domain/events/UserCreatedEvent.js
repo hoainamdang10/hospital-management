@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserCreatedEvent = void 0;
-const domain_event_1 = require("@shared/domain/base/domain-event");
+const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 class UserCreatedEvent extends domain_event_1.DomainEvent {
     constructor(userIdVO, userEmail, userRole, personalInfo // Optional for backward compatibility
     ) {

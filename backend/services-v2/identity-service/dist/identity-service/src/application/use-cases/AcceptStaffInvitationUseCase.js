@@ -17,11 +17,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AcceptStaffInvitationUseCase = void 0;
 const Email_1 = require("../../domain/value-objects/Email");
-const UserId_1 = require("../../domain/value-objects/UserId");
-const error_helper_1 = require("../../utils/error-helper");
-const UserCreatedEvent_1 = require("../../domain/events/UserCreatedEvent");
-const HealthcareRole_1 = require("../../domain/entities/HealthcareRole");
 const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
+const error_helper_1 = require("../../utils/error-helper");
 class AcceptStaffInvitationUseCase {
     constructor(userRepository, logger, eventPublisher) {
         this.userRepository = userRepository;
@@ -86,7 +83,7 @@ class AcceptStaffInvitationUseCase {
                 email: invitation.email,
                 role: invitation.role
             });
-            // 4.5. Manually add UserCreatedEvent (since user was reconstituted from DB)
+            // 4.5. Record staff activation (emits UserCreatedEvent for downstream services)
             // This is needed for downstream services (Staff Service, Patient Registry) to create profiles
             const personalInfo = PersonalInfo_1.PersonalInfo.create({
                 fullName: request.fullName,
@@ -96,9 +93,9 @@ class AcceptStaffInvitationUseCase {
                 citizenId: undefined,
                 address: undefined
             });
-            const userCreatedEvent = new UserCreatedEvent_1.UserCreatedEvent(UserId_1.UserId.fromString(user.id), Email_1.Email.create(invitation.email), HealthcareRole_1.HealthcareRole.fromRoleType(invitation.role), personalInfo);
-            user.addDomainEvent(userCreatedEvent);
-            this.logger.info('UserCreatedEvent added manually for staff activation', {
+            // ✅ FIX: Use public domain method instead of calling protected addDomainEvent
+            user.recordStaffActivation(personalInfo);
+            this.logger.info('Staff activation recorded with UserCreatedEvent', {
                 userId: user.id,
                 role: invitation.role
             });

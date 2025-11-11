@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS Command Pattern
  */
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
 import { IRecoveryMethodRepository } from '../../domain/repositories/IRecoveryMethodRepository';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';

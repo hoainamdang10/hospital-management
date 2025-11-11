@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserId = void 0;
-const value_object_1 = require("@shared/domain/base/value-object");
+const value_object_1 = require("../../../../shared/domain/base/value-object");
 const crypto_1 = require("crypto");
 class UserId extends value_object_1.ValueObject {
     constructor(props) {

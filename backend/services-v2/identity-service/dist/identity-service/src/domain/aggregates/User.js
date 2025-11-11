@@ -14,7 +14,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
-const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const UserId_1 = require("../value-objects/UserId");
 const AccountStatus_1 = require("../value-objects/AccountStatus");
 const UserCreatedEvent_1 = require("../events/UserCreatedEvent");
@@ -451,6 +451,32 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
         }
         catch (error) {
             throw new Error(`Failed to lock user: ${getErrorMessage(error)}`);
+        }
+    }
+    /**
+     * Record staff activation from invitation acceptance
+     * This is used when a staff account is provisioned and later activated
+     * Emits UserCreatedEvent for downstream services (Staff Service, Patient Registry)
+     *
+     * @param personalInfo - Personal information provided during activation
+     */
+    recordStaffActivation(personalInfo) {
+        try {
+            // Validate user is in acceptable state for staff activation
+            if (this.props.accountStatus !== AccountStatus_1.AccountStatus.ACTIVE) {
+                throw new Error(`Cannot record staff activation for account with status: ${this.props.accountStatus}`);
+            }
+            // Add UserCreatedEvent for downstream services
+            // Use first role as primary role for event
+            const primaryRole = this.props.healthcareRoles[0];
+            if (!primaryRole) {
+                throw new Error('User must have at least one role for staff activation');
+            }
+            this.addDomainEvent(new UserCreatedEvent_1.UserCreatedEvent(this.props.id, this.props.email, primaryRole, personalInfo));
+            this.props.updatedAt = new Date();
+        }
+        catch (error) {
+            throw new Error(`Failed to record staff activation: ${getErrorMessage(error)}`);
         }
     }
     /**

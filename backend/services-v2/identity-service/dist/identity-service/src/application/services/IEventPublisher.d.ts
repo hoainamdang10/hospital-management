@@ -1,4 +1,4 @@
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 export interface IntegrationEventPayload {
     eventType: string;
     aggregateId: string;
