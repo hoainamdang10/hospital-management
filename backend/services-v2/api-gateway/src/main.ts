@@ -22,9 +22,9 @@ import { AuthorizationMiddleware } from "@presentation/middleware/AuthorizationM
 import { LoggingMiddleware } from "@presentation/middleware/LoggingMiddleware";
 import { ErrorHandlingMiddleware } from "@presentation/middleware/ErrorHandlingMiddleware";
 import { SizeLimitMiddleware } from "@presentation/middleware/SizeLimitMiddleware";
+import { GlobalProxyMiddleware } from "@presentation/middleware/GlobalProxyMiddleware";
 
 import { createHealthRoutes } from "@presentation/routes/healthRoutes";
-import { createProxyRoute } from "@presentation/routes/proxyRoutes";
 import { createMetricsRoutes } from "@presentation/routes/metricsRoutes";
 import { createDocsRoutes } from "@presentation/routes/docsRoutes";
 import { createDashboardRoutes } from "@presentation/routes/dashboardRoutes";
@@ -46,6 +46,7 @@ const logger = new WinstonLogger(
 class ApiGatewayApplication {
   private app: Express;
   private serviceRegistry: ServiceRegistry;
+  private globalProxyMiddleware: GlobalProxyMiddleware;
   private authenticationMiddleware: AuthenticationMiddleware;
   private authorizationMiddleware: AuthorizationMiddleware;
   private loggingMiddleware: LoggingMiddleware;
@@ -168,6 +169,12 @@ class ApiGatewayApplication {
         ),
       },
       logger,
+    );
+
+    // Initialize GlobalProxyMiddleware for centralized routing
+    this.globalProxyMiddleware = new GlobalProxyMiddleware(
+      this.serviceRegistry,
+      logger
     );
 
     this.registerServiceRoutes();
@@ -562,6 +569,10 @@ class ApiGatewayApplication {
   private setupRoutes(): void {
     logger.info("Setting up routes...");
 
+    // =========================================================================
+    // NON-API ROUTES (Documentation, Health, Metrics)
+    // =========================================================================
+
     // API Documentation (Swagger UI)
     this.app.use("/api-docs", createDocsRoutes());
 
@@ -584,62 +595,61 @@ class ApiGatewayApplication {
       createPerformanceRoutes(this.performanceMonitor, logger),
     );
 
-    const routes = this.serviceRegistry.getAllRoutes();
-
-    routes.forEach((route) => {
-      const middlewares: any[] = [];
-
-      if (route.requiresAuth) {
-        middlewares.push(this.authenticationMiddleware.authenticate());
-
-        // TEMPORARY: Disable permission checking until Identity Service implements /api/v1/auth/check-permissions endpoint
-        // if (route.requiredPermissions && route.requiredPermissions.length > 0) {
-        //   middlewares.push(
-        //     this.authorizationMiddleware.requireAnyPermission(
-        //       route.requiredPermissions,
-        //     ),
-        //   );
-        // }
-
-        // if (route.requiredRoles && route.requiredRoles.length > 0) {
-        //   middlewares.push(
-        //     this.authorizationMiddleware.requireAnyRole(route.requiredRoles),
-        //   );
-        // }
-      } else {
-        middlewares.push(this.authenticationMiddleware.optionalAuthenticate());
-      }
-
-      // Create proxy middleware
-      logger.info("Creating proxy for service", {
-        service: route.serviceName,
-        pathPrefix: route.pathPrefix,
-        target: route.baseUrl,
-      });
-
-      const proxyMiddleware = createProxyRoute(
-        {
-          pathPrefix: route.pathPrefix,
-          target: route.baseUrl,
-          requiresAuth: route.requiresAuth,
-        },
-        logger,
-      );
-
-      // Mount middlewares: auth/permission first, then proxy
-      // Important: Do NOT strip path prefix - proxy will forward full path to backend
-      this.app.use(route.pathPrefix, ...middlewares, proxyMiddleware);
-
-      logger.info("Route registered", {
-        path: route.pathPrefix,
-        service: route.serviceName,
-        requiresAuth: route.requiresAuth,
-        permissions: route.requiredPermissions,
-        roles: route.requiredRoles,
+    // =========================================================================
+    // DEBUG ENDPOINT - Routing Table
+    // =========================================================================
+    this.app.get("/_debug/routes", (req, res) => {
+      const routingTable = this.serviceRegistry.getRoutingTable();
+      res.json({
+        success: true,
+        totalRoutes: routingTable.length,
+        routes: routingTable,
+        timestamp: new Date().toISOString()
       });
     });
 
-    logger.info("Routes setup complete");
+    logger.info("Debug endpoint registered at /_debug/routes");
+
+    // =========================================================================
+    // GLOBAL PROXY MIDDLEWARE - CENTRALIZED ROUTING
+    // =========================================================================
+    // This replaces individual app.use(pathPrefix, proxy) calls
+    // All /api/* requests are handled by GlobalProxyMiddleware which:
+    // 1. Looks up matching route from ServiceRegistry
+    // 2. Applies authentication if required
+    // 3. Applies path rewrite rules
+    // 4. Proxies to target service
+    //
+    // Benefits:
+    // - Single source of truth for routing
+    // - No prefix mounting conflicts
+    // - Environment-agnostic (works for local & Docker)
+    // - Easy to debug via /_debug/routes
+    // =========================================================================
+
+    logger.info("Mounting global proxy middleware for /api/* requests");
+    
+    // Apply authentication middleware first
+    // Note: GlobalProxyMiddleware will check route.requiresAuth to determine
+    // whether to enforce authentication, but we apply it globally for consistency
+    this.app.use(
+      "/api",
+      this.authenticationMiddleware.optionalAuthenticate(),
+      this.globalProxyMiddleware.handle()
+    );
+
+    const routes = this.serviceRegistry.getAllRoutes();
+    logger.info("Global proxy middleware configured", {
+      totalRoutes: routes.length,
+      routingStrategy: "centralized",
+      routingTable: this.serviceRegistry.getRoutingTable().map(r => ({
+        priority: r.priority,
+        pathPrefix: r.pathPrefix,
+        serviceName: r.serviceName
+      }))
+    });
+
+    logger.info("✅ Routes setup complete - Using centralized global proxy middleware");
   }
 
   private setupErrorHandling(): void {
