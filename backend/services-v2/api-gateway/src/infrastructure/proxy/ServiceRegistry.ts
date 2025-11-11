@@ -8,6 +8,7 @@ import { loadTimeoutConfig } from '../../../../shared/infrastructure/config/Time
 
 export class ServiceRegistry implements IServiceRegistry {
   private routes: Map<string, ServiceRoute> = new Map();
+  private sortedRoutes: ServiceRoute[] = []; // Sorted by specificity for fast lookup
   private circuitBreakers: Map<string, CircuitBreaker> = new Map();
   private cacheService: CachedResponseService;
 
@@ -35,8 +36,58 @@ export class ServiceRegistry implements IServiceRegistry {
     return Array.from(this.routes.values());
   }
 
+  /**
+   * Find the most specific route matching the given path
+   * Uses sorted routes array for efficient O(n) lookup with early exit
+   */
+  findMatchingRoute(path: string): ServiceRoute | null {
+    // Iterate through sorted routes (most specific first)
+    for (const route of this.sortedRoutes) {
+      if (route.matchesPath(path)) {
+        this.logger.debug('Route match found', {
+          path,
+          matchedRoute: route.pathPrefix,
+          serviceName: route.serviceName,
+          specificity: route.getSpecificity()
+        });
+        return route;
+      }
+    }
+    
+    this.logger.debug('No route match found', { path });
+    return null;
+  }
+
+  /**
+   * Get routing table for debugging and monitoring
+   * Shows all routes sorted by priority
+   */
+  getRoutingTable(): Array<{
+    priority: number;
+    pathPrefix: string;
+    serviceName: string;
+    baseUrl: string;
+    requiresAuth: boolean;
+    specificity: number;
+    hasPathRewrite: boolean;
+  }> {
+    return this.sortedRoutes.map((route, index) => ({
+      priority: index + 1,
+      pathPrefix: route.pathPrefix,
+      serviceName: route.serviceName,
+      baseUrl: route.baseUrl,
+      requiresAuth: route.requiresAuth,
+      specificity: route.getSpecificity(),
+      hasPathRewrite: !!route.pathRewrite
+    }));
+  }
+
   registerRoute(route: ServiceRoute): void {
     this.routes.set(route.pathPrefix, route);
+    
+    // Rebuild sorted routes array for efficient lookup
+    this.sortedRoutes = Array.from(this.routes.values())
+      .sort((a, b) => b.getSpecificity() - a.getSpecificity());
 
     const timeouts = loadTimeoutConfig();
 
@@ -76,6 +127,9 @@ export class ServiceRegistry implements IServiceRegistry {
       pathPrefix: route.pathPrefix,
       baseUrl: route.baseUrl,
       requiresAuth: route.requiresAuth,
+      specificity: route.getSpecificity(),
+      priority: this.sortedRoutes.findIndex(r => r === route) + 1,
+      totalRoutes: this.sortedRoutes.length,
       circuitBreaker: {
         failureThreshold: circuitBreakerConfig.failureThreshold,
         resetTimeout: circuitBreakerConfig.resetTimeout,
