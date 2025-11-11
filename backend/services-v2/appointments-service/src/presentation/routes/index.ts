@@ -7,7 +7,6 @@
 
 import { Express } from 'express';
 import { DIContainer } from '@shared/infrastructure/di/container';
-import { createAvailabilityRoutes } from './availability.routes';
 
 export function setupRoutes(app: Express, container: DIContainer): void {
   // Setup API routes
