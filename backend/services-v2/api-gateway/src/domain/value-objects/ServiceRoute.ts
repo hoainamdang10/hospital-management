@@ -1,4 +1,29 @@
 import { ValueObject } from '@shared/domain/base/value-object';
+import { Request } from 'express';
+
+/**
+ * Path rewrite configuration
+ * Supports both static rules and dynamic function
+ */
+export interface PathRewriteRules {
+  /**
+   * Static rewrite rules: pattern -> replacement
+   * Example: { '^/api/v2': '/api/v1' }
+   */
+  rules?: Record<string, string>;
+  
+  /**
+   * Custom rewrite function for complex logic
+   * Return undefined to skip rewriting
+   */
+  rewriteFn?: (path: string, req: Request) => string | undefined;
+  
+  /**
+   * Strip the pathPrefix from the request before forwarding
+   * Example: /api/v1/appointments/123 -> /123 (if pathPrefix is /api/v1/appointments)
+   */
+  stripPrefix?: boolean;
+}
 
 export interface ServiceRouteProps {
   serviceName: string;
@@ -7,6 +32,7 @@ export interface ServiceRouteProps {
   requiresAuth: boolean;
   requiredPermissions?: string[];
   requiredRoles?: string[];
+  pathRewrite?: PathRewriteRules;
 }
 
 export class ServiceRoute extends ValueObject<ServiceRouteProps> {
@@ -73,13 +99,99 @@ export class ServiceRoute extends ValueObject<ServiceRouteProps> {
     return this.props.requiredRoles;
   }
 
+  public get pathRewrite(): PathRewriteRules | undefined {
+    return this.props.pathRewrite;
+  }
+
+  /**
+   * Check if this route matches the given path
+   * More specific routes (longer prefixes) should be checked first
+   */
   public matchesPath(path: string): boolean {
     return path.startsWith(this.props.pathPrefix);
   }
 
-  public getTargetUrl(originalPath: string): string {
-    const relativePath = originalPath.substring(this.props.pathPrefix.length);
-    return `${this.props.baseUrl}${relativePath}`;
+  /**
+   * Get the specificity score for route sorting
+   * Higher score = more specific route (should match first)
+   */
+  public getSpecificity(): number {
+    // Longer prefix = more specific
+    let score = this.props.pathPrefix.length;
+    
+    // Count path segments for additional specificity
+    const segments = this.props.pathPrefix.split('/').filter(s => s.length > 0);
+    score += segments.length * 10;
+    
+    // Routes with params are less specific
+    if (this.props.pathPrefix.includes(':')) {
+      score -= 5;
+    }
+    
+    return score;
+  }
+
+  /**
+   * Rewrite the request path according to configured rules
+   */
+  public rewritePath(originalPath: string, req?: Request): string {
+    let path = originalPath;
+    
+    if (!this.props.pathRewrite) {
+      return path;
+    }
+    
+    // Apply static rewrite rules
+    if (this.props.pathRewrite.rules) {
+      for (const [pattern, replacement] of Object.entries(this.props.pathRewrite.rules)) {
+        const regex = new RegExp(pattern);
+        path = path.replace(regex, replacement);
+      }
+    }
+    
+    // Apply custom rewrite function
+    if (this.props.pathRewrite.rewriteFn && req) {
+      const rewritten = this.props.pathRewrite.rewriteFn(path, req);
+      if (rewritten !== undefined) {
+        path = rewritten;
+      }
+    }
+    
+    // Strip prefix if configured
+    if (this.props.pathRewrite.stripPrefix && path.startsWith(this.props.pathPrefix)) {
+      path = path.substring(this.props.pathPrefix.length) || '/';
+    }
+    
+    return path;
+  }
+
+  /**
+   * Get the full target URL for proxying
+   */
+  public getTargetUrl(originalPath: string, req?: Request): string {
+    const rewrittenPath = this.rewritePath(originalPath, req);
+    
+    // Ensure path starts with /
+    const normalizedPath = rewrittenPath.startsWith('/') ? rewrittenPath : `/${rewrittenPath}`;
+    
+    // Combine base URL with rewritten path
+    return `${this.props.baseUrl}${normalizedPath}`;
+  }
+
+  /**
+   * Convert to plain object for debugging
+   */
+  public toJSON() {
+    return {
+      serviceName: this.props.serviceName,
+      baseUrl: this.props.baseUrl,
+      pathPrefix: this.props.pathPrefix,
+      requiresAuth: this.props.requiresAuth,
+      requiredPermissions: this.props.requiredPermissions,
+      requiredRoles: this.props.requiredRoles,
+      hasPathRewrite: !!this.props.pathRewrite,
+      specificity: this.getSpecificity()
+    };
   }
 }
 
