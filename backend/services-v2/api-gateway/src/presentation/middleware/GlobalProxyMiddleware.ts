@@ -40,11 +40,16 @@ export class GlobalProxyMiddleware {
    */
   public handle(): RequestHandler {
     return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-      const originalPath = req.path; // Use req.path instead of req.originalUrl for cleaner matching
+      // IMPORTANT: When middleware is mounted at /api, Express strips /api from req.path
+      // We need to reconstruct the full path for route matching
+      // req.baseUrl contains the mount path (/api), req.path contains the rest
+      const originalPath = req.baseUrl + req.path;
       
       this.logger.debug('Global proxy: Incoming request', {
         requestId: req.requestId,
         method: req.method,
+        baseUrl: req.baseUrl,
+        reqPath: req.path,
         originalPath,
         originalUrl: req.originalUrl
       });
