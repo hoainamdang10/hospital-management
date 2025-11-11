@@ -1,10 +1,11 @@
 import rateLimit from 'express-rate-limit';
 
 // Read from environment variables or use defaults
+const isRateLimitDisabled = process.env.DISABLE_RATE_LIMIT === 'true';
 const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10); // 15 minutes default
-const maxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10); // 100 requests default
+const maxRequests = isRateLimitDisabled ? 999999 : parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10); // 100 requests default
 
-console.log(`[RateLimit] Initialized: ${maxRequests} requests per ${windowMs}ms window`);
+console.log(`[RateLimit] ${isRateLimitDisabled ? 'DISABLED' : 'Initialized'}: ${maxRequests} requests per ${windowMs}ms window`);
 
 export const rateLimitMiddleware = rateLimit({
   windowMs,
@@ -14,6 +15,7 @@ export const rateLimitMiddleware = rateLimit({
     error: 'Too many requests from this IP, please try again later'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: () => isRateLimitDisabled // Skip rate limiting if disabled
 });
 

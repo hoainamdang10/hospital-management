@@ -713,23 +713,23 @@ class PatientRegistryServiceApp {
     this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-    // Rate limiting (disabled in test environment)
-    if (process.env.NODE_ENV !== "test") {
-      const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
-        message: "Too many requests from this IP, please try again later",
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
-      this.app.use("/api/", limiter);
-      logger.info("Rate limiting enabled", {
-        windowMs: "15 minutes",
-        maxRequests: 100,
-      });
-    } else {
-      logger.info("Rate limiting disabled for test environment");
-    }
+    // Rate limiting (DISABLED FOR DEVELOPMENT)
+    // if (process.env.NODE_ENV !== "test") {
+    //   const limiter = rateLimit({
+    //     windowMs: 15 * 60 * 1000, // 15 minutes
+    //     max: 100, // limit each IP to 100 requests per windowMs
+    //     message: "Too many requests from this IP, please try again later",
+    //     standardHeaders: true,
+    //     legacyHeaders: false,
+    //   });
+    //   this.app.use("/api/", limiter);
+    //   logger.info("Rate limiting enabled", {
+    //     windowMs: "15 minutes",
+    //     maxRequests: 100,
+    //   });
+    // } else {
+    logger.info("Rate limiting DISABLED for development");
+    // }
 
     // Request logging
     this.app.use((req, _res, next) => {
