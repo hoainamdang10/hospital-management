@@ -74,6 +74,60 @@ export class GlobalProxyMiddleware {
         specificity: route.getSpecificity()
       });
 
+      // ✅ FIX: Check if route requires authentication
+      if (route.requiresAuth && !req.user) {
+        this.logger.warn('Global proxy: Authentication required but user not authenticated', {
+          requestId: req.requestId,
+          path: originalPath,
+          serviceName: route.serviceName
+        });
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized - Authentication required',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // ✅ FIX: Check required permissions
+      if (route.requiredPermissions && route.requiredPermissions.length > 0 && req.user) {
+        const userPermissions = req.user.permissions || [];
+        const hasPermission = route.requiredPermissions.some(perm => 
+          userPermissions.includes(perm)
+        );
+        
+        if (!hasPermission) {
+          this.logger.warn('Global proxy: Insufficient permissions', {
+            requestId: req.requestId,
+            path: originalPath,
+            required: route.requiredPermissions,
+            userHas: userPermissions
+          });
+          return res.status(403).json({
+            success: false,
+            message: 'Forbidden - Insufficient permissions',
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      // ✅ FIX: Check service health via circuit breaker
+      const isHealthy = await this.serviceRegistry.isHealthy(route.serviceName);
+      if (!isHealthy) {
+        this.logger.error('Global proxy: Service unhealthy', {
+          requestId: req.requestId,
+          serviceName: route.serviceName
+        });
+        return res.status(503).json({
+          success: false,
+          message: 'Service temporarily unavailable',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // ✅ FIX: Set req.url to originalPath BEFORE proxy sees it
+      // This ensures http-proxy-middleware sees the full path with /api prefix
+      req.url = originalPath;
+
       // Apply path rewrite
       const rewrittenPath = route.rewritePath(originalPath, req);
       const targetUrl = route.getTargetUrl(originalPath, req);
@@ -82,7 +136,8 @@ export class GlobalProxyMiddleware {
         requestId: req.requestId,
         originalPath,
         rewrittenPath,
-        targetUrl
+        targetUrl,
+        reqUrlSet: req.url
       });
 
       // Create proxy middleware for this specific request
@@ -97,7 +152,8 @@ export class GlobalProxyMiddleware {
           "*": "" // Remove domain from cookies
         },
 
-        // Path rewrite: map original path to rewritten path
+        // ✅ FIX: Path rewrite now works because req.url contains full path
+        // Match the original path and replace with rewritten path
         pathRewrite: {
           [`^${originalPath}`]: rewrittenPath
         },

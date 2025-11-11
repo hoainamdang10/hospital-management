@@ -71,7 +71,8 @@ export class ServiceRoute extends ValueObject<ServiceRouteProps> {
       pathPrefix: props.pathPrefix.trim(),
       requiresAuth: props.requiresAuth,
       requiredPermissions: props.requiredPermissions,
-      requiredRoles: props.requiredRoles
+      requiredRoles: props.requiredRoles,
+      pathRewrite: props.pathRewrite // ✅ FIX: Copy pathRewrite into props
     });
   }
 

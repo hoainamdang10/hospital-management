@@ -43,19 +43,21 @@ const nextConfig: NextConfig = {
   },
 
   // API Rewrites - Proxy to backend services through API Gateway
+  // ✅ FIX: Use env var for Docker compatibility
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3101';
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://localhost:3101/api/v1/:path*',
+        destination: `${apiUrl}/api/v1/:path*`,
       },
       {
         source: '/api/v2/:path*',
-        destination: 'http://localhost:3101/api/v2/:path*',
+        destination: `${apiUrl}/api/v2/:path*`,
       },
       {
         source: '/api/auth/:path*',
-        destination: 'http://localhost:3101/api/auth/:path*',
+        destination: `${apiUrl}/api/auth/:path*`,
       },
     ];
   },

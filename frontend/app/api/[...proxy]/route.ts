@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3101';
+// ✅ FIX: Use consistent env var name with next.config.ts
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3101';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ proxy: string[] }> }) {
   const { proxy } = await params;

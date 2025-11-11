@@ -280,12 +280,11 @@ console.log(
 app.use("/api/v1", createAppointmentRoutes());
 
 // Query routes (Read operations - CQRS Queries with denormalized data)
-// Mounted on both v1 and v2 for backward compatibility
 app.use("/api/v1", createAppointmentQueryRoutes());
-app.use("/api/v2", createAppointmentQueryRoutes()); // For API Gateway v2 routes
+// ✅ FIX: Removed duplicate /api/v2 mount
+// Gateway now correctly forwards full path with proper rewriting
 
-// Availability routes (Provider schedule & available slots)  
-// Keep full path since API Gateway forwards complete path
+// Availability routes (Provider schedule & available slots)
 app.use("/api/v1/appointments", createAvailabilityRoutes());
 
 // Queue routes (Queue management)
