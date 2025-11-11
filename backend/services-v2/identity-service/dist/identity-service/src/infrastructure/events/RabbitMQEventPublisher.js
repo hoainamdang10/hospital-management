@@ -42,7 +42,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MockEventPublisher = exports.RabbitMQEventPublisher = void 0;
 const amqp = __importStar(require("amqplib"));
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 const DomainEventMapper_1 = require("./DomainEventMapper");
 class RabbitMQEventPublisher {
     constructor(rabbitMQUrl, logger, exchangeName) {

@@ -67,8 +67,17 @@ class AuthenticateUserUseCase {
         catch (error) {
             // Log authentication failure
             const errorMessage = (0, error_helper_1.getErrorMessage)(error);
+            // Safely mask email - fallback to raw string if email is invalid
+            let maskedEmail = request.email;
+            try {
+                maskedEmail = Email_1.Email.create(request.email).getMaskedEmail();
+            }
+            catch {
+                // If email is invalid, just use raw string (already failed anyway)
+                maskedEmail = request.email || '[empty]';
+            }
             this.logger.error('Authentication failed', {
-                email: Email_1.Email.create(request.email).getMaskedEmail(),
+                email: maskedEmail,
                 ipAddress: request.ipAddress,
                 error: errorMessage,
                 responseTime: Date.now() - startTime

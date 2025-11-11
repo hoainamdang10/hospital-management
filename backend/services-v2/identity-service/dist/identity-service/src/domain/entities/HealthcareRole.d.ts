@@ -10,7 +10,7 @@
  * @author Hospital Management Team
  * @version 3.0.0 - Pure RBAC
  */
-import { Entity } from '../../../../shared/domain/base/entity';
+import { Entity } from '@shared/domain/base/entity';
 /**
  * Healthcare Role Types - Simplified for Graduation Project
  *

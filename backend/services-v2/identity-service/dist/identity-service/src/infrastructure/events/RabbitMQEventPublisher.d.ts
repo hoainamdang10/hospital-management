@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { DomainEvent } from "../../../../shared/domain/base/domain-event";
+import { DomainEvent } from "@shared/domain/base/domain-event";
 import { ILogger } from "../../application/services/ILogger";
 import { IEventPublisher, IntegrationEventPayload } from "../../application/services/IEventPublisher";
 export declare class RabbitMQEventPublisher implements IEventPublisher {

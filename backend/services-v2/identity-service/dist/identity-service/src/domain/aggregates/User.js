@@ -14,7 +14,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
-const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
 const UserId_1 = require("../value-objects/UserId");
 const AccountStatus_1 = require("../value-objects/AccountStatus");
 const UserCreatedEvent_1 = require("../events/UserCreatedEvent");

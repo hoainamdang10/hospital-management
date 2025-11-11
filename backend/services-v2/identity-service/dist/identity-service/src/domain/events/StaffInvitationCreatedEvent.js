@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaffInvitationCreatedEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class StaffInvitationCreatedEvent extends domain_event_1.DomainEvent {
     constructor(email, role, invitedBy, invitationToken, expiresAt) {
         super('StaffInvitationCreated', email, // Use email as aggregate ID

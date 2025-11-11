@@ -17,7 +17,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AcceptStaffInvitationUseCase = void 0;
 const Email_1 = require("../../domain/value-objects/Email");
+const UserId_1 = require("../../domain/value-objects/UserId");
 const error_helper_1 = require("../../utils/error-helper");
+const UserCreatedEvent_1 = require("../../domain/events/UserCreatedEvent");
+const HealthcareRole_1 = require("../../domain/entities/HealthcareRole");
+const PersonalInfo_1 = require("../../domain/value-objects/PersonalInfo");
 class AcceptStaffInvitationUseCase {
     constructor(userRepository, logger, eventPublisher) {
         this.userRepository = userRepository;
@@ -80,6 +84,22 @@ class AcceptStaffInvitationUseCase {
             this.logger.info('Staff account created successfully', {
                 userId: user.id,
                 email: invitation.email,
+                role: invitation.role
+            });
+            // 4.5. Manually add UserCreatedEvent (since user was reconstituted from DB)
+            // This is needed for downstream services (Staff Service, Patient Registry) to create profiles
+            const personalInfo = PersonalInfo_1.PersonalInfo.create({
+                fullName: request.fullName,
+                phoneNumber: request.phoneNumber,
+                dateOfBirth: undefined, // Will be updated later
+                gender: undefined,
+                citizenId: undefined,
+                address: undefined
+            });
+            const userCreatedEvent = new UserCreatedEvent_1.UserCreatedEvent(UserId_1.UserId.fromString(user.id), Email_1.Email.create(invitation.email), HealthcareRole_1.HealthcareRole.fromRoleType(invitation.role), personalInfo);
+            user.addDomainEvent(userCreatedEvent);
+            this.logger.info('UserCreatedEvent added manually for staff activation', {
+                userId: user.id,
                 role: invitation.role
             });
             // 5. Mark invitation as used

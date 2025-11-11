@@ -108,8 +108,18 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
     } catch (error) {
       // Log authentication failure
       const errorMessage = getErrorMessage(error);
+      
+      // Safely mask email - fallback to raw string if email is invalid
+      let maskedEmail = request.email;
+      try {
+        maskedEmail = Email.create(request.email).getMaskedEmail();
+      } catch {
+        // If email is invalid, just use raw string (already failed anyway)
+        maskedEmail = request.email || '[empty]';
+      }
+      
       this.logger.error('Authentication failed', {
-        email: Email.create(request.email).getMaskedEmail(),
+        email: maskedEmail,
         ipAddress: request.ipAddress,
         error: errorMessage,
         responseTime: Date.now() - startTime

@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRoleChangedEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class UserRoleChangedEvent extends domain_event_1.DomainEvent {
     constructor(userIdVO, oldRole, newRole, changedBy) {
         super('UserRoleChanged', userIdVO.value, 'User', { oldRole: oldRole.type, newRole: newRole.type, changedBy }, 1, // eventVersion

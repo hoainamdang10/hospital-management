@@ -5,7 +5,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { UserId } from '../value-objects/UserId';
 export declare class UserAuthenticatedEvent extends DomainEvent {
     readonly userIdVO: UserId;

@@ -45,7 +45,15 @@ class DomainEventMapper {
                 payload: {
                     userId: domainEvent.userIdVO.value,
                     email: domainEvent.userEmail.value,
-                    role: domainEvent.userRole.type
+                    role: domainEvent.userRole.type,
+                    personalInfo: domainEvent.personalInfo ? {
+                        fullName: domainEvent.personalInfo.fullName,
+                        phoneNumber: domainEvent.personalInfo.phoneNumber,
+                        address: domainEvent.personalInfo.address,
+                        dateOfBirth: domainEvent.personalInfo.dateOfBirth,
+                        gender: domainEvent.personalInfo.gender,
+                        citizenId: domainEvent.personalInfo.citizenId
+                    } : undefined
                 }
             };
         }

@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserActivatedEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class UserActivatedEvent extends domain_event_1.DomainEvent {
     constructor(userIdValue, // Changed from UserId to string
     emailValue, // Changed from Email to string

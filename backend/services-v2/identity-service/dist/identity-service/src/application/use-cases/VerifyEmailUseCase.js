@@ -184,7 +184,8 @@ class VerifyEmailUseCase {
                 try {
                     // Create UserCreatedEvent manually since user was reconstituted from database
                     // and doesn't have uncommitted events
-                    const userCreatedEvent = new UserCreatedEvent_1.UserCreatedEvent(UserId_1.UserId.fromString(user.id), user.email, user.healthcareRoles[0]);
+                    const userCreatedEvent = new UserCreatedEvent_1.UserCreatedEvent(UserId_1.UserId.fromString(user.id), user.email, user.healthcareRoles[0], // Primary role
+                    user.personalInfo);
                     // Publish UserCreated event
                     await this.eventPublisher.publishDomainEvents([userCreatedEvent]);
                     // Publish UserActivated event

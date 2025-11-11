@@ -12,7 +12,7 @@ import { VerifyEmailResponse } from "./VerifyEmailUseCase";
  * @author Hospital Management Team
  * @version 3.0.0 - Verify-First Approach
  */
-import { IUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
+import { IUseCase } from "@shared/application/use-cases/base/use-case.interface";
 import { IUserRepository } from "../repositories/IUserRepository";
 import { ICircuitBreaker } from "../services/ICircuitBreaker";
 import { IEventPublisher } from "../services/IEventPublisher";

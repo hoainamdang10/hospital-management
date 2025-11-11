@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS Query Pattern
  */
-import { IUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
+import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IRecoveryHistoryRepository } from '../../domain/repositories/IRecoveryHistoryRepository';
 import { ILogger } from '../services/ILogger';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
