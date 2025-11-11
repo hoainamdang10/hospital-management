@@ -105,7 +105,7 @@ export function DateTimePicker({
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="ml-3 text-gray-600">Đang tải lịch trống...</span>
             </div>
-          ) : availableSlots.length === 0 ? (
+          ) : !availableSlots || availableSlots.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-xl">
               <p className="text-gray-500">Không có lịch trống trong ngày này</p>
               <p className="text-sm text-gray-400 mt-2">Vui lòng chọn ngày khác</p>

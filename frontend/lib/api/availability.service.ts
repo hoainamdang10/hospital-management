@@ -48,7 +48,7 @@ export async function getAvailableSlots(
   duration: number = 30
 ): Promise<AvailableSlotsResponse> {
   const response = await apiClient.get<AvailableSlotsResponse>(
-    `/api/v1/appointments/providers/${providerId}/available-slots`,
+    `/v1/appointments/providers/${providerId}/available-slots`,
     {
       params: { date, duration },
     }
@@ -63,7 +63,7 @@ export async function getProviderSchedule(
   providerId: string
 ): Promise<ProviderScheduleResponse> {
   const response = await apiClient.get<ProviderScheduleResponse>(
-    `/api/v1/appointments/providers/${providerId}/schedule`
+    `/v1/appointments/providers/${providerId}/schedule`
   );
   return response.data;
 }

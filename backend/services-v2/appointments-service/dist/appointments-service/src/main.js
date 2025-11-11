@@ -75,6 +75,22 @@ const config = container.getConfig();
 const healthCheckService = container.getHealthCheckService();
 const metricsService = container.getMetricsService();
 console.log("[Main] DI Container initialized successfully");
+const staticAllowedOrigins = new Set((Array.isArray(config.cors.origin)
+    ? config.cors.origin
+    : [config.cors.origin])
+    .map((origin) => origin?.trim())
+    .filter((origin) => Boolean(origin)));
+const devOriginPatterns = [
+    /^https?:\/\/localhost(?::\d+)?$/i,
+    /^https?:\/\/127\.0\.0\.1(?::\d+)?$/i,
+    /^https?:\/\/0\.0\.0\.0(?::\d+)?$/i,
+];
+const isOriginAllowed = (origin) => {
+    if (staticAllowedOrigins.has(origin)) {
+        return true;
+    }
+    return devOriginPatterns.some((pattern) => pattern.test(origin));
+};
 // Print configuration summary
 console.log((0, ConfigValidator_1.getConfigSummary)(config));
 const PORT = config.port;
@@ -103,10 +119,8 @@ app.use((0, cors_1.default)({
         // Allow requests with no origin (mobile apps, Postman, etc.)
         if (!origin)
             return callback(null, true);
-        const allowedOrigins = Array.isArray(config.cors.origin)
-            ? config.cors.origin
-            : [config.cors.origin];
-        if (allowedOrigins.includes(origin)) {
+        const normalizedOrigin = origin.trim();
+        if (isOriginAllowed(normalizedOrigin)) {
             callback(null, true);
         }
         else {
@@ -239,10 +253,11 @@ console.log("[Main] Swagger UI available at http://localhost:" + PORT + "/api-do
 // Command routes (Write operations - CQRS Commands)
 app.use("/api/v1", (0, appointment_routes_1.createAppointmentRoutes)());
 // Query routes (Read operations - CQRS Queries with denormalized data)
-// Moved from /api/v2 to /api/v1 for consistency
+// Mounted on both v1 and v2 for backward compatibility
 app.use("/api/v1", (0, appointmentQueryRoutes_1.createAppointmentQueryRoutes)());
-// Availability routes (Provider schedule & available slots)
-// Moved from /api/appointments to /api/v1/appointments for consistency
+app.use("/api/v2", (0, appointmentQueryRoutes_1.createAppointmentQueryRoutes)()); // For API Gateway v2 routes
+// Availability routes (Provider schedule & available slots)  
+// Keep full path since API Gateway forwards complete path
 app.use("/api/v1/appointments", (0, availability_routes_1.createAvailabilityRoutes)());
 // Queue routes (Queue management)
 // Moved from /api/queue to /api/v1/queue for consistency

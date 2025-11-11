@@ -23,13 +23,11 @@ const joi_1 = __importDefault(require("joi"));
  * Validation schemas for availability routes
  */
 const availableSlotsSchema = joi_1.default.object({
-    date: joi_1.default.date()
-        .iso()
-        .min('now')
+    date: joi_1.default.string()
+        .pattern(/^\d{4}-\d{2}-\d{2}$/)
         .required()
         .messages({
-        'date.base': 'Ngày không hợp lệ',
-        'date.min': 'Ngày phải trong tương lai',
+        'string.pattern.base': 'Date is required in format YYYY-MM-DD',
         'any.required': 'Ngày là bắt buộc'
     }),
     duration: joi_1.default.number()
@@ -45,10 +43,10 @@ const availableSlotsSchema = joi_1.default.object({
 });
 const providerIdSchema = joi_1.default.object({
     providerId: joi_1.default.string()
-        .pattern(/^DEPT-DOC-\d{6}-\d{3}$/)
+        .pattern(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
         .required()
         .messages({
-        'string.pattern.base': 'Mã bác sĩ không đúng định dạng (DEPT-DOC-YYYYMM-XXX)',
+        'string.pattern.base': 'Mã bác sĩ không đúng định dạng (XXXX-DOC-YYYYMM-XXX)',
         'any.required': 'Mã bác sĩ là bắt buộc'
     })
 });

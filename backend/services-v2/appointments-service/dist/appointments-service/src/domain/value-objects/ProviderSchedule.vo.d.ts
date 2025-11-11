@@ -18,7 +18,7 @@ export interface WorkingHours {
 export interface ProviderScheduleProps {
     providerId: string;
     workingDays: string[];
-    workingHours: WorkingHours;
+    workingHours: WorkingHours | WorkingHours[];
     timeZone: string;
     isFlexible: boolean;
     effectiveDate?: Date;
@@ -46,7 +46,11 @@ export declare class ProviderSchedule {
     private validate;
     get providerId(): string;
     get workingDays(): string[];
-    get workingHours(): WorkingHours;
+    get workingHours(): WorkingHours | WorkingHours[];
+    /**
+     * Get all working hour ranges as an array (normalized)
+     */
+    getWorkingHourRanges(): WorkingHours[];
     get timeZone(): string;
     get isFlexible(): boolean;
     get effectiveDate(): Date | undefined;
@@ -57,11 +61,11 @@ export declare class ProviderSchedule {
      */
     isWorkingDay(day: string): boolean;
     /**
-     * Check if a time is within working hours
+     * Check if a time is within working hours (any time range)
      */
     isWorkingTime(time: string): boolean;
     /**
-     * Get working hours per day
+     * Get working hours per day (sum of all time ranges)
      */
     getWorkingHoursPerDay(): number;
     /**

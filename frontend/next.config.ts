@@ -42,28 +42,20 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // API Rewrites - Proxy to backend services to avoid CORS
+  // API Rewrites - Proxy to backend services through API Gateway
   async rewrites() {
     return [
       {
-        source: '/api/v1/appointments/:path*',
-        destination: 'http://localhost:3004/api/v1/appointments/:path*',
+        source: '/api/v1/:path*',
+        destination: 'http://localhost:3101/api/v1/:path*',
       },
       {
-        source: '/api/v1/patients/:path*',
-        destination: 'http://localhost:3003/api/v1/patients/:path*',
+        source: '/api/v2/:path*',
+        destination: 'http://localhost:3101/api/v2/:path*',
       },
       {
-        source: '/api/v1/staff/:path*',
-        destination: 'http://localhost:3002/api/v1/staff/:path*',
-      },
-      {
-        source: '/api/v1/departments/:path*',
-        destination: 'http://localhost:3025/api/v1/departments/:path*',
-      },
-      {
-        source: '/api/v1/clinical/:path*',
-        destination: 'http://localhost:3007/api/v1/clinical/:path*',
+        source: '/api/auth/:path*',
+        destination: 'http://localhost:3101/api/auth/:path*',
       },
     ];
   },

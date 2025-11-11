@@ -4,8 +4,9 @@
  */
 
 import { API_CONFIG } from '@/lib/constants';
+import apiClient from './client';
 
-const BASE_URL = `${API_CONFIG.BASE_URL}/patients`;
+const BASE_URL = `${API_CONFIG.BASE_URL}/v1/patients`;
 
 export interface EmergencyContact {
   contactId?: string;
@@ -218,8 +219,10 @@ export async function getPatientById(patientId: string): Promise<Patient> {
  * Maps Supabase user ID to Patient ID
  */
 export async function getPatientByUserId(userId: string): Promise<Patient> {
-  const response = await fetch(`${BASE_URL}/user/${userId}`);
-  return response.json();
+  const response = await apiClient.get<{ success: boolean; data: Patient }>(
+    `/v1/patients/user/${userId}`
+  );
+  return response.data.data;
 }
 
 export const patientService = new PatientService();

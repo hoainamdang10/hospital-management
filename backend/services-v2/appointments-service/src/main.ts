@@ -284,8 +284,8 @@ app.use("/api/v1", createAppointmentRoutes());
 app.use("/api/v1", createAppointmentQueryRoutes());
 app.use("/api/v2", createAppointmentQueryRoutes()); // For API Gateway v2 routes
 
-// Availability routes (Provider schedule & available slots)
-// Moved from /api/appointments to /api/v1/appointments for consistency
+// Availability routes (Provider schedule & available slots)  
+// Keep full path since API Gateway forwards complete path
 app.use("/api/v1/appointments", createAvailabilityRoutes());
 
 // Queue routes (Queue management)

@@ -3,8 +3,10 @@
  */
 
 // API Configuration
+// Empty baseURL means axios will use relative paths like /api/v1/...
+// Next.js rewrites will proxy these to API Gateway
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3101',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || '',
   TIMEOUT: 10000,
   RETRY_ATTEMPTS: 3,
 } as const;

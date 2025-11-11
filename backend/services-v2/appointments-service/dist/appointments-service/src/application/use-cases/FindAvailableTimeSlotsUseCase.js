@@ -69,8 +69,14 @@ class FindAvailableTimeSlotsUseCase {
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
         const bookedAppointments = await this.appointmentRepository.findByTimeSlot(providerId, startOfDay, endOfDay);
-        // 4. Generate all possible time slots from work schedule
-        const allPossibleSlots = this.generateTimeSlotsFromSchedule(date, providerSchedule.workingHours.start, providerSchedule.workingHours.end, durationMinutes);
+        // 4. Generate all possible time slots from work schedule (support multiple time ranges)
+        const workingHourRanges = providerSchedule.getWorkingHourRanges();
+        const allPossibleSlots = [];
+        // Generate slots for each time range (e.g., morning shift + afternoon shift)
+        for (const timeRange of workingHourRanges) {
+            const slotsForRange = this.generateTimeSlotsFromSchedule(date, timeRange.start, timeRange.end, durationMinutes);
+            allPossibleSlots.push(...slotsForRange);
+        }
         // 5. Filter out booked slots
         const availableSlots = this.filterAvailableSlots(allPossibleSlots, bookedAppointments.map(apt => ({
             startTime: apt.timeSlot.toDate(),

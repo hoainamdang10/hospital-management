@@ -20,7 +20,7 @@ export interface WorkingHours {
 export interface ProviderScheduleProps {
   providerId: string;
   workingDays: string[]; // ['monday', 'tuesday', ...]
-  workingHours: WorkingHours;
+  workingHours: WorkingHours | WorkingHours[]; // Support both single and multiple time ranges
   timeZone: string;
   isFlexible: boolean;
   effectiveDate?: Date;
@@ -53,10 +53,21 @@ export class ProviderSchedule {
    * Reconstitute from persistence
    */
   public static fromPersistence(data: any): ProviderSchedule {
+    // Normalize working_hours: convert array to array, keep object as-is
+    let workingHours: WorkingHours | WorkingHours[] = data.working_hours;
+    
+    // If working_hours is an array of time ranges, keep it as array
+    // If it's a single object, keep it as object
+    if (Array.isArray(data.working_hours)) {
+      workingHours = data.working_hours as WorkingHours[];
+    } else {
+      workingHours = data.working_hours as WorkingHours;
+    }
+    
     return new ProviderSchedule({
       providerId: data.provider_id,
       workingDays: data.working_days,
-      workingHours: data.working_hours,
+      workingHours: workingHours,
       timeZone: data.time_zone,
       isFlexible: data.is_flexible,
       effectiveDate: data.effective_date ? new Date(data.effective_date) : undefined,
@@ -95,8 +106,21 @@ export class ProviderSchedule {
     return [...this.props.workingDays];
   }
 
-  public get workingHours(): WorkingHours {
-    return { ...this.props.workingHours };
+  public get workingHours(): WorkingHours | WorkingHours[] {
+    if (Array.isArray(this.props.workingHours)) {
+      return [...this.props.workingHours];
+    }
+    return { ...this.props.workingHours as WorkingHours };
+  }
+  
+  /**
+   * Get all working hour ranges as an array (normalized)
+   */
+  public getWorkingHourRanges(): WorkingHours[] {
+    if (Array.isArray(this.props.workingHours)) {
+      return this.props.workingHours;
+    }
+    return [this.props.workingHours as WorkingHours];
   }
 
   public get timeZone(): string {
@@ -121,13 +145,18 @@ export class ProviderSchedule {
 
   /**
    * Check if provider works on a specific day
+   * Supports both lowercase ('monday') and uppercase ('MONDAY') formats
    */
   public isWorkingDay(day: string): boolean {
-    return this.props.workingDays.includes(day.toLowerCase());
+    const dayLower = day.toLowerCase();
+    const dayUpper = day.toUpperCase();
+    return this.props.workingDays.some(d => 
+      d.toLowerCase() === dayLower || d.toUpperCase() === dayUpper
+    );
   }
 
   /**
-   * Check if a time is within working hours
+   * Check if a time is within working hours (any time range)
    */
   public isWorkingTime(time: string): boolean {
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -135,18 +164,24 @@ export class ProviderSchedule {
       return false;
     }
 
-    return this.isValidTimeRange(this.props.workingHours.start, time) &&
-           this.isValidTimeRange(time, this.props.workingHours.end);
+    // Check if time falls within any of the working hour ranges
+    const ranges = this.getWorkingHourRanges();
+    return ranges.some(range => 
+      this.isValidTimeRange(range.start, time) &&
+      this.isValidTimeRange(time, range.end)
+    );
   }
 
   /**
-   * Get working hours per day
+   * Get working hours per day (sum of all time ranges)
    */
   public getWorkingHoursPerDay(): number {
-    const start = this.parseTime(this.props.workingHours.start);
-    const end = this.parseTime(this.props.workingHours.end);
-    
-    return (end.hours - start.hours) + (end.minutes - start.minutes) / 60;
+    const ranges = this.getWorkingHourRanges();
+    return ranges.reduce((total, range) => {
+      const start = this.parseTime(range.start);
+      const end = this.parseTime(range.end);
+      return total + (end.hours - start.hours) + (end.minutes - start.minutes) / 60;
+    }, 0);
   }
 
   /**
@@ -226,8 +261,7 @@ export class ProviderSchedule {
     
     return this.props.providerId === other.props.providerId &&
            JSON.stringify(this.props.workingDays) === JSON.stringify(other.props.workingDays) &&
-           this.props.workingHours.start === other.props.workingHours.start &&
-           this.props.workingHours.end === other.props.workingHours.end &&
+           JSON.stringify(this.props.workingHours) === JSON.stringify(other.props.workingHours) &&
            this.props.timeZone === other.props.timeZone &&
            this.props.isFlexible === other.props.isFlexible;
   }
@@ -237,7 +271,8 @@ export class ProviderSchedule {
    */
   public toString(): string {
     const days = this.props.workingDays.join(', ');
-    const hours = `${this.props.workingHours.start} - ${this.props.workingHours.end}`;
+    const ranges = this.getWorkingHourRanges();
+    const hours = ranges.map(r => `${r.start}-${r.end}`).join(', ');
     return `Provider ${this.props.providerId}: ${days} | ${hours} (${this.getWorkingHoursPerWeek()}h/week)`;
   }
 }
