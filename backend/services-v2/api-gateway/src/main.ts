@@ -48,6 +48,7 @@ class ApiGatewayApplication {
   private serviceRegistry: ServiceRegistry;
   private globalProxyMiddleware: GlobalProxyMiddleware;
   private authenticationMiddleware: AuthenticationMiddleware;
+  // @ts-expect-error - Reserved for future use when permission checking is enabled
   private authorizationMiddleware: AuthorizationMiddleware;
   private loggingMiddleware: LoggingMiddleware;
   private errorHandlingMiddleware: ErrorHandlingMiddleware;
@@ -598,7 +599,7 @@ class ApiGatewayApplication {
     // =========================================================================
     // DEBUG ENDPOINT - Routing Table
     // =========================================================================
-    this.app.get("/_debug/routes", (req, res) => {
+    this.app.get("/_debug/routes", (_req, res) => {
       const routingTable = this.serviceRegistry.getRoutingTable();
       res.json({
         success: true,
