@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { ILogger } from '../../../../../shared/application/services/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
 /**
  * Identity User Created Event Data
@@ -35,6 +35,8 @@ export declare class IdentityUserCreatedEventHandler {
     constructor(logger: ILogger, patientRepository: IPatientRepository);
     /**
      * Handle identity.user.created event
+     * Note: This event is now handled for tracking purposes only.
+     * Patient records are created when UserActivatedEvent is received (after email verification).
      */
     handle(eventData: IdentityUserCreatedEventData): Promise<void>;
 }

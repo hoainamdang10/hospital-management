@@ -7,8 +7,8 @@
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { IAuditService } from '../../../../shared/application/services/audit.service.interface';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 export interface GrantConsentCommand {
     patientId: string;
     consentType: string;

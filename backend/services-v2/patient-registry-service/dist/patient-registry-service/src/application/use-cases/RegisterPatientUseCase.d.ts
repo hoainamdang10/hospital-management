@@ -9,8 +9,8 @@
  */
 import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
 import { BloodType } from "../../domain/value-objects/BasicMedicalInfo";
-import { IEventBus } from "../../../../shared/application/services/event-bus.interface";
-import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
+import { ILogger } from "@shared/application/services/logger.interface";
 import { AuditService } from "../../infrastructure/audit/AuditService";
 import type { SupabaseClient } from "@supabase/supabase-js";
 export interface RegisterPatientRequest {

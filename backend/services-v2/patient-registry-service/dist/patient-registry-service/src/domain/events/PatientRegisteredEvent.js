@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientRegisteredEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class PatientRegisteredEvent extends domain_event_1.DomainEvent {
     constructor(patientId, patientUserId, fullName, dateOfBirth, gender, nationalId, additionalData, correlationId, causationId, userIdForAudit) {
         const eventData = {

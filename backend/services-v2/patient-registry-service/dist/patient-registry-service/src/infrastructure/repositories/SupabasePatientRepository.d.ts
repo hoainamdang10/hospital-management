@@ -6,14 +6,14 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA
  */
-import type { OptimizedSupabaseClient } from "../../../../shared/infrastructure/database/optimized-supabase-client";
+import type { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
 import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
 import { Patient } from "../../domain/aggregates/Patient";
 import { PatientId } from "../../domain/value-objects/PatientId";
 import { PatientRegistryCircuitBreaker } from "../resilience/CircuitBreaker";
-import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { ILogger } from "@shared/application/services/logger.interface";
 import { IPatientMatchingService } from "../../application/services/IPatientMatchingService";
-import { IDomainEventPublisher } from "../../../../shared/domain/events/IDomainEventPublisher";
+import { IDomainEventPublisher } from "@shared/domain/events/IDomainEventPublisher";
 import { PatientCache } from "../cache/PatientCache";
 import { IOutboxRepository } from "../outbox/SupabaseOutboxRepository";
 /**
@@ -55,6 +55,10 @@ export declare class SupabasePatientRepository implements IPatientRepository {
         fullName: string;
         phoneNumber?: string;
         address?: string;
+        ward?: string;
+        district?: string;
+        city?: string;
+        province?: string;
         dateOfBirth?: Date;
         gender?: 'male' | 'female' | 'other';
         citizenId?: string;

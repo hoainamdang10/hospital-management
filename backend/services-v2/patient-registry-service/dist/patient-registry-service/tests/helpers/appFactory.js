@@ -1,0 +1,354 @@
+"use strict";
+/**
+ * App Factory for Integration Tests
+ *
+ * Creates and configures Express app instance for testing
+ * without starting the actual server
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createTestApp = createTestApp;
+exports.createMinimalTestApp = createMinimalTestApp;
+exports.createAuthenticatedTestApp = createAuthenticatedTestApp;
+exports.createFullTestApp = createFullTestApp;
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
+const compression_1 = __importDefault(require("compression"));
+const supabase_js_1 = require("@supabase/supabase-js");
+// Infrastructure imports
+const SupabasePatientRepository_1 = require("../../src/infrastructure/repositories/SupabasePatientRepository");
+const InMemoryPatientRepository_1 = require("./InMemoryPatientRepository");
+const RabbitMQEventPublisher_1 = require("../../src/infrastructure/events/RabbitMQEventPublisher");
+// Application Services
+const PatientMatchingService_1 = require("../../src/application/services/PatientMatchingService");
+const InsuranceValidationService_1 = require("../../src/application/services/InsuranceValidationService");
+// Use Cases
+const RegisterPatientUseCase_1 = require("../../src/application/use-cases/RegisterPatientUseCase");
+const UpdatePatientInfoUseCase_1 = require("../../src/application/use-cases/UpdatePatientInfoUseCase");
+const GetPatientProfileUseCase_1 = require("../../src/application/use-cases/GetPatientProfileUseCase");
+const SearchPatientsUseCase_1 = require("../../src/application/use-cases/SearchPatientsUseCase");
+const MatchPatientsUseCase_1 = require("../../src/application/use-cases/MatchPatientsUseCase");
+const MergePatientsUseCase_1 = require("../../src/application/use-cases/MergePatientsUseCase");
+const LinkPatientsUseCase_1 = require("../../src/application/use-cases/LinkPatientsUseCase");
+const DeactivatePatientUseCase_1 = require("../../src/application/use-cases/DeactivatePatientUseCase");
+const ValidateInsuranceUseCase_1 = require("../../src/application/use-cases/ValidateInsuranceUseCase");
+const AddEmergencyContactUseCase_1 = require("../../src/application/use-cases/AddEmergencyContactUseCase");
+const GrantConsentUseCase_1 = require("../../src/application/use-cases/GrantConsentUseCase");
+const MarkAsDeceasedUseCase_1 = require("../../src/application/use-cases/MarkAsDeceasedUseCase");
+const ReactivatePatientUseCase_1 = require("../../src/application/use-cases/ReactivatePatientUseCase");
+const GetEmergencyContactsUseCase_1 = require("../../src/application/use-cases/GetEmergencyContactsUseCase");
+const UpdateEmergencyContactUseCase_1 = require("../../src/application/use-cases/UpdateEmergencyContactUseCase");
+const RemoveEmergencyContactUseCase_1 = require("../../src/application/use-cases/RemoveEmergencyContactUseCase");
+const SetPrimaryEmergencyContactUseCase_1 = require("../../src/application/use-cases/SetPrimaryEmergencyContactUseCase");
+const GetConsentsUseCase_1 = require("../../src/application/use-cases/GetConsentsUseCase");
+const GetConsentDetailsUseCase_1 = require("../../src/application/use-cases/GetConsentDetailsUseCase");
+const RevokeConsentUseCase_1 = require("../../src/application/use-cases/RevokeConsentUseCase");
+const GetActiveConsentsUseCase_1 = require("../../src/application/use-cases/GetActiveConsentsUseCase");
+const GetInsuranceInfoUseCase_1 = require("../../src/application/use-cases/GetInsuranceInfoUseCase");
+const UpdateInsuranceInfoUseCase_1 = require("../../src/application/use-cases/UpdateInsuranceInfoUseCase");
+const VerifyInsuranceUseCase_1 = require("../../src/application/use-cases/VerifyInsuranceUseCase");
+const GetPatientStatisticsUseCase_1 = require("../../src/application/use-cases/GetPatientStatisticsUseCase");
+const UploadPatientPhotoUseCase_1 = require("../../src/application/use-cases/UploadPatientPhotoUseCase");
+const GetPatientPhotoUseCase_1 = require("../../src/application/use-cases/GetPatientPhotoUseCase");
+const DeletePatientPhotoUseCase_1 = require("../../src/application/use-cases/DeletePatientPhotoUseCase");
+const UpdateCommunicationPreferencesUseCase_1 = require("../../src/application/use-cases/UpdateCommunicationPreferencesUseCase");
+const GetCommunicationPreferencesUseCase_1 = require("../../src/application/use-cases/GetCommunicationPreferencesUseCase");
+const GetPatientHistoryUseCase_1 = require("../../src/application/use-cases/GetPatientHistoryUseCase");
+const PatientCommandHandlers_1 = require("../../src/application/handlers/PatientCommandHandlers");
+const PatientQueryHandlers_1 = require("../../src/application/handlers/PatientQueryHandlers");
+// Presentation
+const PatientController_1 = require("../../src/presentation/controllers/PatientController");
+const CommandController_1 = require("../../src/presentation/controllers/CommandController");
+const patientRoutes_1 = require("../../src/presentation/routes/patientRoutes");
+const commandRoutes_1 = require("../../src/presentation/routes/commandRoutes");
+const ErrorHandlingMiddleware_1 = require("../../src/presentation/middleware/ErrorHandlingMiddleware");
+const AuthenticationMiddleware_1 = require("../../src/presentation/middleware/AuthenticationMiddleware");
+const identityMockServer_1 = require("./identityMockServer");
+const PatientCache_1 = require("../../src/infrastructure/cache/PatientCache");
+const AuditService_1 = require("../../src/infrastructure/audit/AuditService");
+const SupabaseOutboxRepository_1 = require("../../src/infrastructure/outbox/SupabaseOutboxRepository");
+/**
+ * Test Logger - Silent logger for tests
+ */
+const createTestLogger = () => ({
+    debug: () => { },
+    info: () => { },
+    warn: (...args) => console.warn('[TestLogger][WARN]', ...args),
+    error: (...args) => console.error('[TestLogger][ERROR]', ...args),
+    fatal: (...args) => console.error('[TestLogger][FATAL]', ...args)
+});
+/**
+ * Create Express app for testing
+ */
+async function createTestApp(config) {
+    const app = (0, express_1.default)();
+    const logger = config.logger || createTestLogger();
+    const previousIdentityServiceUrl = process.env.IDENTITY_SERVICE_URL;
+    const previousIdentityUseMock = process.env.IDENTITY_USE_MOCK;
+    // Initialize Event Publisher (optional for tests)
+    let eventPublisher;
+    if (config.enableRabbitMQ && config.rabbitmqUrl) {
+        eventPublisher = new RabbitMQEventPublisher_1.RabbitMQEventPublisher({
+            url: config.rabbitmqUrl,
+            exchange: 'patient-registry-events-test',
+            exchangeType: 'topic',
+            durable: false,
+            autoDelete: true,
+            serviceName: 'patient-registry'
+        }, {
+            enableRetry: false,
+            maxRetries: 1,
+            retryDelayMs: 100,
+            enableLogging: false
+        }, logger);
+        try {
+            await eventPublisher.connect();
+        }
+        catch (error) {
+            console.warn('⚠️  RabbitMQ not available for tests, continuing without event publishing');
+            eventPublisher = undefined;
+        }
+    }
+    // Initialize Application Services
+    const matchingService = new PatientMatchingService_1.PatientMatchingService(logger);
+    const insuranceValidationService = new InsuranceValidationService_1.InsuranceValidationService(logger);
+    // Initialize Cache (optional for tests)
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6380';
+    const patientCache = new PatientCache_1.PatientCache(redisUrl);
+    // Initialize Audit Service (optional for tests)
+    const supabaseClient = (0, supabase_js_1.createClient)(config.supabaseUrl, config.supabaseKey);
+    const auditService = new AuditService_1.AuditService(supabaseClient, logger);
+    // Initialize Repository
+    let patientRepository;
+    if (config.useInMemoryRepository) {
+        patientRepository = new InMemoryPatientRepository_1.InMemoryPatientRepository();
+    }
+    else {
+        // Create OptimizedSupabaseClient for SupabasePatientRepository
+        const { createOptimizedSupabaseClient } = await Promise.resolve().then(() => __importStar(require('@shared/infrastructure/database/optimized-supabase-client')));
+        const optimizedClient = createOptimizedSupabaseClient({
+            supabaseUrl: config.supabaseUrl,
+            supabaseServiceKey: config.supabaseKey,
+            serviceName: 'patient-registry-service',
+            schemaName: 'patient_schema',
+            enableOptimizations: false, // Disable for tests
+        });
+        // Create Outbox Repository for tests
+        const outboxRepository = new SupabaseOutboxRepository_1.SupabaseOutboxRepository(supabaseClient, logger);
+        patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(optimizedClient, logger, matchingService, eventPublisher, patientCache, outboxRepository // ✅ Inject outbox repository
+        );
+    }
+    // Create mock event bus for tests (if no RabbitMQ)
+    const mockEventBus = {
+        connect: async () => { },
+        disconnect: async () => { },
+        publish: async () => { },
+        subscribe: async () => { }
+    };
+    const eventBus = eventPublisher || mockEventBus;
+    // Initialize Use Cases
+    const registerPatientUseCase = new RegisterPatientUseCase_1.RegisterPatientUseCase(patientRepository, eventBus, logger, auditService);
+    const updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(patientRepository, eventBus, logger, auditService);
+    const getPatientProfileUseCase = new GetPatientProfileUseCase_1.GetPatientProfileUseCase(patientRepository, logger, auditService);
+    const searchPatientsUseCase = new SearchPatientsUseCase_1.SearchPatientsUseCase(patientRepository);
+    const matchPatientsUseCase = new MatchPatientsUseCase_1.MatchPatientsUseCase(patientRepository, matchingService, logger);
+    const mergePatientsUseCase = new MergePatientsUseCase_1.MergePatientsUseCase(patientRepository);
+    const linkPatientsUseCase = new LinkPatientsUseCase_1.LinkPatientsUseCase(patientRepository);
+    const deactivatePatientUseCase = new DeactivatePatientUseCase_1.DeactivatePatientUseCase(patientRepository, eventBus, logger, auditService);
+    const validateInsuranceUseCase = new ValidateInsuranceUseCase_1.ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
+    const addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(patientRepository, eventBus, logger);
+    const grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(patientRepository);
+    const markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(patientRepository);
+    const reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(patientRepository);
+    // New use cases
+    const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase_1.GetEmergencyContactsUseCase(patientRepository, logger);
+    const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase_1.UpdateEmergencyContactUseCase(patientRepository, eventBus, logger);
+    const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase_1.RemoveEmergencyContactUseCase(patientRepository, eventBus, logger);
+    const setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase_1.SetPrimaryEmergencyContactUseCase(patientRepository, eventBus, logger);
+    const getConsentsUseCase = new GetConsentsUseCase_1.GetConsentsUseCase(patientRepository, logger);
+    const getConsentDetailsUseCase = new GetConsentDetailsUseCase_1.GetConsentDetailsUseCase(patientRepository, logger);
+    const revokeConsentUseCase = new RevokeConsentUseCase_1.RevokeConsentUseCase(patientRepository, eventBus, logger);
+    const getActiveConsentsUseCase = new GetActiveConsentsUseCase_1.GetActiveConsentsUseCase(patientRepository, logger);
+    const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase_1.GetInsuranceInfoUseCase(patientRepository, logger);
+    const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase_1.UpdateInsuranceInfoUseCase(patientRepository, eventBus, logger);
+    const verifyInsuranceUseCase = new VerifyInsuranceUseCase_1.VerifyInsuranceUseCase(patientRepository, logger);
+    // Additional use cases for PatientController
+    const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase_1.GetPatientStatisticsUseCase(patientRepository);
+    // Mock storage service for photo use cases
+    const mockStorageService = {
+        bucketName: 'test-bucket',
+        supabaseClient: null,
+        logger: logger,
+        uploadPatientPhoto: jest.fn(),
+        getPatientPhoto: jest.fn(),
+        deletePatientPhoto: jest.fn()
+    };
+    const uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase_1.UploadPatientPhotoUseCase(patientRepository, mockStorageService);
+    const getPatientPhotoUseCase = new GetPatientPhotoUseCase_1.GetPatientPhotoUseCase(patientRepository);
+    const deletePatientPhotoUseCase = new DeletePatientPhotoUseCase_1.DeletePatientPhotoUseCase(patientRepository, mockStorageService);
+    const updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase_1.UpdateCommunicationPreferencesUseCase(patientRepository);
+    const getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase_1.GetCommunicationPreferencesUseCase(patientRepository);
+    const getPatientHistoryUseCase = new GetPatientHistoryUseCase_1.GetPatientHistoryUseCase(patientRepository, logger);
+    const patientQueryHandlers = new PatientQueryHandlers_1.PatientQueryHandlers(getPatientProfileUseCase, searchPatientsUseCase, patientRepository, logger);
+    // Initialize Command Handlers
+    const patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(registerPatientUseCase, updatePatientInfoUseCase, deactivatePatientUseCase, grantConsentUseCase, addEmergencyContactUseCase, logger);
+    // Initialize Controllers
+    const patientController = new PatientController_1.PatientController(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, getPatientHistoryUseCase, patientQueryHandlers);
+    const commandController = new CommandController_1.CommandController(logger, patientCommandHandlers);
+    const errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
+    // Setup Middleware
+    app.use((0, helmet_1.default)({ contentSecurityPolicy: false }));
+    app.use((0, cors_1.default)({ origin: '*', credentials: true }));
+    app.use((0, compression_1.default)());
+    app.use(express_1.default.json({ limit: '10mb' }));
+    app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+    // Setup Authentication Middleware (if enabled)
+    let authMiddleware;
+    let identityMockRelease;
+    if (config.enableAuthentication) {
+        let identityServiceUrl = config.identityServiceUrl;
+        if (!identityServiceUrl) {
+            const identityMock = await (0, identityMockServer_1.ensureIdentityMockServer)();
+            identityMockRelease = identityMock.release;
+            identityServiceUrl = identityMock.url;
+            process.env.IDENTITY_USE_MOCK = 'true';
+            process.env.IDENTITY_SERVICE_URL = identityServiceUrl;
+            console.log(`[AppFactory] Using mock Identity Service at ${identityServiceUrl}`);
+        }
+        else {
+            console.log(`[AppFactory] Using real Identity Service at ${identityServiceUrl}`);
+        }
+        authMiddleware = new AuthenticationMiddleware_1.AuthenticationMiddleware({
+            identityServiceUrl,
+            logger,
+            skipPaths: ['/health', '/api-docs']
+        });
+        // Apply authentication to all routes except skipped paths
+        app.use(authMiddleware.authenticate());
+    }
+    // Setup Routes
+    app.get('/health', (_req, res) => {
+        res.status(200).json({
+            status: 'healthy',
+            service: 'patient-registry-service-test',
+            version: '2.0.0',
+            timestamp: new Date().toISOString()
+        });
+    });
+    const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(patientController);
+    app.use('/api/v1/patients', patientRoutes);
+    const commandRoutes = (0, commandRoutes_1.createCommandRoutes)(commandController);
+    app.use('/api/v1/commands', commandRoutes);
+    // Error handling
+    app.use(errorHandlingMiddleware.notFound());
+    app.use(errorHandlingMiddleware.handle());
+    // Cleanup function
+    const cleanup = async () => {
+        if (eventPublisher) {
+            await eventPublisher.close();
+        }
+        if (identityMockRelease) {
+            await identityMockRelease();
+        }
+        if (previousIdentityServiceUrl !== undefined) {
+            process.env.IDENTITY_SERVICE_URL = previousIdentityServiceUrl;
+        }
+        else {
+            delete process.env.IDENTITY_SERVICE_URL;
+        }
+        if (previousIdentityUseMock !== undefined) {
+            process.env.IDENTITY_USE_MOCK = previousIdentityUseMock;
+        }
+        else {
+            delete process.env.IDENTITY_USE_MOCK;
+        }
+    };
+    return {
+        app,
+        cleanup,
+        eventPublisher,
+        patientRepository,
+        inMemoryRepository: patientRepository instanceof InMemoryPatientRepository_1.InMemoryPatientRepository
+            ? patientRepository
+            : undefined
+    };
+}
+/**
+ * Create minimal test app (without RabbitMQ, without authentication)
+ */
+async function createMinimalTestApp() {
+    return createTestApp({
+        supabaseUrl: process.env.SUPABASE_URL || '',
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+        enableRabbitMQ: false,
+        enableAuthentication: false
+    });
+}
+/**
+ * Create test app with authentication
+ * - If IDENTITY_USE_MOCK=true or NODE_ENV=test: Uses mock Identity Service
+ * - If IDENTITY_USE_MOCK=false: Uses REAL Identity Service at IDENTITY_SERVICE_URL
+ */
+async function createAuthenticatedTestApp() {
+    const useMock = process.env.IDENTITY_USE_MOCK === 'true' || process.env.NODE_ENV === 'test';
+    const identityServiceUrl = useMock ? undefined : (process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021');
+    return createTestApp({
+        supabaseUrl: process.env.SUPABASE_URL || '',
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+        enableRabbitMQ: false,
+        enableAuthentication: true,
+        useInMemoryRepository: true,
+        identityServiceUrl // Pass URL for real service, undefined for mock
+    });
+}
+/**
+ * Create full test app (with RabbitMQ)
+ */
+async function createFullTestApp() {
+    return createTestApp({
+        supabaseUrl: process.env.SUPABASE_URL || '',
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5672',
+        enableRabbitMQ: true
+    });
+}
+//# sourceMappingURL=appFactory.js.map

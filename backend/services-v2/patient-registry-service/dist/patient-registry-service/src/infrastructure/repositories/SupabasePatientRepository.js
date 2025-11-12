@@ -242,22 +242,22 @@ class SupabasePatientRepository {
             // Create patient using Patient aggregate factory method
             const patient = Patient_1.Patient.register(userData.userId, PersonalInfo.create({
                 fullName: userData.fullName,
-                dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'),
+                dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'), // Default date if undefined
                 gender: userData.gender || 'other',
-                nationalId: userData.citizenId || 'UNKNOWN',
+                nationalId: userData.citizenId || '', // Default to empty string if undefined
                 nationality: 'VN',
                 ethnicity: undefined,
                 occupation: undefined,
                 maritalStatus: undefined
             }), ContactInfo.create({
-                primaryPhone: userData.phoneNumber || '0000000000',
+                primaryPhone: userData.phoneNumber || '', // Default to empty string if undefined
                 email: userData.email,
                 address: {
-                    street: userData.address || '',
-                    ward: '',
-                    district: '',
-                    city: '',
-                    province: '',
+                    street: userData.address || '', // Default to empty string if undefined
+                    ward: userData.ward || 'Chưa cập nhật',
+                    district: userData.district || 'Chưa cập nhật',
+                    city: userData.city || 'Chưa cập nhật',
+                    province: userData.province || 'Chưa cập nhật',
                     postalCode: undefined,
                     country: 'Vietnam'
                 },
@@ -267,7 +267,7 @@ class SupabasePatientRepository {
                 knownAllergies: []
             }), undefined, // insuranceInfo
             [], // emergencyContacts
-            'system' // createdBy - auto-created from Identity Service event
+            userData.userId // createdBy - use userId since auto-created from Identity Service event
             );
             // Save patient to database
             await this.save(patient);

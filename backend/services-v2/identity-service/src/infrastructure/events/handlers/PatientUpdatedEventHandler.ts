@@ -15,7 +15,7 @@ import { IUserRepository } from '../../../domain/repositories/IUserRepository';
  */
 export interface PatientUpdatedEventData {
   patientId: string;
-  userId: string;
+  identityUserId: string; // Updated field name
   updateType: string;
   updatedBy: string;
   updatedAt: Date;
@@ -55,17 +55,17 @@ export class PatientUpdatedEventHandler {
   async handle(eventData: PatientUpdatedEventData): Promise<void> {
     try {
       this.logger.info('Processing patient.updated event', {
-        userId: eventData.userId,
+        userId: eventData.identityUserId,
         patientId: eventData.patientId,
         updateType: eventData.updateType
       });
 
       // Find user by ID
-      const user = await this.userRepository.findById(eventData.userId);
+      const user = await this.userRepository.findById(eventData.identityUserId);
       
       if (!user) {
         this.logger.warn('User not found for patient update', {
-          userId: eventData.userId,
+          userId: eventData.identityUserId,
           patientId: eventData.patientId
         });
         return;
@@ -110,17 +110,17 @@ export class PatientUpdatedEventHandler {
         profileUpdates.updated_at = new Date();
         profileUpdates.updated_by = eventData.updatedBy;
 
-        await this.userRepository.updateProfile(eventData.userId, profileUpdates);
+        await this.userRepository.updateProfile(eventData.identityUserId, profileUpdates);
 
         this.logger.info('User profile synced from patient update', {
-          userId: eventData.userId,
+          userId: eventData.identityUserId,
           patientId: eventData.patientId,
           updateType: eventData.updateType,
           fields: Object.keys(profileUpdates)
         });
       } else {
         this.logger.debug('No syncable data in patient update', {
-          userId: eventData.userId,
+          userId: eventData.identityUserId,
           patientId: eventData.patientId,
           updateType: eventData.updateType
         });
@@ -128,7 +128,7 @@ export class PatientUpdatedEventHandler {
 
     } catch (error) {
       this.logger.error('Error handling patient.updated event', {
-        userId: eventData.userId,
+        userId: eventData.identityUserId,
         patientId: eventData.patientId,
         error: error instanceof Error ? error.message : 'Unknown error'
       });

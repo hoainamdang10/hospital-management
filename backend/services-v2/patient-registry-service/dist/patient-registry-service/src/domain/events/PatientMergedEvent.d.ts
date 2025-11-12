@@ -3,7 +3,7 @@
  *
  * Published when duplicate patients are merged
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 export interface PatientMergedEventData {
     duplicatePatientId: string;
     masterPatientId: string;

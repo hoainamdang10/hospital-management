@@ -8,10 +8,13 @@
  */
 import { Router } from "express";
 import { PatientController } from "../controllers/PatientController";
+import { AuthorizationMiddleware } from "../middleware/AuthorizationMiddleware";
 /**
  * Create patient routes
+ * @param controller - Patient controller instance
+ * @param authorizationMiddleware - Authorization middleware for ownership checks
  */
-export declare function createPatientRoutes(controller: PatientController): Router;
+export declare function createPatientRoutes(controller: PatientController, authorizationMiddleware: AuthorizationMiddleware): Router;
 /**
  * API Documentation
  *

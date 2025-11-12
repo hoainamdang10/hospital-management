@@ -88,6 +88,7 @@ import {
   IdentityUserCreatedEventHandler,
   IdentityUserDeletedEventHandler,
   IdentityUserUpdatedEventHandler,
+  UserActivatedEventHandler,
 } from "./infrastructure";
 
 // Presentation imports
@@ -622,6 +623,11 @@ class PatientRegistryServiceApp {
         this.patientRepository,
       );
 
+      const userActivatedHandler = new UserActivatedEventHandler(
+        logger,
+        this.patientRepository,
+      );
+
       // Initialize Identity Event Consumer with DLQ support
       this.identityEventConsumer = new IdentityEventConsumer(
         {
@@ -644,6 +650,7 @@ class PatientRegistryServiceApp {
         userCreatedHandler,
         userDeletedHandler,
         userUpdatedHandler,
+        userActivatedHandler,
         this.auditService, // ✅ Inject audit service for idempotent event handling
       );
 

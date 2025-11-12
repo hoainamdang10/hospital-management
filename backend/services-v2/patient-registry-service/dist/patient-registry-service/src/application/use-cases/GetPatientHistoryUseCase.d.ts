@@ -8,7 +8,7 @@
  * @compliance Clean Architecture, DDD, HIPAA
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 export interface GetPatientHistoryRequest {
     patientId: string;
     limit?: number;

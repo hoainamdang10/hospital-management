@@ -319,19 +319,19 @@ export class SupabasePatientRepository implements IPatientRepository {
         userData.userId,
         PersonalInfo.create({
           fullName: userData.fullName,
-          dateOfBirth: userData.dateOfBirth,
+          dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'), // Default date if undefined
           gender: userData.gender || 'other',
-          nationalId: userData.citizenId,
+          nationalId: userData.citizenId || '', // Default to empty string if undefined
           nationality: 'VN',
           ethnicity: undefined,
           occupation: undefined,
           maritalStatus: undefined
         }),
         ContactInfo.create({
-          primaryPhone: userData.phoneNumber,
+          primaryPhone: userData.phoneNumber || '', // Default to empty string if undefined
           email: userData.email,
           address: {
-            street: userData.address,
+            street: userData.address || '', // Default to empty string if undefined
             ward: userData.ward || 'Chưa cập nhật',
             district: userData.district || 'Chưa cập nhật',
             city: userData.city || 'Chưa cập nhật',

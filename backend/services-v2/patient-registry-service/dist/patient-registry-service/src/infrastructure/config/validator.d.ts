@@ -9,7 +9,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, 12-Factor App
  */
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 export declare enum ValidationMode {
     STRICT = "strict",// All variables required (production)
     LENIENT = "lenient"

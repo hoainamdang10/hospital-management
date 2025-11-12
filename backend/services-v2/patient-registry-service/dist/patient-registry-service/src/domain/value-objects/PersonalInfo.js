@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PersonalInfo = void 0;
-const value_object_1 = require("../../../../shared/domain/base/value-object");
+const value_object_1 = require("@shared/domain/base/value-object");
 class PersonalInfo extends value_object_1.ValueObject {
     constructor(props) {
         super(props);

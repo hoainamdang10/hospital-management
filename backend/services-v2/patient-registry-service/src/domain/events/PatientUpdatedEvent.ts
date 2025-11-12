@@ -11,7 +11,7 @@ import { DomainEvent } from '@shared/domain/base/domain-event';
 
 export interface PatientUpdatedEventData {
   patientId: string;
-  userId: string; // Identity Service user ID for sync
+  identityUserId: string; // Identity Service user ID
   updateType: string;
   updatedBy: string;
   updatedAt: Date;
@@ -39,7 +39,7 @@ export interface PatientUpdatedEventData {
 export class PatientUpdatedEvent extends DomainEvent {
   constructor(
     public readonly patientId: string,
-    public readonly userId: string, // Identity Service user ID
+    public readonly identityUserId: string, // Identity Service user ID - renamed to avoid override
     public readonly updateType: string,
     public readonly updatedBy: string,
     public readonly personalInfo?: PatientUpdatedEventData['personalInfo'],
@@ -50,7 +50,7 @@ export class PatientUpdatedEvent extends DomainEvent {
   ) {
     const eventData = {
       patientId,
-      userId,
+      userId: identityUserId, // Map to expected field name
       updateType,
       updatedBy,
       personalInfo,
@@ -72,7 +72,7 @@ export class PatientUpdatedEvent extends DomainEvent {
   public getEventData(): PatientUpdatedEventData {
     return {
       patientId: this.patientId,
-      userId: this.userId,
+      identityUserId: this.identityUserId, // Use renamed field
       updateType: this.updateType,
       updatedBy: this.updatedBy,
       updatedAt: this.occurredAt,

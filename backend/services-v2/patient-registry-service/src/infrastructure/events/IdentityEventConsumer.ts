@@ -22,6 +22,10 @@ import {
   IdentityUserUpdatedEventHandler,
   IdentityUserUpdatedEventData,
 } from "./handlers/IdentityUserUpdatedEventHandler";
+import {
+  UserActivatedEventHandler,
+  UserActivatedEventData,
+} from "./handlers/UserActivatedEventHandler";
 import { IdempotentEventHandler, EventMessage } from "./IdempotentEventHandler";
 import { AuditService } from "../audit/AuditService";
 
@@ -57,6 +61,7 @@ export class IdentityEventConsumer {
     private userCreatedHandler: IdentityUserCreatedEventHandler,
     private userDeletedHandler: IdentityUserDeletedEventHandler,
     private userUpdatedHandler: IdentityUserUpdatedEventHandler,
+    private userActivatedHandler: UserActivatedEventHandler,
     private auditService?: AuditService,
   ) {
     // Initialize idempotent handlers with audit service
@@ -89,6 +94,16 @@ export class IdentityEventConsumer {
           this.logger,
           (data: IdentityUserUpdatedEventData) =>
             this.userUpdatedHandler.handle(data),
+        ),
+      );
+      this.idempotentHandlers.set(
+        "user.activated",
+        new IdempotentEventHandler(
+          "UserActivatedEventHandler",
+          this.auditService,
+          this.logger,
+          (data: UserActivatedEventData) =>
+            this.userActivatedHandler.handle(data),
         ),
       );
     }
@@ -260,10 +275,9 @@ export class IdentityEventConsumer {
               break;
 
             case "user.activated.event":
-              // UserActivatedEvent - can be handled if needed
-              this.logger.info("User activated event received", {
-                userId: event.payload?.userId,
-              });
+              await this.userActivatedHandler.handle(
+                event.payload as UserActivatedEventData,
+              );
               break;
 
             default:

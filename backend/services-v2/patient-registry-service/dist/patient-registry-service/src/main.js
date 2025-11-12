@@ -17,7 +17,6 @@ dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const compression_1 = __importDefault(require("compression"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
@@ -28,14 +27,14 @@ const PrometheusMetrics_1 = require("./infrastructure/monitoring/PrometheusMetri
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
 const PatientCache_1 = require("./infrastructure/cache/PatientCache");
 const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegradation");
-const optimized_supabase_client_1 = require("../../shared/infrastructure/database/optimized-supabase-client");
+const optimized_supabase_client_1 = require("@shared/infrastructure/database/optimized-supabase-client");
 const SupabaseOutboxRepository_1 = require("./infrastructure/outbox/SupabaseOutboxRepository");
 const OutboxPublisherWorker_1 = require("./infrastructure/outbox/OutboxPublisherWorker");
 // Application Services imports
 const PatientMatchingService_1 = require("./application/services/PatientMatchingService");
 const InsuranceValidationService_1 = require("./application/services/InsuranceValidationService");
 const RabbitMQEventPublisher_1 = require("./infrastructure/events/RabbitMQEventPublisher");
-const EventBus_1 = require("../../shared/infrastructure/event-bus/EventBus");
+const EventBus_1 = require("@shared/infrastructure/event-bus/EventBus");
 const validator_1 = require("./infrastructure/config/validator");
 const PinoLogger_1 = require("./infrastructure/logging/PinoLogger");
 // Application imports
@@ -85,6 +84,7 @@ const commandRoutes_1 = require("./presentation/routes/commandRoutes");
 const healthRoutes_1 = require("./presentation/routes/healthRoutes");
 const ErrorHandlingMiddleware_1 = require("./presentation/middleware/ErrorHandlingMiddleware");
 const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
+const AuthorizationMiddleware_1 = require("./presentation/middleware/AuthorizationMiddleware");
 // Configuration
 const config = {
     port: process.env.PORT || 3023,
@@ -274,27 +274,33 @@ class PatientRegistryServiceApp {
                 logger,
                 skipPaths: ["/health", "/degradation"],
             });
+            // Initialize Authorization Middleware (Smart Ownership-based)
+            this.authorizationMiddleware = new AuthorizationMiddleware_1.AuthorizationMiddleware({
+                logger,
+                patientRepository: this.patientRepository,
+            });
             // Initialize Identity Event Handlers
             const userCreatedHandler = new infrastructure_1.IdentityUserCreatedEventHandler(logger, this.patientRepository);
             const userDeletedHandler = new infrastructure_1.IdentityUserDeletedEventHandler(logger, this.patientRepository);
             const userUpdatedHandler = new infrastructure_1.IdentityUserUpdatedEventHandler(logger, this.patientRepository);
+            const userActivatedHandler = new infrastructure_1.UserActivatedEventHandler(logger, this.patientRepository);
             // Initialize Identity Event Consumer with DLQ support
             this.identityEventConsumer = new infrastructure_1.IdentityEventConsumer({
                 rabbitmqUrl: config.rabbitmqUrl,
                 queueName: "patient.identity.queue",
                 exchangeName: "hospital.events",
                 routingKeys: [
-                    "user.created", // UserCreatedEvent
-                    "user.deleted", // UserDeletedEvent
-                    "user.updated", // UserUpdatedEvent
-                    "user.activated", // UserActivatedEvent (bonus)
+                    "user.created.event", // UserCreatedEvent
+                    "user.deleted.event", // UserDeletedEvent
+                    "user.updated.event", // UserUpdatedEvent
+                    "user.activated.event", // UserActivatedEvent (bonus)
                 ],
                 deadLetterExchange: "hospital.events.dlx",
                 deadLetterQueue: "patient.identity.queue.dlq",
                 maxRetries: 3,
                 connectionRetries: rabbitmqConnectionRetries,
                 connectionRetryDelayMs: rabbitmqConnectionRetryDelayMs,
-            }, logger, userCreatedHandler, userDeletedHandler, userUpdatedHandler, this.auditService);
+            }, logger, userCreatedHandler, userDeletedHandler, userUpdatedHandler, userActivatedHandler, this.auditService);
             // Connect Identity Event Consumer
             await this.identityEventConsumer.connect();
             logger.info("Identity event consumer connected");
@@ -351,24 +357,23 @@ class PatientRegistryServiceApp {
         // Body parsing
         this.app.use(express_1.default.json({ limit: "10mb" }));
         this.app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
-        // Rate limiting (disabled in test environment)
-        if (process.env.NODE_ENV !== "test") {
-            const limiter = (0, express_rate_limit_1.default)({
-                windowMs: 15 * 60 * 1000, // 15 minutes
-                max: 100, // limit each IP to 100 requests per windowMs
-                message: "Too many requests from this IP, please try again later",
-                standardHeaders: true,
-                legacyHeaders: false,
-            });
-            this.app.use("/api/", limiter);
-            logger.info("Rate limiting enabled", {
-                windowMs: "15 minutes",
-                maxRequests: 100,
-            });
-        }
-        else {
-            logger.info("Rate limiting disabled for test environment");
-        }
+        // Rate limiting (DISABLED FOR DEVELOPMENT)
+        // if (process.env.NODE_ENV !== "test") {
+        //   const limiter = rateLimit({
+        //     windowMs: 15 * 60 * 1000, // 15 minutes
+        //     max: 100, // limit each IP to 100 requests per windowMs
+        //     message: "Too many requests from this IP, please try again later",
+        //     standardHeaders: true,
+        //     legacyHeaders: false,
+        //   });
+        //   this.app.use("/api/", limiter);
+        //   logger.info("Rate limiting enabled", {
+        //     windowMs: "15 minutes",
+        //     maxRequests: 100,
+        //   });
+        // } else {
+        logger.info("Rate limiting DISABLED for development");
+        // }
         // Request logging
         this.app.use((req, _res, next) => {
             logger.info("Incoming request", {
@@ -443,7 +448,7 @@ class PatientRegistryServiceApp {
             }
         });
         // API routes with authentication
-        const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(this.patientController);
+        const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(this.patientController, this.authorizationMiddleware);
         this.app.use("/api/v1/patients", this.authMiddleware.authenticate(), patientRoutes);
         // CQRS Command routes with authentication
         const commandRoutes = (0, commandRoutes_1.createCommandRoutes)(this.commandController);

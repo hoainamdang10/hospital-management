@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Vietnamese Healthcare Standards
  */
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 import { IInsuranceValidationService, ValidationResult, ExpirationCheckResult, InsuranceValidationServiceStatus } from './IInsuranceValidationService';
 /**
  * Insurance Validation Service Implementation

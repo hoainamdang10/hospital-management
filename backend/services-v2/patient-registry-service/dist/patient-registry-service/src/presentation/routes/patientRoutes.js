@@ -15,8 +15,10 @@ const UploadMiddleware_1 = require("../middleware/UploadMiddleware");
 const ValidationMiddleware_1 = require("../middleware/ValidationMiddleware");
 /**
  * Create patient routes
+ * @param controller - Patient controller instance
+ * @param authorizationMiddleware - Authorization middleware for ownership checks
  */
-function createPatientRoutes(controller) {
+function createPatientRoutes(controller, authorizationMiddleware) {
     const router = (0, express_1.Router)();
     const asyncHandler = ErrorHandlingMiddleware_1.ErrorHandlingMiddleware.asyncHandler;
     // ==================== PUBLIC ROUTES ====================
@@ -61,8 +63,9 @@ function createPatientRoutes(controller) {
     /**
      * Get patient by user ID
      * GET /api/v1/patients/user/:userId
+     * Authorization: Patient can access own data, Admin/Doctor need patient:read permission
      */
-    router.get("/user/:userId", ValidationMiddleware_1.validateUserId, asyncHandler(controller.getPatientByUserId.bind(controller)));
+    router.get("/user/:userId", ValidationMiddleware_1.validateUserId, authorizationMiddleware.canAccessPatientData('userId'), asyncHandler(controller.getPatientByUserId.bind(controller)));
     /**
      * Get patient by national ID
      * GET /api/v1/patients/national-id/:nationalId

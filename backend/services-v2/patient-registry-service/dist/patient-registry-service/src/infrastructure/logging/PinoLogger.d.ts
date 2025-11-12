@@ -15,7 +15,7 @@
  * @compliance HIPAA-Compliant, Production-Ready
  */
 import pino from 'pino';
-import { ILogger, LogMetadata } from '../../../../shared/application/services/logger.interface';
+import { ILogger, LogMetadata } from '@shared/application/services/logger.interface';
 /**
  * Pino Logger Configuration
  */

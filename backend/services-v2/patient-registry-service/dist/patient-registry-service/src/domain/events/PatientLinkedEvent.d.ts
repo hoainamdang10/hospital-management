@@ -3,7 +3,7 @@
  *
  * Published when patients are linked (FHIR-style)
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 export interface PatientLinkedEventData {
     patientId: string;
     otherPatientId: string;

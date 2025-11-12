@@ -132,6 +132,70 @@ export class InMemoryPatientRepository implements IPatientRepository {
     return { history: [], total: 0 };
   }
 
+  async createFromUserEvent(userData: {
+    userId: string;
+    email: string;
+    fullName: string;
+    phoneNumber?: string;
+    address?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+    province?: string;
+    dateOfBirth?: Date;
+    gender?: 'male' | 'female' | 'other';
+    citizenId?: string;
+  }): Promise<Patient> {
+    // Create patient using the same logic as SupabasePatientRepository
+    const PersonalInfo = (await import('../../src/domain/value-objects/PersonalInfo')).PersonalInfo;
+    const ContactInfo = (await import('../../src/domain/value-objects/ContactInfo')).ContactInfo;
+    const BasicMedicalInfo = (await import('../../src/domain/value-objects/BasicMedicalInfo')).BasicMedicalInfo;
+
+    const patient = Patient.register(
+      userData.userId,
+      PersonalInfo.create({
+        fullName: userData.fullName,
+        dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'),
+        gender: userData.gender || 'other',
+        nationalId: userData.citizenId || '',
+        nationality: 'VN',
+        ethnicity: undefined,
+        occupation: undefined,
+        maritalStatus: undefined
+      }),
+      ContactInfo.create({
+        primaryPhone: userData.phoneNumber || '',
+        email: userData.email,
+        address: {
+          street: userData.address || '',
+          ward: userData.ward || 'Chưa cập nhật',
+          district: userData.district || 'Chưa cập nhật',
+          city: userData.city || 'Chưa cập nhật',
+          province: userData.province || 'Chưa cập nhật',
+          postalCode: undefined,
+          country: 'Vietnam'
+        },
+        preferredContactMethod: 'email'
+      }),
+      BasicMedicalInfo.create({
+        bloodType: undefined,
+        knownAllergies: [], // Use correct property name
+        emergencyMedicalInfo: undefined
+      }),
+      undefined, // insuranceInfo
+      [], // emergencyContacts
+      'system' // Created by system during user activation
+    );
+
+    // Save to in-memory storage
+    const savedPatient: SavedPatient = {
+      patient,
+    };
+    this.patients.set(patient.getPatientIdObject().getValue(), savedPatient);
+
+    return patient;
+  }
+
   /**
    * Utility helpers for tests
    */

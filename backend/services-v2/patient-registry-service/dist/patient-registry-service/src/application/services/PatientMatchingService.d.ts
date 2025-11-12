@@ -10,7 +10,7 @@
  * @compliance Clean Architecture, DDD, HL7 FHIR
  */
 import { Patient } from '../../domain/aggregates/Patient';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 import { IPatientMatchingService, PatientMatchCriteria, PatientMatchResult } from './IPatientMatchingService';
 /**
  * Patient Matching Service Implementation

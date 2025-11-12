@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, CQRS Pattern
  */
 import { Request, Response } from 'express';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 import { PatientCommandHandlers } from '../../application/handlers/PatientCommandHandlers';
 /**
  * Command Controller

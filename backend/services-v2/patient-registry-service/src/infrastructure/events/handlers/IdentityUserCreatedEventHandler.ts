@@ -40,6 +40,8 @@ export class IdentityUserCreatedEventHandler {
 
   /**
    * Handle identity.user.created event
+   * Note: This event is now handled for tracking purposes only.
+   * Patient records are created when UserActivatedEvent is received (after email verification).
    */
   async handle(eventData: IdentityUserCreatedEventData): Promise<void> {
     try {
@@ -57,49 +59,29 @@ export class IdentityUserCreatedEventHandler {
         return;
       }
 
-      // Check if patient already exists for this user
+      // Check if patient already exists for this user (should not happen in correct flow)
       const existingPatient = await this.patientRepository.findByUserId(eventData.userId);
 
       if (existingPatient) {
-        this.logger.warn('Patient already exists for user', {
+        this.logger.warn('Patient already exists for user (unexpected state)', {
           userId: eventData.userId,
-          patientId: existingPatient.id
+          patientId: existingPatient.id,
+          note: 'This may indicate a duplicate event or incorrect flow'
         });
         return;
       }
 
-      // Auto-create patient record from user information
-      // Use fullName from personalInfo, fallback to email prefix only if no personalInfo
-      const fullName = eventData.personalInfo?.fullName || eventData.email.split('@')[0];
-
-      this.logger.info('Auto-creating patient record from user creation event', {
+      // Log user creation for tracking - patient will be created on UserActivatedEvent
+      this.logger.info('User created - waiting for email verification to create patient record', {
         userId: eventData.userId,
         email: eventData.email,
-        fullName: fullName,
-        hasPersonalInfo: !!eventData.personalInfo
+        role: eventData.role,
+        hasPersonalInfo: !!eventData.personalInfo,
+        nextStep: 'UserActivatedEvent will trigger patient record creation'
       });
 
-      // Create patient using repository with minimal required data
-      const patient = await this.patientRepository.createFromUserEvent({
-        userId: eventData.userId,
-        email: eventData.email,
-        fullName: fullName,
-        phoneNumber: eventData.personalInfo?.phoneNumber,
-        address: eventData.personalInfo?.address,
-        ward: undefined, // Will use fallback
-        district: undefined, // Will use fallback
-        city: undefined, // Will use fallback
-        province: undefined, // Will use fallback
-        dateOfBirth: eventData.personalInfo?.dateOfBirth,
-        gender: eventData.personalInfo?.gender,
-        citizenId: eventData.personalInfo?.citizenId
-      });
-
-      this.logger.info('Patient record created successfully', {
-        userId: eventData.userId,
-        patientId: patient.id,
-        email: eventData.email
-      });
+      // TODO: Optionally store pending patient creation request in a temporary table
+      // for better tracking and recovery if email verification fails
 
     } catch (error) {
       this.logger.error('Error handling identity.user.created event', {

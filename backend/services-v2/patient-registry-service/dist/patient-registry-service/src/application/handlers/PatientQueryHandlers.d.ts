@@ -10,7 +10,7 @@
 import { GetPatientProfileUseCase, GetPatientProfileRequest, GetPatientProfileResponse } from '../use-cases/GetPatientProfileUseCase';
 import { SearchPatientsUseCase } from '../use-cases/SearchPatientsUseCase';
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
 type QueryFailure = {
     success: false;
     message: string;

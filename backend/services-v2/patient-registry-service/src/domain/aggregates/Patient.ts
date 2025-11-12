@@ -794,6 +794,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.addDomainEvent(
       new PatientUpdatedEvent(
         this.props.id.getValue(),
+        this.props.userId, // Add identityUserId as second parameter
         "photo_updated",
         updatedBy,
       ),
@@ -813,6 +814,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.addDomainEvent(
       new PatientUpdatedEvent(
         this.props.id.getValue(),
+        this.props.userId, // Add identityUserId as second parameter
         "photo_removed",
         updatedBy,
       ),
@@ -844,6 +846,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.addDomainEvent(
       new PatientUpdatedEvent(
         this.props.id.getValue(),
+        this.props.userId, // Add identityUserId as second parameter
         "communication_preference_updated",
         updatedBy,
       ),

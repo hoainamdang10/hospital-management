@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Event-Driven Architecture, Transactional Outbox Pattern
  */
-import { ILogger } from '../../../../shared/application/services/logger.interface';
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { IOutboxRepository } from './SupabaseOutboxRepository';
 export interface OutboxWorkerConfig {
     enabled: boolean;

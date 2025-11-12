@@ -6,10 +6,11 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { ILogger } from "@shared/application/services/logger.interface";
 import { IdentityUserCreatedEventHandler } from "./handlers/IdentityUserCreatedEventHandler";
 import { IdentityUserDeletedEventHandler } from "./handlers/IdentityUserDeletedEventHandler";
 import { IdentityUserUpdatedEventHandler } from "./handlers/IdentityUserUpdatedEventHandler";
+import { UserActivatedEventHandler } from "./handlers/UserActivatedEventHandler";
 import { AuditService } from "../audit/AuditService";
 /**
  * Identity Event Consumer Configuration
@@ -35,12 +36,13 @@ export declare class IdentityEventConsumer {
     private userCreatedHandler;
     private userDeletedHandler;
     private userUpdatedHandler;
+    private userActivatedHandler;
     private auditService?;
     private connection;
     private channel;
     private isConnected;
     private idempotentHandlers;
-    constructor(config: IdentityEventConsumerConfig, logger: ILogger, userCreatedHandler: IdentityUserCreatedEventHandler, userDeletedHandler: IdentityUserDeletedEventHandler, userUpdatedHandler: IdentityUserUpdatedEventHandler, auditService?: AuditService | undefined);
+    constructor(config: IdentityEventConsumerConfig, logger: ILogger, userCreatedHandler: IdentityUserCreatedEventHandler, userDeletedHandler: IdentityUserDeletedEventHandler, userUpdatedHandler: IdentityUserUpdatedEventHandler, userActivatedHandler: UserActivatedEventHandler, auditService?: AuditService | undefined);
     /**
      * Connect to RabbitMQ and start consuming
      */

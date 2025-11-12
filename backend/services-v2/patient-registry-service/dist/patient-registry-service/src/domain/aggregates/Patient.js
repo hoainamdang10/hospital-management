@@ -11,7 +11,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Patient = void 0;
-const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
 const PatientId_1 = require("../value-objects/PatientId");
 const PatientLink_1 = require("../value-objects/PatientLink");
 const PatientStatus_1 = require("../value-objects/PatientStatus");
@@ -157,7 +157,13 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "personal_info", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        "personal_info", updatedBy, {
+            fullName: personalInfo.fullName,
+            dateOfBirth: personalInfo.dateOfBirth,
+            gender: personalInfo.gender,
+            citizenId: personalInfo.nationalId
+        }));
     }
     /**
      * Update contact information
@@ -168,7 +174,12 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "contact_info", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        "contact_info", updatedBy, undefined, {
+            phoneNumber: contactInfo.primaryPhone,
+            email: contactInfo.email,
+            address: contactInfo.address
+        }));
     }
     /**
      * Update basic medical information
@@ -179,7 +190,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "basic_medical_info", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        "basic_medical_info", updatedBy));
     }
     /**
      * Update insurance information
@@ -190,7 +202,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "insurance_info", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        "insurance_info", updatedBy));
     }
     /**
      * Add emergency contact
@@ -201,7 +214,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "emergency_contact", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        "emergency_contact", updatedBy));
     }
     /**
      * Remove emergency contact
@@ -212,7 +226,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "emergency_contact", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        "emergency_contact", updatedBy));
     }
     /**
      * Grant consent
@@ -298,7 +313,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = performedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "status", performedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        "status", performedBy));
     }
     /**
      * Reactivate patient (from INACTIVE status or, when allowed, DECEASED)
@@ -322,7 +338,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = performedBy;
         const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, "status", performedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
+        'status', performedBy));
     }
     // ==================== Getters ====================
     getPatientId() {
@@ -455,7 +472,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.photoUrl = photoUrl;
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), "photo_updated", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
+        "photo_updated", updatedBy));
     }
     /**
      * Remove patient photo
@@ -465,7 +483,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.photoUrl = undefined;
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), "photo_removed", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
+        "photo_removed", updatedBy));
     }
     /**
      * Get patient photo URL
@@ -482,7 +501,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.communicationPreference = preference;
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), "communication_preference_updated", updatedBy));
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
+        "communication_preference_updated", updatedBy));
     }
     /**
      * Get communication preferences

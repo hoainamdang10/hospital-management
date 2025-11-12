@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OutboxPublisherWorker = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 class OutboxPublisherWorker {
     constructor(outboxRepository, logger, publishEvent, config) {
         this.outboxRepository = outboxRepository;
