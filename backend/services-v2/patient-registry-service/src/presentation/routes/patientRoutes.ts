@@ -10,6 +10,7 @@
 import { Router } from "express";
 import { PatientController } from "../controllers/PatientController";
 import { ErrorHandlingMiddleware } from "../middleware/ErrorHandlingMiddleware";
+import { AuthorizationMiddleware } from "../middleware/AuthorizationMiddleware";
 import { upload } from "../middleware/UploadMiddleware";
 import {
   validateRegisterPatient,
@@ -33,8 +34,13 @@ import {
 
 /**
  * Create patient routes
+ * @param controller - Patient controller instance
+ * @param authorizationMiddleware - Authorization middleware for ownership checks
  */
-export function createPatientRoutes(controller: PatientController): Router {
+export function createPatientRoutes(
+  controller: PatientController,
+  authorizationMiddleware: AuthorizationMiddleware
+): Router {
   const router = Router();
   const asyncHandler = ErrorHandlingMiddleware.asyncHandler;
 
@@ -117,10 +123,12 @@ export function createPatientRoutes(controller: PatientController): Router {
   /**
    * Get patient by user ID
    * GET /api/v1/patients/user/:userId
+   * Authorization: Patient can access own data, Admin/Doctor need patient:read permission
    */
   router.get(
     "/user/:userId",
     validateUserId,
+    authorizationMiddleware.canAccessPatientData('userId'),
     asyncHandler(controller.getPatientByUserId.bind(controller)),
   );
 

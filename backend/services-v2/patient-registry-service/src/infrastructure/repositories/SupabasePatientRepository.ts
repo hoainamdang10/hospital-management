@@ -294,6 +294,10 @@ export class SupabasePatientRepository implements IPatientRepository {
     fullName: string;
     phoneNumber?: string;
     address?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+    province?: string;
     dateOfBirth?: Date;
     gender?: 'male' | 'female' | 'other';
     citizenId?: string;
@@ -315,23 +319,23 @@ export class SupabasePatientRepository implements IPatientRepository {
         userData.userId,
         PersonalInfo.create({
           fullName: userData.fullName,
-          dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'),
+          dateOfBirth: userData.dateOfBirth,
           gender: userData.gender || 'other',
-          nationalId: userData.citizenId || '000000000', // Default 9-digit CMND for validation
+          nationalId: userData.citizenId,
           nationality: 'VN',
           ethnicity: undefined,
           occupation: undefined,
           maritalStatus: undefined
         }),
         ContactInfo.create({
-          primaryPhone: userData.phoneNumber || '0000000000',
+          primaryPhone: userData.phoneNumber,
           email: userData.email,
           address: {
-            street: userData.address || 'Chưa cập nhật',
-            ward: 'Chưa cập nhật',
-            district: 'Chưa cập nhật',
-            city: 'Chưa cập nhật',
-            province: 'Chưa cập nhật',
+            street: userData.address,
+            ward: userData.ward || 'Chưa cập nhật',
+            district: userData.district || 'Chưa cập nhật',
+            city: userData.city || 'Chưa cập nhật',
+            province: userData.province || 'Chưa cập nhật',
             postalCode: undefined,
             country: 'Vietnam'
           },

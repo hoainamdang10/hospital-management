@@ -38,13 +38,5 @@ function registerRoutes(app, deps) {
     app.use("/api/v1/permissions", (0, permission_routes_1.createPermissionRoutes)(deps));
     // Admin routes
     app.use("/admin", (0, admin_routes_1.createAdminRoutes)(deps));
-    // 404 handler
-    app.use("*", (req, res) => {
-        res.status(404).json({
-            error: "Endpoint không tồn tại",
-            path: req.originalUrl,
-            method: req.method,
-        });
-    });
 }
 //# sourceMappingURL=index.js.map

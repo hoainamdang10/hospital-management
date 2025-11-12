@@ -283,7 +283,18 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "personal_info", updatedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        "personal_info", 
+        updatedBy,
+        {
+          fullName: personalInfo.fullName,
+          dateOfBirth: personalInfo.dateOfBirth,
+          gender: personalInfo.gender,
+          citizenId: personalInfo.nationalId
+        }
+      ),
     );
   }
 
@@ -299,7 +310,18 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "contact_info", updatedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        "contact_info", 
+        updatedBy,
+        undefined,
+        {
+          phoneNumber: contactInfo.primaryPhone,
+          email: contactInfo.email,
+          address: contactInfo.address
+        }
+      ),
     );
   }
 
@@ -318,7 +340,12 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "basic_medical_info", updatedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        "basic_medical_info", 
+        updatedBy
+      ),
     );
   }
 
@@ -337,7 +364,12 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "insurance_info", updatedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        "insurance_info", 
+        updatedBy
+      ),
     );
   }
 
@@ -356,7 +388,12 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "emergency_contact", updatedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        "emergency_contact", 
+        updatedBy
+      ),
     );
   }
 
@@ -374,7 +411,12 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "emergency_contact", updatedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        "emergency_contact", 
+        updatedBy
+      ),
     );
   }
 
@@ -520,7 +562,12 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "status", performedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        "status", 
+        performedBy
+      ),
     );
   }
 
@@ -562,7 +609,12 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
     const patientId = this.props.id.value;
     this.addDomainEvent(
-      new PatientUpdatedEvent(patientId, "status", performedBy),
+      new PatientUpdatedEvent(
+        patientId, 
+        this.props.userId, // Identity Service user ID
+        'status', 
+        performedBy
+      ),
     );
   }
 

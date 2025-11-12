@@ -568,13 +568,75 @@ export class SupabaseUserRepository implements IUserRepository {
         userId: id,
       });
     } catch (error) {
-      this.logger.error("Failed to update Supabase Auth email_confirmed_at", {
+      this.logger.error("Error updating auth email confirmed", {
         userId: id,
         error: getErrorMessage(error),
       });
       throw error;
     }
   }
+
+  /**
+   * Update user profile data (for patient sync)
+   * Updates auth_schema.user_profiles table
+   */
+  async updateProfile(userId: string, profileData: {
+    full_name?: string;
+    date_of_birth?: Date;
+    gender?: string;
+    citizen_id?: string;
+    phone_number?: string;
+    address?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+    province?: string;
+    country?: string;
+    updated_at?: Date;
+    updated_by?: string;
+  }): Promise<void> {
+    return await this.circuitBreaker.execute(async () => {
+      try {
+        // Remove undefined values
+        const cleanData: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(profileData)) {
+          if (value !== undefined && value !== null) {
+            cleanData[key] = value;
+          }
+        }
+
+        if (Object.keys(cleanData).length === 0) {
+          this.logger.debug('No profile data to update', { userId });
+          return;
+        }
+
+        const { error } = await this.supabaseClient
+          .from('user_profiles')
+          .update(cleanData)
+          .eq('user_id', userId);
+
+        if (error) {
+          throw new Error(`Failed to update user profile: ${getErrorMessage(error)}`);
+        }
+
+        this.logger.info('User profile updated successfully', {
+          userId,
+          updatedFields: Object.keys(cleanData)
+        });
+
+        // Invalidate cache after profile update
+        await this.invalidateUserCache(userId);
+
+      } catch (error) {
+        this.logger.error('Error updating user profile', {
+          userId,
+          error: getErrorMessage(error)
+        });
+        throw error;
+      }
+    });
+  }
+
   /**
    * Save user (create or update) - minimal implementation for schema-per-service
    */

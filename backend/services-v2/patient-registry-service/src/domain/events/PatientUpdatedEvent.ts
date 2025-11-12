@@ -11,24 +11,50 @@ import { DomainEvent } from '@shared/domain/base/domain-event';
 
 export interface PatientUpdatedEventData {
   patientId: string;
+  userId: string; // Identity Service user ID for sync
   updateType: string;
   updatedBy: string;
   updatedAt: Date;
+  // Data fields for syncing to Identity Service
+  personalInfo?: {
+    fullName?: string;
+    dateOfBirth?: Date;
+    gender?: 'male' | 'female' | 'other';
+    citizenId?: string;
+  };
+  contactInfo?: {
+    phoneNumber?: string;
+    email?: string;
+    address?: {
+      street?: string;
+      ward?: string;
+      district?: string;
+      city?: string;
+      province?: string;
+      country?: string;
+    };
+  };
 }
 
 export class PatientUpdatedEvent extends DomainEvent {
   constructor(
     public readonly patientId: string,
+    public readonly userId: string, // Identity Service user ID
     public readonly updateType: string,
     public readonly updatedBy: string,
+    public readonly personalInfo?: PatientUpdatedEventData['personalInfo'],
+    public readonly contactInfo?: PatientUpdatedEventData['contactInfo'],
     correlationId?: string,
     causationId?: string,
     userIdForAudit?: string
   ) {
     const eventData = {
       patientId,
+      userId,
       updateType,
-      updatedBy
+      updatedBy,
+      personalInfo,
+      contactInfo
     };
 
     super(
@@ -46,9 +72,12 @@ export class PatientUpdatedEvent extends DomainEvent {
   public getEventData(): PatientUpdatedEventData {
     return {
       patientId: this.patientId,
+      userId: this.userId,
       updateType: this.updateType,
       updatedBy: this.updatedBy,
-      updatedAt: this.occurredAt
+      updatedAt: this.occurredAt,
+      personalInfo: this.personalInfo,
+      contactInfo: this.contactInfo
     };
   }
 

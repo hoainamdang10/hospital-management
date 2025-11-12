@@ -63,7 +63,7 @@ export class TestPatientFactory {
 
     // JSONB structure for personal_info
     const personalInfo = {
-      fullName: data.fullName || 'Nguyễn Văn Test',
+      fullName: data.fullName || 'Test Patient',
       dateOfBirth: data.dateOfBirth || '1990-01-01',
       gender: data.gender || 'male',
       nationalId: nationalId,

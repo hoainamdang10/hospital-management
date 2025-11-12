@@ -49,13 +49,4 @@ export function registerRoutes(
 
   // Admin routes
   app.use("/admin", createAdminRoutes(deps));
-
-  // 404 handler
-  app.use("*", (req, res) => {
-    res.status(404).json({
-      error: "Endpoint không tồn tại",
-      path: req.originalUrl,
-      method: req.method,
-    });
-  });
 }

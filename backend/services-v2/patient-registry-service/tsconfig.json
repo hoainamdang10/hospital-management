@@ -49,6 +49,7 @@
   },
   "include": [
     "src/**/*",
+    "tests/**/*",
     "../shared/domain/**/*",
     "../shared/application/**/*"
   ],

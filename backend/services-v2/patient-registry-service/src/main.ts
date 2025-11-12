@@ -98,6 +98,7 @@ import { createCommandRoutes } from "./presentation/routes/commandRoutes";
 import { createHealthRoutes } from "./presentation/routes/healthRoutes";
 import { ErrorHandlingMiddleware } from "./presentation/middleware/ErrorHandlingMiddleware";
 import { AuthenticationMiddleware } from "./presentation/middleware/AuthenticationMiddleware";
+import { AuthorizationMiddleware } from "./presentation/middleware/AuthorizationMiddleware";
 
 // Configuration
 const config = {
@@ -196,6 +197,7 @@ class PatientRegistryServiceApp {
   // Middleware
   private errorHandlingMiddleware!: ErrorHandlingMiddleware;
   private authMiddleware!: AuthenticationMiddleware;
+  private authorizationMiddleware!: AuthorizationMiddleware;
 
   constructor() {
     this.app = express();
@@ -598,6 +600,12 @@ class PatientRegistryServiceApp {
         skipPaths: ["/health", "/degradation"],
       });
 
+      // Initialize Authorization Middleware (Smart Ownership-based)
+      this.authorizationMiddleware = new AuthorizationMiddleware({
+        logger,
+        patientRepository: this.patientRepository,
+      });
+
       // Initialize Identity Event Handlers
       const userCreatedHandler = new IdentityUserCreatedEventHandler(
         logger,
@@ -817,7 +825,10 @@ class PatientRegistryServiceApp {
     });
 
     // API routes with authentication
-    const patientRoutes = createPatientRoutes(this.patientController);
+    const patientRoutes = createPatientRoutes(
+      this.patientController,
+      this.authorizationMiddleware,
+    );
     this.app.use(
       "/api/v1/patients",
       this.authMiddleware.authenticate(),

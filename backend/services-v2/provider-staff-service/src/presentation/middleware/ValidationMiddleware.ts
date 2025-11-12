@@ -501,6 +501,60 @@ export const validateSearchStaff = [
   handleValidationErrors,
 ];
 
+// ==================== GET STAFF LIST VALIDATION ====================
+
+export const validateGetStaffList = [
+  query("staffType")
+    .optional()
+    .isIn([
+      "doctor",
+      "nurse",
+      "technician",
+      "pharmacist",
+      "therapist",
+      "admin",
+      "receptionist",
+    ])
+    .withMessage("Loại nhân viên không hợp lệ"),
+
+  query("departmentId")
+    .optional()
+    .isUUID()
+    .withMessage("Department ID phải là UUID hợp lệ"),
+
+  query("status")
+    .optional()
+    .isIn(["active", "inactive", "on-leave", "suspended", "terminated"])
+    .withMessage("Trạng thái không hợp lệ"),
+
+  query("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("isActive phải là boolean"),
+
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Số trang phải là số nguyên dương"),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Số lượng phải từ 1-100"),
+
+  query("sortBy")
+    .optional()
+    .isIn(["createdAt", "updatedAt", "lastName", "staffId"])
+    .withMessage("Trường sắp xếp không hợp lệ"),
+
+  query("sortOrder")
+    .optional()
+    .isIn(["asc", "desc"])
+    .withMessage("Thứ tự sắp xếp phải là asc hoặc desc"),
+
+  handleValidationErrors,
+];
+
 // ==================== ASSIGN DEPARTMENT VALIDATION ====================
 
 export const validateAssignDepartment = [

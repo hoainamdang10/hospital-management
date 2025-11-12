@@ -12,6 +12,7 @@ import {
   DIContainer,
   ServiceLifetime,
 } from "@shared/infrastructure/di/container";
+import { createClient } from "@supabase/supabase-js";
 
 // Application Layer
 import { RegisterStaffUseCase } from "../../application/use-cases/RegisterStaffUseCase";
@@ -255,7 +256,6 @@ export function setupDependencies(): DIContainer {
       const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
       const logger = container.resolve(ServiceTokens.LOGGER);
       
-      const { createClient } = require('@supabase/supabase-js');
       const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
       return new StaffReadModelRepository(supabaseClient, logger);

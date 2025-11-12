@@ -294,7 +294,29 @@ class ApiGatewayApplication {
         requiresAuth: false,
       }),
 
+      // Identity Service - User Management
+      ServiceRoute.create({
+        serviceName: "identity-service",
+        baseUrl:
+          process.env.IDENTITY_SERVICE_URL || "http://identity-service:3001",
+        pathPrefix: "/api/v1/users",
+        requiresAuth: true,
+        requiredPermissions: ["user:read"],
+      }),
+
+      // Identity Service - Permission Management
+      ServiceRoute.create({
+        serviceName: "identity-service",
+        baseUrl:
+          process.env.IDENTITY_SERVICE_URL || "http://identity-service:3001",
+        pathPrefix: "/api/v1/permissions",
+        requiresAuth: true,
+        requiredPermissions: ["permission:read"],
+      }),
+
       // Patient Registry Service - Patient Management (internal port 3003, external 3023)
+      // Authorization handled by patient-registry-service (ownership-based)
+      // Patients can access their own data, Admin/Doctor need patient:read permission
       ServiceRoute.create({
         serviceName: "patient-registry-service",
         baseUrl:
@@ -302,7 +324,7 @@ class ApiGatewayApplication {
           "http://patient-registry-service:3003",
         pathPrefix: "/api/v1/patients",
         requiresAuth: true,
-        requiredPermissions: ["patient:read"],
+        // No requiredPermissions - authorization handled by downstream service
       }),
 
       // Provider/Staff Service - Doctor/Staff Management (internal port 3002, external 3022)

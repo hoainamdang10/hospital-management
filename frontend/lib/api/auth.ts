@@ -1,9 +1,20 @@
+/**
+ * @deprecated THIS FILE IS DEPRECATED!
+ * 
+ * DO NOT USE - Use auth.service.ts instead
+ * 
+ * This file uses localStorage-based authentication which has been replaced
+ * with session-based authentication using HTTP-only cookies.
+ * 
+ * Migration path: Use auth.service.ts from './auth.service'
+ */
+
 import apiClient from './client';
 import { STORAGE_KEYS } from '@/lib/constants';
 import type { User, AuthTokens, LoginCredentials, RegisterData } from '@/types';
 
 /**
- * Authentication API Service
+ * @deprecated Authentication API Service - USE auth.service.ts INSTEAD
  */
 
 export const authApi = {

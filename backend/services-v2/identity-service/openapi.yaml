@@ -13,15 +13,26 @@ servers:
     description: Development server
 
 tags:
+  - name: Health Check
+    description: Service health, monitoring, and metrics
   - name: Authentication
+    description: Login, registration, and session management
   - name: User Management
+    description: User CRUD operations and profile management
   - name: MFA
+    description: Multi-factor authentication
   - name: Session Management
+    description: Active session tracking and termination
   - name: Password Policy
+    description: Password validation and policy management
   - name: Account Recovery
+    description: Password reset and recovery methods
   - name: Permission Check
+    description: Role and permission validation
   - name: Staff Management
+    description: Staff invitation and provisioning
   - name: Admin Operations
+    description: Administrative and maintenance operations
 
 security:
   - BearerAuth: []
@@ -36,6 +47,90 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  overall:
+                    type: string
+                    enum: [HEALTHY, DEGRADED, UNHEALTHY]
+                  services:
+                    type: object
+                  timestamp:
+                    type: string
+                    format: date-time
+        '503':
+          description: Service Unavailable
+
+  /info:
+    get:
+      tags: [Health Check]
+      summary: Service information
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                  version:
+                    type: string
+                  environment:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  mode:
+                    type: string
+
+  /circuit-breakers:
+    get:
+      tags: [Health Check]
+      summary: Circuit breaker status
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  breakers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        state:
+                          type: string
+                          enum: [CLOSED, OPEN, HALF_OPEN]
+                        failureCount:
+                          type: number
+                        lastFailureTime:
+                          type: string
+                          format: date-time
+
+  /metrics:
+    get:
+      tags: [Health Check]
+      summary: Prometheus metrics
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
 
   # Authentication
   /auth/register:
@@ -108,6 +203,98 @@ paths:
       responses:
         '200':
           description: OK
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user from session
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      userId:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                        format: email
+                      username:
+                        type: string
+                      fullName:
+                        type: string
+                      role:
+                        type: string
+                      roles:
+                        type: array
+                        items:
+                          type: string
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+                      isActive:
+                        type: boolean
+                      isEmailVerified:
+                        type: boolean
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+
+  /auth/validate-invitation:
+    get:
+      tags: [Authentication]
+      summary: Validate staff invitation token
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Staff invitation token
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  isValid:
+                    type: boolean
+                  invitationData:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                      fullName:
+                        type: string
+                      role:
+                        type: string
+                      expiresAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Bad Request
 
   /auth/forgot-password:
     post:
@@ -238,7 +425,7 @@ paths:
           description: OK
     patch:
       tags: [User Management]
-      summary: Update user
+      summary: Update user (partial)
       parameters:
         - name: userId
           in: path
@@ -257,6 +444,33 @@ paths:
       responses:
         '200':
           description: OK
+    put:
+      tags: [User Management]
+      summary: Update user (complete replacement)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullName, email]
+              properties:
+                fullName: {type: string}
+                email: {type: string, format: email}
+                phoneNumber: {type: string}
+                address: {type: string}
+                dateOfBirth: {type: string, format: date}
+                gender: {type: string, enum: [male, female, other]}
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request - Missing required fields for complete replacement
     delete:
       tags: [User Management]
       summary: Delete user (admin only)

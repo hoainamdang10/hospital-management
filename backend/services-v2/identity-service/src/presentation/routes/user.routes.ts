@@ -260,6 +260,48 @@ export function createUserRoutes(deps: RouteDependencies): Router {
     }
   );
 
+  // PUT endpoint for complete user replacement (PROTECTED - admin or self only)
+  // Note: PATCH is preferred for partial updates, PUT for complete replacement
+  router.put('/:userId',
+    deps.authMiddleware.authenticate(),
+    deps.permissionMiddleware.requirePermission({
+      permissions: ['users:update', '*'],
+      checkOwnership: true,
+      getResourceOwnerId: (req: AuthenticatedRequest) => req.params.userId
+    }),
+    async (req: AuthenticatedRequest, res): Promise<void> => {
+      try {
+        // For PUT, validate that all required fields are present
+        const requiredFields = ['fullName', 'email'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+        
+        if (missingFields.length > 0) {
+          res.status(400).json({
+            success: false,
+            error: `Missing required fields for complete replacement: ${missingFields.join(', ')}`
+          });
+          return;
+        }
+
+        const result = await deps.updateUserUseCase.execute({
+          userId: req.params.userId,
+          requesterId: req.user!.userId,
+          updates: req.body,
+          isCompleteReplace: true // Flag to indicate complete replacement
+        });
+
+        const statusCode = result.success ? 200 : 400;
+        res.status(statusCode).json(result);
+      } catch (error) {
+        logger.error('PUT update user error', { error: getErrorMessage(error) });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to replace user'
+        });
+      }
+    }
+  );
+
   return router;
 }
 

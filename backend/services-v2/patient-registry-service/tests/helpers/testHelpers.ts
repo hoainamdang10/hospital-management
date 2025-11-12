@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Test Helpers and Utilities
  * 
  * Shared helper functions for integration tests
@@ -108,7 +108,7 @@ export function createValidPatientData(overrides: any = {}) {
   return {
     userId: overrides.userId || `user-${Math.random().toString(36).substring(7)}`,
     // Personal Info (flat structure for API)
-    fullName: overrides.fullName || 'Nguyễn Văn Test',
+    fullName: overrides.fullName || 'Test Patient',
     dateOfBirth: overrides.dateOfBirth || '1990-01-01',
     gender: overrides.gender || 'male',
     nationalId: overrides.nationalId || generateRandomNationalId(),

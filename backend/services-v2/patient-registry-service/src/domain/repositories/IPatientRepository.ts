@@ -36,6 +36,10 @@ export interface IPatientRepository {
     fullName: string;
     phoneNumber?: string;
     address?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+    province?: string;
     dateOfBirth?: Date;
     gender?: 'male' | 'female' | 'other';
     citizenId?: string;
@@ -180,7 +184,7 @@ export interface IPatientRepository {
       userId: string;
       userRole?: string;
       timestamp: Date;
-      changes?: Record<string, any>;
+      changes?: Record<string, unknown>;
       accessedFields?: string[];
       ipAddress?: string;
       userAgent?: string;

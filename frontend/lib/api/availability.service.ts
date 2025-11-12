@@ -1,9 +1,12 @@
 /**
  * Availability Service
  * API service for fetching doctor availability and time slots
+ * 
+ * MIGRATED TO SESSION-BASED AUTH
+ * Uses axios.ts with HTTP-only cookies for authentication
  */
 
-import apiClient from './client';
+import apiClient from './axios';
 
 export interface TimeSlot {
   startTime: string;
@@ -71,7 +74,7 @@ export async function getProviderSchedule(
 /**
  * Generate time slots for display (mock data fallback)
  */
-export function generateMockTimeSlots(date: string): TimeSlot[] {
+export function generateMockTimeSlots(_date: string): TimeSlot[] {
   const slots: TimeSlot[] = [];
   const morningSlots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'];
   const afternoonSlots = ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];

@@ -1,0 +1,668 @@
+openapi: 3.1.0
+info:
+  title: Clinical EMR Service API
+  description: RESTful API endpoints for Clinical EMR Service - Enhanced with Patient Summary, Search, Metrics, and Export functionality
+  version: 2.0.0
+  contact:
+    name: Hospital Management System
+    email: support@hospital-management.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3002
+    description: Development server
+  - url: https://api.hospital-management.com/v2/clinical-emr
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Patient Summary
+    description: Patient clinical summary operations
+  - name: Medical Record History
+    description: Medical record change history tracking
+  - name: Search
+    description: Global search across clinical data
+  - name: Metrics
+    description: Service metrics and statistics
+  - name: Export
+    description: Data export functionality
+
+paths:
+  /patients/{patientId}/summary:
+    get:
+      tags:
+        - Patient Summary
+      summary: Get comprehensive patient clinical summary
+      description: Retrieve a complete overview of patient's clinical data including medical records, notes, lab results, prescriptions, imaging studies, and treatment plans
+      operationId: getPatientSummary
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            example: "PAT-202501-001"
+      responses:
+        '200':
+          description: Patient summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSummaryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/history:
+    get:
+      tags:
+        - Medical Record History
+      summary: Get medical record change history
+      description: Retrieve complete audit trail and version history for a specific medical record
+      operationId: getMedicalRecordHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          description: Unique medical record identifier
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Medical record history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordHistoryResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Search across clinical data
+      description: Global search functionality across medical records, clinical notes, lab results, and prescriptions
+      operationId: searchClinicalData
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search term (minimum 2 characters)
+          schema:
+            type: string
+            minLength: 2
+            example: "diabetes"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+            example: 25
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Get service metrics and statistics
+      description: Retrieve real-time service metrics including patient counts, record statistics, and system health indicators
+      operationId: getServiceMetrics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Service metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceMetricsResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /patients/{patientId}/export:
+    get:
+      tags:
+        - Export
+      summary: Export complete patient clinical data
+      description: Export all clinical data for a specific patient in JSON format for backup or analysis
+      operationId: exportPatientData
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            example: "PAT-202501-001"
+        - name: format
+          in: query
+          required: false
+          description: Export format
+          schema:
+            type: string
+            enum: [json, xml]
+            default: json
+            example: json
+      responses:
+        '200':
+          description: Patient data exported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+              headers:
+                Content-Disposition:
+                  description: File download information
+                  schema:
+                    type: string
+                    example: "attachment; filename=\"patient-PAT-202501-001-export-2025-01-12.json\""
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication service
+
+  schemas:
+    PatientSummary:
+      type: object
+      description: Comprehensive patient clinical summary
+      properties:
+        patientId:
+          type: string
+          description: Patient unique identifier
+          example: "PAT-202501-001"
+        primaryMedicalRecordId:
+          type: string
+          format: uuid
+          description: Primary medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        diagnosis:
+          type: object
+          description: Primary diagnosis information
+          example:
+            code: "E11"
+            description: "Type 2 diabetes mellitus"
+            severity: "moderate"
+        firstVisitDate:
+          type: string
+          format: date-time
+          description: Date of first visit
+          example: "2025-01-10T09:30:00Z"
+        totalNotes:
+          type: integer
+          description: Total number of clinical notes
+          example: 5
+        totalLabResults:
+          type: integer
+          description: Total number of lab results
+          example: 12
+        activePrescriptions:
+          type: integer
+          description: Number of active prescriptions
+          example: 3
+        totalImagingStudies:
+          type: integer
+          description: Total number of imaging studies
+          example: 2
+        activeTreatmentPlans:
+          type: integer
+          description: Number of active treatment plans
+          example: 1
+        latestNoteDate:
+          type: string
+          format: date-time
+          description: Date of latest clinical note
+          example: "2025-01-12T14:15:00Z"
+        latestLabDate:
+          type: string
+          format: date-time
+          description: Date of latest lab result
+          example: "2025-01-11T10:30:00Z"
+        latestPrescriptionDate:
+          type: string
+          format: date-time
+          description: Date of latest prescription
+          example: "2025-01-10T16:45:00Z"
+        fullName:
+          type: string
+          description: Patient full name
+          example: "Nguyen Van A"
+        dateOfBirth:
+          type: string
+          format: date
+          description: Patient date of birth
+          example: "1980-05-15"
+        gender:
+          type: string
+          description: Patient gender
+          example: "male"
+        phone:
+          type: string
+          description: Patient phone number
+          example: "+84-901-234-567"
+        email:
+          type: string
+          format: email
+          description: Patient email address
+          example: "nguyenvana@email.com"
+
+    MedicalRecordHistory:
+      type: object
+      description: Medical record change history entry
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          description: Unique history entry identifier
+          example: "456e7890-e89b-12d3-a456-426614174111"
+        action:
+          type: string
+          description: Action performed on the record
+          example: "UPDATE"
+        actorId:
+          type: string
+          format: uuid
+          description: ID of user who performed the action
+          example: "789e0123-e89b-12d3-a456-426614174222"
+        metadata:
+          type: object
+          description: Additional metadata about the change
+          example:
+            field: "diagnosis"
+            oldValue: "Hypertension"
+            newValue: "Type 2 diabetes mellitus"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of the change
+          example: "2025-01-12T10:30:00Z"
+        historyType:
+          type: string
+          enum: [audit_log, version]
+          description: Type of history entry
+          example: "audit_log"
+
+    SearchResult:
+      type: object
+      description: Clinical data search result
+      properties:
+        resultType:
+          type: string
+          enum: [medical_record, clinical_note, lab_result, prescription]
+          description: Type of search result
+          example: "clinical_note"
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the result item
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        patientId:
+          type: string
+          description: Patient ID associated with the result
+          example: "PAT-202501-001"
+        title:
+          type: string
+          description: Title or description of the result
+          example: "Progress Note - Diabetes Management"
+        content:
+          type: object
+          description: Content of the search result
+          example:
+            text: "Patient presents with elevated blood sugar levels..."
+            type: "progress_note"
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2025-01-12T14:15:00Z"
+        relevanceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Search relevance score (0-1)
+          example: 0.95
+
+    ServiceMetrics:
+      type: object
+      description: Service metrics and statistics
+      properties:
+        totalPatients:
+          type: integer
+          description: Total number of unique patients
+          example: 1250
+        totalMedicalRecords:
+          type: integer
+          description: Total number of medical records
+          example: 3420
+        recordsLast30Days:
+          type: integer
+          description: Number of records created in last 30 days
+          example: 156
+        recordsLast7Days:
+          type: integer
+          description: Number of records created in last 7 days
+          example: 42
+        totalClinicalNotes:
+          type: integer
+          description: Total number of clinical notes
+          example: 8930
+        notesLast30Days:
+          type: integer
+          description: Number of notes created in last 30 days
+          example: 312
+        totalLabResults:
+          type: integer
+          description: Total number of lab results
+          example: 15670
+        labsLast30Days:
+          type: integer
+          description: Number of lab results in last 30 days
+          example: 892
+        pendingLabResults:
+          type: integer
+          description: Number of pending lab results
+          example: 23
+        totalPrescriptions:
+          type: integer
+          description: Total number of prescriptions
+          example: 5430
+        activePrescriptions:
+          type: integer
+          description: Number of active prescriptions
+          example: 1234
+        prescriptionsLast30Days:
+          type: integer
+          description: Number of prescriptions in last 30 days
+          example: 456
+        totalImagingStudies:
+          type: integer
+          description: Total number of imaging studies
+          example: 2340
+        imagingLast30Days:
+          type: integer
+          description: Number of imaging studies in last 30 days
+          example: 78
+        totalTreatmentPlans:
+          type: integer
+          description: Total number of treatment plans
+          example: 1890
+        activeTreatmentPlans:
+          type: integer
+          description: Number of active treatment plans
+          example: 567
+        totalAuditLogs:
+          type: integer
+          description: Total number of audit log entries
+          example: 45670
+        auditLogsLast24h:
+          type: integer
+          description: Number of audit logs in last 24 hours
+          example: 234
+        totalIntegrationEvents:
+          type: integer
+          description: Total number of integration events
+          example: 12340
+        failedIntegrationEvents:
+          type: integer
+          description: Number of failed integration events
+          example: 5
+        lastMedicalRecordUpdate:
+          type: string
+          format: date-time
+          description: Timestamp of last medical record update
+          example: "2025-01-12T15:30:00Z"
+        lastClinicalNoteUpdate:
+          type: string
+          format: date-time
+          description: Timestamp of last clinical note update
+          example: "2025-01-12T14:45:00Z"
+        lastAuditLogUpdate:
+          type: string
+          format: date-time
+          description: Timestamp of last audit log update
+          example: "2025-01-12T15:32:00Z"
+        calculatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when metrics were calculated
+          example: "2025-01-12T15:35:00Z"
+
+    ExportData:
+      type: object
+      description: Complete patient clinical data export
+      properties:
+        patientInfo:
+          type: object
+          description: Basic patient information
+          example:
+            patientId: "PAT-202501-001"
+            primaryRecordId: "123e4567-e89b-12d3-a456-426614174000"
+            diagnosis:
+              code: "E11"
+              description: "Type 2 diabetes mellitus"
+        patientSnapshot:
+          type: object
+          description: Patient demographic information
+          example:
+            fullName: "Nguyen Van A"
+            dateOfBirth: "1980-05-15"
+            gender: "male"
+        clinicalNotes:
+          type: array
+          items:
+            type: object
+          description: Array of clinical notes
+        labResults:
+          type: array
+          items:
+            type: object
+          description: Array of lab results
+        prescriptions:
+          type: array
+          items:
+            type: object
+          description: Array of prescriptions
+        imagingStudies:
+          type: array
+          items:
+            type: object
+          description: Array of imaging studies
+        treatmentPlans:
+          type: array
+          items:
+            type: object
+          description: Array of treatment plans
+        exportedAt:
+          type: string
+          format: date-time
+          description: Export timestamp
+          example: "2025-01-12T15:40:00Z"
+
+    # Response Schemas
+    PatientSummaryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/PatientSummary'
+
+    MedicalRecordHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MedicalRecordHistory'
+
+    SearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+
+    ServiceMetricsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ServiceMetrics'
+
+    ExportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ExportData'
+
+    # Error Response Schemas
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: "Patient not found or no clinical data available"
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Search term must be at least 2 characters long"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Patient not found or no clinical data available"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Internal server error"
+
+# Example usage and documentation
+x-examples:
+  patientSummary:
+    summary: "Get patient summary example"
+    description: "Example of retrieving a comprehensive patient clinical summary"
+    value:
+      patientId: "PAT-202501-001"
+    responses:
+      '200':
+        description: "Patient summary retrieved successfully"
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                patientId: "PAT-202501-001"
+                primaryMedicalRecordId: "123e4567-e89b-12d3-a456-426614174000"
+                diagnosis:
+                  code: "E11"
+                  description: "Type 2 diabetes mellitus"
+                  severity: "moderate"
+                firstVisitDate: "2025-01-10T09:30:00Z"
+                totalNotes: 5
+                totalLabResults: 12
+                activePrescriptions: 3
+                totalImagingStudies: 2
+                activeTreatmentPlans: 1
+                fullName: "Nguyen Van A"
+                dateOfBirth: "1980-05-15"
+                gender: "male"
+                phone: "+84-901-234-567"
+                email: "nguyenvana@email.com"
+
+  searchExample:
+    summary: "Search clinical data example"
+    description: "Example of searching across clinical data"
+    value:
+      q: "diabetes"
+      limit: 25
+    responses:
+      '200':
+        description: "Search results retrieved successfully"
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                - resultType: "clinical_note"
+                  id: "123e4567-e89b-12d3-a456-426614174000"
+                  patientId: "PAT-202501-001"
+                  title: "Progress Note - Diabetes Management"
+                  content:
+                    text: "Patient presents with elevated blood sugar levels..."
+                    type: "progress_note"
+                  createdAt: "2025-01-12T14:15:00Z"
+                  relevanceScore: 0.95

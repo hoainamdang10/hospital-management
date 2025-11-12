@@ -19,6 +19,7 @@ import {
   validateUserId,
   validateLicenseNumber,
   validateSearchStaff,
+  validateGetStaffList,
   validateAssignDepartment,
   validateAddCredential,
   validateRemoveCredential,
@@ -84,6 +85,20 @@ export function createStaffRoutes(controller: StaffController): Router {
     adminOnly,
     validateRegisterStaff,
     asyncHandler(controller.registerStaff.bind(controller))
+  );
+
+  // ==================== LIST STAFF ROUTES ====================
+
+  /**
+   * Get all staff with pagination and filters
+   * GET /api/v1/staff?staffType=...&departmentId=...&status=...&page=1&limit=20
+   */
+  router.get(
+    '/',
+    RateLimitMiddleware.search,
+    requireAuth,
+    validateGetStaffList,
+    asyncHandler(controller.getAllStaff.bind(controller))
   );
 
   // ==================== SEARCH ROUTES ====================
@@ -374,7 +389,12 @@ export function createStaffRoutes(controller: StaffController): Router {
  *    - Body: RegisterStaffRequestDto
  *    - Response: StaffResponseDto
  *
- * 2. GET /search?searchTerm=...
+ * 2. GET /
+ *    - Get all staff with pagination and filters
+ *    - Query: staffType, departmentId, status, isActive, page, limit, sortBy, sortOrder
+ *    - Response: PaginatedResponse<StaffResponseDto>
+ *
+ * 3. GET /search?searchTerm=...
  *    - Search staff
  *    - Query: searchTerm, staffType, departmentId, specialization, status, isActive, page, limit
  *    - Response: PaginatedResponse<StaffResponseDto>

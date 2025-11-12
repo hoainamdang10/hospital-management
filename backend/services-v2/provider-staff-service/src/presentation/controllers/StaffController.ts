@@ -29,6 +29,7 @@ import { AddStaffSpecializationUseCase } from "../../application/use-cases/AddSt
 import { RemoveStaffSpecializationUseCase } from "../../application/use-cases/RemoveStaffSpecializationUseCase";
 import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
+import { GetStaffListQuery } from "../../application/handlers/StaffQueryHandlers";
 import {
   ResponseHelper,
   DomainError,
@@ -218,6 +219,120 @@ export class StaffController {
     } catch (error) {
       this.logger.error("Error getting staff by license number", {
         licenseNumber: req.params.licenseNumber,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get all staff with pagination and filters
+   * GET /api/v1/staff?staffType=...&departmentId=...&status=...&page=1&limit=20
+   */
+  async getAllStaff(req: Request, res: Response): Promise<void> {
+    try {
+      const queryParams = req.query as Record<string, string | undefined>;
+      const toStaffType = (value?: string): StaffType | undefined => {
+        if (!value) {
+          return undefined;
+        }
+        const normalized = value.toLowerCase() as StaffType;
+        const allowed: StaffType[] = [
+          "doctor",
+          "nurse",
+          "technician",
+          "pharmacist",
+          "therapist",
+          "admin",
+          "receptionist",
+        ];
+        return allowed.includes(normalized) ? normalized : undefined;
+      };
+      const toStaffStatus = (value?: string): StaffStatus | undefined => {
+        if (!value) {
+          return undefined;
+        }
+        const normalized = value.toLowerCase();
+        if (normalized === "on-leave") {
+          return "on_leave";
+        }
+        const allowed: StaffStatus[] = [
+          "active",
+          "inactive",
+          "suspended",
+          "on_leave",
+          "terminated",
+        ];
+        return allowed.includes(normalized as StaffStatus)
+          ? (normalized as StaffStatus)
+          : undefined;
+      };
+      const parseBoolean = (value?: string): boolean | undefined => {
+        if (value === undefined) {
+          return undefined;
+        }
+        if (value === "true") {
+          return true;
+        }
+        if (value === "false") {
+          return false;
+        }
+        return undefined;
+      };
+      const safePage = Number.parseInt(queryParams.page || "1", 10);
+      const safeLimit = Number.parseInt(queryParams.limit || "20", 10);
+      const pageNumber = Number.isNaN(safePage) || safePage < 1 ? 1 : safePage;
+      const limitNumber = Number.isNaN(safeLimit) || safeLimit < 1 ? 20 : safeLimit;
+      // Sorting not implemented for list endpoint yet
+      // const sortField = queryParams.sortBy || undefined;
+      // const sortDirection = queryParams.sortOrder || undefined;
+      // const resolvedSortDirection: "asc" | "desc" =
+      //   sortDirection === "desc" ? "desc" : "asc";
+
+      const requestedBy = getUserId(req);
+      const requestedByRole = getUserRole(req);
+
+      this.logger.info("Getting all staff", {
+        page: pageNumber,
+        limit: limitNumber,
+      });
+
+      const query: GetStaffListQuery = {
+        queryId: `query_${Date.now()}`,
+        queryType: "GetStaffList",
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          filters: {
+            staffType: toStaffType(queryParams.staffType),
+            departmentId: queryParams.departmentId,
+            status: toStaffStatus(queryParams.status),
+            isActive: parseBoolean(queryParams.isActive),
+          },
+          pagination: {
+            page: pageNumber,
+            limit: limitNumber,
+          },
+          requestedBy,
+          requestedByRole,
+        },
+      };
+
+      const result = await this.staffQueryHandlers.handleGetStaffList(query);
+
+      if (!result.success) {
+        throw new DomainError(result.message);
+      }
+
+      ResponseHelper.paginated(
+        res,
+        result.data.staff,
+        result.data.pagination.page,
+        result.data.pagination.limit,
+        result.data.pagination.total,
+      );
+    } catch (error) {
+      this.logger.error("Error getting all staff", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;

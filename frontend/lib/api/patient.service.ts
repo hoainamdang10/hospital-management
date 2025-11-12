@@ -1,12 +1,12 @@
 /**
  * Patient API Service
  * Handles all patient-related API calls
+ * 
+ * MIGRATED TO SESSION-BASED AUTH
+ * Uses axios.ts with HTTP-only cookies for authentication
  */
 
-import { API_CONFIG } from '@/lib/constants';
-import apiClient from './client';
-
-const BASE_URL = `${API_CONFIG.BASE_URL}/v1/patients`;
+import apiClient from './axios';
 
 export interface EmergencyContact {
   contactId?: string;
@@ -62,44 +62,35 @@ export interface Patient {
 }
 
 class PatientService {
-  private async request(
+  private readonly baseUrl = '/v1/patients';
+
+  /**
+   * Make API request using axios (session-based auth with HTTP-only cookies)
+   */
+  private async request<T = any>(
     endpoint: string,
-    options: RequestInit = {}
-  ): Promise<any> {
-    const token = localStorage.getItem('accessToken');
-    
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+    data?: any
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await apiClient.request<{ success: boolean; data: T }>({
+      url,
+      method,
+      data,
     });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Network error' }));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
+    return response.data.data;
   }
 
   // Emergency Contacts
   async getEmergencyContacts(patientId: string): Promise<{ contacts: EmergencyContact[] }> {
-    const result = await this.request(`/${patientId}/emergency-contacts`);
-    return result.data;
+    return await this.request(`/${patientId}/emergency-contacts`);
   }
 
   async addEmergencyContact(
     patientId: string,
     contact: Omit<EmergencyContact, 'contactId'>
   ): Promise<{ contactId: string }> {
-    const result = await this.request(`/${patientId}/emergency-contacts`, {
-      method: 'POST',
-      body: JSON.stringify(contact),
-    });
-    return result.data;
+    return await this.request(`/${patientId}/emergency-contacts`, 'POST', contact);
   }
 
   async updateEmergencyContact(
@@ -107,55 +98,39 @@ class PatientService {
     contactId: string,
     contact: Partial<EmergencyContact>
   ): Promise<void> {
-    await this.request(`/${patientId}/emergency-contacts/${contactId}`, {
-      method: 'PUT',
-      body: JSON.stringify(contact),
-    });
+    await this.request(`/${patientId}/emergency-contacts/${contactId}`, 'PUT', contact);
   }
 
   async deleteEmergencyContact(patientId: string, contactId: string): Promise<void> {
-    await this.request(`/${patientId}/emergency-contacts/${contactId}`, {
-      method: 'DELETE',
-    });
+    await this.request(`/${patientId}/emergency-contacts/${contactId}`, 'DELETE');
   }
 
   async setPrimaryContact(patientId: string, contactId: string): Promise<void> {
-    await this.request(`/${patientId}/emergency-contacts/${contactId}/set-primary`, {
-      method: 'PUT',
-    });
+    await this.request(`/${patientId}/emergency-contacts/${contactId}/set-primary`, 'PUT');
   }
 
   // Insurance
   async getInsurance(patientId: string): Promise<{ insuranceInfo: Insurance }> {
-    const result = await this.request(`/${patientId}/insurance`);
-    return result.data;
+    return await this.request(`/${patientId}/insurance`);
   }
 
   async updateInsurance(patientId: string, insurance: Insurance): Promise<void> {
-    await this.request(`/${patientId}/insurance`, {
-      method: 'PUT',
-      body: JSON.stringify(insurance),
-    });
+    await this.request(`/${patientId}/insurance`, 'PUT', insurance);
   }
 
   async verifyInsurance(
     patientId: string
   ): Promise<{ isValid: boolean; message: string; expiresAt?: string }> {
-    const result = await this.request(`/${patientId}/insurance/verify`, {
-      method: 'POST',
-    });
-    return result.data;
+    return await this.request(`/${patientId}/insurance/verify`, 'POST');
   }
 
   // Consents
   async getConsents(patientId: string): Promise<{ consents: Consent[] }> {
-    const result = await this.request(`/${patientId}/consents`);
-    return result.data;
+    return await this.request(`/${patientId}/consents`);
   }
 
   async getActiveConsents(patientId: string): Promise<{ consents: Consent[] }> {
-    const result = await this.request(`/${patientId}/consents/active`);
-    return result.data;
+    return await this.request(`/${patientId}/consents/active`);
   }
 
   async grantConsent(
@@ -163,11 +138,7 @@ class PatientService {
     consentType: Consent['consentType'],
     expiresAt?: string
   ): Promise<{ consentId: string }> {
-    const result = await this.request(`/${patientId}/consents`, {
-      method: 'POST',
-      body: JSON.stringify({ consentType, expiresAt }),
-    });
-    return result.data;
+    return await this.request(`/${patientId}/consents`, 'POST', { consentType, expiresAt });
   }
 
   async revokeConsent(
@@ -175,34 +146,26 @@ class PatientService {
     consentId: string,
     reason: string
   ): Promise<void> {
-    await this.request(`/${patientId}/consents/${consentId}/revoke`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    });
+    await this.request(`/${patientId}/consents/${consentId}/revoke`, 'POST', { reason });
   }
 
   // Communication Preferences
   async getCommunicationPreferences(
     patientId: string
   ): Promise<{ preferences: CommunicationPreferences }> {
-    const result = await this.request(`/${patientId}/communication`);
-    return result.data;
+    return await this.request(`/${patientId}/communication`);
   }
 
   async updateCommunicationPreferences(
     patientId: string,
     preferences: CommunicationPreferences
   ): Promise<void> {
-    await this.request(`/${patientId}/communication`, {
-      method: 'PUT',
-      body: JSON.stringify(preferences),
-    });
+    await this.request(`/${patientId}/communication`, 'PUT', preferences);
   }
 
   // Patient Profile
   async getPatientProfile(patientId: string): Promise<any> {
-    const result = await this.request(`/${patientId}`);
-    return result.data;
+    return await this.request(`/${patientId}`);
   }
 }
 
@@ -210,8 +173,10 @@ class PatientService {
  * Get patient by ID
  */
 export async function getPatientById(patientId: string): Promise<Patient> {
-  const response = await fetch(`${BASE_URL}/${patientId}`);
-  return response.json();
+  const response = await apiClient.get<{ success: boolean; data: Patient }>(
+    `/v1/patients/${patientId}`
+  );
+  return response.data.data;
 }
 
 /**

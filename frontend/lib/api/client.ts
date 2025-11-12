@@ -1,8 +1,25 @@
+/**
+ * @deprecated THIS FILE IS DEPRECATED!
+ * 
+ * DO NOT USE FOR NEW CODE - Use axios.ts instead
+ * 
+ * This file uses localStorage-based authentication which has been replaced
+ * with session-based authentication using HTTP-only cookies.
+ * 
+ * Migration completed:
+ * - ✅ patient.service.ts → uses axios.ts
+ * - ✅ availability.service.ts → uses axios.ts
+ * - ✅ notifications.service.ts → uses axios.ts
+ * - ✅ All new services → use axios.ts
+ * 
+ * This file is kept for backward compatibility only and will be removed in the future.
+ */
+
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_CONFIG, STORAGE_KEYS, ERROR_MESSAGES } from '@/lib/constants';
 
 /**
- * Axios instance for API calls
+ * @deprecated Axios instance for API calls - USE axios.ts INSTEAD
  */
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,

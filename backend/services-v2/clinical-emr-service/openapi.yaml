@@ -1,0 +1,2543 @@
+openapi: 3.1.0
+info:
+  title: Clinical EMR Service API
+  description: |
+    Clinical EMR (Electronic Medical Record) Service for Hospital Management System
+    
+    This service provides comprehensive clinical data management including:
+    - Medical records and clinical documentation
+    - Laboratory results and imaging studies  
+    - Prescriptions and treatment plans
+    - Patient summaries and clinical history
+    - Advanced search and analytics capabilities
+    - Data export and audit trails
+    
+    **Architecture Features:**
+    - Clean Architecture with Domain-Driven Design
+    - Event-driven communication with Outbox Pattern
+    - PostgreSQL database with optimized indexes
+    - Real-time metrics and statistics
+    - Comprehensive audit logging
+  version: 2.0.0
+  contact:
+    name: Hospital Management System
+    email: support@hospital-management.com
+    url: https://hospital-management.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3002
+    description: Development server
+  - url: https://api.hospital-management.com/v2/clinical-emr
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Medical Records
+    description: Core medical record management
+  - name: Clinical Notes
+    description: Clinical documentation and notes
+  - name: Lab Results
+    description: Laboratory test results management
+  - name: Imaging Studies
+    description: Medical imaging and radiology
+  - name: Prescriptions
+    description: Medication prescriptions
+  - name: Treatment Plans
+    description: Treatment planning and management
+  - name: Audit Logs
+    description: Audit trail and change tracking
+  - name: Patient Summary
+    description: Patient clinical overview and summaries
+  - name: Search
+    description: Global search across clinical data
+  - name: Metrics
+    description: Service analytics and statistics
+  - name: Export
+    description: Data export functionality
+
+paths:
+  # Medical Records
+  /medical-records:
+    get:
+      tags:
+        - Medical Records
+      summary: List medical records
+      description: Retrieve paginated list of medical records with filtering options
+      operationId: listMedicalRecords
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: patientId
+          in: query
+          schema:
+            type: string
+        - name: doctorId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Medical records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordsListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Medical Records
+      summary: Create medical record
+      description: Create a new medical record for a patient
+      operationId: createMedicalRecord
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMedicalRecordRequest'
+      responses:
+        '201':
+          description: Medical record created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}:
+    get:
+      tags:
+        - Medical Records
+      summary: Get medical record by ID
+      description: Retrieve detailed medical record information
+      operationId: getMedicalRecord
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Medical record retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Medical Records
+      summary: Update medical record
+      description: Update existing medical record information
+      operationId: updateMedicalRecord
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMedicalRecordRequest'
+      responses:
+        '200':
+          description: Medical record updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Clinical Notes (nested under medical records)
+  /medical-records/{recordId}/notes:
+    get:
+      tags:
+        - Clinical Notes
+      summary: List clinical notes for medical record
+      description: Retrieve all clinical notes associated with a medical record
+      operationId: listClinicalNotes
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: noteType
+          in: query
+          schema:
+            type: string
+            enum: [progress_note, soap_note, consultation, discharge_summary]
+      responses:
+        '200':
+          description: Clinical notes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNotesListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Clinical Notes
+      summary: Create clinical note
+      description: Add a new clinical note to a medical record
+      operationId: createClinicalNote
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClinicalNoteRequest'
+      responses:
+        '201':
+          description: Clinical note created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/notes/{noteId}:
+    delete:
+      tags:
+        - Clinical Notes
+      summary: Delete clinical note
+      description: Remove a clinical note from a medical record
+      operationId: deleteClinicalNote
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Clinical note deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Lab Results
+  /medical-records/{recordId}/lab-results:
+    get:
+      tags:
+        - Lab Results
+      summary: List lab results for medical record
+      description: Retrieve all laboratory results for a medical record
+      operationId: listLabResults
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, abnormal]
+      responses:
+        '200':
+          description: Lab results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabResultsListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Lab Results
+      summary: Create lab result
+      description: Add new laboratory results to a medical record
+      operationId: createLabResult
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLabResultRequest'
+      responses:
+        '201':
+          description: Lab result created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabResultResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/lab-results/{resultId}:
+    delete:
+      tags:
+        - Lab Results
+      summary: Delete lab result
+      description: Remove a laboratory result from a medical record
+      operationId: deleteLabResult
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: resultId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Lab result deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Imaging Studies
+  /medical-records/{recordId}/imaging-studies:
+    get:
+      tags:
+        - Imaging Studies
+      summary: List imaging studies for medical record
+      description: Retrieve all imaging studies for a medical record
+      operationId: listImagingStudies
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: modality
+          in: query
+          schema:
+            type: string
+            enum: [xray, ct, mri, ultrasound, other]
+      responses:
+        '200':
+          description: Imaging studies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImagingStudiesListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Imaging Studies
+      summary: Create imaging study
+      description: Add new imaging study to a medical record
+      operationId: createImagingStudy
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImagingStudyRequest'
+      responses:
+        '201':
+          description: Imaging study created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImagingStudyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/imaging-studies/{studyId}:
+    delete:
+      tags:
+        - Imaging Studies
+      summary: Delete imaging study
+      description: Remove an imaging study from a medical record
+      operationId: deleteImagingStudy
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: studyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Imaging study deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Prescriptions
+  /medical-records/{recordId}/prescriptions:
+    get:
+      tags:
+        - Prescriptions
+      summary: List prescriptions for medical record
+      description: Retrieve all prescriptions for a medical record
+      operationId: listPrescriptions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, completed, cancelled]
+      responses:
+        '200':
+          description: Prescriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionsListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Prescriptions
+      summary: Create prescription
+      description: Add new prescription to a medical record
+      operationId: createPrescription
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePrescriptionRequest'
+      responses:
+        '201':
+          description: Prescription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/prescriptions/{prescriptionId}:
+    delete:
+      tags:
+        - Prescriptions
+      summary: Delete prescription
+      description: Remove a prescription from a medical record
+      operationId: deletePrescription
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: prescriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Prescription deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Treatment Plans
+  /medical-records/{recordId}/treatment-plans:
+    get:
+      tags:
+        - Treatment Plans
+      summary: List treatment plans for medical record
+      description: Retrieve all treatment plans for a medical record
+      operationId: listTreatmentPlans
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, active, completed]
+      responses:
+        '200':
+          description: Treatment plans retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreatmentPlansListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Treatment Plans
+      summary: Create treatment plan
+      description: Add new treatment plan to a medical record
+      operationId: createTreatmentPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTreatmentPlanRequest'
+      responses:
+        '201':
+          description: Treatment plan created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreatmentPlanResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/treatment-plans/{planId}/status:
+    patch:
+      tags:
+        - Treatment Plans
+      summary: Update treatment plan status
+      description: Update the status of a treatment plan
+      operationId: updateTreatmentPlanStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTreatmentPlanStatusRequest'
+      responses:
+        '200':
+          description: Treatment plan status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreatmentPlanResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/treatment-plans/{planId}:
+    delete:
+      tags:
+        - Treatment Plans
+      summary: Delete treatment plan
+      description: Remove a treatment plan from a medical record
+      operationId: deleteTreatmentPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Treatment plan deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Audit Logs
+  /medical-records/{recordId}/audit-logs:
+    get:
+      tags:
+        - Audit Logs
+      summary: List audit logs for medical record
+      description: Retrieve audit trail for a medical record
+      operationId: listAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [CREATE, UPDATE, DELETE]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogsListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Audit Logs
+      summary: Create audit log entry
+      description: Add manual audit log entry (admin only)
+      operationId: createAuditLog
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuditLogRequest'
+      responses:
+        '201':
+          description: Audit log created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Enhanced Endpoints
+  /patients/{patientId}/summary:
+    get:
+      tags:
+        - Patient Summary
+      summary: Get comprehensive patient clinical summary
+      description: |
+        Retrieve a complete overview of patient's clinical data including:
+        - Medical records and diagnosis information
+        - Clinical notes and documentation
+        - Laboratory results and imaging studies
+        - Active prescriptions and treatment plans
+        - Patient demographic information
+        
+        **Use Cases:**
+        - Quick patient overview for clinical staff
+        - Pre-visit patient preparation
+        - Clinical decision support
+        - Quality reporting and analytics
+      operationId: getPatientSummary
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            pattern: '^PAT-[0-9]{4}-[0-9]{3}$'
+            example: "PAT-2025-001"
+      responses:
+        '200':
+          description: Patient summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSummaryResponse'
+              examples:
+                diabetesPatient:
+                  summary: "Patient with Type 2 Diabetes"
+                  value:
+                    success: true
+                    data:
+                      patientId: "PAT-2025-001"
+                      primaryMedicalRecordId: "123e4567-e89b-12d3-a456-426614174000"
+                      diagnosis:
+                        code: "E11"
+                        description: "Type 2 diabetes mellitus"
+                        severity: "moderate"
+                      firstVisitDate: "2025-01-10T09:30:00Z"
+                      totalNotes: 5
+                      totalLabResults: 12
+                      activePrescriptions: 3
+                      totalImagingStudies: 2
+                      activeTreatmentPlans: 1
+                      latestNoteDate: "2025-01-12T14:15:00Z"
+                      fullName: "Nguyen Van A"
+                      dateOfBirth: "1980-05-15"
+                      gender: "male"
+                      phone: "+84-901-234-567"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /medical-records/{recordId}/history:
+    get:
+      tags:
+        - Patient Summary
+      summary: Get medical record change history
+      description: |
+        Retrieve complete audit trail and version history for a specific medical record.
+        
+        **Features:**
+        - Complete audit trail with timestamps
+        - Version history for major changes
+        - Actor identification and change metadata
+        - Chronological ordering of events
+        
+        **Use Cases:**
+        - Compliance and regulatory requirements
+        - Clinical investigation and root cause analysis
+        - Data integrity verification
+        - Legal and medical record disputes
+      operationId: getMedicalRecordHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          description: Unique medical record identifier
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Medical record history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordHistoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Search across clinical data
+      description: |
+        Global search functionality across all clinical data types with relevance scoring.
+        
+        **Search Scope:**
+        - Medical records (diagnosis, chief complaint)
+        - Clinical notes (content, titles)
+        - Laboratory results (test names, abnormal findings)
+        - Prescriptions (medication names, indications)
+        
+        **Features:**
+        - Full-text search with fuzzy matching
+        - Relevance scoring for result ranking
+        - Configurable result limits
+        - Multi-type result aggregation
+        
+        **Use Cases:**
+        - Clinical research and cohort identification
+        - Quality improvement initiatives
+        - Patient safety monitoring
+        - Rapid clinical information retrieval
+      operationId: searchClinicalData
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search term (minimum 2 characters)
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+            example: "diabetes"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+            example: 25
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              examples:
+                diabetesSearch:
+                  summary: "Search results for 'diabetes'"
+                  value:
+                    success: true
+                    data:
+                      - resultType: "clinical_note"
+                        id: "123e4567-e89b-12d3-a456-426614174000"
+                        patientId: "PAT-2025-001"
+                        title: "Progress Note - Diabetes Management"
+                        content:
+                          text: "Patient presents with elevated blood sugar levels..."
+                          type: "progress_note"
+                        createdAt: "2025-01-12T14:15:00Z"
+                        relevanceScore: 0.95
+                      - resultType: "prescription"
+                        id: "456e7890-e89b-12d3-a456-426614174111"
+                        patientId: "PAT-2025-002"
+                        title: "Metformin"
+                        content:
+                          medication: "Metformin 500mg"
+                          dosage: "1 tablet twice daily"
+                        createdAt: "2025-01-11T10:30:00Z"
+                        relevanceScore: 0.87
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Get service metrics and statistics
+      description: |
+        Retrieve real-time service metrics and operational statistics.
+        
+        **Metrics Categories:**
+        - Patient and record counts
+        - Clinical activity statistics
+        - System performance indicators
+        - Data freshness and quality metrics
+        
+        **Features:**
+        - Real-time data aggregation
+        - Historical trend indicators
+        - Service health monitoring
+        - Performance benchmarking
+        
+        **Use Cases:**
+        - Operational dashboards and monitoring
+        - Executive reporting and KPI tracking
+        - Capacity planning and resource allocation
+        - Quality improvement measurement
+      operationId: getServiceMetrics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Service metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceMetricsResponse'
+              examples:
+                currentMetrics:
+                  summary: "Current service metrics"
+                  value:
+                    success: true
+                    data:
+                      totalPatients: 1250
+                      totalMedicalRecords: 3420
+                      recordsLast30Days: 156
+                      recordsLast7Days: 42
+                      totalClinicalNotes: 8930
+                      notesLast30Days: 312
+                      totalLabResults: 15670
+                      labsLast30Days: 892
+                      pendingLabResults: 23
+                      totalPrescriptions: 5430
+                      activePrescriptions: 1234
+                      prescriptionsLast30Days: 456
+                      totalImagingStudies: 2340
+                      imagingLast30Days: 78
+                      totalTreatmentPlans: 1890
+                      activeTreatmentPlans: 567
+                      totalAuditLogs: 45670
+                      auditLogsLast24h: 234
+                      totalIntegrationEvents: 12340
+                      failedIntegrationEvents: 5
+                      lastMedicalRecordUpdate: "2025-01-12T15:30:00Z"
+                      lastClinicalNoteUpdate: "2025-01-12T14:45:00Z"
+                      lastAuditLogUpdate: "2025-01-12T15:32:00Z"
+                      calculatedAt: "2025-01-12T15:35:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /patients/{patientId}/export:
+    get:
+      tags:
+        - Export
+      summary: Export complete patient clinical data
+      description: |
+        Export all clinical data for a specific patient in structured JSON format.
+        
+        **Export Contents:**
+        - Complete medical record history
+        - All clinical notes and documentation
+        - Laboratory results and imaging studies
+        - Prescriptions and treatment plans
+        - Patient demographic information
+        - Audit trail and change history
+        
+        **Features:**
+        - Comprehensive data aggregation
+        - Structured JSON format for analysis
+        - Data integrity validation
+        - Export metadata and timestamps
+        
+        **Use Cases:**
+        - Patient data portability and transfer
+        - Clinical research and analysis
+        - Backup and archival purposes
+        - Regulatory compliance reporting
+        - Second opinion consultations
+      operationId: exportPatientData
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          description: Unique patient identifier
+          schema:
+            type: string
+            pattern: '^PAT-[0-9]{4}-[0-9]{3}$'
+            example: "PAT-2025-001"
+        - name: format
+          in: query
+          required: false
+          description: Export format
+          schema:
+            type: string
+            enum: [json, xml]
+            default: json
+            example: json
+      responses:
+        '200':
+          description: Patient data exported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+              headers:
+                Content-Disposition:
+                  description: File download information
+                  schema:
+                    type: string
+                    example: "attachment; filename=\"patient-PAT-2025-001-export-2025-01-12.json\""
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from the authentication service.
+        
+        Include the token in the Authorization header:
+        ```
+        Authorization: Bearer <your-jwt-token>
+        ```
+
+  schemas:
+    # Core Entities
+    MedicalRecord:
+      type: object
+      description: Medical record entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique medical record identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        patientId:
+          type: string
+          description: Patient identifier
+          example: "PAT-2025-001"
+        doctorId:
+          type: string
+          description: Doctor/Provider identifier
+          example: "DOC-2025-001"
+        diagnosis:
+          type: object
+          description: Primary diagnosis information
+          properties:
+            code:
+              type: string
+              description: ICD-10 code
+              example: "E11"
+            description:
+              type: string
+              description: Diagnosis description
+              example: "Type 2 diabetes mellitus"
+            severity:
+              type: string
+              enum: [mild, moderate, severe]
+              example: "moderate"
+        chiefComplaint:
+          type: string
+          description: Chief complaint
+          example: "Elevated blood sugar levels"
+        historyOfPresentIllness:
+          type: string
+          description: History of present illness
+          example: "Patient presents with 3-month history of elevated blood sugar..."
+        physicalExamination:
+          type: object
+          description: Physical examination findings
+        assessment:
+          type: string
+          description: Clinical assessment
+        plan:
+          type: string
+          description: Treatment plan
+        createdAt:
+          type: string
+          format: date-time
+          description: Record creation timestamp
+          example: "2025-01-10T09:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-12T14:15:00Z"
+
+    ClinicalNote:
+      type: object
+      description: Clinical note entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique note identifier
+          example: "456e7890-e89b-12d3-a456-426614174111"
+        recordId:
+          type: string
+          format: uuid
+          description: Parent medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        noteType:
+          type: string
+          enum: [progress_note, soap_note, consultation, discharge_summary]
+          description: Type of clinical note
+          example: "progress_note"
+        title:
+          type: string
+          description: Note title
+          example: "Diabetes Management Follow-up"
+        content:
+          type: object
+          description: Note content
+          properties:
+            text:
+              type: string
+              description: Main note content
+              example: "Patient presents for follow-up of diabetes management..."
+            sections:
+              type: array
+              items:
+                type: object
+              description: Structured note sections
+        soapFormat:
+          type: object
+          description: SOAP format structure
+          properties:
+            subjective:
+              type: string
+              description: Subjective information
+            objective:
+              type: string
+              description: Objective findings
+            assessment:
+              type: string
+              description: Clinical assessment
+            plan:
+              type: string
+              description: Treatment plan
+        encounterId:
+          type: string
+          description: Associated encounter ID
+          example: "ENC-2025-001"
+        createdBy:
+          type: string
+          format: uuid
+          description: User who created the note
+          example: "789e0123-e89b-12d3-a456-426614174222"
+        createdAt:
+          type: string
+          format: date-time
+          description: Note creation timestamp
+          example: "2025-01-12T14:15:00Z"
+
+    LabResult:
+      type: object
+      description: Laboratory result entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique lab result identifier
+          example: "567e8901-e89b-12d3-a456-426614174333"
+        recordId:
+          type: string
+          format: uuid
+          description: Parent medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        testName:
+          type: string
+          description: Name of the laboratory test
+          example: "Hemoglobin A1c"
+        result:
+          type: string
+          description: Test result value
+          example: "7.2%"
+        normalRange:
+          type: string
+          description: Normal reference range
+          example: "4.0% - 5.6%"
+        status:
+          type: string
+          enum: [pending, completed, abnormal]
+          description: Result status
+          example: "abnormal"
+        testDate:
+          type: string
+          format: date
+          description: Date the test was performed
+          example: "2025-01-11"
+        orderedBy:
+          type: string
+          description: Ordering provider
+          example: "Dr. Smith"
+        createdAt:
+          type: string
+          format: date-time
+          description: Result entry timestamp
+          example: "2025-01-12T10:30:00Z"
+
+    ImagingStudy:
+      type: object
+      description: Imaging study entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique imaging study identifier
+          example: "678e9012-e89b-12d3-a456-426614174444"
+        recordId:
+          type: string
+          format: uuid
+          description: Parent medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        modality:
+          type: string
+          enum: [xray, ct, mri, ultrasound, other]
+          description: Imaging modality
+          example: "xray"
+        bodyRegion:
+          type: string
+          description: Body region examined
+          example: "Chest"
+        findings:
+          type: string
+          description: Radiological findings
+          example: "No acute cardiopulmonary abnormality"
+        impression:
+          type: string
+          description: Radiologist impression
+          example: "Normal chest examination"
+        imageUrls:
+          type: array
+          items:
+            type: string
+          description: URLs to imaging files
+          example: ["https://storage.hospital.com/images/chest-xray-001.jpg"]
+        studyDate:
+          type: string
+          format: date
+          description: Date of the imaging study
+          example: "2025-01-10"
+        radiologist:
+          type: string
+          description: Interpreting radiologist
+          example: "Dr. Johnson"
+        createdAt:
+          type: string
+          format: date-time
+          description: Study entry timestamp
+          example: "2025-01-10T16:45:00Z"
+
+    Prescription:
+      type: object
+      description: Prescription entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique prescription identifier
+          example: "789e0123-e89b-12d3-a456-426614174555"
+        recordId:
+          type: string
+          format: uuid
+          description: Parent medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        medicationName:
+          type: string
+          description: Medication name
+          example: "Metformin"
+        dosage:
+          type: string
+          description: Medication dosage
+          example: "500mg"
+        frequency:
+          type: string
+          description: Dosing frequency
+          example: "Twice daily"
+        route:
+          type: string
+          description: Administration route
+          example: "Oral"
+        startDate:
+          type: string
+          format: date
+          description: Prescription start date
+          example: "2025-01-10"
+        endDate:
+          type: string
+          format: date
+          description: Prescription end date
+          example: "2025-04-10"
+        instructions:
+          type: string
+          description: Special instructions
+          example: "Take with meals"
+        status:
+          type: string
+          enum: [active, completed, cancelled]
+          description: Prescription status
+          example: "active"
+        prescribedBy:
+          type: string
+          description: Prescribing provider
+          example: "Dr. Smith"
+        createdAt:
+          type: string
+          format: date-time
+          description: Prescription creation timestamp
+          example: "2025-01-10T16:45:00Z"
+
+    TreatmentPlan:
+      type: object
+      description: Treatment plan entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique treatment plan identifier
+          example: "890e1234-e89b-12d3-a456-426614174666"
+        recordId:
+          type: string
+          format: uuid
+          description: Parent medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        summary:
+          type: string
+          description: Treatment plan summary
+          example: "Diabetes management with lifestyle modifications and medication"
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+                example: "Follow-up appointment in 3 months"
+              dueDate:
+                type: string
+                format: date
+                example: "2025-04-10"
+              status:
+                type: string
+                enum: [pending, completed, cancelled]
+                example: "pending"
+          description: Treatment tasks and milestones
+        status:
+          type: string
+          enum: [draft, active, completed]
+          description: Treatment plan status
+          example: "active"
+        createdBy:
+          type: string
+          description: Creating provider
+          example: "Dr. Smith"
+        createdAt:
+          type: string
+          format: date-time
+          description: Plan creation timestamp
+          example: "2025-01-10T17:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-12T14:30:00Z"
+
+    AuditLog:
+      type: object
+      description: Audit log entity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique audit log identifier
+          example: "901e2345-e89b-12d3-a456-426614174777"
+        recordId:
+          type: string
+          format: uuid
+          description: Related medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        actorId:
+          type: string
+          format: uuid
+          description: User who performed the action
+          example: "789e0123-e89b-12d3-a456-426614174222"
+        action:
+          type: string
+          enum: [CREATE, UPDATE, DELETE, VIEW]
+          description: Action performed
+          example: "UPDATE"
+        metadata:
+          type: object
+          description: Additional metadata about the action
+          properties:
+            field:
+              type: string
+              example: "diagnosis"
+            oldValue:
+              type: string
+              example: "Hypertension"
+            newValue:
+              type: string
+              example: "Type 2 diabetes mellitus"
+        createdAt:
+          type: string
+          format: date-time
+          description: Audit log timestamp
+          example: "2025-01-12T10:30:00Z"
+
+    # Enhanced Endpoint Schemas
+    PatientSummary:
+      type: object
+      description: Comprehensive patient clinical summary
+      properties:
+        patientId:
+          type: string
+          description: Patient unique identifier
+          example: "PAT-2025-001"
+        primaryMedicalRecordId:
+          type: string
+          format: uuid
+          description: Primary medical record ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        diagnosis:
+          type: object
+          description: Primary diagnosis information
+          properties:
+            code:
+              type: string
+              description: ICD-10 code
+              example: "E11"
+            description:
+              type: string
+              description: Diagnosis description
+              example: "Type 2 diabetes mellitus"
+            severity:
+              type: string
+              enum: [mild, moderate, severe]
+              example: "moderate"
+        firstVisitDate:
+          type: string
+          format: date-time
+          description: Date of first visit
+          example: "2025-01-10T09:30:00Z"
+        totalNotes:
+          type: integer
+          description: Total number of clinical notes
+          example: 5
+        totalLabResults:
+          type: integer
+          description: Total number of lab results
+          example: 12
+        activePrescriptions:
+          type: integer
+          description: Number of active prescriptions
+          example: 3
+        totalImagingStudies:
+          type: integer
+          description: Total number of imaging studies
+          example: 2
+        activeTreatmentPlans:
+          type: integer
+          description: Number of active treatment plans
+          example: 1
+        latestNoteDate:
+          type: string
+          format: date-time
+          description: Date of latest clinical note
+          example: "2025-01-12T14:15:00Z"
+        latestLabDate:
+          type: string
+          format: date-time
+          description: Date of latest lab result
+          example: "2025-01-11T10:30:00Z"
+        latestPrescriptionDate:
+          type: string
+          format: date-time
+          description: Date of latest prescription
+          example: "2025-01-10T16:45:00Z"
+        fullName:
+          type: string
+          description: Patient full name
+          example: "Nguyen Van A"
+        dateOfBirth:
+          type: string
+          format: date
+          description: Patient date of birth
+          example: "1980-05-15"
+        gender:
+          type: string
+          enum: [male, female, other]
+          description: Patient gender
+          example: "male"
+        phone:
+          type: string
+          description: Patient phone number
+          example: "+84-901-234-567"
+        email:
+          type: string
+          format: email
+          description: Patient email address
+          example: "nguyenvana@email.com"
+
+    MedicalRecordHistory:
+      type: object
+      description: Medical record change history entry
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          description: Unique history entry identifier
+          example: "456e7890-e89b-12d3-a456-426614174111"
+        action:
+          type: string
+          description: Action performed on the record
+          example: "UPDATE"
+        actorId:
+          type: string
+          format: uuid
+          description: ID of user who performed the action
+          example: "789e0123-e89b-12d3-a456-426614174222"
+        metadata:
+          type: object
+          description: Additional metadata about the change
+          properties:
+            field:
+              type: string
+              example: "diagnosis"
+            oldValue:
+              type: string
+              example: "Hypertension"
+            newValue:
+              type: string
+              example: "Type 2 diabetes mellitus"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of the change
+          example: "2025-01-12T10:30:00Z"
+        historyType:
+          type: string
+          enum: [audit_log, version]
+          description: Type of history entry
+          example: "audit_log"
+
+    SearchResult:
+      type: object
+      description: Clinical data search result
+      properties:
+        resultType:
+          type: string
+          enum: [medical_record, clinical_note, lab_result, prescription]
+          description: Type of search result
+          example: "clinical_note"
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the result item
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        patientId:
+          type: string
+          description: Patient ID associated with the result
+          example: "PAT-2025-001"
+        title:
+          type: string
+          description: Title or description of the result
+          example: "Progress Note - Diabetes Management"
+        content:
+          type: object
+          description: Content of the search result
+          properties:
+            text:
+              type: string
+              description: Text content
+              example: "Patient presents with elevated blood sugar levels..."
+            type:
+              type: string
+              description: Content type
+              example: "progress_note"
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2025-01-12T14:15:00Z"
+        relevanceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Search relevance score (0-1)
+          example: 0.95
+
+    ServiceMetrics:
+      type: object
+      description: Service metrics and statistics
+      properties:
+        totalPatients:
+          type: integer
+          description: Total number of unique patients
+          example: 1250
+        totalMedicalRecords:
+          type: integer
+          description: Total number of medical records
+          example: 3420
+        recordsLast30Days:
+          type: integer
+          description: Number of records created in last 30 days
+          example: 156
+        recordsLast7Days:
+          type: integer
+          description: Number of records created in last 7 days
+          example: 42
+        totalClinicalNotes:
+          type: integer
+          description: Total number of clinical notes
+          example: 8930
+        notesLast30Days:
+          type: integer
+          description: Number of notes created in last 30 days
+          example: 312
+        totalLabResults:
+          type: integer
+          description: Total number of lab results
+          example: 15670
+        labsLast30Days:
+          type: integer
+          description: Number of lab results in last 30 days
+          example: 892
+        pendingLabResults:
+          type: integer
+          description: Number of pending lab results
+          example: 23
+        totalPrescriptions:
+          type: integer
+          description: Total number of prescriptions
+          example: 5430
+        activePrescriptions:
+          type: integer
+          description: Number of active prescriptions
+          example: 1234
+        prescriptionsLast30Days:
+          type: integer
+          description: Number of prescriptions in last 30 days
+          example: 456
+        totalImagingStudies:
+          type: integer
+          description: Total number of imaging studies
+          example: 2340
+        imagingLast30Days:
+          type: integer
+          description: Number of imaging studies in last 30 days
+          example: 78
+        totalTreatmentPlans:
+          type: integer
+          description: Total number of treatment plans
+          example: 1890
+        activeTreatmentPlans:
+          type: integer
+          description: Number of active treatment plans
+          example: 567
+        totalAuditLogs:
+          type: integer
+          description: Total number of audit log entries
+          example: 45670
+        auditLogsLast24h:
+          type: integer
+          description: Number of audit logs in last 24 hours
+          example: 234
+        totalIntegrationEvents:
+          type: integer
+          description: Total number of integration events
+          example: 12340
+        failedIntegrationEvents:
+          type: integer
+          description: Number of failed integration events
+          example: 5
+        lastMedicalRecordUpdate:
+          type: string
+          format: date-time
+          description: Timestamp of last medical record update
+          example: "2025-01-12T15:30:00Z"
+        lastClinicalNoteUpdate:
+          type: string
+          format: date-time
+          description: Timestamp of last clinical note update
+          example: "2025-01-12T14:45:00Z"
+        lastAuditLogUpdate:
+          type: string
+          format: date-time
+          description: Timestamp of last audit log update
+          example: "2025-01-12T15:32:00Z"
+        calculatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when metrics were calculated
+          example: "2025-01-12T15:35:00Z"
+
+    ExportData:
+      type: object
+      description: Complete patient clinical data export
+      properties:
+        patientInfo:
+          type: object
+          description: Basic patient information
+          properties:
+            patientId:
+              type: string
+              example: "PAT-2025-001"
+            primaryRecordId:
+              type: string
+              format: uuid
+              example: "123e4567-e89b-12d3-a456-426614174000"
+            diagnosis:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "E11"
+                description:
+                  type: string
+                  example: "Type 2 diabetes mellitus"
+        patientSnapshot:
+          type: object
+          description: Patient demographic information
+          properties:
+            fullName:
+              type: string
+              example: "Nguyen Van A"
+            dateOfBirth:
+              type: string
+              format: date
+              example: "1980-05-15"
+            gender:
+              type: string
+              example: "male"
+        clinicalNotes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClinicalNote'
+          description: Array of clinical notes
+        labResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabResult'
+          description: Array of lab results
+        prescriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Prescription'
+          description: Array of prescriptions
+        imagingStudies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImagingStudy'
+          description: Array of imaging studies
+        treatmentPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreatmentPlan'
+          description: Array of treatment plans
+        exportedAt:
+          type: string
+          format: date-time
+          description: Export timestamp
+          example: "2025-01-12T15:40:00Z"
+
+    # Request Schemas
+    CreateMedicalRecordRequest:
+      type: object
+      required:
+        - patientId
+        - doctorId
+        - diagnosis
+      properties:
+        patientId:
+          type: string
+          description: Patient identifier
+          example: "PAT-2025-001"
+        doctorId:
+          type: string
+          description: Doctor identifier
+          example: "DOC-2025-001"
+        diagnosis:
+          type: object
+          description: Primary diagnosis
+          properties:
+            code:
+              type: string
+              example: "E11"
+            description:
+              type: string
+              example: "Type 2 diabetes mellitus"
+            severity:
+              type: string
+              enum: [mild, moderate, severe]
+              example: "moderate"
+        chiefComplaint:
+          type: string
+          description: Chief complaint
+          example: "Elevated blood sugar levels"
+        historyOfPresentIllness:
+          type: string
+          description: History of present illness
+        physicalExamination:
+          type: object
+          description: Physical examination findings
+        assessment:
+          type: string
+          description: Clinical assessment
+        plan:
+          type: string
+          description: Treatment plan
+
+    UpdateMedicalRecordRequest:
+      type: object
+      properties:
+        diagnosis:
+          type: object
+          description: Updated diagnosis
+        chiefComplaint:
+          type: string
+          description: Updated chief complaint
+        historyOfPresentIllness:
+          type: string
+          description: Updated history
+        physicalExamination:
+          type: object
+          description: Updated physical exam
+        assessment:
+          type: string
+          description: Updated assessment
+        plan:
+          type: string
+          description: Updated treatment plan
+
+    CreateClinicalNoteRequest:
+      type: object
+      required:
+        - noteType
+        - title
+        - content
+      properties:
+        noteType:
+          type: string
+          enum: [progress_note, soap_note, consultation, discharge_summary]
+          description: Type of clinical note
+          example: "progress_note"
+        title:
+          type: string
+          description: Note title
+          example: "Diabetes Management Follow-up"
+        content:
+          type: object
+          description: Note content
+          properties:
+            text:
+              type: string
+              description: Main note content
+        soapFormat:
+          type: object
+          description: SOAP format structure
+          properties:
+            subjective:
+              type: string
+            objective:
+              type: string
+            assessment:
+              type: string
+            plan:
+              type: string
+        encounterId:
+          type: string
+          description: Associated encounter ID
+          example: "ENC-2025-001"
+
+    CreateLabResultRequest:
+      type: object
+      required:
+        - testName
+        - result
+        - testDate
+      properties:
+        testName:
+          type: string
+          description: Name of the laboratory test
+          example: "Hemoglobin A1c"
+        result:
+          type: string
+          description: Test result value
+          example: "7.2%"
+        normalRange:
+          type: string
+          description: Normal reference range
+          example: "4.0% - 5.6%"
+        status:
+          type: string
+          enum: [pending, completed, abnormal]
+          description: Result status
+          example: "abnormal"
+        testDate:
+          type: string
+          format: date
+          description: Date the test was performed
+          example: "2025-01-11"
+        orderedBy:
+          type: string
+          description: Ordering provider
+          example: "Dr. Smith"
+
+    CreateImagingStudyRequest:
+      type: object
+      required:
+        - modality
+        - bodyRegion
+      properties:
+        modality:
+          type: string
+          enum: [xray, ct, mri, ultrasound, other]
+          description: Imaging modality
+          example: "xray"
+        bodyRegion:
+          type: string
+          description: Body region examined
+          example: "Chest"
+        findings:
+          type: string
+          description: Radiological findings
+          example: "No acute cardiopulmonary abnormality"
+        impression:
+          type: string
+          description: Radiologist impression
+          example: "Normal chest examination"
+        imageUrls:
+          type: array
+          items:
+            type: string
+          description: URLs to imaging files
+        studyDate:
+          type: string
+          format: date
+          description: Date of the imaging study
+          example: "2025-01-10"
+        radiologist:
+          type: string
+          description: Interpreting radiologist
+          example: "Dr. Johnson"
+
+    CreatePrescriptionRequest:
+      type: object
+      required:
+        - medicationName
+        - dosage
+        - frequency
+        - route
+        - startDate
+      properties:
+        medicationName:
+          type: string
+          description: Medication name
+          example: "Metformin"
+        dosage:
+          type: string
+          description: Medication dosage
+          example: "500mg"
+        frequency:
+          type: string
+          description: Dosing frequency
+          example: "Twice daily"
+        route:
+          type: string
+          description: Administration route
+          example: "Oral"
+        startDate:
+          type: string
+          format: date
+          description: Prescription start date
+          example: "2025-01-10"
+        endDate:
+          type: string
+          format: date
+          description: Prescription end date
+          example: "2025-04-10"
+        instructions:
+          type: string
+          description: Special instructions
+          example: "Take with meals"
+
+    CreateTreatmentPlanRequest:
+      type: object
+      required:
+        - summary
+        - tasks
+      properties:
+        summary:
+          type: string
+          description: Treatment plan summary
+          example: "Diabetes management with lifestyle modifications"
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+                example: "Follow-up appointment in 3 months"
+              dueDate:
+                type: string
+                format: date
+                example: "2025-04-10"
+              status:
+                type: string
+                enum: [pending, completed, cancelled]
+                example: "pending"
+          description: Treatment tasks and milestones
+
+    UpdateTreatmentPlanStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [draft, active, completed]
+          description: New treatment plan status
+          example: "completed"
+
+    CreateAuditLogRequest:
+      type: object
+      required:
+        - action
+        - metadata
+      properties:
+        action:
+          type: string
+          enum: [CREATE, UPDATE, DELETE, VIEW]
+          description: Action being logged
+          example: "UPDATE"
+        metadata:
+          type: object
+          description: Additional metadata about the action
+          properties:
+            reason:
+              type: string
+              example: "Updated diagnosis based on new lab results"
+            field:
+              type: string
+              example: "diagnosis"
+
+    # Response Schemas
+    MedicalRecordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/MedicalRecord'
+
+    MedicalRecordsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            records:
+              type: array
+              items:
+                $ref: '#/components/schemas/MedicalRecord'
+            pagination:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  example: 1
+                limit:
+                  type: integer
+                  example: 20
+                total:
+                  type: integer
+                  example: 150
+                totalPages:
+                  type: integer
+                  example: 8
+
+    ClinicalNoteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ClinicalNote'
+
+    ClinicalNotesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClinicalNote'
+
+    LabResultResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/LabResult'
+
+    LabResultsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabResult'
+
+    ImagingStudyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ImagingStudy'
+
+    ImagingStudiesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImagingStudy'
+
+    PrescriptionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Prescription'
+
+    PrescriptionsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Prescription'
+
+    TreatmentPlanResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/TreatmentPlan'
+
+    TreatmentPlansListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreatmentPlan'
+
+    AuditLogResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AuditLog'
+
+    AuditLogsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+
+    # Enhanced Endpoint Response Schemas
+    PatientSummaryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/PatientSummary'
+
+    MedicalRecordHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MedicalRecordHistory'
+
+    SearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+
+    ServiceMetricsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ServiceMetrics'
+
+    ExportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ExportData'
+
+    # Error Response Schema
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: "Patient not found or no clinical data available"
+        code:
+          type: string
+          description: Error code for programmatic handling
+          example: "PATIENT_NOT_FOUND"
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidSearchTerm:
+              summary: "Invalid search term"
+              value:
+                success: false
+                error: "Search term must be at least 2 characters long"
+                code: "INVALID_SEARCH_TERM"
+
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Authentication required"
+            code: "UNAUTHORIZED"
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Admin privileges required"
+            code: "FORBIDDEN"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Patient not found or no clinical data available"
+            code: "NOT_FOUND"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Internal server error"
+            code: "INTERNAL_ERROR"
+
+# Additional Documentation
+x-tag-groups:
+  - name: Core Operations
+    tags:
+      - Medical Records
+      - Clinical Notes
+      - Lab Results
+      - Imaging Studies
+      - Prescriptions
+      - Treatment Plans
+      - Audit Logs
+  - name: Enhanced Features
+    tags:
+      - Patient Summary
+      - Search
+      - Metrics
+      - Export
+
+# Extension for ReDoc configuration
+x-redoc:
+  hideDownloadButton: true
+  hideHostname: true
+  expandResponses: "200,201"
+  showExtensions: true
+  theme:
+    colors:
+      primary:
+        main: "#003087"
+      secondary:
+        main: "#0066cc"

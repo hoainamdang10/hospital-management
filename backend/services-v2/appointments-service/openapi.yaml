@@ -1,0 +1,2953 @@
+openapi: 3.1.0
+info:
+  title: Appointments Service API
+  description: |
+    Hospital Management System V2 - Appointments Service with CQRS, Event-Driven Architecture, and Clean Architecture patterns.
+    
+    ## Features
+    - Appointment Management (Schedule, Confirm, Cancel, Reschedule, Complete)
+    - Queue Management (Call next patient, Join/Leave queue)
+    - Waitlist Management (Add to waitlist, Convert to appointment)
+    - Availability Checking (Time slots, Provider schedules)
+    - Reminder Management (Manual reminders)
+    - Emergency Appointments
+    - Recurring Appointments
+    - Bulk Operations
+    - Analytics & Reporting
+    
+    ## Architecture
+    - Clean Architecture with DDD patterns
+    - CQRS (Command Query Responsibility Segregation)
+    - Event-Driven Architecture
+    - Port: 3024 (External), 3004 (Internal)
+    - Command Pattern for business operations
+    
+    ## Design Philosophy
+    Uses Command Pattern instead of RESTful CRUD for better business context:
+    - POST /appointments/:id/cancel (instead of DELETE)
+    - POST /appointments/:id/reschedule (instead of PUT)
+    - Each command represents a specific business action
+  version: 3.0.0
+  contact:
+    name: Hospital Management Team
+    email: support@hospital-management.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3024
+    description: Development server
+  - url: https://api.hospital-management.com/appointments
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Appointments (Commands)
+    description: Write operations - Schedule, confirm, cancel, reschedule appointments
+  - name: Appointments (Queries)
+    description: Read operations - Get appointments with denormalized data (CQRS)
+  - name: Queue Management
+    description: Patient queue operations and management
+  - name: Waitlist Management
+    description: Appointment waitlist operations
+  - name: Availability
+    description: Check doctor availability and find time slots
+  - name: Reminder Management
+    description: Manual appointment reminder operations
+  - name: Utilities
+    description: History, statistics, and utility endpoints
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check endpoint
+      description: Check the health status of the Appointments Service
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # ==================== APPOINTMENT COMMANDS ====================
+  /api/v1/appointments:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Schedule a new appointment
+      description: Create a new appointment with validation and conflict checking
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleAppointmentRequest'
+      responses:
+        '201':
+          description: Appointment scheduled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleAppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Appointment conflict or slot unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags: [Appointments (Commands)]
+      summary: List appointments (legacy - use V2 for better performance)
+      description: List appointments with basic filtering (uses write model)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: query
+          description: Filter by patient ID
+          schema:
+            type: string
+            format: uuid
+        - name: doctorId
+          in: query
+          description: Filter by doctor ID
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Filter by start date
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter by end date
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          description: Filter by appointment status
+          schema:
+            $ref: '#/components/schemas/AppointmentStatus'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAppointmentsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}:
+    get:
+      tags: [Appointments (Commands)]
+      summary: Get appointment by ID (legacy)
+      description: Get appointment details using write model
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appointment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/confirm:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Confirm appointment
+      description: Confirm an appointment and send notifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/complete:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Complete appointment
+      description: Mark an appointment as completed
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/cancel:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Cancel appointment
+      description: Cancel an appointment with refund policy and notifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/reschedule:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Reschedule appointment
+      description: Reschedule an appointment to a new time slot
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RescheduleAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment rescheduled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: New time slot is not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/check-in:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Check-in appointment
+      description: Mark patient as checked in for appointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInAppointmentRequest'
+      responses:
+        '200':
+          description: Patient checked in successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/no-show:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Mark appointment as no-show
+      description: Mark patient as no-show for appointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoShowAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment marked as no-show successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/start:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Start appointment
+      description: Mark appointment as started (begin consultation)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/bulk-reschedule:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Bulk reschedule appointments
+      description: Reschedule multiple appointments at once
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkRescheduleRequest'
+      responses:
+        '200':
+          description: Bulk reschedule completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/emergency:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Create emergency appointment
+      description: Create an emergency appointment bypassing normal scheduling
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyAppointmentRequest'
+      responses:
+        '201':
+          description: Emergency appointment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/transfer:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Transfer appointment
+      description: Transfer appointment to another doctor or department
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment transferred successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/recurring:
+    post:
+      tags: [Appointments (Commands)]
+      summary: Create recurring appointment series
+      description: Create a series of recurring appointments
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringAppointmentRequest'
+      responses:
+        '201':
+          description: Recurring appointment series created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringAppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== APPOINTMENT QUERIES (CQRS) ====================
+  /api/v1/appointments/{id}/query:
+    get:
+      tags: [Appointments (Queries)]
+      summary: Get appointment details (CQRS Read Model)
+      description: Get appointment with denormalized patient/doctor data
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appointment details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentDetailsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/query:
+    get:
+      tags: [Appointments (Queries)]
+      summary: List appointments (CQRS Read Model)
+      description: List appointments with optimized read performance
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: query
+          description: Filter by patient ID
+          schema:
+            type: string
+            format: uuid
+        - name: doctorId
+          in: query
+          description: Filter by doctor ID
+          schema:
+            type: string
+            format: uuid
+        - name: departmentId
+          in: query
+          description: Filter by department ID
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Filter by start date
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter by end date
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          description: Filter by appointment status
+          schema:
+            $ref: '#/components/schemas/AppointmentStatus'
+        - name: appointmentType
+          in: query
+          description: Filter by appointment type
+          schema:
+            $ref: '#/components/schemas/AppointmentType'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Appointments list retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppointmentsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/patients/{patientId}/appointments:
+    get:
+      tags: [Appointments (Queries)]
+      summary: Get patient appointments
+      description: Get all appointments for a specific patient
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          description: Patient ID
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Filter by start date
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter by end date
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          description: Filter by appointment status
+          schema:
+            $ref: '#/components/schemas/AppointmentStatus'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Patient appointments retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppointmentsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/doctors/{doctorId}/appointments:
+    get:
+      tags: [Appointments (Queries)]
+      summary: Get doctor appointments
+      description: Get all appointments for a specific doctor
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: doctorId
+          in: path
+          required: true
+          description: Doctor ID
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Filter by start date
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter by end date
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          description: Filter by appointment status
+          schema:
+            $ref: '#/components/schemas/AppointmentStatus'
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Doctor appointments retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppointmentsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== AVAILABILITY ====================
+  /api/v1/appointments/providers/{providerId}/available-slots:
+    get:
+      tags: [Availability]
+      summary: Get available time slots for provider
+      description: Get available appointment slots for a specific provider on a date
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: Provider ID (Staff ID)
+          schema:
+            type: string
+            pattern: '^[A-Z]{4}-DOC-\d{6}-\d{3}$'
+        - name: date
+          in: query
+          required: true
+          description: Date to check availability (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: duration
+          in: query
+          description: Appointment duration in minutes
+          schema:
+            type: integer
+            minimum: 15
+            maximum: 120
+            default: 30
+      responses:
+        '200':
+          description: Available slots retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableSlotsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/providers/{providerId}/schedule:
+    get:
+      tags: [Availability]
+      summary: Get provider work schedule
+      description: Get cached work schedule template for provider
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: Provider ID (Staff ID)
+          schema:
+            type: string
+            pattern: '^[A-Z]{4}-DOC-\d{6}-\d{3}$'
+      responses:
+        '200':
+          description: Provider schedule retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderScheduleResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== QUEUE MANAGEMENT ====================
+  /api/v1/queue/call-next:
+    post:
+      tags: [Queue Management]
+      summary: Call next patient in queue
+      description: Call the next patient from the queue for a doctor
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallNextPatientRequest'
+      responses:
+        '200':
+          description: Next patient called successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/queue/join:
+    post:
+      tags: [Queue Management]
+      summary: Join queue
+      description: Add patient to queue for a doctor
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinQueueRequest'
+      responses:
+        '201':
+          description: Patient joined queue successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/queue/leave:
+    post:
+      tags: [Queue Management]
+      summary: Leave queue
+      description: Remove patient from queue
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveQueueRequest'
+      responses:
+        '200':
+          description: Patient left queue successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/queue/status:
+    get:
+      tags: [Queue Management]
+      summary: Get queue status
+      description: Get current queue status for patient or doctor
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: query
+          description: Get queue status for patient
+          schema:
+            type: string
+            pattern: '^PAT-\d{6}-\d{3}$'
+        - name: doctorId
+          in: query
+          description: Get queue status for doctor
+          schema:
+            type: string
+            pattern: '^DEPT-DOC-\d{6}-\d{3}$'
+      responses:
+        '200':
+          description: Queue status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/queue/appointments/{id}/cancellation-policy:
+    get:
+      tags: [Queue Management]
+      summary: Validate cancellation policy
+      description: Check if appointment can be cancelled based on policy
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cancellation policy validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationPolicyResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/queue/appointments/{id}/reminders:
+    post:
+      tags: [Queue Management]
+      summary: Manage appointment reminders
+      description: Enable, disable, or reschedule appointment reminders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManageRemindersRequest'
+      responses:
+        '200':
+          description: Reminders managed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemindersResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== WAITLIST MANAGEMENT ====================
+  /api/v1/appointments/waitlist:
+    post:
+      tags: [Waitlist Management]
+      summary: Add patient to waitlist
+      description: Add patient to appointment waitlist
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToWaitlistRequest'
+      responses:
+        '201':
+          description: Patient added to waitlist successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistEntryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags: [Waitlist Management]
+      summary: Get waitlist entries
+      description: Get waitlist entries with filters
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: query
+          description: Filter by patient ID
+          schema:
+            type: string
+            format: uuid
+        - name: doctorId
+          in: query
+          description: Filter by doctor ID
+          schema:
+            type: string
+            format: uuid
+        - name: departmentId
+          in: query
+          description: Filter by department ID
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          description: Filter by date
+          schema:
+            type: string
+            format: date
+        - name: appointmentType
+          in: query
+          description: Filter by appointment type
+          schema:
+            type: string
+        - name: priority
+          in: query
+          description: Filter by priority
+          schema:
+            type: string
+            enum: [EMERGENCY, URGENT, NORMAL, LOW]
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [WAITING, MATCHED, CONVERTED, CANCELLED, EXPIRED]
+        - name: limit
+          in: query
+          description: Number of items to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of items to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Waitlist entries retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/waitlist/{waitlistId}:
+    put:
+      tags: [Waitlist Management]
+      summary: Update waitlist entry
+      description: Update an existing waitlist entry
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: waitlistId
+          in: path
+          required: true
+          description: Waitlist entry ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWaitlistRequest'
+      responses:
+        '200':
+          description: Waitlist entry updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistEntryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Waitlist Management]
+      summary: Remove from waitlist
+      description: Cancel/remove waitlist entry
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: waitlistId
+          in: path
+          required: true
+          description: Waitlist entry ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveFromWaitlistRequest'
+      responses:
+        '200':
+          description: Waitlist entry removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/waitlist/{waitlistId}/convert:
+    post:
+      tags: [Waitlist Management]
+      summary: Convert waitlist to appointment
+      description: Convert waitlist entry to actual appointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: waitlistId
+          in: path
+          required: true
+          description: Waitlist entry ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertWaitlistRequest'
+      responses:
+        '201':
+          description: Waitlist entry converted to appointment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== REMINDER MANAGEMENT ====================
+  /api/v1/appointments/{appointmentId}/reminders:
+    post:
+      tags: [Reminder Management]
+      summary: Create manual reminder
+      description: Create a manual reminder for an appointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReminderRequest'
+      responses:
+        '201':
+          description: Reminder created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags: [Reminder Management]
+      summary: Get appointment reminders
+      description: Get all reminders for an appointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reminders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemindersListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/reminders/{reminderId}:
+    put:
+      tags: [Reminder Management]
+      summary: Update reminder
+      description: Update an existing reminder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          description: Reminder ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReminderRequest'
+      responses:
+        '200':
+          description: Reminder updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Reminder Management]
+      summary: Delete reminder
+      description: Delete a reminder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          description: Reminder ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reminder deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== UTILITIES ====================
+  /api/v1/appointments/history:
+    get:
+      tags: [Utilities]
+      summary: Get appointment history
+      description: Get appointment history with filters
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: query
+          description: Filter by patient ID
+          schema:
+            type: string
+            format: uuid
+        - name: doctorId
+          in: query
+          description: Filter by doctor ID
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Filter by start date
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter by end date
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Appointment history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentHistoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/statistics:
+    get:
+      tags: [Utilities]
+      summary: Get appointment statistics
+      description: Get appointment statistics and analytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: doctorId
+          in: query
+          description: Filter by doctor ID
+          schema:
+            type: string
+            format: uuid
+        - name: departmentId
+          in: query
+          description: Filter by department ID
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Filter by start date
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter by end date
+          schema:
+            type: string
+            format: date
+        - name: period
+          in: query
+          description: Statistics period
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, yearly]
+            default: monthly
+      responses:
+        '200':
+          description: Appointment statistics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentStatisticsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/appointments/{id}/preview-reminders:
+    get:
+      tags: [Utilities]
+      summary: Preview appointment reminders
+      description: Preview what reminders will be sent for an appointment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reminder preview retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderPreviewResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from Identity Service
+
+  schemas:
+    # ==================== BASIC TYPES ====================
+    AppointmentStatus:
+      type: string
+      enum:
+        - SCHEDULED
+        - CONFIRMED
+        - CHECKED_IN
+        - IN_PROGRESS
+        - COMPLETED
+        - CANCELLED
+        - NO_SHOW
+        - RESCHEDULED
+
+    AppointmentType:
+      type: string
+      enum:
+        - CONSULTATION
+        - FOLLOW_UP
+        - EMERGENCY
+        - SURGERY
+        - TREATMENT
+        - VACCINATION
+        - CHECK_UP
+
+    Priority:
+      type: string
+      enum:
+        - EMERGENCY
+        - URGENT
+        - NORMAL
+        - LOW
+
+    # ==================== REQUEST SCHEMAS ====================
+    ScheduleAppointmentRequest:
+      type: object
+      required:
+        - patientId
+        - doctorId
+        - departmentId
+        - appointmentType
+        - scheduledStartTime
+        - scheduledEndTime
+      properties:
+        patientId:
+          type: string
+          format: uuid
+          description: Patient ID
+        doctorId:
+          type: string
+          format: uuid
+          description: Doctor ID
+        departmentId:
+          type: string
+          format: uuid
+          description: Department ID
+        appointmentType:
+          $ref: '#/components/schemas/AppointmentType'
+        scheduledStartTime:
+          type: string
+          format: date-time
+          description: Appointment start time
+        scheduledEndTime:
+          type: string
+          format: date-time
+          description: Appointment end time
+        notes:
+          type: string
+          description: Additional notes
+        reason:
+          type: string
+          description: Appointment reason
+        isRecurring:
+          type: boolean
+          default: false
+          description: Is this a recurring appointment
+        recurringPattern:
+          type: object
+          properties:
+            frequency:
+              type: string
+              enum: [daily, weekly, monthly]
+            interval:
+              type: integer
+              minimum: 1
+            endDate:
+              type: string
+              format: date
+          description: Recurring pattern configuration
+
+    ConfirmAppointmentRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          description: Confirmation notes
+        notifyPatient:
+          type: boolean
+          default: true
+          description: Whether to notify patient
+
+    CompleteAppointmentRequest:
+      type: object
+      properties:
+        actualEndTime:
+          type: string
+          format: date-time
+          description: Actual end time
+        outcome:
+          type: string
+          description: Appointment outcome
+        notes:
+          type: string
+          description: Completion notes
+        followUpRequired:
+          type: boolean
+          default: false
+          description: Is follow-up required
+        followUpDate:
+          type: string
+          format: date
+          description: Follow-up date if required
+
+    CancelAppointmentRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Cancellation reason
+        cancelledBy:
+          type: string
+          enum: [PATIENT, DOCTOR, ADMIN, SYSTEM]
+          description: Who cancelled the appointment
+        refundPolicy:
+          type: string
+          enum: [FULL_REFUND, PARTIAL_REFUND, NO_REFUND]
+          description: Refund policy applied
+        notifyPatient:
+          type: boolean
+          default: true
+          description: Whether to notify patient
+
+    RescheduleAppointmentRequest:
+      type: object
+      required:
+        - newScheduledStartTime
+        - newScheduledEndTime
+      properties:
+        newScheduledStartTime:
+          type: string
+          format: date-time
+          description: New start time
+        newScheduledEndTime:
+          type: string
+          format: date-time
+          description: New end time
+        reason:
+          type: string
+          description: Reschedule reason
+        rescheduledBy:
+          type: string
+          enum: [PATIENT, DOCTOR, ADMIN, SYSTEM]
+          description: Who rescheduled the appointment
+        notifyPatient:
+          type: boolean
+          default: true
+          description: Whether to notify patient
+
+    CheckInAppointmentRequest:
+      type: object
+      properties:
+        actualCheckInTime:
+          type: string
+          format: date-time
+          description: Actual check-in time (defaults to now)
+        notes:
+          type: string
+          description: Check-in notes
+
+    NoShowAppointmentRequest:
+      type: object
+      properties:
+        noShowTime:
+          type: string
+          format: date-time
+          description: No-show time (defaults to now)
+        reason:
+          type: string
+          description: No-show reason
+        notifyPatient:
+          type: boolean
+          default: true
+          description: Whether to notify patient
+
+    StartAppointmentRequest:
+      type: object
+      properties:
+        actualStartTime:
+          type: string
+          format: date-time
+          description: Actual start time (defaults to now)
+        notes:
+          type: string
+          description: Start notes
+
+    BulkRescheduleRequest:
+      type: object
+      required:
+        - appointmentIds
+        - newStartTime
+        - reason
+      properties:
+        appointmentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of appointment IDs to reschedule
+        newStartTime:
+          type: string
+          format: date-time
+          description: New start time for all appointments
+        reason:
+          type: string
+          description: Reschedule reason
+        notifyPatients:
+          type: boolean
+          default: true
+          description: Whether to notify all patients
+
+    EmergencyAppointmentRequest:
+      type: object
+      required:
+        - patientId
+        - doctorId
+        - departmentId
+        - emergencyLevel
+        - reason
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        doctorId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        emergencyLevel:
+          type: string
+          enum: [CRITICAL, URGENT, HIGH]
+        reason:
+          type: string
+          description: Emergency reason
+        estimatedDuration:
+          type: integer
+          minimum: 15
+          maximum: 240
+          description: Estimated duration in minutes
+
+    TransferAppointmentRequest:
+      type: object
+      required:
+        - newDoctorId
+        - reason
+      properties:
+        newDoctorId:
+          type: string
+          format: uuid
+          description: New doctor ID
+        newDepartmentId:
+          type: string
+          format: uuid
+          description: New department ID (if changing department)
+        reason:
+          type: string
+          description: Transfer reason
+        notifyPatient:
+          type: boolean
+          default: true
+          description: Whether to notify patient
+
+    RecurringAppointmentRequest:
+      type: object
+      required:
+        - baseAppointment
+        - recurringPattern
+      properties:
+        baseAppointment:
+          $ref: '#/components/schemas/ScheduleAppointmentRequest'
+        recurringPattern:
+          type: object
+          required:
+            - frequency
+            - interval
+            - endDate
+          properties:
+            frequency:
+              type: string
+              enum: [daily, weekly, monthly]
+            interval:
+              type: integer
+              minimum: 1
+              description: Interval between appointments
+            endDate:
+              type: string
+              format: date
+              description: End date for recurring series
+            maxOccurrences:
+              type: integer
+              minimum: 1
+              maximum: 52
+              description: Maximum number of occurrences
+            daysOfWeek:
+              type: array
+              items:
+                type: string
+                enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+              description: Days of week for weekly appointments
+
+    # ==================== QUEUE SCHEMAS ====================
+    CallNextPatientRequest:
+      type: object
+      required:
+        - doctorId
+      properties:
+        doctorId:
+          type: string
+          pattern: '^DEPT-DOC-\d{6}-\d{3}$'
+          description: Doctor ID
+        priorityFilter:
+          type: string
+          enum: [EMERGENCY, URGENT, NORMAL, LOW]
+          description: Filter by priority level
+
+    JoinQueueRequest:
+      type: object
+      required:
+        - patientId
+        - doctorId
+        - priority
+      properties:
+        patientId:
+          type: string
+          pattern: '^PAT-\d{6}-\d{3}$'
+          description: Patient ID
+        doctorId:
+          type: string
+          pattern: '^DEPT-DOC-\d{6}-\d{3}$'
+          description: Doctor ID
+        appointmentId:
+          type: string
+          format: uuid
+          description: Associated appointment ID
+        departmentId:
+          type: string
+          format: uuid
+          description: Department ID
+        priority:
+          $ref: '#/components/schemas/Priority'
+        checkInTime:
+          type: string
+          format: date-time
+          description: Check-in time (defaults to now)
+
+    LeaveQueueRequest:
+      type: object
+      required:
+        - patientId
+        - doctorId
+      properties:
+        patientId:
+          type: string
+          pattern: '^PAT-\d{6}-\d{3}$'
+          description: Patient ID
+        doctorId:
+          type: string
+          pattern: '^DEPT-DOC-\d{6}-\d{3}$'
+          description: Doctor ID
+        reason:
+          type: string
+          description: Leave queue reason
+
+    ManageRemindersRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum: [enable, disable, reschedule]
+          description: Action to perform
+        reminderWindows:
+          type: array
+          items:
+            type: object
+            required:
+              - window
+              - channels
+            properties:
+              window:
+                type: string
+                pattern: '^\d+(h|m)$'
+                description: Time window (e.g., 24h, 2h, 30m)
+              channels:
+                type: array
+                items:
+                  type: string
+                  enum: [SMS, EMAIL, APP]
+                description: Notification channels
+
+    # ==================== WAITLIST SCHEMAS ====================
+    AddToWaitlistRequest:
+      type: object
+      required:
+        - patientId
+        - appointmentType
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        preferredDoctorId:
+          type: string
+          format: uuid
+        preferredDepartmentId:
+          type: string
+          format: uuid
+        preferredDate:
+          type: string
+          format: date
+        preferredTimeSlot:
+          type: string
+          description: Preferred time slot
+        appointmentType:
+          type: string
+          description: Appointment type
+        priority:
+          $ref: '#/components/schemas/Priority'
+        notes:
+          type: string
+        reason:
+          type: string
+        isFlexibleDate:
+          type: boolean
+          default: false
+        isFlexibleTime:
+          type: boolean
+          default: false
+        isFlexibleDoctor:
+          type: boolean
+          default: false
+        expiresAt:
+          type: string
+          format: date-time
+        contactPhone:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        preferredContactMethod:
+          type: string
+          enum: [SMS, EMAIL, PUSH, CALL]
+
+    UpdateWaitlistRequest:
+      type: object
+      properties:
+        preferredDate:
+          type: string
+          format: date
+        preferredTimeSlot:
+          type: string
+        preferredDoctorId:
+          type: string
+          format: uuid
+        priority:
+          $ref: '#/components/schemas/Priority'
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [WAITING, MATCHED, CONVERTED, CANCELLED, EXPIRED]
+        isFlexibleDate:
+          type: boolean
+        isFlexibleTime:
+          type: boolean
+        isFlexibleDoctor:
+          type: boolean
+
+    RemoveFromWaitlistRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Removal reason
+
+    ConvertWaitlistRequest:
+      type: object
+      required:
+        - appointmentDate
+        - appointmentTime
+        - doctorId
+      properties:
+        appointmentDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Appointment date (YYYY-MM-DD)
+        appointmentTime:
+          type: string
+          pattern: '^\d{2}:\d{2}(:\d{2})?$'
+          description: Appointment time (HH:mm or HH:mm:ss)
+        doctorId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        durationMinutes:
+          type: integer
+          minimum: 5
+          maximum: 480
+          description: Appointment duration in minutes
+
+    # ==================== REMINDER SCHEMAS ====================
+    CreateReminderRequest:
+      type: object
+      required:
+        - reminderType
+        - reminderChannel
+        - sendBeforeMinutes
+        - message
+        - recipientType
+      properties:
+        reminderType:
+          type: string
+          enum: [email, sms, push, in_app]
+        reminderChannel:
+          type: string
+          enum: [email, sms, push_notification, in_app_notification]
+        sendBeforeMinutes:
+          type: integer
+          minimum: 1
+          description: Minutes before appointment to send reminder
+        message:
+          type: string
+        recipientType:
+          type: string
+          enum: [patient, doctor, both]
+        recipientEmail:
+          type: string
+          format: email
+        recipientPhone:
+          type: string
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+          default: normal
+        maxRetries:
+          type: integer
+          minimum: 0
+          maximum: 10
+          default: 3
+
+    UpdateReminderRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+        message:
+          type: string
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        metadata:
+          type: object
+          description: Additional metadata
+
+    # ==================== RESPONSE SCHEMAS ====================
+    HealthResponse:
+      type: object
+      properties:
+        service:
+          type: string
+          example: appointments-service
+        status:
+          type: string
+          enum: [HEALTHY, DEGRADED, UNHEALTHY]
+        version:
+          type: string
+          example: 3.0.0
+        timestamp:
+          type: string
+          format: date-time
+        database:
+          type: object
+          properties:
+            status:
+              type: string
+            responseTime:
+              type: number
+        redis:
+          type: object
+          properties:
+            status:
+              type: string
+            responseTime:
+              type: number
+
+    AppointmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            appointmentId:
+              type: string
+              format: uuid
+            patientId:
+              type: string
+              format: uuid
+            doctorId:
+              type: string
+              format: uuid
+            departmentId:
+              type: string
+              format: uuid
+            appointmentType:
+              $ref: '#/components/schemas/AppointmentType'
+            status:
+              $ref: '#/components/schemas/AppointmentStatus'
+            scheduledStartTime:
+              type: string
+              format: date-time
+            scheduledEndTime:
+              type: string
+              format: date-time
+            actualStartTime:
+              type: string
+              format: date-time
+            actualEndTime:
+              type: string
+              format: date-time
+            reason:
+              type: string
+            notes:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    ScheduleAppointmentResponse:
+      allOf:
+        - $ref: '#/components/schemas/AppointmentResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                conflictResolution:
+                  type: object
+                  properties:
+                    originalSlot:
+                      type: string
+                    offeredSlots:
+                      type: array
+                      items:
+                        type: string
+                confirmationRequired:
+                  type: boolean
+                estimatedWaitTime:
+                  type: integer
+                  description: Estimated wait time in minutes
+
+    AppointmentDetailsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            appointment:
+              $ref: '#/components/schemas/AppointmentResponse'
+            patient:
+              type: object
+              properties:
+                patientId:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+            doctor:
+              type: object
+              properties:
+                doctorId:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                specialization:
+                  type: string
+            department:
+              type: object
+              properties:
+                departmentId:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                location:
+                  type: string
+
+    ListAppointmentsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            appointments:
+              type: array
+              items:
+                $ref: '#/components/schemas/AppointmentResponse'
+            pagination:
+              type: object
+              properties:
+                page:
+                  type: integer
+                limit:
+                  type: integer
+                total:
+                  type: integer
+                totalPages:
+                  type: integer
+
+    PaginatedAppointmentsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            appointments:
+              type: array
+              items:
+                $ref: '#/components/schemas/AppointmentDetailsResponse'
+            pagination:
+              type: object
+              properties:
+                page:
+                  type: integer
+                limit:
+                  type: integer
+                total:
+                  type: integer
+                totalPages:
+                  type: integer
+
+    AvailableSlotsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            providerId:
+              type: string
+            date:
+              type: string
+              format: date
+            availableSlots:
+              type: array
+              items:
+                type: object
+                properties:
+                  startTime:
+                    type: string
+                    format: date-time
+                  endTime:
+                    type: string
+                    format: date-time
+                  duration:
+                    type: integer
+                  isAvailable:
+                    type: boolean
+            workingHours:
+              type: object
+              properties:
+                startTime:
+                  type: string
+                endTime:
+                  type: string
+                breakStart:
+                  type: string
+                breakEnd:
+                  type: string
+
+    ProviderScheduleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            providerId:
+              type: string
+            schedule:
+              type: object
+              properties:
+                monday:
+                  $ref: '#/components/schemas/DaySchedule'
+                tuesday:
+                  $ref: '#/components/schemas/DaySchedule'
+                wednesday:
+                  $ref: '#/components/schemas/DaySchedule'
+                thursday:
+                  $ref: '#/components/schemas/DaySchedule'
+                friday:
+                  $ref: '#/components/schemas/DaySchedule'
+                saturday:
+                  $ref: '#/components/schemas/DaySchedule'
+                sunday:
+                  $ref: '#/components/schemas/DaySchedule'
+            effectiveDate:
+              type: string
+              format: date
+
+    DaySchedule:
+      type: object
+      properties:
+        isWorkingDay:
+          type: boolean
+        startTime:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        endTime:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        breakDuration:
+          type: integer
+          description: Break duration in minutes
+        maxAppointments:
+          type: integer
+          description: Maximum appointments per day
+
+    QueueOperationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            queuePosition:
+              type: integer
+            estimatedWaitTime:
+              type: integer
+              description: Estimated wait time in minutes
+            queueNumber:
+              type: string
+            nextInLine:
+              type: boolean
+
+    QueueStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            queueLength:
+              type: integer
+            averageWaitTime:
+              type: integer
+            currentPatient:
+              type: object
+              properties:
+                patientId:
+                  type: string
+                queueNumber:
+                  type: string
+                waitTime:
+                  type: integer
+            nextPatients:
+              type: array
+              items:
+                type: object
+                properties:
+                  patientId:
+                    type: string
+                  queueNumber:
+                  type: string
+                  priority:
+                    type: string
+                  estimatedWaitTime:
+                    type: integer
+
+    CancellationPolicyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            canCancel:
+              type: boolean
+            refundPolicy:
+              type: string
+              enum: [FULL_REFUND, PARTIAL_REFUND, NO_REFUND]
+            cancellationFee:
+              type: number
+            reason:
+              type: string
+            timeUntilAppointment:
+              type: integer
+              description: Minutes until appointment
+
+    RemindersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            reminderId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE, SENT, FAILED]
+            schedule:
+              type: array
+              items:
+                type: object
+                properties:
+                  window:
+                    type: string
+                  sendTime:
+                    type: string
+                    format: date-time
+                  channels:
+                    type: array
+                    items:
+                      type: string
+
+    WaitlistEntryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            waitlistId:
+              type: string
+              format: uuid
+            patientId:
+              type: string
+              format: uuid
+            preferredDate:
+              type: string
+              format: date
+            preferredTimeSlot:
+              type: string
+            priority:
+              $ref: '#/components/schemas/Priority'
+            status:
+              type: string
+              enum: [WAITING, MATCHED, CONVERTED, CANCELLED, EXPIRED]
+            createdAt:
+              type: string
+              format: date-time
+            estimatedWaitTime:
+              type: integer
+              description: Estimated wait time in days
+
+    WaitlistResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            waitlistEntries:
+              type: array
+              items:
+                $ref: '#/components/schemas/WaitlistEntryResponse'
+            pagination:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                offset:
+                  type: integer
+                total:
+                  type: integer
+
+    WaitlistOperationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            waitlistId:
+              type: string
+              format: uuid
+            status:
+              type: string
+
+    ReminderResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            reminderId:
+              type: string
+              format: uuid
+            appointmentId:
+              type: string
+              format: uuid
+            reminderType:
+              type: string
+            status:
+              type: string
+            scheduledTime:
+              type: string
+              format: date-time
+
+    RemindersListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            reminders:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReminderResponse'
+
+    BulkOperationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            totalProcessed:
+              type: integer
+            successful:
+              type: integer
+            failed:
+              type: integer
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  appointmentId:
+                    type: string
+                  error:
+                    type: string
+
+    RecurringAppointmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            seriesId:
+              type: string
+              format: uuid
+            appointmentIds:
+              type: array
+              items:
+                type: string
+                format: uuid
+            totalAppointments:
+              type: integer
+            nextAppointmentDate:
+              type: string
+              format: date
+
+    AppointmentHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            appointments:
+              type: array
+              items:
+                $ref: '#/components/schemas/AppointmentDetailsResponse'
+            statistics:
+              type: object
+              properties:
+                totalAppointments:
+                  type: integer
+                completedAppointments:
+                  type: integer
+                cancelledAppointments:
+                  type: integer
+                noShowAppointments:
+                  type: integer
+            pagination:
+              type: object
+              properties:
+                page:
+                  type: integer
+                limit:
+                  type: integer
+                total:
+                  type: integer
+                totalPages:
+                  type: integer
+
+    AppointmentStatisticsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            period:
+              type: string
+            totalAppointments:
+              type: integer
+            completedAppointments:
+              type: integer
+            cancelledAppointments:
+              type: integer
+            noShowRate:
+              type: number
+              format: double
+            averageWaitTime:
+              type: number
+              description: Average wait time in minutes
+            popularTimeSlots:
+              type: array
+              items:
+                type: object
+                properties:
+                  timeSlot:
+                    type: string
+                  count:
+                    type: integer
+            doctorStatistics:
+              type: array
+              items:
+                type: object
+                properties:
+                  doctorId:
+                    type: string
+                  doctorName:
+                    type: string
+                  totalAppointments:
+                    type: integer
+                  completionRate:
+                    type: number
+                    format: double
+
+    ReminderPreviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            appointmentId:
+              type: string
+              format: uuid
+            scheduledReminders:
+              type: array
+              items:
+                type: object
+                properties:
+                  window:
+                    type: string
+                  sendTime:
+                    type: string
+                    format: date-time
+                  channels:
+                    type: array
+                    items:
+                      type: string
+                  message:
+                    type: string
+            customReminders:
+              type: array
+              items:
+                type: object
+                properties:
+                  reminderId:
+                    type: string
+                    sendTime:
+                    type: string
+                      format: date-time
+                  message:
+                    type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Dữ liệu đầu vào không hợp lệ
+        details:
+          type: object
+          properties:
+            field:
+              type: string
+              example: email
+            message:
+              type: string
+              example: Email is required
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

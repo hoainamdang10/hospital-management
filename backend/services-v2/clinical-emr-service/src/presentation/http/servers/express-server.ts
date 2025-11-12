@@ -46,6 +46,13 @@ import { DeleteTreatmentPlanUseCase } from "../../../application/use-cases/Delet
 import { CreateAuditLogUseCase } from "../../../application/use-cases/CreateAuditLogUseCase";
 import { ListAuditLogsUseCase } from "../../../application/use-cases/ListAuditLogsUseCase";
 
+// New use cases for enhanced endpoints
+import { GetPatientSummaryUseCase } from "../../../application/use-cases/GetPatientSummaryUseCase";
+import { GetMedicalRecordHistoryUseCase } from "../../../application/use-cases/GetMedicalRecordHistoryUseCase";
+import { SearchClinicalDataUseCase } from "../../../application/use-cases/SearchClinicalDataUseCase";
+import { GetServiceMetricsUseCase } from "../../../application/use-cases/GetServiceMetricsUseCase";
+import { ExportPatientDataUseCase } from "../../../application/use-cases/ExportPatientDataUseCase";
+
 import { MedicalRecordController } from "../controllers/MedicalRecordController";
 import { ClinicalNoteController } from "../controllers/ClinicalNoteController";
 import { LabResultController } from "../controllers/LabResultController";
@@ -53,6 +60,7 @@ import { ImagingStudyController } from "../controllers/ImagingStudyController";
 import { PrescriptionController } from "../controllers/PrescriptionController";
 import { TreatmentPlanController } from "../controllers/TreatmentPlanController";
 import { AuditLogController } from "../controllers/AuditLogController";
+import { ClinicalSummaryController } from "../controllers/ClinicalSummaryController";
 
 import { createMedicalRecordRouter } from "../routes/medical-record.routes";
 import { createClinicalNoteRouter } from "../routes/clinical-note.routes";
@@ -61,9 +69,13 @@ import { createImagingStudyRouter } from "../routes/imaging-study.routes";
 import { createPrescriptionRouter } from "../routes/prescription.routes";
 import { createTreatmentPlanRouter } from "../routes/treatment-plan.routes";
 import { createAuditLogRouter } from "../routes/audit-log.routes";
+import { createClinicalSummaryRouter } from "../routes/clinical-summary.routes";
 
 import { errorMiddleware } from "../middlewares/error.middleware";
 import { authenticationMiddleware } from "../middlewares/auth.middleware";
+
+// New repository import
+import { SupabaseClinicalEmrRepository } from "../../../infrastructure/repositories/SupabaseClinicalEmrRepository";
 
 const buildLogger = (): ILogger => {
   const format = (message: string, meta?: Record<string, unknown>) =>
@@ -299,6 +311,17 @@ export function createHttpServer() {
     getMedicalRecordUseCase,
   );
 
+  // New clinical summary controller and repository
+  const clinicalEmrRepository = new SupabaseClinicalEmrRepository();
+  const clinicalSummaryController = new ClinicalSummaryController(
+    new GetPatientSummaryUseCase(clinicalEmrRepository),
+    new GetMedicalRecordHistoryUseCase(clinicalEmrRepository),
+    new SearchClinicalDataUseCase(clinicalEmrRepository),
+    new GetServiceMetricsUseCase(clinicalEmrRepository),
+    new ExportPatientDataUseCase(clinicalEmrRepository),
+    logger
+  );
+
   app.use(authenticationMiddleware);
 
   app.use(
@@ -328,6 +351,12 @@ export function createHttpServer() {
   app.use(
     "/api/v2/clinical-emr/medical-records/:recordId/audit-logs",
     createAuditLogRouter(auditLogController),
+  );
+
+  // New clinical summary routes
+  app.use(
+    "/api/v2/clinical-emr",
+    createClinicalSummaryRouter(clinicalSummaryController),
   );
 
   app.use(errorMiddleware);

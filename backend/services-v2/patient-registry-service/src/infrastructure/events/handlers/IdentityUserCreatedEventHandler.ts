@@ -69,7 +69,7 @@ export class IdentityUserCreatedEventHandler {
       }
 
       // Auto-create patient record from user information
-      // Use minimal required data - personalInfo is optional
+      // Use fullName from personalInfo, fallback to email prefix only if no personalInfo
       const fullName = eventData.personalInfo?.fullName || eventData.email.split('@')[0];
 
       this.logger.info('Auto-creating patient record from user creation event', {
@@ -86,6 +86,10 @@ export class IdentityUserCreatedEventHandler {
         fullName: fullName,
         phoneNumber: eventData.personalInfo?.phoneNumber,
         address: eventData.personalInfo?.address,
+        ward: undefined, // Will use fallback
+        district: undefined, // Will use fallback
+        city: undefined, // Will use fallback
+        province: undefined, // Will use fallback
         dateOfBirth: eventData.personalInfo?.dateOfBirth,
         gender: eventData.personalInfo?.gender,
         citizenId: eventData.personalInfo?.citizenId

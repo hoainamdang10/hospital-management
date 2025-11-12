@@ -1,9 +1,12 @@
 /**
  * Notifications Service
  * API service for fetching notifications and recent activities
+ * 
+ * MIGRATED TO SESSION-BASED AUTH
+ * Uses axios.ts with HTTP-only cookies for authentication
  */
 
-import apiClient from './client';
+import apiClient from './axios';
 
 export interface Notification {
   id: string;

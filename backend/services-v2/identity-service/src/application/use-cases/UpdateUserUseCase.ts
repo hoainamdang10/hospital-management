@@ -30,6 +30,7 @@ export interface UpdateUserRequest {
     address?: string;
     isActive?: boolean;
   };
+  isCompleteReplace?: boolean; // Flag for PUT vs PATCH behavior
 }
 
 export interface UpdateUserResponse {

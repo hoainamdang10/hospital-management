@@ -100,7 +100,7 @@ export class IdentityServiceClient implements IPermissionChecker {
   async checkPermission(userId: UserId, permission: string): Promise<PermissionCheckResult> {
     try {
       const response = await this.httpClient.post<PermissionCheckResponse>(
-        '/api/v1/auth/check-permission',
+        '/api/v1/permissions/check-permission',
         {
           userId: userId.value,
           permission
@@ -148,7 +148,7 @@ export class IdentityServiceClient implements IPermissionChecker {
   async checkAnyPermission(userId: UserId, permissions: string[]): Promise<PermissionCheckResult> {
     try {
       const response = await this.httpClient.post<PermissionCheckResponse>(
-        '/api/v1/auth/check-permissions',
+        '/api/v1/permissions/check-permissions',
         {
           userId: userId.value,
           permissions,
@@ -191,7 +191,7 @@ export class IdentityServiceClient implements IPermissionChecker {
   async checkAllPermissions(userId: UserId, permissions: string[]): Promise<PermissionCheckResult> {
     try {
       const response = await this.httpClient.post<PermissionCheckResponse>(
-        '/api/v1/auth/check-permissions',
+        '/api/v1/permissions/check-permissions',
         {
           userId: userId.value,
           permissions,
@@ -234,7 +234,7 @@ export class IdentityServiceClient implements IPermissionChecker {
   async checkRole(userId: UserId, role: string): Promise<PermissionCheckResult> {
     try {
       const response = await this.httpClient.post<PermissionCheckResponse>(
-        '/api/v1/auth/check-role',
+        '/api/v1/permissions/check-role',
         {
           userId: userId.value,
           role
@@ -276,7 +276,7 @@ export class IdentityServiceClient implements IPermissionChecker {
   async checkAnyRole(userId: UserId, roles: string[]): Promise<PermissionCheckResult> {
     try {
       const response = await this.httpClient.post<PermissionCheckResponse>(
-        '/api/v1/auth/check-roles',
+        '/api/v1/permissions/check-roles',
         {
           userId: userId.value,
           roles,
@@ -313,7 +313,7 @@ export class IdentityServiceClient implements IPermissionChecker {
   async checkAllRoles(userId: UserId, roles: string[]): Promise<PermissionCheckResult> {
     try {
       const response = await this.httpClient.post<PermissionCheckResponse>(
-        '/api/v1/auth/check-roles',
+        '/api/v1/permissions/check-roles',
         {
           userId: userId.value,
           roles,
