@@ -8,7 +8,7 @@
  */
 
 import { ILogger } from '@shared/application/services/logger.interface';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { IUserRepository } from '../../../application/repositories/IUserRepository';
 
 /**
  * Patient Updated Event Data

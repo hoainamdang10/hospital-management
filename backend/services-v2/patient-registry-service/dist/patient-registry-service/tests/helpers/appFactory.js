@@ -111,8 +111,8 @@ const SupabaseOutboxRepository_1 = require("../../src/infrastructure/outbox/Supa
  * Test Logger - Silent logger for tests
  */
 const createTestLogger = () => ({
-    debug: () => { },
-    info: () => { },
+    debug: () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
+    info: () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
     warn: (...args) => console.warn('[TestLogger][WARN]', ...args),
     error: (...args) => console.error('[TestLogger][ERROR]', ...args),
     fatal: (...args) => console.error('[TestLogger][FATAL]', ...args)
@@ -180,10 +180,10 @@ async function createTestApp(config) {
     }
     // Create mock event bus for tests (if no RabbitMQ)
     const mockEventBus = {
-        connect: async () => { },
-        disconnect: async () => { },
-        publish: async () => { },
-        subscribe: async () => { }
+        connect: async () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+        disconnect: async () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+        publish: async () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+        subscribe: async () => { } // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
     };
     const eventBus = eventPublisher || mockEventBus;
     // Mock SupabaseClient for tests
@@ -224,7 +224,9 @@ async function createTestApp(config) {
         logger: logger,
         uploadPatientPhoto: jest.fn(),
         getPatientPhoto: jest.fn(),
-        deletePatientPhoto: jest.fn()
+        deletePatientPhoto: jest.fn(),
+        deleteAllPatientPhotos: jest.fn(),
+        ensureBucketExists: jest.fn()
     };
     const uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase_1.UploadPatientPhotoUseCase(patientRepository, mockStorageService);
     const getPatientPhotoUseCase = new GetPatientPhotoUseCase_1.GetPatientPhotoUseCase(patientRepository);

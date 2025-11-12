@@ -71,6 +71,7 @@ import { ensureIdentityMockServer } from './identityMockServer';
 
 // Logger
 import { ILogger, LogMetadata as _LogMetadata } from '@shared/application/services/logger.interface';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
 import { PatientCache } from '../../src/infrastructure/cache/PatientCache';
 import { AuditService } from '../../src/infrastructure/audit/AuditService';
 import { SupabaseOutboxRepository } from '../../src/infrastructure/outbox/SupabaseOutboxRepository';
@@ -80,8 +81,8 @@ import { SupabaseStorageService } from '../../src/infrastructure/storage/Supabas
  * Test Logger - Silent logger for tests
  */
 const createTestLogger = (): ILogger => ({
-  debug: () => {}, // Silent for tests
-  info: () => {}, // Silent for tests
+  debug: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
+  info: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
   warn: (...args: unknown[]) => console.warn('[TestLogger][WARN]', ...args),
   error: (...args: unknown[]) => console.error('[TestLogger][ERROR]', ...args),
   fatal: (...args: unknown[]) => console.error('[TestLogger][FATAL]', ...args)
@@ -196,10 +197,10 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
 
   // Create mock event bus for tests (if no RabbitMQ)
   const mockEventBus = {
-    connect: async () => {}, // Mock for tests
-    disconnect: async () => {}, // Mock for tests
-    publish: async () => {}, // Mock for tests
-    subscribe: async () => {} // Mock for tests
+    connect: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+    disconnect: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+    publish: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+    subscribe: async () => {} // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
   };
 
   const eventBus = eventPublisher || mockEventBus;
@@ -289,8 +290,10 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger: logger,
     uploadPatientPhoto: jest.fn(),
     getPatientPhoto: jest.fn(),
-    deletePatientPhoto: jest.fn()
-  } as SupabaseStorageService;
+    deletePatientPhoto: jest.fn(),
+    deleteAllPatientPhotos: jest.fn(),
+    ensureBucketExists: jest.fn()
+  } as unknown as SupabaseStorageService;
 
   const uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase(patientRepository, mockStorageService);
   const getPatientPhotoUseCase = new GetPatientPhotoUseCase(patientRepository);
