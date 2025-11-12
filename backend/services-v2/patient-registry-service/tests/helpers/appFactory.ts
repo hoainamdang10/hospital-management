@@ -70,17 +70,18 @@ import { AuthenticationMiddleware } from '../../src/presentation/middleware/Auth
 import { ensureIdentityMockServer } from './identityMockServer';
 
 // Logger
-import { ILogger, LogMetadata } from '@shared/application/services/logger.interface';
+import { ILogger, LogMetadata as _LogMetadata } from '@shared/application/services/logger.interface';
 import { PatientCache } from '../../src/infrastructure/cache/PatientCache';
 import { AuditService } from '../../src/infrastructure/audit/AuditService';
 import { SupabaseOutboxRepository } from '../../src/infrastructure/outbox/SupabaseOutboxRepository';
+import { SupabaseStorageService } from '../../src/infrastructure/storage/SupabaseStorageService';
 
 /**
  * Test Logger - Silent logger for tests
  */
 const createTestLogger = (): ILogger => ({
-  debug: () => {},
-  info: () => {},
+  debug: () => {}, // Silent for tests
+  info: () => {}, // Silent for tests
   warn: (...args: unknown[]) => console.warn('[TestLogger][WARN]', ...args),
   error: (...args: unknown[]) => console.error('[TestLogger][ERROR]', ...args),
   fatal: (...args: unknown[]) => console.error('[TestLogger][FATAL]', ...args)
@@ -195,10 +196,10 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
 
   // Create mock event bus for tests (if no RabbitMQ)
   const mockEventBus = {
-    connect: async () => {},
-    disconnect: async () => {},
-    publish: async () => {},
-    subscribe: async () => {}
+    connect: async () => {}, // Mock for tests
+    disconnect: async () => {}, // Mock for tests
+    publish: async () => {}, // Mock for tests
+    subscribe: async () => {} // Mock for tests
   };
 
   const eventBus = eventPublisher || mockEventBus;
@@ -207,32 +208,75 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const mockSupabaseClient = createClient('https://mock.supabase.co', 'mock-key');
 
   // Initialize Use Cases
-  const registerPatientUseCase = new RegisterPatientUseCase(patientRepository, eventBus as any, logger, auditService, mockSupabaseClient);
-  const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(patientRepository, eventBus as any, logger, auditService);
+  const registerPatientUseCase = new RegisterPatientUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger,
+    auditService,
+    mockSupabaseClient
+  );
+  const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger,
+    auditService
+  );
   const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, logger, auditService);
   const searchPatientsUseCase = new SearchPatientsUseCase(patientRepository);
   const matchPatientsUseCase = new MatchPatientsUseCase(patientRepository, matchingService, logger);
   const mergePatientsUseCase = new MergePatientsUseCase(patientRepository);
   const linkPatientsUseCase = new LinkPatientsUseCase(patientRepository);
-  const deactivatePatientUseCase = new DeactivatePatientUseCase(patientRepository, eventBus as any, logger, auditService);
+  const deactivatePatientUseCase = new DeactivatePatientUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger,
+    auditService
+  );
   const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
-  const addEmergencyContactUseCase = new AddEmergencyContactUseCase(patientRepository, eventBus as any, logger, auditService);
+  const addEmergencyContactUseCase = new AddEmergencyContactUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger,
+    auditService
+  );
   const grantConsentUseCase = new GrantConsentUseCase(patientRepository, auditService, logger);
   const markAsDeceasedUseCase = new MarkAsDeceasedUseCase(patientRepository);
   const reactivatePatientUseCase = new ReactivatePatientUseCase(patientRepository);
 
   // New use cases
   const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase(patientRepository, logger);
-  const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(patientRepository, eventBus as any, logger);
-  const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(patientRepository, eventBus as any, logger, auditService);
-  const setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase(patientRepository, eventBus as any, logger);
+  const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger
+  );
+  const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger,
+    auditService
+  );
+  const setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger
+  );
   const getConsentsUseCase = new GetConsentsUseCase(patientRepository, logger);
   const getConsentDetailsUseCase = new GetConsentDetailsUseCase(patientRepository, logger);
-  const revokeConsentUseCase = new RevokeConsentUseCase(patientRepository, eventBus as any, logger, auditService);
+  const revokeConsentUseCase = new RevokeConsentUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger,
+    auditService
+  );
   const getActiveConsentsUseCase = new GetActiveConsentsUseCase(patientRepository, logger);
   const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase(patientRepository, logger);
   const addInsuranceInfoUseCase = new AddInsuranceInfoUseCase(patientRepository, logger);
-  const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase(patientRepository, eventBus as any, logger);
+  const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase(
+    patientRepository,
+    eventBus as IEventBus,
+    logger
+  );
   const verifyInsuranceUseCase = new VerifyInsuranceUseCase(patientRepository, logger);
 
   // Additional use cases for PatientController
@@ -246,7 +290,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     uploadPatientPhoto: jest.fn(),
     getPatientPhoto: jest.fn(),
     deletePatientPhoto: jest.fn()
-  } as any;
+  } as SupabaseStorageService;
 
   const uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase(patientRepository, mockStorageService);
   const getPatientPhotoUseCase = new GetPatientPhotoUseCase(patientRepository);
