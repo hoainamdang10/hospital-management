@@ -291,11 +291,11 @@ export class GetPatientProfileUseCase {
         reason: 'Patient profile retrieval',
       });
 
-      this.logger.info("Patient profile access audited successfully", {
+      this.logger.info('Patient profile access audited successfully', {
         patientId: patient.getPatientId(),
       });
     } catch (error) {
-      this.logger.error("Failed to audit patient profile access", {
+      this.logger.error('Failed to audit patient profile access', {
         patientId: patient.getPatientId(),
         error: error instanceof Error ? error.message : 'Unknown error',
       });

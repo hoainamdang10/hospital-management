@@ -17,7 +17,7 @@ class AddInsuranceInfoUseCase {
         this.logger = logger;
     }
     async execute(command) {
-        this.logger.info("Adding insurance info", {
+        this.logger.info('Adding insurance info', {
             patientId: command.patientId,
             performedBy: command.performedBy,
         });
@@ -25,8 +25,8 @@ class AddInsuranceInfoUseCase {
             if (!command.patientId?.trim()) {
                 return {
                     success: false,
-                    message: "Patient ID không được để trống",
-                    errors: ["INVALID_PATIENT_ID"],
+                    message: 'Patient ID không được để trống',
+                    errors: ['INVALID_PATIENT_ID'],
                 };
             }
             const patientId = PatientId_1.PatientId.create(command.patientId);
@@ -35,14 +35,14 @@ class AddInsuranceInfoUseCase {
                 return {
                     success: false,
                     message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
-                    errors: ["PATIENT_NOT_FOUND"],
+                    errors: ['PATIENT_NOT_FOUND'],
                 };
             }
             if (patient.getInsuranceInfo()) {
                 return {
                     success: false,
-                    message: "Bệnh nhân đã có thông tin bảo hiểm, vui lòng sử dụng endpoint cập nhật",
-                    errors: ["INSURANCE_ALREADY_EXISTS"],
+                    message: 'Bệnh nhân đã có thông tin bảo hiểm, vui lòng sử dụng endpoint cập nhật',
+                    errors: ['INSURANCE_ALREADY_EXISTS'],
                 };
             }
             const validFrom = new Date(command.payload.validFrom);
@@ -50,8 +50,8 @@ class AddInsuranceInfoUseCase {
             if (Number.isNaN(validFrom.getTime()) || Number.isNaN(validTo.getTime())) {
                 return {
                     success: false,
-                    message: "Ngày hiệu lực bảo hiểm không hợp lệ",
-                    errors: ["INVALID_INSURANCE_DATES"],
+                    message: 'Ngày hiệu lực bảo hiểm không hợp lệ',
+                    errors: ['INVALID_INSURANCE_DATES'],
                 };
             }
             const insuranceInfo = InsuranceInfo_1.InsuranceInfo.create({
@@ -70,18 +70,18 @@ class AddInsuranceInfoUseCase {
             await this.patientRepository.save(patient);
             return {
                 success: true,
-                message: "Đã thêm thông tin bảo hiểm thành công",
+                message: 'Đã thêm thông tin bảo hiểm thành công',
             };
         }
         catch (error) {
-            this.logger.error("Failed to add insurance info", {
+            this.logger.error('Failed to add insurance info', {
                 patientId: command.patientId,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
             return {
                 success: false,
-                message: "Không thể thêm thông tin bảo hiểm",
-                errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
+                message: 'Không thể thêm thông tin bảo hiểm',
+                errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR'],
             };
         }
     }

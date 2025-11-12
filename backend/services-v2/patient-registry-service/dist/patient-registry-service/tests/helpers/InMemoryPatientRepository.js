@@ -111,7 +111,7 @@ class InMemoryPatientRepository {
             registrationTrend: []
         };
     }
-    async getPatientHistory(patientId, options) {
+    async getPatientHistory(_patientId, _options) {
         // In-memory implementation returns empty history for tests
         return { history: [], total: 0 };
     }
@@ -144,10 +144,8 @@ class InMemoryPatientRepository {
             preferredContactMethod: 'email'
         }), BasicMedicalInfo.create({
             bloodType: undefined,
-            allergies: undefined, // Fix: allergies doesn't exist
-            chronicDiseases: undefined,
-            medications: undefined,
-            emergencyContact: undefined
+            knownAllergies: [], // Use correct property name
+            emergencyMedicalInfo: undefined
         }), undefined, // insuranceInfo
         [], // emergencyContacts
         'system' // Created by system during user activation
@@ -156,7 +154,7 @@ class InMemoryPatientRepository {
         const savedPatient = {
             patient,
         };
-        this.patients.set(patient.getPatientId(), savedPatient);
+        this.patients.set(patient.getPatientIdObject().getValue(), savedPatient);
         return patient;
     }
     /**

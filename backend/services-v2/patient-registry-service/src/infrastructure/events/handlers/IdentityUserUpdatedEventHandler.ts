@@ -44,7 +44,7 @@ export class IdentityUserUpdatedEventHandler {
 
       // Find patient by user ID
       const patient = await this.patientRepository.findByUserId(eventData.userId);
-      
+
       if (!patient) {
         this.logger.debug('No patient found for updated user', {
           userId: eventData.userId

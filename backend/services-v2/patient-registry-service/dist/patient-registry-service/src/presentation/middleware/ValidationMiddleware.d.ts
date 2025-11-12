@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Vietnamese Healthcare Standards
  */
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
 /**
  * Handle validation errors
  */

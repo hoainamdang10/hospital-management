@@ -75,12 +75,12 @@ export class VerifyInsuranceUseCase {
 
       // Verify insurance validity
       const now = new Date();
-      const isValid = insuranceInfo.isActive && 
-                     insuranceInfo.validFrom <= now && 
+      const isValid = insuranceInfo.isActive &&
+                     insuranceInfo.validFrom <= now &&
                      insuranceInfo.validTo >= now;
 
       let verificationStatus: 'verified' | 'expired' | 'invalid' | 'not_found';
-      
+
       if (!insuranceInfo.isActive) {
         verificationStatus = 'invalid';
       } else if (insuranceInfo.validTo < now) {

@@ -24,7 +24,7 @@ export class PatientIdFactory {
   /**
    * Generate next patient ID using database sequence
    * Format: PAT-YYYYMM-XXX
-   * 
+   *
    * Uses database sequence to ensure uniqueness even under high concurrency
    */
   async generateNextPatientId(): Promise<PatientId> {
@@ -85,14 +85,14 @@ export class PatientIdFactory {
       this.logger.warn('Falling back to random patient ID generation', {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
-      
+
       // Fallback: generate with random sequence (less ideal but still valid)
       const now = new Date();
       const year = now.getFullYear();
       const month = (now.getMonth() + 1).toString().padStart(2, '0');
       const sequence = Math.floor(Math.random() * 999) + 1;
       const sequenceStr = sequence.toString().padStart(3, '0');
-      
+
       const patientIdValue = `PAT-${year}${month}-${sequenceStr}`;
       return PatientId.create(patientIdValue);
     }

@@ -13,8 +13,8 @@ import {
   query,
   validationResult,
   ValidationError,
-} from "express-validator";
-import { Request, Response, NextFunction } from "express";
+} from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
 /**
  * Handle validation errors
@@ -28,13 +28,13 @@ export const handleValidationErrors = (
 
   if (!errors.isEmpty()) {
     const formattedErrors = errors.array().map((err: ValidationError) => ({
-      field: err.type === "field" ? err.path : "unknown",
+      field: err.type === 'field' ? err.path : 'unknown',
       message: err.msg,
     }));
 
     res.status(400).json({
       success: false,
-      error: "Validation failed",
+      error: 'Validation failed',
       errors: formattedErrors,
     });
     return;
@@ -48,102 +48,102 @@ export const handleValidationErrors = (
  */
 export const validateRegisterPatient = [
   // User ID
-  body("userId")
+  body('userId')
     .notEmpty()
-    .withMessage("User ID không được để trống")
+    .withMessage('User ID không được để trống')
     .isUUID()
-    .withMessage("User ID phải là UUID hợp lệ"),
+    .withMessage('User ID phải là UUID hợp lệ'),
 
   // Personal Info
-  body("fullName")
+  body('fullName')
     .notEmpty()
-    .withMessage("Họ tên không được để trống")
+    .withMessage('Họ tên không được để trống')
     .isLength({ min: 2, max: 255 })
-    .withMessage("Họ tên phải từ 2-255 ký tự"),
+    .withMessage('Họ tên phải từ 2-255 ký tự'),
 
-  body("dateOfBirth")
+  body('dateOfBirth')
     .notEmpty()
-    .withMessage("Ngày sinh không được để trống")
+    .withMessage('Ngày sinh không được để trống')
     .isISO8601()
-    .withMessage("Ngày sinh phải là ngày hợp lệ (ISO 8601)"),
+    .withMessage('Ngày sinh phải là ngày hợp lệ (ISO 8601)'),
 
-  body("gender")
+  body('gender')
     .notEmpty()
-    .withMessage("Giới tính không được để trống")
-    .isIn(["male", "female", "other"])
-    .withMessage("Giới tính không hợp lệ"),
+    .withMessage('Giới tính không được để trống')
+    .isIn(['male', 'female', 'other'])
+    .withMessage('Giới tính không hợp lệ'),
 
-  body("nationalId")
+  body('nationalId')
     .notEmpty()
-    .withMessage("CMND/CCCD không được để trống")
+    .withMessage('CMND/CCCD không được để trống')
     .matches(/^\d{9}$|^\d{12}$/)
-    .withMessage("CMND/CCCD phải là 9 hoặc 12 chữ số"),
+    .withMessage('CMND/CCCD phải là 9 hoặc 12 chữ số'),
 
-  body("nationality")
+  body('nationality')
     .optional({ checkFalsy: true })
     .isLength({ min: 2 })
-    .withMessage("Quốc tịch phải hợp lệ nếu được cung cấp"),
+    .withMessage('Quốc tịch phải hợp lệ nếu được cung cấp'),
 
   // Contact Info
-  body("primaryPhone")
+  body('primaryPhone')
     .notEmpty()
-    .withMessage("Số điện thoại chính không được để trống")
+    .withMessage('Số điện thoại chính không được để trống')
     .matches(/^(0|\+84)[0-9]{9,10}$/)
-    .withMessage("Số điện thoại không đúng định dạng Việt Nam"),
+    .withMessage('Số điện thoại không đúng định dạng Việt Nam'),
 
-  body("email").optional().isEmail().withMessage("Email không đúng định dạng"),
+  body('email').optional().isEmail().withMessage('Email không đúng định dạng'),
 
-  body("address.street")
+  body('address.street')
     .optional({ checkFalsy: true })
     .isLength({ min: 2 })
-    .withMessage("Địa chỉ đường/phố phải hợp lệ nếu được cung cấp"),
+    .withMessage('Địa chỉ đường/phố phải hợp lệ nếu được cung cấp'),
 
-  body("address.ward")
+  body('address.ward')
     .optional({ checkFalsy: true })
     .isLength({ min: 2 })
-    .withMessage("Phường/xã phải hợp lệ nếu được cung cấp"),
+    .withMessage('Phường/xã phải hợp lệ nếu được cung cấp'),
 
-  body("address.district")
+  body('address.district')
     .optional({ checkFalsy: true })
     .isLength({ min: 2 })
-    .withMessage("Quận/huyện phải hợp lệ nếu được cung cấp"),
+    .withMessage('Quận/huyện phải hợp lệ nếu được cung cấp'),
 
-  body("address.city")
+  body('address.city')
     .optional({ checkFalsy: true })
     .isLength({ min: 2 })
-    .withMessage("Thành phố không hợp lệ"),
+    .withMessage('Thành phố không hợp lệ'),
 
-  body("address.province")
+  body('address.province')
     .optional({ checkFalsy: true })
     .isLength({ min: 2 })
-    .withMessage("Tỉnh/thành phố phải hợp lệ nếu được cung cấp"),
+    .withMessage('Tỉnh/thành phố phải hợp lệ nếu được cung cấp'),
 
-  body("preferredContactMethod")
+  body('preferredContactMethod')
     .optional()
-    .isIn(["phone", "email", "sms"])
-    .withMessage("Phương thức liên hệ không hợp lệ"),
+    .isIn(['phone', 'email', 'sms'])
+    .withMessage('Phương thức liên hệ không hợp lệ'),
 
   // Blood Type (optional)
-  body("bloodType")
+  body('bloodType')
     .optional()
-    .isIn(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
-    .withMessage("Nhóm máu không hợp lệ"),
+    .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+    .withMessage('Nhóm máu không hợp lệ'),
 
   // Insurance (optional)
-  body("insurance.coverageType")
+  body('insurance.coverageType')
     .optional()
-    .isIn(["BHYT", "BHTN", "private", "self_pay"])
-    .withMessage("Loại bảo hiểm không hợp lệ"),
+    .isIn(['BHYT', 'BHTN', 'private', 'self_pay'])
+    .withMessage('Loại bảo hiểm không hợp lệ'),
 
-  body("insurance.validFrom")
+  body('insurance.validFrom')
     .optional()
     .isISO8601()
-    .withMessage("Ngày bắt đầu bảo hiểm phải là ngày hợp lệ"),
+    .withMessage('Ngày bắt đầu bảo hiểm phải là ngày hợp lệ'),
 
-  body("insurance.validTo")
+  body('insurance.validTo')
     .optional()
     .isISO8601()
-    .withMessage("Ngày kết thúc bảo hiểm phải là ngày hợp lệ"),
+    .withMessage('Ngày kết thúc bảo hiểm phải là ngày hợp lệ'),
 
   handleValidationErrors,
 ];
@@ -152,39 +152,39 @@ export const validateRegisterPatient = [
  * Validate get patient list request
  */
 export const validateGetPatientList = [
-  query("page")
+  query('page')
     .optional()
     .isInt({ min: 1 })
-    .withMessage("Page phải là số nguyên dương"),
+    .withMessage('Page phải là số nguyên dương'),
 
-  query("limit")
+  query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
-    .withMessage("Limit phải từ 1-100"),
+    .withMessage('Limit phải từ 1-100'),
 
-  query("isActive")
+  query('isActive')
     .optional()
     .isBoolean()
-    .withMessage("isActive phải là boolean"),
+    .withMessage('isActive phải là boolean'),
 
-  query("hasInsurance")
+  query('hasInsurance')
     .optional()
     .isBoolean()
-    .withMessage("hasInsurance phải là boolean"),
+    .withMessage('hasInsurance phải là boolean'),
 
-  query("city").optional().isString().withMessage("City phải là chuỗi"),
+  query('city').optional().isString().withMessage('City phải là chuỗi'),
 
-  query("province").optional().isString().withMessage("Province phải là chuỗi"),
+  query('province').optional().isString().withMessage('Province phải là chuỗi'),
 
-  query("sortField")
+  query('sortField')
     .optional()
-    .isIn(["created_at", "full_name", "date_of_birth"])
-    .withMessage("sortField không hợp lệ"),
+    .isIn(['created_at', 'full_name', 'date_of_birth'])
+    .withMessage('sortField không hợp lệ'),
 
-  query("sortDirection")
+  query('sortDirection')
     .optional()
-    .isIn(["asc", "desc"])
-    .withMessage("sortDirection phải là asc hoặc desc"),
+    .isIn(['asc', 'desc'])
+    .withMessage('sortDirection phải là asc hoặc desc'),
 
   handleValidationErrors,
 ];
@@ -193,33 +193,33 @@ export const validateGetPatientList = [
  * Validate update patient request
  */
 export const validateUpdatePatient = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng (PAT-YYYYMM-XXX)"),
+    .withMessage('Patient ID không đúng định dạng (PAT-YYYYMM-XXX)'),
 
-  body("fullName")
+  body('fullName')
     .optional()
     .isLength({ min: 2, max: 255 })
-    .withMessage("Họ tên phải từ 2-255 ký tự"),
+    .withMessage('Họ tên phải từ 2-255 ký tự'),
 
-  body("dateOfBirth")
+  body('dateOfBirth')
     .optional()
     .isISO8601()
-    .withMessage("Ngày sinh phải là ngày hợp lệ"),
+    .withMessage('Ngày sinh phải là ngày hợp lệ'),
 
-  body("gender")
+  body('gender')
     .optional()
-    .isIn(["male", "female", "other"])
-    .withMessage("Giới tính không hợp lệ"),
+    .isIn(['male', 'female', 'other'])
+    .withMessage('Giới tính không hợp lệ'),
 
-  body("primaryPhone")
+  body('primaryPhone')
     .optional()
     .matches(/^(0|\+84)[0-9]{9,10}$/)
-    .withMessage("Số điện thoại không đúng định dạng"),
+    .withMessage('Số điện thoại không đúng định dạng'),
 
-  body("email").optional().isEmail().withMessage("Email không đúng định dạng"),
+  body('email').optional().isEmail().withMessage('Email không đúng định dạng'),
 
   handleValidationErrors,
 ];
@@ -228,11 +228,11 @@ export const validateUpdatePatient = [
  * Validate patient ID parameter
  */
 export const validatePatientId = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng (PAT-YYYYMM-XXX)"),
+    .withMessage('Patient ID không đúng định dạng (PAT-YYYYMM-XXX)'),
 
   handleValidationErrors,
 ];
@@ -241,11 +241,11 @@ export const validatePatientId = [
  * Validate user ID parameter
  */
 export const validateUserId = [
-  param("userId")
+  param('userId')
     .notEmpty()
-    .withMessage("User ID không được để trống")
+    .withMessage('User ID không được để trống')
     .isUUID()
-    .withMessage("User ID phải là UUID hợp lệ"),
+    .withMessage('User ID phải là UUID hợp lệ'),
 
   handleValidationErrors,
 ];
@@ -254,11 +254,11 @@ export const validateUserId = [
  * Validate national ID parameter
  */
 export const validateNationalId = [
-  param("nationalId")
+  param('nationalId')
     .notEmpty()
-    .withMessage("CMND/CCCD không được để trống")
+    .withMessage('CMND/CCCD không được để trống')
     .matches(/^\d{9}$|^\d{12}$/)
-    .withMessage("CMND/CCCD phải là 9 hoặc 12 chữ số"),
+    .withMessage('CMND/CCCD phải là 9 hoặc 12 chữ số'),
 
   handleValidationErrors,
 ];
@@ -267,11 +267,11 @@ export const validateNationalId = [
  * Validate BHYT number parameter
  */
 export const validateBHYTNumber = [
-  param("bhytNumber")
+  param('bhytNumber')
     .notEmpty()
-    .withMessage("Số BHYT không được để trống")
+    .withMessage('Số BHYT không được để trống')
     .matches(/^[A-Z]{2}-\d-\d{2}-\d{4}-\d{5}-\d{5}$/)
-    .withMessage("Số BHYT không đúng định dạng"),
+    .withMessage('Số BHYT không đúng định dạng'),
 
   handleValidationErrors,
 ];
@@ -280,21 +280,21 @@ export const validateBHYTNumber = [
  * Validate search patients request
  */
 export const validateSearchPatients = [
-  query("searchTerm")
+  query('searchTerm')
     .notEmpty()
-    .withMessage("Từ khóa tìm kiếm không được để trống")
+    .withMessage('Từ khóa tìm kiếm không được để trống')
     .isLength({ min: 2 })
-    .withMessage("Từ khóa tìm kiếm phải có ít nhất 2 ký tự"),
+    .withMessage('Từ khóa tìm kiếm phải có ít nhất 2 ký tự'),
 
-  query("page")
+  query('page')
     .optional()
     .isInt({ min: 1 })
-    .withMessage("Số trang phải là số nguyên dương"),
+    .withMessage('Số trang phải là số nguyên dương'),
 
-  query("limit")
+  query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
-    .withMessage("Số lượng kết quả phải từ 1-100"),
+    .withMessage('Số lượng kết quả phải từ 1-100'),
 
   handleValidationErrors,
 ];
@@ -303,20 +303,20 @@ export const validateSearchPatients = [
  * Validate filter patients request
  */
 export const validateFilterPatients = [
-  query("page")
+  query('page')
     .optional()
     .isInt({ min: 1 })
-    .withMessage("Số trang phải là số nguyên dương"),
+    .withMessage('Số trang phải là số nguyên dương'),
 
-  query("limit")
+  query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
-    .withMessage("Số lượng kết quả phải từ 1-100"),
+    .withMessage('Số lượng kết quả phải từ 1-100'),
 
-  query("sortDirection")
+  query('sortDirection')
     .optional()
-    .isIn(["asc", "desc"])
-    .withMessage("Hướng sắp xếp phải là asc hoặc desc"),
+    .isIn(['asc', 'desc'])
+    .withMessage('Hướng sắp xếp phải là asc hoặc desc'),
 
   handleValidationErrors,
 ];
@@ -325,32 +325,32 @@ export const validateFilterPatients = [
  * Validate match patients request
  */
 export const validateMatchPatients = [
-  body("fullName")
+  body('fullName')
     .optional()
     .isLength({ min: 2 })
-    .withMessage("Họ tên phải có ít nhất 2 ký tự"),
+    .withMessage('Họ tên phải có ít nhất 2 ký tự'),
 
-  body("dateOfBirth")
+  body('dateOfBirth')
     .optional()
     .isISO8601()
-    .withMessage("Ngày sinh phải là ngày hợp lệ"),
+    .withMessage('Ngày sinh phải là ngày hợp lệ'),
 
-  body("nationalId")
+  body('nationalId')
     .optional()
     .matches(/^\d{9}$|^\d{12}$/)
-    .withMessage("CMND/CCCD phải là 9 hoặc 12 chữ số"),
+    .withMessage('CMND/CCCD phải là 9 hoặc 12 chữ số'),
 
-  body("primaryPhone")
+  body('primaryPhone')
     .optional()
     .matches(/^(0|\+84)[0-9]{9,10}$/)
-    .withMessage("Số điện thoại không đúng định dạng"),
+    .withMessage('Số điện thoại không đúng định dạng'),
 
-  body("email").optional().isEmail().withMessage("Email không đúng định dạng"),
+  body('email').optional().isEmail().withMessage('Email không đúng định dạng'),
 
-  body("limit")
+  body('limit')
     .optional()
     .isInt({ min: 1, max: 50 })
-    .withMessage("Số lượng kết quả phải từ 1-50"),
+    .withMessage('Số lượng kết quả phải từ 1-50'),
 
   handleValidationErrors,
 ];
@@ -359,23 +359,23 @@ export const validateMatchPatients = [
  * Validate merge patients request
  */
 export const validateMergePatients = [
-  body("duplicatePatientId")
+  body('duplicatePatientId')
     .notEmpty()
-    .withMessage("Duplicate Patient ID không được để trống")
+    .withMessage('Duplicate Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Duplicate Patient ID không đúng định dạng"),
+    .withMessage('Duplicate Patient ID không đúng định dạng'),
 
-  body("masterPatientId")
+  body('masterPatientId')
     .notEmpty()
-    .withMessage("Master Patient ID không được để trống")
+    .withMessage('Master Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Master Patient ID không đúng định dạng"),
+    .withMessage('Master Patient ID không đúng định dạng'),
 
-  body("reason")
+  body('reason')
     .notEmpty()
-    .withMessage("Lý do gộp không được để trống")
+    .withMessage('Lý do gộp không được để trống')
     .isLength({ min: 10 })
-    .withMessage("Lý do gộp phải có ít nhất 10 ký tự"),
+    .withMessage('Lý do gộp phải có ít nhất 10 ký tự'),
 
   handleValidationErrors,
 ];
@@ -384,23 +384,23 @@ export const validateMergePatients = [
  * Validate link patients request
  */
 export const validateLinkPatients = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng"),
+    .withMessage('Patient ID không đúng định dạng'),
 
-  body("otherPatientId")
+  body('otherPatientId')
     .notEmpty()
-    .withMessage("Other Patient ID không được để trống")
+    .withMessage('Other Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Other Patient ID không đúng định dạng"),
+    .withMessage('Other Patient ID không đúng định dạng'),
 
-  body("linkType")
+  body('linkType')
     .notEmpty()
-    .withMessage("Link type không được để trống")
-    .isIn(["refer", "seealso"])
-    .withMessage("Link type phải là refer hoặc seealso"),
+    .withMessage('Link type không được để trống')
+    .isIn(['refer', 'seealso'])
+    .withMessage('Link type phải là refer hoặc seealso'),
 
   handleValidationErrors,
 ];
@@ -409,27 +409,27 @@ export const validateLinkPatients = [
  * Validate add emergency contact request
  */
 export const validateAddEmergencyContact = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng"),
+    .withMessage('Patient ID không đúng định dạng'),
 
-  body("name")
+  body('name')
     .notEmpty()
-    .withMessage("Tên người liên hệ không được để trống")
+    .withMessage('Tên người liên hệ không được để trống')
     .isLength({ min: 2, max: 255 })
-    .withMessage("Tên người liên hệ phải từ 2-255 ký tự"),
+    .withMessage('Tên người liên hệ phải từ 2-255 ký tự'),
 
-  body("relationship")
+  body('relationship')
     .notEmpty()
-    .withMessage("Mối quan hệ không được để trống"),
+    .withMessage('Mối quan hệ không được để trống'),
 
-  body("primaryPhone")
+  body('primaryPhone')
     .notEmpty()
-    .withMessage("Số điện thoại chính không được để trống")
+    .withMessage('Số điện thoại chính không được để trống')
     .matches(/^(0|\+84)[0-9]{9,10}$/)
-    .withMessage("Số điện thoại không đúng định dạng"),
+    .withMessage('Số điện thoại không đúng định dạng'),
 
   handleValidationErrors,
 ];
@@ -438,52 +438,52 @@ export const validateAddEmergencyContact = [
  * Validate grant consent request
  */
 export const validateGrantConsent = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng"),
+    .withMessage('Patient ID không đúng định dạng'),
 
-  body("consentType").notEmpty().withMessage("Loại đồng ý không được để trống"),
+  body('consentType').notEmpty().withMessage('Loại đồng ý không được để trống'),
 
-  body("expiresAt")
+  body('expiresAt')
     .optional()
     .isISO8601()
-    .withMessage("Ngày hết hạn phải là ngày hợp lệ"),
+    .withMessage('Ngày hết hạn phải là ngày hợp lệ'),
 
   handleValidationErrors,
 ];
 
 export const validateAddInsuranceInfo = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng"),
+    .withMessage('Patient ID không đúng định dạng'),
 
-  body("provider")
+  body('provider')
     .notEmpty()
-    .withMessage("Tên nhà cung cấp bảo hiểm không được để trống"),
+    .withMessage('Tên nhà cung cấp bảo hiểm không được để trống'),
 
-  body("policyNumber")
+  body('policyNumber')
     .notEmpty()
-    .withMessage("Số hợp đồng bảo hiểm không được để trống"),
+    .withMessage('Số hợp đồng bảo hiểm không được để trống'),
 
-  body("coverageType")
-    .isIn(["BHYT", "BHTN", "private", "self_pay"])
-    .withMessage("Loại bảo hiểm không hợp lệ"),
+  body('coverageType')
+    .isIn(['BHYT', 'BHTN', 'private', 'self_pay'])
+    .withMessage('Loại bảo hiểm không hợp lệ'),
 
-  body("validFrom")
+  body('validFrom')
     .isISO8601()
-    .withMessage("Ngày bắt đầu bảo hiểm phải là ngày hợp lệ"),
+    .withMessage('Ngày bắt đầu bảo hiểm phải là ngày hợp lệ'),
 
-  body("validTo")
+  body('validTo')
     .isISO8601()
-    .withMessage("Ngày kết thúc bảo hiểm phải là ngày hợp lệ"),
+    .withMessage('Ngày kết thúc bảo hiểm phải là ngày hợp lệ'),
 
-  body("isVietnameseInsurance")
+  body('isVietnameseInsurance')
     .isBoolean()
-    .withMessage("Trường isVietnameseInsurance phải là boolean"),
+    .withMessage('Trường isVietnameseInsurance phải là boolean'),
 
   handleValidationErrors,
 ];
@@ -492,17 +492,17 @@ export const validateAddInsuranceInfo = [
  * Validate revoke consent request
  */
 export const validateRevokeConsent = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng"),
+    .withMessage('Patient ID không đúng định dạng'),
 
-  param("consentId")
+  param('consentId')
     .notEmpty()
-    .withMessage("Consent ID không được để trống")
+    .withMessage('Consent ID không được để trống')
     .isUUID()
-    .withMessage("Consent ID phải là UUID hợp lệ"),
+    .withMessage('Consent ID phải là UUID hợp lệ'),
 
   handleValidationErrors,
 ];
@@ -511,40 +511,40 @@ export const validateRevokeConsent = [
  * Validate update emergency contact request
  */
 export const validateUpdateEmergencyContact = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng"),
+    .withMessage('Patient ID không đúng định dạng'),
 
-  param("contactId")
+  param('contactId')
     .notEmpty()
-    .withMessage("Contact ID không được để trống")
+    .withMessage('Contact ID không được để trống')
     .isUUID()
-    .withMessage("Contact ID phải là UUID hợp lệ"),
+    .withMessage('Contact ID phải là UUID hợp lệ'),
 
-  body("name")
+  body('name')
     .notEmpty()
-    .withMessage("Tên người liên hệ không được để trống")
+    .withMessage('Tên người liên hệ không được để trống')
     .isLength({ min: 2, max: 255 })
-    .withMessage("Tên phải từ 2-255 ký tự"),
+    .withMessage('Tên phải từ 2-255 ký tự'),
 
-  body("relationship")
+  body('relationship')
     .notEmpty()
-    .withMessage("Mối quan hệ không được để trống"),
+    .withMessage('Mối quan hệ không được để trống'),
 
-  body("primaryPhone")
+  body('primaryPhone')
     .notEmpty()
-    .withMessage("Số điện thoại chính không được để trống")
+    .withMessage('Số điện thoại chính không được để trống')
     .matches(/^(0|\+84)[0-9]{9,10}$/)
-    .withMessage("Số điện thoại không hợp lệ"),
+    .withMessage('Số điện thoại không hợp lệ'),
 
-  body("secondaryPhone")
+  body('secondaryPhone')
     .optional()
     .matches(/^(0|\+84)[0-9]{9,10}$/)
-    .withMessage("Số điện thoại phụ không hợp lệ"),
+    .withMessage('Số điện thoại phụ không hợp lệ'),
 
-  body("email").optional().isEmail().withMessage("Email không hợp lệ"),
+  body('email').optional().isEmail().withMessage('Email không hợp lệ'),
 
   handleValidationErrors,
 ];
@@ -553,17 +553,17 @@ export const validateUpdateEmergencyContact = [
  * Validate remove emergency contact request
  */
 export const validateRemoveEmergencyContact = [
-  param("patientId")
+  param('patientId')
     .notEmpty()
-    .withMessage("Patient ID không được để trống")
+    .withMessage('Patient ID không được để trống')
     .matches(/^PAT-\d{6}-\d{3}$/)
-    .withMessage("Patient ID không đúng định dạng"),
+    .withMessage('Patient ID không đúng định dạng'),
 
-  param("contactId")
+  param('contactId')
     .notEmpty()
-    .withMessage("Contact ID không được để trống")
+    .withMessage('Contact ID không được để trống')
     .isUUID()
-    .withMessage("Contact ID phải là UUID hợp lệ"),
+    .withMessage('Contact ID phải là UUID hợp lệ'),
 
   handleValidationErrors,
 ];

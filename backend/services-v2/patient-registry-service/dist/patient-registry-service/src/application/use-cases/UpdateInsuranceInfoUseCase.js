@@ -17,7 +17,7 @@ class UpdateInsuranceInfoUseCase {
         this.logger = logger;
     }
     async execute(command) {
-        this.logger.info("Updating insurance info", {
+        this.logger.info('Updating insurance info', {
             patientId: command.patientId,
             performedBy: command.performedBy,
         });
@@ -25,8 +25,8 @@ class UpdateInsuranceInfoUseCase {
             if (!command.patientId || command.patientId.trim().length === 0) {
                 return {
                     success: false,
-                    message: "Patient ID không được để trống",
-                    errors: ["INVALID_PATIENT_ID"],
+                    message: 'Patient ID không được để trống',
+                    errors: ['INVALID_PATIENT_ID'],
                 };
             }
             const patientId = PatientId_1.PatientId.create(command.patientId);
@@ -35,15 +35,15 @@ class UpdateInsuranceInfoUseCase {
                 return {
                     success: false,
                     message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
-                    errors: ["PATIENT_NOT_FOUND"],
+                    errors: ['PATIENT_NOT_FOUND'],
                 };
             }
             const currentInsurance = patient.getInsuranceInfo();
             if (!currentInsurance) {
                 return {
                     success: false,
-                    message: "Bệnh nhân chưa có thông tin bảo hiểm để cập nhật",
-                    errors: ["NO_INSURANCE_INFO"],
+                    message: 'Bệnh nhân chưa có thông tin bảo hiểm để cập nhật',
+                    errors: ['NO_INSURANCE_INFO'],
                 };
             }
             // Update insurance info using activate/deactivate/setPrimary/removePrimary methods
@@ -69,23 +69,23 @@ class UpdateInsuranceInfoUseCase {
             await this.patientRepository.save(patient);
             // Publish domain events
             await this.publishDomainEvents(patient);
-            this.logger.info("Insurance info updated successfully", {
+            this.logger.info('Insurance info updated successfully', {
                 patientId: command.patientId,
             });
             return {
                 success: true,
-                message: "Cập nhật thông tin bảo hiểm thành công",
+                message: 'Cập nhật thông tin bảo hiểm thành công',
             };
         }
         catch (error) {
-            this.logger.error("Error updating insurance info", {
+            this.logger.error('Error updating insurance info', {
                 patientId: command.patientId,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
             return {
                 success: false,
-                message: "Lỗi khi cập nhật thông tin bảo hiểm",
-                errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
+                message: 'Lỗi khi cập nhật thông tin bảo hiểm',
+                errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR'],
             };
         }
     }
@@ -98,8 +98,8 @@ class UpdateInsuranceInfoUseCase {
             patient.markEventsAsCommitted();
         }
         catch (error) {
-            this.logger.warn("Event publishing failed, but insurance info was updated", {
-                error: error instanceof Error ? error.message : "Unknown error",
+            this.logger.warn('Event publishing failed, but insurance info was updated', {
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
         }
     }

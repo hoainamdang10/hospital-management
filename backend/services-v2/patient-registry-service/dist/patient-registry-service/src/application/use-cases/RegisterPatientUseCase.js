@@ -28,7 +28,7 @@ class RegisterPatientUseCase {
     }
     async execute(request) {
         try {
-            this.logger.info("Starting patient registration", {
+            this.logger.info('Starting patient registration', {
                 userId: request.userId,
                 requestedBy: request.requestedBy,
             });
@@ -36,13 +36,13 @@ class RegisterPatientUseCase {
             // 2. Check if patient already exists
             const existingPatient = await this.patientRepository.findByUserId(request.userId);
             if (existingPatient) {
-                this.logger.warn("Patient registration failed: user already has profile", {
+                this.logger.warn('Patient registration failed: user already has profile', {
                     userId: request.userId,
                 });
                 return {
                     success: false,
-                    message: "Người dùng đã có hồ sơ bệnh nhân",
-                    errors: ["USER_ALREADY_HAS_PATIENT_PROFILE"],
+                    message: 'Người dùng đã có hồ sơ bệnh nhân',
+                    errors: ['USER_ALREADY_HAS_PATIENT_PROFILE'],
                 };
             }
             // 3. Check if national ID already exists
@@ -50,8 +50,8 @@ class RegisterPatientUseCase {
             if (existingByNationalId) {
                 return {
                     success: false,
-                    message: "CMND/CCCD đã tồn tại trong hệ thống",
-                    errors: ["NATIONAL_ID_ALREADY_EXISTS"],
+                    message: 'CMND/CCCD đã tồn tại trong hệ thống',
+                    errors: ['NATIONAL_ID_ALREADY_EXISTS'],
                 };
             }
             // 4. Check if BHYT number already exists (if provided)
@@ -60,8 +60,8 @@ class RegisterPatientUseCase {
                 if (existingByBHYT) {
                     return {
                         success: false,
-                        message: "Số BHYT đã tồn tại trong hệ thống",
-                        errors: ["BHYT_NUMBER_ALREADY_EXISTS"],
+                        message: 'Số BHYT đã tồn tại trong hệ thống',
+                        errors: ['BHYT_NUMBER_ALREADY_EXISTS'],
                     };
                 }
             }
@@ -77,7 +77,7 @@ class RegisterPatientUseCase {
                 occupation: request.personalInfo.occupation,
                 maritalStatus: request.personalInfo.maritalStatus,
             });
-            const preferredContactMethod = request.contactInfo.preferredContactMethod ?? "phone";
+            const preferredContactMethod = request.contactInfo.preferredContactMethod ?? 'phone';
             const contactInfo = ContactInfo_1.ContactInfo.create({
                 primaryPhone: normalizeVietnamesePhoneNumber(request.contactInfo.primaryPhone) ||
                     request.contactInfo.primaryPhone,
@@ -121,7 +121,7 @@ class RegisterPatientUseCase {
             await this.publishDomainEvents(patient);
             // 12. HIPAA audit logging
             await this.auditPatientRegistration(patient, request);
-            this.logger.info("Patient registration completed successfully", {
+            this.logger.info('Patient registration completed successfully', {
                 patientId: patient.getPatientId(),
                 userId: request.userId,
                 requestedBy: request.requestedBy,
@@ -129,33 +129,33 @@ class RegisterPatientUseCase {
             // 13. Return success response
             return {
                 success: true,
-                patientId: patient.getPatientId() || "",
-                message: "Đăng ký bệnh nhân thành công",
+                patientId: patient.getPatientId() || '',
+                message: 'Đăng ký bệnh nhân thành công',
             };
         }
         catch (error) {
             // Handle validation errors
             if (error instanceof Error) {
-                this.logger.error("Patient registration failed", {
+                this.logger.error('Patient registration failed', {
                     userId: request.userId,
                     error: error.message,
                     stack: error.stack,
                 });
                 return {
                     success: false,
-                    message: "Đăng ký bệnh nhân thất bại",
-                    errors: ["REGISTRATION_FAILED", error.message],
+                    message: 'Đăng ký bệnh nhân thất bại',
+                    errors: ['REGISTRATION_FAILED', error.message],
                 };
             }
             // Handle unexpected errors
-            this.logger.error("Unexpected error during patient registration", {
+            this.logger.error('Unexpected error during patient registration', {
                 userId: request.userId,
-                error: "UNEXPECTED_ERROR",
+                error: 'UNEXPECTED_ERROR',
             });
             return {
                 success: false,
-                message: "Đã xảy ra lỗi không mong muốn",
-                errors: ["UNEXPECTED_ERROR"],
+                message: 'Đã xảy ra lỗi không mong muốn',
+                errors: ['UNEXPECTED_ERROR'],
             };
         }
     }
@@ -171,9 +171,9 @@ class RegisterPatientUseCase {
             patient.markEventsAsCommitted();
         }
         catch (error) {
-            this.logger.warn("Event publishing failed, but patient was saved", {
+            this.logger.warn('Event publishing failed, but patient was saved', {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
         }
     }
@@ -186,37 +186,37 @@ class RegisterPatientUseCase {
             // Log to audit_logs table (HIPAA compliance)
             await this.auditService.logAudit({
                 eventId: (0, crypto_1.randomUUID)(),
-                eventType: "patient.registered",
-                aggregateType: "Patient",
-                aggregateId: patient.getPatientId() || "unknown",
-                action: "PATIENT_REGISTRATION",
+                eventType: 'patient.registered',
+                aggregateType: 'Patient',
+                aggregateId: patient.getPatientId() || 'unknown',
+                action: 'PATIENT_REGISTRATION',
                 userId: request.userId ?? undefined,
                 patientId: patient.getPatientId() ?? undefined,
                 containsPHI: true,
                 changedFields: {
-                    dataAccessed: "patient_personal_info,patient_contact_info,patient_medical_info,insurance_info",
-                    requestedBy: request.requestedBy || "system",
+                    dataAccessed: 'patient_personal_info,patient_contact_info,patient_medical_info,insurance_info',
+                    requestedBy: request.requestedBy || 'system',
                 },
-                complianceLevel: "hipaa",
+                complianceLevel: 'hipaa',
             });
-            this.logger.info("Patient registration audited successfully", {
+            this.logger.info('Patient registration audited successfully', {
                 patientId: patient.getPatientId(),
             });
         }
         catch (error) {
             // Log error but don't fail the registration
-            this.logger.error("Failed to audit patient registration", {
+            this.logger.error('Failed to audit patient registration', {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
         }
     }
 }
 exports.RegisterPatientUseCase = RegisterPatientUseCase;
-const DEFAULT_PATIENT_NATIONALITY = "Vietnamese";
-const DEFAULT_PATIENT_ADDRESS_TEXT = "Chưa cập nhật";
-const DEFAULT_PATIENT_CITY = "TP. Hồ Chí Minh";
-const DEFAULT_PATIENT_COUNTRY = "Việt Nam";
+const DEFAULT_PATIENT_NATIONALITY = 'Vietnamese';
+const DEFAULT_PATIENT_ADDRESS_TEXT = 'Chưa cập nhật';
+const DEFAULT_PATIENT_CITY = 'TP. Hồ Chí Minh';
+const DEFAULT_PATIENT_COUNTRY = 'Việt Nam';
 function buildSafePatientAddress(address) {
     const fallbackCity = address?.city?.trim() || DEFAULT_PATIENT_CITY;
     return {
@@ -233,15 +233,15 @@ function normalizeVietnamesePhoneNumber(phone) {
     if (!phone) {
         return undefined;
     }
-    const sanitized = phone.replace(/[\s-]/g, "");
-    if (sanitized.startsWith("+84")) {
+    const sanitized = phone.replace(/[\s-]/g, '');
+    if (sanitized.startsWith('+84')) {
         const rest = sanitized.slice(3);
         if (!rest) {
             return undefined;
         }
         return `0${rest}`;
     }
-    if (sanitized.startsWith("84") && sanitized.length >= 11) {
+    if (sanitized.startsWith('84') && sanitized.length >= 11) {
         return `0${sanitized.slice(2)}`;
     }
     return sanitized;

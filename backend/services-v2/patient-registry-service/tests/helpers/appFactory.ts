@@ -1,9 +1,9 @@
 /**
  * App Factory for Integration Tests
- * 
+ *
  * Creates and configures Express app instance for testing
  * without starting the actual server
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -121,7 +121,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
 
   // Initialize Event Publisher (optional for tests)
   let eventPublisher: RabbitMQEventPublisher | undefined;
-  
+
   if (config.enableRabbitMQ && config.rabbitmqUrl) {
     eventPublisher = new RabbitMQEventPublisher(
       {

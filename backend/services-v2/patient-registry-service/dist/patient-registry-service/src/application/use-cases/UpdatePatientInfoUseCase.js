@@ -25,7 +25,7 @@ class UpdatePatientInfoUseCase {
     }
     async execute(request) {
         try {
-            this.logger.info("Starting patient info update", {
+            this.logger.info('Starting patient info update', {
                 patientId: request.patientId,
                 updatedBy: request.updatedBy,
             });
@@ -33,31 +33,31 @@ class UpdatePatientInfoUseCase {
             const patientId = PatientId_1.PatientId.create(request.patientId);
             const patient = await this.patientRepository.findById(patientId);
             if (!patient) {
-                this.logger.warn("Patient update failed: patient not found", {
+                this.logger.warn('Patient update failed: patient not found', {
                     patientId: request.patientId,
                 });
                 return {
                     success: false,
-                    message: "Không tìm thấy bệnh nhân",
-                    errors: ["PATIENT_NOT_FOUND"],
+                    message: 'Không tìm thấy bệnh nhân',
+                    errors: ['PATIENT_NOT_FOUND'],
                 };
             }
             // 2. Check if patient is active
             if (!patient.isActive()) {
-                this.logger.warn("Patient update failed: patient not active", {
+                this.logger.warn('Patient update failed: patient not active', {
                     patientId: request.patientId,
                 });
                 return {
                     success: false,
-                    message: "Không thể cập nhật bệnh nhân không hoạt động",
-                    errors: ["PATIENT_NOT_ACTIVE"],
+                    message: 'Không thể cập nhật bệnh nhân không hoạt động',
+                    errors: ['PATIENT_NOT_ACTIVE'],
                 };
             }
             // Track updated fields for audit
             const updatedFields = [];
             // 3. Update personal info (if provided)
             if (request.personalInfo) {
-                updatedFields.push("personal_info");
+                updatedFields.push('personal_info');
                 const personalInfo = PersonalInfo_1.PersonalInfo.create({
                     fullName: request.personalInfo.fullName,
                     dateOfBirth: new Date(request.personalInfo.dateOfBirth),
@@ -72,7 +72,7 @@ class UpdatePatientInfoUseCase {
             }
             // 4. Update contact info (if provided)
             if (request.contactInfo) {
-                updatedFields.push("contact_info");
+                updatedFields.push('contact_info');
                 const contactInfo = ContactInfo_1.ContactInfo.create({
                     primaryPhone: request.contactInfo.primaryPhone,
                     secondaryPhone: request.contactInfo.secondaryPhone,
@@ -84,7 +84,7 @@ class UpdatePatientInfoUseCase {
             }
             // 5. Update basic medical info (if provided)
             if (request.basicMedicalInfo) {
-                updatedFields.push("basic_medical_info");
+                updatedFields.push('basic_medical_info');
                 const basicMedicalInfo = BasicMedicalInfo_1.BasicMedicalInfo.create({
                     bloodType: request.basicMedicalInfo.bloodType,
                     knownAllergies: request.basicMedicalInfo.knownAllergies || [],
@@ -94,7 +94,7 @@ class UpdatePatientInfoUseCase {
             }
             // 6. Update insurance info (if provided)
             if (request.insuranceInfo) {
-                updatedFields.push("insurance_info");
+                updatedFields.push('insurance_info');
                 const insuranceInfo = InsuranceInfo_1.InsuranceInfo.create({
                     provider: request.insuranceInfo.provider,
                     policyNumber: request.insuranceInfo.policyNumber,
@@ -115,40 +115,40 @@ class UpdatePatientInfoUseCase {
             await this.publishDomainEvents(patient);
             // 9. HIPAA audit logging
             await this.auditPatientUpdate(patient, request, updatedFields);
-            this.logger.info("Patient info update completed successfully", {
+            this.logger.info('Patient info update completed successfully', {
                 patientId: request.patientId,
                 updatedBy: request.updatedBy,
-                updatedFields: updatedFields.join(","),
+                updatedFields: updatedFields.join(','),
             });
             // 10. Return success response
             return {
                 success: true,
-                message: "Cập nhật thông tin bệnh nhân thành công",
+                message: 'Cập nhật thông tin bệnh nhân thành công',
             };
         }
         catch (error) {
             // Handle validation errors
             if (error instanceof Error) {
-                this.logger.error("Patient info update failed", {
+                this.logger.error('Patient info update failed', {
                     patientId: request.patientId,
                     error: error.message,
                     stack: error.stack,
                 });
                 return {
                     success: false,
-                    message: "Cập nhật thông tin bệnh nhân thất bại",
-                    errors: ["UPDATE_FAILED", error.message],
+                    message: 'Cập nhật thông tin bệnh nhân thất bại',
+                    errors: ['UPDATE_FAILED', error.message],
                 };
             }
             // Handle unexpected errors
-            this.logger.error("Unexpected error during patient info update", {
+            this.logger.error('Unexpected error during patient info update', {
                 patientId: request.patientId,
-                error: "UNEXPECTED_ERROR",
+                error: 'UNEXPECTED_ERROR',
             });
             return {
                 success: false,
-                message: "Đã xảy ra lỗi không mong muốn",
-                errors: ["UNEXPECTED_ERROR"],
+                message: 'Đã xảy ra lỗi không mong muốn',
+                errors: ['UNEXPECTED_ERROR'],
             };
         }
     }
@@ -164,9 +164,9 @@ class UpdatePatientInfoUseCase {
             patient.markEventsAsCommitted();
         }
         catch (error) {
-            this.logger.warn("Event publishing failed, but patient was updated", {
+            this.logger.warn('Event publishing failed, but patient was updated', {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
         }
     }
@@ -179,28 +179,28 @@ class UpdatePatientInfoUseCase {
             // Log to audit_logs table (HIPAA compliance)
             await this.auditService.logAudit({
                 eventId: (0, crypto_1.randomUUID)(),
-                eventType: "patient.updated",
-                aggregateType: "Patient",
-                aggregateId: patient.getPatientId() || "unknown",
-                action: "PATIENT_INFO_UPDATE",
+                eventType: 'patient.updated',
+                aggregateType: 'Patient',
+                aggregateId: patient.getPatientId() || 'unknown',
+                action: 'PATIENT_INFO_UPDATE',
                 userId: request.updatedBy ?? undefined,
                 patientId: patient.getPatientId() ?? undefined,
                 containsPHI: true,
                 changedFields: {
-                    dataAccessed: updatedFields.join(","),
-                    requestedBy: request.updatedBy || "system",
+                    dataAccessed: updatedFields.join(','),
+                    requestedBy: request.updatedBy || 'system',
                     updatedFields: updatedFields,
                 },
-                complianceLevel: "hipaa",
+                complianceLevel: 'hipaa',
             });
-            this.logger.info("Patient update audited successfully", {
+            this.logger.info('Patient update audited successfully', {
                 patientId: patient.getPatientId(),
             });
         }
         catch (error) {
-            this.logger.error("Failed to audit patient update", {
+            this.logger.error('Failed to audit patient update', {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
         }
     }

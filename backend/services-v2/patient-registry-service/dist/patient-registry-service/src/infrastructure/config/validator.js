@@ -53,7 +53,7 @@ function validateConfig(logger, mode = ValidationMode.STRICT) {
             mode
         });
         throw new Error(`Missing critical environment variables: ${missingCritical.join(', ')}\n` +
-            `Please check your .env file and ensure all required variables are set.`);
+            'Please check your .env file and ensure all required variables are set.');
     }
     // Check optional variables in STRICT mode
     if (mode === ValidationMode.STRICT) {

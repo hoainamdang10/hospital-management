@@ -1,8 +1,8 @@
 /**
  * Get Patient Statistics Use Case
- * 
+ *
  * Provides statistical data about patients for dashboard and reporting
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */

@@ -8,13 +8,13 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { randomUUID } from "crypto";
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { PatientId } from "../../domain/value-objects/PatientId";
-import { Patient } from "../../domain/aggregates/Patient";
-import { IEventBus } from "@shared/application/services/event-bus.interface";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { AuditService } from "../../infrastructure/audit/AuditService";
+import { randomUUID } from 'crypto';
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { PatientId } from '../../domain/value-objects/PatientId';
+import { Patient } from '../../domain/aggregates/Patient';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { AuditService } from '../../infrastructure/audit/AuditService';
 
 export interface DeactivatePatientRequest {
   patientId: string;
@@ -44,7 +44,7 @@ export class DeactivatePatientUseCase {
     request: DeactivatePatientRequest,
   ): Promise<DeactivatePatientResponse> {
     try {
-      this.logger.info("Starting patient deactivation", {
+      this.logger.info('Starting patient deactivation', {
         patientId: request.patientId,
         performedBy: request.performedBy,
         reason: request.reason,
@@ -55,13 +55,13 @@ export class DeactivatePatientUseCase {
       const patient = await this.patientRepository.findById(patientId);
 
       if (!patient) {
-        this.logger.warn("Patient deactivation failed: patient not found", {
+        this.logger.warn('Patient deactivation failed: patient not found', {
           patientId: request.patientId,
         });
         return {
           success: false,
-          message: "Không tìm thấy bệnh nhân",
-          errors: ["PATIENT_NOT_FOUND"],
+          message: 'Không tìm thấy bệnh nhân',
+          errors: ['PATIENT_NOT_FOUND'],
         };
       }
 
@@ -69,8 +69,8 @@ export class DeactivatePatientUseCase {
       if (patient.isInactive()) {
         return {
           success: false,
-          message: "Bệnh nhân đã bị vô hiệu hóa trước đó",
-          errors: ["PATIENT_ALREADY_INACTIVE"],
+          message: 'Bệnh nhân đã bị vô hiệu hóa trước đó',
+          errors: ['PATIENT_ALREADY_INACTIVE'],
         };
       }
 
@@ -78,8 +78,8 @@ export class DeactivatePatientUseCase {
       if (patient.isMerged()) {
         return {
           success: false,
-          message: "Không thể vô hiệu hóa bệnh nhân đã được merge",
-          errors: ["PATIENT_ALREADY_MERGED"],
+          message: 'Không thể vô hiệu hóa bệnh nhân đã được merge',
+          errors: ['PATIENT_ALREADY_MERGED'],
         };
       }
 
@@ -87,8 +87,8 @@ export class DeactivatePatientUseCase {
       if (patient.isDeceased()) {
         return {
           success: false,
-          message: "Không thể vô hiệu hóa bệnh nhân đã qua đời",
-          errors: ["PATIENT_ALREADY_DECEASED"],
+          message: 'Không thể vô hiệu hóa bệnh nhân đã qua đời',
+          errors: ['PATIENT_ALREADY_DECEASED'],
         };
       }
 
@@ -104,7 +104,7 @@ export class DeactivatePatientUseCase {
       // 8. HIPAA audit logging
       await this.auditPatientDeactivation(patient, request);
 
-      this.logger.info("Patient deactivation completed successfully", {
+      this.logger.info('Patient deactivation completed successfully', {
         patientId: request.patientId,
         performedBy: request.performedBy,
       });
@@ -112,7 +112,7 @@ export class DeactivatePatientUseCase {
       // 9. Return success response
       return {
         success: true,
-        message: "Vô hiệu hóa bệnh nhân thành công",
+        message: 'Vô hiệu hóa bệnh nhân thành công',
         data: {
           patientId: request.patientId,
           deactivatedAt: new Date().toISOString(),
@@ -121,27 +121,27 @@ export class DeactivatePatientUseCase {
     } catch (error) {
       // Handle validation errors
       if (error instanceof Error) {
-        this.logger.error("Patient deactivation failed", {
+        this.logger.error('Patient deactivation failed', {
           patientId: request.patientId,
           error: error.message,
           stack: error.stack,
         });
         return {
           success: false,
-          message: "Vô hiệu hóa bệnh nhân thất bại",
+          message: 'Vô hiệu hóa bệnh nhân thất bại',
           errors: [error.message],
         };
       }
 
       // Handle unexpected errors
-      this.logger.error("Unexpected error during patient deactivation", {
+      this.logger.error('Unexpected error during patient deactivation', {
         patientId: request.patientId,
-        error: "UNEXPECTED_ERROR",
+        error: 'UNEXPECTED_ERROR',
       });
       return {
         success: false,
-        message: "Đã xảy ra lỗi không mong muốn",
-        errors: ["UNEXPECTED_ERROR"],
+        message: 'Đã xảy ra lỗi không mong muốn',
+        errors: ['UNEXPECTED_ERROR'],
       };
     }
   }
@@ -159,9 +159,9 @@ export class DeactivatePatientUseCase {
 
       patient.markEventsAsCommitted();
     } catch (error) {
-      this.logger.warn("Event publishing failed, but patient was deactivated", {
+      this.logger.warn('Event publishing failed, but patient was deactivated', {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -178,28 +178,28 @@ export class DeactivatePatientUseCase {
       // Log to audit_logs table (HIPAA compliance)
       await this.auditService.logAudit({
         eventId: randomUUID(),
-        eventType: "patient.deactivated",
-        aggregateType: "Patient",
-        aggregateId: patient.getPatientId() || "unknown",
-        action: "PATIENT_DEACTIVATION",
+        eventType: 'patient.deactivated',
+        aggregateType: 'Patient',
+        aggregateId: patient.getPatientId() || 'unknown',
+        action: 'PATIENT_DEACTIVATION',
         userId: request.performedBy ?? undefined,
         patientId: patient.getPatientId() ?? undefined,
         containsPHI: true,
         changedFields: {
-          dataAccessed: "patient_status",
-          requestedBy: request.performedBy || "system",
+          dataAccessed: 'patient_status',
+          requestedBy: request.performedBy || 'system',
           reason: request.reason,
         },
-        complianceLevel: "hipaa",
+        complianceLevel: 'hipaa',
       });
 
-      this.logger.info("Patient deactivation audited successfully", {
+      this.logger.info('Patient deactivation audited successfully', {
         patientId: patient.getPatientId(),
       });
     } catch (error) {
-      this.logger.error("Failed to audit patient deactivation", {
+      this.logger.error('Failed to audit patient deactivation', {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }

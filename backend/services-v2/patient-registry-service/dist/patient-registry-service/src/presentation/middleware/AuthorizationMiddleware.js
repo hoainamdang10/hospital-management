@@ -34,8 +34,8 @@ class AuthorizationMiddleware {
                 if (!req.user) {
                     res.status(401).json({
                         success: false,
-                        error: "Unauthorized",
-                        message: "Authentication required",
+                        error: 'Unauthorized',
+                        message: 'Authentication required',
                     });
                     return;
                 }
@@ -43,19 +43,19 @@ class AuthorizationMiddleware {
                 const currentUserId = req.user.userId;
                 const userRoles = req.user.roles || [];
                 const userPermissions = req.user.permissions || [];
-                this.logger.debug("Authorization check", {
+                this.logger.debug('Authorization check', {
                     paramName,
                     requestedId,
                     currentUserId,
                     userRoles,
-                    hasPatientReadPermission: userPermissions.includes("patient:read"),
+                    hasPatientReadPermission: userPermissions.includes('patient:read'),
                 });
                 // RULE 1: Check if user has admin permission (can access all)
-                if (userPermissions.includes("patient:read")) {
-                    this.logger.info("Access granted: User has patient:read permission", {
+                if (userPermissions.includes('patient:read')) {
+                    this.logger.info('Access granted: User has patient:read permission', {
                         userId: currentUserId,
                         requestedId,
-                        reason: "permission",
+                        reason: 'permission',
                     });
                     return next();
                 }
@@ -74,15 +74,15 @@ class AuthorizationMiddleware {
                     }
                 }
                 if (isOwner) {
-                    this.logger.info("Access granted: User accessing own data", {
+                    this.logger.info('Access granted: User accessing own data', {
                         userId: currentUserId,
                         requestedId,
-                        reason: "ownership",
+                        reason: 'ownership',
                     });
                     return next();
                 }
                 // RULE 3: DENY - No permission and not owner
-                this.logger.warn("Access denied: Insufficient permissions", {
+                this.logger.warn('Access denied: Insufficient permissions', {
                     userId: currentUserId,
                     requestedId,
                     userRoles,
@@ -90,20 +90,20 @@ class AuthorizationMiddleware {
                 });
                 res.status(403).json({
                     success: false,
-                    error: "Forbidden",
+                    error: 'Forbidden',
                     message: "You do not have permission to access this patient's data",
-                    code: "INSUFFICIENT_PERMISSIONS",
+                    code: 'INSUFFICIENT_PERMISSIONS',
                 });
             }
             catch (error) {
-                this.logger.error("Authorization middleware error", {
-                    error: error instanceof Error ? error.message : "Unknown error",
+                this.logger.error('Authorization middleware error', {
+                    error: error instanceof Error ? error.message : 'Unknown error',
                     path: req.path,
                 });
                 res.status(500).json({
                     success: false,
-                    error: "Internal Server Error",
-                    message: "Authorization check failed",
+                    error: 'Internal Server Error',
+                    message: 'Authorization check failed',
                 });
             }
         };
@@ -120,23 +120,23 @@ class AuthorizationMiddleware {
             if (!req.user) {
                 res.status(401).json({
                     success: false,
-                    error: "Unauthorized",
-                    message: "Authentication required",
+                    error: 'Unauthorized',
+                    message: 'Authentication required',
                 });
                 return;
             }
             const userPermissions = req.user.permissions || [];
             const hasPermission = permissions.every((permission) => userPermissions.includes(permission));
             if (!hasPermission) {
-                this.logger.warn("Permission denied", {
+                this.logger.warn('Permission denied', {
                     userId: req.user.userId,
                     required: permissions,
                     actual: userPermissions,
                 });
                 res.status(403).json({
                     success: false,
-                    error: "Forbidden",
-                    message: "Insufficient permissions",
+                    error: 'Forbidden',
+                    message: 'Insufficient permissions',
                     requiredPermissions: permissions,
                 });
                 return;
@@ -153,23 +153,23 @@ class AuthorizationMiddleware {
             if (!req.user) {
                 res.status(401).json({
                     success: false,
-                    error: "Unauthorized",
-                    message: "Authentication required",
+                    error: 'Unauthorized',
+                    message: 'Authentication required',
                 });
                 return;
             }
             const userRoles = req.user.roles || [];
             const hasRole = userRoles.some((role) => roles.includes(role));
             if (!hasRole) {
-                this.logger.warn("Role requirement not met", {
+                this.logger.warn('Role requirement not met', {
                     userId: req.user.userId,
                     required: roles,
                     actual: userRoles,
                 });
                 res.status(403).json({
                     success: false,
-                    error: "Forbidden",
-                    message: "Insufficient role privileges",
+                    error: 'Forbidden',
+                    message: 'Insufficient role privileges',
                     requiredRoles: roles,
                 });
                 return;

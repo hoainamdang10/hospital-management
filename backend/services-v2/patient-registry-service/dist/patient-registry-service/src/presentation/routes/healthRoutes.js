@@ -10,8 +10,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createHealthRoutes = createHealthRoutes;
 const express_1 = require("express");
 function getErrorMessage(error) {
-    if (error instanceof Error)
+    if (error instanceof Error) {
         return error.message;
+    }
     return String(error);
 }
 function createHealthRoutes(deps) {

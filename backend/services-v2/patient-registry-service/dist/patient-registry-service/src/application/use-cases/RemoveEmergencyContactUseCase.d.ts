@@ -6,10 +6,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { IEventBus } from "@shared/application/services/event-bus.interface";
-import { IAuditService } from "@shared/application/services/audit.service.interface";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
 export interface RemoveEmergencyContactCommand {
     patientId: string;
     contactId: string;

@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Production Monitoring, Observability, HIPAA
  */
-import { Registry, Counter, Histogram, Gauge } from "prom-client";
+import { Registry, Counter, Histogram, Gauge } from 'prom-client';
 export declare class PrometheusMetrics {
     private registry;
     apiRequestsTotal: Counter;

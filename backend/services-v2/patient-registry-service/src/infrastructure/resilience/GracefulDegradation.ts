@@ -1,7 +1,7 @@
 /**
  * Graceful Degradation Pattern Implementation
  * Provides fallback mechanisms for critical patient registry operations
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Production-Ready, HIPAA-Compliant Fallbacks
@@ -158,7 +158,7 @@ export class PatientRegistryDegradation implements IDegradationService {
 
     if (cachedResult) {
       this.logger.warn('Using cached patient data (degraded mode)', { criteria });
-      
+
       return {
         ...cachedResult,
         mode: ServiceMode.READ_ONLY,
@@ -187,7 +187,7 @@ export class PatientRegistryDegradation implements IDegradationService {
 
     if (cachedResult) {
       this.logger.warn('Emergency mode - providing minimal patient access', { criteria });
-      
+
       return {
         success: true,
         mode: ServiceMode.EMERGENCY_MODE,
@@ -241,7 +241,7 @@ export class PatientRegistryDegradation implements IDegradationService {
 
     if (cachedResult) {
       this.logger.warn('Using cached search results (degraded mode)', { searchTerm });
-      
+
       return {
         ...cachedResult,
         mode: ServiceMode.READ_ONLY,
@@ -280,7 +280,7 @@ export class PatientRegistryDegradation implements IDegradationService {
     if (this.currentMode === ServiceMode.FULL_SERVICE) {
       this.currentMode = mode;
       this.degradationStartTime = new Date();
-      
+
       this.logger.warn('Entering degraded mode', {
         mode,
         timestamp: this.degradationStartTime
@@ -292,10 +292,18 @@ export class PatientRegistryDegradation implements IDegradationService {
    * Cache management
    */
   private getCacheKey(criteria: PatientSearchCriteria): string {
-    if (criteria.patientId) return `patient:${criteria.patientId}`;
-    if (criteria.userId) return `user:${criteria.userId}`;
-    if (criteria.nationalId) return `national:${criteria.nationalId}`;
-    if (criteria.bhytNumber) return `bhyt:${criteria.bhytNumber}`;
+    if (criteria.patientId) {
+      return `patient:${criteria.patientId}`;
+    }
+    if (criteria.userId) {
+      return `user:${criteria.userId}`;
+    }
+    if (criteria.nationalId) {
+      return `national:${criteria.nationalId}`;
+    }
+    if (criteria.bhytNumber) {
+      return `bhyt:${criteria.bhytNumber}`;
+    }
     return 'unknown';
   }
 

@@ -1,7 +1,7 @@
 /**
  * Health & Monitoring Routes for Patient Registry Service
  * Handles health checks, metrics, and service info
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -16,7 +16,9 @@ interface HealthRouteDependencies {
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) {
+    return error.message;
+  }
   return String(error);
 }
 
@@ -76,7 +78,7 @@ export function createHealthRoutes(deps: HealthRouteDependencies): Router {
   router.get('/metrics', async (_req: Request, res: Response) => {
     try {
       const health = await healthCheck.checkHealth();
-      
+
       // Prometheus text format
       const metrics = [
         '# HELP patient_registry_health_status Health status of the service (1=healthy, 0.5=degraded, 0=unhealthy)',

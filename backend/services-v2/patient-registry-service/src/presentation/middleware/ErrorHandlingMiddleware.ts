@@ -103,7 +103,9 @@ export class ErrorHandlingMiddleware {
    * HIPAA compliance - remove PHI/PII from logs
    */
   private redactSensitiveData(data: any): any {
-    if (!data || typeof data !== 'object') return data;
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
 
     const redacted = { ...data };
     const sensitiveFields = [

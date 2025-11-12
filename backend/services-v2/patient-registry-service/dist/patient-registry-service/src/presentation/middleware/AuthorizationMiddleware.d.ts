@@ -10,10 +10,10 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { Response, NextFunction } from "express";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { AuthenticatedRequest } from "./AuthenticationMiddleware";
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { Response, NextFunction } from 'express';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { AuthenticatedRequest } from './AuthenticationMiddleware';
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 export interface AuthorizationMiddlewareConfig {
     logger: ILogger;
     patientRepository: IPatientRepository;

@@ -2,7 +2,7 @@
  * IDegradationService - Application Service Interface
  * V2 Clean Architecture + DDD Implementation
  * Defines contract for graceful degradation operations
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA

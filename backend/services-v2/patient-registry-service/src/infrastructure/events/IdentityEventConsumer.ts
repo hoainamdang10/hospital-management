@@ -7,27 +7,27 @@
  * @compliance Clean Architecture, Event-Driven Architecture
  */
 
-import amqp, { Channel, ConsumeMessage } from "amqplib";
-import { connectRabbitMQWithRetry } from "@shared/infrastructure/event-bus/rabbitmq-connection";
-import { ILogger } from "@shared/application/services/logger.interface";
+import amqp, { Channel, ConsumeMessage } from 'amqplib';
+import { connectRabbitMQWithRetry } from '@shared/infrastructure/event-bus/rabbitmq-connection';
+import { ILogger } from '@shared/application/services/logger.interface';
 import {
   IdentityUserCreatedEventHandler,
   IdentityUserCreatedEventData,
-} from "./handlers/IdentityUserCreatedEventHandler";
+} from './handlers/IdentityUserCreatedEventHandler';
 import {
   IdentityUserDeletedEventHandler,
   IdentityUserDeletedEventData,
-} from "./handlers/IdentityUserDeletedEventHandler";
+} from './handlers/IdentityUserDeletedEventHandler';
 import {
   IdentityUserUpdatedEventHandler,
   IdentityUserUpdatedEventData,
-} from "./handlers/IdentityUserUpdatedEventHandler";
+} from './handlers/IdentityUserUpdatedEventHandler';
 import {
   UserActivatedEventHandler,
   UserActivatedEventData,
-} from "./handlers/UserActivatedEventHandler";
-import { IdempotentEventHandler, EventMessage } from "./IdempotentEventHandler";
-import { AuditService } from "../audit/AuditService";
+} from './handlers/UserActivatedEventHandler';
+import { IdempotentEventHandler, EventMessage } from './IdempotentEventHandler';
+import { AuditService } from '../audit/AuditService';
 
 /**
  * Identity Event Consumer Configuration
@@ -67,9 +67,9 @@ export class IdentityEventConsumer {
     // Initialize idempotent handlers with audit service
     if (this.auditService) {
       this.idempotentHandlers.set(
-        "user.created",
+        'user.created',
         new IdempotentEventHandler(
-          "IdentityUserCreatedEventHandler",
+          'IdentityUserCreatedEventHandler',
           this.auditService,
           this.logger,
           (data: IdentityUserCreatedEventData) =>
@@ -77,9 +77,9 @@ export class IdentityEventConsumer {
         ),
       );
       this.idempotentHandlers.set(
-        "user.deleted",
+        'user.deleted',
         new IdempotentEventHandler(
-          "IdentityUserDeletedEventHandler",
+          'IdentityUserDeletedEventHandler',
           this.auditService,
           this.logger,
           (data: IdentityUserDeletedEventData) =>
@@ -87,9 +87,9 @@ export class IdentityEventConsumer {
         ),
       );
       this.idempotentHandlers.set(
-        "user.updated",
+        'user.updated',
         new IdempotentEventHandler(
-          "IdentityUserUpdatedEventHandler",
+          'IdentityUserUpdatedEventHandler',
           this.auditService,
           this.logger,
           (data: IdentityUserUpdatedEventData) =>
@@ -97,9 +97,9 @@ export class IdentityEventConsumer {
         ),
       );
       this.idempotentHandlers.set(
-        "user.activated",
+        'user.activated',
         new IdempotentEventHandler(
-          "UserActivatedEventHandler",
+          'UserActivatedEventHandler',
           this.auditService,
           this.logger,
           (data: UserActivatedEventData) =>
@@ -114,8 +114,8 @@ export class IdentityEventConsumer {
    */
   async connect(): Promise<void> {
     try {
-      this.logger.info("Connecting to RabbitMQ for Identity events", {
-        url: this.config.rabbitmqUrl.replace(/\/\/.*@/, "//***@"), // Hide credentials
+      this.logger.info('Connecting to RabbitMQ for Identity events', {
+        url: this.config.rabbitmqUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials
         queueName: this.config.queueName,
       });
 
@@ -124,7 +124,7 @@ export class IdentityEventConsumer {
         () => amqp.connect(this.config.rabbitmqUrl),
         this.logger,
         {
-          connectionName: "IdentityEventConsumer",
+          connectionName: 'IdentityEventConsumer',
           maxAttempts: this.config.connectionRetries,
           initialDelayMs: this.config.connectionRetryDelayMs,
         },
@@ -132,18 +132,18 @@ export class IdentityEventConsumer {
       this.channel = await this.connection.createChannel();
 
       if (!this.channel) {
-        throw new Error("Failed to create RabbitMQ channel");
+        throw new Error('Failed to create RabbitMQ channel');
       }
 
       // Assert exchange
-      await this.channel.assertExchange(this.config.exchangeName, "topic", {
+      await this.channel.assertExchange(this.config.exchangeName, 'topic', {
         durable: true,
       });
 
       // Assert dead letter exchange
       const dlxName =
         this.config.deadLetterExchange || `${this.config.exchangeName}.dlx`;
-      await this.channel.assertExchange(dlxName, "topic", {
+      await this.channel.assertExchange(dlxName, 'topic', {
         durable: true,
       });
 
@@ -155,9 +155,9 @@ export class IdentityEventConsumer {
       });
 
       // Bind DLQ to DLX (use # for topic exchange to catch all messages)
-      await this.channel.bindQueue(dlqName, dlxName, "#");
+      await this.channel.bindQueue(dlqName, dlxName, '#');
 
-      this.logger.info("Dead letter queue configured", {
+      this.logger.info('Dead letter queue configured', {
         dlxName,
         dlqName,
       });
@@ -166,10 +166,10 @@ export class IdentityEventConsumer {
       await this.channel.assertQueue(this.config.queueName, {
         durable: true,
         arguments: {
-          "x-message-ttl": 86400000, // 24 hours
-          "x-max-length": 10000,
-          "x-dead-letter-exchange": dlxName,
-          "x-dead-letter-routing-key": "failed",
+          'x-message-ttl': 86400000, // 24 hours
+          'x-max-length': 10000,
+          'x-dead-letter-exchange': dlxName,
+          'x-dead-letter-routing-key': 'failed',
         },
       });
 
@@ -180,7 +180,7 @@ export class IdentityEventConsumer {
           this.config.exchangeName,
           routingKey,
         );
-        this.logger.info("Queue bound to routing key", {
+        this.logger.info('Queue bound to routing key', {
           queueName: this.config.queueName,
           routingKey,
         });
@@ -194,23 +194,23 @@ export class IdentityEventConsumer {
       );
 
       this.isConnected = true;
-      this.logger.info("Identity event consumer connected successfully");
+      this.logger.info('Identity event consumer connected successfully');
 
       // Handle connection errors
-      this.connection.on("error", (error: Error) => {
-        this.logger.error("RabbitMQ connection error", {
+      this.connection.on('error', (error: Error) => {
+        this.logger.error('RabbitMQ connection error', {
           error: error.message,
         });
         this.isConnected = false;
       });
 
-      this.connection.on("close", () => {
-        this.logger.warn("RabbitMQ connection closed");
+      this.connection.on('close', () => {
+        this.logger.warn('RabbitMQ connection closed');
         this.isConnected = false;
       });
     } catch (error) {
-      this.logger.error("Failed to connect Identity event consumer", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Failed to connect Identity event consumer', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -231,10 +231,10 @@ export class IdentityEventConsumer {
 
       // Get retry count
       const retryCount =
-        (msg.properties.headers?.["x-retry-count"] as number) || 0;
+        (msg.properties.headers?.['x-retry-count'] as number) || 0;
       const maxRetries = this.config.maxRetries || 3;
 
-      this.logger.debug("Received identity event", {
+      this.logger.debug('Received identity event', {
         routingKey,
         eventId: event.eventId,
         retryCount,
@@ -256,32 +256,32 @@ export class IdentityEventConsumer {
         } else {
           // Fallback to direct handler (for backward compatibility)
           switch (routingKey) {
-            case "user.created.event":
+            case 'user.created.event':
               await this.userCreatedHandler.handle(
                 event.payload as IdentityUserCreatedEventData,
               );
               break;
 
-            case "user.deleted.event":
+            case 'user.deleted.event':
               await this.userDeletedHandler.handle(
                 event.payload as IdentityUserDeletedEventData,
               );
               break;
 
-            case "user.updated.event":
+            case 'user.updated.event':
               await this.userUpdatedHandler.handle(
                 event.payload as IdentityUserUpdatedEventData,
               );
               break;
 
-            case "user.activated.event":
+            case 'user.activated.event':
               await this.userActivatedHandler.handle(
                 event.payload as UserActivatedEventData,
               );
               break;
 
             default:
-              this.logger.warn("Unknown identity event routing key", {
+              this.logger.warn('Unknown identity event routing key', {
                 routingKey,
               });
           }
@@ -290,12 +290,12 @@ export class IdentityEventConsumer {
         // Acknowledge message on success
         this.channel.ack(msg);
       } catch (handlerError) {
-        this.logger.error("Handler error", {
+        this.logger.error('Handler error', {
           routingKey,
           error:
             handlerError instanceof Error
               ? handlerError.message
-              : "Unknown error",
+              : 'Unknown error',
           retryCount,
         });
 
@@ -307,11 +307,11 @@ export class IdentityEventConsumer {
           // Republish with incremented retry count
           const retryHeaders = {
             ...msg.properties.headers,
-            "x-retry-count": retryCount + 1,
-            "x-first-death-reason":
+            'x-retry-count': retryCount + 1,
+            'x-first-death-reason':
               handlerError instanceof Error
                 ? handlerError.message
-                : "Unknown error",
+                : 'Unknown error',
           };
 
           await this.channel.publish(
@@ -324,7 +324,7 @@ export class IdentityEventConsumer {
             },
           );
 
-          this.logger.info("Message requeued for retry", {
+          this.logger.info('Message requeued for retry', {
             eventId: event.eventId,
             retryCount: retryCount + 1,
             maxRetries,
@@ -333,7 +333,7 @@ export class IdentityEventConsumer {
           // Max retries exceeded - send to DLQ
           this.channel.nack(msg, false, false);
 
-          this.logger.error("Max retries exceeded - message sent to DLQ", {
+          this.logger.error('Max retries exceeded - message sent to DLQ', {
             routingKey,
             eventId: event.eventId,
             retryCount,
@@ -341,8 +341,8 @@ export class IdentityEventConsumer {
         }
       }
     } catch (error) {
-      this.logger.error("Error processing message", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error processing message', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
 
       // Nack without requeue on parse errors
@@ -368,10 +368,10 @@ export class IdentityEventConsumer {
       }
 
       this.isConnected = false;
-      this.logger.info("Identity event consumer disconnected");
+      this.logger.info('Identity event consumer disconnected');
     } catch (error) {
-      this.logger.error("Error disconnecting Identity event consumer", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error disconnecting Identity event consumer', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }

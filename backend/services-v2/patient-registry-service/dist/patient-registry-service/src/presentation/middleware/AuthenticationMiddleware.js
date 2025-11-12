@@ -16,11 +16,11 @@ class AuthenticationMiddleware {
     constructor(config) {
         this.identityServiceUrl = config.identityServiceUrl;
         this.logger = config.logger;
-        this.skipPaths = config.skipPaths || ["/health", "/api-docs"];
-        this.bypassAuth = process.env.BYPASS_AUTH === "true";
+        this.skipPaths = config.skipPaths || ['/health', '/api-docs'];
+        this.bypassAuth = process.env.BYPASS_AUTH === 'true';
         this.bypassToken = process.env.BYPASS_AUTH_TOKEN;
         this.bypassUserId =
-            process.env.BYPASS_AUTH_USER_ID || "00000000-0000-0000-0000-000000000000";
+            process.env.BYPASS_AUTH_USER_ID || '00000000-0000-0000-0000-000000000000';
     }
     /**
      * Authenticate request by verifying JWT with Identity Service
@@ -35,19 +35,19 @@ class AuthenticationMiddleware {
                 // Allow bypass for local testing when explicitly enabled
                 if (this.shouldBypassAuthentication(req)) {
                     req.user = this.createBypassUser();
-                    this.logger.warn("Authentication bypassed for request", {
+                    this.logger.warn('Authentication bypassed for request', {
                         path: req.path,
-                        bypassMode: "BYPASS_AUTH_FLAG",
+                        bypassMode: 'BYPASS_AUTH_FLAG',
                     });
                     return next();
                 }
                 // Extract token from Authorization header
                 const authHeader = req.headers.authorization;
-                if (!authHeader || !authHeader.startsWith("Bearer ")) {
+                if (!authHeader || !authHeader.startsWith('Bearer ')) {
                     res.status(401).json({
                         success: false,
-                        error: "Unauthorized",
-                        message: "Missing or invalid authorization header",
+                        error: 'Unauthorized',
+                        message: 'Missing or invalid authorization header',
                     });
                     return;
                 }
@@ -57,8 +57,8 @@ class AuthenticationMiddleware {
                 if (!user) {
                     res.status(401).json({
                         success: false,
-                        error: "Unauthorized",
-                        message: "Invalid or expired token",
+                        error: 'Unauthorized',
+                        message: 'Invalid or expired token',
                     });
                     return;
                 }
@@ -68,16 +68,16 @@ class AuthenticationMiddleware {
             }
             catch (error) {
                 // Redact path if it contains patient IDs (HIPAA compliance)
-                const redactedPath = req.path.replace(/PAT-\d{6}-\d{3}/g, "PAT-***-***");
-                this.logger.error("Authentication middleware error", {
-                    error: error instanceof Error ? error.message : "Unknown error",
+                const redactedPath = req.path.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***');
+                this.logger.error('Authentication middleware error', {
+                    error: error instanceof Error ? error.message : 'Unknown error',
                     path: redactedPath,
                     // DO NOT log authorization header
                 });
                 res.status(500).json({
                     success: false,
-                    error: "Internal Server Error",
-                    message: "Authentication failed",
+                    error: 'Internal Server Error',
+                    message: 'Authentication failed',
                 });
             }
         };
@@ -91,8 +91,8 @@ class AuthenticationMiddleware {
             return true;
         }
         if (this.bypassToken) {
-            const tokenHeader = (req.headers["x-bypass-auth-token"] ||
-                req.headers["x-auth-bypass-token"])?.toString() || "";
+            const tokenHeader = (req.headers['x-bypass-auth-token'] ||
+                req.headers['x-auth-bypass-token'])?.toString() || '';
             return tokenHeader === this.bypassToken;
         }
         return false;
@@ -103,13 +103,13 @@ class AuthenticationMiddleware {
     createBypassUser() {
         return {
             userId: this.bypassUserId,
-            email: "bypass@patient-registry.local",
-            roles: ["ADMIN", "SYSTEM"],
+            email: 'bypass@patient-registry.local',
+            roles: ['ADMIN', 'SYSTEM'],
             permissions: [
-                "patients:read",
-                "patients:create",
-                "patients:update",
-                "patients:delete",
+                'patients:read',
+                'patients:create',
+                'patients:update',
+                'patients:delete',
             ],
         };
     }
@@ -144,7 +144,7 @@ class AuthenticationMiddleware {
                     // Invalid token
                     return null;
                 }
-                this.logger.error("Identity Service verification failed", {
+                this.logger.error('Identity Service verification failed', {
                     error: error.message,
                     status: error.response?.status,
                 });
@@ -167,8 +167,8 @@ class AuthenticationMiddleware {
             if (!req.user) {
                 res.status(401).json({
                     success: false,
-                    error: "Unauthorized",
-                    message: "Authentication required",
+                    error: 'Unauthorized',
+                    message: 'Authentication required',
                 });
                 return;
             }
@@ -176,8 +176,8 @@ class AuthenticationMiddleware {
             if (!hasRole) {
                 res.status(403).json({
                     success: false,
-                    error: "Forbidden",
-                    message: "Insufficient permissions",
+                    error: 'Forbidden',
+                    message: 'Insufficient permissions',
                 });
                 return;
             }
@@ -195,8 +195,8 @@ class AuthenticationMiddleware {
             if (!req.user) {
                 res.status(401).json({
                     success: false,
-                    error: "Unauthorized",
-                    message: "Authentication required",
+                    error: 'Unauthorized',
+                    message: 'Authentication required',
                 });
                 return;
             }
@@ -204,8 +204,8 @@ class AuthenticationMiddleware {
             if (!hasPermission) {
                 res.status(403).json({
                     success: false,
-                    error: "Forbidden",
-                    message: "Insufficient permissions",
+                    error: 'Forbidden',
+                    message: 'Insufficient permissions',
                 });
                 return;
             }

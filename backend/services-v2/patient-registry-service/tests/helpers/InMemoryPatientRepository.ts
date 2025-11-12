@@ -105,8 +105,8 @@ export class InMemoryPatientRepository implements IPatientRepository {
   }
 
   async getPatientHistory(
-    patientId: PatientId,
-    options?: {
+    _patientId: PatientId,
+    _options?: {
       limit?: number;
       offset?: number;
       dateFrom?: Date;

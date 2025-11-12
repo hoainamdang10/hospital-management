@@ -18,7 +18,7 @@ export interface RegisterPatientRequest {
   // Personal Info
   fullName: string;
   dateOfBirth: string; // ISO date string
-  gender: "male" | "female" | "other";
+  gender: 'male' | 'female' | 'other';
   nationalId: string; // CMND/CCCD
   nationality?: string;
   ethnicity?: string;
@@ -38,10 +38,10 @@ export interface RegisterPatientRequest {
     postalCode?: string;
     country?: string;
   };
-  preferredContactMethod?: "phone" | "email" | "sms";
+  preferredContactMethod?: 'phone' | 'email' | 'sms';
 
   // Basic Medical Info
-  bloodType?: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+  bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
   knownAllergies?: string[];
   emergencyMedicalInfo?: string;
 
@@ -52,7 +52,7 @@ export interface RegisterPatientRequest {
     groupNumber?: string;
     validFrom: string; // ISO date string
     validTo: string; // ISO date string
-    coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+    coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
     bhytNumber?: string;
   };
 
@@ -75,7 +75,7 @@ export interface UpdatePatientRequest {
   // Personal Info
   fullName?: string;
   dateOfBirth?: string;
-  gender?: "male" | "female" | "other";
+  gender?: 'male' | 'female' | 'other';
   nationalId?: string;
   nationality?: string;
   ethnicity?: string;
@@ -95,10 +95,10 @@ export interface UpdatePatientRequest {
     postalCode?: string;
     country?: string;
   };
-  preferredContactMethod?: "phone" | "email" | "sms";
+  preferredContactMethod?: 'phone' | 'email' | 'sms';
 
   // Basic Medical Info
-  bloodType?: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+  bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
   knownAllergies?: string[];
   emergencyMedicalInfo?: string;
 }
@@ -112,7 +112,7 @@ export interface UpdateInsuranceRequest {
   groupNumber?: string;
   validFrom: string;
   validTo: string;
-  coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+  coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
   bhytNumber?: string;
 }
 
@@ -125,7 +125,7 @@ export interface AddInsuranceRequest {
   groupNumber?: string;
   validFrom: string;
   validTo: string;
-  coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+  coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
   isVietnameseInsurance: boolean;
   bhytNumber?: string;
   isPrimary?: boolean;
@@ -179,7 +179,7 @@ export interface MergePatientsRequest {
  */
 export interface LinkPatientsRequest {
   otherPatientId: string;
-  linkType: "refer" | "seealso";
+  linkType: 'refer' | 'seealso';
 }
 
 /**
@@ -204,7 +204,7 @@ export interface FilterPatientsRequest {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortDirection?: "asc" | "desc";
+  sortDirection?: 'asc' | 'desc';
 }
 
 /**
@@ -324,7 +324,7 @@ export interface PatientResponse {
  */
 export interface PatientMatchResponse {
   patient: PatientResponse;
-  matchGrade: "certain" | "probable" | "possible" | "certainly-not";
+  matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
   score: number;
   matchDetails: {
     fullNameMatch: boolean;

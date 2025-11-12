@@ -1,7 +1,7 @@
 /**
  * Swagger/OpenAPI Configuration
  * Auto-generates API documentation from JSDoc comments
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -134,21 +134,21 @@ Authorization: Bearer <your-jwt-token>
           enum: ['ACTIVE', 'INACTIVE', 'DECEASED', 'MERGED'],
           description: 'Patient status in the system'
         },
-        
+
         // Gender
         Gender: {
           type: 'string',
           enum: ['MALE', 'FEMALE', 'OTHER'],
           description: 'Patient gender'
         },
-        
+
         // Blood Type
         BloodType: {
           type: 'string',
           enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
           description: 'Patient blood type'
         },
-        
+
         // Insurance Type
         InsuranceType: {
           type: 'string',
@@ -258,5 +258,4 @@ Authorization: Bearer <your-jwt-token>
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
-
 

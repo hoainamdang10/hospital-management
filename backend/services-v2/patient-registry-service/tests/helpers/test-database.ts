@@ -1,7 +1,7 @@
 /**
  * Test Database Helper
  * Provides utilities for setting up and cleaning up test database
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -81,7 +81,7 @@ export class TestDatabase {
 
     try {
       // Delete in reverse order of dependencies
-      
+
       // 1. Delete insurance info
       if (this.testDataIds.insuranceInfo.length > 0) {
         await this.supabaseClient
@@ -179,7 +179,7 @@ export class TestDatabase {
         console.log('✅ Test patients cleaned up');
       }
     } catch (error) {
-      console.warn(`⚠️  Error cleaning up test patients:`, error);
+      console.warn('⚠️  Error cleaning up test patients:', error);
     }
   }
 

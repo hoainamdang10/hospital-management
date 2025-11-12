@@ -7,18 +7,18 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { BloodType } from "../../domain/value-objects/BasicMedicalInfo";
-import { IEventBus } from "@shared/application/services/event-bus.interface";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { AuditService } from "../../infrastructure/audit/AuditService";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { BloodType } from '../../domain/value-objects/BasicMedicalInfo';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { AuditService } from '../../infrastructure/audit/AuditService';
+import type { SupabaseClient } from '@supabase/supabase-js';
 export interface RegisterPatientRequest {
     userId: string;
     personalInfo: {
         fullName: string;
         dateOfBirth: string;
-        gender: "male" | "female" | "other";
+        gender: 'male' | 'female' | 'other';
         nationalId: string;
         nationality?: string;
         ethnicity?: string;
@@ -29,7 +29,7 @@ export interface RegisterPatientRequest {
         primaryPhone: string;
         secondaryPhone?: string;
         email?: string;
-        preferredContactMethod?: "phone" | "email" | "sms";
+        preferredContactMethod?: 'phone' | 'email' | 'sms';
         address?: {
             street?: string;
             ward?: string;
@@ -51,7 +51,7 @@ export interface RegisterPatientRequest {
         groupNumber?: string;
         validFrom: string;
         validTo: string;
-        coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+        coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
         isVietnameseInsurance: boolean;
         bhytNumber?: string;
         isPrimary: boolean;

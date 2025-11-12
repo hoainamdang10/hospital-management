@@ -158,7 +158,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        "personal_info", updatedBy, {
+        'personal_info', updatedBy, {
             fullName: personalInfo.fullName,
             dateOfBirth: personalInfo.dateOfBirth,
             gender: personalInfo.gender,
@@ -175,7 +175,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        "contact_info", updatedBy, undefined, {
+        'contact_info', updatedBy, undefined, {
             phoneNumber: contactInfo.primaryPhone,
             email: contactInfo.email,
             address: contactInfo.address
@@ -191,7 +191,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        "basic_medical_info", updatedBy));
+        'basic_medical_info', updatedBy));
     }
     /**
      * Update insurance information
@@ -203,7 +203,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        "insurance_info", updatedBy));
+        'insurance_info', updatedBy));
     }
     /**
      * Add emergency contact
@@ -215,7 +215,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        "emergency_contact", updatedBy));
+        'emergency_contact', updatedBy));
     }
     /**
      * Remove emergency contact
@@ -227,7 +227,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        "emergency_contact", updatedBy));
+        'emergency_contact', updatedBy));
     }
     /**
      * Grant consent
@@ -245,13 +245,13 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
      */
     mergeInto(masterPatientId, reason, performedBy) {
         if (this.props.status === PatientStatus_1.PatientStatus.MERGED) {
-            throw new Error("Bệnh nhân đã được gộp trước đó");
+            throw new Error('Bệnh nhân đã được gộp trước đó');
         }
         if (this.props.status === PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error("Không thể gộp bệnh nhân đã qua đời");
+            throw new Error('Không thể gộp bệnh nhân đã qua đời');
         }
         if (this.props.id.equals(masterPatientId)) {
-            throw new Error("Không thể gộp bệnh nhân vào chính nó");
+            throw new Error('Không thể gộp bệnh nhân vào chính nó');
         }
         this.props.status = PatientStatus_1.PatientStatus.MERGED;
         this.props.mergedInto = masterPatientId;
@@ -268,7 +268,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
      */
     linkTo(otherPatientId, linkType, performedBy) {
         if (this.props.id.equals(otherPatientId)) {
-            throw new Error("Không thể liên kết bệnh nhân với chính nó");
+            throw new Error('Không thể liên kết bệnh nhân với chính nó');
         }
         // Check if link already exists
         const existingLink = this.props.links.find((link) => link.otherPatientId.equals(otherPatientId) &&
@@ -288,13 +288,13 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
      */
     deactivate(reason, performedBy) {
         if (this.props.status === PatientStatus_1.PatientStatus.INACTIVE) {
-            throw new Error("Bệnh nhân đã bị vô hiệu hóa");
+            throw new Error('Bệnh nhân đã bị vô hiệu hóa');
         }
         if (this.props.status === PatientStatus_1.PatientStatus.MERGED) {
-            throw new Error("Không thể vô hiệu hóa bệnh nhân đã được gộp");
+            throw new Error('Không thể vô hiệu hóa bệnh nhân đã được gộp');
         }
         if (this.props.status === PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error("Không thể vô hiệu hóa bệnh nhân đã qua đời");
+            throw new Error('Không thể vô hiệu hóa bệnh nhân đã qua đời');
         }
         this.props.status = PatientStatus_1.PatientStatus.INACTIVE;
         this.props.updatedAt = new Date();
@@ -307,32 +307,32 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
      */
     markAsDeceased(performedBy) {
         if (this.props.status === PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error("Bệnh nhân đã được đánh dấu qua đời");
+            throw new Error('Bệnh nhân đã được đánh dấu qua đời');
         }
         this.props.status = PatientStatus_1.PatientStatus.DECEASED;
         this.props.updatedAt = new Date();
         this.props.updatedBy = performedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        "status", performedBy));
+        'status', performedBy));
     }
     /**
      * Reactivate patient (from INACTIVE status or, when allowed, DECEASED)
      */
     reactivate(_reason, performedBy, options) {
         if (this.props.status === PatientStatus_1.PatientStatus.MERGED) {
-            throw new Error("Không thể kích hoạt lại bệnh nhân đã được gộp");
+            throw new Error('Không thể kích hoạt lại bệnh nhân đã được gộp');
         }
         if (this.props.status === PatientStatus_1.PatientStatus.ACTIVE) {
-            throw new Error("Bệnh nhân đang ở trạng thái hoạt động");
+            throw new Error('Bệnh nhân đang ở trạng thái hoạt động');
         }
         if (this.props.status === PatientStatus_1.PatientStatus.DECEASED &&
             !options?.allowDeceased) {
-            throw new Error("Chỉ có thể kích hoạt lại bệnh nhân đã bị vô hiệu hóa");
+            throw new Error('Chỉ có thể kích hoạt lại bệnh nhân đã bị vô hiệu hóa');
         }
         if (this.props.status !== PatientStatus_1.PatientStatus.INACTIVE &&
             this.props.status !== PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error("Không thể kích hoạt lại bệnh nhân ở trạng thái hiện tại");
+            throw new Error('Không thể kích hoạt lại bệnh nhân ở trạng thái hiện tại');
         }
         this.props.status = PatientStatus_1.PatientStatus.ACTIVE;
         this.props.updatedAt = new Date();
@@ -443,16 +443,16 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     // ==================== Business Invariants ====================
     validateBusinessInvariants() {
         if (!this.props.personalInfo) {
-            throw new Error("Thông tin cá nhân không được để trống");
+            throw new Error('Thông tin cá nhân không được để trống');
         }
         if (!this.props.contactInfo) {
-            throw new Error("Thông tin liên hệ không được để trống");
+            throw new Error('Thông tin liên hệ không được để trống');
         }
         if (!this.props.basicMedicalInfo) {
-            throw new Error("Thông tin y tế cơ bản không được để trống");
+            throw new Error('Thông tin y tế cơ bản không được để trống');
         }
         if (this.props.status === PatientStatus_1.PatientStatus.MERGED && !this.props.mergedInto) {
-            throw new Error("Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính");
+            throw new Error('Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính');
         }
     }
     ensureCanUpdate() {
@@ -466,14 +466,14 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
      */
     updatePhoto(photoUrl, updatedBy) {
         this.ensureCanUpdate();
-        if (!photoUrl || photoUrl.trim() === "") {
-            throw new Error("URL ảnh không được để trống");
+        if (!photoUrl || photoUrl.trim() === '') {
+            throw new Error('URL ảnh không được để trống');
         }
         this.props.photoUrl = photoUrl;
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
-        "photo_updated", updatedBy));
+        'photo_updated', updatedBy));
     }
     /**
      * Remove patient photo
@@ -484,7 +484,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
-        "photo_removed", updatedBy));
+        'photo_removed', updatedBy));
     }
     /**
      * Get patient photo URL
@@ -502,7 +502,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.updatedBy = updatedBy;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
-        "communication_preference_updated", updatedBy));
+        'communication_preference_updated', updatedBy));
     }
     /**
      * Get communication preferences

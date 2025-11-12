@@ -53,8 +53,9 @@ class OutboxPublisherWorker {
      * Poll outbox table for pending events
      */
     async poll() {
-        if (!this.isRunning)
+        if (!this.isRunning) {
             return;
+        }
         try {
             await this.processBatch();
         }

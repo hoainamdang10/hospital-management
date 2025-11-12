@@ -38,15 +38,15 @@ class RabbitMQEventPublisher {
      */
     async connect() {
         try {
-            this.logger.info("Connecting to RabbitMQ...", {
-                url: this.config.url.replace(/\/\/.*@/, "//***@"), // Hide credentials
+            this.logger.info('Connecting to RabbitMQ...', {
+                url: this.config.url.replace(/\/\/.*@/, '//***@'), // Hide credentials
                 exchange: this.config.exchange,
             });
             // Reset intentionally closed flag
             this.intentionallyClosed = false;
             const connectionName = this.config.serviceName
                 ? `${this.config.serviceName}-publisher`
-                : "RabbitMQ Event Publisher";
+                : 'RabbitMQ Event Publisher';
             // Create connection with retry logic
             this.connection = await (0, rabbitmq_connection_1.connectRabbitMQWithRetry)(() => amqplib_1.default.connect(this.config.url), this.logger, {
                 connectionName,
@@ -54,12 +54,12 @@ class RabbitMQEventPublisher {
                 initialDelayMs: this.config.connectionRetryDelayMs,
             });
             // Handle connection errors
-            this.connection.on("error", (err) => {
-                this.logger.error("RabbitMQ connection error", { error: err.message });
+            this.connection.on('error', (err) => {
+                this.logger.error('RabbitMQ connection error', { error: err.message });
                 this.isConnected = false;
             });
-            this.connection.on("close", () => {
-                this.logger.warn("RabbitMQ connection closed");
+            this.connection.on('close', () => {
+                this.logger.warn('RabbitMQ connection closed');
                 this.isConnected = false;
                 // Only reconnect if not intentionally closed
                 if (!this.intentionallyClosed) {
@@ -68,7 +68,7 @@ class RabbitMQEventPublisher {
             });
             // Create channel
             if (!this.connection) {
-                throw new Error("Connection is null after connect");
+                throw new Error('Connection is null after connect');
             }
             this.channel = await this.connection.createChannel();
             // Assert exchange
@@ -78,13 +78,13 @@ class RabbitMQEventPublisher {
             });
             this.isConnected = true;
             this.reconnectAttempts = 0;
-            this.logger.info("RabbitMQ Event Publisher connected", {
+            this.logger.info('RabbitMQ Event Publisher connected', {
                 exchange: this.config.exchange,
             });
         }
         catch (error) {
-            this.logger.error("Failed to connect to RabbitMQ", {
-                error: error instanceof Error ? error.message : "Unknown error",
+            this.logger.error('Failed to connect to RabbitMQ', {
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
             throw error;
         }
@@ -99,7 +99,7 @@ class RabbitMQEventPublisher {
             this.reconnectTimer = null;
         }
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            this.logger.error("Max reconnect attempts reached. Giving up.");
+            this.logger.error('Max reconnect attempts reached. Giving up.');
             return;
         }
         this.reconnectAttempts++;
@@ -109,8 +109,8 @@ class RabbitMQEventPublisher {
                 await this.connect();
             }
             catch (error) {
-                this.logger.error("Reconnect failed", {
-                    error: error instanceof Error ? error.message : "Unknown error",
+                this.logger.error('Reconnect failed', {
+                    error: error instanceof Error ? error.message : 'Unknown error',
                 });
             }
         }, this.reconnectDelayMs);
@@ -120,14 +120,14 @@ class RabbitMQEventPublisher {
      */
     async publish(event) {
         if (!this.isConnected || !this.channel) {
-            throw new Error("RabbitMQ publisher is not connected");
+            throw new Error('RabbitMQ publisher is not connected');
         }
         try {
             const routingKey = this.getRoutingKey(event);
             const message = this.serializeEvent(event);
             const published = this.channel.publish(this.config.exchange, routingKey, Buffer.from(message), {
                 persistent: true,
-                contentType: "application/json",
+                contentType: 'application/json',
                 timestamp: Date.now(),
                 messageId: event.eventId,
                 type: event.eventType,
@@ -137,10 +137,10 @@ class RabbitMQEventPublisher {
                 },
             });
             if (!published) {
-                throw new Error("Failed to publish event - channel buffer full");
+                throw new Error('Failed to publish event - channel buffer full');
             }
             if (this.publisherConfig.enableLogging) {
-                this.logger.info("Event published", {
+                this.logger.info('Event published', {
                     eventType: event.eventType,
                     eventId: event.eventId,
                     routingKey,
@@ -148,9 +148,9 @@ class RabbitMQEventPublisher {
             }
         }
         catch (error) {
-            this.logger.error("Failed to publish event", {
+            this.logger.error('Failed to publish event', {
                 eventType: event.eventType,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
             throw error;
         }
@@ -160,21 +160,21 @@ class RabbitMQEventPublisher {
      */
     async publishBatch(events) {
         if (!this.isConnected || !this.channel) {
-            throw new Error("RabbitMQ publisher is not connected");
+            throw new Error('RabbitMQ publisher is not connected');
         }
         try {
             for (const event of events) {
                 await this.publish(event);
             }
             if (this.publisherConfig.enableLogging) {
-                this.logger.info("Batch events published", {
+                this.logger.info('Batch events published', {
                     count: events.length,
                 });
             }
         }
         catch (error) {
-            this.logger.error("Failed to publish batch events", {
-                error: error instanceof Error ? error.message : "Unknown error",
+            this.logger.error('Failed to publish batch events', {
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
             throw error;
         }
@@ -190,7 +190,7 @@ class RabbitMQEventPublisher {
                 return; // Success
             }
             catch (error) {
-                lastError = error instanceof Error ? error : new Error("Unknown error");
+                lastError = error instanceof Error ? error : new Error('Unknown error');
                 this.logger.warn(`Publish attempt ${attempt}/${maxRetries} failed`, {
                     eventType: event.eventType,
                     error: lastError.message,
@@ -220,13 +220,13 @@ class RabbitMQEventPublisher {
                 await this.publish(event);
             }
             catch (error) {
-                this.logger.error("Failed to publish scheduled event", {
+                this.logger.error('Failed to publish scheduled event', {
                     eventType: event.eventType,
-                    error: error instanceof Error ? error.message : "Unknown error",
+                    error: error instanceof Error ? error.message : 'Unknown error',
                 });
             }
         }, delayMs);
-        this.logger.info("Event scheduled", {
+        this.logger.info('Event scheduled', {
             eventType: event.eventType,
             publishAt: publishAt.toISOString(),
             delayMs,
@@ -259,11 +259,11 @@ class RabbitMQEventPublisher {
                 this.connection = null;
             }
             this.isConnected = false;
-            this.logger.info("RabbitMQ Event Publisher disconnected");
+            this.logger.info('RabbitMQ Event Publisher disconnected');
         }
         catch (error) {
-            this.logger.error("Error closing RabbitMQ connection", {
-                error: error instanceof Error ? error.message : "Unknown error",
+            this.logger.error('Error closing RabbitMQ connection', {
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
         }
     }

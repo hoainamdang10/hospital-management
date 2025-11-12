@@ -6,39 +6,39 @@
  * @version 2.0.0
  * @compliance Clean Architecture, RESTful API, HIPAA
  */
-import { Request, Response } from "express";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { RegisterPatientUseCase } from "../../application/use-cases/RegisterPatientUseCase";
-import { UpdatePatientInfoUseCase } from "../../application/use-cases/UpdatePatientInfoUseCase";
-import { PatientQueryHandlers } from "../../application/handlers/PatientQueryHandlers";
-import { MatchPatientsUseCase } from "../../application/use-cases/MatchPatientsUseCase";
-import { MergePatientsUseCase } from "../../application/use-cases/MergePatientsUseCase";
-import { LinkPatientsUseCase } from "../../application/use-cases/LinkPatientsUseCase";
-import { DeactivatePatientUseCase } from "../../application/use-cases/DeactivatePatientUseCase";
-import { ValidateInsuranceUseCase } from "../../application/use-cases/ValidateInsuranceUseCase";
-import { AddEmergencyContactUseCase } from "../../application/use-cases/AddEmergencyContactUseCase";
-import { GetEmergencyContactsUseCase } from "../../application/use-cases/GetEmergencyContactsUseCase";
-import { UpdateEmergencyContactUseCase } from "../../application/use-cases/UpdateEmergencyContactUseCase";
-import { RemoveEmergencyContactUseCase } from "../../application/use-cases/RemoveEmergencyContactUseCase";
-import { SetPrimaryEmergencyContactUseCase } from "../../application/use-cases/SetPrimaryEmergencyContactUseCase";
-import { GrantConsentUseCase } from "../../application/use-cases/GrantConsentUseCase";
-import { GetConsentsUseCase } from "../../application/use-cases/GetConsentsUseCase";
-import { GetConsentDetailsUseCase } from "../../application/use-cases/GetConsentDetailsUseCase";
-import { RevokeConsentUseCase } from "../../application/use-cases/RevokeConsentUseCase";
-import { GetActiveConsentsUseCase } from "../../application/use-cases/GetActiveConsentsUseCase";
-import { GetInsuranceInfoUseCase } from "../../application/use-cases/GetInsuranceInfoUseCase";
-import { AddInsuranceInfoUseCase } from "../../application/use-cases/AddInsuranceInfoUseCase";
-import { UpdateInsuranceInfoUseCase } from "../../application/use-cases/UpdateInsuranceInfoUseCase";
-import { VerifyInsuranceUseCase } from "../../application/use-cases/VerifyInsuranceUseCase";
-import { MarkAsDeceasedUseCase } from "../../application/use-cases/MarkAsDeceasedUseCase";
-import { ReactivatePatientUseCase } from "../../application/use-cases/ReactivatePatientUseCase";
-import { GetPatientStatisticsUseCase } from "../../application/use-cases/GetPatientStatisticsUseCase";
-import { UploadPatientPhotoUseCase } from "../../application/use-cases/UploadPatientPhotoUseCase";
-import { GetPatientPhotoUseCase } from "../../application/use-cases/GetPatientPhotoUseCase";
-import { DeletePatientPhotoUseCase } from "../../application/use-cases/DeletePatientPhotoUseCase";
-import { UpdateCommunicationPreferencesUseCase } from "../../application/use-cases/UpdateCommunicationPreferencesUseCase";
-import { GetCommunicationPreferencesUseCase } from "../../application/use-cases/GetCommunicationPreferencesUseCase";
-import { GetPatientHistoryUseCase } from "../../application/use-cases/GetPatientHistoryUseCase";
+import { Request, Response } from 'express';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { RegisterPatientUseCase } from '../../application/use-cases/RegisterPatientUseCase';
+import { UpdatePatientInfoUseCase } from '../../application/use-cases/UpdatePatientInfoUseCase';
+import { PatientQueryHandlers } from '../../application/handlers/PatientQueryHandlers';
+import { MatchPatientsUseCase } from '../../application/use-cases/MatchPatientsUseCase';
+import { MergePatientsUseCase } from '../../application/use-cases/MergePatientsUseCase';
+import { LinkPatientsUseCase } from '../../application/use-cases/LinkPatientsUseCase';
+import { DeactivatePatientUseCase } from '../../application/use-cases/DeactivatePatientUseCase';
+import { ValidateInsuranceUseCase } from '../../application/use-cases/ValidateInsuranceUseCase';
+import { AddEmergencyContactUseCase } from '../../application/use-cases/AddEmergencyContactUseCase';
+import { GetEmergencyContactsUseCase } from '../../application/use-cases/GetEmergencyContactsUseCase';
+import { UpdateEmergencyContactUseCase } from '../../application/use-cases/UpdateEmergencyContactUseCase';
+import { RemoveEmergencyContactUseCase } from '../../application/use-cases/RemoveEmergencyContactUseCase';
+import { SetPrimaryEmergencyContactUseCase } from '../../application/use-cases/SetPrimaryEmergencyContactUseCase';
+import { GrantConsentUseCase } from '../../application/use-cases/GrantConsentUseCase';
+import { GetConsentsUseCase } from '../../application/use-cases/GetConsentsUseCase';
+import { GetConsentDetailsUseCase } from '../../application/use-cases/GetConsentDetailsUseCase';
+import { RevokeConsentUseCase } from '../../application/use-cases/RevokeConsentUseCase';
+import { GetActiveConsentsUseCase } from '../../application/use-cases/GetActiveConsentsUseCase';
+import { GetInsuranceInfoUseCase } from '../../application/use-cases/GetInsuranceInfoUseCase';
+import { AddInsuranceInfoUseCase } from '../../application/use-cases/AddInsuranceInfoUseCase';
+import { UpdateInsuranceInfoUseCase } from '../../application/use-cases/UpdateInsuranceInfoUseCase';
+import { VerifyInsuranceUseCase } from '../../application/use-cases/VerifyInsuranceUseCase';
+import { MarkAsDeceasedUseCase } from '../../application/use-cases/MarkAsDeceasedUseCase';
+import { ReactivatePatientUseCase } from '../../application/use-cases/ReactivatePatientUseCase';
+import { GetPatientStatisticsUseCase } from '../../application/use-cases/GetPatientStatisticsUseCase';
+import { UploadPatientPhotoUseCase } from '../../application/use-cases/UploadPatientPhotoUseCase';
+import { GetPatientPhotoUseCase } from '../../application/use-cases/GetPatientPhotoUseCase';
+import { DeletePatientPhotoUseCase } from '../../application/use-cases/DeletePatientPhotoUseCase';
+import { UpdateCommunicationPreferencesUseCase } from '../../application/use-cases/UpdateCommunicationPreferencesUseCase';
+import { GetCommunicationPreferencesUseCase } from '../../application/use-cases/GetCommunicationPreferencesUseCase';
+import { GetPatientHistoryUseCase } from '../../application/use-cases/GetPatientHistoryUseCase';
 /**
  * Patient Controller
  */

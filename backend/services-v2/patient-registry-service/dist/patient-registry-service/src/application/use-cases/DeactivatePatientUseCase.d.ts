@@ -7,10 +7,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { IEventBus } from "@shared/application/services/event-bus.interface";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { AuditService } from "../../infrastructure/audit/AuditService";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { AuditService } from '../../infrastructure/audit/AuditService';
 export interface DeactivatePatientRequest {
     patientId: string;
     reason: string;

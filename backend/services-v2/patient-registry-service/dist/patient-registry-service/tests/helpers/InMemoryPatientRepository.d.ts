@@ -63,7 +63,7 @@ export declare class InMemoryPatientRepository implements IPatientRepository {
             count: number;
         }>;
     }>;
-    getPatientHistory(patientId: PatientId, options?: {
+    getPatientHistory(_patientId: PatientId, _options?: {
         limit?: number;
         offset?: number;
         dateFrom?: Date;

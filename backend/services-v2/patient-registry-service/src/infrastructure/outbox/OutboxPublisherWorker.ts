@@ -70,7 +70,9 @@ export class OutboxPublisherWorker {
    * Poll outbox table for pending events
    */
   private async poll(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {
+      return;
+    }
 
     try {
       await this.processBatch();
@@ -173,20 +175,20 @@ export class OutboxPublisherWorker {
     const serializedPayload = rawPayload.eventData
       ? rawPayload
       : {
-          eventId: rawPayload.eventId ?? outboxEvent.event_id,
-          eventType: rawPayload.eventType ?? outboxEvent.event_type,
-          aggregateId: rawPayload.aggregateId ?? outboxEvent.aggregate_id,
-          aggregateType: rawPayload.aggregateType ?? outboxEvent.aggregate_type,
-          eventVersion:
+        eventId: rawPayload.eventId ?? outboxEvent.event_id,
+        eventType: rawPayload.eventType ?? outboxEvent.event_type,
+        aggregateId: rawPayload.aggregateId ?? outboxEvent.aggregate_id,
+        aggregateType: rawPayload.aggregateType ?? outboxEvent.aggregate_type,
+        eventVersion:
             rawPayload.eventVersion ?? outboxEvent.metadata?.version ?? 1,
-          occurredAt: rawPayload.occurredAt ?? outboxEvent.created_at,
-          eventData: rawPayload.payload ?? rawPayload,
-          correlationId:
+        occurredAt: rawPayload.occurredAt ?? outboxEvent.created_at,
+        eventData: rawPayload.payload ?? rawPayload,
+        correlationId:
             rawPayload.correlationId ?? outboxEvent.metadata?.correlationId,
-          causationId: rawPayload.causationId,
-          userId: rawPayload.userId,
-          metadata: rawPayload.metadata ?? outboxEvent.metadata ?? {},
-        };
+        causationId: rawPayload.causationId,
+        userId: rawPayload.userId,
+        metadata: rawPayload.metadata ?? outboxEvent.metadata ?? {},
+      };
 
     const occurredAt = new Date(
       serializedPayload.occurredAt ?? outboxEvent.created_at

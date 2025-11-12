@@ -1,8 +1,8 @@
 /**
  * Integration Tests Setup
- * 
+ *
  * Global setup and teardown for integration tests
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */

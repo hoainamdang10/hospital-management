@@ -1,6 +1,6 @@
 /**
  * IdempotentEventHandler - Wrapper for idempotent event processing
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -31,7 +31,7 @@ export class IdempotentEventHandler<T> {
     try {
       // Check if event was already processed
       const isProcessed = await this.auditService.isEventProcessed(message.eventId);
-      
+
       if (isProcessed) {
         this.logger.info('Event already processed (idempotency check)', {
           eventId: message.eventId,

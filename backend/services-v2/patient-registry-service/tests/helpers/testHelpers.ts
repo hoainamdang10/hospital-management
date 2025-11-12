@@ -1,8 +1,8 @@
 /**
  * Test Helpers and Utilities
- * 
+ *
  * Shared helper functions for integration tests
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -445,10 +445,10 @@ export async function getOrCreateTestUser(
         password
       });
 
-      console.log(`📊 Login response:`, JSON.stringify(loginResponse.data, null, 2));
+      console.log('📊 Login response:', JSON.stringify(loginResponse.data, null, 2));
 
       if (!loginResponse.data.success || !loginResponse.data.data?.accessToken) {
-        console.error(`❌ Login failed:`, loginResponse.data);
+        console.error('❌ Login failed:', loginResponse.data);
         throw new Error(`Failed to login after creating user: ${loginResponse.data.error || loginResponse.data.message || 'Unknown error'}`);
       }
 
@@ -461,13 +461,13 @@ export async function getOrCreateTestUser(
     } catch (loginError: unknown) {
       if (axios.isAxiosError(loginError)) {
         const axiosError = loginError as import('axios').AxiosError;
-        console.error(`❌ Login axios error:`, {
+        console.error('❌ Login axios error:', {
           status: axiosError.response?.status,
           data: axiosError.response?.data,
           message: axiosError.message
         });
       } else {
-        console.error(`❌ Login error:`, loginError);
+        console.error('❌ Login error:', loginError);
       }
 
       const fallbackToken = issueMockIdentityToken(resolvedAuthUserId, email);
@@ -596,5 +596,4 @@ export async function createTestPatientInDb(
 
   return data.patient_id;
 }
-
 

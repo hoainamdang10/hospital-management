@@ -7,24 +7,24 @@
  * @compliance Clean Architecture, DDD
  */
 
-import { Patient, PatientProps } from "../../domain/aggregates/Patient";
-import { PatientId } from "../../domain/value-objects/PatientId";
-import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
-import { ContactInfo, Address } from "../../domain/value-objects/ContactInfo";
+import { Patient, PatientProps } from '../../domain/aggregates/Patient';
+import { PatientId } from '../../domain/value-objects/PatientId';
+import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
+import { ContactInfo, Address } from '../../domain/value-objects/ContactInfo';
 import {
   BasicMedicalInfo,
   BloodType,
-} from "../../domain/value-objects/BasicMedicalInfo";
-import { PatientStatus } from "../../domain/value-objects/PatientStatus";
-import { PatientLink } from "../../domain/value-objects/PatientLink";
+} from '../../domain/value-objects/BasicMedicalInfo';
+import { PatientStatus } from '../../domain/value-objects/PatientStatus';
+import { PatientLink } from '../../domain/value-objects/PatientLink';
 import {
   CommunicationPreference,
   Language,
   ContactMethod,
-} from "../../domain/value-objects/CommunicationPreference";
-import { InsuranceInfo } from "../../domain/entities/InsuranceInfo";
-import { EmergencyContact } from "../../domain/entities/EmergencyContact";
-import { PatientConsent } from "../../domain/entities/PatientConsent";
+} from '../../domain/value-objects/CommunicationPreference';
+import { InsuranceInfo } from '../../domain/entities/InsuranceInfo';
+import { EmergencyContact } from '../../domain/entities/EmergencyContact';
+import { PatientConsent } from '../../domain/entities/PatientConsent';
 
 /**
  * DTO for PersonalInfo JSONB field
@@ -32,7 +32,7 @@ import { PatientConsent } from "../../domain/entities/PatientConsent";
 export interface PersonalInfoDTO {
   fullName: string;
   dateOfBirth: string; // ISO date string
-  gender: "male" | "female" | "other";
+  gender: 'male' | 'female' | 'other';
   nationalId: string;
   nationality: string;
   ethnicity?: string;
@@ -56,7 +56,7 @@ export interface ContactInfoDTO {
     postalCode?: string;
     country: string;
   };
-  preferredContactMethod: "phone" | "email" | "sms";
+  preferredContactMethod: 'phone' | 'email' | 'sms';
 }
 
 /**
@@ -80,9 +80,9 @@ export interface PatientRecord {
   basic_medical_info: BasicMedicalInfoDTO; // JSONB
   photo_url?: string | null; // FHIR: photo field
   communication_preference?: {
-    language: "vi" | "en";
+    language: 'vi' | 'en';
     preferred: boolean;
-    contactMethod: "email" | "sms" | "phone";
+    contactMethod: 'email' | 'sms' | 'phone';
     timezone: string;
   } | null; // FHIR: communication field
   status: string;
@@ -217,10 +217,10 @@ export class PatientMapper {
           validFrom: new Date(insuranceRecord.valid_from),
           validTo: new Date(insuranceRecord.valid_to),
           coverageType: insuranceRecord.coverage_type as
-            | "BHYT"
-            | "BHTN"
-            | "private"
-            | "self_pay",
+            | 'BHYT'
+            | 'BHTN'
+            | 'private'
+            | 'self_pay',
           isVietnameseInsurance: insuranceRecord.is_vietnamese_insurance,
           bhytNumber: insuranceRecord.bhyt_number || undefined,
           isPrimary: insuranceRecord.is_primary,
@@ -272,7 +272,7 @@ export class PatientMapper {
       const links = (linkRecords || []).map((record) =>
         PatientLink.create(
           PatientId.fromString(record.other_patient_id),
-          record.link_type as "refer" | "seealso",
+          record.link_type as 'refer' | 'seealso',
           record.created_by,
         ),
       );
@@ -284,18 +284,18 @@ export class PatientMapper {
           string,
           any
         >;
-        const language = (preference.language as Language) || "vi";
+        const language = (preference.language as Language) || 'vi';
         const contactMethod =
           (preference.contactMethod as ContactMethod) ||
           (preference.preferredChannel as ContactMethod) ||
           (patientRecord.contact_info
             .preferredContactMethod as ContactMethod) ||
-          "phone";
+          'phone';
         const preferred =
-          typeof preference.preferred === "boolean"
+          typeof preference.preferred === 'boolean'
             ? preference.preferred
             : true;
-        const timezone = preference.timezone || "Asia/Ho_Chi_Minh";
+        const timezone = preference.timezone || 'Asia/Ho_Chi_Minh';
 
         communicationPreference = CommunicationPreference.create({
           language,
@@ -331,7 +331,7 @@ export class PatientMapper {
       return Patient.reconstitute(patientProps);
     } catch (error) {
       throw new Error(
-        `Failed to map patient to domain: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to map patient to domain: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -355,7 +355,7 @@ export class PatientMapper {
       user_id: props.userId,
       personal_info: {
         fullName: props.personalInfo.fullName,
-        dateOfBirth: props.personalInfo.dateOfBirth.toISOString().split("T")[0],
+        dateOfBirth: props.personalInfo.dateOfBirth.toISOString().split('T')[0],
         gender: props.personalInfo.gender,
         nationalId: props.personalInfo.nationalId,
         nationality: props.personalInfo.nationality,
@@ -396,8 +396,8 @@ export class PatientMapper {
         provider: props.insuranceInfo.provider,
         policy_number: props.insuranceInfo.policyNumber,
         group_number: props.insuranceInfo.groupNumber || null,
-        valid_from: props.insuranceInfo.validFrom.toISOString().split("T")[0],
-        valid_to: props.insuranceInfo.validTo.toISOString().split("T")[0],
+        valid_from: props.insuranceInfo.validFrom.toISOString().split('T')[0],
+        valid_to: props.insuranceInfo.validTo.toISOString().split('T')[0],
         coverage_type: props.insuranceInfo.coverageType,
         is_vietnamese_insurance: props.insuranceInfo.isVietnameseInsurance,
         bhyt_number: props.insuranceInfo.bhytNumber || null,

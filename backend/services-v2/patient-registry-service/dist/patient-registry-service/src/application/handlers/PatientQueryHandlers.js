@@ -371,7 +371,8 @@ class PatientQueryHandlers {
         const collected = [];
         let total = 0;
         let page = 1;
-        while (true) {
+        let hasMorePatients = true;
+        while (hasMorePatients) {
             const { patients, total: batchTotal } = await this.patientRepository.findWithFilters(filters, {
                 page,
                 limit: batchSize,
@@ -381,12 +382,10 @@ class PatientQueryHandlers {
                 total = batchTotal;
             }
             if (patients.length === 0) {
+                hasMorePatients = false;
                 break;
             }
             collected.push(...patients);
-            if (collected.length >= total) {
-                break;
-            }
             page += 1;
         }
         return { patients: collected, total };
@@ -508,12 +507,15 @@ class PatientQueryHandlers {
     }
     resolveAgeGroup(dateOfBirth) {
         const age = this.calculateAge(dateOfBirth);
-        if (age <= 18)
+        if (age <= 18) {
             return '0-18';
-        if (age <= 35)
+        }
+        if (age <= 35) {
             return '19-35';
-        if (age <= 60)
+        }
+        if (age <= 60) {
             return '36-60';
+        }
         return '60+';
     }
     calculateAge(dateOfBirth) {

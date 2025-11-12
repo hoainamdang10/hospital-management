@@ -391,9 +391,9 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
                 email,
                 password
             });
-            console.log(`📊 Login response:`, JSON.stringify(loginResponse.data, null, 2));
+            console.log('📊 Login response:', JSON.stringify(loginResponse.data, null, 2));
             if (!loginResponse.data.success || !loginResponse.data.data?.accessToken) {
-                console.error(`❌ Login failed:`, loginResponse.data);
+                console.error('❌ Login failed:', loginResponse.data);
                 throw new Error(`Failed to login after creating user: ${loginResponse.data.error || loginResponse.data.message || 'Unknown error'}`);
             }
             console.log(`✅ Login successful for ${email}`);
@@ -405,14 +405,14 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
         catch (loginError) {
             if (axios.isAxiosError(loginError)) {
                 const axiosError = loginError;
-                console.error(`❌ Login axios error:`, {
+                console.error('❌ Login axios error:', {
                     status: axiosError.response?.status,
                     data: axiosError.response?.data,
                     message: axiosError.message
                 });
             }
             else {
-                console.error(`❌ Login error:`, loginError);
+                console.error('❌ Login error:', loginError);
             }
             const fallbackToken = issueMockIdentityToken(resolvedAuthUserId, email);
             console.log(`✅ Using mock identity token for ${email} due to login failure`);

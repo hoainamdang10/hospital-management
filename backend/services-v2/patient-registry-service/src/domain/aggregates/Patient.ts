@@ -9,30 +9,30 @@
  * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { HealthcareAggregateRoot } from "@shared/domain/base/aggregate-root";
-import { DomainEvent } from "@shared/domain/base/domain-event";
-import { PatientId } from "../value-objects/PatientId";
-import { PersonalInfo } from "../value-objects/PersonalInfo";
-import { ContactInfo } from "../value-objects/ContactInfo";
-import { BasicMedicalInfo } from "../value-objects/BasicMedicalInfo";
-import { PatientLink } from "../value-objects/PatientLink";
-import { PatientStatus } from "../value-objects/PatientStatus";
-import { CommunicationPreference } from "../value-objects/CommunicationPreference";
-import { InsuranceInfo } from "../entities/InsuranceInfo";
-import { EmergencyContact } from "../entities/EmergencyContact";
-import { PatientConsent } from "../entities/PatientConsent";
+import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
+import { DomainEvent } from '@shared/domain/base/domain-event';
+import { PatientId } from '../value-objects/PatientId';
+import { PersonalInfo } from '../value-objects/PersonalInfo';
+import { ContactInfo } from '../value-objects/ContactInfo';
+import { BasicMedicalInfo } from '../value-objects/BasicMedicalInfo';
+import { PatientLink } from '../value-objects/PatientLink';
+import { PatientStatus } from '../value-objects/PatientStatus';
+import { CommunicationPreference } from '../value-objects/CommunicationPreference';
+import { InsuranceInfo } from '../entities/InsuranceInfo';
+import { EmergencyContact } from '../entities/EmergencyContact';
+import { PatientConsent } from '../entities/PatientConsent';
 import {
   PatientRegisteredEvent,
   PatientRegisteredEventAdditionalData,
   PatientRegisteredEventContactInfo,
   PatientRegisteredEventEmergencyContact,
   PatientRegisteredEventInsuranceInfo,
-} from "../events/PatientRegisteredEvent";
-import { PatientUpdatedEvent } from "../events/PatientUpdatedEvent";
-import { PatientMergedEvent } from "../events/PatientMergedEvent";
-import { PatientLinkedEvent } from "../events/PatientLinkedEvent";
-import { PatientDeactivatedEvent } from "../events/PatientDeactivatedEvent";
-import { PatientConsentGrantedEvent } from "../events/PatientConsentGrantedEvent";
+} from '../events/PatientRegisteredEvent';
+import { PatientUpdatedEvent } from '../events/PatientUpdatedEvent';
+import { PatientMergedEvent } from '../events/PatientMergedEvent';
+import { PatientLinkedEvent } from '../events/PatientLinkedEvent';
+import { PatientDeactivatedEvent } from '../events/PatientDeactivatedEvent';
+import { PatientConsentGrantedEvent } from '../events/PatientConsentGrantedEvent';
 
 export interface PatientProps {
   // Identity
@@ -212,14 +212,14 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       email: contactInfo.email,
       address: address
         ? {
-            street: address.street,
-            ward: address.ward,
-            district: address.district,
-            city: address.city,
-            province: address.province,
-            postalCode: address.postalCode,
-            country: address.country,
-          }
+          street: address.street,
+          ward: address.ward,
+          district: address.district,
+          city: address.city,
+          province: address.province,
+          postalCode: address.postalCode,
+          country: address.country,
+        }
         : undefined,
       preferredContactMethod: contactInfo.preferredContactMethod,
     };
@@ -284,9 +284,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        "personal_info", 
+        'personal_info',
         updatedBy,
         {
           fullName: personalInfo.fullName,
@@ -311,9 +311,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        "contact_info", 
+        'contact_info',
         updatedBy,
         undefined,
         {
@@ -341,9 +341,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        "basic_medical_info", 
+        'basic_medical_info',
         updatedBy
       ),
     );
@@ -365,9 +365,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        "insurance_info", 
+        'insurance_info',
         updatedBy
       ),
     );
@@ -389,9 +389,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        "emergency_contact", 
+        'emergency_contact',
         updatedBy
       ),
     );
@@ -412,9 +412,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        "emergency_contact", 
+        'emergency_contact',
         updatedBy
       ),
     );
@@ -450,15 +450,15 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     performedBy: string,
   ): void {
     if (this.props.status === PatientStatus.MERGED) {
-      throw new Error("Bệnh nhân đã được gộp trước đó");
+      throw new Error('Bệnh nhân đã được gộp trước đó');
     }
 
     if (this.props.status === PatientStatus.DECEASED) {
-      throw new Error("Không thể gộp bệnh nhân đã qua đời");
+      throw new Error('Không thể gộp bệnh nhân đã qua đời');
     }
 
     if (this.props.id.equals(masterPatientId)) {
-      throw new Error("Không thể gộp bệnh nhân vào chính nó");
+      throw new Error('Không thể gộp bệnh nhân vào chính nó');
     }
 
     this.props.status = PatientStatus.MERGED;
@@ -486,11 +486,11 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
    */
   public linkTo(
     otherPatientId: PatientId,
-    linkType: "refer" | "seealso",
+    linkType: 'refer' | 'seealso',
     performedBy: string,
   ): void {
     if (this.props.id.equals(otherPatientId)) {
-      throw new Error("Không thể liên kết bệnh nhân với chính nó");
+      throw new Error('Không thể liên kết bệnh nhân với chính nó');
     }
 
     // Check if link already exists
@@ -527,15 +527,15 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
    */
   public deactivate(reason: string, performedBy: string): void {
     if (this.props.status === PatientStatus.INACTIVE) {
-      throw new Error("Bệnh nhân đã bị vô hiệu hóa");
+      throw new Error('Bệnh nhân đã bị vô hiệu hóa');
     }
 
     if (this.props.status === PatientStatus.MERGED) {
-      throw new Error("Không thể vô hiệu hóa bệnh nhân đã được gộp");
+      throw new Error('Không thể vô hiệu hóa bệnh nhân đã được gộp');
     }
 
     if (this.props.status === PatientStatus.DECEASED) {
-      throw new Error("Không thể vô hiệu hóa bệnh nhân đã qua đời");
+      throw new Error('Không thể vô hiệu hóa bệnh nhân đã qua đời');
     }
 
     this.props.status = PatientStatus.INACTIVE;
@@ -553,7 +553,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
    */
   public markAsDeceased(performedBy: string): void {
     if (this.props.status === PatientStatus.DECEASED) {
-      throw new Error("Bệnh nhân đã được đánh dấu qua đời");
+      throw new Error('Bệnh nhân đã được đánh dấu qua đời');
     }
 
     this.props.status = PatientStatus.DECEASED;
@@ -563,9 +563,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        "status", 
+        'status',
         performedBy
       ),
     );
@@ -580,18 +580,18 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     options?: { allowDeceased?: boolean },
   ): void {
     if (this.props.status === PatientStatus.MERGED) {
-      throw new Error("Không thể kích hoạt lại bệnh nhân đã được gộp");
+      throw new Error('Không thể kích hoạt lại bệnh nhân đã được gộp');
     }
 
     if (this.props.status === PatientStatus.ACTIVE) {
-      throw new Error("Bệnh nhân đang ở trạng thái hoạt động");
+      throw new Error('Bệnh nhân đang ở trạng thái hoạt động');
     }
 
     if (
       this.props.status === PatientStatus.DECEASED &&
       !options?.allowDeceased
     ) {
-      throw new Error("Chỉ có thể kích hoạt lại bệnh nhân đã bị vô hiệu hóa");
+      throw new Error('Chỉ có thể kích hoạt lại bệnh nhân đã bị vô hiệu hóa');
     }
 
     if (
@@ -599,7 +599,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       this.props.status !== PatientStatus.DECEASED
     ) {
       throw new Error(
-        "Không thể kích hoạt lại bệnh nhân ở trạng thái hiện tại",
+        'Không thể kích hoạt lại bệnh nhân ở trạng thái hiện tại',
       );
     }
 
@@ -610,9 +610,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const patientId = this.props.id.value;
     this.addDomainEvent(
       new PatientUpdatedEvent(
-        patientId, 
+        patientId,
         this.props.userId, // Identity Service user ID
-        'status', 
+        'status',
         performedBy
       ),
     );
@@ -749,20 +749,20 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   protected validateBusinessInvariants(): void {
     if (!this.props.personalInfo) {
-      throw new Error("Thông tin cá nhân không được để trống");
+      throw new Error('Thông tin cá nhân không được để trống');
     }
 
     if (!this.props.contactInfo) {
-      throw new Error("Thông tin liên hệ không được để trống");
+      throw new Error('Thông tin liên hệ không được để trống');
     }
 
     if (!this.props.basicMedicalInfo) {
-      throw new Error("Thông tin y tế cơ bản không được để trống");
+      throw new Error('Thông tin y tế cơ bản không được để trống');
     }
 
     if (this.props.status === PatientStatus.MERGED && !this.props.mergedInto) {
       throw new Error(
-        "Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính",
+        'Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính',
       );
     }
   }
@@ -783,8 +783,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
   public updatePhoto(photoUrl: string, updatedBy: string): void {
     this.ensureCanUpdate();
 
-    if (!photoUrl || photoUrl.trim() === "") {
-      throw new Error("URL ảnh không được để trống");
+    if (!photoUrl || photoUrl.trim() === '') {
+      throw new Error('URL ảnh không được để trống');
     }
 
     this.props.photoUrl = photoUrl;
@@ -795,7 +795,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         this.props.id.getValue(),
         this.props.userId, // Add identityUserId as second parameter
-        "photo_updated",
+        'photo_updated',
         updatedBy,
       ),
     );
@@ -815,7 +815,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         this.props.id.getValue(),
         this.props.userId, // Add identityUserId as second parameter
-        "photo_removed",
+        'photo_removed',
         updatedBy,
       ),
     );
@@ -847,7 +847,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         this.props.id.getValue(),
         this.props.userId, // Add identityUserId as second parameter
-        "communication_preference_updated",
+        'communication_preference_updated',
         updatedBy,
       ),
     );

@@ -8,29 +8,29 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { randomUUID } from "crypto";
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { Patient } from "../../domain/aggregates/Patient";
-import { PatientId } from "../../domain/value-objects/PatientId";
-import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
-import { ContactInfo, Address } from "../../domain/value-objects/ContactInfo";
+import { randomUUID } from 'crypto';
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { Patient } from '../../domain/aggregates/Patient';
+import { PatientId } from '../../domain/value-objects/PatientId';
+import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
+import { ContactInfo, Address } from '../../domain/value-objects/ContactInfo';
 import {
   BasicMedicalInfo,
   BloodType,
-} from "../../domain/value-objects/BasicMedicalInfo";
-import { InsuranceInfo } from "../../domain/entities/InsuranceInfo";
-import { EmergencyContact } from "../../domain/entities/EmergencyContact";
-import { IEventBus } from "@shared/application/services/event-bus.interface";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { AuditService } from "../../infrastructure/audit/AuditService";
-import type { SupabaseClient } from "@supabase/supabase-js";
+} from '../../domain/value-objects/BasicMedicalInfo';
+import { InsuranceInfo } from '../../domain/entities/InsuranceInfo';
+import { EmergencyContact } from '../../domain/entities/EmergencyContact';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { AuditService } from '../../infrastructure/audit/AuditService';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface RegisterPatientRequest {
   userId: string;
   personalInfo: {
     fullName: string;
     dateOfBirth: string; // ISO date string
-    gender: "male" | "female" | "other";
+    gender: 'male' | 'female' | 'other';
     nationalId: string; // CMND/CCCD
     nationality?: string;
     ethnicity?: string;
@@ -41,7 +41,7 @@ export interface RegisterPatientRequest {
     primaryPhone: string;
     secondaryPhone?: string;
     email?: string;
-    preferredContactMethod?: "phone" | "email" | "sms";
+    preferredContactMethod?: 'phone' | 'email' | 'sms';
     address?: {
       street?: string;
       ward?: string;
@@ -63,7 +63,7 @@ export interface RegisterPatientRequest {
     groupNumber?: string;
     validFrom: string; // ISO date string
     validTo: string; // ISO date string
-    coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+    coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
     isVietnameseInsurance: boolean;
     bhytNumber?: string;
     isPrimary: boolean;
@@ -100,7 +100,7 @@ export class RegisterPatientUseCase {
     request: RegisterPatientRequest,
   ): Promise<RegisterPatientResponse> {
     try {
-      this.logger.info("Starting patient registration", {
+      this.logger.info('Starting patient registration', {
         userId: request.userId,
         requestedBy: request.requestedBy,
       });
@@ -113,15 +113,15 @@ export class RegisterPatientUseCase {
       );
       if (existingPatient) {
         this.logger.warn(
-          "Patient registration failed: user already has profile",
+          'Patient registration failed: user already has profile',
           {
             userId: request.userId,
           },
         );
         return {
           success: false,
-          message: "Người dùng đã có hồ sơ bệnh nhân",
-          errors: ["USER_ALREADY_HAS_PATIENT_PROFILE"],
+          message: 'Người dùng đã có hồ sơ bệnh nhân',
+          errors: ['USER_ALREADY_HAS_PATIENT_PROFILE'],
         };
       }
 
@@ -133,8 +133,8 @@ export class RegisterPatientUseCase {
       if (existingByNationalId) {
         return {
           success: false,
-          message: "CMND/CCCD đã tồn tại trong hệ thống",
-          errors: ["NATIONAL_ID_ALREADY_EXISTS"],
+          message: 'CMND/CCCD đã tồn tại trong hệ thống',
+          errors: ['NATIONAL_ID_ALREADY_EXISTS'],
         };
       }
 
@@ -146,8 +146,8 @@ export class RegisterPatientUseCase {
         if (existingByBHYT) {
           return {
             success: false,
-            message: "Số BHYT đã tồn tại trong hệ thống",
-            errors: ["BHYT_NUMBER_ALREADY_EXISTS"],
+            message: 'Số BHYT đã tồn tại trong hệ thống',
+            errors: ['BHYT_NUMBER_ALREADY_EXISTS'],
           };
         }
       }
@@ -167,7 +167,7 @@ export class RegisterPatientUseCase {
       });
 
       const preferredContactMethod =
-        request.contactInfo.preferredContactMethod ?? "phone";
+        request.contactInfo.preferredContactMethod ?? 'phone';
 
       const contactInfo = ContactInfo.create({
         primaryPhone:
@@ -183,10 +183,10 @@ export class RegisterPatientUseCase {
 
       const basicMedicalInfo = request.basicMedicalInfo
         ? BasicMedicalInfo.create({
-            bloodType: request.basicMedicalInfo.bloodType,
-            knownAllergies: request.basicMedicalInfo.knownAllergies || [],
-            emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo,
-          })
+          bloodType: request.basicMedicalInfo.bloodType,
+          knownAllergies: request.basicMedicalInfo.knownAllergies || [],
+          emergencyMedicalInfo: request.basicMedicalInfo.emergencyMedicalInfo,
+        })
         : BasicMedicalInfo.createEmpty();
 
       // 6. Create insurance info entity (if provided)
@@ -244,7 +244,7 @@ export class RegisterPatientUseCase {
       // 12. HIPAA audit logging
       await this.auditPatientRegistration(patient, request);
 
-      this.logger.info("Patient registration completed successfully", {
+      this.logger.info('Patient registration completed successfully', {
         patientId: patient.getPatientId(),
         userId: request.userId,
         requestedBy: request.requestedBy,
@@ -253,33 +253,33 @@ export class RegisterPatientUseCase {
       // 13. Return success response
       return {
         success: true,
-        patientId: patient.getPatientId() || "",
-        message: "Đăng ký bệnh nhân thành công",
+        patientId: patient.getPatientId() || '',
+        message: 'Đăng ký bệnh nhân thành công',
       };
     } catch (error) {
       // Handle validation errors
       if (error instanceof Error) {
-        this.logger.error("Patient registration failed", {
+        this.logger.error('Patient registration failed', {
           userId: request.userId,
           error: error.message,
           stack: error.stack,
         });
         return {
           success: false,
-          message: "Đăng ký bệnh nhân thất bại",
-          errors: ["REGISTRATION_FAILED", error.message],
+          message: 'Đăng ký bệnh nhân thất bại',
+          errors: ['REGISTRATION_FAILED', error.message],
         };
       }
 
       // Handle unexpected errors
-      this.logger.error("Unexpected error during patient registration", {
+      this.logger.error('Unexpected error during patient registration', {
         userId: request.userId,
-        error: "UNEXPECTED_ERROR",
+        error: 'UNEXPECTED_ERROR',
       });
       return {
         success: false,
-        message: "Đã xảy ra lỗi không mong muốn",
-        errors: ["UNEXPECTED_ERROR"],
+        message: 'Đã xảy ra lỗi không mong muốn',
+        errors: ['UNEXPECTED_ERROR'],
       };
     }
   }
@@ -297,9 +297,9 @@ export class RegisterPatientUseCase {
 
       patient.markEventsAsCommitted();
     } catch (error) {
-      this.logger.warn("Event publishing failed, but patient was saved", {
+      this.logger.warn('Event publishing failed, but patient was saved', {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -316,41 +316,41 @@ export class RegisterPatientUseCase {
       // Log to audit_logs table (HIPAA compliance)
       await this.auditService.logAudit({
         eventId: randomUUID(),
-        eventType: "patient.registered",
-        aggregateType: "Patient",
-        aggregateId: patient.getPatientId() || "unknown",
-        action: "PATIENT_REGISTRATION",
+        eventType: 'patient.registered',
+        aggregateType: 'Patient',
+        aggregateId: patient.getPatientId() || 'unknown',
+        action: 'PATIENT_REGISTRATION',
         userId: request.userId ?? undefined,
         patientId: patient.getPatientId() ?? undefined,
         containsPHI: true,
         changedFields: {
           dataAccessed:
-            "patient_personal_info,patient_contact_info,patient_medical_info,insurance_info",
-          requestedBy: request.requestedBy || "system",
+            'patient_personal_info,patient_contact_info,patient_medical_info,insurance_info',
+          requestedBy: request.requestedBy || 'system',
         },
-        complianceLevel: "hipaa",
+        complianceLevel: 'hipaa',
       });
 
-      this.logger.info("Patient registration audited successfully", {
+      this.logger.info('Patient registration audited successfully', {
         patientId: patient.getPatientId(),
       });
     } catch (error) {
       // Log error but don't fail the registration
-      this.logger.error("Failed to audit patient registration", {
+      this.logger.error('Failed to audit patient registration', {
         patientId: patient.getPatientId(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
 }
 
-const DEFAULT_PATIENT_NATIONALITY = "Vietnamese";
-const DEFAULT_PATIENT_ADDRESS_TEXT = "Chưa cập nhật";
-const DEFAULT_PATIENT_CITY = "TP. Hồ Chí Minh";
-const DEFAULT_PATIENT_COUNTRY = "Việt Nam";
+const DEFAULT_PATIENT_NATIONALITY = 'Vietnamese';
+const DEFAULT_PATIENT_ADDRESS_TEXT = 'Chưa cập nhật';
+const DEFAULT_PATIENT_CITY = 'TP. Hồ Chí Minh';
+const DEFAULT_PATIENT_COUNTRY = 'Việt Nam';
 
 type ContactAddressInput =
-  | RegisterPatientRequest["contactInfo"]["address"]
+  | RegisterPatientRequest['contactInfo']['address']
   | undefined;
 
 function buildSafePatientAddress(address?: ContactAddressInput): Address {
@@ -371,9 +371,9 @@ function normalizeVietnamesePhoneNumber(phone?: string): string | undefined {
     return undefined;
   }
 
-  const sanitized = phone.replace(/[\s-]/g, "");
+  const sanitized = phone.replace(/[\s-]/g, '');
 
-  if (sanitized.startsWith("+84")) {
+  if (sanitized.startsWith('+84')) {
     const rest = sanitized.slice(3);
     if (!rest) {
       return undefined;
@@ -381,7 +381,7 @@ function normalizeVietnamesePhoneNumber(phone?: string): string | undefined {
     return `0${rest}`;
   }
 
-  if (sanitized.startsWith("84") && sanitized.length >= 11) {
+  if (sanitized.startsWith('84') && sanitized.length >= 11) {
     return `0${sanitized.slice(2)}`;
   }
 

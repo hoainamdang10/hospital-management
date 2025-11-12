@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, CQRS
  */
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { ILogger } from "@shared/application/services/logger.interface";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { ILogger } from '@shared/application/services/logger.interface';
 export interface AddInsuranceInfoCommand {
     patientId: string;
     performedBy: string;
@@ -17,7 +17,7 @@ export interface AddInsuranceInfoCommand {
         groupNumber?: string;
         validFrom: string;
         validTo: string;
-        coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+        coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
         isVietnameseInsurance: boolean;
         bhytNumber?: string;
         isPrimary?: boolean;

@@ -7,10 +7,10 @@
  * @compliance Clean Architecture, DDD, CQRS
  */
 
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { PatientId } from "../../domain/value-objects/PatientId";
-import { InsuranceInfo } from "../../domain/entities/InsuranceInfo";
-import { ILogger } from "@shared/application/services/logger.interface";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { PatientId } from '../../domain/value-objects/PatientId';
+import { InsuranceInfo } from '../../domain/entities/InsuranceInfo';
+import { ILogger } from '@shared/application/services/logger.interface';
 
 export interface AddInsuranceInfoCommand {
   patientId: string;
@@ -21,7 +21,7 @@ export interface AddInsuranceInfoCommand {
     groupNumber?: string;
     validFrom: string;
     validTo: string;
-    coverageType: "BHYT" | "BHTN" | "private" | "self_pay";
+    coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
     isVietnameseInsurance: boolean;
     bhytNumber?: string;
     isPrimary?: boolean;
@@ -44,7 +44,7 @@ export class AddInsuranceInfoUseCase {
   async execute(
     command: AddInsuranceInfoCommand,
   ): Promise<AddInsuranceInfoResult> {
-    this.logger.info("Adding insurance info", {
+    this.logger.info('Adding insurance info', {
       patientId: command.patientId,
       performedBy: command.performedBy,
     });
@@ -53,8 +53,8 @@ export class AddInsuranceInfoUseCase {
       if (!command.patientId?.trim()) {
         return {
           success: false,
-          message: "Patient ID không được để trống",
-          errors: ["INVALID_PATIENT_ID"],
+          message: 'Patient ID không được để trống',
+          errors: ['INVALID_PATIENT_ID'],
         };
       }
 
@@ -65,15 +65,15 @@ export class AddInsuranceInfoUseCase {
         return {
           success: false,
           message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
-          errors: ["PATIENT_NOT_FOUND"],
+          errors: ['PATIENT_NOT_FOUND'],
         };
       }
 
       if (patient.getInsuranceInfo()) {
         return {
           success: false,
-          message: "Bệnh nhân đã có thông tin bảo hiểm, vui lòng sử dụng endpoint cập nhật",
-          errors: ["INSURANCE_ALREADY_EXISTS"],
+          message: 'Bệnh nhân đã có thông tin bảo hiểm, vui lòng sử dụng endpoint cập nhật',
+          errors: ['INSURANCE_ALREADY_EXISTS'],
         };
       }
 
@@ -83,8 +83,8 @@ export class AddInsuranceInfoUseCase {
       if (Number.isNaN(validFrom.getTime()) || Number.isNaN(validTo.getTime())) {
         return {
           success: false,
-          message: "Ngày hiệu lực bảo hiểm không hợp lệ",
-          errors: ["INVALID_INSURANCE_DATES"],
+          message: 'Ngày hiệu lực bảo hiểm không hợp lệ',
+          errors: ['INVALID_INSURANCE_DATES'],
         };
       }
 
@@ -106,18 +106,18 @@ export class AddInsuranceInfoUseCase {
 
       return {
         success: true,
-        message: "Đã thêm thông tin bảo hiểm thành công",
+        message: 'Đã thêm thông tin bảo hiểm thành công',
       };
     } catch (error) {
-      this.logger.error("Failed to add insurance info", {
+      this.logger.error('Failed to add insurance info', {
         patientId: command.patientId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
 
       return {
         success: false,
-        message: "Không thể thêm thông tin bảo hiểm",
-        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
+        message: 'Không thể thêm thông tin bảo hiểm',
+        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR'],
       };
     }
   }

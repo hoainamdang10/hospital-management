@@ -6,10 +6,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, CQRS
  */
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { IEventBus } from "@shared/application/services/event-bus.interface";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { IAuditService } from "@shared/application/services/audit.service.interface";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
 export interface AddEmergencyContactCommand {
     patientId: string;
     name: string;

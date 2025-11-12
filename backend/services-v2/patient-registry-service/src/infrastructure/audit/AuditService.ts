@@ -6,13 +6,13 @@
  * @compliance HIPAA, Clean Architecture
  */
 
-import { randomUUID } from "crypto";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { ILogger } from "@shared/application/services/logger.interface";
+import { randomUUID } from 'crypto';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { ILogger } from '@shared/application/services/logger.interface';
 import {
   IAuditService,
   AuditLogEntry as SharedAuditLogEntry,
-} from "@shared/application/services/audit.service.interface";
+} from '@shared/application/services/audit.service.interface';
 
 export interface AuditLogEntry {
   eventId: string;
@@ -38,7 +38,7 @@ export interface PHIAccessLogEntry {
   patientId: string;
   userId: string;
   userRole?: string;
-  accessType: "READ" | "WRITE" | "EXPORT" | "PRINT" | "DELETE" | "SEARCH";
+  accessType: 'READ' | 'WRITE' | 'EXPORT' | 'PRINT' | 'DELETE' | 'SEARCH';
   accessedFields?: string[];
   reason?: string;
   ipAddress?: string;
@@ -58,8 +58,8 @@ export class AuditService implements IAuditService {
   async logAudit(entry: AuditLogEntry): Promise<void> {
     try {
       const { error } = await this.supabase
-        .schema("patient_schema")
-        .from("audit_logs")
+        .schema('patient_schema')
+        .from('audit_logs')
         .insert({
           event_id: entry.eventId,
           event_type: entry.eventType,
@@ -82,20 +82,20 @@ export class AuditService implements IAuditService {
         });
 
       if (error) {
-        this.logger.error("Failed to log audit entry", {
+        this.logger.error('Failed to log audit entry', {
           error: error.message,
         });
         throw error;
       }
 
-      this.logger.debug("Audit log created", {
+      this.logger.debug('Audit log created', {
         eventType: entry.eventType,
         action: entry.action,
         patientId: entry.patientId,
       });
     } catch (error) {
-      this.logger.error("Error logging audit", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error logging audit', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       // Don't throw - audit logging should not break main flow
     }
@@ -107,8 +107,8 @@ export class AuditService implements IAuditService {
   async logPHIAccess(entry: PHIAccessLogEntry): Promise<void> {
     try {
       const { error } = await this.supabase
-        .schema("patient_schema")
-        .from("phi_access_logs")
+        .schema('patient_schema')
+        .from('phi_access_logs')
         .insert({
           patient_id: entry.patientId,
           user_id: entry.userId,
@@ -123,18 +123,18 @@ export class AuditService implements IAuditService {
         });
 
       if (error) {
-        this.logger.error("Failed to log PHI access", { error: error.message });
+        this.logger.error('Failed to log PHI access', { error: error.message });
         throw error;
       }
 
-      this.logger.debug("PHI access logged", {
+      this.logger.debug('PHI access logged', {
         patientId: entry.patientId,
         accessType: entry.accessType,
         userId: entry.userId,
       });
     } catch (error) {
-      this.logger.error("Error logging PHI access", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error logging PHI access', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -144,12 +144,12 @@ export class AuditService implements IAuditService {
    */
   async isEventProcessed(eventId: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.rpc("is_event_processed", {
+      const { data, error } = await this.supabase.rpc('is_event_processed', {
         p_event_id: eventId,
       });
 
       if (error) {
-        this.logger.error("Failed to check event processing status", {
+        this.logger.error('Failed to check event processing status', {
           error: error.message,
         });
         return false; // Fail open - allow processing
@@ -157,8 +157,8 @@ export class AuditService implements IAuditService {
 
       return data === true;
     } catch (error) {
-      this.logger.error("Error checking event processing status", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error checking event processing status', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return false;
     }
@@ -174,7 +174,7 @@ export class AuditService implements IAuditService {
     eventPayload: any,
   ): Promise<string | null> {
     try {
-      const { data, error } = await this.supabase.rpc("mark_event_processing", {
+      const { data, error } = await this.supabase.rpc('mark_event_processing', {
         p_event_id: eventId,
         p_event_type: eventType,
         p_handler_name: handlerName,
@@ -182,7 +182,7 @@ export class AuditService implements IAuditService {
       });
 
       if (error) {
-        this.logger.error("Failed to mark event as processing", {
+        this.logger.error('Failed to mark event as processing', {
           error: error.message,
         });
         return null;
@@ -190,8 +190,8 @@ export class AuditService implements IAuditService {
 
       return data;
     } catch (error) {
-      this.logger.error("Error marking event as processing", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error marking event as processing', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return null;
     }
@@ -205,19 +205,19 @@ export class AuditService implements IAuditService {
     processingDurationMs: number,
   ): Promise<void> {
     try {
-      const { error } = await this.supabase.rpc("mark_event_completed", {
+      const { error } = await this.supabase.rpc('mark_event_completed', {
         p_event_id: eventId,
         p_processing_duration_ms: processingDurationMs,
       });
 
       if (error) {
-        this.logger.error("Failed to mark event as completed", {
+        this.logger.error('Failed to mark event as completed', {
           error: error.message,
         });
       }
     } catch (error) {
-      this.logger.error("Error marking event as completed", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error marking event as completed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -231,20 +231,20 @@ export class AuditService implements IAuditService {
     errorStack?: string,
   ): Promise<void> {
     try {
-      const { error } = await this.supabase.rpc("mark_event_failed", {
+      const { error } = await this.supabase.rpc('mark_event_failed', {
         p_event_id: eventId,
         p_error_message: errorMessage,
-        p_error_stack: errorStack || "",
+        p_error_stack: errorStack || '',
       });
 
       if (error) {
-        this.logger.error("Failed to mark event as failed", {
+        this.logger.error('Failed to mark event as failed', {
           error: error.message,
         });
       }
     } catch (error) {
-      this.logger.error("Error marking event as failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error marking event as failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -253,17 +253,17 @@ export class AuditService implements IAuditService {
    * IAuditService implementation - Log audit entry
    */
   async log(
-    entry: Omit<SharedAuditLogEntry, "id" | "timestamp">,
+    entry: Omit<SharedAuditLogEntry, 'id' | 'timestamp'>,
   ): Promise<void> {
     try {
       const { error } = await this.supabase
-        .schema("patient_schema")
-        .from("audit_logs")
+        .schema('patient_schema')
+        .from('audit_logs')
         .insert({
           event_id: randomUUID(),
-          event_type: "AUDIT",
+          event_type: 'AUDIT',
           aggregate_type: entry.resource,
-          aggregate_id: entry.resourceId || "",
+          aggregate_id: entry.resourceId || '',
           action: entry.action,
           user_id: entry.userId,
           patient_id: entry.resourceId,
@@ -271,25 +271,25 @@ export class AuditService implements IAuditService {
           changed_fields: entry.details,
           ip_address: entry.ipAddress,
           user_agent: entry.userAgent,
-          compliance_level: "HIPAA",
+          compliance_level: 'HIPAA',
           timestamp: new Date().toISOString(),
         });
 
       if (error) {
-        this.logger.error("Failed to log audit entry", {
+        this.logger.error('Failed to log audit entry', {
           error: error.message,
         });
         throw error;
       }
 
-      this.logger.debug("Audit log created via IAuditService", {
+      this.logger.debug('Audit log created via IAuditService', {
         action: entry.action,
         resource: entry.resource,
         resourceId: entry.resourceId,
       });
     } catch (error) {
-      this.logger.error("Error logging audit via IAuditService", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error logging audit via IAuditService', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       // Don't throw - audit logging should not break main flow
     }
@@ -304,15 +304,15 @@ export class AuditService implements IAuditService {
   ): Promise<SharedAuditLogEntry[]> {
     try {
       const { data, error } = await this.supabase
-        .schema("patient_schema")
-        .from("audit_logs")
-        .select("*")
-        .eq("aggregate_type", resource)
-        .eq("aggregate_id", resourceId)
-        .order("timestamp", { ascending: false });
+        .schema('patient_schema')
+        .from('audit_logs')
+        .select('*')
+        .eq('aggregate_type', resource)
+        .eq('aggregate_id', resourceId)
+        .order('timestamp', { ascending: false });
 
       if (error) {
-        this.logger.error("Failed to get audit logs for resource", {
+        this.logger.error('Failed to get audit logs for resource', {
           error: error.message,
         });
         return [];
@@ -330,8 +330,8 @@ export class AuditService implements IAuditService {
         userAgent: row.user_agent,
       }));
     } catch (error) {
-      this.logger.error("Error getting audit logs for resource", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error getting audit logs for resource', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return [];
     }
@@ -346,15 +346,15 @@ export class AuditService implements IAuditService {
   ): Promise<SharedAuditLogEntry[]> {
     try {
       const { data, error } = await this.supabase
-        .schema("patient_schema")
-        .from("audit_logs")
-        .select("*")
-        .eq("user_id", userId)
-        .order("timestamp", { ascending: false })
+        .schema('patient_schema')
+        .from('audit_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false })
         .limit(limit);
 
       if (error) {
-        this.logger.error("Failed to get audit logs for user", {
+        this.logger.error('Failed to get audit logs for user', {
           error: error.message,
         });
         return [];
@@ -372,8 +372,8 @@ export class AuditService implements IAuditService {
         userAgent: row.user_agent,
       }));
     } catch (error) {
-      this.logger.error("Error getting audit logs for user", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Error getting audit logs for user', {
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return [];
     }

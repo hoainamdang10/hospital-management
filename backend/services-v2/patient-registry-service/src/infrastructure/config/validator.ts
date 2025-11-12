@@ -57,7 +57,7 @@ export function validateConfig(
   if (missingCritical.length > 0) {
     result.valid = false;
     result.missing = missingCritical;
-    
+
     logger.error('Missing critical environment variables', {
       missing: missingCritical,
       mode
@@ -65,7 +65,7 @@ export function validateConfig(
 
     throw new Error(
       `Missing critical environment variables: ${missingCritical.join(', ')}\n` +
-      `Please check your .env file and ensure all required variables are set.`
+      'Please check your .env file and ensure all required variables are set.'
     );
   }
 
@@ -74,7 +74,7 @@ export function validateConfig(
     const missingOptional = optionalEnvVars.filter(key => !process.env[key]);
     if (missingOptional.length > 0) {
       result.warnings = missingOptional;
-      
+
       logger.warn('Missing optional environment variables', {
         missing: missingOptional,
         mode,
@@ -129,11 +129,11 @@ export function validateConfig(
  */
 export function getValidationMode(): ValidationMode {
   const env = process.env.NODE_ENV || 'development';
-  
+
   if (env === 'production') {
     return ValidationMode.STRICT;
   }
-  
+
   return ValidationMode.LENIENT;
 }
 
@@ -142,7 +142,7 @@ export function getValidationMode(): ValidationMode {
  */
 export function validateAndLog(logger: ILogger): void {
   const mode = getValidationMode();
-  
+
   logger.info('Validating environment configuration...', {
     mode,
     nodeEnv: process.env.NODE_ENV || 'development'

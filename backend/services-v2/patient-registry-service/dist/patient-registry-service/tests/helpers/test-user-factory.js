@@ -98,7 +98,7 @@ class TestUserFactory {
             };
         }
         catch (error) {
-            console.error(`❌ Error creating verified user:`, error);
+            console.error('❌ Error creating verified user:', error);
             throw error;
         }
     }

@@ -7,12 +7,12 @@
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
 
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { Patient } from "../../domain/aggregates/Patient";
-import { PatientId } from "../../domain/value-objects/PatientId";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { IEventBus } from "@shared/application/services/event-bus.interface";
-import { IAuditService } from "@shared/application/services/audit.service.interface";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { Patient } from '../../domain/aggregates/Patient';
+import { PatientId } from '../../domain/value-objects/PatientId';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { IAuditService } from '@shared/application/services/audit.service.interface';
 
 export interface RemoveEmergencyContactCommand {
   patientId: string;
@@ -40,7 +40,7 @@ export class RemoveEmergencyContactUseCase {
   async execute(
     command: RemoveEmergencyContactCommand,
   ): Promise<RemoveEmergencyContactResult> {
-    this.logger.info("Removing emergency contact", {
+    this.logger.info('Removing emergency contact', {
       patientId: command.patientId,
       contactId: command.contactId,
       performedBy: command.performedBy,
@@ -51,24 +51,24 @@ export class RemoveEmergencyContactUseCase {
       if (!command.patientId || command.patientId.trim().length === 0) {
         return {
           success: false,
-          message: "Patient ID không được để trống",
-          errors: ["INVALID_PATIENT_ID"],
+          message: 'Patient ID không được để trống',
+          errors: ['INVALID_PATIENT_ID'],
         };
       }
 
       if (!command.contactId || command.contactId.trim().length === 0) {
         return {
           success: false,
-          message: "Contact ID không được để trống",
-          errors: ["INVALID_CONTACT_ID"],
+          message: 'Contact ID không được để trống',
+          errors: ['INVALID_CONTACT_ID'],
         };
       }
 
       if (!command.performedBy || command.performedBy.trim().length === 0) {
         return {
           success: false,
-          message: "Người thực hiện không được để trống",
-          errors: ["INVALID_PERFORMED_BY"],
+          message: 'Người thực hiện không được để trống',
+          errors: ['INVALID_PERFORMED_BY'],
         };
       }
 
@@ -80,7 +80,7 @@ export class RemoveEmergencyContactUseCase {
         return {
           success: false,
           message: `Không tìm thấy bệnh nhân với ID: ${command.patientId}`,
-          errors: ["PATIENT_NOT_FOUND"],
+          errors: ['PATIENT_NOT_FOUND'],
         };
       }
 
@@ -92,7 +92,7 @@ export class RemoveEmergencyContactUseCase {
         return {
           success: false,
           message: `Không tìm thấy người liên hệ khẩn cấp với ID: ${command.contactId}`,
-          errors: ["CONTACT_NOT_FOUND"],
+          errors: ['CONTACT_NOT_FOUND'],
         };
       }
 
@@ -108,7 +108,7 @@ export class RemoveEmergencyContactUseCase {
       // 7. HIPAA audit logging
       await this.auditEmergencyContactRemoved(patient, command, contact);
 
-      this.logger.info("Emergency contact removed successfully", {
+      this.logger.info('Emergency contact removed successfully', {
         patientId: command.patientId,
         contactId: command.contactId,
         performedBy: command.performedBy,
@@ -116,19 +116,19 @@ export class RemoveEmergencyContactUseCase {
 
       return {
         success: true,
-        message: "Xóa người liên hệ khẩn cấp thành công",
+        message: 'Xóa người liên hệ khẩn cấp thành công',
       };
     } catch (error) {
-      this.logger.error("Error removing emergency contact", {
+      this.logger.error('Error removing emergency contact', {
         patientId: command.patientId,
         contactId: command.contactId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
 
       return {
         success: false,
-        message: "Lỗi khi xóa người liên hệ khẩn cấp",
-        errors: [error instanceof Error ? error.message : "UNKNOWN_ERROR"],
+        message: 'Lỗi khi xóa người liên hệ khẩn cấp',
+        errors: [error instanceof Error ? error.message : 'UNKNOWN_ERROR'],
       };
     }
   }
@@ -147,10 +147,10 @@ export class RemoveEmergencyContactUseCase {
       patient.markEventsAsCommitted();
     } catch (error) {
       this.logger.warn(
-        "Event publishing failed, but emergency contact was removed",
+        'Event publishing failed, but emergency contact was removed',
         {
           patientId: patient.getPatientId(),
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: error instanceof Error ? error.message : 'Unknown error',
         },
       );
     }
@@ -167,29 +167,29 @@ export class RemoveEmergencyContactUseCase {
     try {
       await this.auditService.log({
         userId: command.performedBy,
-        action: "EMERGENCY_CONTACT_REMOVED",
-        resource: "patient_emergency_contacts",
+        action: 'EMERGENCY_CONTACT_REMOVED',
+        resource: 'patient_emergency_contacts',
         resourceId: patient.getPatientId() || undefined,
         details: {
           contactId: command.contactId,
           contactName: contact.name,
           relationship: contact.relationship,
-          complianceLevel: "HIPAA",
+          complianceLevel: 'HIPAA',
           timestamp: new Date().toISOString(),
         },
       });
 
-      this.logger.info("HIPAA Audit: Emergency contact removed", {
-        action: "EMERGENCY_CONTACT_REMOVED",
+      this.logger.info('HIPAA Audit: Emergency contact removed', {
+        action: 'EMERGENCY_CONTACT_REMOVED',
         patientId: patient.getPatientId(),
         contactId: command.contactId,
         performedBy: command.performedBy,
       });
     } catch (error) {
-      this.logger.error("Failed to log HIPAA audit", {
-        error: error instanceof Error ? error.message : "Unknown error",
+      this.logger.error('Failed to log HIPAA audit', {
+        error: error instanceof Error ? error.message : 'Unknown error',
         patientId: patient.getPatientId(),
-        action: "EMERGENCY_CONTACT_REMOVED",
+        action: 'EMERGENCY_CONTACT_REMOVED',
       });
     }
   }

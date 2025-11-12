@@ -1,7 +1,7 @@
 /**
  * Test User Factory
  * Creates verified users for integration tests, bypassing email verification
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -130,7 +130,7 @@ export class TestUserFactory {
         isActive: true
       };
     } catch (error) {
-      console.error(`❌ Error creating verified user:`, error);
+      console.error('❌ Error creating verified user:', error);
       throw error;
     }
   }

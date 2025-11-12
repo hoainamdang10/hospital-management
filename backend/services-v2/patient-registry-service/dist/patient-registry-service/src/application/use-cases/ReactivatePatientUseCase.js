@@ -20,13 +20,13 @@ class ReactivatePatientUseCase {
     async execute(command) {
         // 1. Validate input
         if (!command.patientId || command.patientId.trim().length === 0) {
-            throw new Error("Patient ID không được để trống");
+            throw new Error('Patient ID không được để trống');
         }
         if (!command.reason || command.reason.trim().length === 0) {
-            throw new Error("Lý do kích hoạt lại không được để trống");
+            throw new Error('Lý do kích hoạt lại không được để trống');
         }
         if (!command.performedBy || command.performedBy.trim().length === 0) {
-            throw new Error("Người thực hiện không được để trống");
+            throw new Error('Người thực hiện không được để trống');
         }
         // 2. Find patient
         const patientId = PatientId_1.PatientId.create(command.patientId);
@@ -42,7 +42,7 @@ class ReactivatePatientUseCase {
         await this.patientRepository.save(patient);
         return {
             success: true,
-            message: "Đã kích hoạt lại bệnh nhân thành công",
+            message: 'Đã kích hoạt lại bệnh nhân thành công',
         };
     }
 }

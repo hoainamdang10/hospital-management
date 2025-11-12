@@ -7,8 +7,8 @@
  * @compliance Clean Architecture, DDD, CQRS
  */
 
-import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
-import { PatientId } from "../../domain/value-objects/PatientId";
+import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import { PatientId } from '../../domain/value-objects/PatientId';
 
 export interface ReactivatePatientCommand {
   patientId: string;
@@ -33,15 +33,15 @@ export class ReactivatePatientUseCase {
   ): Promise<ReactivatePatientResult> {
     // 1. Validate input
     if (!command.patientId || command.patientId.trim().length === 0) {
-      throw new Error("Patient ID không được để trống");
+      throw new Error('Patient ID không được để trống');
     }
 
     if (!command.reason || command.reason.trim().length === 0) {
-      throw new Error("Lý do kích hoạt lại không được để trống");
+      throw new Error('Lý do kích hoạt lại không được để trống');
     }
 
     if (!command.performedBy || command.performedBy.trim().length === 0) {
-      throw new Error("Người thực hiện không được để trống");
+      throw new Error('Người thực hiện không được để trống');
     }
 
     // 2. Find patient
@@ -62,7 +62,7 @@ export class ReactivatePatientUseCase {
 
     return {
       success: true,
-      message: "Đã kích hoạt lại bệnh nhân thành công",
+      message: 'Đã kích hoạt lại bệnh nhân thành công',
     };
   }
 }

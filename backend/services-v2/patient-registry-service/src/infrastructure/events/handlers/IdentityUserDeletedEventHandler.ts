@@ -52,7 +52,7 @@ export class IdentityUserDeletedEventHandler {
 
       // Find patient by user ID
       const patient = await this.patientRepository.findByUserId(eventData.userId);
-      
+
       if (!patient) {
         this.logger.warn('No patient found for deleted user', {
           userId: eventData.userId

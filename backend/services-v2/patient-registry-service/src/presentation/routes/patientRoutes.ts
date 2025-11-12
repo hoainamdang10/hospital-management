@@ -7,11 +7,11 @@
  * @compliance RESTful API, Clean Architecture
  */
 
-import { Router } from "express";
-import { PatientController } from "../controllers/PatientController";
-import { ErrorHandlingMiddleware } from "../middleware/ErrorHandlingMiddleware";
-import { AuthorizationMiddleware } from "../middleware/AuthorizationMiddleware";
-import { upload } from "../middleware/UploadMiddleware";
+import { Router } from 'express';
+import { PatientController } from '../controllers/PatientController';
+import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';
+import { AuthorizationMiddleware } from '../middleware/AuthorizationMiddleware';
+import { upload } from '../middleware/UploadMiddleware';
 import {
   validateRegisterPatient,
   validateUpdatePatient,
@@ -30,7 +30,7 @@ import {
   validateUpdateEmergencyContact,
   validateRemoveEmergencyContact,
   validateAddInsuranceInfo,
-} from "../middleware/ValidationMiddleware";
+} from '../middleware/ValidationMiddleware';
 
 /**
  * Create patient routes
@@ -51,7 +51,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients
    */
   router.post(
-    "/",
+    '/',
     validateRegisterPatient,
     asyncHandler(controller.registerPatient.bind(controller)),
   );
@@ -61,7 +61,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/validate-insurance
    */
   router.post(
-    "/validate-insurance",
+    '/validate-insurance',
     asyncHandler(controller.validateInsurance.bind(controller)),
   );
 
@@ -72,7 +72,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/statistics
    */
   router.get(
-    "/statistics",
+    '/statistics',
     asyncHandler(controller.getStatistics.bind(controller)),
   );
 
@@ -81,7 +81,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/search?searchTerm=...
    */
   router.get(
-    "/search",
+    '/search',
     validateSearchPatients,
     asyncHandler(controller.searchPatients.bind(controller)),
   );
@@ -91,7 +91,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients?page=1&limit=20
    */
   router.get(
-    "/",
+    '/',
     validateGetPatientList,
     asyncHandler(controller.getPatientList.bind(controller)),
   );
@@ -101,7 +101,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/match
    */
   router.post(
-    "/match",
+    '/match',
     validateMatchPatients,
     asyncHandler(controller.matchPatients.bind(controller)),
   );
@@ -113,7 +113,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/merge
    */
   router.post(
-    "/merge",
+    '/merge',
     validateMergePatients,
     asyncHandler(controller.mergePatients.bind(controller)),
   );
@@ -126,7 +126,7 @@ export function createPatientRoutes(
    * Authorization: Patient can access own data, Admin/Doctor need patient:read permission
    */
   router.get(
-    "/user/:userId",
+    '/user/:userId',
     validateUserId,
     authorizationMiddleware.canAccessPatientData('userId'),
     asyncHandler(controller.getPatientByUserId.bind(controller)),
@@ -137,7 +137,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/national-id/:nationalId
    */
   router.get(
-    "/national-id/:nationalId",
+    '/national-id/:nationalId',
     validateNationalId,
     asyncHandler(controller.getPatientByNationalId.bind(controller)),
   );
@@ -147,7 +147,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/bhyt/:bhytNumber
    */
   router.get(
-    "/bhyt/:bhytNumber",
+    '/bhyt/:bhytNumber',
     validateBHYTNumber,
     asyncHandler(controller.getPatientByBHYTNumber.bind(controller)),
   );
@@ -157,7 +157,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/history
    */
   router.get(
-    "/:patientId/history",
+    '/:patientId/history',
     validatePatientId,
     asyncHandler(controller.getPatientHistory.bind(controller)),
   );
@@ -167,7 +167,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId
    */
   router.get(
-    "/:patientId",
+    '/:patientId',
     validatePatientId,
     asyncHandler(controller.getPatientById.bind(controller)),
   );
@@ -179,7 +179,7 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId
    */
   router.put(
-    "/:patientId",
+    '/:patientId',
     validateUpdatePatient,
     asyncHandler(controller.updatePatient.bind(controller)),
   );
@@ -189,7 +189,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/link
    */
   router.post(
-    "/:patientId/link",
+    '/:patientId/link',
     validateLinkPatients,
     asyncHandler(controller.linkPatients.bind(controller)),
   );
@@ -199,7 +199,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/deactivate
    */
   router.post(
-    "/:patientId/deactivate",
+    '/:patientId/deactivate',
     validatePatientId,
     asyncHandler(controller.deactivatePatient.bind(controller)),
   );
@@ -209,7 +209,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/emergency-contacts
    */
   router.post(
-    "/:patientId/emergency-contacts",
+    '/:patientId/emergency-contacts',
     validateAddEmergencyContact,
     asyncHandler(controller.addEmergencyContact.bind(controller)),
   );
@@ -219,7 +219,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/emergency-contacts
    */
   router.get(
-    "/:patientId/emergency-contacts",
+    '/:patientId/emergency-contacts',
     validatePatientId,
     asyncHandler(controller.getEmergencyContacts.bind(controller)),
   );
@@ -229,7 +229,7 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId
    */
   router.put(
-    "/:patientId/emergency-contacts/:contactId",
+    '/:patientId/emergency-contacts/:contactId',
     validateUpdateEmergencyContact,
     asyncHandler(controller.updateEmergencyContact.bind(controller)),
   );
@@ -239,7 +239,7 @@ export function createPatientRoutes(
    * DELETE /api/v1/patients/:patientId/emergency-contacts/:contactId
    */
   router.delete(
-    "/:patientId/emergency-contacts/:contactId",
+    '/:patientId/emergency-contacts/:contactId',
     validateRemoveEmergencyContact,
     asyncHandler(controller.removeEmergencyContact.bind(controller)),
   );
@@ -249,7 +249,7 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId/set-primary
    */
   router.put(
-    "/:patientId/emergency-contacts/:contactId/set-primary",
+    '/:patientId/emergency-contacts/:contactId/set-primary',
     validatePatientId,
     asyncHandler(controller.setPrimaryEmergencyContact.bind(controller)),
   );
@@ -261,9 +261,9 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/photo
    */
   router.post(
-    "/:patientId/photo",
+    '/:patientId/photo',
     validatePatientId,
-    upload.single("photo"),
+    upload.single('photo'),
     asyncHandler(controller.uploadPhoto.bind(controller)),
   );
 
@@ -272,7 +272,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/photo
    */
   router.get(
-    "/:patientId/photo",
+    '/:patientId/photo',
     validatePatientId,
     asyncHandler(controller.getPhoto.bind(controller)),
   );
@@ -282,7 +282,7 @@ export function createPatientRoutes(
    * DELETE /api/v1/patients/:patientId/photo
    */
   router.delete(
-    "/:patientId/photo",
+    '/:patientId/photo',
     validatePatientId,
     asyncHandler(controller.deletePhoto.bind(controller)),
   );
@@ -294,7 +294,7 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId/communication
    */
   router.put(
-    "/:patientId/communication",
+    '/:patientId/communication',
     validatePatientId,
     asyncHandler(controller.updateCommunicationPreferences.bind(controller)),
   );
@@ -304,7 +304,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/communication
    */
   router.get(
-    "/:patientId/communication",
+    '/:patientId/communication',
     validatePatientId,
     asyncHandler(controller.getCommunicationPreferences.bind(controller)),
   );
@@ -316,7 +316,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/consents
    */
   router.post(
-    "/:patientId/consents",
+    '/:patientId/consents',
     validateGrantConsent,
     asyncHandler(controller.grantConsent.bind(controller)),
   );
@@ -326,7 +326,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/consents
    */
   router.get(
-    "/:patientId/consents",
+    '/:patientId/consents',
     validatePatientId,
     asyncHandler(controller.getConsents.bind(controller)),
   );
@@ -336,7 +336,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/consents/active
    */
   router.get(
-    "/:patientId/consents/active",
+    '/:patientId/consents/active',
     validatePatientId,
     asyncHandler(controller.getActiveConsents.bind(controller)),
   );
@@ -346,7 +346,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/consents/:consentId
    */
   router.get(
-    "/:patientId/consents/:consentId",
+    '/:patientId/consents/:consentId',
     validatePatientId,
     asyncHandler(controller.getConsentDetails.bind(controller)),
   );
@@ -356,7 +356,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/consents/:consentId/revoke
    */
   router.post(
-    "/:patientId/consents/:consentId/revoke",
+    '/:patientId/consents/:consentId/revoke',
     validateRevokeConsent,
     asyncHandler(controller.revokeConsent.bind(controller)),
   );
@@ -366,7 +366,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/insurance
    */
   router.get(
-    "/:patientId/insurance",
+    '/:patientId/insurance',
     validatePatientId,
     asyncHandler(controller.getInsuranceInfo.bind(controller)),
   );
@@ -376,7 +376,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/insurance
    */
   router.post(
-    "/:patientId/insurance",
+    '/:patientId/insurance',
     validatePatientId,
     validateAddInsuranceInfo,
     asyncHandler(controller.addInsuranceInfo.bind(controller)),
@@ -387,7 +387,7 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId/insurance
    */
   router.put(
-    "/:patientId/insurance",
+    '/:patientId/insurance',
     validatePatientId,
     asyncHandler(controller.updateInsuranceInfo.bind(controller)),
   );
@@ -397,7 +397,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/insurance/verify
    */
   router.post(
-    "/:patientId/insurance/verify",
+    '/:patientId/insurance/verify',
     validatePatientId,
     asyncHandler(controller.verifyInsurance.bind(controller)),
   );
@@ -407,7 +407,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/mark-deceased
    */
   router.post(
-    "/:patientId/mark-deceased",
+    '/:patientId/mark-deceased',
     validatePatientId,
     asyncHandler(controller.markAsDeceased.bind(controller)),
   );
@@ -417,7 +417,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/reactivate
    */
   router.post(
-    "/:patientId/reactivate",
+    '/:patientId/reactivate',
     validatePatientId,
     asyncHandler(controller.reactivatePatient.bind(controller)),
   );

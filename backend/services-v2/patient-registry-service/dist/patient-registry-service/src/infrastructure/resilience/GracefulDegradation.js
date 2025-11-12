@@ -264,14 +264,18 @@ class PatientRegistryDegradation {
      * Cache management
      */
     getCacheKey(criteria) {
-        if (criteria.patientId)
+        if (criteria.patientId) {
             return `patient:${criteria.patientId}`;
-        if (criteria.userId)
+        }
+        if (criteria.userId) {
             return `user:${criteria.userId}`;
-        if (criteria.nationalId)
+        }
+        if (criteria.nationalId) {
             return `national:${criteria.nationalId}`;
-        if (criteria.bhytNumber)
+        }
+        if (criteria.bhytNumber) {
             return `bhyt:${criteria.bhytNumber}`;
+        }
         return 'unknown';
     }
     setCache(key, value) {

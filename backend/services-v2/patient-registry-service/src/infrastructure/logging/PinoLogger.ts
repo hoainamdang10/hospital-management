@@ -1,7 +1,7 @@
 /**
  * Pino Logger - HIPAA-Compliant Structured Logging for Patient Registry Service
  * Implements ILogger interface with Pino for structured logging with PHI/PII redaction
- * 
+ *
  * Features:
  * - JSON structured logging for production
  * - Pretty printing for development
@@ -9,7 +9,7 @@
  * - Log level configuration via LOG_LEVEL env var
  * - Request ID correlation
  * - Performance optimized
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance HIPAA-Compliant, Production-Ready
@@ -59,7 +59,7 @@ export function createPinoLogger(config: PinoLoggerConfig): pino.Logger {
         'req.headers.authorization',
         'req.headers.cookie',
         'res.headers["set-cookie"]',
-        
+
         // PHI/PII - Personal Information
         'nationalId',
         'phoneNumber',
@@ -69,7 +69,7 @@ export function createPinoLogger(config: PinoLoggerConfig): pino.Logger {
         'bhytNumber',
         'bhtnNumber',
         'insuranceNumber',
-        
+
         // Request/Response PHI
         'req.body.personalInfo',
         'req.body.contactInfo',
@@ -82,14 +82,14 @@ export function createPinoLogger(config: PinoLoggerConfig): pino.Logger {
         'req.query.nationalId',
         'req.query.phoneNumber',
         'req.query.email',
-        
+
         // Medical Information
         'medicalHistory',
         'diagnosis',
         'prescription',
         'testResults',
         'vitalSigns',
-        
+
         // Insurance Information
         'req.body.insuranceInfo',
         'insuranceInfo.policyNumber',

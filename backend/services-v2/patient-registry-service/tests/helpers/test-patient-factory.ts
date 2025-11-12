@@ -1,7 +1,7 @@
 /**
  * Test Patient Factory
  * Creates patient test data for integration tests
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
@@ -136,7 +136,7 @@ export class TestPatientFactory {
         address: contactInfo.address
       };
     } catch (error) {
-      console.error(`❌ Error creating test patient:`, error);
+      console.error('❌ Error creating test patient:', error);
       throw error;
     }
   }
@@ -178,7 +178,7 @@ export class TestPatientFactory {
       console.log(`✅ Emergency contact created: ${contactId}`);
       return contactId;
     } catch (error) {
-      console.error(`❌ Error creating emergency contact:`, error);
+      console.error('❌ Error creating emergency contact:', error);
       throw error;
     }
   }
@@ -217,7 +217,7 @@ export class TestPatientFactory {
 
       console.log(`✅ Medical info updated for patient: ${data.patientId}`);
     } catch (error) {
-      console.error(`❌ Error updating medical info:`, error);
+      console.error('❌ Error updating medical info:', error);
       throw error;
     }
   }
@@ -265,7 +265,7 @@ export class TestPatientFactory {
       console.log(`✅ Insurance info created: ${insuranceId}`);
       return insuranceId;
     } catch (error) {
-      console.error(`❌ Error creating insurance info:`, error);
+      console.error('❌ Error creating insurance info:', error);
       throw error;
     }
   }

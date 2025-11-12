@@ -94,7 +94,7 @@ class TestPatientFactory {
             };
         }
         catch (error) {
-            console.error(`❌ Error creating test patient:`, error);
+            console.error('❌ Error creating test patient:', error);
             throw error;
         }
     }
@@ -126,7 +126,7 @@ class TestPatientFactory {
             return contactId;
         }
         catch (error) {
-            console.error(`❌ Error creating emergency contact:`, error);
+            console.error('❌ Error creating emergency contact:', error);
             throw error;
         }
     }
@@ -156,7 +156,7 @@ class TestPatientFactory {
             console.log(`✅ Medical info updated for patient: ${data.patientId}`);
         }
         catch (error) {
-            console.error(`❌ Error updating medical info:`, error);
+            console.error('❌ Error updating medical info:', error);
             throw error;
         }
     }
@@ -193,7 +193,7 @@ class TestPatientFactory {
             return insuranceId;
         }
         catch (error) {
-            console.error(`❌ Error creating insurance info:`, error);
+            console.error('❌ Error creating insurance info:', error);
             throw error;
         }
     }

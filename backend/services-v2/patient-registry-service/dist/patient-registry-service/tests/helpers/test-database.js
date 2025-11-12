@@ -155,7 +155,7 @@ class TestDatabase {
             }
         }
         catch (error) {
-            console.warn(`⚠️  Error cleaning up test patients:`, error);
+            console.warn('⚠️  Error cleaning up test patients:', error);
         }
     }
     /**

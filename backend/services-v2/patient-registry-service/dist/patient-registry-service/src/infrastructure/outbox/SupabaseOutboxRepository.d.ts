@@ -6,9 +6,9 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { SupabaseClient } from "@supabase/supabase-js";
-import { ILogger } from "@shared/application/services/logger.interface";
-import { DomainEvent } from "@shared/domain/base/domain-event";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { ILogger } from '@shared/application/services/logger.interface';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 export declare enum OutboxEventStatus {
     PENDING = "PENDING",
     PUBLISHED = "PUBLISHED",
