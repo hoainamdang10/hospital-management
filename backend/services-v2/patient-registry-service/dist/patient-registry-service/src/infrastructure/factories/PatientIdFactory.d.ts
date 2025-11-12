@@ -8,7 +8,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PatientId } from '../../domain/value-objects/PatientId';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 /**
  * Factory for generating unique patient IDs
  * Uses database sequence to ensure no collisions

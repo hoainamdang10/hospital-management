@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, HIPAA
  */
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface UploadResult {
     url: string;
     path: string;

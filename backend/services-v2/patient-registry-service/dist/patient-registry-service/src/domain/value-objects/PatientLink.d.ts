@@ -4,7 +4,7 @@
  * FHIR-style patient linking for duplicate management
  * Based on HL7 FHIR R5 Patient.link specification
  */
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from '../../../../shared/domain/base/value-object';
 import { PatientId } from './PatientId';
 export type PatientLinkType = 'replaced-by' | 'replaces' | 'refer' | 'seealso';
 export interface PatientLinkProps {

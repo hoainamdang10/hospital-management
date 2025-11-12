@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IdentityEventConsumer = void 0;
 const amqplib_1 = __importDefault(require("amqplib"));
-const rabbitmq_connection_1 = require("@shared/infrastructure/event-bus/rabbitmq-connection");
+const rabbitmq_connection_1 = require("../../../../shared/infrastructure/event-bus/rabbitmq-connection");
 const IdempotentEventHandler_1 = require("./IdempotentEventHandler");
 /**
  * Identity Event Consumer

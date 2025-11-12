@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, RESTful API, HIPAA
  */
 import { Request, Response } from 'express';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 import { RegisterPatientUseCase } from '../../application/use-cases/RegisterPatientUseCase';
 import { UpdatePatientInfoUseCase } from '../../application/use-cases/UpdatePatientInfoUseCase';
 import { PatientQueryHandlers } from '../../application/handlers/PatientQueryHandlers';

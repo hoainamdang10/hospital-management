@@ -6,8 +6,8 @@
  * @compliance HIPAA, Clean Architecture
  */
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ILogger } from '@shared/application/services/logger.interface';
-import { IAuditService, AuditLogEntry as SharedAuditLogEntry } from '@shared/application/services/audit.service.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IAuditService, AuditLogEntry as SharedAuditLogEntry } from '../../../../shared/application/services/audit.service.interface';
 export interface AuditLogEntry {
     eventId: string;
     eventType: string;

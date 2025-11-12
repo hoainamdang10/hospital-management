@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from '../../../../shared/domain/base/entity';
 export interface EmergencyContactProps {
     id: string;
     name: string;

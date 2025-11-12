@@ -12,7 +12,7 @@ import { UpdatePatientInfoUseCase, UpdatePatientInfoRequest, UpdatePatientInfoRe
 import { DeactivatePatientUseCase, DeactivatePatientResponse } from '../use-cases/DeactivatePatientUseCase';
 import { GrantConsentUseCase, GrantConsentResult } from '../use-cases/GrantConsentUseCase';
 import { AddEmergencyContactUseCase, AddEmergencyContactResult } from '../use-cases/AddEmergencyContactUseCase';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface RegisterPatientCommand {
     commandId: string;
     commandType: 'RegisterPatient';

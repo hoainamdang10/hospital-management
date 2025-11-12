@@ -7,7 +7,7 @@
  */
 import { Router } from 'express';
 import { PatientRegistryHealthCheck } from '../../infrastructure/monitoring/HealthChecks';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 interface HealthRouteDependencies {
     healthCheck: PatientRegistryHealthCheck;
     logger: ILogger;

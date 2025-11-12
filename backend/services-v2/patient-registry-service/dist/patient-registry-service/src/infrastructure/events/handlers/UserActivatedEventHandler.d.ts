@@ -7,7 +7,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../../shared/application/services/logger.interface';
 import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
 /**
  * User Activated Event Data

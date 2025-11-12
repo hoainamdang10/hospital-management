@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, FHIR R6
  */
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from '../../../../shared/domain/base/value-object';
 export type Language = 'vi' | 'en';
 export type ContactMethod = 'email' | 'sms' | 'phone';
 export interface CommunicationPreferenceProps {

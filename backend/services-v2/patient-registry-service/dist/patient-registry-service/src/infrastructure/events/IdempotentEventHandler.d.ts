@@ -4,7 +4,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 import { AuditService } from '../audit/AuditService';
 export interface EventMessage {
     eventId: string;

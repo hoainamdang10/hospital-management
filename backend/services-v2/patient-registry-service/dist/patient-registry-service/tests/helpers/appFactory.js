@@ -84,6 +84,7 @@ const GetConsentDetailsUseCase_1 = require("../../src/application/use-cases/GetC
 const RevokeConsentUseCase_1 = require("../../src/application/use-cases/RevokeConsentUseCase");
 const GetActiveConsentsUseCase_1 = require("../../src/application/use-cases/GetActiveConsentsUseCase");
 const GetInsuranceInfoUseCase_1 = require("../../src/application/use-cases/GetInsuranceInfoUseCase");
+const AddInsuranceInfoUseCase_1 = require("../../src/application/use-cases/AddInsuranceInfoUseCase");
 const UpdateInsuranceInfoUseCase_1 = require("../../src/application/use-cases/UpdateInsuranceInfoUseCase");
 const VerifyInsuranceUseCase_1 = require("../../src/application/use-cases/VerifyInsuranceUseCase");
 const GetPatientStatisticsUseCase_1 = require("../../src/application/use-cases/GetPatientStatisticsUseCase");
@@ -164,7 +165,7 @@ async function createTestApp(config) {
     }
     else {
         // Create OptimizedSupabaseClient for SupabasePatientRepository
-        const { createOptimizedSupabaseClient } = await Promise.resolve().then(() => __importStar(require('@shared/infrastructure/database/optimized-supabase-client')));
+        const { createOptimizedSupabaseClient } = await Promise.resolve().then(() => __importStar(require('../../../shared/infrastructure/database/optimized-supabase-client')));
         const optimizedClient = createOptimizedSupabaseClient({
             supabaseUrl: config.supabaseUrl,
             supabaseServiceKey: config.supabaseKey,
@@ -185,8 +186,10 @@ async function createTestApp(config) {
         subscribe: async () => { }
     };
     const eventBus = eventPublisher || mockEventBus;
+    // Mock SupabaseClient for tests
+    const mockSupabaseClient = (0, supabase_js_1.createClient)('https://mock.supabase.co', 'mock-key');
     // Initialize Use Cases
-    const registerPatientUseCase = new RegisterPatientUseCase_1.RegisterPatientUseCase(patientRepository, eventBus, logger, auditService);
+    const registerPatientUseCase = new RegisterPatientUseCase_1.RegisterPatientUseCase(patientRepository, eventBus, logger, auditService, mockSupabaseClient);
     const updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(patientRepository, eventBus, logger, auditService);
     const getPatientProfileUseCase = new GetPatientProfileUseCase_1.GetPatientProfileUseCase(patientRepository, logger, auditService);
     const searchPatientsUseCase = new SearchPatientsUseCase_1.SearchPatientsUseCase(patientRepository);
@@ -195,20 +198,21 @@ async function createTestApp(config) {
     const linkPatientsUseCase = new LinkPatientsUseCase_1.LinkPatientsUseCase(patientRepository);
     const deactivatePatientUseCase = new DeactivatePatientUseCase_1.DeactivatePatientUseCase(patientRepository, eventBus, logger, auditService);
     const validateInsuranceUseCase = new ValidateInsuranceUseCase_1.ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
-    const addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(patientRepository, eventBus, logger);
-    const grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(patientRepository);
+    const addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(patientRepository, eventBus, logger, auditService);
+    const grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(patientRepository, auditService, logger);
     const markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(patientRepository);
     const reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(patientRepository);
     // New use cases
     const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase_1.GetEmergencyContactsUseCase(patientRepository, logger);
     const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase_1.UpdateEmergencyContactUseCase(patientRepository, eventBus, logger);
-    const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase_1.RemoveEmergencyContactUseCase(patientRepository, eventBus, logger);
+    const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase_1.RemoveEmergencyContactUseCase(patientRepository, eventBus, logger, auditService);
     const setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase_1.SetPrimaryEmergencyContactUseCase(patientRepository, eventBus, logger);
     const getConsentsUseCase = new GetConsentsUseCase_1.GetConsentsUseCase(patientRepository, logger);
     const getConsentDetailsUseCase = new GetConsentDetailsUseCase_1.GetConsentDetailsUseCase(patientRepository, logger);
-    const revokeConsentUseCase = new RevokeConsentUseCase_1.RevokeConsentUseCase(patientRepository, eventBus, logger);
+    const revokeConsentUseCase = new RevokeConsentUseCase_1.RevokeConsentUseCase(patientRepository, eventBus, logger, auditService);
     const getActiveConsentsUseCase = new GetActiveConsentsUseCase_1.GetActiveConsentsUseCase(patientRepository, logger);
     const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase_1.GetInsuranceInfoUseCase(patientRepository, logger);
+    const addInsuranceInfoUseCase = new AddInsuranceInfoUseCase_1.AddInsuranceInfoUseCase(patientRepository, logger);
     const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase_1.UpdateInsuranceInfoUseCase(patientRepository, eventBus, logger);
     const verifyInsuranceUseCase = new VerifyInsuranceUseCase_1.VerifyInsuranceUseCase(patientRepository, logger);
     // Additional use cases for PatientController
@@ -232,7 +236,7 @@ async function createTestApp(config) {
     // Initialize Command Handlers
     const patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(registerPatientUseCase, updatePatientInfoUseCase, deactivatePatientUseCase, grantConsentUseCase, addEmergencyContactUseCase, logger);
     // Initialize Controllers
-    const patientController = new PatientController_1.PatientController(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, getPatientHistoryUseCase, patientQueryHandlers);
+    const patientController = new PatientController_1.PatientController(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, getPatientHistoryUseCase, patientQueryHandlers);
     const commandController = new CommandController_1.CommandController(logger, patientCommandHandlers);
     const errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
     // Setup Middleware
@@ -274,7 +278,13 @@ async function createTestApp(config) {
             timestamp: new Date().toISOString()
         });
     });
-    const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(patientController);
+    // Create AuthorizationMiddleware for tests
+    const { AuthorizationMiddleware } = await Promise.resolve().then(() => __importStar(require('../../src/presentation/middleware/AuthorizationMiddleware')));
+    const authorizationMiddleware = new AuthorizationMiddleware({
+        logger,
+        patientRepository
+    });
+    const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(patientController, authorizationMiddleware);
     app.use('/api/v1/patients', patientRoutes);
     const commandRoutes = (0, commandRoutes_1.createCommandRoutes)(commandController);
     app.use('/api/v1/commands', commandRoutes);

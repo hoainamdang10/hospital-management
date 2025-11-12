@@ -7,8 +7,8 @@
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { ILogger } from '@shared/application/services/logger.interface';
-import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IEventBus } from '../../../../shared/application/services/event-bus.interface';
 export interface UpdateEmergencyContactCommand {
     patientId: string;
     contactId: string;

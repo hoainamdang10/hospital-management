@@ -27,14 +27,14 @@ const PrometheusMetrics_1 = require("./infrastructure/monitoring/PrometheusMetri
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
 const PatientCache_1 = require("./infrastructure/cache/PatientCache");
 const GracefulDegradation_1 = require("./infrastructure/resilience/GracefulDegradation");
-const optimized_supabase_client_1 = require("@shared/infrastructure/database/optimized-supabase-client");
+const optimized_supabase_client_1 = require("../../shared/infrastructure/database/optimized-supabase-client");
 const SupabaseOutboxRepository_1 = require("./infrastructure/outbox/SupabaseOutboxRepository");
 const OutboxPublisherWorker_1 = require("./infrastructure/outbox/OutboxPublisherWorker");
 // Application Services imports
 const PatientMatchingService_1 = require("./application/services/PatientMatchingService");
 const InsuranceValidationService_1 = require("./application/services/InsuranceValidationService");
 const RabbitMQEventPublisher_1 = require("./infrastructure/events/RabbitMQEventPublisher");
-const EventBus_1 = require("@shared/infrastructure/event-bus/EventBus");
+const EventBus_1 = require("../../shared/infrastructure/event-bus/EventBus");
 const validator_1 = require("./infrastructure/config/validator");
 const PinoLogger_1 = require("./infrastructure/logging/PinoLogger");
 // Application imports

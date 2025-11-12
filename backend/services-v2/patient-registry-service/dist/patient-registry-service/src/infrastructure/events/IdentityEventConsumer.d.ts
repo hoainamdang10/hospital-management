@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 import { IdentityUserCreatedEventHandler } from './handlers/IdentityUserCreatedEventHandler';
 import { IdentityUserDeletedEventHandler } from './handlers/IdentityUserDeletedEventHandler';
 import { IdentityUserUpdatedEventHandler } from './handlers/IdentityUserUpdatedEventHandler';

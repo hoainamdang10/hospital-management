@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, CQRS, HIPAA
  */
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface GetConsentsCommand {
     patientId: string;
     requestedBy: string;

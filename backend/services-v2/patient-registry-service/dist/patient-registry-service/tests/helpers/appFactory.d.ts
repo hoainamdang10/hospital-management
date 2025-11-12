@@ -11,7 +11,7 @@ import { Application } from 'express';
 import { InMemoryPatientRepository } from './InMemoryPatientRepository';
 import { IPatientRepository } from '../../src/domain/repositories/IPatientRepository';
 import { RabbitMQEventPublisher } from '../../src/infrastructure/events/RabbitMQEventPublisher';
-import { ILogger } from '@shared/application/services/logger.interface';
+import { ILogger } from '../../../shared/application/services/logger.interface';
 /**
  * App Factory Configuration
  */
