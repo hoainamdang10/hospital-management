@@ -8,7 +8,7 @@
 
 import { DomainEvent as BaseDomainEvent } from '@shared/domain/base/domain-event';
 import { IntegrationEventPayload } from '../../application/services/IEventPublisher';
-import { UserCreatedEvent } from '../../domain/events/UserCreatedEvent';
+import { UserCreatedEvent } from "@shared/domain/events/domain-events";
 import { UserAuthenticatedEvent } from '../../domain/events/UserAuthenticatedEvent';
 import { UserRoleChangedEvent } from '../../domain/events/UserRoleChangedEvent';
 import { UserLoggedOutEvent } from '../../domain/events/UserLoggedOutEvent';
@@ -45,17 +45,12 @@ export class DomainEventMapper {
       return {
         ...baseEvent,
         payload: {
-          userId: domainEvent.userIdVO.value,
-          email: domainEvent.userEmail.value,
-          role: domainEvent.userRole.type,
-          personalInfo: domainEvent.personalInfo ? {
-            fullName: domainEvent.personalInfo.fullName,
-            phoneNumber: domainEvent.personalInfo.phoneNumber,
-            address: domainEvent.personalInfo.address,
-            dateOfBirth: domainEvent.personalInfo.dateOfBirth,
-            gender: domainEvent.personalInfo.gender,
-            citizenId: domainEvent.personalInfo.citizenId
-          } : undefined
+          userId: domainEvent.userId,
+          email: domainEvent.email,
+          fullName: domainEvent.fullName,
+          roleType: domainEvent.roleType,
+          citizenId: domainEvent.citizenId,
+          phoneNumber: domainEvent.phoneNumber
         }
       };
     }

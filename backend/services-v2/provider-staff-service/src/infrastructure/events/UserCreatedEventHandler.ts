@@ -194,16 +194,13 @@ export class UserCreatedEventHandler {
   /**
    * Map Identity Service role to Staff type
    */
-  private mapRoleToStaffType(roleType: string): 'doctor' | 'nurse' | 'technician' | 'pharmacist' | 'therapist' {
-    const roleMap: Record<string, 'doctor' | 'nurse' | 'technician' | 'pharmacist' | 'therapist'> = {
+  private mapRoleToStaffType(roleType: string): 'doctor' | 'nurse' {
+    const roleMap: Record<string, 'doctor' | 'nurse'> = {
       'doctor': 'doctor',
-      'nurse': 'nurse',
-      'technician': 'technician',
-      'pharmacist': 'pharmacist',
-      'therapist': 'therapist'
+      'nurse': 'nurse'
     };
 
-    return roleMap[roleType] || 'technician';
+    return roleMap[roleType] || 'nurse';
   }
 
   /**

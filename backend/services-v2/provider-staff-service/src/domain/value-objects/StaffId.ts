@@ -23,7 +23,6 @@ type StaffIdSegments = {
 export type StaffType =
   | "doctor"
   | "nurse"
-  | "technician"
   | "pharmacist"
   | "therapist"
   | "admin"
@@ -149,7 +148,6 @@ export class StaffId extends ValueObject<StaffIdProps> {
     const prefixes: Record<StaffType, string> = {
       doctor: "DOC",
       nurse: "NUR",
-      technician: "TEC",
       pharmacist: "PHA",
       therapist: "THE",
       admin: "ADM",
@@ -163,7 +161,6 @@ export class StaffId extends ValueObject<StaffIdProps> {
     const types: Record<string, StaffType> = {
       DOC: "doctor",
       NUR: "nurse",
-      TEC: "technician",
       PHA: "pharmacist",
       THE: "therapist",
       ADM: "admin",

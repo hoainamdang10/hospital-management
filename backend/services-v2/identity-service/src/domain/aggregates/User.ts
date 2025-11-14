@@ -22,12 +22,32 @@ import {
   AccountStatus,
   AccountStatusHelper,
 } from "../value-objects/AccountStatus";
-import { UserCreatedEvent } from "../events/UserCreatedEvent";
+import { UserCreatedEvent } from "@shared/domain/events/domain-events";
 import { UserAuthenticatedEvent } from "../events/UserAuthenticatedEvent";
 import { UserRoleChangedEvent } from "../events/UserRoleChangedEvent";
 import { UserDeactivatedEvent } from "../events/UserDeactivatedEvent";
 import { UserActivatedEvent } from "../events/UserActivatedEvent";
 import { UserAccountLockedEvent } from "../events/UserAccountLockedEvent";
+
+/**
+ * Convert HealthcareRoleType to shared role type
+ */
+function convertToSharedRoleType(roleType: string): 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' {
+  const roleMapping: Record<string, 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist'> = {
+    'ADMIN': 'admin',
+    'DOCTOR': 'doctor', 
+    'NURSE': 'nurse',
+    'RECEPTIONIST': 'receptionist',
+    'PATIENT': 'patient'
+  };
+  
+  const converted = roleMapping[roleType.toUpperCase()];
+  if (!converted) {
+    throw new Error(`Unsupported role type: ${roleType}`);
+  }
+  
+  return converted;
+}
 
 export interface UserProps {
   id: UserId;
@@ -95,7 +115,12 @@ export class User extends HealthcareAggregateRoot<UserProps> {
 
       // Domain event for user creation (with primary role)
       user.addDomainEvent(
-        new UserCreatedEvent(userId, email, healthcareRoles[0]),
+        new UserCreatedEvent(
+          userId.value,
+          email.value,
+          '', // Empty fullName for initial registration
+          convertToSharedRoleType(healthcareRoles[0].type)
+        ),
       );
 
       return user;
@@ -652,10 +677,12 @@ export class User extends HealthcareAggregateRoot<UserProps> {
 
       this.addDomainEvent(
         new UserCreatedEvent(
-          this.props.id,
-          this.props.email,
-          primaryRole,
-          personalInfo
+          this.props.id.value,
+          this.props.email.value,
+          personalInfo.fullName,
+          convertToSharedRoleType(primaryRole.type),
+          personalInfo.citizenId,
+          personalInfo.phoneNumber
         )
       );
 

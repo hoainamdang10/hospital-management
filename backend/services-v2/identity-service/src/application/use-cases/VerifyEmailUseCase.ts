@@ -20,13 +20,32 @@ import { IEmailService } from "../services/IEmailService";
 import { ICircuitBreaker } from "../services/ICircuitBreaker";
 import { EmailVerificationToken } from "../../domain/value-objects/EmailVerificationToken";
 import { Email } from "../../domain/value-objects/Email";
-import { UserId } from "../../domain/value-objects/UserId";
 import { IEventPublisher } from "../services/IEventPublisher";
 import { UserActivatedEvent } from "../../domain/events/UserActivatedEvent";
-import { UserCreatedEvent } from "../../domain/events/UserCreatedEvent";
+import { UserCreatedEvent } from "@shared/domain/events/domain-events";
 import { ILogger } from "../services/ILogger";
 import { decryptPassword } from "../../utils/password-crypto";
 import { OutboxService } from "../../infrastructure/outbox/OutboxService";
+
+/**
+ * Convert HealthcareRoleType to shared role type
+ */
+function convertToSharedRoleType(roleType: string): 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' {
+  const roleMapping: Record<string, 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist'> = {
+    'ADMIN': 'admin',
+    'DOCTOR': 'doctor', 
+    'NURSE': 'nurse',
+    'RECEPTIONIST': 'receptionist',
+    'PATIENT': 'patient'
+  };
+  
+  const converted = roleMapping[roleType.toUpperCase()];
+  if (!converted) {
+    throw new Error(`Unsupported role type: ${roleType}`);
+  }
+  
+  return converted;
+}
 
 export interface VerifyEmailRequest {
   token: string;
@@ -254,10 +273,12 @@ export class VerifyEmailUseCase
           // Create UserCreatedEvent manually since user was reconstituted from database
           // and doesn't have uncommitted events
           const userCreatedEvent = new UserCreatedEvent(
-            UserId.fromString(user.id),
-            user.email,
-            user.healthcareRoles[0], // Primary role
-            user.personalInfo, // Include personal info for patient creation
+            user.id,
+            user.email.value,
+            user.personalInfo?.fullName || '',
+            convertToSharedRoleType(user.healthcareRoles[0]?.type || 'PATIENT'),
+            user.personalInfo?.citizenId,
+            user.personalInfo?.phoneNumber
           );
 
           // Create UserActivated event

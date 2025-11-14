@@ -21,7 +21,7 @@ export class UserCreatedEvent extends DomainEvent {
     public override readonly userId: string,
     public readonly email: string,
     public readonly fullName: string,
-    public readonly roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' | 'technician',
+    public readonly roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist',
     public readonly citizenId?: string,
     public readonly phoneNumber?: string
   ) {
