@@ -103,13 +103,24 @@ async function bootstrap() {
         logger.info('Starting event consumers...');
         await container.startEventConsumers();
         logger.info('Event consumers started successfully');
-        // Step 11: Setup graceful shutdown
+        // Step 11: Start outbox publisher (background job)
+        logger.info('Starting outbox publisher...');
+        const outboxPublisher = container.getOutboxPublisher();
+        await outboxPublisher.start();
+        logger.info('Outbox publisher started successfully');
+        // Step 12: Setup graceful shutdown
         logger.info('Setting up graceful shutdown...');
         const cleanup = (0, bootstrap_1.createCleanupFunction)([
             {
                 name: 'Event Consumers',
                 cleanup: async () => {
                     await container.stopEventConsumers();
+                }
+            },
+            {
+                name: 'Outbox Publisher',
+                cleanup: async () => {
+                    await outboxPublisher.stop();
                 }
             },
             {

@@ -21,9 +21,9 @@ export class InvoiceCancelledEvent extends DomainEvent {
     };
 
     super(
-      'InvoiceCancelled',
+      'invoice.cancelled',
       invoiceId,
-      'Invoice',
+      'billing',
       eventData,
       1,
       correlationId,

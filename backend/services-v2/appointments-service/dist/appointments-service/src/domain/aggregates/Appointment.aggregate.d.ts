@@ -19,7 +19,9 @@ export declare enum AppointmentType {
     EMERGENCY = "emergency",
     TELEMEDICINE = "telemedicine",
     SURGERY = "surgery",
-    PROCEDURE = "procedure"
+    PROCEDURE = "procedure",
+    URGENT_CONSULTATION = "urgent_consultation",
+    MEDICAL_TEST = "medical_test"
 }
 export declare enum AppointmentPriority {
     LOW = "low",
@@ -34,7 +36,8 @@ export declare enum AppointmentStatus {
     IN_PROGRESS = "in_progress",
     COMPLETED = "completed",
     CANCELLED = "cancelled",
-    NO_SHOW = "no_show"
+    NO_SHOW = "no_show",
+    RESCHEDULED = "reschedule_required"
 }
 /**
  * Payment management is NOT the responsibility of appointments-service
@@ -79,6 +82,7 @@ export interface AppointmentProps {
     lastModifiedBy?: string;
     createdAt: Date;
     updatedAt: Date;
+    notes?: string;
 }
 /**
  * Appointment Aggregate Root
@@ -170,6 +174,14 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
      * Reschedule appointment
      */
     reschedule(newTimeSlot: TimeSlot, reason: string, rescheduledBy: string): void;
+    /**
+     * Mark appointment for reschedule due to conflicts
+     */
+    markForReschedule(reason: string, conflictDetails?: any): void;
+    /**
+     * Assign appointment to staff member
+     */
+    assignToStaff(staffId: string, assignedBy: string): void;
     get appointmentId(): AppointmentId;
     get patientId(): string;
     get doctorId(): string;

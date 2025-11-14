@@ -9,11 +9,13 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Department, DepartmentProps } from '../../domain/entities/Department';
-import { IDepartmentRepository } from '../../domain/repositories/IDepartmentRepository';
+import { DepartmentStaffAssignment, IDepartmentRepository } from '../../domain/repositories/IDepartmentRepository';
 
 export class SupabaseDepartmentRepository implements IDepartmentRepository {
-  private supabase: SupabaseClient;
+  private readonly supabase: SupabaseClient;
   private readonly schema = 'departments_schema';
+  private readonly departmentsTable = 'departments';
+  private readonly assignmentsTable = 'department_staff_assignments';
 
   constructor(supabaseUrl: string, supabaseKey: string) {
     this.supabase = createClient(supabaseUrl, supabaseKey);
@@ -23,7 +25,7 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
     try {
       const { data, error } = await this.supabase
         .schema(this.schema)
-        .from('departments')
+        .from(this.departmentsTable)
         .select('*')
         .eq('id', id)
         .single();
@@ -44,7 +46,7 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
     try {
       const { data, error } = await this.supabase
         .schema(this.schema)
-        .from('departments')
+        .from(this.departmentsTable)
         .select('*')
         .eq('department_code', code.toUpperCase())
         .single();
@@ -65,7 +67,7 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
     try {
       let query = this.supabase
         .schema(this.schema)
-        .from('departments')
+        .from(this.departmentsTable)
         .select('*');
 
       if (activeOnly) {
@@ -79,7 +81,7 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
         return [];
       }
 
-      return data ? data.map(record => this.toDomain(record)) : [];
+      return data ? data.map((record) => this.toDomain(record)) : [];
     } catch (error: any) {
       console.error('[SupabaseDepartmentRepository] Exception in findAll:', error.message);
       return [];
@@ -92,7 +94,7 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
 
       const { error } = await this.supabase
         .schema(this.schema)
-        .from('departments')
+        .from(this.departmentsTable)
         .upsert(record, { onConflict: 'id' });
 
       if (error) {
@@ -106,13 +108,12 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
 
   async delete(id: string): Promise<void> {
     try {
-      // Soft delete - set is_active = false
       const { error } = await this.supabase
         .schema(this.schema)
-        .from('departments')
+        .from(this.departmentsTable)
         .update({
           is_active: false,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', id);
 
@@ -129,7 +130,7 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
     try {
       let query = this.supabase
         .schema(this.schema)
-        .from('departments')
+        .from(this.departmentsTable)
         .select('*', { count: 'exact', head: true });
 
       if (activeOnly) {
@@ -150,9 +151,121 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
     }
   }
 
-  /**
-   * Convert database record to domain entity
-   */
+  async findByStaffId(staffId: string, options?: { includeInactive?: boolean }): Promise<DepartmentStaffAssignment[]> {
+    try {
+      let query = this.supabase
+        .schema(this.schema)
+        .from(this.assignmentsTable)
+        .select('is_active, staff_id, department:departments (*)')
+        .eq('staff_id', staffId);
+
+      if (!options?.includeInactive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('[SupabaseDepartmentRepository] Error finding by staff:', error.message);
+        return [];
+      }
+
+      if (!data) {
+        return [];
+      }
+
+      return data
+        .filter((row: any) => row.department)
+        .map((row: any) => ({
+          department: this.toDomain(row.department),
+          isActive: row.is_active,
+          staffId: row.staff_id,
+        }));
+    } catch (error: any) {
+      console.error('[SupabaseDepartmentRepository] Exception in findByStaffId:', error.message);
+      return [];
+    }
+  }
+
+  async updateStaffCount(id: string, staffCount: number): Promise<void> {
+    await this.updateCounts(id, { staff_count: staffCount });
+  }
+
+  async updateActiveStaffCount(id: string, activeStaffCount: number): Promise<void> {
+    await this.updateCounts(id, { active_staff_count: activeStaffCount });
+  }
+
+  async assignStaffToDepartment(
+    staffId: string,
+    departmentId: string,
+    metadata?: { staffName?: string; assignmentType?: string; assignedBy?: string }
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .schema(this.schema)
+      .from(this.assignmentsTable)
+      .upsert({
+        department_id: departmentId,
+        staff_id: staffId,
+        staff_name: metadata?.staffName,
+        assignment_type: metadata?.assignmentType,
+        assigned_by: metadata?.assignedBy,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'department_id,staff_id' });
+
+    if (error) {
+      throw new Error(`Failed to assign staff to department: ${error.message}`);
+    }
+  }
+
+  async removeStaffFromDepartment(staffId: string, departmentId: string): Promise<void> {
+    const { error } = await this.supabase
+      .schema(this.schema)
+      .from(this.assignmentsTable)
+      .update({
+        is_active: false,
+        last_status: 'removed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('staff_id', staffId)
+      .eq('department_id', departmentId);
+
+    if (error) {
+      throw new Error(`Failed to remove staff from department: ${error.message}`);
+    }
+  }
+
+  async setStaffAssignmentsActive(staffId: string, isActive: boolean): Promise<void> {
+    const { error } = await this.supabase
+      .schema(this.schema)
+      .from(this.assignmentsTable)
+      .update({
+        is_active: isActive,
+        last_status: isActive ? 'active' : 'inactive',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('staff_id', staffId);
+
+    if (error) {
+      throw new Error(`Failed to update staff assignment status: ${error.message}`);
+    }
+  }
+
+  private async updateCounts(id: string, values: Record<string, number>): Promise<void> {
+    const { error } = await this.supabase
+      .schema(this.schema)
+      .from(this.departmentsTable)
+      .update({
+        ...values,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to update department counts: ${error.message}`);
+    }
+  }
+
   private toDomain(record: any): Department {
     const props: DepartmentProps = {
       departmentCode: record.department_code,
@@ -166,15 +279,17 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at),
       createdBy: record.created_by,
-      updatedBy: record.updated_by
+      updatedBy: record.updated_by,
+      headOfDepartmentId: record.head_of_department_id,
+      headOfDepartmentName: record.head_of_department_name,
+      headOfDepartmentEmail: record.head_of_department_email,
+      staffCount: record.staff_count ?? 0,
+      activeStaffCount: record.active_staff_count ?? record.staff_count ?? 0,
     };
 
     return new Department(record.id, props);
   }
 
-  /**
-   * Convert domain entity to database record
-   */
   private toPersistence(department: Department): any {
     return {
       id: department.id,
@@ -189,7 +304,12 @@ export class SupabaseDepartmentRepository implements IDepartmentRepository {
       created_at: department.createdAt.toISOString(),
       updated_at: department.updatedAt.toISOString(),
       created_by: department.props.createdBy,
-      updated_by: department.props.updatedBy
+      updated_by: department.props.updatedBy,
+      head_of_department_id: department.props.headOfDepartmentId,
+      head_of_department_name: department.props.headOfDepartmentName,
+      head_of_department_email: department.props.headOfDepartmentEmail,
+      staff_count: department.staffCount,
+      active_staff_count: department.activeStaffCount,
     };
   }
 }

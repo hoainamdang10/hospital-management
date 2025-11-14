@@ -315,6 +315,14 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
   }
 
   /**
+   * Get patient ID (staff operations don't involve patients)
+   */
+  getPatientId(_request: RegisterStaffRequest): string | null {
+    // Staff registration doesn't involve patient data
+    return null;
+  }
+
+  /**
    * Validate registration request
    */
   protected override async validateRequest(

@@ -20,6 +20,8 @@ import { SupabasePatientSnapshotRepository } from "../../../infrastructure/repos
 import { SupabaseProviderSnapshotRepository } from "../../../infrastructure/repositories/SupabaseProviderSnapshotRepository";
 import { ClinicalIntegrationSyncService } from "../../../application/services/ClinicalIntegrationSyncService";
 import { ClinicalIntegrationEventConsumer } from "../../../infrastructure/events/ClinicalIntegrationEventConsumer";
+import { AppointmentEventConsumer } from "../../../infrastructure/events/AppointmentEventConsumer";
+import { BillingEventConsumer } from "../../../infrastructure/events/BillingEventConsumer";
 import { supabaseClient } from "../../../infrastructure/db/supabase-client";
 import { ILogger } from "../../../shared/logger";
 
@@ -229,6 +231,80 @@ export function createHttpServer() {
     });
   }
 
+  // Initialize Appointment Event Consumer
+  let appointmentConsumer: AppointmentEventConsumer | undefined;
+  if (
+    env.appointmentConsumer.enabled &&
+    env.appointmentConsumer.routingKeys.length
+  ) {
+    appointmentConsumer = new AppointmentEventConsumer(
+      {
+        rabbitmqUrl: env.rabbitmqUrl,
+        queueName: env.appointmentConsumer.queueName,
+        exchangeName: env.rabbitmqExchange,
+        routingKeys: env.appointmentConsumer.routingKeys,
+        prefetchCount: env.appointmentConsumer.prefetch,
+        retryAttempts: 3,
+        retryDelayMs: 1000,
+      },
+      logger,
+      medicalRecordRepo,
+      clinicalNoteRepo,
+      patientSnapshotRepo,
+      providerSnapshotRepo,
+      integrationSyncService,
+    );
+
+    appointmentConsumer
+      .connect()
+      .catch((error) =>
+        logger.error("[ClinicalEMR] Failed to start appointment consumer", {
+          error: error instanceof Error ? error.message : "Unknown error",
+        }),
+      );
+  } else {
+    logger.info("[ClinicalEMR] Appointment consumer disabled", {
+      enabled: env.appointmentConsumer.enabled,
+      routingKeys: env.appointmentConsumer.routingKeys.length,
+    });
+  }
+
+  // Initialize Billing Event Consumer
+  let billingConsumer: BillingEventConsumer | undefined;
+  if (
+    env.billingConsumer.enabled &&
+    env.billingConsumer.routingKeys.length
+  ) {
+    billingConsumer = new BillingEventConsumer(
+      {
+        rabbitmqUrl: env.rabbitmqUrl,
+        queueName: env.billingConsumer.queueName,
+        exchangeName: env.rabbitmqExchange,
+        routingKeys: env.billingConsumer.routingKeys,
+        prefetchCount: env.billingConsumer.prefetch,
+        retryAttempts: 3,
+        retryDelayMs: 1000,
+      },
+      logger,
+      medicalRecordRepo,
+      clinicalNoteRepo,
+      patientSnapshotRepo,
+    );
+
+    billingConsumer
+      .connect()
+      .catch((error) =>
+        logger.error("[ClinicalEMR] Failed to start billing consumer", {
+          error: error instanceof Error ? error.message : "Unknown error",
+        }),
+      );
+  } else {
+    logger.info("[ClinicalEMR] Billing consumer disabled", {
+      enabled: env.billingConsumer.enabled,
+      routingKeys: env.billingConsumer.routingKeys.length,
+    });
+  }
+
   const eventDispatcher = new ClinicalEventDispatcher(outboxRepository, logger);
 
   const gracefulShutdown = async () => {
@@ -236,6 +312,12 @@ export function createHttpServer() {
     await rabbitPublisher.disconnect().catch(() => undefined);
     if (integrationConsumer) {
       await integrationConsumer.stop().catch(() => undefined);
+    }
+    if (appointmentConsumer) {
+      await appointmentConsumer.disconnect().catch(() => undefined);
+    }
+    if (billingConsumer) {
+      await billingConsumer.disconnect().catch(() => undefined);
     }
   };
 

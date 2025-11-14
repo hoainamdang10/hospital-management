@@ -1,6 +1,7 @@
 /**
  * List Appointments Use Case - Application Layer
  * V3 Clean Architecture + DDD Implementation
+ * Simplified for graduation project - using BaseAuthorizedUseCase
  *
  * @author Hospital Management Team
  * @version 3.0.0

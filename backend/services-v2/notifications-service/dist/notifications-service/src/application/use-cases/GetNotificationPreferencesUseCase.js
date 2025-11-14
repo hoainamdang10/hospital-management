@@ -15,8 +15,11 @@ class GetNotificationPreferencesUseCase {
     }
     async execute(query) {
         try {
-            const preferences = await this.preferencesRepository.getOrCreate(query.userId, 'PATIENT');
-            return { preferences };
+            const preferences = await this.preferencesRepository.getOrCreate(query.userId, query.userType === 'staff' ? 'DOCTOR' : 'PATIENT');
+            return {
+                preferences,
+                calendarIntegration: query.userType === 'staff' ? true : undefined
+            };
         }
         catch (error) {
             throw new Error(`Failed to get preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);

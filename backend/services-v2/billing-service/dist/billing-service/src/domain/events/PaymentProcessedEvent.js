@@ -12,7 +12,7 @@ class PaymentProcessedEvent extends domain_event_1.DomainEvent {
             method,
             processedAt: new Date()
         };
-        super('PaymentProcessed', invoiceId, 'Invoice', eventData, 1, correlationId, causationId, userIdForAudit);
+        super('payment.completed', invoiceId, 'billing', eventData, 1, correlationId, causationId, userIdForAudit);
         this.invoiceId = invoiceId;
         this.paymentId = paymentId;
         this.amount = amount;

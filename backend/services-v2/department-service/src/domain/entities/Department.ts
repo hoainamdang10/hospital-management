@@ -1,11 +1,21 @@
 /**
- * Department Entity - Domain Layer
- * Simple POCO (Plain Old Class Object) entity for Department
+ * Department Entity - Domain Layer (Event-Enhanced)
+ * Aggregate Root with domain events support
  * 
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, Simple CRUD Pattern
+ * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
+
+import {
+  DepartmentCreatedEvent,
+  DepartmentUpdatedEvent,
+  DepartmentHeadAssignedEvent,
+  DepartmentActivatedEvent,
+  DepartmentDeactivatedEvent,
+  DepartmentStaffCountChangedEvent
+} from '../events/DepartmentEvents';
+import { HealthcareDomainEvent } from '@shared/domain/base/domain-event';
 
 export interface DepartmentProps {
   departmentCode: string;
@@ -20,14 +30,33 @@ export interface DepartmentProps {
   updatedAt: Date;
   createdBy?: string;
   updatedBy?: string;
+  headOfDepartmentId?: string;
+  headOfDepartmentName?: string;
+  headOfDepartmentEmail?: string;
+  staffCount?: number;
+  activeStaffCount?: number;
 }
 
 export class Department {
+  private _domainEvents: HealthcareDomainEvent[] = [];
+
   constructor(
     public readonly id: string,
-    public readonly props: DepartmentProps
+    public readonly props: DepartmentProps,
+    isNew: boolean = false
   ) {
     this.validate();
+    
+    // Publish creation event for new departments
+    if (isNew) {
+      this.addDomainEvent(DepartmentCreatedEvent.create(
+        this.id,
+        this.props.departmentCode,
+        this.props.departmentNameEn,
+        this.props.departmentNameVi,
+        this.props.createdBy
+      ));
+    }
   }
 
   // Getters
@@ -71,22 +100,218 @@ export class Department {
     return this.props.updatedAt;
   }
 
+  get createdBy(): string | undefined {
+    return this.props.createdBy;
+  }
+
+  get updatedBy(): string | undefined {
+    return this.props.updatedBy;
+  }
+
+  get headOfDepartmentId(): string | undefined {
+    return this.props.headOfDepartmentId;
+  }
+
+  get headOfDepartmentName(): string | undefined {
+    return this.props.headOfDepartmentName;
+  }
+
+  get headOfDepartmentEmail(): string | undefined {
+    return this.props.headOfDepartmentEmail;
+  }
+
+  get staffCount(): number {
+    return this.props.staffCount || 0;
+  }
+
+  get activeStaffCount(): number {
+    if (this.props.activeStaffCount !== undefined) {
+      return this.props.activeStaffCount;
+    }
+    return this.staffCount;
+  }
+
+  get domainEvents(): HealthcareDomainEvent[] {
+    return [...this._domainEvents];
+  }
+
+  clearDomainEvents(): void {
+    this._domainEvents = [];
+  }
+
   // Business methods
-  public activate(): void {
-    this.props.isActive = true;
-    this.touch();
+  public activate(triggeredBy?: string): void {
+    if (!this.props.isActive) {
+      this.props.isActive = true;
+      this.touch(triggeredBy);
+      
+      this.addDomainEvent(DepartmentActivatedEvent.create(
+        this.id,
+        this.props.departmentCode,
+        this.props.departmentNameEn,
+        this.props.departmentNameVi,
+        triggeredBy
+      ));
+    }
   }
 
-  public deactivate(): void {
-    this.props.isActive = false;
-    this.touch();
+  public deactivate(reason?: string, triggeredBy?: string): void {
+    if (this.props.isActive) {
+      this.props.isActive = false;
+      this.touch(triggeredBy);
+      
+      this.addDomainEvent(DepartmentDeactivatedEvent.create(
+        this.id,
+        this.props.departmentCode,
+        this.props.departmentNameEn,
+        this.props.departmentNameVi,
+        reason,
+        triggeredBy
+      ));
+    }
   }
 
-  public updateContactInfo(phone?: string, email?: string, location?: string): void {
-    if (phone) this.props.phone = phone;
-    if (email) this.props.email = email;
-    if (location) this.props.location = location;
-    this.touch();
+  public updateContactInfo(phone?: string, email?: string, location?: string, triggeredBy?: string): void {
+    const previousValues = {
+      phone: this.props.phone,
+      email: this.props.email,
+      location: this.props.location,
+    };
+
+    const updatedFields: string[] = [];
+    
+    if (phone !== undefined && phone !== this.props.phone) {
+      this.props.phone = phone;
+      updatedFields.push('phone');
+    }
+    
+    if (email !== undefined && email !== this.props.email) {
+      this.props.email = email;
+      updatedFields.push('email');
+    }
+    
+    if (location !== undefined && location !== this.props.location) {
+      this.props.location = location;
+      updatedFields.push('location');
+    }
+
+    if (updatedFields.length > 0) {
+      this.touch(triggeredBy);
+      
+      const newValues = {
+        phone: this.props.phone,
+        email: this.props.email,
+        location: this.props.location,
+      };
+
+      this.addDomainEvent(DepartmentUpdatedEvent.create(
+        this.id,
+        this.props.departmentCode,
+        this.props.departmentNameEn,
+        this.props.departmentNameVi,
+        updatedFields,
+        previousValues,
+        newValues,
+        triggeredBy
+      ));
+    }
+  }
+
+  public updateBasicInfo(
+    departmentNameEn?: string,
+    departmentNameVi?: string,
+    description?: string,
+    triggeredBy?: string
+  ): void {
+    const previousValues = {
+      departmentNameEn: this.props.departmentNameEn,
+      departmentNameVi: this.props.departmentNameVi,
+      description: this.props.description,
+    };
+
+    const updatedFields: string[] = [];
+    
+    if (departmentNameEn !== undefined && departmentNameEn !== this.props.departmentNameEn) {
+      this.props.departmentNameEn = departmentNameEn;
+      updatedFields.push('departmentNameEn');
+    }
+    
+    if (departmentNameVi !== undefined && departmentNameVi !== this.props.departmentNameVi) {
+      this.props.departmentNameVi = departmentNameVi;
+      updatedFields.push('departmentNameVi');
+    }
+    
+    if (description !== undefined && description !== this.props.description) {
+      this.props.description = description;
+      updatedFields.push('description');
+    }
+
+    if (updatedFields.length > 0) {
+      this.touch(triggeredBy);
+      
+      const newValues = {
+        departmentNameEn: this.props.departmentNameEn,
+        departmentNameVi: this.props.departmentNameVi,
+        description: this.props.description,
+      };
+
+      this.addDomainEvent(DepartmentUpdatedEvent.create(
+        this.id,
+        this.props.departmentCode,
+        this.props.departmentNameEn,
+        this.props.departmentNameVi,
+        updatedFields,
+        previousValues,
+        newValues,
+        triggeredBy
+      ));
+    }
+  }
+
+  public assignDepartmentHead(
+    headId: string,
+    headName: string,
+    headEmail: string,
+    triggeredBy?: string
+  ): void {
+    const previousHeadId = this.props.headOfDepartmentId;
+    
+    this.props.headOfDepartmentId = headId;
+    this.props.headOfDepartmentName = headName;
+    this.props.headOfDepartmentEmail = headEmail;
+    this.touch(triggeredBy);
+
+    this.addDomainEvent(DepartmentHeadAssignedEvent.create(
+      this.id,
+      this.props.departmentCode,
+      this.props.departmentNameEn,
+      this.props.departmentNameVi,
+      headId,
+      headName,
+      headEmail,
+      previousHeadId,
+      triggeredBy
+    ));
+  }
+
+  public updateStaffCount(newCount: number, changeType: 'added' | 'removed' | 'transferred_in' | 'transferred_out', staffId?: string, staffName?: string): void {
+    const previousCount = this.props.staffCount || 0;
+    this.props.staffCount = newCount;
+    if (this.props.activeStaffCount === undefined) {
+      this.props.activeStaffCount = newCount;
+    }
+
+    this.addDomainEvent(DepartmentStaffCountChangedEvent.create(
+      this.id,
+      this.props.departmentCode,
+      this.props.departmentNameEn,
+      this.props.departmentNameVi,
+      previousCount,
+      newCount,
+      changeType,
+      staffId,
+      staffName
+    ));
   }
 
   // Validation
@@ -117,8 +342,13 @@ export class Department {
     return emailRegex.test(email);
   }
 
-  private touch(): void {
+  private touch(triggeredBy?: string): void {
     this.props.updatedAt = new Date();
+    this.props.updatedBy = triggeredBy;
+  }
+
+  private addDomainEvent(event: HealthcareDomainEvent): void {
+    this._domainEvents.push(event);
   }
 
   // Serialization
@@ -136,14 +366,23 @@ export class Department {
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
       createdBy: this.props.createdBy,
-      updatedBy: this.props.updatedBy
+      updatedBy: this.props.updatedBy,
+      headOfDepartmentId: this.props.headOfDepartmentId,
+      headOfDepartmentName: this.props.headOfDepartmentName,
+      headOfDepartmentEmail: this.props.headOfDepartmentEmail,
+      staffCount: this.props.staffCount,
+      activeStaffCount: this.props.activeStaffCount,
     };
   }
 
   // Factory method
   public static create(props: DepartmentProps, id?: string): Department {
     const departmentId = id || this.generateId();
-    return new Department(departmentId, props);
+    return new Department(departmentId, props, true); // Mark as new for event publishing
+  }
+
+  public static reconstitute(id: string, props: DepartmentProps): Department {
+    return new Department(id, props, false); // Don't publish events for reconstituted entities
   }
 
   private static generateId(): string {

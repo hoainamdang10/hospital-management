@@ -16,3 +16,9 @@ export * from './UserDeactivatedEventHandler';
 export * from './UserRoleChangedEventHandler';
 export * from './IdentityEventConsumer';
 
+// New Enhanced Event Consumers
+export * from './EnhancedDepartmentEventConsumer';
+export * from './ReviewEventConsumer';
+// REMOVED: SchedulingEventConsumer - Violates bounded context
+// Real-time availability management belongs to Appointment Service
+

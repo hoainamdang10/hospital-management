@@ -226,8 +226,8 @@ class DIContainer {
      */
     instantiateService(registration) {
         if (registration.factory) {
-            const dependencies = this.resolveDependencies(registration.dependencies || []);
-            return registration.factory(...dependencies);
+            // Pass container instance to factory to allow manual dependency resolution
+            return registration.factory(this);
         }
         if (registration.implementation) {
             const dependencies = this.resolveDependencies(registration.dependencies || []);

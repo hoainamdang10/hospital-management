@@ -12,13 +12,14 @@ export class UserActivatedEvent extends DomainEvent {
   constructor(
     public readonly userIdValue: string, // Changed from UserId to string
     public readonly emailValue: string, // Changed from Email to string
+    public readonly fullNameValue: string, // Full name from user registration
     public readonly activatedAt: Date
   ) {
     super(
       'UserActivated',
       userIdValue,
       'User',
-      { userIdValue, emailValue, activatedAt }
+      { userIdValue, emailValue, fullNameValue, activatedAt }
     );
   }
 
@@ -26,6 +27,7 @@ export class UserActivatedEvent extends DomainEvent {
     return {
       userId: this.userIdValue,
       email: this.emailValue,
+      fullName: this.fullNameValue,
       activatedAt: this.activatedAt
     };
   }

@@ -58,6 +58,7 @@ export declare class ProviderSchedule {
     get updatedAt(): Date;
     /**
      * Check if provider works on a specific day
+     * Supports both lowercase ('monday') and uppercase ('MONDAY') formats
      */
     isWorkingDay(day: string): boolean;
     /**

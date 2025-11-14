@@ -501,7 +501,8 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             // Re-validate business invariants when activating
             this.validateBusinessInvariants();
             // Emit domain event
-            this.addDomainEvent(new UserActivatedEvent_1.UserActivatedEvent(this.props.id.value, this.props.email.value, now));
+            this.addDomainEvent(new UserActivatedEvent_1.UserActivatedEvent(this.props.id.value, this.props.email.value, this.props.personalInfo.fullName, // Add full name from personal info
+            now));
         }
         catch (error) {
             throw new Error(`Failed to activate user: ${getErrorMessage(error)}`);

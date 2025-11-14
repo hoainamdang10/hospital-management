@@ -9,6 +9,7 @@
 
 import { ILogger } from '@shared/application/services/logger.interface';
 import { IUserRepository } from '../../../application/repositories/IUserRepository';
+import { UserId } from '../../../domain/value-objects/UserId';
 
 /**
  * Patient Updated Event Data
@@ -61,7 +62,9 @@ export class PatientUpdatedEventHandler {
       });
 
       // Find user by ID
-      const user = await this.userRepository.findById(eventData.identityUserId);
+      const user = await this.userRepository.findById(
+        UserId.fromString(eventData.identityUserId)
+      );
       
       if (!user) {
         this.logger.warn('User not found for patient update', {

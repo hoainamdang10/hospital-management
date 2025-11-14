@@ -87,7 +87,7 @@ const AuthenticationMiddleware_1 = require("./presentation/middleware/Authentica
 const AuthorizationMiddleware_1 = require("./presentation/middleware/AuthorizationMiddleware");
 // Configuration
 const config = {
-    port: process.env.PORT || 3023,
+    port: process.env.PORT || 3003,
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
@@ -97,7 +97,7 @@ const config = {
     serviceName: 'patient-registry-service',
     version: '2.0.0',
     allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(','),
-    identityServiceUrl: process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021',
+    identityServiceUrl: process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001',
 };
 const rabbitmqConnectionRetries = Number(process.env.RABBITMQ_CONNECT_MAX_RETRIES || 5);
 const rabbitmqConnectionRetryDelayMs = Number(process.env.RABBITMQ_CONNECT_RETRY_DELAY_MS || 3000);
@@ -194,7 +194,6 @@ class PatientRegistryServiceApp {
             // Store raw Supabase client for PatientId generation
             this.supabaseClient = this.optimizedSupabase.getConnection();
             // Initialize Audit Service
-            // Type cast needed due to duplicate @supabase/supabase-js in root and service node_modules
             this.auditService = new AuditService_1.AuditService(this.optimizedSupabase.getConnection(), logger);
             logger.info('Audit service initialized', {});
             // Initialize Outbox Repository

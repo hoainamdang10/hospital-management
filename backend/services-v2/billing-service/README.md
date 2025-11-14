@@ -5,7 +5,7 @@ Billing microservice for Hospital Management System.
 ## 🏗️ Architecture
 
 - **Clean Architecture** with DDD patterns
-- **Port**: 3029
+- **Port**: 3009
 - **Schema**: billing_schema
 - **Patterns**: Strategy, Outbox, Payment Gateway
 
@@ -38,5 +38,5 @@ npm test
 
 ```bash
 docker build -t billing-service .
-docker run -p 3029:3029 billing-service
+docker run -p 3009:3009 billing-service
 ```

@@ -702,6 +702,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         new UserActivatedEvent(
           this.props.id.value,
           this.props.email.value,
+          this.props.personalInfo.fullName, // Add full name from personal info
           now,
         ),
       );

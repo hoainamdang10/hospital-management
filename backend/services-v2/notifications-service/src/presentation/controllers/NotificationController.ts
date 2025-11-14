@@ -1,470 +1,213 @@
 /**
- * NotificationController - Presentation Controller
- * REST API controller for notification operations with Vietnamese healthcare context
+ * NotificationController - Simplified Presentation Controller
+ * REST API controller for core notification operations with Vietnamese healthcare context
  * 
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.0.0-simplified
  * @compliance Clean Architecture, REST API, Vietnamese Healthcare Standards
  */
 
 import { Request, Response } from 'express';
 import { NotificationApplicationService } from '../../application/services/NotificationApplicationService';
 import { SendNotificationCommand } from '../../application/use-cases/SendNotificationUseCase';
-import { ProcessQueueCommand } from '../../application/use-cases/ProcessNotificationQueueUseCase';
+import { MarkNotificationAsReadUseCase } from '../../application/use-cases/MarkNotificationAsReadUseCase';
+import { GetUserNotificationsUseCase } from '../../application/use-cases/GetUserNotificationsUseCase';
+import { UpdateNotificationPreferencesUseCase } from '../../application/use-cases/UpdateNotificationPreferencesUseCase';
 
 export class NotificationController {
   constructor(
-    private readonly notificationService: NotificationApplicationService
+    private readonly notificationService: NotificationApplicationService,
+    private readonly markAsReadUseCase: MarkNotificationAsReadUseCase,
+    private readonly getUserNotificationsUseCase: GetUserNotificationsUseCase,
+    private readonly updatePreferencesUseCase: UpdateNotificationPreferencesUseCase
   ) {}
 
   /**
    * Send notification immediately
-   * POST /api/v1/notifications/send
    */
-  public async sendNotification(req: Request, res: Response): Promise<void> {
+  async sendNotification(req: Request, res: Response): Promise<void> {
     try {
       const command: SendNotificationCommand = {
         recipientId: req.body.recipientId,
         recipientType: req.body.recipientType,
-        templateType: req.body.templateType,
-        templateData: req.body.templateData || {},
-        channels: req.body.channels,
+        title: req.body.title,
+        content: req.body.content,
+        channels: req.body.channels || ['EMAIL'],
         priority: req.body.priority || 'NORMAL',
-        metadata: {
-          ...req.body.metadata,
-          userId: req.user?.id,
-          source: 'API',
-          requestId: req.headers['x-request-id'] as string,
-          scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt) : undefined,
-          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined
-        }
+        type: req.body.type || 'info',
+        metadata: req.body.metadata
       };
 
       const result = await this.notificationService.sendNotification(command);
-
-      res.status(201).json({
+      
+      res.status(200).json({
         success: true,
-        message: 'Thông báo đã được gửi thành công',
-        data: {
-          notificationId: result.notificationId,
-          status: result.status,
-          deliveryResults: result.deliveryResults
-        },
-        timestamp: new Date().toISOString()
+        data: result,
+        message: 'Thông báo đã được gửi thành công'
       });
-
     } catch (error) {
-      res.status(400).json({
+      console.error('Error sending notification:', error);
+      res.status(500).json({
         success: false,
         message: 'Lỗi khi gửi thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Schedule notification for future delivery
-   * POST /api/v1/notifications/schedule
-   */
-  public async scheduleNotification(req: Request, res: Response): Promise<void> {
-    try {
-      const command: SendNotificationCommand = {
-        recipientId: req.body.recipientId,
-        recipientType: req.body.recipientType,
-        templateType: req.body.templateType,
-        templateData: req.body.templateData || {},
-        channels: req.body.channels,
-        priority: req.body.priority || 'NORMAL',
-        metadata: {
-          ...req.body.metadata,
-          userId: req.user?.id,
-          source: 'API',
-          requestId: req.headers['x-request-id'] as string,
-          scheduledAt: new Date(req.body.scheduledAt),
-          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
-          recurrence: req.body.recurrence
-        }
-      };
-
-      const result = await this.notificationService.scheduleNotification(command);
-
-      res.status(201).json({
-        success: true,
-        message: 'Thông báo đã được lên lịch thành công',
-        data: {
-          notificationId: result.notificationId || result.notificationId,
-          scheduledAt: req.body.scheduledAt,
-          status: result.status
-        },
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: 'Lỗi khi lên lịch thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   /**
    * Get notification by ID
-   * GET /api/v1/notifications/:id
    */
-  public async getNotification(req: Request, res: Response): Promise<void> {
+  async getNotification(req: Request, res: Response): Promise<void> {
     try {
-      const notificationId = req.params.id;
-      const notification = await this.notificationService.getNotification(notificationId);
+      const { notificationId } = req.params;
+      
+      const result = await this.notificationService.getNotification(notificationId);
+      
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Lấy thông tin thông báo thành công'
+      });
+    } catch (error) {
+      console.error('Error getting notification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lấy thông tin thông báo',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
 
-      if (!notification) {
-        res.status(404).json({
+  /**
+   * Get user notification preferences
+   */
+  async getNotificationPreferences(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const { userType } = req.query;
+      
+      const result = await this.notificationService.getNotificationPreferences(
+        userId, 
+        userType as 'patient' | 'staff'
+      );
+      
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Lấy cấu hình thông báo thành công'
+      });
+    } catch (error) {
+      console.error('Error getting notification preferences:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lấy cấu hình thông báo',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Mark notification as read/unread
+   */
+  async markAsRead(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { userId, isRead = true } = req.body;
+
+      if (!userId) {
+        res.status(400).json({
           success: false,
-          message: 'Không tìm thấy thông báo',
-          timestamp: new Date().toISOString()
+          message: 'userId là bắt buộc'
         });
         return;
       }
 
-      res.status(200).json({
-        success: true,
-        message: 'Lấy thông báo thành công',
-        data: notification,
-        timestamp: new Date().toISOString()
+      const result = await this.markAsReadUseCase.execute({
+        notificationId: id,
+        userId,
+        isRead
       });
 
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: result.message
+      });
     } catch (error) {
+      console.error('Error marking notification as read:', error);
       res.status(500).json({
         success: false,
-        message: 'Lỗi khi lấy thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
+        message: 'Lỗi khi cập nhật trạng thái đọc thông báo',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   /**
-   * Get notifications by recipient
-   * GET /api/v1/notifications/recipient/:recipientId
+   * Get user notifications with pagination and filters
    */
-  public async getNotificationsByRecipient(req: Request, res: Response): Promise<void> {
+  async getUserNotifications(req: Request, res: Response): Promise<void> {
     try {
-      const recipientId = req.params.recipientId;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const offset = parseInt(req.query.offset as string) || 0;
-      const status = req.query.status as string;
-      const priority = req.query.priority as string;
-      
-      let dateRange: { start: Date; end: Date } | undefined;
-      if (req.query.startDate && req.query.endDate) {
-        dateRange = {
-          start: new Date(req.query.startDate as string),
-          end: new Date(req.query.endDate as string)
-        };
-      }
-
-      const result = await this.notificationService.getNotificationsByRecipient(recipientId, {
-        limit,
-        offset,
-        status,
+      const { userId } = req.params;
+      const { 
+        limit = 20, 
+        offset = 0, 
+        status, 
         priority,
-        dateRange
+        startDate,
+        endDate
+      } = req.query;
+
+      const result = await this.getUserNotificationsUseCase.execute({
+        userId,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        status: status as 'read' | 'unread' | 'all',
+        priority: priority as any,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined
       });
 
       res.status(200).json({
         success: true,
-        message: 'Lấy danh sách thông báo thành công',
-        data: {
-          notifications: result.notifications,
-          pagination: {
-            total: result.total,
-            limit,
-            offset,
-            hasMore: result.hasMore
-          }
-        },
-        timestamp: new Date().toISOString()
+        data: result,
+        message: 'Lấy danh sách thông báo thành công'
       });
-
     } catch (error) {
+      console.error('Error getting user notifications:', error);
       res.status(500).json({
         success: false,
         message: 'Lỗi khi lấy danh sách thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   /**
-   * Search notifications
-   * POST /api/v1/notifications/search
+   * Update notification preferences
    */
-  public async searchNotifications(req: Request, res: Response): Promise<void> {
+  async updatePreferences(req: Request, res: Response): Promise<void> {
     try {
-      const criteria = req.body;
-      const result = await this.notificationService.searchNotifications(criteria);
+      const { userId } = req.params;
+      const preferences = req.body;
+
+      const result = await this.updatePreferencesUseCase.execute({
+        userId,
+        preferences
+      });
 
       res.status(200).json({
         success: true,
-        message: 'Tìm kiếm thông báo thành công',
-        data: {
-          notifications: result.notifications,
-          pagination: {
-            total: result.total,
-            limit: criteria.limit || 20,
-            offset: criteria.offset || 0,
-            hasMore: result.hasMore
-          }
-        },
-        timestamp: new Date().toISOString()
+        data: result,
+        message: 'Cập nhật cấu hình thông báo thành công'
       });
-
     } catch (error) {
+      console.error('Error updating notification preferences:', error);
       res.status(500).json({
         success: false,
-        message: 'Lỗi khi tìm kiếm thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Cancel notification
-   * PUT /api/v1/notifications/:id/cancel
-   */
-  public async cancelNotification(req: Request, res: Response): Promise<void> {
-    try {
-      const notificationId = req.params.id;
-      const reason = req.body.reason;
-      const userId = req.user?.id;
-
-      const result = await this.notificationService.cancelNotification(notificationId, reason, userId);
-
-      res.status(200).json({
-        success: true,
-        message: result.message,
-        data: {
-          notificationId: result.notificationId,
-          status: result.status
-        },
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: 'Lỗi khi hủy thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Retry failed notification
-   * PUT /api/v1/notifications/:id/retry
-   */
-  public async retryNotification(req: Request, res: Response): Promise<void> {
-    try {
-      const notificationId = req.params.id;
-      const channels = req.body.channels;
-      const userId = req.user?.id;
-
-      const result = await this.notificationService.retryNotification(notificationId, channels, userId);
-
-      res.status(200).json({
-        success: true,
-        message: result.message,
-        data: {
-          notificationId: result.notificationId,
-          status: result.status,
-          retryAttempt: result.retryAttempt
-        },
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: 'Lỗi khi thử lại thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Send bulk notifications
-   * POST /api/v1/notifications/bulk
-   */
-  public async sendBulkNotifications(req: Request, res: Response): Promise<void> {
-    try {
-      const command = {
-        ...req.body,
-        metadata: {
-          ...req.body.metadata,
-          userId: req.user?.id,
-          source: 'API',
-          requestId: req.headers['x-request-id'] as string
-        }
-      };
-
-      const result = await this.notificationService.sendBulkNotifications(command);
-
-      res.status(201).json({
-        success: true,
-        message: `Đã gửi thông báo hàng loạt: ${result.successful}/${result.totalRequested} thành công`,
-        data: {
-          totalRequested: result.totalRequested,
-          successful: result.successful,
-          failed: result.failed,
-          results: result.results
-        },
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: 'Lỗi khi gửi thông báo hàng loạt',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Process notification queue
-   * POST /api/v1/notifications/process-queue
-   */
-  public async processQueue(req: Request, res: Response): Promise<void> {
-    try {
-      const command: ProcessQueueCommand = {
-        batchSize: req.body.batchSize,
-        priorityFilter: req.body.priorityFilter,
-        maxProcessingTime: req.body.maxProcessingTime,
-        onlyExpiredNotifications: req.body.onlyExpiredNotifications
-      };
-
-      const result = await this.notificationService.processQueue(command);
-
-      res.status(200).json({
-        success: true,
-        message: `Đã xử lý ${result.totalProcessed} thông báo trong ${result.processingTime}ms`,
-        data: {
-          totalProcessed: result.totalProcessed,
-          successful: result.successful,
-          failed: result.failed,
-          expired: result.expired,
-          remaining: result.remaining,
-          processingTime: result.processingTime,
-          statistics: result.statistics,
-          details: result.details
-        },
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Lỗi khi xử lý hàng đợi thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Get notification analytics
-   * GET /api/v1/notifications/analytics
-   */
-  public async getAnalytics(req: Request, res: Response): Promise<void> {
-    try {
-      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-      
-      const options = {
-        groupBy: req.query.groupBy as 'day' | 'week' | 'month',
-        filters: {
-          recipientType: req.query.recipientType as string,
-          templateType: req.query.templateType as string,
-          channel: req.query.channel as string,
-          priority: req.query.priority as string,
-          status: req.query.status as string
-        }
-      };
-
-      const analytics = await this.notificationService.getNotificationAnalytics({ start: startDate, end: endDate }, options);
-
-      res.status(200).json({
-        success: true,
-        message: 'Lấy phân tích thông báo thành công',
-        data: analytics,
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Lỗi khi lấy phân tích thông báo',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Get dashboard summary
-   * GET /api/v1/notifications/dashboard
-   */
-  public async getDashboard(_req: Request, res: Response): Promise<void> {
-    try {
-      const dashboard = await this.notificationService.getDashboardSummary();
-
-      res.status(200).json({
-        success: true,
-        message: 'Lấy tóm tắt dashboard thành công',
-        data: dashboard,
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Lỗi khi lấy tóm tắt dashboard',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  /**
-   * Get service health
-   * GET /api/v1/notifications/health
-   */
-  public async getHealth(_req: Request, res: Response): Promise<void> {
-    try {
-      const health = await this.notificationService.getHealthStatus();
-
-      const statusCode = health.isHealthy ? 200 : 503;
-
-      res.status(statusCode).json({
-        success: health.isHealthy,
-        message: health.isHealthy ? 'Dịch vụ hoạt động bình thường' : 'Dịch vụ có vấn đề',
-        data: health,
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      res.status(503).json({
-        success: false,
-        message: 'Lỗi khi kiểm tra sức khỏe dịch vụ',
-        error: error instanceof Error ? error.message : 'Lỗi không xác định',
-        timestamp: new Date().toISOString()
+        message: 'Lỗi khi cập nhật cấu hình thông báo',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }

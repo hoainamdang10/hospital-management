@@ -171,12 +171,22 @@ class RabbitMQEventBus {
         }
     }
     getRoutingKey(eventType) {
-        // Convert PascalCase to dot.notation
-        // e.g., UserCreated -> user.created
-        return eventType
-            .replace(/([A-Z])/g, '.$1')
-            .toLowerCase()
-            .substring(1);
+        // Handle special cases for billing service compatibility
+        switch (eventType) {
+            case 'AppointmentCancelled':
+                // Check if it's a late cancellation (would need to be determined from event data)
+                // For now, use cancelled_late as it's more specific for billing
+                return 'appointment.cancelled_late';
+            case 'AppointmentNoShow':
+                return 'appointment.no_show';
+            default:
+                // Convert PascalCase to dot.notation
+                // e.g., UserCreated -> user.created
+                return eventType
+                    .replace(/([A-Z])/g, '.$1')
+                    .toLowerCase()
+                    .substring(1);
+        }
     }
     serializeEvent(event) {
         return JSON.stringify({

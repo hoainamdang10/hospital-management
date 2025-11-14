@@ -12,10 +12,42 @@
 
 ## 📋 OVERVIEW
 
-Scheduler Platform là infrastructure service độc lập, "mù domain", cung cấp time-driven scheduling cho toàn bộ Hospital Management System.
+Scheduler Platform là infrastructure service độc lập, **"mù domain" (domain-agnostic)**, cung cấp time-driven scheduling cho toàn bộ Hospital Management System.
+
+### ⚠️ DOMAIN-AGNOSTIC PRINCIPLE
+
+**Scheduler Service KHÔNG BIẾT về domain logic của các services khác.**
+
+**✅ ĐÚNG - Domain services GỌI Scheduler API:**
+```typescript
+// Department Service tự quyết định cần daily summary
+await schedulerClient.createOrUpdateByDedup({
+  tenantId: 'hospital-1',
+  ownerService: 'department-service',
+  scheduleType: 'CRON',
+  cronExpr: '0 18 * * *',
+  topicOrCommand: 'department.summary.daily',
+  payloadJson: { departmentId: 'dept-123' },
+  dedupKey: 'dept-123:daily-summary'
+});
+```
+
+**❌ SAI - Scheduler consume domain events và tự quyết định:**
+```typescript
+// ❌ KHÔNG LÀM NHƯ NÀY
+// Scheduler Service consume 'department.created' event
+// và TỰ QUYẾT ĐỊNH tạo daily summary, weekly report
+// → VI PHẠM nguyên tắc "mù domain"
+```
+
+**Event Naming Convention:**
+- ✅ `billing.payment.reminder.scheduled` - Rõ ràng là yêu cầu tạo schedule
+- ❌ `department.created` - Domain event, KHÔNG phải scheduling request
+- ❌ `billing.invoice.generated` - Domain event, KHÔNG phải scheduling request
 
 ### Key Features
 
+- ✅ **Domain-Agnostic** - KHÔNG biết về domain logic của services khác
 - ✅ **Multi-tenant** - Isolated scheduling per tenant
 - ✅ **Flexible Scheduling** - ONCE, CRON, RRULE (RFC 5545)
 - ✅ **Transactional Outbox** - Reliable messaging

@@ -2,7 +2,9 @@ import { IInvoiceRepository, SearchCriteria, RevenueSummary } from '../../domain
 import { Invoice } from '../../domain/aggregates/Invoice';
 export declare class SupabaseInvoiceRepository implements IInvoiceRepository {
     private readonly supabase;
-    private readonly tableName;
+    private readonly invoicesTable;
+    private readonly itemsTable;
+    private readonly paymentsTable;
     save(invoice: Invoice): Promise<void>;
     findById(id: string): Promise<Invoice | null>;
     findByPatientId(patientId: string): Promise<Invoice[]>;

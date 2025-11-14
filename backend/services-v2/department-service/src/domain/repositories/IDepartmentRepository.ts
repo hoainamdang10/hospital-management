@@ -9,6 +9,12 @@
 
 import { Department } from '../entities/Department';
 
+export interface DepartmentStaffAssignment {
+  department: Department;
+  isActive: boolean;
+  staffId: string;
+}
+
 export interface IDepartmentRepository {
   /**
    * Find department by ID
@@ -27,6 +33,11 @@ export interface IDepartmentRepository {
   findAll(activeOnly?: boolean): Promise<Department[]>;
 
   /**
+   * Find departments by staff assignment
+   */
+  findByStaffId(staffId: string, options?: { includeInactive?: boolean }): Promise<DepartmentStaffAssignment[]>;
+
+  /**
    * Save department (insert or update)
    */
   save(department: Department): Promise<void>;
@@ -40,5 +51,34 @@ export interface IDepartmentRepository {
    * Count total departments
    */
   count(activeOnly?: boolean): Promise<number>;
+
+  /**
+   * Update stored staff count for analytics
+   */
+  updateStaffCount(id: string, staffCount: number): Promise<void>;
+
+  /**
+   * Update active staff count (e.g., when staff status changes)
+   */
+  updateActiveStaffCount(id: string, activeStaffCount: number): Promise<void>;
+
+  /**
+   * Assign staff to department (persist mapping)
+   */
+  assignStaffToDepartment(
+    staffId: string,
+    departmentId: string,
+    metadata?: { staffName?: string; assignmentType?: string; assignedBy?: string }
+  ): Promise<void>;
+
+  /**
+   * Remove staff from specific department assignment
+   */
+  removeStaffFromDepartment(staffId: string, departmentId: string): Promise<void>;
+
+  /**
+   * Toggle active flag for all assignments of a staff member
+   */
+  setStaffAssignmentsActive(staffId: string, isActive: boolean): Promise<void>;
 }
 

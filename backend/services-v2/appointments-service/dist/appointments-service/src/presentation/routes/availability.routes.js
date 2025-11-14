@@ -42,11 +42,13 @@ const availableSlotsSchema = joi_1.default.object({
     })
 });
 const providerIdSchema = joi_1.default.object({
-    providerId: joi_1.default.string()
-        .pattern(/^[A-Z]{4}-DOC-\d{6}-\d{3}$/)
+    providerId: joi_1.default.alternatives()
+        .try(joi_1.default.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
+    joi_1.default.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/) // e.g., DOC-GEN-202511-955
+    )
         .required()
         .messages({
-        'string.pattern.base': 'Mã bác sĩ không đúng định dạng (XXXX-DOC-YYYYMM-XXX)',
+        'string.pattern.base': 'Mã bác sĩ không đúng định dạng',
         'any.required': 'Mã bác sĩ là bắt buộc'
     })
 });

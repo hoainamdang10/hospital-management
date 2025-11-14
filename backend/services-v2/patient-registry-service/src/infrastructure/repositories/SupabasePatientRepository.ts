@@ -309,45 +309,52 @@ export class SupabasePatientRepository implements IPatientRepository {
         fullName: userData.fullName
       });
 
-      // Import required value objects
-      const PersonalInfo = (await import('../../domain/value-objects/PersonalInfo')).PersonalInfo;
-      const ContactInfo = (await import('../../domain/value-objects/ContactInfo')).ContactInfo;
-      const BasicMedicalInfo = (await import('../../domain/value-objects/BasicMedicalInfo')).BasicMedicalInfo;
+      // Import required value objects and helpers
+      const { PersonalInfo } = (await import('../../domain/value-objects/PersonalInfo'));
+      const { ContactInfo } = (await import('../../domain/value-objects/ContactInfo'));
+      const { BasicMedicalInfo } = (await import('../../domain/value-objects/BasicMedicalInfo'));
+      const { buildPersonalInfoForCreate, buildContactInfoForCreate } = (await import('../../shared/helpers/PatientDataHelper'));
 
-      // Create patient using Patient aggregate factory method
+      // Create patient using smart defaults for minimal data
+      const personalInfoData = buildPersonalInfoForCreate({
+        fullName: userData.fullName,
+        dateOfBirth: userData.dateOfBirth?.toISOString().split('T')[0] || '2000-01-01', // Smart default
+        gender: userData.gender || 'other', // Smart default
+        nationalId: userData.citizenId || 'Chưa cập nhật', // Smart default
+        nationality: 'Việt Nam', // Default nationality for Vietnamese patients
+        ethnicity: 'Chưa cập nhật', // Smart default
+        occupation: 'Chưa cập nhật', // Smart default
+        maritalStatus: 'Chưa cập nhật' // Smart default
+      });
+
+      const contactInfoData = buildContactInfoForCreate({
+        primaryPhone: userData.phoneNumber || 'Chưa cập nhật', // Smart default
+        secondaryPhone: undefined,
+        email: userData.email,
+        address: {
+          street: userData.address || 'Chưa cập nhật', // Smart default
+          ward: userData.ward || 'Chưa cập nhật', // Smart default
+          district: userData.district || 'Chưa cập nhật', // Smart default
+          city: userData.city || 'Chưa cập nhật', // Smart default
+          province: userData.province || 'Chưa cập nhật', // Smart default
+          postalCode: undefined,
+          country: 'Việt Nam'
+        },
+        preferredContactMethod: 'phone'
+      });
+
       const patient = Patient.register(
         userData.userId,
         PersonalInfo.create({
-          fullName: userData.fullName,
-          dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'), // Default date if undefined
-          gender: userData.gender || 'other',
-          nationalId: userData.citizenId || '', // Default to empty string if undefined
-          nationality: 'VN',
-          ethnicity: undefined,
-          occupation: undefined,
-          maritalStatus: undefined
+          ...personalInfoData,
+          dateOfBirth: new Date(personalInfoData.dateOfBirth),
+          gender: (personalInfoData.gender as 'male' | 'female' | 'other')
         }),
-        ContactInfo.create({
-          primaryPhone: userData.phoneNumber || '', // Default to empty string if undefined
-          email: userData.email,
-          address: {
-            street: userData.address || '', // Default to empty string if undefined
-            ward: userData.ward || 'Chưa cập nhật',
-            district: userData.district || 'Chưa cập nhật',
-            city: userData.city || 'Chưa cập nhật',
-            province: userData.province || 'Chưa cập nhật',
-            postalCode: undefined,
-            country: 'Vietnam'
-          },
-          preferredContactMethod: 'email'
-        }),
-        BasicMedicalInfo.create({
-          bloodType: undefined,
-          knownAllergies: []
-        }),
+        ContactInfo.create(contactInfoData),
+        BasicMedicalInfo.create({ knownAllergies: [] }), // Empty allergies array
         undefined, // insuranceInfo
         [], // emergencyContacts
-        userData.userId // createdBy - use userId since auto-created from Identity Service event
+        '00000000-0000-0000-0000-000000000001' // createdBy (system UUID)
       );
 
       // Save patient to database

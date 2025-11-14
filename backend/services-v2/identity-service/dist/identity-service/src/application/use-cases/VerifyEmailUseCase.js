@@ -9,7 +9,8 @@ const UserActivatedEvent_1 = require("../../domain/events/UserActivatedEvent");
 const UserCreatedEvent_1 = require("../../domain/events/UserCreatedEvent");
 const password_crypto_1 = require("../../utils/password-crypto");
 class VerifyEmailUseCase {
-    constructor(userRepository, pendingRegistrationRepository, emailService, logger, circuitBreaker, jwtSecret, eventPublisher) {
+    constructor(userRepository, pendingRegistrationRepository, emailService, logger, circuitBreaker, jwtSecret, eventPublisher, // Optional for backward compatibility
+    outboxService) {
         this.userRepository = userRepository;
         this.pendingRegistrationRepository = pendingRegistrationRepository;
         this.emailService = emailService;
@@ -17,6 +18,7 @@ class VerifyEmailUseCase {
         this.circuitBreaker = circuitBreaker;
         this.jwtSecret = jwtSecret;
         this.eventPublisher = eventPublisher;
+        this.outboxService = outboxService;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -179,25 +181,48 @@ class VerifyEmailUseCase {
                 });
                 // Don't fail verification if email sending fails
             }
-            // 10. Publish domain events
-            if (this.eventPublisher) {
+            // 10. Publish domain events using Outbox Pattern
+            if (this.outboxService || this.eventPublisher) {
                 try {
                     // Create UserCreatedEvent manually since user was reconstituted from database
                     // and doesn't have uncommitted events
                     const userCreatedEvent = new UserCreatedEvent_1.UserCreatedEvent(UserId_1.UserId.fromString(user.id), user.email, user.healthcareRoles[0], // Primary role
                     user.personalInfo);
-                    // Publish UserCreated event
-                    await this.eventPublisher.publishDomainEvents([userCreatedEvent]);
-                    // Publish UserActivated event
-                    const activatedEvent = new UserActivatedEvent_1.UserActivatedEvent(user.id, user.email.value, new Date());
-                    await this.eventPublisher.publishDomainEvents([activatedEvent]);
-                    this.logger.info("Domain events published", {
-                        userId: user.id,
-                        eventCount: 2, // UserCreated + UserActivated
-                    });
+                    // Create UserActivated event
+                    const activatedEvent = new UserActivatedEvent_1.UserActivatedEvent(user.id, user.email.value, user.personalInfo.fullName, // Add full name from personal info
+                    new Date());
+                    const events = [userCreatedEvent, activatedEvent];
+                    // Store events in outbox (guaranteed persistence)
+                    if (this.outboxService) {
+                        for (const event of events) {
+                            await this.outboxService.storeEvent(event);
+                        }
+                        this.logger.info("Domain events stored in outbox", {
+                            userId: user.id,
+                            eventCount: events.length,
+                            eventTypes: events.map((event) => event.eventType),
+                        });
+                    }
+                    // Also publish immediately if eventPublisher available (best effort)
+                    if (this.eventPublisher) {
+                        try {
+                            await this.eventPublisher.publishDomainEvents(events);
+                            this.logger.info("Domain events published immediately", {
+                                userId: user.id,
+                                eventCount: events.length,
+                            });
+                        }
+                        catch (publishError) {
+                            this.logger.warn("Failed to publish events immediately, outbox will retry", {
+                                userId: user.id,
+                                error: publishError instanceof Error ? publishError.message : String(publishError),
+                            });
+                            // Don't throw - outbox will handle retry
+                        }
+                    }
                 }
                 catch (error) {
-                    this.logger.error("Failed to publish domain events", {
+                    this.logger.error("Failed to handle domain events", {
                         userId: user.id,
                         error: (0, error_helper_1.getErrorMessage)(error),
                     });

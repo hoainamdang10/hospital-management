@@ -1,38 +1,32 @@
 /**
- * SendNotificationUseCase - Simplified for Scheduler Integration
- * Nhận command từ Scheduler Service và gửi notification ngay lập tức
+ * SendNotificationUseCase - Simplified for Event Consumer Integration
+ * Nhận command từ Event Consumers và gửi notification ngay lập tức
  * 
  * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, DDD, Scheduler Integration
+ * @version 2.0.0-simplified
+ * @compliance Clean Architecture, DDD, Event Consumer Integration
  */
 
 import { Notification } from "../../domain/aggregates/Notification";
 import { RecipientInfo } from "../../domain/value-objects/RecipientInfo";
 import { NotificationChannel } from "../../domain/value-objects/NotificationChannel";
+import { NotificationContent } from "../../domain/value-objects/NotificationContent";
 import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
 import { ITemplateService, TemplateType } from "../../domain/services/ITemplateService";
 import { IDeliveryService, DeliveryResult } from "../../domain/services/IDeliveryService";
 
 export interface SendNotificationCommand {
   recipientId: string;
-  recipientType: "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN";
-  templateType: string;
-  templateData: Record<string, any>;
+  recipientType: "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | string;
+  type?: string;
+  title?: string;
+  content?: string;
+  templateType?: string;
+  templateData?: Record<string, any>;
   channels: string[];
-  priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-  metadata?: {
-    correlationId?: string;
-    userId?: string;
-    sessionId?: string;
-    source?: string;
-    healthcareContext?: {
-      patientId?: string;
-      doctorId?: string;
-      appointmentId?: string;
-      medicalRecordId?: string;
-    };
-  };
+  priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT" | string;
+  scheduledAt?: Date;
+  metadata?: Record<string, any>;
 }
 
 export interface SendNotificationResult {
@@ -50,83 +44,19 @@ export class SendNotificationUseCase {
     private readonly deliveryService: IDeliveryService
   ) {}
 
-  async execute(command: SendNotificationCommand): Promise<SendNotificationResult> {
-    try {
-      const recipient = await this.getRecipientInfo(command.recipientId, command.recipientType);
-      const content = await this.templateService.applyTemplateByType(
-        command.templateType as TemplateType,
-        command.templateData,
-        recipient.getPreferredLanguage()
-      );
-      const channels = this.determineChannels(command.channels, recipient);
-
-      const notification = Notification.create({
-        recipient,
-        templateType: command.templateType,
-        content,
-        channels,
-        priority: command.priority || "NORMAL",
-        metadata: {
-          source: command.metadata?.source || "scheduler-service",
-          correlationId: command.metadata?.correlationId,
-          userId: command.metadata?.userId,
-          sessionId: command.metadata?.sessionId,
-          healthcareContext: command.metadata?.healthcareContext,
-        },
-      });
-
-      await this.notificationRepository.save(notification);
-
-      const deliveryResults = await this.deliveryService.deliver({
-        notificationId: notification.id,
-        recipient,
-        content,
-        channels,
-        priority: notification.priority,
-        metadata: notification.metadata,
-      });
-
-      const hasSuccess = deliveryResults.some(r => r.success);
-
-      if (hasSuccess) {
-        notification.markAsSent(deliveryResults);
-        await this.notificationRepository.save(notification);
-        return {
-          notificationId: notification.id,
-          status: "SENT",
-          deliveryResults,
-          sentAt: notification.sentAt,
-          message: `Đã gửi thành công thông báo`,
-        };
-      } else {
-        notification.markAsFailed(
-          deliveryResults.map(r => ({
-            channel: r.channel,
-            reason: 'PROVIDER_ERROR',
-            errorMessage: r.providerResponse?.error || 'Delivery failed',
-            retryable: true,
-          }))
-        );
-        await this.notificationRepository.save(notification);
-        return {
-          notificationId: notification.id,
-          status: "FAILED",
-          deliveryResults,
-          message: `Gửi thông báo thất bại`,
-        };
-      }
-    } catch (error) {
-      throw new Error(`Lỗi khi gửi notification: ${error instanceof Error ? error.message : "Unknown error"}`);
+  async execute(command: SendNotificationCommand): Promise<DeliveryResult[]> {
+    // Validate command
+    if (!command.recipientId || !command.recipientType || !command.channels.length) {
+      throw new Error("Invalid notification command: missing required fields");
     }
-  }
 
-  private async getRecipientInfo(recipientId: string, recipientType: string): Promise<RecipientInfo> {
-    return RecipientInfo.create({
-      recipientId,
-      recipientType: recipientType as "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN",
-      fullName: `User ${recipientId}`,
+    // Get recipient information
+    const recipient = RecipientInfo.create({
+      recipientId: command.recipientId,
+      recipientType: command.recipientType as "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN",
+      fullName: `User ${command.recipientId}`,
       contactInfo: {
-        email: `${recipientId}@example.com`,
+        email: `${command.recipientId}@example.com`,
         phoneNumber: "+84123456789"
       },
       preferences: {
@@ -140,6 +70,70 @@ export class SendNotificationUseCase {
         }
       }
     });
+
+    // Determine content - either from template or direct content
+    let content;
+    if (command.templateType && command.templateData) {
+      content = await this.templateService.applyTemplateByType(
+        command.templateType as TemplateType,
+        command.templateData,
+        recipient.getPreferredLanguage()
+      );
+    } else if (command.title && command.content) {
+      content = NotificationContent.create({
+        subject: command.title,
+        body: command.content,
+        contentType: 'TEXT',
+        language: 'vi'
+      });
+    } else {
+      throw new Error("Either templateType+templateData or title+content must be provided");
+    }
+
+    const channels = this.determineChannels(command.channels, recipient);
+
+    const notification = Notification.create({
+      recipient,
+      templateType: command.templateType || 'NOTIFICATION',
+      content,
+      channels,
+      priority: (command.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT") || "NORMAL",
+      metadata: command.metadata || {
+        source: "event-consumer"
+      },
+    });
+
+    await this.notificationRepository.save(notification);
+
+    const deliveryResults = await this.deliveryService.deliver({
+      notificationId: notification.id,
+      recipient,
+      content,
+      channels,
+      priority: notification.priority,
+      metadata: notification.metadata,
+    });
+
+    const hasSuccess = deliveryResults.some(r => r.success);
+
+    if (hasSuccess) {
+      notification.markAsSent(deliveryResults);
+      await this.notificationRepository.save(notification);
+      return deliveryResults;
+    } else {
+      notification.markAsFailed(
+        deliveryResults.map(r => ({
+          channel: r.channel,
+          reason: 'PROVIDER_ERROR',
+          errorMessage: r.providerResponse?.error || 'Delivery failed',
+          retryable: true,
+        }))
+      );
+      await this.notificationRepository.save(notification);
+      return deliveryResults;
+    }
+  } catch (error: any) {
+    throw new Error(`Lỗi khi gửi notification: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 
   private determineChannels(requestedChannels: string[], recipient: RecipientInfo): NotificationChannel[] {

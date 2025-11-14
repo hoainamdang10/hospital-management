@@ -27,6 +27,7 @@ import { Email } from "../../domain/value-objects/Email";
 import { UserSession } from "../../domain/entities/UserSession";
 import { ILogger } from "../../application/services/ILogger";
 import { IEventPublisher } from "../../application/services/IEventPublisher";
+import { OutboxService } from "../outbox/OutboxService";
 
 // Request/Response types
 export interface CreateUserRequest {
@@ -112,6 +113,7 @@ export class SupabaseUserRepository implements IUserRepository {
   private cacheService?: RedisCacheService;
   private permissionRepository?: IPermissionRepository;
   private eventPublisher?: IEventPublisher;
+  private outboxService?: OutboxService;
 
   // Cache TTL constants (in seconds)
   private readonly CACHE_TTL = {
@@ -127,11 +129,13 @@ export class SupabaseUserRepository implements IUserRepository {
     cacheService?: RedisCacheService,
     permissionRepository?: IPermissionRepository,
     eventPublisher?: IEventPublisher,
+    outboxService?: OutboxService,
   ) {
     this.supabaseClient = supabaseClient;
     this.cacheService = cacheService;
     this.permissionRepository = permissionRepository;
     this.eventPublisher = eventPublisher;
+    this.outboxService = outboxService;
   }
 
   /**
@@ -658,11 +662,12 @@ export class SupabaseUserRepository implements IUserRepository {
 
   /**
    * Publish domain events from aggregate
+   * Uses Outbox Pattern for guaranteed event publishing
    */
   private async publishDomainEvents(user: User): Promise<void> {
-    if (!this.eventPublisher) {
+    if (!this.eventPublisher && !this.outboxService) {
       this.logger.debug(
-        "Event publisher not configured, skipping event publishing",
+        "Event publisher and outbox service not configured, skipping event publishing",
       );
       return;
     }
@@ -673,26 +678,45 @@ export class SupabaseUserRepository implements IUserRepository {
     }
 
     try {
-      // Publish events in batch
-      await this.eventPublisher.publishDomainEvents(events);
+      // Store events in outbox (guaranteed persistence)
+      if (this.outboxService) {
+        for (const event of events) {
+          await this.outboxService.storeEvent(event);
+        }
+        this.logger.info("Domain events stored in outbox", {
+          userId: user.id,
+          eventCount: events.length,
+          eventTypes: events.map((event) => event.eventType),
+        });
+      }
 
-      // Mark events as committed after successful publishing
+      // Also publish immediately if eventPublisher available (best effort)
+      if (this.eventPublisher) {
+        try {
+          await this.eventPublisher.publishDomainEvents(events);
+          this.logger.info("Domain events published immediately", {
+            userId: user.id,
+            eventCount: events.length,
+          });
+        } catch (publishError) {
+          this.logger.warn("Failed to publish events immediately, outbox will retry", {
+            userId: user.id,
+            error: publishError instanceof Error ? publishError.message : String(publishError),
+          });
+          // Don't throw - outbox will handle retry
+        }
+      }
+
+      // Mark events as committed (they're safely stored in outbox)
       user.markEventsAsCommitted();
-
-      this.logger.info("Domain events published", {
-        userId: user.id,
-        eventCount: events.length,
-        eventTypes: events.map((event) => event.eventType),
-      });
     } catch (error) {
-      this.logger.error("Failed to publish domain events", {
+      this.logger.error("Failed to handle domain events", {
         userId: user.id,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : String(error),
         eventCount: events.length,
       });
 
-      // Don't throw - event publishing failure shouldn't fail the transaction
-      // Events will be retried on next save or can be published via outbox pattern
+      // Don't throw - outbox will retry, but we should not fail the transaction
     }
   }
 

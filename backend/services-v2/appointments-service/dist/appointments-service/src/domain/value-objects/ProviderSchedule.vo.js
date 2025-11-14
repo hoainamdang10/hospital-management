@@ -115,9 +115,12 @@ class ProviderSchedule {
     }
     /**
      * Check if provider works on a specific day
+     * Supports both lowercase ('monday') and uppercase ('MONDAY') formats
      */
     isWorkingDay(day) {
-        return this.props.workingDays.includes(day.toLowerCase());
+        const dayLower = day.toLowerCase();
+        const dayUpper = day.toUpperCase();
+        return this.props.workingDays.some(d => d.toLowerCase() === dayLower || d.toUpperCase() === dayUpper);
     }
     /**
      * Check if a time is within working hours (any time range)

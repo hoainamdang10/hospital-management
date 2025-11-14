@@ -7,7 +7,7 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
 
 export interface NotificationSentEventData {
   notificationId: string;

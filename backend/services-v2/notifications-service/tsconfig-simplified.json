@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./", // Changed from "./src" to include shared modules
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*",
+    "../shared/**/*" // Include shared modules
+  ],
+  "exclude": [
+    "src/infrastructure/events/BillingEventConsumer.ts",
+    "src/infrastructure/events/ClinicalEMREventConsumer.ts",
+    "src/presentation/controllers/TemplateController.ts",
+    "src/presentation/routes/templateRoutes.ts",
+    "src/application/use-cases/*Template*.ts",
+    "src/infrastructure/messaging/RabbitMQConsumer.ts",
+    "src/infrastructure/realtime/**/*",
+    "src/presentation/middleware/validationMiddleware.ts"
+  ]
+}

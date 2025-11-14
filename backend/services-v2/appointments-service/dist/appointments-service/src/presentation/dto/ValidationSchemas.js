@@ -104,8 +104,10 @@ exports.scheduleAppointmentSchema = joi_1.default.object({
             .optional(),
     }).required(),
     provider: joi_1.default.object({
-        providerId: joi_1.default.string()
-            .pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/)
+        providerId: joi_1.default.alternatives()
+            .try(joi_1.default.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
+        joi_1.default.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/) // e.g., DOC-GEN-202511-955
+        )
             .required(),
         fullName: vietnameseHealthcareRules.vietnameseName.optional(),
         specialization: joi_1.default.string().max(100).optional(),
@@ -113,10 +115,10 @@ exports.scheduleAppointmentSchema = joi_1.default.object({
     }).required(),
     appointment: joi_1.default.object({
         appointmentType: joi_1.default.string()
-            .valid("consultation", "follow_up", "emergency", "surgery", "diagnostic", "therapy", "vaccination", "checkup", "prescription", "referral")
+            .valid("consultation", "follow_up", "emergency", "telemedicine", "surgery", "procedure", "urgent_consultation", "medical_test")
             .required(),
         priority: joi_1.default.string()
-            .valid("low", "normal", "high", "urgent", "emergency")
+            .valid("low", "normal", "urgent", "emergency")
             .required(),
         startTime: vietnameseHealthcareRules.businessHours
             .required(),

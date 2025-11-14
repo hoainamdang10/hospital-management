@@ -52,64 +52,62 @@ export class SupabasePendingRegistrationRepository implements IPendingRegistrati
    * Store new pending registration
    */
   async store(pendingRegistration: PendingRegistration): Promise<void> {
-    return await this.circuitBreaker.execute(
-      async () => {
-        try {
-          this.logger.info('Storing pending registration', {
-            email: pendingRegistration.email.getMaskedEmail(),
-            expiresAt: pendingRegistration.expiresAt
-          });
+    // DEV: Disable circuit breaker for development
+    try {
+      this.logger.info('Storing pending registration', {
+        email: pendingRegistration.email.getMaskedEmail(),
+        expiresAt: pendingRegistration.expiresAt
+      });
 
-          const { error } = await this.supabase
-            .from(this.tableName)
-            .insert({
-              id: pendingRegistration.id,
-              email: pendingRegistration.email.value,
-              password_hash: pendingRegistration.passwordHash,
-              user_data: pendingRegistration.userData,
-              verification_token: pendingRegistration.verificationToken,
-              expires_at: pendingRegistration.expiresAt.toISOString(),
-              created_at: pendingRegistration.createdAt.toISOString(),
-              is_used: false,
-              status: pendingRegistration.status
-            });
+      const { error } = await this.supabase
+        .from(this.tableName)
+        .insert({
+          id: pendingRegistration.id,
+          email: pendingRegistration.email.value,
+          password_hash: pendingRegistration.passwordHash,
+          user_data: pendingRegistration.userData,
+          verification_token: pendingRegistration.verificationToken,
+          expires_at: pendingRegistration.expiresAt.toISOString(),
+          created_at: pendingRegistration.createdAt.toISOString(),
+          is_used: false,
+          status: pendingRegistration.status
+        });
 
-          if (error) {
-            // Check for unique constraint violation
-            if (error.code === '23505') {
-              throw new Error('Email đã có đăng ký đang chờ xác thực. Vui lòng kiểm tra email hoặc đợi hết hạn.');
-            }
-
-            this.logger.error('Failed to store pending registration', {
-              email: pendingRegistration.email.getMaskedEmail(),
-              error: error.message
-            });
-            throw new Error(`Lưu đăng ký tạm thất bại: ${error.message}`);
-          }
-
-          // Log audit event
-          await this.logAudit('PENDING_REGISTRATION_CREATED', pendingRegistration.id, {
-            email: pendingRegistration.email.value,
-            roleType: pendingRegistration.userData.roleType,
-            expiresAt: pendingRegistration.expiresAt
-          });
-
-          this.logger.info('Pending registration stored successfully', {
-            id: pendingRegistration.id,
-            email: pendingRegistration.email.getMaskedEmail()
-          });
-        } catch (error) {
-          this.logger.error('Error storing pending registration', {
-            error: getErrorMessage(error)
-          });
-          throw error;
+      if (error) {
+        // Check for unique constraint violation
+        if (error.code === '23505') {
+          throw new Error('Email đã có đăng ký đang chờ xác thực. Vui lòng kiểm tra email hoặc đợi hết hạn.');
         }
-      },
-      async () => {
-        this.logger.error('Circuit breaker open for store pending registration');
-        throw new Error('Dịch vụ đăng ký tạm thời không khả dụng. Vui lòng thử lại sau.');
+
+        const errorMessage = error.message || error.details || JSON.stringify(error);
+
+        this.logger.error('Failed to store pending registration', {
+          email: pendingRegistration.email.getMaskedEmail(),
+          error: errorMessage,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint,
+        });
+        throw new Error(`Lưu đăng ký tạm thất bại: ${errorMessage}`);
       }
-    );
+
+      // Log audit event
+      await this.logAudit('PENDING_REGISTRATION_CREATED', pendingRegistration.id, {
+        email: pendingRegistration.email.value,
+        roleType: pendingRegistration.userData.roleType,
+        expiresAt: pendingRegistration.expiresAt
+      });
+
+      this.logger.info('Pending registration stored successfully', {
+        id: pendingRegistration.id,
+        email: pendingRegistration.email.getMaskedEmail()
+      });
+    } catch (error) {
+      this.logger.error('Error storing pending registration', {
+        error: getErrorMessage(error)
+      });
+      throw error;
+    }
   }
 
   /**

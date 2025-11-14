@@ -59,6 +59,15 @@ import {
   DomainError,
 } from '../middleware/ErrorHandlingMiddleware';
 import type { AuthenticatedRequest as AuthenticatedHttpRequest } from '../middleware/AuthenticationMiddleware';
+import {
+  mergePersonalInfoForUpdate,
+  mergeContactInfoForUpdate,
+  hasPersonalInfoChanged,
+  hasContactInfoChanged,
+  CreatePersonalInfo,
+  CreateContactInfo
+} from '../../shared/helpers/PatientDataHelper';
+import { UNUPDATED } from '../../shared/constants/PatientConstants';
 
 type RequestWithUser = Request & {
   user?: (AuthenticatedHttpRequest['user'] & { role?: string }) | undefined;
@@ -392,143 +401,124 @@ export class PatientController {
   /**
    * Update patient information
    * PUT /api/v1/patients/:patientId
+   *
+   * Uses smart defaults "Chưa cập nhật" and proper merge logic
+   * - undefined = no change (preserve existing value)
+   * - explicit value (including "Chưa cập nhật") = user intended change
    */
   async updatePatient(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
-      const rawRequest = req.body as UpdatePatientRequest & Record<string, any>;
-      const normalizedRequest: Partial<UpdatePatientInfoPayload> = {};
+      const updateRequest = req.body as UpdatePatientRequest;
 
-      const buildPersonalInfo = ():
-        | UpdatePatientInfoRequest['personalInfo']
-        | undefined => {
-        if (rawRequest.personalInfo) {
-          return rawRequest.personalInfo as UpdatePatientInfoRequest['personalInfo'];
-        }
-
-        const requiredFields: Array<keyof UpdatePatientRequest> = [
-          'fullName',
-          'dateOfBirth',
-          'gender',
-          'nationalId',
-          'nationality',
-        ];
-
-        const hasAllRequired = requiredFields.every(
-          (field) =>
-            rawRequest[field] !== undefined && rawRequest[field] !== null,
-        );
-
-        if (!hasAllRequired) {
-          return undefined;
-        }
-
-        return {
-          fullName: rawRequest.fullName as string,
-          dateOfBirth: rawRequest.dateOfBirth as string,
-          gender: rawRequest.gender as 'male' | 'female' | 'other',
-          nationalId: rawRequest.nationalId as string,
-          nationality: rawRequest.nationality as string,
-          ethnicity: rawRequest.ethnicity,
-          occupation: rawRequest.occupation,
-          maritalStatus: rawRequest.maritalStatus,
-        };
-      };
-
-      const buildContactInfo = ():
-        | UpdatePatientInfoRequest['contactInfo']
-        | undefined => {
-        if (rawRequest.contactInfo) {
-          return rawRequest.contactInfo as UpdatePatientInfoRequest['contactInfo'];
-        }
-
-        const hasPrimaryPhone =
-          rawRequest.primaryPhone !== undefined &&
-          rawRequest.primaryPhone !== null;
-        const hasPreferredMethod =
-          rawRequest.preferredContactMethod !== undefined &&
-          rawRequest.preferredContactMethod !== null;
-        const address = rawRequest.address;
-
-        if (!hasPrimaryPhone || !hasPreferredMethod || !address) {
-          return undefined;
-        }
-
-        const requiredAddressKeys: Array<
-          keyof NonNullable<UpdatePatientRequest['address']>
-        > = ['street', 'ward', 'district', 'city', 'province'];
-        const hasCompleteAddress = requiredAddressKeys.every(
-          (key) => address[key] !== undefined && address[key] !== null,
-        );
-
-        if (!hasCompleteAddress) {
-          return undefined;
-        }
-
-        return {
-          primaryPhone: rawRequest.primaryPhone as string,
-          secondaryPhone: rawRequest.secondaryPhone,
-          email: rawRequest.email,
-          preferredContactMethod: rawRequest.preferredContactMethod as
-            | 'phone'
-            | 'email'
-            | 'sms',
-          address: {
-            street: address.street as string,
-            ward: address.ward as string,
-            district: address.district as string,
-            city: address.city as string,
-            province: address.province as string,
-            postalCode: address.postalCode,
-            country: address.country ?? 'Vietnam',
-          },
-        };
-      };
-
-      const personalInfo = buildPersonalInfo();
-      if (personalInfo) {
-        normalizedRequest.personalInfo = personalInfo;
+      // Get existing patient
+      const existingPatient = await this.patientQueryHandlers.handleGetPatientProfile({
+        queryId: `query-${Date.now()}`,
+        queryType: 'GetPatientProfile',
+        timestamp: new Date(),
+        requestedBy: getUserId(req),
+        data: { patientId, requestedBy: getUserId(req) }
+      });
+      if (!existingPatient.success) {
+        throw new NotFoundError(`Patient with ID ${patientId} not found`);
       }
 
-      const contactInfo = buildContactInfo();
-      if (contactInfo) {
-        normalizedRequest.contactInfo = contactInfo;
+      // Extract existing data as CreatePersonalInfo and CreateContactInfo
+      const existingPersonalInfo: CreatePersonalInfo = {
+        fullName: existingPatient.data?.personalInfo?.fullName || UNUPDATED,
+        dateOfBirth: existingPatient.data?.personalInfo?.dateOfBirth || UNUPDATED,
+        gender: existingPatient.data?.personalInfo?.gender || 'other',
+        nationalId: existingPatient.data?.personalInfo?.nationalId || UNUPDATED,
+        nationality: existingPatient.data?.personalInfo?.nationality || UNUPDATED,
+        ethnicity: existingPatient.data?.personalInfo?.ethnicity || UNUPDATED,
+        occupation: existingPatient.data?.personalInfo?.occupation || UNUPDATED,
+        maritalStatus: existingPatient.data?.personalInfo?.maritalStatus || UNUPDATED,
+      };
+
+      const existingContactInfo: CreateContactInfo = {
+        primaryPhone: existingPatient.data?.contactInfo?.primaryPhone || UNUPDATED,
+        secondaryPhone: existingPatient.data?.contactInfo?.secondaryPhone,
+        email: existingPatient.data?.contactInfo?.email || UNUPDATED,
+        preferredContactMethod: (existingPatient.data?.contactInfo?.preferredContactMethod as 'phone' | 'email' | 'sms') || 'phone',
+        address: {
+          street: existingPatient.data?.contactInfo?.address?.street || UNUPDATED,
+          ward: existingPatient.data?.contactInfo?.address?.ward || UNUPDATED,
+          district: existingPatient.data?.contactInfo?.address?.district || UNUPDATED,
+          city: existingPatient.data?.contactInfo?.address?.city || UNUPDATED,
+          province: (existingPatient.data?.contactInfo?.address as any)?.province || UNUPDATED,
+          postalCode: (existingPatient.data?.contactInfo?.address as any)?.postalCode,
+          country: existingPatient.data?.contactInfo?.address?.country || 'Vietnam',
+        },
+      };
+
+      // Merge with new data using proper update logic
+      const updatedPersonalInfo = mergePersonalInfoForUpdate(existingPersonalInfo, updateRequest);
+      const updatedContactInfo = mergeContactInfoForUpdate(existingContactInfo, updateRequest);
+
+      // Check if anything actually changed
+      const personalInfoChanged = hasPersonalInfoChanged(existingPersonalInfo, updatedPersonalInfo);
+      const contactInfoChanged = hasContactInfoChanged(existingContactInfo, updatedContactInfo);
+
+      if (!personalInfoChanged && !contactInfoChanged && !updateRequest.basicMedicalInfo && !updateRequest.insuranceInfo) {
+        // No actual changes - return existing patient
+        ResponseHelper.success(res, existingPatient.data, 'Không có thay đổi nào được thực hiện');
+        return;
       }
 
-      if (rawRequest.basicMedicalInfo) {
-        normalizedRequest.basicMedicalInfo = rawRequest.basicMedicalInfo;
+      // Build normalized request for use case
+      const normalizedRequest: UpdatePatientInfoPayload = {};
+
+      if (personalInfoChanged) {
+        normalizedRequest.personalInfo = updatedPersonalInfo as {
+          fullName: string;
+          dateOfBirth: string;
+          gender: 'male' | 'female' | 'other';
+          nationalId: string;
+          nationality: string;
+          ethnicity?: string;
+          occupation?: string;
+          maritalStatus?: string;
+        };
+      }
+
+      if (contactInfoChanged) {
+        normalizedRequest.contactInfo = updatedContactInfo;
+      }
+
+      // Handle basic medical info
+      if (updateRequest.basicMedicalInfo) {
+        normalizedRequest.basicMedicalInfo = updateRequest.basicMedicalInfo;
       } else {
-        const basicFields = [
-          'bloodType',
-          'knownAllergies',
-          'emergencyMedicalInfo',
-        ];
-        const hasBasicField = basicFields.some(
-          (field) => rawRequest[field] !== undefined,
-        );
+        const basicFields = ['bloodType', 'knownAllergies', 'emergencyMedicalInfo'];
+        const hasBasicField = basicFields.some((field) => updateRequest[field as keyof UpdatePatientRequest] !== undefined);
+        
         if (hasBasicField) {
           normalizedRequest.basicMedicalInfo = {
-            bloodType: rawRequest.bloodType,
-            knownAllergies: rawRequest.knownAllergies,
-            emergencyMedicalInfo: rawRequest.emergencyMedicalInfo,
+            bloodType: updateRequest.bloodType,
+            knownAllergies: updateRequest.knownAllergies,
+            emergencyMedicalInfo: updateRequest.emergencyMedicalInfo,
           };
         }
       }
 
-      if (rawRequest.insuranceInfo) {
-        normalizedRequest.insuranceInfo =
-          rawRequest.insuranceInfo as UpdatePatientInfoRequest['insuranceInfo'];
+      // Handle insurance info
+      if (updateRequest.insuranceInfo) {
+        normalizedRequest.insuranceInfo = updateRequest.insuranceInfo;
       }
 
-      // Redact patient ID for HIPAA compliance
-      this.logger.info('Updating patient', {
+      // Log the update (HIPAA compliant)
+      this.logger.info('Updating patient with smart defaults', {
         patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+        fieldsUpdated: Object.keys(normalizedRequest),
+        hasPersonalInfoChanges: personalInfoChanged,
+        hasContactInfoChanges: contactInfoChanged,
       });
 
+      // Execute update
       const payload: UpdatePatientInfoRequest = {
         patientId,
         updatedBy: getUserId(req),
-        ...(normalizedRequest as UpdatePatientInfoPayload),
+        ...normalizedRequest,
       };
 
       const result = await this.updatePatientInfoUseCase.execute(payload);
@@ -537,9 +527,23 @@ export class PatientController {
         throw new DomainError(result.errors?.[0] || 'Failed to update patient');
       }
 
+      // Get updated patient for response
+      const updatedPatientResult = await this.patientQueryHandlers.handleGetPatientProfile({
+        queryId: `query-${Date.now()}`,
+        queryType: 'GetPatientProfile',
+        timestamp: new Date(),
+        requestedBy: getUserId(req),
+        data: { patientId, requestedBy: getUserId(req) }
+      });
+
       ResponseHelper.success(
         res,
-        { success: true },
+        { 
+          patient: updatedPatientResult.data,
+          fieldsUpdated: Object.keys(normalizedRequest),
+          completionPercentage: updatedPersonalInfo ? 
+            Math.round((Object.values(updatedPersonalInfo).filter(v => v !== UNUPDATED).length / Object.keys(updatedPersonalInfo).length) * 100) : 0
+        },
         'Cập nhật thông tin bệnh nhân thành công',
       );
     } catch (error) {

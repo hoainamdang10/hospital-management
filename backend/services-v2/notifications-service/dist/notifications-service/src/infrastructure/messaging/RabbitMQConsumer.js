@@ -66,7 +66,7 @@ class RabbitMQConsumer {
                 queue: this.config.queueName
             });
             // Create connection
-            this.connection = await amqp.connect(this.config.url);
+            this.connection = (await amqp.connect(this.config.url));
             if (!this.connection) {
                 throw new Error('Failed to create RabbitMQ connection');
             }

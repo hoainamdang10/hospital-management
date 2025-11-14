@@ -46,7 +46,17 @@ export class UserCreatedEventHandler {
       });
 
       // Only create staff profile for healthcare roles
-      const healthcareRoles = ['doctor', 'nurse', 'technician', 'pharmacist', 'therapist'];
+      const healthcareRoles = ['doctor', 'nurse'];
+      
+      // Check if roleType is defined
+      if (!event.roleType) {
+        this.logger.info('User role is undefined, skipping staff profile creation', {
+          userId: event.userId,
+          roleType: event.roleType
+        });
+        return;
+      }
+      
       const normalizedRole = event.roleType.toLowerCase();
       if (!healthcareRoles.includes(normalizedRole)) {
         this.logger.info('User role is not healthcare staff, skipping staff profile creation', {
@@ -202,7 +212,26 @@ export class UserCreatedEventHandler {
    */
   private async generateStaffId(staffType: string): Promise<StaffId> {
     // Use domain's StaffId.generate() which handles sequence generation properly
-    return StaffId.generate(staffType as any);
+    // Map string to StaffType enum for type safety
+    const staffTypeMap: Record<string, 'doctor' | 'nurse' | 'admin' | 'receptionist'> = {
+      'doctor': 'doctor',
+      'nurse': 'nurse', 
+      'admin': 'admin',
+      'receptionist': 'receptionist'
+    };
+    
+    // 🔄 NEW: Map role to department for proper ID generation
+    const departmentMap: Record<string, string> = {
+      'doctor': 'INTE',     // General practitioners -> Internal Medicine
+      'nurse': 'INTE',      // General nurses -> Internal Medicine  
+      'admin': 'ADMI',      // Admin -> Administration
+      'receptionist': 'ADMI' // Receptionist -> Administration
+    };
+    
+    const validStaffType = staffTypeMap[staffType] || 'nurse';
+    const departmentCode = departmentMap[staffType] || 'INTE';
+    
+    return StaffId.generate(validStaffType, departmentCode);
   }
 
 
@@ -214,9 +243,8 @@ export class UserCreatedEventHandler {
     const titleMap: Record<string, string> = {
       'doctor': 'Bác sĩ',
       'nurse': 'Điều dưỡng',
-      'technician': 'Kỹ thuật viên',
-      'pharmacist': 'Dược sĩ',
-      'therapist': 'Chuyên viên trị liệu'
+      'admin': 'Quản trị viên',
+      'receptionist': 'Lễ tân'
     };
 
     return titleMap[staffType] || 'Nhân viên';
@@ -229,9 +257,8 @@ export class UserCreatedEventHandler {
     const positionMap: Record<string, string> = {
       'doctor': 'Bác sĩ điều trị',
       'nurse': 'Điều dưỡng viên',
-      'technician': 'Kỹ thuật viên y tế',
-      'pharmacist': 'Dược sĩ lâm sàng',
-      'therapist': 'Chuyên viên trị liệu'
+      'admin': 'Quản trị viên hệ thống',
+      'receptionist': 'Nhân viên lễ tân'
     };
 
     return positionMap[staffType] || 'Nhân viên y tế';

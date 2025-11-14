@@ -27,6 +27,10 @@ import { loggingMiddleware } from "./presentation/middleware/loggingMiddleware";
 import { Logger } from "./infrastructure/observability/Logger";
 import { MetricsCollector } from "./infrastructure/observability/MetricsCollector";
 import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
+import { 
+  SystemEventConsumer,
+  BillingEventConsumer
+} from "./infrastructure/messaging";
 
 dotenv.config();
 
@@ -34,6 +38,10 @@ const logger = Logger.getInstance();
 const metrics = MetricsCollector.getInstance();
 
 const PORT = process.env.PORT || 3025;
+
+// Event Consumer instances
+let systemEventConsumer: SystemEventConsumer | null = null;
+let billingEventConsumer: BillingEventConsumer | null = null;
 
 async function bootstrap() {
   try {
@@ -173,6 +181,103 @@ async function bootstrap() {
       },
     );
 
+    /**
+     * Initialize Event Consumers
+     */
+    async function initializeEventConsumers(): Promise<void> {
+      try {
+        logger.info("Initializing Event Consumers...");
+
+        const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673';
+        const exchangeName = process.env.RABBITMQ_EXCHANGE || 'hospital.events';
+
+        // Initialize System Event Consumer
+        systemEventConsumer = new SystemEventConsumer(
+          {
+            rabbitmqUrl,
+            queueName: 'scheduler-service.system-events',
+            exchangeName,
+            routingKeys: [
+              'system.health.checked',
+              'system.maintenance.scheduled',
+              'system.report.requested',
+              'system.alert.triggered'
+            ],
+            prefetchCount: 10,
+            retryAttempts: 3,
+            retryDelayMs: 1000
+          },
+          scheduleRepo,
+          createScheduleUseCase,
+          updateScheduleUseCase,
+          cancelScheduleUseCase
+        );
+        await systemEventConsumer.connect();
+        logger.info("System Event Consumer initialized successfully");
+
+        // Initialize Billing Event Consumer
+        billingEventConsumer = new BillingEventConsumer(
+          {
+            rabbitmqUrl,
+            queueName: 'scheduler-service.billing-events',
+            exchangeName,
+            routingKeys: [
+              // ONLY consume scheduling request events (suffix: .scheduled)
+              'billing.payment.reminder.scheduled'
+              // REMOVED: billing.invoice.generated - Domain event, not scheduling request
+              // REMOVED: billing.payment.processed - Domain event, not scheduling request
+              // REMOVED: billing.insurance.claim.processed - Domain event, not scheduling request
+              // REMOVED: billing.report.requested - Should be billing.report.schedule.requested
+            ],
+            prefetchCount: 10,
+            retryAttempts: 3,
+            retryDelayMs: 1000
+          },
+          scheduleRepo,
+          createScheduleUseCase,
+          updateScheduleUseCase,
+          cancelScheduleUseCase
+        );
+        await billingEventConsumer.connect();
+        logger.info("Billing Event Consumer initialized successfully");
+
+        logger.info("All Event Consumers initialized successfully");
+
+      } catch (error) {
+        logger.error("Failed to initialize Event Consumers", error as Error);
+        throw error;
+      }
+    }
+
+    // Initialize Event Consumers
+    await initializeEventConsumers();
+
+    /**
+     * Graceful shutdown for Event Consumers
+     */
+    async function shutdownEventConsumers(): Promise<void> {
+      try {
+        logger.info("Shutting down Event Consumers...");
+
+        if (systemEventConsumer) {
+          await systemEventConsumer.disconnect();
+          systemEventConsumer = null;
+        }
+
+        if (billingEventConsumer) {
+          await billingEventConsumer.disconnect();
+          billingEventConsumer = null;
+        }
+
+        logger.info("Event Consumers shut down successfully");
+
+      } catch (error) {
+        logger.error("Error shutting down Event Consumers", error as Error);
+      }
+    }
+
+    await initializeEventConsumers();
+
     const server = app.listen(PORT, () => {
       logger.info(`Scheduler API Server listening on port ${PORT}`);
       logger.info(`Health check: http://localhost:${PORT}/api/v1/health`);
@@ -181,6 +286,7 @@ async function bootstrap() {
 
     process.on("SIGTERM", async () => {
       logger.info("SIGTERM received, shutting down gracefully...");
+      await shutdownEventConsumers();
       server.close(async () => {
         await SupabaseClientFactory.close();
         logger.info("Server closed");
@@ -190,6 +296,7 @@ async function bootstrap() {
 
     process.on("SIGINT", async () => {
       logger.info("SIGINT received, shutting down gracefully...");
+      await shutdownEventConsumers();
       server.close(async () => {
         await SupabaseClientFactory.close();
         logger.info("Server closed");

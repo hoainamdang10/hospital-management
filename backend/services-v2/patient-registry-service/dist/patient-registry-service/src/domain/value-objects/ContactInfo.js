@@ -11,45 +11,39 @@ class ContactInfo extends value_object_1.ValueObject {
         super(props);
     }
     validateFormat() {
-        if (!ContactInfo.isValidVietnamesePhoneNumber(this.props.primaryPhone)) {
+        if (this.props.primaryPhone &&
+            this.props.primaryPhone.trim().length > 0 &&
+            this.props.primaryPhone !== 'Chưa cập nhật' &&
+            !ContactInfo.isValidVietnamesePhoneNumber(this.props.primaryPhone)) {
             throw new Error('Số điện thoại chính không đúng định dạng Việt Nam');
         }
-        if (this.props.email && !ContactInfo.isValidEmail(this.props.email)) {
+        if (this.props.email &&
+            this.props.email !== 'Chưa cập nhật' &&
+            !ContactInfo.isValidEmail(this.props.email)) {
             throw new Error('Email không đúng định dạng');
         }
     }
     static create(props) {
-        // Validate required fields
-        if (!props.primaryPhone || props.primaryPhone.trim().length === 0) {
-            throw new Error('Số điện thoại chính không được để trống');
-        }
-        if (!this.isValidVietnamesePhoneNumber(props.primaryPhone)) {
-            throw new Error('Số điện thoại chính không đúng định dạng Việt Nam');
+        // Validate required fields - allow empty phone or "Chưa cập nhật" for initial creation, validate when provided
+        if (props.primaryPhone &&
+            props.primaryPhone.trim().length > 0 &&
+            props.primaryPhone !== 'Chưa cập nhật') {
+            if (!this.isValidVietnamesePhoneNumber(props.primaryPhone)) {
+                throw new Error('Số điện thoại chính không đúng định dạng Việt Nam');
+            }
         }
         if (props.secondaryPhone && !this.isValidVietnamesePhoneNumber(props.secondaryPhone)) {
             throw new Error('Số điện thoại phụ không đúng định dạng Việt Nam');
         }
         // Trim and lowercase email before validation
         const trimmedEmail = props.email?.trim().toLowerCase();
-        if (trimmedEmail && !this.isValidEmail(trimmedEmail)) {
+        if (trimmedEmail &&
+            trimmedEmail !== 'chưa cập nhật' &&
+            !this.isValidEmail(trimmedEmail)) {
             throw new Error('Email không đúng định dạng');
         }
-        // Validate address
-        if (!props.address.street || props.address.street.trim().length === 0) {
-            throw new Error('Địa chỉ đường/phố không được để trống');
-        }
-        if (!props.address.ward || props.address.ward.trim().length === 0) {
-            throw new Error('Phường/xã không được để trống');
-        }
-        if (!props.address.district || props.address.district.trim().length === 0) {
-            throw new Error('Quận/huyện không được để trống');
-        }
-        if (!props.address.city || props.address.city.trim().length === 0) {
-            throw new Error('Thành phố/quận/huyện không được để trống');
-        }
-        if (!props.address.province || props.address.province.trim().length === 0) {
-            throw new Error('Tỉnh/thành phố không được để trống');
-        }
+        // Validate address - allow empty for initial creation, validate when provided
+        // Note: All address fields are optional for minimal patient registration
         return new ContactInfo({
             primaryPhone: props.primaryPhone.trim(),
             secondaryPhone: props.secondaryPhone?.trim(),

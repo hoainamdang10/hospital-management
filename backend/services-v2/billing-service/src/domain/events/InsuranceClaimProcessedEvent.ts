@@ -27,9 +27,9 @@ export class InsuranceClaimProcessedEvent extends DomainEvent {
     };
 
     super(
-      'InsuranceClaimProcessed',
+      'insurance.claim.processed',
       invoiceId,
-      'Invoice',
+      'billing',
       eventData,
       1,
       correlationId,

@@ -15,7 +15,8 @@ import { IPatientRepository } from '../../../domain/repositories/IPatientReposit
  */
 export interface UserActivatedEventData {
     userId: string;
-    email: string;
+    email?: string;
+    fullName?: string;
     activatedAt: Date;
 }
 /**

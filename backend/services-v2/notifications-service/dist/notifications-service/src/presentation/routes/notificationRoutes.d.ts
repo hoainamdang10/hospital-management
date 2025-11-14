@@ -1,9 +1,9 @@
 /**
- * notificationRoutes - Presentation Routes
- * Express routes for notification service with Vietnamese healthcare context
+ * notificationRoutes - Simplified Presentation Routes
+ * Express routes for core notification operations with Vietnamese healthcare context
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.0.0-simplified
  * @compliance Clean Architecture, REST API, Vietnamese Healthcare Standards
  */
 import { Router } from 'express';

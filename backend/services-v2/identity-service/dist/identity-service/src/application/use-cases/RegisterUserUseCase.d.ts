@@ -1,4 +1,3 @@
-import { VerifyEmailResponse } from "./VerifyEmailUseCase";
 /**
  * Register User Use Case - Verify-First Approach
  * Handles user registration with email verification BEFORE creating user
@@ -14,15 +13,11 @@ import { VerifyEmailResponse } from "./VerifyEmailUseCase";
  */
 import { IUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
 import { IUserRepository } from "../repositories/IUserRepository";
-import { ICircuitBreaker } from "../services/ICircuitBreaker";
 import { IEventPublisher } from "../services/IEventPublisher";
 import { ILogger } from "../services/ILogger";
 import { IEmailService } from "../services/IEmailService";
 import { IPendingRegistrationRepository } from "../../domain/repositories/IPendingRegistrationRepository";
-interface AutoVerificationConfig {
-    enabled: boolean;
-    verifyToken: (token: string) => Promise<VerifyEmailResponse>;
-}
+import { OutboxService } from "../../infrastructure/outbox/OutboxService";
 export interface RegisterUserRequest {
     email: string;
     password: string;
@@ -54,19 +49,15 @@ export declare class RegisterUserUseCase implements IUseCase<RegisterUserRequest
     private userRepository;
     private pendingRegistrationRepository;
     private logger;
-    private circuitBreaker;
     private emailService;
     private jwtSecret;
     private frontendUrl;
     private eventPublisher?;
-    private autoVerification?;
+    private outboxService?;
     private readonly BCRYPT_ROUNDS;
-    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, emailService: IEmailService, jwtSecret: string, frontendUrl: string, eventPublisher?: IEventPublisher | undefined, // Optional for backward compatibility
-    autoVerification?: AutoVerificationConfig | undefined);
+    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, logger: ILogger, emailService: IEmailService, jwtSecret: string, frontendUrl: string, eventPublisher?: IEventPublisher | undefined, outboxService?: OutboxService | undefined);
     execute(request: RegisterUserRequest): Promise<RegisterUserResponse>;
     private executeImpl;
     private validateRequest;
-    private autoVerifyPendingRegistration;
 }
-export {};
 //# sourceMappingURL=RegisterUserUseCase.d.ts.map

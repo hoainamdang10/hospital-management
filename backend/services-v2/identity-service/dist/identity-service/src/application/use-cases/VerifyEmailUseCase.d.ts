@@ -18,6 +18,7 @@ import { IEmailService } from "../services/IEmailService";
 import { ICircuitBreaker } from "../services/ICircuitBreaker";
 import { IEventPublisher } from "../services/IEventPublisher";
 import { ILogger } from "../services/ILogger";
+import { OutboxService } from "../../infrastructure/outbox/OutboxService";
 export interface VerifyEmailRequest {
     token: string;
 }
@@ -36,7 +37,9 @@ export declare class VerifyEmailUseCase implements IUseCase<VerifyEmailRequest, 
     private circuitBreaker;
     private jwtSecret;
     private eventPublisher?;
-    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, emailService: IEmailService, logger: ILogger, circuitBreaker: ICircuitBreaker, jwtSecret: string, eventPublisher?: IEventPublisher | undefined);
+    private outboxService?;
+    constructor(userRepository: IUserRepository, pendingRegistrationRepository: IPendingRegistrationRepository, emailService: IEmailService, logger: ILogger, circuitBreaker: ICircuitBreaker, jwtSecret: string, eventPublisher?: IEventPublisher | undefined, // Optional for backward compatibility
+    outboxService?: OutboxService | undefined);
     execute(request: VerifyEmailRequest): Promise<VerifyEmailResponse>;
     private executeImpl;
     private decryptPendingPassword;

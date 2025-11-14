@@ -165,13 +165,13 @@ export declare abstract class BaseRepository<T extends AggregateRoot<any>> imple
     abstract saveMany(aggregates: T[]): Promise<void>;
     abstract delete(id: string): Promise<void>;
     exists(id: string): Promise<boolean>;
-    count(criteria?: RepositoryCriteria): Promise<number>;
-    findWithPagination(criteria?: RepositoryCriteria, pagination?: PaginationOptions): Promise<PaginatedResult<T>>;
-    findByPatientId(patientId: string): Promise<T[]>;
-    findByUserId(userId: string): Promise<T[]>;
-    findByDateRange(startDate: Date, endDate: Date): Promise<T[]>;
-    getAuditTrail(aggregateId: string): Promise<AuditTrailEntry[]>;
-    anonymize(aggregateId: string): Promise<void>;
+    count(_criteria?: RepositoryCriteria): Promise<number>;
+    findWithPagination(_criteria?: RepositoryCriteria, _pagination?: PaginationOptions): Promise<PaginatedResult<T>>;
+    findByPatientId(_patientId: string): Promise<T[]>;
+    findByUserId(_userId: string): Promise<T[]>;
+    findByDateRange(_startDate: Date, _endDate: Date): Promise<T[]>;
+    getAuditTrail(_aggregateId: string): Promise<AuditTrailEntry[]>;
+    anonymize(_aggregateId: string): Promise<void>;
     /**
      * Convert aggregate to persistence format
      */

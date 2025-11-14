@@ -1,0 +1,18 @@
+{
+  "files": [],
+  "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
+    "strict": true
+  },
+  "references": [
+    { "path": "./backend/services-v2/appointments-service" },
+    { "path": "./backend/services-v2/billing-service" },
+    { "path": "./backend/services-v2/clinical-emr-service" },
+    { "path": "./backend/services-v2/identity-service" },
+    { "path": "./backend/services-v2/notifications-service" },
+    { "path": "./backend/services-v2/patient-registry-service" },
+    { "path": "./backend/services-v2/provider-staff-service" },
+    { "path": "./backend/services-v2/scheduler-service" },
+    { "path": "./backend/services-v2/shared" }
+  ]
+}

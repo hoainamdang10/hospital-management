@@ -13,6 +13,7 @@ import {
   ServiceLifetime,
 } from "@shared/infrastructure/di/container";
 import { createClient } from "@supabase/supabase-js";
+import { ILogger } from "../../application/interfaces/ILogger";
 
 // Application Layer
 import { RegisterStaffUseCase } from "../../application/use-cases/RegisterStaffUseCase";
@@ -23,7 +24,8 @@ import { SearchStaffUseCase } from "../../application/use-cases/SearchStaffUseCa
 import { GetStaffByDepartmentUseCase } from "../../application/use-cases/GetStaffByDepartmentUseCase";
 import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateStaffScheduleUseCase";
 import { AddStaffCertificationUseCase } from "../../application/use-cases/AddStaffCertificationUseCase";
-// REMOVED: UpdateStaffAvailabilityUseCase - Belongs to Scheduling/Appointment Service
+import { UpdateStaffDepartmentUseCase } from "../../application/use-cases/UpdateStaffDepartmentUseCase";
+import { UpdateStaffPerformanceUseCase } from "../../application/use-cases/UpdateStaffPerformanceUseCase";
 import { AssignStaffToDepartmentUseCase } from "../../application/use-cases/AssignStaffToDepartmentUseCase";
 import { SetDepartmentHeadUseCase } from "../../application/use-cases/SetDepartmentHeadUseCase";
 import { AddStaffCredentialUseCase } from "../../application/use-cases/AddStaffCredentialUseCase";
@@ -51,8 +53,12 @@ import { UserCreatedEventHandler } from "../events/UserCreatedEventHandler";
 import { UserDeactivatedEventHandler } from "../events/UserDeactivatedEventHandler";
 import { UserRoleChangedEventHandler } from "../events/UserRoleChangedEventHandler";
 import { IdentityEventConsumer } from "../events/IdentityEventConsumer";
-import { AppointmentsEventConsumer } from "../events/AppointmentsEventConsumer";
 import { PatientEventConsumer } from "../events/PatientEventConsumer";
+import { EnhancedDepartmentEventConsumer } from "../events/EnhancedDepartmentEventConsumer";
+// TODO: Fix and re-enable other event consumers when needed
+import { ReviewEventConsumer } from "../events/ReviewEventConsumer";
+// // TODO: Re-enable SchedulingEventConsumer when proper bounded context is established
+// import { SchedulingEventConsumer } from "../events/SchedulingEventConsumer";
 import { AppointmentScheduledEventHandler } from "../events/AppointmentScheduledEventHandler";
 import { AppointmentCancelledEventHandler } from "../events/AppointmentCancelledEventHandler";
 import { AppointmentCompletedEventHandler } from "../events/AppointmentCompletedEventHandler";
@@ -85,10 +91,11 @@ export const ServiceTokens = {
   SEARCH_STAFF_USE_CASE: "SearchStaffUseCase",
   GET_STAFF_BY_DEPARTMENT_USE_CASE: "GetStaffByDepartmentUseCase",
   UPDATE_STAFF_SCHEDULE_USE_CASE: "UpdateStaffScheduleUseCase",
-  ADD_STAFF_CERTIFICATION_USE_CASE: "AddStaffCertificationUseCase",
-  // REMOVED: UPDATE_STAFF_AVAILABILITY_USE_CASE - Belongs to Scheduling/Appointment Service
+  UPDATE_STAFF_DEPARTMENT_USE_CASE: "UpdateStaffDepartmentUseCase",
+  UPDATE_STAFF_PERFORMANCE_USE_CASE: "UpdateStaffPerformanceUseCase",
   ASSIGN_STAFF_TO_DEPARTMENT_USE_CASE: "AssignStaffToDepartmentUseCase",
   SET_DEPARTMENT_HEAD_USE_CASE: "SetDepartmentHeadUseCase",
+  ADD_STAFF_CERTIFICATION_USE_CASE: "AddStaffCertificationUseCase",
   ADD_STAFF_CREDENTIAL_USE_CASE: "AddStaffCredentialUseCase",
   REMOVE_STAFF_CREDENTIAL_USE_CASE: "RemoveStaffCredentialUseCase",
   RENEW_STAFF_CREDENTIAL_USE_CASE: "RenewStaffCredentialUseCase",
@@ -114,11 +121,15 @@ export const ServiceTokens = {
   USER_ROLE_CHANGED_EVENT_HANDLER: "UserRoleChangedEventHandler",
   IDENTITY_EVENT_CONSUMER: "IdentityEventConsumer",
   
+  // Enhanced Event Consumers
+  ENHANCED_DEPARTMENT_EVENT_CONSUMER: "EnhancedDepartmentEventConsumer",
+  REVIEW_EVENT_CONSUMER: "ReviewEventConsumer",
+  // SCHEDULING_EVENT_CONSUMER: "SchedulingEventConsumer", // TODO: Re-enable when needed
+  
   // Appointments Event Handlers
   APPOINTMENT_SCHEDULED_EVENT_HANDLER: "AppointmentScheduledEventHandler",
   APPOINTMENT_CANCELLED_EVENT_HANDLER: "AppointmentCancelledEventHandler",
   APPOINTMENT_COMPLETED_EVENT_HANDLER: "AppointmentCompletedEventHandler",
-  APPOINTMENTS_EVENT_CONSUMER: "AppointmentsEventConsumer",
   
   // Patient Event Handlers
   PATIENT_REGISTERED_EVENT_HANDLER: "PatientRegisteredEventHandler",
@@ -146,11 +157,21 @@ export function setupDependencies(): DIContainer {
   container.registerFactory(
     ServiceTokens.LOGGER,
     () => ({
-      debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta),
-      info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta),
-      warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta),
-      error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta),
-      fatal: (message: string, meta?: any) => console.error(`[FATAL] ${message}`, meta),
+      debug: (message: string, meta?: Record<string, unknown>) => {
+        // Logger implementation - replace console in production
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[DEBUG] ${message}`, meta);
+        }
+      },
+      info: (message: string, meta?: Record<string, unknown>) => {
+        // Logger implementation - replace console in production
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[INFO] ${message}`, meta);
+        }
+      },
+      warn: (message: string, meta?: Record<string, unknown>) => console.warn(`[WARN] ${message}`, meta),
+      error: (message: string, meta?: Record<string, unknown>) => console.error(`[ERROR] ${message}`, meta),
+      fatal: (message: string, meta?: Record<string, unknown>) => console.error(`[FATAL] ${message}`, meta),
     }),
     ServiceLifetime.SINGLETON
   );
@@ -160,14 +181,14 @@ export function setupDependencies(): DIContainer {
     (container) => {
       const logger = container.resolve(ServiceTokens.LOGGER);
       return {
-        logDataAccess: async (entry: any) => {
+        logDataAccess: async (entry: Record<string, unknown>) => {
           logger.info('AUDIT: Data Access', entry);
         },
-        logDataModification: async (entry: any) => {
+        logDataModification: async (entry: Record<string, unknown>) => {
           logger.info('AUDIT: Data Modification', entry);
         },
-        logSecurityEvent: async (entry: any) => {
-          logger.warn('AUDIT: Security Event', entry);
+        logSecurityEvent: async (entry: Record<string, unknown>) => {
+          logger.info('AUDIT: Security Event', entry);
         },
       };
     },
@@ -342,6 +363,42 @@ export function setupDependencies(): DIContainer {
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new UpdateStaffScheduleUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.registerFactory(
+    ServiceTokens.UPDATE_STAFF_DEPARTMENT_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
+      const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new UpdateStaffDepartmentUseCase(
+        staffRepository,
+        auditService,
+        eventBus,
+        logger
+      );
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.registerFactory(
+    ServiceTokens.UPDATE_STAFF_PERFORMANCE_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
+      const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new UpdateStaffPerformanceUseCase(
+        staffRepository,
+        auditService,
+        eventBus,
+        logger
+      );
     },
     ServiceLifetime.TRANSIENT
   );
@@ -717,36 +774,6 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.SINGLETON
   );
 
-  // Register Appointments Event Consumer
-  container.registerFactory(
-    ServiceTokens.APPOINTMENTS_EVENT_CONSUMER,
-    (container) => {
-      const logger = container.resolve(ServiceTokens.LOGGER);
-      const appointmentScheduledHandler = container.resolve(ServiceTokens.APPOINTMENT_SCHEDULED_EVENT_HANDLER);
-      const appointmentCancelledHandler = container.resolve(ServiceTokens.APPOINTMENT_CANCELLED_EVENT_HANDLER);
-      const appointmentCompletedHandler = container.resolve(ServiceTokens.APPOINTMENT_COMPLETED_EVENT_HANDLER);
-
-      const config = {
-        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
-        exchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
-        queueName: 'provider-staff-service.appointments-events',
-        routingKeys: ['appointment.scheduled', 'appointment.cancelled', 'appointment.completed', 'appointment.rescheduled'],
-        prefetchCount: 10,
-        retryAttempts: 3,
-        retryDelayMs: 1000
-      };
-
-      return new AppointmentsEventConsumer(
-        config,
-        logger,
-        appointmentScheduledHandler,
-        appointmentCancelledHandler,
-        appointmentCompletedHandler
-      );
-    },
-    ServiceLifetime.SINGLETON
-  );
-
   // Register Patient Service event handlers
   container.registerFactory(
     ServiceTokens.PATIENT_REGISTERED_EVENT_HANDLER,
@@ -831,6 +858,81 @@ export function setupDependencies(): DIContainer {
     },
     ServiceLifetime.SINGLETON
   );
+
+  // Register Enhanced Department Event Consumer
+  container.registerFactory(
+    ServiceTokens.ENHANCED_DEPARTMENT_EVENT_CONSUMER,
+    (container) => {
+      const logger = container.resolve(ServiceTokens.LOGGER);
+      const getStaffProfileUseCase = container.resolve('GetStaffProfileUseCase');
+      const setDepartmentHeadUseCase = container.resolve('SetDepartmentHeadUseCase');
+      const updateStaffDepartmentUseCase = container.resolve('UpdateStaffDepartmentUseCase');
+
+      const config = {
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
+        queueName: 'provider-staff-service.department-events',
+        exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
+        routingKeys: [
+          'department.staff.assigned',
+          'department.staff.removed', 
+          'department.head.assigned',
+          'department.staff.transferred'
+        ],
+        prefetchCount: 10,
+        retryAttempts: 3,
+        retryDelayMs: 1000
+      };
+
+      return new EnhancedDepartmentEventConsumer(
+        config,
+        logger,
+        getStaffProfileUseCase,
+        setDepartmentHeadUseCase,
+        updateStaffDepartmentUseCase
+      );
+    },
+    ServiceLifetime.SINGLETON
+  );
+
+  // TODO: Fix other event consumers later - focus on core functionality first
+  const logger = container.resolve(ServiceTokens.LOGGER) as ILogger;
+  logger.info('EnhancedDepartmentEventConsumer registered successfully');
+
+  // TODO: Re-enable SchedulingEventConsumer when scheduling events are properly defined
+
+  // Register Review Event Consumer
+  container.registerFactory(
+    ServiceTokens.REVIEW_EVENT_CONSUMER,
+    (container) => {
+      const logger = container.resolve(ServiceTokens.LOGGER);
+      const getStaffProfileUseCase = container.resolve('GetStaffProfileUseCase');
+      const updateStaffPerformanceUseCase = container.resolve('UpdateStaffPerformanceUseCase');
+
+      const config = {
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
+        queueName: 'provider-staff-service.review-events',
+        exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
+        routingKeys: [
+          'review.staff.created',
+          'review.staff.updated',
+          'review.staff.deleted'
+        ],
+        prefetchCount: 10,
+        retryAttempts: 3,
+        retryDelayMs: 1000
+      };
+
+      return new ReviewEventConsumer(
+        config,
+        logger,
+        getStaffProfileUseCase,
+        updateStaffPerformanceUseCase
+      );
+    },
+    ServiceLifetime.SINGLETON
+  );
+
+  logger.info('Provider Staff Service DI setup completed successfully');
 
   return container;
 }

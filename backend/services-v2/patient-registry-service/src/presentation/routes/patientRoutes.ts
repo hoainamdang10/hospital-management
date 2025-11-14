@@ -181,6 +181,7 @@ export function createPatientRoutes(
   router.put(
     '/:patientId',
     validateUpdatePatient,
+    authorizationMiddleware.canAccessPatientData('patientId'),
     asyncHandler(controller.updatePatient.bind(controller)),
   );
 

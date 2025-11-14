@@ -16,8 +16,8 @@ module.exports = {
   rootDir: '.',
 
   testMatch: [
-    '<rootDir>/tests/**/*.test.ts',
-    '<rootDir>/tests/**/*.spec.ts'
+    '<rootDir>/src/test/**/*.test.ts',
+    '<rootDir>/src/test/**/*.spec.ts'
   ],
 
   moduleNameMapper: {
@@ -27,7 +27,7 @@ module.exports = {
     '^@infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1',
     '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
     '^@shared/(.*)$': '<rootDir>/../shared/$1',
-    '^@tests/(.*)$': '<rootDir>/tests/$1',
+    '^@tests/(.*)$': '<rootDir>/src/test/$1',
     '^uuid$': require.resolve('uuid')
   },
 

@@ -57,20 +57,20 @@ export class EventBusIntegration {
    */
   private async connect(): Promise<void> {
     try {
-      this.connection = await amqp.connect(this.config.connectionUrl);
-      this.channel = await this.connection.createChannel();
+      this.connection = (await amqp.connect(this.config.connectionUrl)) as any;
+      this.channel = await (this.connection as any).createChannel();
       
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
       // Handle connection events
-      this.connection.on('error', (error) => {
+      (this.connection as any).on('error', (error: any) => {
         console.error('🚌 RabbitMQ connection error:', error);
         this.isConnected = false;
         this.scheduleReconnect();
       });
 
-      this.connection.on('close', () => {
+      (this.connection as any).on('close', () => {
         console.warn('🚌 RabbitMQ connection closed');
         this.isConnected = false;
         this.scheduleReconnect();
@@ -241,7 +241,7 @@ export class EventBusIntegration {
       const realTimeNotification = this.mapEventToRealTimeNotification(event);
       
       if (realTimeNotification) {
-        await this.realTimeService.sendRealTimeNotification(realTimeNotification);
+        await this.realTimeService.sendToUser(realTimeNotification.id, realTimeNotification);
       }
 
     } catch (error) {
@@ -469,11 +469,11 @@ export class EventBusIntegration {
   public async close(): Promise<void> {
     try {
       if (this.channel) {
-        await this.channel.close();
+        await (this.channel as any).close();
       }
       
       if (this.connection) {
-        await this.connection.close();
+        await (this.connection as any).close();
       }
 
       this.isConnected = false;

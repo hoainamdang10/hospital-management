@@ -24,6 +24,52 @@ interface InboxRow {
 export class SupabaseInboxRepository implements IInboxRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
+  async exists(idempotencyKey: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('inbox_events')
+      .select('inbox_id')
+      .eq('idempotency_key', idempotencyKey)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to check event existence: ${error.message}`);
+    }
+
+    return !!data;
+  }
+
+  async store(event: {
+    idempotencyKey: string;
+    eventType: string;
+    payload: any;
+    headers?: any;
+    eventId?: string;
+  }): Promise<string> {
+    const inboxId = crypto.randomUUID();
+    
+    const { data, error } = await this.supabase
+      .from('inbox_events')
+      .insert({
+        inbox_id: inboxId,
+        idempotency_key: event.idempotencyKey,
+        event_type: event.eventType,
+        payload_json: event.payload,
+        headers_json: event.headers,
+        status: 'PENDING',
+        received_at_utc: new Date().toISOString(),
+        created_at_utc: new Date().toISOString(),
+        updated_at_utc: new Date().toISOString(),
+      })
+      .select('inbox_id')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to store event: ${error.message}`);
+    }
+
+    return data.inbox_id;
+  }
+
   async processEventIdempotent(
     idempotencyKey: string,
     eventType: string,

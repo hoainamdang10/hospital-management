@@ -9,9 +9,11 @@
 import { SupabasePreferencesRepository, NotificationPreferences } from '../../infrastructure/persistence/SupabasePreferencesRepository';
 export interface GetPreferencesQuery {
     userId: string;
+    userType?: 'patient' | 'staff';
 }
 export interface GetPreferencesResult {
     preferences: NotificationPreferences;
+    calendarIntegration?: boolean;
 }
 export declare class GetNotificationPreferencesUseCase {
     private readonly preferencesRepository;

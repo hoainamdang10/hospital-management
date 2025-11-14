@@ -21,10 +21,16 @@ const loggingMiddleware_1 = require("./presentation/middleware/loggingMiddleware
 const Logger_1 = require("./infrastructure/observability/Logger");
 const MetricsCollector_1 = require("./infrastructure/observability/MetricsCollector");
 const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
+const messaging_1 = require("./infrastructure/messaging");
 dotenv_1.default.config();
 const logger = Logger_1.Logger.getInstance();
 const metrics = MetricsCollector_1.MetricsCollector.getInstance();
 const PORT = process.env.PORT || 3025;
+// Event Consumer instances
+let staffEventConsumer = null;
+let systemEventConsumer = null;
+let billingEventConsumer = null;
+let departmentEventConsumer = null;
 async function bootstrap() {
     try {
         logger.info("Starting Scheduler API Server...");
@@ -112,6 +118,121 @@ async function bootstrap() {
                 correlationId,
             });
         });
+        /**
+         * Initialize Event Consumers
+         */
+        async function initializeEventConsumers() {
+            try {
+                logger.info("Initializing Event Consumers...");
+                const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673';
+                const exchangeName = process.env.RABBITMQ_EXCHANGE || 'hospital.events';
+                // Initialize Staff Event Consumer
+                staffEventConsumer = new messaging_1.StaffEventConsumer({
+                    rabbitmqUrl,
+                    queueName: 'scheduler-service.staff-events',
+                    exchangeName,
+                    routingKeys: [
+                        'availability.staff.changed',
+                        'shift.staff.assigned',
+                        'shift.staff.cancelled',
+                        'schedule.staff.updated'
+                    ],
+                    prefetchCount: 10,
+                    retryAttempts: 3,
+                    retryDelayMs: 1000
+                }, scheduleRepo, createScheduleUseCase, updateScheduleUseCase, cancelScheduleUseCase);
+                await staffEventConsumer.connect();
+                logger.info("Staff Event Consumer initialized successfully");
+                // Initialize System Event Consumer
+                systemEventConsumer = new messaging_1.SystemEventConsumer({
+                    rabbitmqUrl,
+                    queueName: 'scheduler-service.system-events',
+                    exchangeName,
+                    routingKeys: [
+                        'system.health.checked',
+                        'system.maintenance.scheduled',
+                        'system.report.requested',
+                        'system.alert.triggered'
+                    ],
+                    prefetchCount: 10,
+                    retryAttempts: 3,
+                    retryDelayMs: 1000
+                }, scheduleRepo, createScheduleUseCase, updateScheduleUseCase, cancelScheduleUseCase);
+                await systemEventConsumer.connect();
+                logger.info("System Event Consumer initialized successfully");
+                // Initialize Billing Event Consumer
+                billingEventConsumer = new messaging_1.BillingEventConsumer({
+                    rabbitmqUrl,
+                    queueName: 'scheduler-service.billing-events',
+                    exchangeName,
+                    routingKeys: [
+                        'billing.invoice.generated',
+                        'billing.payment.processed',
+                        'billing.insurance.claim.processed',
+                        'billing.report.requested',
+                        'billing.payment.reminder.scheduled'
+                    ],
+                    prefetchCount: 10,
+                    retryAttempts: 3,
+                    retryDelayMs: 1000
+                }, scheduleRepo, createScheduleUseCase, updateScheduleUseCase, cancelScheduleUseCase);
+                await billingEventConsumer.connect();
+                logger.info("Billing Event Consumer initialized successfully");
+                // Initialize Department Event Consumer
+                departmentEventConsumer = new messaging_1.DepartmentEventConsumer({
+                    rabbitmqUrl,
+                    queueName: 'scheduler-service.department-events',
+                    exchangeName,
+                    routingKeys: [
+                        'department.created',
+                        'department.staff.assigned',
+                        'department.resource.updated',
+                        'department.operational_hours.changed'
+                    ],
+                    prefetchCount: 10,
+                    retryAttempts: 3,
+                    retryDelayMs: 1000
+                }, scheduleRepo, createScheduleUseCase, updateScheduleUseCase, cancelScheduleUseCase);
+                await departmentEventConsumer.connect();
+                logger.info("Department Event Consumer initialized successfully");
+                logger.info("All Event Consumers initialized successfully");
+            }
+            catch (error) {
+                logger.error("Failed to initialize Event Consumers", error);
+                throw error;
+            }
+        }
+        // Initialize Event Consumers
+        await initializeEventConsumers();
+        /**
+         * Graceful shutdown for Event Consumers
+         */
+        async function shutdownEventConsumers() {
+            try {
+                logger.info("Shutting down Event Consumers...");
+                if (staffEventConsumer) {
+                    await staffEventConsumer.disconnect();
+                    staffEventConsumer = null;
+                }
+                if (systemEventConsumer) {
+                    await systemEventConsumer.disconnect();
+                    systemEventConsumer = null;
+                }
+                if (billingEventConsumer) {
+                    await billingEventConsumer.disconnect();
+                    billingEventConsumer = null;
+                }
+                if (departmentEventConsumer) {
+                    await departmentEventConsumer.disconnect();
+                    departmentEventConsumer = null;
+                }
+                logger.info("Event Consumers shut down successfully");
+            }
+            catch (error) {
+                logger.error("Error shutting down Event Consumers", error);
+            }
+        }
+        await initializeEventConsumers();
         const server = app.listen(PORT, () => {
             logger.info(`Scheduler API Server listening on port ${PORT}`);
             logger.info(`Health check: http://localhost:${PORT}/api/v1/health`);
@@ -119,6 +240,7 @@ async function bootstrap() {
         });
         process.on("SIGTERM", async () => {
             logger.info("SIGTERM received, shutting down gracefully...");
+            await shutdownEventConsumers();
             server.close(async () => {
                 await SupabaseClientFactory_1.SupabaseClientFactory.close();
                 logger.info("Server closed");
@@ -127,6 +249,7 @@ async function bootstrap() {
         });
         process.on("SIGINT", async () => {
             logger.info("SIGINT received, shutting down gracefully...");
+            await shutdownEventConsumers();
             server.close(async () => {
                 await SupabaseClientFactory_1.SupabaseClientFactory.close();
                 logger.info("Server closed");

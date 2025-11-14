@@ -53,5 +53,34 @@ export declare class ConflictResolutionService implements IConflictResolutionSer
      * Generate alternative slots
      */
     private generateAlternativeSlots;
+    /**
+     * Find available time slots for scheduling
+     * Used by event consumers for waitlist management
+     */
+    findAvailableTimeSlots(providerId: string, date: Date, duration: number): Promise<{
+        startTime: Date;
+        endTime: Date;
+    }[]>;
+    /**
+     * Find urgent appointment slot
+     * Finding urgent slots is appointment scheduling responsibility
+     */
+    findUrgentAppointmentSlot(criteria: {
+        departmentId?: string;
+        urgency: 'urgent' | 'emergency';
+        preferredTime?: Date;
+        durationMinutes: number;
+        patientId: string;
+    }): Promise<{
+        startTime: Date;
+        endTime: Date;
+        providerId: string;
+        departmentId: string;
+        confidence: number;
+    } | null>;
+    /**
+     * Helper method to find available providers for urgent appointments
+     */
+    private findAvailableProvidersForUrgent;
 }
 //# sourceMappingURL=ConflictResolutionService.d.ts.map

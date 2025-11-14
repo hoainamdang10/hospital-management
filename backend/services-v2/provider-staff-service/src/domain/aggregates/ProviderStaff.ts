@@ -98,9 +98,22 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     yearsOfExperience: number,
     specializations: Specialization[] = [],
     vietnameseHealthcareLicense?: string,
-    mohRegistrationNumber?: string
+    mohRegistrationNumber?: string,
+    departmentCode?: string  // 🔄 NEW: Optional department parameter
   ): ProviderStaff {
-    const staffId = StaffId.generate(staffType);
+    // 🔄 NEW: Default department mapping for proper ID generation
+    const defaultDepartmentMap: Record<StaffType, string> = {
+      doctor: 'INTE',
+      nurse: 'INTE', 
+      technician: 'LABO',  // Laboratory technicians
+      pharmacist: 'PHAR',  // Pharmacy (if exists)
+      therapist: 'INTE',   // Therapists
+      admin: 'ADMI',
+      receptionist: 'ADMI'
+    };
+    
+    const deptCode = departmentCode || defaultDepartmentMap[staffType] || 'INTE';
+    const staffId = StaffId.generate(staffType, deptCode);
     const now = new Date();
 
     // Validate minimum requirements

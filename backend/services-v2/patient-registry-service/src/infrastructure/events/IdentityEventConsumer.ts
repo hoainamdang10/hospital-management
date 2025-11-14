@@ -276,7 +276,7 @@ export class IdentityEventConsumer {
 
             case 'user.activated.event':
               await this.userActivatedHandler.handle(
-                event.payload as UserActivatedEventData,
+                event.payload.eventData as UserActivatedEventData,
               );
               break;
 

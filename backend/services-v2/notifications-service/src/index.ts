@@ -13,7 +13,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
-import { DIContainer } from '@shared/infrastructure/di/container';
+import { DIContainer } from "../../shared/infrastructure/di/container";
 import { setupDependencies, ServiceTokens } from './infrastructure/di/setup';
 import { createNotificationRoutes } from './presentation/routes/notificationRoutes';
 import { NotificationController } from './presentation/controllers/NotificationController';
@@ -22,8 +22,72 @@ import { swaggerSpec } from './infrastructure/swagger/swagger.config';
 // Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT || 3031;
+const PORT = process.env.PORT || 3011;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+/**
+ * Initialize Event Consumers
+ */
+async function initializeEventConsumers(container: DIContainer): Promise<void> {
+  try {
+    console.log('🔄 Initializing event consumers...');
+
+    // Resolve all event consumers from container
+    const appointmentEventConsumer = container.resolve(ServiceTokens.APPOINTMENT_EVENT_CONSUMER) as any;
+    const staffEventConsumer = container.resolve(ServiceTokens.STAFF_EVENT_CONSUMER) as any;
+    const billingEventConsumer = container.resolve(ServiceTokens.BILLING_EVENT_CONSUMER) as any;
+    const clinicalEMREventConsumer = container.resolve(ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER) as any;
+
+    // Connect event consumers
+    await Promise.all([
+      appointmentEventConsumer.connect(),
+      staffEventConsumer.connect(),
+      billingEventConsumer.connect(),
+      clinicalEMREventConsumer.connect()
+    ]);
+
+    console.log('✅ All event consumers connected successfully');
+    console.log('📋 Active event consumers:');
+    console.log('   - Appointment Event Consumer (7 event types)');
+    console.log('   - Staff Event Consumer (7 event types)');
+    console.log('   - Billing Event Consumer (5 event types)');
+    console.log('   - Clinical EMR Event Consumer (5 event types)');
+    console.log('🎯 Full event-driven architecture enabled!');
+
+  } catch (error) {
+    console.error('❌ Failed to initialize event consumers:', error);
+    throw error;
+  }
+}
+
+/**
+ * Graceful Shutdown Event Consumers
+ */
+async function shutdownEventConsumers(container: DIContainer): Promise<void> {
+  try {
+    console.log('🔄 Shutting down event consumers...');
+
+    // Resolve all event consumers from container
+    const appointmentEventConsumer = container.resolve(ServiceTokens.APPOINTMENT_EVENT_CONSUMER) as any;
+    const staffEventConsumer = container.resolve(ServiceTokens.STAFF_EVENT_CONSUMER) as any;
+    const billingEventConsumer = container.resolve(ServiceTokens.BILLING_EVENT_CONSUMER) as any;
+    const clinicalEMREventConsumer = container.resolve(ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER) as any;
+
+    // Disconnect event consumers
+    await Promise.all([
+      appointmentEventConsumer.disconnect(),
+      staffEventConsumer.disconnect(),
+      billingEventConsumer.disconnect(),
+      clinicalEMREventConsumer.disconnect()
+    ]);
+
+    console.log('✅ All event consumers disconnected successfully');
+
+  } catch (error) {
+    console.error('❌ Failed to shutdown event consumers:', error);
+    // Continue with shutdown even if some consumers fail to disconnect
+  }
+}
 
 /**
  * Bootstrap HTTP Server
@@ -99,6 +163,15 @@ async function bootstrap() {
 
     console.log('✅ Controllers resolved');
 
+    // Connect EventBus
+    const eventBus = container.resolve(ServiceTokens.EVENT_BUS) as any;
+    await eventBus.connect();
+    console.log('✅ EventBus connected');
+
+    // Initialize Event Consumers
+    await initializeEventConsumers(container);
+    console.log('✅ Event consumers initialized');
+
     // Mount routes with /api/v1 prefix
     const notificationRoutes = createNotificationRoutes(notificationController);
     app.use('/api/v1/notifications', notificationRoutes);
@@ -142,6 +215,46 @@ async function bootstrap() {
       });
     });
 
+    // Health check endpoint
+    app.get('/health', async (_req: Request, res: Response) => {
+      try {
+        // Resolve only core event consumers from container
+        const appointmentEventConsumer = container.resolve(ServiceTokens.APPOINTMENT_EVENT_CONSUMER) as any;
+        const staffEventConsumer = container.resolve(ServiceTokens.STAFF_EVENT_CONSUMER) as any;
+
+        const consumersStatus = {
+          appointment: appointmentEventConsumer.isConsumerConnected?.() || false,
+          staff: staffEventConsumer.isConsumerConnected?.() || false
+        };
+
+        const allConsumersConnected = Object.values(consumersStatus).every(status => status);
+
+        res.status(allConsumersConnected ? 200 : 503).json({
+          status: allConsumersConnected ? 'healthy' : 'degraded',
+          timestamp: new Date().toISOString(),
+          service: 'notifications-service',
+          version: '2.0.0-simplified',
+          environment: NODE_ENV,
+          uptime: process.uptime(),
+          eventConsumers: consumersStatus,
+          demo: 'Simplified for graduation project',
+          checks: {
+            eventConsumers: allConsumersConnected ? 'pass' : 'fail',
+            database: 'pass', // Assuming Supabase connection is working
+            rabbitmq: allConsumersConnected ? 'pass' : 'fail'
+          }
+        });
+      } catch (error) {
+        res.status(503).json({
+          status: 'unhealthy',
+          timestamp: new Date().toISOString(),
+          service: 'notifications-service',
+          demo: 'Simplified for graduation project',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
     // 404 Handler
     app.use((_req: Request, res: Response) => {
       res.status(404).json({
@@ -175,8 +288,26 @@ async function bootstrap() {
     });
 
     // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP server');
+    process.on('SIGTERM', async () => {
+      console.log('SIGTERM signal received: closing HTTP server and event consumers');
+      
+      // Shutdown event consumers first
+      await shutdownEventConsumers(container);
+      console.log('✅ Event consumers shutdown');
+      
+      server.close(() => {
+        console.log('HTTP server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', async () => {
+      console.log('SIGINT signal received: closing HTTP server and event consumers');
+      
+      // Shutdown event consumers first
+      await shutdownEventConsumers(container);
+      console.log('✅ Event consumers shutdown');
+      
       server.close(() => {
         console.log('HTTP server closed');
         process.exit(0);

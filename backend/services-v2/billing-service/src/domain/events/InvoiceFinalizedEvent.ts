@@ -21,9 +21,9 @@ export class InvoiceFinalizedEvent extends DomainEvent {
     };
 
     super(
-      'InvoiceFinalized',
+      'invoice.finalized',
       invoiceId,
-      'Invoice',
+      'billing',
       eventData,
       1,
       correlationId,

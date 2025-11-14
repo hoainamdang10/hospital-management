@@ -9,7 +9,7 @@ class InvoiceCancelledEvent extends domain_event_1.DomainEvent {
             reason,
             cancelledAt: new Date()
         };
-        super('InvoiceCancelled', invoiceId, 'Invoice', eventData, 1, correlationId, causationId, userIdForAudit);
+        super('invoice.cancelled', invoiceId, 'billing', eventData, 1, correlationId, causationId, userIdForAudit);
         this.invoiceId = invoiceId;
         this.reason = reason;
     }

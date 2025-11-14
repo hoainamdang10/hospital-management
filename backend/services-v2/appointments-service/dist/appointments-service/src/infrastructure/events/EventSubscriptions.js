@@ -28,7 +28,7 @@ class EventSubscriptions {
         this.isConnected = false;
         this.eventBus = EventBus_1.EventBusFactory.create(config);
         // Initialize Outbox + Scheduler integration handlers
-        const schedulerURL = process.env.SCHEDULER_SERVICE_URL || "http://localhost:3030";
+        const schedulerURL = process.env.SCHEDULER_SERVICE_URL || "http://localhost:3025";
         const schedulerApiKey = process.env.SCHEDULER_API_KEY;
         const tenantId = process.env.TENANT_ID || "hospital-1";
         const outboxReservedTimeout = parseInt(process.env.OUTBOX_RESERVED_TIMEOUT_MINUTES || "5", 10);
@@ -112,6 +112,11 @@ class EventSubscriptions {
         // 6. Subscribe to AppointmentStatusChanged events (from Scheduling Service itself)
         await this.eventBus.subscribe("AppointmentStatusChanged", new EventHandlers_1.AppointmentStatusChangedEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.status.changed`);
         console.log("[EventSubscriptions] ✅ Subscribed to AppointmentStatusChanged");
+        // 6b. Subscribe to intermediate status events and update read model
+        await this.eventBus.subscribe("AppointmentCheckedIn", new EventHandlers_1.AppointmentStatusChangedEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.checked_in`);
+        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentCheckedIn (Read Model)");
+        await this.eventBus.subscribe("AppointmentStarted", new EventHandlers_1.AppointmentStatusChangedEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.started`);
+        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentStarted (Read Model)");
         // 7. Subscribe to AppointmentCancelled events (from Scheduling Service itself)
         // 7a. Read Model Handler
         await this.eventBus.subscribe("AppointmentCancelled", new EventHandlers_1.AppointmentCancelledEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.cancelled`);

@@ -84,7 +84,6 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
     findByDepartment(department: string, dateFrom?: Date, dateTo?: Date, limit?: number, offset?: number): Promise<Appointment[]>;
     findEmergencyAppointments(limit?: number): Promise<Appointment[]>;
     findRequiringPreparation(dateFrom?: Date, dateTo?: Date): Promise<Appointment[]>;
-    updateStatus(appointmentId: AppointmentId, status: string): Promise<void>;
     bulkUpdate(appointments: Appointment[]): Promise<void>;
     getDailySummary(date: Date, providerId?: string): Promise<{
         totalAppointments: number;
@@ -110,13 +109,7 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
      * Merge overlapping time intervals
      */
     private mergeIntervals;
-    getUtilizationRate(providerId?: string, department?: string, dateFrom?: Date, dateTo?: Date): Promise<{
-        totalSlots: number;
-        bookedSlots: number;
-        utilizationRate: number;
-        noShowRate: number;
-        cancellationRate: number;
-    }>;
+    getUtilizationRate(providerId?: string, department?: string, dateFrom?: Date, dateTo?: Date): Promise<number>;
     /**
      * Convert domain aggregate to database record
      */
@@ -125,5 +118,110 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
      * Convert database record to domain aggregate
      */
     private toDomain;
+    /**
+     * Update appointment (alias for save - uses aggregate pattern)
+     * Used by event consumers for status changes and updates
+     */
+    update(appointment: Appointment): Promise<void>;
+    /**
+     * Create appointment (alias for save - uses aggregate pattern)
+     * Used by event consumers when creating new appointments
+     */
+    create(appointment: Appointment): Promise<void>;
+    /**
+     * Find appointments by department ID
+     * Used by department event consumers for department operations
+     */
+    findByDepartmentId(departmentId: string): Promise<Appointment[]>;
+    /**
+     * Find appointments by department and date
+     * Used by department event consumers for daily operations
+     */
+    findByDepartmentAndDate(departmentId: string, date: Date): Promise<Appointment[]>;
+    /**
+     * Check staff availability for appointment
+     * Used by staff event consumers for availability checks
+     */
+    checkStaffAvailability(staffId: string, startTime: Date, endTime: Date): Promise<boolean>;
+    /**
+     * Update patient appointment history
+     * Patient history management is core to appointment service
+     */
+    updatePatientHistory(data: {
+        patientId: string;
+        appointmentId: string;
+        visitType: string;
+        diagnosis?: string;
+        treatment?: string;
+        notes?: string;
+        updatedAt: Date;
+    }): Promise<void>;
+    /**
+     * Update patient vital signs profile for appointments
+     * Vital signs are linked to appointments (pre-op, post-op)
+     */
+    updatePatientVitalSignsProfile(data: {
+        patientId: string;
+        appointmentId: string;
+        vitalSigns: {
+            bloodPressure?: string;
+            heartRate?: number;
+            temperature?: number;
+            weight?: number;
+            height?: number;
+        };
+        recordedAt: Date;
+        recordedBy: string;
+    }): Promise<void>;
+    /**
+     * Add appointment to urgent care list
+     * Urgent care appointments are appointment types managed by appointment service
+     */
+    addToUrgentCareList(appointmentId: string, priority: 'urgent' | 'emergency'): Promise<void>;
+    /**
+     * Update appointment status
+     * Loads aggregate, updates status, saves back
+     */
+    updateStatus(appointmentId: AppointmentId, status: string): Promise<void>;
+    /**
+     * Update billing rates for appointments
+     * Updates all appointments of a specific service type
+     */
+    updateBillingRates(data: {
+        serviceType: string;
+        newRate: number;
+        effectiveDate: Date;
+    }): Promise<void>;
+    /**
+     * Find appointments by service type and date
+     */
+    findByServiceTypeAndDate(serviceType: string, date: Date): Promise<Appointment[]>;
+    /**
+     * Find pending appointments by service type
+     */
+    findPendingByServiceType(serviceType: string): Promise<Appointment[]>;
+    /**
+     * Update patient insurance coverage
+     * Updates all future appointments for a patient
+     */
+    updatePatientInsuranceCoverage(data: {
+        patientId: string;
+        insuranceProvider: string;
+        policyNumber: string;
+        coverageType: string;
+        validFrom: Date;
+        validUntil: Date;
+    }): Promise<void>;
+    /**
+     * Update patient scheduling preferences
+     * Note: This would typically be stored in a separate patient_preferences table
+     */
+    updatePatientSchedulingPreferences(data: {
+        patientId: string;
+        preferredDays: string[];
+        preferredTimes: string[];
+        preferredProviders: string[];
+        specialRequirements: string[];
+    }): Promise<void>;
 }
 //# sourceMappingURL=SupabaseAppointmentRepository.d.ts.map

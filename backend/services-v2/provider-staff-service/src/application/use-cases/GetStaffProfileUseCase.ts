@@ -222,6 +222,14 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
   }
 
   /**
+   * Get patient ID (staff operations don't involve patients)
+   */
+  getPatientId(_request: GetStaffProfileRequest): string | null {
+    // Staff profile operations don't involve patient data
+    return null;
+  }
+
+  /**
    * Validate request
    */
   protected override async validateRequest(

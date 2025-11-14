@@ -350,5 +350,544 @@ export class ReminderService implements IReminderService {
 
     return previews;
   }
+
+  // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+
+  /**
+   * Send reschedule notification
+   * Used by event consumers when appointments are rescheduled
+   */
+  async sendRescheduleNotification(
+    appointmentId: string,
+    patientId: string,
+    newDateTime: Date,
+    reason?: string
+  ): Promise<void> {
+    try {
+      console.log(`Sending reschedule notification for appointment ${appointmentId}`);
+      
+      // Schedule immediate reschedule notification via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId,
+        patientId,
+        reminderType: 'reschedule',
+        scheduledFor: new Date(),
+        channels: ['email', 'sms']
+      });
+
+      console.log(`✅ Reschedule notification scheduled for appointment ${appointmentId}`);
+    } catch (error) {
+      console.error('Failed to send reschedule notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send conflict notification
+   * Used by event consumers when appointment conflicts are detected
+   */
+  async sendConflictNotification(
+    appointmentId: string,
+    patientId: string,
+    conflictDetails: any
+  ): Promise<void> {
+    try {
+      console.log(`Sending conflict notification for appointment ${appointmentId}`);
+      
+      // Schedule immediate conflict notification via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId,
+        patientId,
+        reminderType: 'conflict',
+        scheduledFor: new Date(),
+        channels: ['email', 'sms']
+      });
+
+      console.log(`✅ Conflict notification scheduled for appointment ${appointmentId}`);
+    } catch (error) {
+      console.error('Failed to send conflict notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send appointment scheduled notification
+   * Used by event consumers when new appointments are created
+   */
+  async sendAppointmentScheduledNotification(
+    patientId: string,
+    appointmentDateTime: string
+  ): Promise<void> {
+    try {
+      console.log(`Sending appointment scheduled notification to patient ${patientId}`);
+      
+      // Schedule immediate confirmation notification via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId: 'new-appointment',
+        patientId,
+        reminderType: 'confirmation',
+        scheduledFor: new Date(),
+        channels: ['email', 'sms']
+      });
+
+      console.log(`✅ Appointment scheduled notification sent to patient ${patientId}`);
+    } catch (error) {
+      console.error('Failed to send appointment scheduled notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send staff assignment notification
+   * Used by event consumers when staff are assigned to appointments
+   */
+  async sendStaffAssignmentNotification(
+    appointmentId: string,
+    staffId: string,
+    assignmentDetails: any
+  ): Promise<void> {
+    try {
+      console.log(`Sending staff assignment notification for appointment ${appointmentId}`);
+      
+      // Schedule notification to staff member via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId,
+        patientId: staffId, // Using patientId field for staff notification
+        reminderType: 'staff_assignment',
+        scheduledFor: new Date(),
+        channels: ['email', 'internal']
+      });
+
+      console.log(`✅ Staff assignment notification sent for appointment ${appointmentId}`);
+    } catch (error) {
+      console.error('Failed to send staff assignment notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send operating hours change notification
+   * Used by event consumers when operating hours change
+   */
+  async sendOperatingHoursChangeNotification(
+    departmentId: string,
+    newHours: any
+  ): Promise<void> {
+    try {
+      console.log(`Sending operating hours change notification for department ${departmentId}`);
+      
+      // Schedule notification to affected patients/staff via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId: 'operating-hours-change',
+        patientId: departmentId, // Using patientId field for department notification
+        reminderType: 'operating_hours_change',
+        scheduledFor: new Date(),
+        channels: ['email', 'sms']
+      });
+
+      console.log(`✅ Operating hours change notification sent for department ${departmentId}`);
+    } catch (error) {
+      console.error('Failed to send operating hours change notification:', error);
+      throw error;
+    }
+  }
+
+  // ==================== CLINICAL NOTIFICATION METHODS (APPOINTMENT SERVICE CONTEXT) ====================
+
+  /**
+   * Notify physician about appointment results
+   * Physicians need notification about appointment results
+   */
+  async notifyPhysicianAboutResults(data: {
+    appointmentId: string;
+    physicianId: string;
+    patientId: string;
+    resultType: 'lab' | 'imaging' | 'consultation';
+    results: any;
+    urgency: 'normal' | 'urgent';
+  }): Promise<void> {
+    try {
+      console.log(`Notifying physician ${data.physicianId} about ${data.resultType} results for appointment ${data.appointmentId}`);
+
+      // Schedule physician notification via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId: data.appointmentId,
+        patientId: data.physicianId, // Using patientId field for physician notification
+        reminderType: 'physician_results',
+        scheduledFor: new Date(),
+        channels: data.urgency === 'urgent' ? ['email', 'sms'] : ['email']
+      });
+
+      console.log(`✅ Physician notification sent for appointment ${data.appointmentId}`);
+    } catch (error) {
+      console.error('Failed to notify physician about results:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Notify physician about appointment-related documents
+   * Document notifications for appointment-related docs
+   */
+  async notifyPhysicianAboutDocument(data: {
+    appointmentId: string;
+    physicianId: string;
+    patientId: string;
+    documentType: string;
+    documentUrl: string;
+    uploadedAt: Date;
+  }): Promise<void> {
+    try {
+      console.log(`Notifying physician ${data.physicianId} about document ${data.documentType} for appointment ${data.appointmentId}`);
+
+      // Schedule physician document notification via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId: data.appointmentId,
+        patientId: data.physicianId, // Using patientId field for physician notification
+        reminderType: 'physician_document',
+        scheduledFor: new Date(),
+        channels: ['email']
+      });
+
+      console.log(`✅ Physician document notification sent for appointment ${data.appointmentId}`);
+    } catch (error) {
+      console.error('Failed to notify physician about document:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send urgent appointment notification
+   * Urgent appointment notifications are appointment service responsibility
+   */
+  async sendUrgentAppointmentNotification(data: {
+    appointmentId: string;
+    patientId: string;
+    patientName: string;
+    urgency: 'urgent' | 'emergency';
+    appointmentTime: Date;
+    department: string;
+  }): Promise<void> {
+    try {
+      console.log(`Sending urgent appointment notification to patient ${data.patientId} for appointment ${data.appointmentId}`);
+
+      // Schedule urgent appointment notification via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId: data.appointmentId,
+        patientId: data.patientId,
+        reminderType: 'urgent_appointment',
+        scheduledFor: new Date(),
+        channels: data.urgency === 'emergency' ? ['email', 'sms', 'phone'] : ['email', 'sms']
+      });
+
+      console.log(`✅ Urgent appointment notification sent for appointment ${data.appointmentId}`);
+    } catch (error) {
+      console.error('Failed to send urgent appointment notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Notify clinical staff about urgent case
+   * Clinical staff notification for urgent appointments
+   */
+  async notifyClinicalStaffAboutUrgentCase(data: {
+    appointmentId: string;
+    caseType: string;
+    urgency: 'urgent' | 'emergency';
+    department: string;
+    requiredStaff: string[];
+    patientInfo: {
+      id: string;
+      name: string;
+      age: number;
+    };
+  }): Promise<void> {
+    try {
+      console.log(`Notifying clinical staff about urgent case ${data.caseType} for appointment ${data.appointmentId}`);
+
+      // Schedule clinical staff notifications via scheduler
+      for (const staffId of data.requiredStaff) {
+        await this.schedulerAdapter.scheduleReminder({
+          appointmentId: data.appointmentId,
+          patientId: staffId, // Using patientId field for staff notification
+          reminderType: 'clinical_urgent_case',
+          scheduledFor: new Date(),
+          channels: data.urgency === 'emergency' ? ['email', 'sms', 'phone'] : ['email', 'sms']
+        });
+      }
+
+      console.log(`✅ Clinical staff notifications sent for appointment ${data.appointmentId}`);
+    } catch (error) {
+      console.error('Failed to notify clinical staff about urgent case:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Offer priority appointment slot
+   * Priority slot management for appointments
+   */
+  async offerPriorityAppointmentSlot(data: {
+    patientId: string;
+    patientName: string;
+    originalAppointmentId: string;
+    prioritySlot: {
+      startTime: Date;
+      endTime: Date;
+      department: string;
+    };
+    reason: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    try {
+      console.log(`Offering priority appointment slot to patient ${data.patientId} for original appointment ${data.originalAppointmentId}`);
+
+      // Schedule priority slot offer notification via scheduler
+      await this.schedulerAdapter.scheduleReminder({
+        appointmentId: data.originalAppointmentId,
+        patientId: data.patientId,
+        reminderType: 'priority_slot_offer',
+        scheduledFor: new Date(),
+        channels: ['email', 'sms']
+      });
+
+      console.log(`✅ Priority slot offer sent to patient ${data.patientId}`);
+    } catch (error) {
+      console.error('Failed to offer priority appointment slot:', error);
+      throw error;
+    }
+  }
+
+  // ==================== MISSING METHODS FROM INTERFACE ====================
+
+  /**
+   * Send pre-authorization approval notification
+   * Notifies patient about insurance pre-authorization approval
+   */
+  async sendPreAuthApprovalNotification(data: {
+    appointmentId: string;
+    patientId: string;
+    procedureName: string;
+    approvedAt: Date;
+  }): Promise<void> {
+    try {
+      console.log(`Sending pre-auth approval notification to patient ${data.patientId} for appointment ${data.appointmentId}`);
+      
+      // TODO: Implement actual notification logic (email, SMS, etc.)
+      // For now, just log the notification
+      console.log('Pre-Auth Approval Notification:', {
+        type: 'pre_auth_approval',
+        patientId: data.patientId,
+        appointmentId: data.appointmentId,
+        procedureName: data.procedureName,
+        approvedAt: data.approvedAt,
+        message: `Your pre-authorization for ${data.procedureName} has been approved!`
+      });
+    } catch (error) {
+      console.error('Failed to send pre-auth approval notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send pre-authorization denial notification
+   * Notifies patient about insurance pre-authorization denial
+   */
+  async sendPreAuthDenialNotification(data: {
+    appointmentId: string;
+    patientId: string;
+    procedureName: string;
+  }): Promise<void> {
+    try {
+      console.log(`Sending pre-auth denial notification to patient ${data.patientId} for appointment ${data.appointmentId}`);
+      
+      // TODO: Implement actual notification logic (email, SMS, etc.)
+      // For now, just log the notification
+      console.log('Pre-Auth Denial Notification:', {
+        type: 'pre_auth_denial',
+        patientId: data.patientId,
+        appointmentId: data.appointmentId,
+        procedureName: data.procedureName,
+        message: `Your pre-authorization for ${data.procedureName} requires additional review.`
+      });
+    } catch (error) {
+      console.error('Failed to send pre-auth denial notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Notify billing department
+   * Sends billing-related notifications to billing department
+   */
+  async notifyBillingDepartment(data: {
+    authorizationId: string;
+    patientId: string;
+    patientName: string;
+    procedureCode: string;
+    procedureName: string;
+    urgencyLevel: string;
+    estimatedCost: number;
+    requestedBy: string;
+    requestedAt: Date;
+    appointmentId?: string;
+  }): Promise<void> {
+    try {
+      console.log(`Notifying billing department about pre-auth request ${data.authorizationId}`);
+      
+      // TODO: Implement actual billing department notification logic
+      // For now, just log the notification
+      console.log('Billing Department Notification:', {
+        type: 'billing_notification',
+        authorizationId: data.authorizationId,
+        patientId: data.patientId,
+        patientName: data.patientName,
+        procedureCode: data.procedureCode,
+        procedureName: data.procedureName,
+        urgencyLevel: data.urgencyLevel,
+        estimatedCost: data.estimatedCost,
+        requestedBy: data.requestedBy,
+        requestedAt: data.requestedAt,
+        appointmentId: data.appointmentId,
+        message: `New pre-authorization request for ${data.procedureName} - ${data.urgencyLevel} priority`
+      });
+    } catch (error) {
+      console.error('Failed to notify billing department:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send appointment confirmation notification
+   * Notifies patient about appointment confirmation after payment
+   */
+  async sendAppointmentConfirmationNotification(data: {
+    appointmentId: string;
+    patientId: string;
+    patientName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    department: string;
+    confirmedAt: Date;
+  }): Promise<void> {
+    try {
+      console.log(`Sending appointment confirmation to patient ${data.patientId} for appointment ${data.appointmentId}`);
+      
+      // TODO: Implement actual notification logic (email, SMS, etc.)
+      // For now, just log the notification
+      console.log('Appointment Confirmation Notification:', {
+        type: 'appointment_confirmation',
+        patientId: data.patientId,
+        patientName: data.patientName,
+        appointmentId: data.appointmentId,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        department: data.department,
+        confirmedAt: data.confirmedAt,
+        message: `Your appointment on ${data.appointmentDate} at ${data.appointmentTime} has been confirmed!`
+      });
+    } catch (error) {
+      console.error('Failed to send appointment confirmation notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send alternative procedure suggestions
+   * Notifies patient about alternative procedures when original is denied
+   */
+  async sendAlternativeProcedureSuggestions(data: {
+    appointmentId: string;
+    patientId: string;
+    originalProcedure: string;
+    alternativeProcedures: string[];
+    costDifferences: number[];
+    reasons: string[];
+  }): Promise<void> {
+    try {
+      console.log(`Sending alternative procedure suggestions to patient ${data.patientId} for appointment ${data.appointmentId}`);
+      
+      // TODO: Implement actual notification logic (email, SMS, etc.)
+      // For now, just log the notification
+      console.log('Alternative Procedure Suggestions:', {
+        type: 'alternative_procedures',
+        patientId: data.patientId,
+        appointmentId: data.appointmentId,
+        originalProcedure: data.originalProcedure,
+        alternativeProcedures: data.alternativeProcedures,
+        costDifferences: data.costDifferences,
+        reasons: data.reasons,
+        message: `Alternative procedure options are available for your consideration.`
+      });
+    } catch (error) {
+      console.error('Failed to send alternative procedure suggestions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send rate change notification
+   * Notifies relevant parties about billing rate changes
+   */
+  async sendRateChangeNotification(data: {
+    serviceType: string;
+    oldRate: number;
+    newRate: number;
+    effectiveDate: Date;
+    affectedAppointments: string[];
+  }): Promise<void> {
+    try {
+      console.log(`Sending rate change notification for ${data.serviceType}`);
+      
+      // TODO: Implement actual notification logic (email, SMS, etc.)
+      // For now, just log the notification
+      console.log('Rate Change Notification:', {
+        type: 'rate_change',
+        serviceType: data.serviceType,
+        oldRate: data.oldRate,
+        newRate: data.newRate,
+        effectiveDate: data.effectiveDate,
+        affectedAppointments: data.affectedAppointments,
+        message: `Billing rate for ${data.serviceType} will change from $${data.oldRate} to $${data.newRate} effective ${data.effectiveDate.toISOString()}`
+      });
+    } catch (error) {
+      console.error('Failed to send rate change notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send rate increase notification
+   * Notifies patients about billing rate increases
+   */
+  async sendRateIncreaseNotification(data: {
+    serviceType: string;
+    oldRate: number;
+    newRate: number;
+    increasePercentage: number;
+    effectiveDate: Date;
+    reason: string;
+  }): Promise<void> {
+    try {
+      console.log(`Sending rate increase notification for ${data.serviceType}`);
+      
+      // TODO: Implement actual notification logic (email, SMS, etc.)
+      // For now, just log the notification
+      console.log('Rate Increase Notification:', {
+        type: 'rate_increase',
+        serviceType: data.serviceType,
+        oldRate: data.oldRate,
+        newRate: data.newRate,
+        increasePercentage: data.increasePercentage,
+        effectiveDate: data.effectiveDate,
+        reason: data.reason,
+        message: `Billing rate for ${data.serviceType} will increase by ${data.increasePercentage}% effective ${data.effectiveDate.toISOString()}. Reason: ${data.reason}`
+      });
+    } catch (error) {
+      console.error('Failed to send rate increase notification:', error);
+      throw error;
+    }
+  }
 }
 

@@ -30,9 +30,9 @@ export class PaymentProcessedEvent extends DomainEvent {
     };
 
     super(
-      'PaymentProcessed',
+      'payment.completed',
       invoiceId,
-      'Invoice',
+      'billing',
       eventData,
       1,
       correlationId,

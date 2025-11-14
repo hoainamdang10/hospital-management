@@ -32,14 +32,16 @@ export function createWaitlistRoutes(): Router {
     "/",
     authenticate,
     [
-      body("patientId").isUUID().withMessage("Valid patient ID is required"),
+      body("patientId")
+        .matches(/^PAT-\d{6}-\d{3}$/)
+        .withMessage("Valid patient ID is required (e.g., PAT-202511-142)"),
       body("preferredDoctorId")
         .optional()
-        .isUUID()
-        .withMessage("Valid doctor ID required"),
+        .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+        .withMessage("Valid doctor ID required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
       body("preferredDepartmentId")
         .optional()
-        .isUUID()
+        .isString()
         .withMessage("Valid department ID required"),
       body("preferredDate")
         .optional()
@@ -104,15 +106,15 @@ export function createWaitlistRoutes(): Router {
     [
       query("patientId")
         .optional()
-        .isUUID()
-        .withMessage("Valid patient ID required"),
+        .matches(/^PAT-\d{6}-\d{3}$/)
+        .withMessage("Valid patient ID required (e.g., PAT-202511-142)"),
       query("doctorId")
         .optional()
-        .isUUID()
-        .withMessage("Valid doctor ID required"),
+        .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+        .withMessage("Valid doctor ID required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
       query("departmentId")
         .optional()
-        .isUUID()
+        .isString()
         .withMessage("Valid department ID required"),
       query("date")
         .optional()
@@ -166,8 +168,8 @@ export function createWaitlistRoutes(): Router {
         .withMessage("Valid time slot required"),
       body("preferredDoctorId")
         .optional()
-        .isUUID()
-        .withMessage("Valid doctor ID required"),
+        .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+        .withMessage("Valid doctor ID required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
       body("priority")
         .optional()
         .isIn(["EMERGENCY", "URGENT", "NORMAL", "LOW"])
@@ -228,10 +230,12 @@ export function createWaitlistRoutes(): Router {
       body("appointmentTime")
         .matches(/^\d{2}:\d{2}(:\d{2})?$/)
         .withMessage("Valid time required (HH:mm or HH:mm:ss)"),
-      body("doctorId").isUUID().withMessage("Valid doctor ID is required"),
+      body("doctorId")
+        .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+        .withMessage("Valid doctor ID is required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
       body("departmentId")
         .optional()
-        .isUUID()
+        .isString()
         .withMessage("Valid department ID required"),
       body("durationMinutes")
         .optional()

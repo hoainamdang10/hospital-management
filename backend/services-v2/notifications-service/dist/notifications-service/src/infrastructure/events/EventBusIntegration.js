@@ -75,7 +75,7 @@ class EventBusIntegration {
      */
     async connect() {
         try {
-            this.connection = await amqp.connect(this.config.connectionUrl);
+            this.connection = (await amqp.connect(this.config.connectionUrl));
             this.channel = await this.connection.createChannel();
             this.isConnected = true;
             this.reconnectAttempts = 0;
@@ -227,7 +227,7 @@ class EventBusIntegration {
             // Create real-time notification
             const realTimeNotification = this.mapEventToRealTimeNotification(event);
             if (realTimeNotification) {
-                await this.realTimeService.sendRealTimeNotification(realTimeNotification);
+                await this.realTimeService.sendToUser(realTimeNotification.id, realTimeNotification);
             }
         }
         catch (error) {

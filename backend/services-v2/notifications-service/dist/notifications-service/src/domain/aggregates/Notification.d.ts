@@ -36,6 +36,8 @@ export interface NotificationProps {
     status: NotificationStatus;
     priority: NotificationPriority;
     sentAt?: Date;
+    deliveredAt?: Date;
+    readAt?: Date;
     deliveryResults?: DeliveryResult[];
     metadata: NotificationMetadata;
     createdAt: Date;
@@ -49,17 +51,30 @@ export declare class Notification extends HealthcareAggregateRoot<NotificationPr
     private constructor();
     get id(): string;
     get notificationId(): NotificationId;
+    getId(): NotificationId;
     get recipient(): RecipientInfo;
+    getRecipient(): RecipientInfo;
     get templateType(): string;
     get content(): NotificationContent;
+    getContent(): NotificationContent;
     get channels(): NotificationChannel[];
+    getChannels(): NotificationChannel[];
     get status(): NotificationStatus;
+    getStatus(): NotificationStatus;
     get priority(): NotificationPriority;
+    getPriority(): NotificationPriority;
     get sentAt(): Date | undefined;
+    getSentAt(): Date | undefined;
     get deliveryResults(): DeliveryResult[] | undefined;
     get metadata(): NotificationMetadata;
     get createdAt(): Date;
     get updatedAt(): Date;
+    get deliveredAt(): Date | undefined;
+    getDeliveredAt(): Date | undefined;
+    get readAt(): Date | undefined;
+    getReadAt(): Date | undefined;
+    getHealthcareContext(): any;
+    getCreatedAt(): Date;
     getPatientId(): string | null;
     protected validateBusinessInvariants(): void;
     protected applyEvent(event: DomainEvent): void;
@@ -82,6 +97,8 @@ export declare class Notification extends HealthcareAggregateRoot<NotificationPr
     isSent(): boolean;
     isFailed(): boolean;
     isUrgent(): boolean;
+    isRead(): boolean;
+    isUnread(): boolean;
     /**
      * Validate entity state (required by Entity base class)
      */

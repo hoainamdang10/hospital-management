@@ -91,7 +91,7 @@ function createPatientRoutes(controller, authorizationMiddleware) {
      * Update patient information
      * PUT /api/v1/patients/:patientId
      */
-    router.put('/:patientId', ValidationMiddleware_1.validateUpdatePatient, asyncHandler(controller.updatePatient.bind(controller)));
+    router.put('/:patientId', ValidationMiddleware_1.validateUpdatePatient, authorizationMiddleware.canAccessPatientData('patientId'), asyncHandler(controller.updatePatient.bind(controller)));
     /**
      * Link patients
      * POST /api/v1/patients/:patientId/link

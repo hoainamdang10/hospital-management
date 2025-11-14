@@ -23,6 +23,11 @@ export const logger = {
     if (process.env.NODE_ENV === 'development') {
       console.debug(`[DEBUG] ${new Date().toISOString()} - ${message}`, ...args);
     }
+  },
+  
+  fatal: (message: string, ...args: any[]) => {
+    console.error(`[FATAL] ${new Date().toISOString()} - ${message}`, ...args);
+    // In production, you might want to send this to a monitoring service
   }
 };
 

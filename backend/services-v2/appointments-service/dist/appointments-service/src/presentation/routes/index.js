@@ -7,7 +7,6 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupRoutes = setupRoutes;
-const availability_routes_1 = require("./availability.routes");
 function setupRoutes(app, container) {
     // Setup API routes
     app.get('/api/sample', (req, res) => {
@@ -17,7 +16,8 @@ function setupRoutes(app, container) {
             patterns: ["Command", "Event-Driven", "Workflow"]
         });
     });
-    // Availability routes
-    app.use('/api/appointments', (0, availability_routes_1.createAvailabilityRoutes)());
+    // Note: Availability routes are now mounted in main.ts at /api/v1/appointments
+    // This prevents duplicate route registration which was causing conflicts
+    // Gateway handles routing centrally, so services only need to define their routes once
 }
 //# sourceMappingURL=index.js.map

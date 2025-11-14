@@ -4,32 +4,41 @@
  *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, GDPR
+ * @compliance Clean Architecture, CQRS
  */
-import { SupabasePreferencesRepository, NotificationPreferences } from '../../infrastructure/persistence/SupabasePreferencesRepository';
+import { IPreferencesRepository } from '../../domain/repositories/IPreferencesRepository';
 export interface UpdatePreferencesCommand {
     userId: string;
-    preferredChannels?: string[];
-    enabledChannels?: string[];
-    optOutAll?: boolean;
-    optOutMarketing?: boolean;
-    optOutReminders?: boolean;
-    quietHoursEnabled?: boolean;
-    quietHoursStart?: string;
-    quietHoursEnd?: string;
-    preferredLanguage?: 'vi' | 'en';
-    maxNotificationsPerDay?: number;
-    maxSmsPerDay?: number;
-    maxEmailsPerDay?: number;
+    preferences: {
+        emailEnabled?: boolean;
+        smsEnabled?: boolean;
+        pushEnabled?: boolean;
+        inAppEnabled?: boolean;
+        preferredChannels?: string[];
+        enabledChannels?: string[];
+        quietHoursEnabled?: boolean;
+        quietHoursStart?: string;
+        quietHoursEnd?: string;
+        timezone?: string;
+        language?: string;
+        maxNotificationsPerDay?: number;
+        appointmentReminders?: boolean;
+        appointmentReminderHours?: number;
+        paymentReminders?: boolean;
+        medicalRecordUpdates?: boolean;
+        emergencyAlerts?: boolean;
+        marketingEnabled?: boolean;
+    };
 }
 export interface UpdatePreferencesResult {
+    success: boolean;
     userId: string;
-    preferences: NotificationPreferences;
+    preferences: any;
     message: string;
 }
 export declare class UpdateNotificationPreferencesUseCase {
     private readonly preferencesRepository;
-    constructor(preferencesRepository: SupabasePreferencesRepository);
+    constructor(preferencesRepository: IPreferencesRepository);
     execute(command: UpdatePreferencesCommand): Promise<UpdatePreferencesResult>;
 }
 //# sourceMappingURL=UpdateNotificationPreferencesUseCase.d.ts.map

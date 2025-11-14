@@ -215,7 +215,7 @@ export class CircuitBreakerFactory {
   ): IdentityServiceCircuitBreaker {
     if (!this.breakers.has(serviceName)) {
       const defaultConfig: CircuitBreakerConfig = {
-        failureThreshold: 5,
+        failureThreshold: 50,
         recoveryTimeout: 30000, // 30 seconds
         monitoringWindow: 60000, // 1 minute
         halfOpenMaxCalls: 3

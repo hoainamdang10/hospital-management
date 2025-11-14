@@ -29,6 +29,10 @@ export function createInvoiceRoutes(
   // Insurance
   router.post("/:id/insurance-claim", controller.processInsuranceClaim.bind(controller));
 
+  // Notifications & Reminders
+  router.post("/:id/send-email", controller.sendInvoiceEmail.bind(controller));
+  router.post("/:id/payment-reminder", controller.createPaymentReminder.bind(controller));
+
   // Patient invoices
   router.get("/patient/:patientId", controller.getPatientInvoices.bind(controller));
   router.get("/patient/:patientId/summary", controller.getPatientBillingSummary.bind(controller));

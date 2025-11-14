@@ -45,6 +45,11 @@ import { SupabaseAuthService } from "../infrastructure/auth/SupabaseAuthService"
 import { SupabaseAuthClient } from "../infrastructure/auth/SupabaseAuthClient";
 import { PermissionService } from "../infrastructure/services/PermissionService";
 import { SupabaseMFAService } from "../infrastructure/services/SupabaseMFAService";
+import { IEventPublisher } from "../application/services/IEventPublisher";
+
+// Outbox Pattern
+import { OutboxService } from "../infrastructure/outbox/OutboxService";
+import { OutboxPublisher } from "../infrastructure/outbox/OutboxPublisher";
 
 // Middleware
 import { AuthenticationMiddleware } from "../presentation/middleware/AuthenticationMiddleware";
@@ -241,6 +246,10 @@ export class DependencyContainer {
   // Cleanup Job
   private pendingRegistrationCleanupJob!: PendingRegistrationCleanupJob;
 
+  // Outbox Pattern
+  private outboxService!: OutboxService;
+  private outboxPublisher!: OutboxPublisher;
+
   constructor(
     private config: AppConfig,
     private logger: ILogger,
@@ -278,11 +287,9 @@ export class DependencyContainer {
           autoRefreshToken: false,
           persistSession: false,
         },
-        db: {
-          schema: "auth_schema",
-        },
-      },
-    ) as any;
+        db: { schema: 'auth_schema' }
+      }
+    ) as unknown as SupabaseClient;
 
     // Health check
     this.healthCheck = new IdentityServiceHealthCheck(
@@ -352,6 +359,26 @@ export class DependencyContainer {
       this.logger.warn("Continuing without event publishing");
     }
 
+    // Outbox Service (for guaranteed event publishing)
+    this.outboxService = new OutboxService(
+      this.supabaseClient,
+      this.logger
+    );
+    this.logger.info("Outbox service initialized successfully");
+
+    // Outbox Publisher (background job for publishing events)
+    this.outboxPublisher = new OutboxPublisher(
+      this.outboxService,
+      this.eventPublisher,
+      this.logger,
+      {
+        pollingIntervalMs: 5000, // Poll every 5 seconds
+        batchSize: 100,
+        enabled: true
+      }
+    );
+    this.logger.info("Outbox publisher initialized successfully");
+
     this.logger.debug("Infrastructure initialized");
   }
 
@@ -374,6 +401,7 @@ export class DependencyContainer {
       this.cacheService || undefined,
       this.permissionRepository,
       this.eventPublisher,
+      this.outboxService
     );
 
     // Session repository
@@ -557,22 +585,19 @@ export class DependencyContainer {
       CircuitBreakerFactory.getBreaker("verify-email-use-case"),
       this.config.jwtSecret,
       this.eventPublisher,
+      this.outboxService,
     );
 
     this.registerUserUseCase = new RegisterUserUseCase(
       this.userRepository,
       this.pendingRegistrationRepository,
       this.logger,
-      CircuitBreakerFactory.getBreaker("register-user-use-case"),
+      // CircuitBreakerFactory.getBreaker("register-user-use-case"), // DISABLED: Circuit breaker disabled for development
       this.emailService,
       this.config.jwtSecret,
       this.config.frontendUrl,
       this.eventPublisher,
-      {
-        enabled: this.config.autoVerifyPendingRegistrations,
-        verifyToken: (token: string) =>
-          this.verifyEmailUseCase.execute({ token }),
-      },
+      this.outboxService
     );
 
     this.resendVerificationEmailUseCase = new ResendVerificationEmailUseCase(
@@ -1073,7 +1098,7 @@ export class DependencyContainer {
 
       // Close event publisher
       if (this.eventPublisher && "close" in this.eventPublisher) {
-        await (this.eventPublisher as any).close();
+        await (this.eventPublisher as IEventPublisher & { close(): Promise<void> }).close();
         this.logger.info("Event publisher closed");
       }
 
@@ -1178,14 +1203,22 @@ export class DependencyContainer {
       healthCheck: this.healthCheck,
       degradationService: this.degradationService,
       permissionService: this.permissionService,
+      outboxPublisher: this.outboxPublisher,
     };
   }
 
   /**
-   * Get cache service (for app builder)
+   * Get outbox service (for storing events)
    */
-  get cache(): RedisCacheService | null {
-    return this.cacheService;
+  getOutboxService(): OutboxService {
+    return this.outboxService;
+  }
+
+  /**
+   * Get outbox publisher (for background job)
+   */
+  getOutboxPublisher(): OutboxPublisher {
+    return this.outboxPublisher;
   }
 }
 

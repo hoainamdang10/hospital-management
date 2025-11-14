@@ -19,8 +19,9 @@ const NotificationChannel_1 = require("../../domain/value-objects/NotificationCh
  * Implements full INotificationRepository interface
  */
 class SupabaseNotificationRepository {
-    constructor(supabase) {
+    constructor(supabase, eventBus) {
         this.supabase = supabase;
+        this.eventBus = eventBus;
     }
     // ==================== Core CRUD Operations ====================
     /**
@@ -35,6 +36,8 @@ class SupabaseNotificationRepository {
             if (error) {
                 throw new Error(`Supabase error: ${error.message}`);
             }
+            // Publish domain events after successful save
+            await this.publishDomainEvents(notification);
         }
         catch (error) {
             throw new Error(`Failed to save notification: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -49,18 +52,36 @@ class SupabaseNotificationRepository {
             const { id, notification_id, created_at, created_by, ...updateData } = record;
             const { error } = await this.supabase
                 .from('notifications')
-                .update({
-                ...updateData,
-                updated_at: new Date().toISOString()
-            })
+                .update(updateData)
                 .eq('notification_id', notification_id);
             if (error) {
                 throw new Error(`Supabase error: ${error.message}`);
             }
+            // Publish domain events after successful update
+            await this.publishDomainEvents(notification);
         }
         catch (error) {
             throw new Error(`Failed to update notification: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
+    }
+    /**
+     * Publish domain events from aggregate
+     */
+    async publishDomainEvents(notification) {
+        if (!this.eventBus) {
+            return; // EventBus not configured, skip publishing
+        }
+        const events = notification.getUncommittedEvents();
+        for (const event of events) {
+            try {
+                await this.eventBus.publish(event);
+            }
+            catch (error) {
+                console.error(`Failed to publish event ${event.eventType}:`, error);
+                // Don't throw - event publishing failure shouldn't fail the save operation
+            }
+        }
+        notification.markEventsAsCommitted();
     }
     /**
      * Find notification by ID
@@ -130,6 +151,15 @@ class SupabaseNotificationRepository {
                 query = query.gte('created_at', criteria.createdAfter.toISOString());
             if (criteria.createdBefore)
                 query = query.lte('created_at', criteria.createdBefore.toISOString());
+            // Read status filter
+            if (criteria.isRead !== undefined) {
+                if (criteria.isRead) {
+                    query = query.not('read_at', 'is', null);
+                }
+                else {
+                    query = query.is('read_at', null);
+                }
+            }
             // Healthcare context filters
             if (criteria.healthcareContext?.patientId) {
                 query = query.contains('healthcare_context', { patientId: criteria.healthcareContext.patientId });
@@ -553,6 +583,17 @@ class SupabaseNotificationRepository {
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
     }
+    async markAsRead(id, readAt) {
+        const { error } = await this.supabase
+            .from('notifications')
+            .update({
+            read_at: readAt?.toISOString() || null,
+            updated_at: new Date().toISOString()
+        })
+            .eq('notification_id', id.value);
+        if (error)
+            throw new Error(`Supabase error: ${error.message}`);
+    }
     async bulkUpdate(ids, updates) {
         const notificationIds = ids.map(id => id.value);
         const updateData = { updated_at: new Date().toISOString() };
@@ -731,6 +772,8 @@ class SupabaseNotificationRepository {
             status: notification.status,
             priority: notification.priority,
             sent_at: notification.sentAt?.toISOString(),
+            delivered_at: notification.deliveredAt?.toISOString(),
+            read_at: notification.readAt?.toISOString(),
             delivery_results: notification.deliveryResults,
             successful_channels: notification.deliveryResults?.filter((r) => r.success).map((r) => r.channel) || [],
             failed_channels: notification.deliveryResults?.filter((r) => !r.success).map((r) => r.channel) || [],
@@ -766,7 +809,7 @@ class SupabaseNotificationRepository {
         const channels = Array.isArray(record.channels)
             ? record.channels.map((ch) => NotificationChannel_1.NotificationChannel.create(ch))
             : [];
-        return Notification_1.Notification.create({
+        const notification = Notification_1.Notification.create({
             recipient,
             templateType: record.template_type,
             content,
@@ -780,6 +823,29 @@ class SupabaseNotificationRepository {
                 healthcareContext: record.healthcare_context
             }
         });
+        // Set additional fields from database
+        if (record.sent_at) {
+            notification.props.sentAt = new Date(record.sent_at);
+        }
+        if (record.delivered_at) {
+            notification.props.deliveredAt = new Date(record.delivered_at);
+        }
+        if (record.read_at) {
+            notification.props.readAt = new Date(record.read_at);
+        }
+        if (record.status) {
+            notification.props.status = record.status;
+        }
+        if (record.delivery_results) {
+            notification.props.deliveryResults = record.delivery_results;
+        }
+        if (record.created_at) {
+            notification.props.createdAt = new Date(record.created_at);
+        }
+        if (record.updated_at) {
+            notification.props.updatedAt = new Date(record.updated_at);
+        }
+        return notification;
     }
     groupByStatus(notifications) {
         const result = { DRAFT: 0, SCHEDULED: 0, PROCESSING: 0, SENT: 0, PARTIALLY_SENT: 0, FAILED: 0, CANCELLED: 0, EXPIRED: 0 };

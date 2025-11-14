@@ -22,13 +22,17 @@ import { NotificationId } from '../../domain/value-objects/NotificationId';
 import { RecipientInfo } from '../../domain/value-objects/RecipientInfo';
 import { NotificationContent } from '../../domain/value-objects/NotificationContent';
 import { NotificationChannel } from '../../domain/value-objects/NotificationChannel';
+import { IEventBus } from '../../../../shared/infrastructure/event-bus/EventBus';
 
 /**
  * Supabase Notification Repository
  * Implements full INotificationRepository interface
  */
 export class SupabaseNotificationRepository implements INotificationRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly eventBus?: IEventBus
+  ) {}
 
   // ==================== Core CRUD Operations ====================
 
@@ -46,6 +50,9 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       if (error) {
         throw new Error(`Supabase error: ${error.message}`);
       }
+
+      // Publish domain events after successful save
+      await this.publishDomainEvents(notification);
     } catch (error) {
       throw new Error(`Failed to save notification: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -61,18 +68,38 @@ export class SupabaseNotificationRepository implements INotificationRepository {
 
       const { error } = await this.supabase
         .from('notifications')
-        .update({
-          ...updateData,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('notification_id', notification_id);
 
       if (error) {
         throw new Error(`Supabase error: ${error.message}`);
       }
+
+      // Publish domain events after successful update
+      await this.publishDomainEvents(notification);
     } catch (error) {
       throw new Error(`Failed to update notification: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Publish domain events from aggregate
+   */
+  private async publishDomainEvents(notification: Notification): Promise<void> {
+    if (!this.eventBus) {
+      return; // EventBus not configured, skip publishing
+    }
+
+    const events = notification.getUncommittedEvents();
+    for (const event of events) {
+      try {
+        await this.eventBus.publish(event);
+      } catch (error) {
+        console.error(`Failed to publish event ${event.eventType}:`, error);
+        // Don't throw - event publishing failure shouldn't fail the save operation
+      }
+    }
+    notification.markEventsAsCommitted();
   }
 
   /**
@@ -138,6 +165,15 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       if (criteria.scheduledBefore) query = query.lte('scheduled_at', criteria.scheduledBefore.toISOString());
       if (criteria.createdAfter) query = query.gte('created_at', criteria.createdAfter.toISOString());
       if (criteria.createdBefore) query = query.lte('created_at', criteria.createdBefore.toISOString());
+      
+      // Read status filter
+      if (criteria.isRead !== undefined) {
+        if (criteria.isRead) {
+          query = query.not('read_at', 'is', null);
+        } else {
+          query = query.is('read_at', null);
+        }
+      }
 
       // Healthcare context filters
       if (criteria.healthcareContext?.patientId) {
@@ -612,6 +648,18 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     if (error) throw new Error(`Supabase error: ${error.message}`);
   }
 
+  public async markAsRead(id: NotificationId, readAt: Date | null): Promise<void> {
+    const { error } = await this.supabase
+      .from('notifications')
+      .update({
+        read_at: readAt?.toISOString() || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('notification_id', id.value);
+
+    if (error) throw new Error(`Supabase error: ${error.message}`);
+  }
+
   public async bulkUpdate(ids: NotificationId[], updates: Partial<{ status: NotificationStatus; retryCount: number; nextRetryAt: Date; processedAt: Date }>): Promise<void> {
     const notificationIds = ids.map(id => id.value);
     const updateData: any = { updated_at: new Date().toISOString() };
@@ -817,6 +865,8 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       status: notification.status,
       priority: notification.priority,
       sent_at: notification.sentAt?.toISOString(),
+      delivered_at: notification.deliveredAt?.toISOString(),
+      read_at: notification.readAt?.toISOString(),
       delivery_results: notification.deliveryResults,
       successful_channels: notification.deliveryResults?.filter((r: any) => r.success).map((r: any) => r.channel) || [],
       failed_channels: notification.deliveryResults?.filter((r: any) => !r.success).map((r: any) => r.channel) || [],
@@ -856,7 +906,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       ? record.channels.map((ch: string) => NotificationChannel.create(ch))
       : [];
 
-    return Notification.create({
+    const notification = Notification.create({
       recipient,
       templateType: record.template_type,
       content,
@@ -870,6 +920,31 @@ export class SupabaseNotificationRepository implements INotificationRepository {
         healthcareContext: record.healthcare_context
       }
     });
+
+    // Set additional fields from database
+    if (record.sent_at) {
+      (notification as any).props.sentAt = new Date(record.sent_at);
+    }
+    if (record.delivered_at) {
+      (notification as any).props.deliveredAt = new Date(record.delivered_at);
+    }
+    if (record.read_at) {
+      (notification as any).props.readAt = new Date(record.read_at);
+    }
+    if (record.status) {
+      (notification as any).props.status = record.status;
+    }
+    if (record.delivery_results) {
+      (notification as any).props.deliveryResults = record.delivery_results;
+    }
+    if (record.created_at) {
+      (notification as any).props.createdAt = new Date(record.created_at);
+    }
+    if (record.updated_at) {
+      (notification as any).props.updatedAt = new Date(record.updated_at);
+    }
+
+    return notification;
   }
 
   private groupByStatus(notifications: any[]): Record<NotificationStatus, number> {

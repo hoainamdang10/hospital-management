@@ -11,6 +11,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientController = void 0;
 const crypto_1 = require("crypto");
 const ErrorHandlingMiddleware_1 = require("../middleware/ErrorHandlingMiddleware");
+const PatientDataHelper_1 = require("../../shared/helpers/PatientDataHelper");
+const PatientConstants_1 = require("../../shared/constants/PatientConstants");
 function getUserContext(req) {
     return req.user;
 }
@@ -290,105 +292,98 @@ class PatientController {
     /**
      * Update patient information
      * PUT /api/v1/patients/:patientId
+     *
+     * Uses smart defaults "Chưa cập nhật" and proper merge logic
+     * - undefined = no change (preserve existing value)
+     * - explicit value (including "Chưa cập nhật") = user intended change
      */
     async updatePatient(req, res) {
         try {
             const { patientId } = req.params;
-            const rawRequest = req.body;
+            const updateRequest = req.body;
+            // Get existing patient
+            const existingPatient = await this.patientQueryHandlers.handleGetPatientProfile({
+                queryId: `query-${Date.now()}`,
+                queryType: 'GetPatientProfile',
+                timestamp: new Date(),
+                requestedBy: getUserId(req),
+                data: { patientId, requestedBy: getUserId(req) }
+            });
+            if (!existingPatient.success) {
+                throw new ErrorHandlingMiddleware_1.NotFoundError(`Patient with ID ${patientId} not found`);
+            }
+            // Extract existing data as CreatePersonalInfo and CreateContactInfo
+            const existingPersonalInfo = {
+                fullName: existingPatient.data?.personalInfo?.fullName || PatientConstants_1.UNUPDATED,
+                dateOfBirth: existingPatient.data?.personalInfo?.dateOfBirth || PatientConstants_1.UNUPDATED,
+                gender: existingPatient.data?.personalInfo?.gender || 'other',
+                nationalId: existingPatient.data?.personalInfo?.nationalId || PatientConstants_1.UNUPDATED,
+                nationality: existingPatient.data?.personalInfo?.nationality || PatientConstants_1.UNUPDATED,
+                ethnicity: existingPatient.data?.personalInfo?.ethnicity || PatientConstants_1.UNUPDATED,
+                occupation: existingPatient.data?.personalInfo?.occupation || PatientConstants_1.UNUPDATED,
+                maritalStatus: existingPatient.data?.personalInfo?.maritalStatus || PatientConstants_1.UNUPDATED,
+            };
+            const existingContactInfo = {
+                primaryPhone: existingPatient.data?.contactInfo?.primaryPhone || PatientConstants_1.UNUPDATED,
+                secondaryPhone: existingPatient.data?.contactInfo?.secondaryPhone,
+                email: existingPatient.data?.contactInfo?.email || PatientConstants_1.UNUPDATED,
+                preferredContactMethod: existingPatient.data?.contactInfo?.preferredContactMethod || 'phone',
+                address: {
+                    street: existingPatient.data?.contactInfo?.address?.street || PatientConstants_1.UNUPDATED,
+                    ward: existingPatient.data?.contactInfo?.address?.ward || PatientConstants_1.UNUPDATED,
+                    district: existingPatient.data?.contactInfo?.address?.district || PatientConstants_1.UNUPDATED,
+                    city: existingPatient.data?.contactInfo?.address?.city || PatientConstants_1.UNUPDATED,
+                    province: existingPatient.data?.contactInfo?.address?.province || PatientConstants_1.UNUPDATED,
+                    postalCode: existingPatient.data?.contactInfo?.address?.postalCode,
+                    country: existingPatient.data?.contactInfo?.address?.country || 'Vietnam',
+                },
+            };
+            // Merge with new data using proper update logic
+            const updatedPersonalInfo = (0, PatientDataHelper_1.mergePersonalInfoForUpdate)(existingPersonalInfo, updateRequest);
+            const updatedContactInfo = (0, PatientDataHelper_1.mergeContactInfoForUpdate)(existingContactInfo, updateRequest);
+            // Check if anything actually changed
+            const personalInfoChanged = (0, PatientDataHelper_1.hasPersonalInfoChanged)(existingPersonalInfo, updatedPersonalInfo);
+            const contactInfoChanged = (0, PatientDataHelper_1.hasContactInfoChanged)(existingContactInfo, updatedContactInfo);
+            if (!personalInfoChanged && !contactInfoChanged && !updateRequest.basicMedicalInfo && !updateRequest.insuranceInfo) {
+                // No actual changes - return existing patient
+                ErrorHandlingMiddleware_1.ResponseHelper.success(res, existingPatient.data, 'Không có thay đổi nào được thực hiện');
+                return;
+            }
+            // Build normalized request for use case
             const normalizedRequest = {};
-            const buildPersonalInfo = () => {
-                if (rawRequest.personalInfo) {
-                    return rawRequest.personalInfo;
-                }
-                const requiredFields = [
-                    'fullName',
-                    'dateOfBirth',
-                    'gender',
-                    'nationalId',
-                    'nationality',
-                ];
-                const hasAllRequired = requiredFields.every((field) => rawRequest[field] !== undefined && rawRequest[field] !== null);
-                if (!hasAllRequired) {
-                    return undefined;
-                }
-                return {
-                    fullName: rawRequest.fullName,
-                    dateOfBirth: rawRequest.dateOfBirth,
-                    gender: rawRequest.gender,
-                    nationalId: rawRequest.nationalId,
-                    nationality: rawRequest.nationality,
-                    ethnicity: rawRequest.ethnicity,
-                    occupation: rawRequest.occupation,
-                    maritalStatus: rawRequest.maritalStatus,
-                };
-            };
-            const buildContactInfo = () => {
-                if (rawRequest.contactInfo) {
-                    return rawRequest.contactInfo;
-                }
-                const hasPrimaryPhone = rawRequest.primaryPhone !== undefined &&
-                    rawRequest.primaryPhone !== null;
-                const hasPreferredMethod = rawRequest.preferredContactMethod !== undefined &&
-                    rawRequest.preferredContactMethod !== null;
-                const address = rawRequest.address;
-                if (!hasPrimaryPhone || !hasPreferredMethod || !address) {
-                    return undefined;
-                }
-                const requiredAddressKeys = ['street', 'ward', 'district', 'city', 'province'];
-                const hasCompleteAddress = requiredAddressKeys.every((key) => address[key] !== undefined && address[key] !== null);
-                if (!hasCompleteAddress) {
-                    return undefined;
-                }
-                return {
-                    primaryPhone: rawRequest.primaryPhone,
-                    secondaryPhone: rawRequest.secondaryPhone,
-                    email: rawRequest.email,
-                    preferredContactMethod: rawRequest.preferredContactMethod,
-                    address: {
-                        street: address.street,
-                        ward: address.ward,
-                        district: address.district,
-                        city: address.city,
-                        province: address.province,
-                        postalCode: address.postalCode,
-                        country: address.country ?? 'Vietnam',
-                    },
-                };
-            };
-            const personalInfo = buildPersonalInfo();
-            if (personalInfo) {
-                normalizedRequest.personalInfo = personalInfo;
+            if (personalInfoChanged) {
+                normalizedRequest.personalInfo = updatedPersonalInfo;
             }
-            const contactInfo = buildContactInfo();
-            if (contactInfo) {
-                normalizedRequest.contactInfo = contactInfo;
+            if (contactInfoChanged) {
+                normalizedRequest.contactInfo = updatedContactInfo;
             }
-            if (rawRequest.basicMedicalInfo) {
-                normalizedRequest.basicMedicalInfo = rawRequest.basicMedicalInfo;
+            // Handle basic medical info
+            if (updateRequest.basicMedicalInfo) {
+                normalizedRequest.basicMedicalInfo = updateRequest.basicMedicalInfo;
             }
             else {
-                const basicFields = [
-                    'bloodType',
-                    'knownAllergies',
-                    'emergencyMedicalInfo',
-                ];
-                const hasBasicField = basicFields.some((field) => rawRequest[field] !== undefined);
+                const basicFields = ['bloodType', 'knownAllergies', 'emergencyMedicalInfo'];
+                const hasBasicField = basicFields.some((field) => updateRequest[field] !== undefined);
                 if (hasBasicField) {
                     normalizedRequest.basicMedicalInfo = {
-                        bloodType: rawRequest.bloodType,
-                        knownAllergies: rawRequest.knownAllergies,
-                        emergencyMedicalInfo: rawRequest.emergencyMedicalInfo,
+                        bloodType: updateRequest.bloodType,
+                        knownAllergies: updateRequest.knownAllergies,
+                        emergencyMedicalInfo: updateRequest.emergencyMedicalInfo,
                     };
                 }
             }
-            if (rawRequest.insuranceInfo) {
-                normalizedRequest.insuranceInfo =
-                    rawRequest.insuranceInfo;
+            // Handle insurance info
+            if (updateRequest.insuranceInfo) {
+                normalizedRequest.insuranceInfo = updateRequest.insuranceInfo;
             }
-            // Redact patient ID for HIPAA compliance
-            this.logger.info('Updating patient', {
+            // Log the update (HIPAA compliant)
+            this.logger.info('Updating patient with smart defaults', {
                 patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+                fieldsUpdated: Object.keys(normalizedRequest),
+                hasPersonalInfoChanges: personalInfoChanged,
+                hasContactInfoChanges: contactInfoChanged,
             });
+            // Execute update
             const payload = {
                 patientId,
                 updatedBy: getUserId(req),
@@ -398,7 +393,20 @@ class PatientController {
             if (!result.success) {
                 throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to update patient');
             }
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, { success: true }, 'Cập nhật thông tin bệnh nhân thành công');
+            // Get updated patient for response
+            const updatedPatientResult = await this.patientQueryHandlers.handleGetPatientProfile({
+                queryId: `query-${Date.now()}`,
+                queryType: 'GetPatientProfile',
+                timestamp: new Date(),
+                requestedBy: getUserId(req),
+                data: { patientId, requestedBy: getUserId(req) }
+            });
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, {
+                patient: updatedPatientResult.data,
+                fieldsUpdated: Object.keys(normalizedRequest),
+                completionPercentage: updatedPersonalInfo ?
+                    Math.round((Object.values(updatedPersonalInfo).filter(v => v !== PatientConstants_1.UNUPDATED).length / Object.keys(updatedPersonalInfo).length) * 100) : 0
+            }, 'Cập nhật thông tin bệnh nhân thành công');
         }
         catch (error) {
             this.logger.error('Error updating patient', {

@@ -17,7 +17,8 @@ import { IPatientRepository } from '../../../domain/repositories/IPatientReposit
  */
 export interface UserActivatedEventData {
   userId: string;
-  email: string;
+  email?: string; // Email may be undefined in some cases
+  fullName?: string; // Full name from user registration
   activatedAt: Date;
 }
 
@@ -59,24 +60,24 @@ export class UserActivatedEventHandler {
       this.logger.info('Creating patient record for activated user', {
         userId: eventData.userId,
         email: eventData.email,
+        fullName: eventData.fullName,
         activatedAt: eventData.activatedAt
       });
 
-      // Create patient using repository with minimal required data
-      // User will update full profile later via PatientUpdatedEvent sync
+      // Create patient using repository - use fullName from event data
       const patient = await this.patientRepository.createFromUserEvent({
         userId: eventData.userId,
-        email: eventData.email,
-        fullName: eventData.email.split('@')[0], // Temporary name, user will update
-        phoneNumber: undefined,
-        address: undefined,
-        ward: undefined,
-        district: undefined,
-        city: undefined,
-        province: undefined,
-        dateOfBirth: undefined,
-        gender: undefined,
-        citizenId: undefined
+        email: eventData.email || '',
+        fullName: eventData.fullName || (eventData.email ? eventData.email.split('@')[0] : `User-${eventData.userId.substring(0, 8)}`), // Use fullName from event, fallback to email
+        phoneNumber: 'Chưa cập nhật',     // Smart default
+        address: 'Chưa cập nhật',         // Smart default
+        ward: 'Chưa cập nhật',            // Smart default
+        district: 'Chưa cập nhật',        // Smart default
+        city: 'Chưa cập nhật',            // Smart default
+        province: 'Chưa cập nhật',        // Smart default
+        dateOfBirth: new Date('2000-01-01'), // Smart default (Date object)
+        gender: 'other',                  // Smart default
+        citizenId: 'Chưa cập nhật'        // Smart default
       });
 
       this.logger.info('Patient record created successfully from user activation', {

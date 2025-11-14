@@ -13,6 +13,8 @@ import { GetPatientBillingSummaryUseCase } from '../../application/use-cases/Get
 import { GetRevenueReportUseCase } from '../../application/use-cases/GetRevenueReportUseCase';
 import { CreatePayOSPaymentLinkUseCase } from '../../application/use-cases/CreatePayOSPaymentLinkUseCase';
 import { HandlePayOSWebhookUseCase } from '../../application/use-cases/HandlePayOSWebhookUseCase';
+import { SendInvoiceEmailUseCase } from '../../application/use-cases/SendInvoiceEmailUseCase';
+import { CreatePaymentReminderUseCase } from '../../application/use-cases/CreatePaymentReminderUseCase';
 import { AuthenticatedRequest } from '../middleware/AuthenticationMiddleware';
 
 export class InvoiceController {
@@ -30,7 +32,9 @@ export class InvoiceController {
     private readonly getPatientBillingSummaryUseCase: GetPatientBillingSummaryUseCase,
     private readonly getRevenueReportUseCase: GetRevenueReportUseCase,
     private readonly createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase,
-    private readonly handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase
+    private readonly handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase,
+    private readonly sendInvoiceEmailUseCase: SendInvoiceEmailUseCase,
+    private readonly createPaymentReminderUseCase: CreatePaymentReminderUseCase
   ) {}
 
   public createInvoice = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -185,6 +189,30 @@ export class InvoiceController {
       const result = await this.handlePayOSWebhookUseCase.execute({
         webhookData: req.body,
         signature
+      });
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  public sendInvoiceEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const result = await this.sendInvoiceEmailUseCase.execute({
+        invoiceId: req.params.id,
+        recipientEmail: req.body.recipientEmail
+      });
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  public createPaymentReminder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const result = await this.createPaymentReminderUseCase.execute({
+        invoiceId: req.params.id,
+        reminderDays: req.body.reminderDays
       });
       res.status(200).json(result);
     } catch (error: any) {

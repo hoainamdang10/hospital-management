@@ -122,8 +122,11 @@ export const scheduleAppointmentSchema = Joi.object({
   }).required(),
 
   provider: Joi.object({
-    providerId: Joi.string()
-      .pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/)
+    providerId: Joi.alternatives()
+      .try(
+        Joi.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
+        Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/)    // e.g., DOC-GEN-202511-955
+      )
       .required(),
 
     fullName: vietnameseHealthcareRules.vietnameseName.optional(),
@@ -139,18 +142,16 @@ export const scheduleAppointmentSchema = Joi.object({
         "consultation",
         "follow_up",
         "emergency",
+        "telemedicine",
         "surgery",
-        "diagnostic",
-        "therapy",
-        "vaccination",
-        "checkup",
-        "prescription",
-        "referral",
+        "procedure",
+        "urgent_consultation",
+        "medical_test",
       )
       .required(),
 
     priority: Joi.string()
-      .valid("low", "normal", "high", "urgent", "emergency")
+      .valid("low", "normal", "urgent", "emergency")
       .required(),
 
     startTime: vietnameseHealthcareRules.businessHours

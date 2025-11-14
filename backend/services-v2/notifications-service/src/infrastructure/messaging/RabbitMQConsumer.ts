@@ -56,13 +56,13 @@ export class RabbitMQConsumer {
       });
 
       // Create connection
-      this.connection = await amqp.connect(this.config.url);
+      this.connection = (await amqp.connect(this.config.url)) as any;
       if (!this.connection) {
         throw new Error('Failed to create RabbitMQ connection');
       }
 
       // Create channel
-      this.channel = await this.connection.createChannel();
+      this.channel = await (this.connection as any).createChannel();
       if (!this.channel) {
         throw new Error('Failed to create RabbitMQ channel');
       }
@@ -347,12 +347,12 @@ export class RabbitMQConsumer {
       }
 
       if (this.channel) {
-        await this.channel.close();
+        await (this.channel as any).close();
         console.log('✅ Channel closed');
       }
 
       if (this.connection) {
-        await this.connection.close();
+        await (this.connection as any).close();
         console.log('✅ Connection closed');
       }
 

@@ -27,8 +27,11 @@ const joinQueueSchema = Joi.object({
       'string.pattern.base': 'Mã bệnh nhân không đúng định dạng',
       'any.required': 'Mã bệnh nhân là bắt buộc'
     }),
-  doctorId: Joi.string()
-    .pattern(/^DEPT-DOC-\d{6}-\d{3}$/)
+  doctorId: Joi.alternatives()
+    .try(
+      Joi.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
+      Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/)          // e.g., DOC-GEN-202511-955
+    )
     .required()
     .messages({
       'string.pattern.base': 'Mã bác sĩ không đúng định dạng',
@@ -51,8 +54,11 @@ const joinQueueSchema = Joi.object({
 });
 
 const callNextPatientSchema = Joi.object({
-  doctorId: Joi.string()
-    .pattern(/^DEPT-DOC-\d{6}-\d{3}$/)
+  doctorId: Joi.alternatives()
+    .try(
+      Joi.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/),
+      Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/)
+    )
     .required()
     .messages({
       'string.pattern.base': 'Mã bác sĩ không đúng định dạng',
@@ -68,8 +74,11 @@ const leaveQueueSchema = Joi.object({
       'string.pattern.base': 'Mã bệnh nhân không đúng định dạng',
       'any.required': 'Mã bệnh nhân là bắt buộc'
     }),
-  doctorId: Joi.string()
-    .pattern(/^DEPT-DOC-\d{6}-\d{3}$/)
+  doctorId: Joi.alternatives()
+    .try(
+      Joi.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
+      Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/)          // e.g., DOC-GEN-202511-955
+    )
     .required()
     .messages({
       'string.pattern.base': 'Mã bác sĩ không đúng định dạng',

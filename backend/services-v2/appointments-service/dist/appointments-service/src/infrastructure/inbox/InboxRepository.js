@@ -158,6 +158,14 @@ class InboxRepository {
             createdAt: row.created_at ? new Date(row.created_at) : undefined
         };
     }
+    // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+    /**
+     * Store event in inbox (alias for save)
+     * Used by event consumers for idempotent processing
+     */
+    async store(event) {
+        await this.save(event);
+    }
 }
 exports.InboxRepository = InboxRepository;
 //# sourceMappingURL=InboxRepository.js.map

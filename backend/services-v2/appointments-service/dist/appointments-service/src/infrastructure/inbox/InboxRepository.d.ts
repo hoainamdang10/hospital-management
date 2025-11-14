@@ -56,5 +56,10 @@ export declare class InboxRepository {
      * Map database row to InboxEvent
      */
     private mapToInboxEvent;
+    /**
+     * Store event in inbox (alias for save)
+     * Used by event consumers for idempotent processing
+     */
+    store(event: InboxEvent): Promise<void>;
 }
 //# sourceMappingURL=InboxRepository.d.ts.map

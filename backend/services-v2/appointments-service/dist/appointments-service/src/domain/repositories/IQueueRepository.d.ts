@@ -35,5 +35,70 @@ export interface IQueueRepository {
      * Returns the queue that contains the patient (for current day)
      */
     findByPatient(patientId: string): Promise<Queue | null>;
+    /**
+     * Add appointment to rescheduling queue
+     * Used by event consumers for rescheduling operations
+     */
+    addToReschedulingQueue(appointment: any): Promise<void>;
+    /**
+     * Add to pre-authorization tracking queue
+     * Used by BillingEventConsumer for pre-auth tracking
+     */
+    addToPreAuthTrackingQueue(data: {
+        authorizationId: string;
+        patientId: string;
+        appointmentId?: string;
+        procedureCode: string;
+        urgencyLevel: string;
+        requestedAt: Date;
+        status: string;
+    }): Promise<void>;
+    /**
+     * Update pre-authorization tracking
+     * Used by BillingEventConsumer for pre-auth status updates
+     */
+    updatePreAuthTracking(data: {
+        authorizationId: string;
+        status: string;
+        approvedAt?: Date;
+        approvedBy?: string;
+        validUntil?: Date;
+        deniedAt?: Date;
+        denialReason?: string;
+        appealProcess?: string;
+    }): Promise<void>;
+    /**
+     * Add to billing resolution queue
+     * Used by BillingEventConsumer for billing issues
+     */
+    addToBillingResolutionQueue(data: {
+        authorizationId: string;
+        appointmentId?: string;
+        patientId: string;
+        issueType: string;
+        priority: string;
+        addedAt: Date;
+    }): Promise<void>;
+    /**
+     * Add to billing review queue
+     * Used by BillingEventConsumer for billing reviews
+     */
+    addToBillingReviewQueue(data: {
+        appointmentId: string;
+        patientId: string;
+        issueType: string;
+        priority: string;
+        addedAt: Date;
+    }): Promise<void>;
+    /**
+     * Add to urgent processing queue
+     * Used by BillingEventConsumer for urgent billing processing
+     */
+    addToUrgentProcessingQueue(data: {
+        appointmentId: string;
+        priority: string;
+        reason: string;
+        addedAt: Date;
+    }): Promise<void>;
 }
 //# sourceMappingURL=IQueueRepository.d.ts.map

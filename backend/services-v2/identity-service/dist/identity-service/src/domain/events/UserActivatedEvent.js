@@ -12,16 +12,19 @@ const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 class UserActivatedEvent extends domain_event_1.DomainEvent {
     constructor(userIdValue, // Changed from UserId to string
     emailValue, // Changed from Email to string
+    fullNameValue, // Full name from user registration
     activatedAt) {
-        super('UserActivated', userIdValue, 'User', { userIdValue, emailValue, activatedAt });
+        super('UserActivated', userIdValue, 'User', { userIdValue, emailValue, fullNameValue, activatedAt });
         this.userIdValue = userIdValue;
         this.emailValue = emailValue;
+        this.fullNameValue = fullNameValue;
         this.activatedAt = activatedAt;
     }
     getEventData() {
         return {
             userId: this.userIdValue,
             email: this.emailValue,
+            fullName: this.fullNameValue,
             activatedAt: this.activatedAt
         };
     }

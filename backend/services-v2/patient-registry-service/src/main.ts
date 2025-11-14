@@ -14,7 +14,6 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/swagger/swagger.config';
@@ -28,6 +27,7 @@ import { PatientCache } from './infrastructure/cache/PatientCache';
 import { PatientRegistryDegradation } from './infrastructure/resilience/GracefulDegradation';
 import { createOptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
 import type { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseOutboxRepository } from './infrastructure/outbox/SupabaseOutboxRepository';
 import { OutboxPublisherWorker } from './infrastructure/outbox/OutboxPublisherWorker';
 
@@ -103,7 +103,7 @@ import { AuthorizationMiddleware } from './presentation/middleware/Authorization
 
 // Configuration
 const config = {
-  port: process.env.PORT || 3023,
+  port: process.env.PORT || 3003,
   supabaseUrl: process.env.SUPABASE_URL || '',
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
@@ -116,7 +116,7 @@ const config = {
     process.env.ALLOWED_ORIGINS || 'http://localhost:3000'
   ).split(','),
   identityServiceUrl:
-    process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021',
+    process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001',
 };
 
 const rabbitmqConnectionRetries = Number(
@@ -145,8 +145,8 @@ class PatientRegistryServiceApp {
   private degradationService!: PatientRegistryDegradation;
   private auditService!: AuditService;
   private optimizedSupabase!: OptimizedSupabaseClient;
-  private supabaseClient!: any; // Raw Supabase client for PatientId generation
-  private identityEventConsumer!: any; // IdentityEventConsumer
+  private supabaseClient!: SupabaseClient; // Raw Supabase client for PatientId generation
+  private identityEventConsumer!: IdentityEventConsumer; // IdentityEventConsumer
   private outboxRepository!: SupabaseOutboxRepository;
   private outboxWorker!: OutboxPublisherWorker;
 
@@ -301,19 +301,18 @@ class PatientRegistryServiceApp {
       });
 
       // Store raw Supabase client for PatientId generation
-      this.supabaseClient = this.optimizedSupabase.getConnection();
+      this.supabaseClient = this.optimizedSupabase.getConnection() as unknown as SupabaseClient;
 
       // Initialize Audit Service
-      // Type cast needed due to duplicate @supabase/supabase-js in root and service node_modules
       this.auditService = new AuditService(
-        this.optimizedSupabase.getConnection() as any,
+        this.optimizedSupabase.getConnection() as unknown as SupabaseClient,
         logger,
       );
       logger.info('Audit service initialized', {});
 
       // Initialize Outbox Repository
       this.outboxRepository = new SupabaseOutboxRepository(
-        this.optimizedSupabase.getConnection() as any,
+        this.optimizedSupabase.getConnection() as unknown as SupabaseClient,
         logger,
       );
       logger.info('Outbox repository initialized', {});
@@ -502,7 +501,7 @@ class PatientRegistryServiceApp {
       // Initialize Storage Service
       // Type cast needed due to duplicate @supabase/supabase-js in root and service node_modules
       this.storageService = new SupabaseStorageService(
-        this.optimizedSupabase.getConnection() as any,
+        this.optimizedSupabase.getConnection() as unknown as SupabaseClient,
         logger,
       );
 

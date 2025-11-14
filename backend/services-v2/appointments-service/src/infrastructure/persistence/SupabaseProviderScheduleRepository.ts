@@ -203,4 +203,160 @@ export class SupabaseProviderScheduleRepository implements IProviderScheduleRepo
       throw error;
     }
   }
+
+  // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+
+  /**
+   * Update provider availability
+   * Used by staff event consumers for availability updates
+   */
+  async updateAvailability(providerId: string, availability: any): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from(this.tableName)
+        .update({
+          availability: JSON.stringify(availability),
+          updated_at: new Date().toISOString()
+        })
+        .eq('provider_id', providerId);
+
+      if (error) {
+        console.error('Supabase updateAvailability error:', error);
+        throw new Error(`Failed to update provider availability: ${error.message || JSON.stringify(error)}`);
+      }
+
+      console.log(`✅ Updated availability for provider ${providerId}`);
+    } catch (error) {
+      console.error('Error updating provider availability:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add shift to provider schedule
+   * Used by staff event consumers for shift management
+   */
+  async addShift(providerId: string, shift: any): Promise<void> {
+    try {
+      // Get current schedule
+      const { data: currentData, error: fetchError } = await this.supabase
+        .from(this.tableName)
+        .select('schedule_data')
+        .eq('provider_id', providerId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      let scheduleData = currentData?.schedule_data ? JSON.parse(currentData.schedule_data) : {};
+      if (!scheduleData.shifts) {
+        scheduleData.shifts = [];
+      }
+      scheduleData.shifts.push(shift);
+
+      // Update with new shift
+      const { error } = await this.supabase
+        .from(this.tableName)
+        .upsert({
+          provider_id: providerId,
+          schedule_data: JSON.stringify(scheduleData),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Supabase addShift error:', error);
+        throw new Error(`Failed to add shift: ${error.message || JSON.stringify(error)}`);
+      }
+
+      console.log(`✅ Added shift for provider ${providerId}`);
+    } catch (error) {
+      console.error('Error adding shift:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove shift from provider schedule
+   * Used by staff event consumers for shift management
+   */
+  async removeShift(providerId: string, shiftId: string): Promise<void> {
+    try {
+      // Get current schedule
+      const { data: currentData, error: fetchError } = await this.supabase
+        .from(this.tableName)
+        .select('schedule_data')
+        .eq('provider_id', providerId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      let scheduleData = currentData?.schedule_data ? JSON.parse(currentData.schedule_data) : {};
+      if (scheduleData.shifts) {
+        scheduleData.shifts = scheduleData.shifts.filter((shift: any) => shift.id !== shiftId);
+      }
+
+      // Update without the shift
+      const { error } = await this.supabase
+        .from(this.tableName)
+        .upsert({
+          provider_id: providerId,
+          schedule_data: JSON.stringify(scheduleData),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Supabase removeShift error:', error);
+        throw new Error(`Failed to remove shift: ${error.message || JSON.stringify(error)}`);
+      }
+
+      console.log(`✅ Removed shift ${shiftId} for provider ${providerId}`);
+    } catch (error) {
+      console.error('Error removing shift:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update schedule pattern
+   * Used by staff event consumers for pattern changes
+   */
+  async updatePattern(providerId: string, pattern: any): Promise<void> {
+    try {
+      // Get current schedule
+      const { data: currentData, error: fetchError } = await this.supabase
+        .from(this.tableName)
+        .select('schedule_data')
+        .eq('provider_id', providerId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      let scheduleData = currentData?.schedule_data ? JSON.parse(currentData.schedule_data) : {};
+      scheduleData.pattern = pattern;
+
+      // Update with new pattern
+      const { error } = await this.supabase
+        .from(this.tableName)
+        .upsert({
+          provider_id: providerId,
+          schedule_data: JSON.stringify(scheduleData),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Supabase updatePattern error:', error);
+        throw new Error(`Failed to update pattern: ${error.message || JSON.stringify(error)}`);
+      }
+
+      console.log(`✅ Updated pattern for provider ${providerId}`);
+    } catch (error) {
+      console.error('Error updating pattern:', error);
+      throw error;
+    }
+  }
 }

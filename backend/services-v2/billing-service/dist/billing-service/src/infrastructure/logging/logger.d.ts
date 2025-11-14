@@ -10,5 +10,6 @@ export declare const logger: {
     error: (message: string, ...args: any[]) => void;
     warn: (message: string, ...args: any[]) => void;
     debug: (message: string, ...args: any[]) => void;
+    fatal: (message: string, ...args: any[]) => void;
 };
 //# sourceMappingURL=logger.d.ts.map

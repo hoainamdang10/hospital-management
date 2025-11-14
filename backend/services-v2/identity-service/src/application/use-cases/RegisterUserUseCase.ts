@@ -1,5 +1,4 @@
 import { getErrorMessage } from "../../utils/error-helper";
-import { VerifyEmailResponse } from "./VerifyEmailUseCase";
 /**
  * Register User Use Case - Verify-First Approach
  * Handles user registration with email verification BEFORE creating user
@@ -16,7 +15,7 @@ import { VerifyEmailResponse } from "./VerifyEmailUseCase";
 
 import { IUseCase } from "@shared/application/use-cases/base/use-case.interface";
 import { IUserRepository } from "../repositories/IUserRepository";
-import { ICircuitBreaker } from "../services/ICircuitBreaker";
+// import { ICircuitBreaker } from "../services/ICircuitBreaker"; // DISABLED: Circuit breaker disabled for development
 import { Email } from "../../domain/value-objects/Email";
 import { IEventPublisher } from "../services/IEventPublisher";
 import { ILogger } from "../services/ILogger";
@@ -27,11 +26,8 @@ import { EmailVerificationToken } from "../../domain/value-objects/EmailVerifica
 import { PendingRegistrationCreatedEvent } from "../../domain/events/PendingRegistrationCreatedEvent";
 import { encryptPassword } from "../../utils/password-crypto";
 import * as bcrypt from "bcrypt";
+import { OutboxService } from "../../infrastructure/outbox/OutboxService";
 
-interface AutoVerificationConfig {
-  enabled: boolean;
-  verifyToken: (token: string) => Promise<VerifyEmailResponse>;
-}
 export interface RegisterUserRequest {
   email: string;
   password: string;
@@ -70,28 +66,31 @@ export class RegisterUserUseCase
     private userRepository: IUserRepository,
     private pendingRegistrationRepository: IPendingRegistrationRepository,
     private logger: ILogger,
-    private circuitBreaker: ICircuitBreaker,
+    // private circuitBreaker: ICircuitBreaker, // DISABLED: Circuit breaker disabled for development
     private emailService: IEmailService,
     private jwtSecret: string,
     private frontendUrl: string,
-    private eventPublisher?: IEventPublisher, // Optional for backward compatibility
-    private autoVerification?: AutoVerificationConfig,
+    private eventPublisher?: IEventPublisher,
+    private outboxService?: OutboxService,
   ) {}
 
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
-    return await this.circuitBreaker.execute(
-      async () => this.executeImpl(request),
-      async () => {
-        this.logger.error("Circuit breaker open for RegisterUserUseCase");
-        return {
-          success: false,
-          message:
-            "Dịch vụ đăng ký tạm thời không khả dụng. Vui lòng thử lại sau.",
-          requiresEmailVerification: false,
-          error: "SERVICE_UNAVAILABLE",
-        };
-      },
-    );
+    // DEV: Disable circuit breaker for development
+    return await this.executeImpl(request);
+    
+    // PROD: Enable circuit breaker for production
+    // return await this.circuitBreaker.execute(
+    //   async () => this.executeImpl(request),
+    //   async () => {
+    //     this.logger.error("Circuit breaker open for RegisterUserUseCase");
+    //     return {
+    //       success: false,
+    //       error: "SERVICE_TEMPORARILY_UNAVAILABLE",
+    //       message: "Dịch vụ tạm thời không khả dụng, vui lòng thử lại sau",
+    //       requiresEmailVerification: true
+    //     };
+    //   }
+    // );
   }
 
   private async executeImpl(
@@ -275,15 +274,9 @@ export class RegisterUserUseCase
         };
       }
 
-      if (this.autoVerification?.enabled) {
-        await this.autoVerifyPendingRegistration(
-          verificationToken.token,
-          pendingRegistration.id,
-          email.value,
-        );
-      }
+      // Auto-verification disabled - always require email verification
 
-      // 9. Publish domain event
+      // 9. Publish domain event using Outbox Pattern for guaranteed delivery
       if (this.eventPublisher) {
         try {
           const event = new PendingRegistrationCreatedEvent(
@@ -294,17 +287,30 @@ export class RegisterUserUseCase
             pendingRegistration.expiresAt,
           );
 
-          await this.eventPublisher.publishDomainEvents([event]);
+          // Store in outbox first (guaranteed persistence)
+          if (this.outboxService) {
+            await this.outboxService.storeEvent(event);
+            this.logger.info("PendingRegistrationCreated event stored in outbox", {
+              pendingRegistrationId: pendingRegistration.id,
+            });
+          }
 
+          // Publish immediately
+          await this.eventPublisher.publishDomainEvents([event]);
           this.logger.info("PendingRegistrationCreated event published", {
             pendingRegistrationId: pendingRegistration.id,
           });
+
+          this.logger.info("PendingRegistrationCreated event processed successfully", {
+            pendingRegistrationId: pendingRegistration.id,
+            publishedImmediately: !!this.eventPublisher,
+          });
         } catch (error) {
-          this.logger.error("Failed to publish domain event", {
+          this.logger.error("Failed to process PendingRegistrationCreated event", {
             pendingRegistrationId: pendingRegistration.id,
             error: getErrorMessage(error),
           });
-          // Don't fail registration if event publishing fails
+          // Don't fail registration if event processing fails
         }
       }
 
@@ -315,12 +321,15 @@ export class RegisterUserUseCase
         email: email.value,
         message:
           "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực có hiệu lực trong 24 giờ.",
-        requiresEmailVerification: !this.autoVerification?.enabled,
+        requiresEmailVerification: true,
       };
     } catch (error) {
       this.logger.error("User registration failed", {
         email: request.email,
         error: getErrorMessage(error),
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorStack: error instanceof Error ? error.stack : 'No stack',
+        fullError: JSON.stringify(error),
       });
 
       return {
@@ -360,39 +369,5 @@ export class RegisterUserUseCase
     }
 
     return null;
-  }
-
-  private async autoVerifyPendingRegistration(
-    verificationToken: string,
-    pendingRegistrationId: string,
-    email: string,
-  ): Promise<void> {
-    if (!this.autoVerification?.verifyToken) {
-      return;
-    }
-
-    try {
-      const result = await this.autoVerification.verifyToken(verificationToken);
-
-      if (result.success) {
-        this.logger.info("Auto verification completed successfully", {
-          pendingRegistrationId,
-          email,
-        });
-      } else {
-        this.logger.warn("Auto verification failed", {
-          pendingRegistrationId,
-          email,
-          error: result.error,
-          message: result.message,
-        });
-      }
-    } catch (error) {
-      this.logger.error("Auto verification encountered an error", {
-        pendingRegistrationId,
-        email,
-        error: getErrorMessage(error),
-      });
-    }
   }
 }

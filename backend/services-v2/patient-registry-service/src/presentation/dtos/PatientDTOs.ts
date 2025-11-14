@@ -101,6 +101,24 @@ export interface UpdatePatientRequest {
   bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
   knownAllergies?: string[];
   emergencyMedicalInfo?: string;
+  basicMedicalInfo?: {
+    bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+    knownAllergies?: string[];
+    emergencyMedicalInfo?: string;
+  };
+
+  // Insurance Info
+  insuranceInfo?: {
+    provider: string;
+    policyNumber: string;
+    groupNumber?: string;
+    validFrom: string;
+    validTo: string;
+    coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
+    isVietnameseInsurance: boolean;
+    bhytNumber?: string;
+    isPrimary: boolean;
+  };
 }
 
 /**

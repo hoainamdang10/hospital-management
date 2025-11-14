@@ -1,75 +1,45 @@
 /**
- * NotificationController - Presentation Controller
- * REST API controller for notification operations with Vietnamese healthcare context
+ * NotificationController - Simplified Presentation Controller
+ * REST API controller for core notification operations with Vietnamese healthcare context
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.0.0-simplified
  * @compliance Clean Architecture, REST API, Vietnamese Healthcare Standards
  */
 import { Request, Response } from 'express';
 import { NotificationApplicationService } from '../../application/services/NotificationApplicationService';
+import { MarkNotificationAsReadUseCase } from '../../application/use-cases/MarkNotificationAsReadUseCase';
+import { GetUserNotificationsUseCase } from '../../application/use-cases/GetUserNotificationsUseCase';
+import { UpdateNotificationPreferencesUseCase } from '../../application/use-cases/UpdateNotificationPreferencesUseCase';
 export declare class NotificationController {
     private readonly notificationService;
-    constructor(notificationService: NotificationApplicationService);
+    private readonly markAsReadUseCase;
+    private readonly getUserNotificationsUseCase;
+    private readonly updatePreferencesUseCase;
+    constructor(notificationService: NotificationApplicationService, markAsReadUseCase: MarkNotificationAsReadUseCase, getUserNotificationsUseCase: GetUserNotificationsUseCase, updatePreferencesUseCase: UpdateNotificationPreferencesUseCase);
     /**
      * Send notification immediately
-     * POST /api/v1/notifications/send
      */
     sendNotification(req: Request, res: Response): Promise<void>;
     /**
-     * Schedule notification for future delivery
-     * POST /api/v1/notifications/schedule
-     */
-    scheduleNotification(req: Request, res: Response): Promise<void>;
-    /**
      * Get notification by ID
-     * GET /api/v1/notifications/:id
      */
     getNotification(req: Request, res: Response): Promise<void>;
     /**
-     * Get notifications by recipient
-     * GET /api/v1/notifications/recipient/:recipientId
+     * Get user notification preferences
      */
-    getNotificationsByRecipient(req: Request, res: Response): Promise<void>;
+    getNotificationPreferences(req: Request, res: Response): Promise<void>;
     /**
-     * Search notifications
-     * POST /api/v1/notifications/search
+     * Mark notification as read/unread
      */
-    searchNotifications(req: Request, res: Response): Promise<void>;
+    markAsRead(req: Request, res: Response): Promise<void>;
     /**
-     * Cancel notification
-     * PUT /api/v1/notifications/:id/cancel
+     * Get user notifications with pagination and filters
      */
-    cancelNotification(req: Request, res: Response): Promise<void>;
+    getUserNotifications(req: Request, res: Response): Promise<void>;
     /**
-     * Retry failed notification
-     * PUT /api/v1/notifications/:id/retry
+     * Update notification preferences
      */
-    retryNotification(req: Request, res: Response): Promise<void>;
-    /**
-     * Send bulk notifications
-     * POST /api/v1/notifications/bulk
-     */
-    sendBulkNotifications(req: Request, res: Response): Promise<void>;
-    /**
-     * Process notification queue
-     * POST /api/v1/notifications/process-queue
-     */
-    processQueue(req: Request, res: Response): Promise<void>;
-    /**
-     * Get notification analytics
-     * GET /api/v1/notifications/analytics
-     */
-    getAnalytics(req: Request, res: Response): Promise<void>;
-    /**
-     * Get dashboard summary
-     * GET /api/v1/notifications/dashboard
-     */
-    getDashboard(_req: Request, res: Response): Promise<void>;
-    /**
-     * Get service health
-     * GET /api/v1/notifications/health
-     */
-    getHealth(_req: Request, res: Response): Promise<void>;
+    updatePreferences(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=NotificationController.d.ts.map

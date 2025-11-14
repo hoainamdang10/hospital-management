@@ -8,6 +8,7 @@
  */
 
 import { Channel, ConsumeMessage } from "amqplib";
+import * as amqp from "amqplib";
 import { connectRabbitMQWithRetry } from "@shared/infrastructure/event-bus/rabbitmq-connection";
 import { ILogger } from "@shared/application/services/logger.interface";
 import {
@@ -82,10 +83,15 @@ export class PatientEventConsumer {
    */
   private async connect(): Promise<void> {
     try {
+      // Create connection with retry logic
       this.connection = await connectRabbitMQWithRetry(
-        this.config.rabbitmqUrl,
-        this.config.connectionRetries || 5,
-        this.config.connectionRetryDelayMs || 3000
+        () => amqp.connect(this.config.rabbitmqUrl),
+        this.logger,
+        {
+          connectionName: 'PatientEventConsumer',
+          maxAttempts: this.config.connectionRetries,
+          initialDelayMs: this.config.connectionRetryDelayMs,
+        },
       );
 
       this.channel = await (this.connection as any).createChannel();
@@ -94,13 +100,14 @@ export class PatientEventConsumer {
       this.logger.info('Connected to RabbitMQ for Patient events');
 
       // Setup connection error handling
-      this.connection.on('error', (error: Error) => {
+      this.connection?.on('error', (error: Error) => {
         this.logger.error('RabbitMQ connection error', { error: error.message });
         this.handleConnectionError();
       });
 
-      this.connection.on('close', () => {
+      this.connection?.on('close', () => {
         this.logger.warn('RabbitMQ connection closed');
+        this.isConnected = false;
         this.handleConnectionError();
       });
 

@@ -56,6 +56,7 @@ import { IDegradationService } from "../../application/services/IDegradationServ
 import { IPermissionService } from "../../domain/services/IPermissionService";
 import { ILogger } from "../../application/services/ILogger";
 import { ICacheService } from "../../application/services/ICacheService";
+import { OutboxPublisher } from "../../infrastructure/outbox/OutboxPublisher";
 
 /**
  * All dependencies needed by route handlers
@@ -133,4 +134,5 @@ export interface RouteDependencies {
   healthCheck: IHealthCheckService;
   degradationService: IDegradationService;
   permissionService: IPermissionService;
+  outboxPublisher: OutboxPublisher;
 }

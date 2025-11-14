@@ -42,6 +42,8 @@ export interface NotificationProps {
   status: NotificationStatus;
   priority: NotificationPriority;
   sentAt?: Date;
+  deliveredAt?: Date;
+  readAt?: Date;
   deliveryResults?: DeliveryResult[];
   metadata: NotificationMetadata;
   createdAt: Date;
@@ -67,7 +69,15 @@ export class Notification extends HealthcareAggregateRoot<NotificationProps> {
     return this.props.notificationId;
   }
 
+  getId(): NotificationId {
+    return this.props.notificationId;
+  }
+
   get recipient(): RecipientInfo {
+    return this.props.recipient;
+  }
+
+  getRecipient(): RecipientInfo {
     return this.props.recipient;
   }
 
@@ -79,7 +89,15 @@ export class Notification extends HealthcareAggregateRoot<NotificationProps> {
     return this.props.content;
   }
 
+  getContent(): NotificationContent {
+    return this.props.content;
+  }
+
   get channels(): NotificationChannel[] {
+    return this.props.channels;
+  }
+
+  getChannels(): NotificationChannel[] {
     return this.props.channels;
   }
 
@@ -87,11 +105,23 @@ export class Notification extends HealthcareAggregateRoot<NotificationProps> {
     return this.props.status;
   }
 
+  getStatus(): NotificationStatus {
+    return this.props.status;
+  }
+
   get priority(): NotificationPriority {
     return this.props.priority;
   }
 
+  getPriority(): NotificationPriority {
+    return this.props.priority;
+  }
+
   get sentAt(): Date | undefined {
+    return this.props.sentAt;
+  }
+
+  getSentAt(): Date | undefined {
     return this.props.sentAt;
   }
 
@@ -109,6 +139,30 @@ export class Notification extends HealthcareAggregateRoot<NotificationProps> {
 
   override get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  get deliveredAt(): Date | undefined {
+    return this.props.deliveredAt;
+  }
+
+  getDeliveredAt(): Date | undefined {
+    return this.props.deliveredAt;
+  }
+
+  get readAt(): Date | undefined {
+    return this.props.readAt;
+  }
+
+  getReadAt(): Date | undefined {
+    return this.props.readAt;
+  }
+
+  getHealthcareContext(): any {
+    return this.props.metadata.healthcareContext;
+  }
+
+  getCreatedAt(): Date {
+    return this.props.createdAt;
   }
 
   // ==================== Abstract Methods Implementation ====================
@@ -177,6 +231,8 @@ export class Notification extends HealthcareAggregateRoot<NotificationProps> {
       status: "PENDING",
       priority,
       sentAt: undefined,
+      deliveredAt: undefined,
+      readAt: undefined,
       deliveryResults: undefined,
       metadata,
       createdAt: new Date(),
@@ -258,6 +314,14 @@ export class Notification extends HealthcareAggregateRoot<NotificationProps> {
 
   public isUrgent(): boolean {
     return this.props.priority === "URGENT";
+  }
+
+  public isRead(): boolean {
+    return this.props.readAt !== undefined && this.props.readAt !== null;
+  }
+
+  public isUnread(): boolean {
+    return !this.isRead();
   }
 
   // ==================== Required Abstract Methods ====================

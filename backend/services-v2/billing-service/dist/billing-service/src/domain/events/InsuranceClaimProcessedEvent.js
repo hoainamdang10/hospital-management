@@ -11,7 +11,7 @@ class InsuranceClaimProcessedEvent extends domain_event_1.DomainEvent {
             approved,
             processedAt: new Date()
         };
-        super('InsuranceClaimProcessed', invoiceId, 'Invoice', eventData, 1, correlationId, causationId, userIdForAudit);
+        super('insurance.claim.processed', invoiceId, 'billing', eventData, 1, correlationId, causationId, userIdForAudit);
         this.invoiceId = invoiceId;
         this.claimAmount = claimAmount;
         this.currency = currency;

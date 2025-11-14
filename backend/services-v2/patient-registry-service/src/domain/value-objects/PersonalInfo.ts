@@ -66,13 +66,13 @@ export class PersonalInfo extends ValueObject<PersonalInfoProps> {
       throw new Error('Giới tính không hợp lệ');
     }
 
-    // Validate national ID
-    if (!this.props.nationalId || this.props.nationalId.trim().length === 0) {
-      throw new Error('CMND/CCCD không được để trống');
-    }
-
-    if (!PersonalInfo.isValidCitizenId(this.props.nationalId)) {
-      throw new Error('Số CMND/CCCD không hợp lệ');
+    // Validate national ID - allow empty or "Chưa cập nhật" for initial creation, validate when provided
+    if (this.props.nationalId && 
+        this.props.nationalId.trim().length > 0 && 
+        this.props.nationalId !== 'Chưa cập nhật') {
+      if (!PersonalInfo.isValidCitizenId(this.props.nationalId)) {
+        throw new Error('Số CMND/CCCD không hợp lệ');
+      }
     }
 
     // Validate nationality

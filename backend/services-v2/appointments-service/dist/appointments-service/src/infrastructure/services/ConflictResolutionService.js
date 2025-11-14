@@ -260,6 +260,131 @@ class ConflictResolutionService {
         const response = await this.findAlternativeSlots(request);
         return response.suggestions;
     }
+    // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+    /**
+     * Find available time slots for scheduling
+     * Used by event consumers for waitlist management
+     */
+    async findAvailableTimeSlots(providerId, date, duration) {
+        try {
+            console.log(`Finding available time slots for provider ${providerId} on ${date.toISOString()}`);
+            // Get existing appointments for the provider on the given date
+            const appointments = await this.appointmentRepository.findByProviderId(providerId);
+            const dateStr = date.toISOString().split('T')[0];
+            // Filter appointments for the specific date
+            const dayAppointments = appointments.filter(apt => {
+                const aptDate = apt.timeSlot?.appointmentDate;
+                return aptDate === dateStr;
+            });
+            // Generate available slots based on business hours
+            const availableSlots = [];
+            const currentDate = new Date(date);
+            currentDate.setHours(BUSINESS_HOURS.start, 0, 0, 0); // Start at 8:00 AM
+            const endTime = new Date(date);
+            endTime.setHours(BUSINESS_HOURS.end, 0, 0, 0); // End at 5:00 PM
+            while (currentDate < endTime) {
+                const slotEnd = new Date(currentDate.getTime() + duration * 60 * 1000);
+                // Skip lunch break
+                const slotHour = currentDate.getHours();
+                if (slotHour >= BUSINESS_HOURS.lunchStart && slotHour < BUSINESS_HOURS.lunchEnd) {
+                    currentDate.setHours(BUSINESS_HOURS.lunchEnd, 0, 0, 0);
+                    continue;
+                }
+                // Check if slot conflicts with existing appointments
+                const hasConflict = dayAppointments.some(apt => {
+                    const aptStart = new Date(`${apt.timeSlot?.appointmentDate}T${apt.timeSlot?.appointmentTime}`);
+                    const aptEnd = new Date(aptStart.getTime() + (apt.durationMinutes || 30) * 60 * 1000);
+                    return ((currentDate < aptEnd && slotEnd > aptStart) // Overlap check
+                    );
+                });
+                if (!hasConflict && slotEnd <= endTime) {
+                    availableSlots.push({
+                        startTime: new Date(currentDate),
+                        endTime: new Date(slotEnd)
+                    });
+                }
+                // Move to next slot (30-minute intervals)
+                currentDate.setTime(currentDate.getTime() + 30 * 60 * 1000);
+            }
+            console.log(`Found ${availableSlots.length} available slots for provider ${providerId}`);
+            return availableSlots;
+        }
+        catch (error) {
+            console.error('Error finding available time slots:', error);
+            throw error;
+        }
+    }
+    /**
+     * Find urgent appointment slot
+     * Finding urgent slots is appointment scheduling responsibility
+     */
+    async findUrgentAppointmentSlot(criteria) {
+        try {
+            console.log(`Finding urgent appointment slot for patient ${criteria.patientId} with urgency ${criteria.urgency}`);
+            // For urgent appointments, we need to find the earliest available slot
+            const searchTime = criteria.preferredTime || new Date();
+            const searchDate = new Date(searchTime);
+            // Search within next 24 hours for urgent, 6 hours for emergency
+            const searchHours = criteria.urgency === 'emergency' ? 6 : 24;
+            const endTime = new Date(searchDate.getTime() + searchHours * 60 * 60 * 1000);
+            // Find available providers in the department (if specified) or all providers
+            const availableProviders = await this.findAvailableProvidersForUrgent(criteria.departmentId, searchTime, criteria.durationMinutes);
+            if (availableProviders.length === 0) {
+                console.log(`No available providers found for urgent appointment`);
+                return null;
+            }
+            // Return the earliest available slot with highest confidence
+            const bestSlot = availableProviders[0];
+            console.log(`Found urgent appointment slot with provider ${bestSlot.providerId}`);
+            return {
+                startTime: bestSlot.startTime,
+                endTime: bestSlot.endTime,
+                providerId: bestSlot.providerId,
+                departmentId: criteria.departmentId || 'general',
+                confidence: bestSlot.confidence
+            };
+        }
+        catch (error) {
+            console.error('Error finding urgent appointment slot:', error);
+            throw error;
+        }
+    }
+    /**
+     * Helper method to find available providers for urgent appointments
+     */
+    async findAvailableProvidersForUrgent(departmentId, startTime, durationMinutes) {
+        try {
+            // This is a simplified implementation - in production, you would:
+            // 1. Query provider availability from provider service
+            // 2. Check department capacity
+            // 3. Consider provider specializations
+            // 4. Calculate confidence scores based on multiple factors
+            const availableSlots = [];
+            // For demo purposes, return mock available slots
+            const currentTime = new Date(startTime);
+            // Check next few 30-minute slots
+            for (let i = 0; i < 8; i++) {
+                const slotStart = new Date(currentTime.getTime() + i * 30 * 60 * 1000);
+                const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60 * 1000);
+                // Mock provider availability check
+                const isAvailable = await this.appointmentRepository.checkStaffAvailability('mock-provider-id', // In production, this would be actual provider IDs
+                slotStart, slotEnd);
+                if (isAvailable) {
+                    availableSlots.push({
+                        providerId: 'mock-provider-id',
+                        startTime: slotStart,
+                        endTime: slotEnd,
+                        confidence: Math.max(0.5, 1.0 - (i * 0.1)) // Decreasing confidence over time
+                    });
+                }
+            }
+            return availableSlots.sort((a, b) => b.confidence - a.confidence);
+        }
+        catch (error) {
+            console.error('Error finding available providers for urgent:', error);
+            return [];
+        }
+    }
 }
 exports.ConflictResolutionService = ConflictResolutionService;
 //# sourceMappingURL=ConflictResolutionService.js.map

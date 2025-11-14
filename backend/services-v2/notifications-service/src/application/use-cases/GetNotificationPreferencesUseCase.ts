@@ -11,10 +11,12 @@ import { SupabasePreferencesRepository, NotificationPreferences } from '../../in
 
 export interface GetPreferencesQuery {
   userId: string;
+  userType?: 'patient' | 'staff';
 }
 
 export interface GetPreferencesResult {
   preferences: NotificationPreferences;
+  calendarIntegration?: boolean;
 }
 
 export class GetNotificationPreferencesUseCase {
@@ -24,10 +26,13 @@ export class GetNotificationPreferencesUseCase {
     try {
       const preferences = await this.preferencesRepository.getOrCreate(
         query.userId,
-        'PATIENT'
+        query.userType === 'staff' ? 'DOCTOR' : 'PATIENT'
       );
 
-      return { preferences };
+      return { 
+        preferences,
+        calendarIntegration: query.userType === 'staff' ? true : undefined
+      };
     } catch (error) {
       throw new Error(`Failed to get preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

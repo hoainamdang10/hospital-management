@@ -8,6 +8,21 @@ export interface ProcessEventIdempotentResult {
 
 export interface IInboxRepository {
   /**
+   * Check if event exists by idempotency key
+   */
+  exists(idempotencyKey: string): Promise<boolean>;
+
+  /**
+   * Store event in inbox
+   */
+  store(event: {
+    idempotencyKey: string;
+    eventType: string;
+    payload: any;
+    headers?: any;
+  }): Promise<string>;
+
+  /**
    * Atomically insert event or detect duplicate
    * 
    * Uses INSERT ... ON CONFLICT DO NOTHING for race-free operation.

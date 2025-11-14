@@ -37,7 +37,7 @@ class OptimizedSupabaseClient {
                 persistSession: false,
             },
             db: {
-                schema: this.config.schemaName,
+                schema: this.config.schemaName, // Use service-specific schema
             },
             global: {
                 headers: {
@@ -164,7 +164,9 @@ class OptimizedSupabaseClient {
         // Limit cache size
         if (this.queryCache.size > 1000) {
             const oldestKey = this.queryCache.keys().next().value;
-            this.queryCache.delete(oldestKey);
+            if (oldestKey !== undefined) {
+                this.queryCache.delete(oldestKey);
+            }
         }
         this.queryCache.set(cacheKey, {
             data,
@@ -197,7 +199,9 @@ class OptimizedSupabaseClient {
             this.queryCount = 0;
         }
         catch (error) {
-            logger_1.default.error('Usage tracking failed:', error);
+            logger_1.default.error('Usage tracking failed:', {
+                error: error instanceof Error ? error.message : String(error)
+            });
         }
     }
     /**
@@ -295,7 +299,7 @@ const createProviderStaffClient = () => createOptimizedSupabaseClient({
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     serviceName: 'provider-staff-service',
-    schemaName: 'doctor_schema',
+    schemaName: 'provider_schema',
     enableOptimizations: process.env.NODE_ENV !== 'test',
 });
 exports.createProviderStaffClient = createProviderStaffClient;

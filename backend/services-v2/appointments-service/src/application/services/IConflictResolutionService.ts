@@ -83,5 +83,35 @@ export interface IConflictResolutionService {
     durationMinutes: number,
     maxSuggestions?: number
   ): Promise<TimeSlotSuggestion[]>;
+
+  // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+
+  /**
+   * Find available time slots for scheduling
+   * Used by event consumers for waitlist management
+   */
+  findAvailableTimeSlots(
+    providerId: string,
+    date: Date,
+    duration: number
+  ): Promise<{ startTime: Date; endTime: Date }[]>;
+
+  /**
+   * Find urgent appointment slot
+   * Finding urgent slots is appointment scheduling responsibility
+   */
+  findUrgentAppointmentSlot(criteria: {
+    departmentId?: string;
+    urgency: 'urgent' | 'emergency';
+    preferredTime?: Date;
+    durationMinutes: number;
+    patientId: string;
+  }): Promise<{
+    startTime: Date;
+    endTime: Date;
+    providerId: string;
+    departmentId: string;
+    confidence: number;
+  } | null>;
 }
 

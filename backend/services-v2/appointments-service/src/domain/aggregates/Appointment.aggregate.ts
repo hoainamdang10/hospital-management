@@ -29,7 +29,9 @@ export enum AppointmentType {
   EMERGENCY = 'emergency',
   TELEMEDICINE = 'telemedicine',
   SURGERY = 'surgery',
-  PROCEDURE = 'procedure'
+  PROCEDURE = 'procedure',
+  URGENT_CONSULTATION = 'urgent_consultation',
+  MEDICAL_TEST = 'medical_test'
 }
 
 export enum AppointmentPriority {
@@ -46,7 +48,8 @@ export enum AppointmentStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
-  NO_SHOW = 'no_show'
+  NO_SHOW = 'no_show',
+  RESCHEDULED = 'reschedule_required'
 }
 
 /**
@@ -98,6 +101,7 @@ export interface AppointmentProps {
   lastModifiedBy?: string;
   createdAt: Date;
   updatedAt: Date;
+  notes?: string;
 }
 
 /**
@@ -627,6 +631,78 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
         newEndTime,
         reason,
         rescheduledBy
+      )
+    );
+
+    this.incrementVersion();
+  }
+
+  /**
+   * Mark appointment for reschedule due to conflicts
+   */
+  markForReschedule(reason: string, conflictDetails?: any): void {
+    if (this.props.status === AppointmentStatus.COMPLETED) {
+      throw new Error('Cannot reschedule completed appointment');
+    }
+    
+    if (this.props.status === AppointmentStatus.CANCELLED) {
+      throw new Error('Cannot reschedule cancelled appointment');
+    }
+
+    this.props.status = AppointmentStatus.RESCHEDULED;
+    this.props.updatedAt = new Date();
+    this.props.notes = this.props.notes 
+      ? `${this.props.notes}\nMarked for reschedule: ${reason}`
+      : `Marked for reschedule: ${reason}`;
+
+    // Add domain event
+    this.addDomainEvent(
+      new AppointmentRescheduledEvent(
+        this.props.appointmentId.value,
+        this.props.patientId,
+        this.props.doctorId,
+        new Date(`${this.props.timeSlot.appointmentDate}T${this.props.timeSlot.appointmentTime}`),
+        new Date(`${this.props.timeSlot.appointmentDate}T${this.props.timeSlot.appointmentTime}`),
+        new Date(`${this.props.timeSlot.appointmentDate}T${this.props.timeSlot.appointmentTime}`),
+        new Date(`${this.props.timeSlot.appointmentDate}T${this.props.timeSlot.appointmentTime}`),
+        reason,
+        'system'
+      )
+    );
+
+    this.incrementVersion();
+  }
+
+  /**
+   * Assign appointment to staff member
+   */
+  assignToStaff(staffId: string, assignedBy: string): void {
+    if (this.props.status === AppointmentStatus.COMPLETED) {
+      throw new Error('Cannot assign staff to completed appointment');
+    }
+
+    if (this.props.status === AppointmentStatus.CANCELLED) {
+      throw new Error('Cannot assign staff to cancelled appointment');
+    }
+
+    this.props.doctorId = staffId;
+    this.props.updatedAt = new Date();
+    this.props.lastModifiedBy = assignedBy;
+
+    // Add domain event for staff assignment
+    this.addDomainEvent(
+      new AppointmentScheduledEvent(
+        this.props.appointmentId.value,
+        this.props.patientId,
+        staffId,
+        this.props.timeSlot.appointmentDate,
+        this.props.timeSlot.appointmentTime,
+        this.props.durationMinutes,
+        this.props.type,
+        this.props.priority,
+        this.props.status,
+        this.props.consultationFee,
+        assignedBy
       )
     );
 

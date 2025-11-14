@@ -14,6 +14,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+import { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
@@ -24,6 +25,9 @@ import swaggerUi from "swagger-ui-express";
 import { RabbitMQEventPublisher } from "./infrastructure/events/RabbitMQEventPublisher";
 import { HybridEventBus } from "./infrastructure/events/HybridEventBus";
 import { IdentityEventConsumer } from "./infrastructure/events/IdentityEventConsumer";
+import { EnhancedDepartmentEventConsumer } from "./infrastructure/events/EnhancedDepartmentEventConsumer";
+import { ReviewEventConsumer } from "./infrastructure/events/ReviewEventConsumer";
+// import { SchedulingEventConsumer } from "./infrastructure/events/SchedulingEventConsumer"; // DISABLED - Bounded context violation
 import { ProviderStaffHealthCheck } from "./infrastructure/monitoring/HealthChecks";
 import { prometheusMetrics } from "./infrastructure/monitoring/PrometheusMetrics";
 import { logger } from "./infrastructure/logging/logger";
@@ -33,6 +37,7 @@ import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
 import { RegisterStaffUseCase } from "./application/use-cases/RegisterStaffUseCase";
 import { GetStaffProfileUseCase } from "./application/use-cases/GetStaffProfileUseCase";
 import { AssignStaffToDepartmentUseCase } from "./application/use-cases/AssignStaffToDepartmentUseCase";
+import { SetDepartmentHeadUseCase } from "./application/use-cases/SetDepartmentHeadUseCase";
 import { AddStaffCredentialUseCase } from "./application/use-cases/AddStaffCredentialUseCase";
 import { RemoveStaffCredentialUseCase } from "./application/use-cases/RemoveStaffCredentialUseCase";
 import { RenewStaffCredentialUseCase } from "./application/use-cases/RenewStaffCredentialUseCase";
@@ -222,6 +227,11 @@ class ProviderStaffServiceApp {
       // Initialize Identity Event Consumer
       await this.initializeIdentityEventConsumer();
 
+      // Initialize Enhanced Event Consumers
+      await this.initializeEnhancedDepartmentEventConsumer();
+      await this.initializeReviewEventConsumer();
+      await this.initializeSchedulingEventConsumer();
+
       // Initialize error handling middleware
       // this.errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
 
@@ -318,7 +328,7 @@ class ProviderStaffServiceApp {
       const reviewHandler = this.container.resolve(
         ServiceTokens.REVIEW_EVENT_HANDLER,
       );
-      const eventBus = this.container.resolve(ServiceTokens.EVENT_BUS) as any;
+      const eventBus = this.container.resolve(ServiceTokens.EVENT_BUS) as HybridEventBus;
 
       // Subscribe to review events
       await eventBus.subscribe("review.created", reviewHandler);
@@ -350,7 +360,7 @@ class ProviderStaffServiceApp {
       const billingHandler = this.container.resolve(
         ServiceTokens.BILLING_EVENT_HANDLER,
       );
-      const eventBus = this.container.resolve(ServiceTokens.EVENT_BUS) as any;
+      const eventBus = this.container.resolve(ServiceTokens.EVENT_BUS) as HybridEventBus;
 
       // Subscribe to billing events
       await eventBus.subscribe("billing.payment.processed", billingHandler);
@@ -394,6 +404,52 @@ class ProviderStaffServiceApp {
       logger.warn("Continuing without Identity event consumption");
       this.identityEventConsumer = null;
     }
+  }
+
+  /**
+   * Initialize Enhanced Department Event Consumer
+   */
+  private async initializeEnhancedDepartmentEventConsumer(): Promise<void> {
+    try {
+      const enhancedDepartmentConsumer = this.container.resolve<EnhancedDepartmentEventConsumer>(
+        ServiceTokens.ENHANCED_DEPARTMENT_EVENT_CONSUMER,
+      );
+      await enhancedDepartmentConsumer.connect();
+      logger.info("Enhanced Department Event Consumer connected successfully");
+    } catch (error) {
+      logger.error("Failed to initialize Enhanced Department Event Consumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      logger.warn("Continuing without Enhanced Department event consumption");
+    }
+  }
+
+  /**
+   * Initialize Review Event Consumer
+   */
+  private async initializeReviewEventConsumer(): Promise<void> {
+    try {
+      const reviewConsumer = this.container.resolve<ReviewEventConsumer>(
+        ServiceTokens.REVIEW_EVENT_CONSUMER,
+      );
+      await reviewConsumer.connect();
+      logger.info("Review Event Consumer connected successfully");
+    } catch (error) {
+      logger.error("Failed to initialize Review Event Consumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      logger.warn("Continuing without Review event consumption");
+    }
+  }
+
+  /**
+   * Initialize Scheduling Event Consumer - DISABLED
+   * TODO: Re-enable when proper bounded context is established
+   */
+  private async initializeSchedulingEventConsumer(): Promise<void> {
+    logger.info("Scheduling Event Consumer disabled - bounded context violation");
+    // Disabled: Provider Staff Service should not consume scheduling events
+    // Scheduling belongs to Appointments Service bounded context
   }
 
   /**
@@ -448,7 +504,7 @@ class ProviderStaffServiceApp {
 
     // Request ID middleware
     this.app.use((req, _res, next) => {
-      (req as any).requestId =
+      (req as unknown as Record<string, unknown>).requestId =
         req.headers["x-request-id"] ||
         `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       next();
@@ -529,10 +585,10 @@ class ProviderStaffServiceApp {
         ServiceTokens.REMOVE_STAFF_SPECIALIZATION_USE_CASE,
       );
     const setDepartmentHeadUseCase =
-      this.container.resolve<any>(ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE);
+      this.container.resolve<SetDepartmentHeadUseCase>(ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE);
 
     setupRoutes(
-      this.app as any,
+      this.app as Express,
       this.registerStaffUseCase,
       this.getStaffProfileUseCase,
       this.assignStaffToDepartmentUseCase,
@@ -570,12 +626,15 @@ class ProviderStaffServiceApp {
         res: express.Response,
         _next: express.NextFunction,
       ) => {
-        logger.error("Unhandled error", {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        
+        logger.error("Unhandled request error", {
+          error: errorMessage,
+          stack: errorStack,
           url: req.url,
           method: req.method,
-          requestId: (req as any).requestId,
+          requestId: (req as unknown as Record<string, unknown>).requestId,
         });
 
         res.status(500).json({
@@ -583,7 +642,7 @@ class ProviderStaffServiceApp {
           error: "INTERNAL_SERVER_ERROR",
           message: "Lỗi hệ thống không xác định",
           timestamp: new Date().toISOString(),
-          requestId: (req as any).requestId || "unknown",
+          requestId: (req as unknown as Record<string, unknown>).requestId || "unknown",
         });
       },
     );

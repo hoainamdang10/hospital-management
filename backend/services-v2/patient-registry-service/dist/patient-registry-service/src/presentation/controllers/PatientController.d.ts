@@ -104,6 +104,10 @@ export declare class PatientController {
     /**
      * Update patient information
      * PUT /api/v1/patients/:patientId
+     *
+     * Uses smart defaults "Chưa cập nhật" and proper merge logic
+     * - undefined = no change (preserve existing value)
+     * - explicit value (including "Chưa cập nhật") = user intended change
      */
     updatePatient(req: Request, res: Response): Promise<void>;
     /**

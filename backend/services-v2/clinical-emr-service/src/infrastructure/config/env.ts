@@ -37,4 +37,32 @@ export const env = {
       .map((key) => key.trim())
       .filter((key) => key.length > 0),
   },
+  appointmentConsumer: {
+    enabled: process.env.APPOINTMENT_CONSUMER_ENABLED !== "false",
+    queueName:
+      process.env.APPOINTMENT_QUEUE ??
+      "clinical-emr-service.appointments",
+    prefetch: Number(process.env.APPOINTMENT_PREFETCH ?? 10),
+    routingKeys: (
+      process.env.APPOINTMENT_ROUTING_KEYS ??
+      "appointment.completed,appointment.checked_in,appointment.cancelled"
+    )
+      .split(",")
+      .map((key) => key.trim())
+      .filter((key) => key.length > 0),
+  },
+  billingConsumer: {
+    enabled: process.env.BILLING_CONSUMER_ENABLED !== "false",
+    queueName:
+      process.env.BILLING_QUEUE ??
+      "clinical-emr-service.billing",
+    prefetch: Number(process.env.BILLING_PREFETCH ?? 10),
+    routingKeys: (
+      process.env.BILLING_ROUTING_KEYS ??
+      "billing.invoice.paid,billing.invoice.finalized,billing.insurance.claim.processed"
+    )
+      .split(",")
+      .map((key) => key.trim())
+      .filter((key) => key.length > 0),
+  },
 };

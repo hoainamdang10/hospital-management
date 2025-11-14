@@ -17,6 +17,8 @@ const SupabaseAppointmentReadModelRepository_1 = require("../persistence/Supabas
 const SupabaseQueueRepository_1 = require("../persistence/SupabaseQueueRepository");
 const SupabaseProviderScheduleRepository_1 = require("../persistence/SupabaseProviderScheduleRepository");
 const SupabaseAppointmentWaitlistRepository_1 = require("../repositories/SupabaseAppointmentWaitlistRepository");
+const SupabaseAppointmentReminderRepository_1 = require("../repositories/SupabaseAppointmentReminderRepository");
+const SupabaseReschedulingQueueRepository_1 = require("../persistence/SupabaseReschedulingQueueRepository");
 const EventBusAdapter_1 = require("../events/EventBusAdapter");
 // Services - PURE OUTBOX PATTERN (No HTTP)
 const LocalPatientReadModelService_1 = require("../services/LocalPatientReadModelService");
@@ -26,6 +28,16 @@ const SchedulerAdapterWrapper_1 = require("../adapters/SchedulerAdapterWrapper")
 const ConflictResolutionService_1 = require("../services/ConflictResolutionService");
 const AuthorizationService_1 = require("../services/AuthorizationService");
 const ReminderService_1 = require("../services/ReminderService");
+const ReschedulingService_1 = require("../../application/services/ReschedulingService");
+const EventBusPublisher_1 = require("../events/EventBusPublisher");
+// Reminder Management
+const ReminderController_1 = require("../../presentation/controllers/ReminderController");
+const CreateAppointmentReminderUseCase_1 = require("../../application/use-cases/CreateAppointmentReminderUseCase");
+const GetAppointmentRemindersUseCase_1 = require("../../application/use-cases/GetAppointmentRemindersUseCase");
+const UpdateAppointmentReminderUseCase_1 = require("../../application/use-cases/UpdateAppointmentReminderUseCase");
+const DeleteAppointmentReminderUseCase_1 = require("../../application/use-cases/DeleteAppointmentReminderUseCase");
+const ManageAppointmentReminders_use_case_1 = require("../../application/use-cases/ManageAppointmentReminders.use-case");
+const ReschedulingQueueController_1 = require("../../presentation/controllers/ReschedulingQueueController");
 // Read Model Repositories
 const PatientReadModelRepository_1 = require("../repositories/PatientReadModelRepository");
 const ProviderReadModelRepository_1 = require("../repositories/ProviderReadModelRepository");
@@ -33,6 +45,10 @@ const InboxRepository_1 = require("../inbox/InboxRepository");
 // Event Consumers
 const PatientEventConsumer_1 = require("../events/PatientEventConsumer");
 const ProviderEventConsumer_1 = require("../events/ProviderEventConsumer");
+const StaffEventConsumer_1 = require("../events/StaffEventConsumer");
+const DepartmentEventConsumer_1 = require("../events/DepartmentEventConsumer");
+const ClinicalEMREventConsumer_1 = require("../events/ClinicalEMREventConsumer");
+const BillingEventConsumer_1 = require("../events/BillingEventConsumer");
 // Resilience & Cache
 const RedisCacheService_1 = require("../cache/RedisCacheService");
 const CircuitBreakerService_1 = require("../resilience/CircuitBreakerService");
@@ -52,7 +68,6 @@ const JoinQueue_use_case_1 = require("../../application/use-cases/JoinQueue.use-
 const LeaveQueue_use_case_1 = require("../../application/use-cases/LeaveQueue.use-case");
 const GetQueueStatus_use_case_1 = require("../../application/use-cases/GetQueueStatus.use-case");
 const ValidateCancellationPolicy_use_case_1 = require("../../application/use-cases/ValidateCancellationPolicy.use-case");
-const ManageAppointmentReminders_use_case_1 = require("../../application/use-cases/ManageAppointmentReminders.use-case");
 const CreateRecurringAppointmentSeries_use_case_1 = require("../../application/use-cases/CreateRecurringAppointmentSeries.use-case");
 const BulkRescheduleAppointments_use_case_1 = require("../../application/use-cases/BulkRescheduleAppointments.use-case");
 const GetAppointmentHistory_use_case_1 = require("../../application/use-cases/GetAppointmentHistory.use-case");
@@ -105,6 +120,8 @@ class DIContainer {
         this.initializeEventHandlers();
         // Initialize event subscriptions
         this.initializeEventSubscriptions();
+        // Update health checks with event subscriptions
+        this.updateHealthCheckDependencies();
         // Initialize event publisher and wire it to repository
         this.initializeEventPublisher();
         // Initialize controllers
@@ -160,11 +177,14 @@ class DIContainer {
         this.appointmentReadModelRepository =
             new SupabaseAppointmentReadModelRepository_1.SupabaseAppointmentReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.queueRepository = new SupabaseQueueRepository_1.SupabaseQueueRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
+        this.reschedulingQueueRepository = new SupabaseReschedulingQueueRepository_1.SupabaseReschedulingQueueRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.providerScheduleRepository = new SupabaseProviderScheduleRepository_1.SupabaseProviderScheduleRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         // Waitlist Repository
         const { createClient } = require("@supabase/supabase-js");
         const supabaseClient = createClient(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.waitlistRepository = new SupabaseAppointmentWaitlistRepository_1.SupabaseAppointmentWaitlistRepository(supabaseClient);
+        // Reminder Repository
+        this.reminderRepository = new SupabaseAppointmentReminderRepository_1.SupabaseAppointmentReminderRepository(supabaseClient);
         // Pure Outbox Pattern - Read Model Repositories
         this.patientReadModelRepository = new PatientReadModelRepository_1.PatientReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.providerReadModelRepository = new ProviderReadModelRepository_1.ProviderReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
@@ -184,6 +204,9 @@ class DIContainer {
         // Wire event publisher to repository using reflection
         // This is a workaround since we can't inject it in constructor due to circular dependency
         this.appointmentRepository.eventPublisher = this.eventPublisher;
+        // Configure application-level publishers
+        const appEventPublisher = new EventBusPublisher_1.EventBusPublisher(eventBus);
+        this.reschedulingService.setEventPublisher(appEventPublisher);
         console.log("[DI] ✅ Event publisher initialized and wired to repository");
     }
     /**
@@ -205,6 +228,8 @@ class DIContainer {
         // Create scheduler adapter wrapper for ReminderService
         const schedulerWrapper = new SchedulerAdapterWrapper_1.SchedulerAdapterWrapper(this.schedulerAdapter, this.config.tenantId || "default");
         this.reminderService = new ReminderService_1.ReminderService(schedulerWrapper);
+        // Rescheduling Service
+        this.reschedulingService = new ReschedulingService_1.ReschedulingService(this.reschedulingQueueRepository, this.appointmentRepository, this.reminderService);
         console.log("[DI] ✅ Services initialized (Pure Outbox Pattern)");
         console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ⚡");
         console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ⚡");
@@ -257,7 +282,14 @@ class DIContainer {
         this.removeFromWaitlistUseCase = new RemoveFromWaitlistUseCase_1.RemoveFromWaitlistUseCase(this.waitlistRepository);
         this.convertWaitlistToAppointmentUseCase =
             new ConvertWaitlistToAppointmentUseCase_1.ConvertWaitlistToAppointmentUseCase(this.waitlistRepository);
-        console.log("[DI] ✅ Use cases initialized (29 total)");
+        // Reminder Use Cases
+        this.createAppointmentReminderUseCase = new CreateAppointmentReminderUseCase_1.CreateAppointmentReminderUseCase(this.reminderRepository, this.appointmentRepository);
+        this.getAppointmentRemindersUseCase = new GetAppointmentRemindersUseCase_1.GetAppointmentRemindersUseCase(this.reminderRepository);
+        this.updateAppointmentReminderUseCase = new UpdateAppointmentReminderUseCase_1.UpdateAppointmentReminderUseCase(this.reminderRepository);
+        this.deleteAppointmentReminderUseCase = new DeleteAppointmentReminderUseCase_1.DeleteAppointmentReminderUseCase(this.reminderRepository);
+        // Reminder Controller
+        this.reminderController = new ReminderController_1.ReminderController(this.createAppointmentReminderUseCase, this.getAppointmentRemindersUseCase, this.updateAppointmentReminderUseCase, this.deleteAppointmentReminderUseCase);
+        console.log("[DI] ✅ Use cases initialized (35 total)");
     }
     /**
      * Initialize queries
@@ -276,10 +308,53 @@ class DIContainer {
         // Pure Outbox Pattern - Event Consumers
         this.patientEventConsumer = new PatientEventConsumer_1.PatientEventConsumer(this.patientReadModelRepository, this.inboxRepository);
         this.providerEventConsumer = new ProviderEventConsumer_1.ProviderEventConsumer(this.providerReadModelRepository, this.inboxRepository);
-        console.log("[DI] ✅ Event handlers initialized (3 total)");
+        // New Event Consumers for Appointment Service
+        this.staffEventConsumer = new StaffEventConsumer_1.StaffEventConsumer({
+            rabbitmqUrl: this.config.rabbitmq.url,
+            queueName: 'appointments-service.staff-events',
+            exchangeName: this.config.rabbitmq.exchange,
+            routingKeys: [
+                'provider.schedule.updated', // StaffScheduleUpdatedEvent from Provider Staff
+                'provider.status.changed', // StaffStatusChangedEvent from Provider Staff  
+                'provider.department.assigned', // StaffDepartmentAssignedEvent from Provider Staff
+                'department.created', // DepartmentCreatedEvent from Department Service
+                'department.updated', // DepartmentUpdatedEvent from Department Service
+                'department.staff.count.changed' // DepartmentStaffCountChangedEvent from Department Service
+            ],
+            prefetchCount: 10,
+            retryAttempts: 3,
+            retryDelayMs: 1000
+        }, this.appointmentRepository, this.queueRepository, this.providerScheduleRepository, this.conflictResolutionService, this.reminderService, this.inboxRepository, this.reschedulingService);
+        this.departmentEventConsumer = new DepartmentEventConsumer_1.DepartmentEventConsumer({
+            rabbitmqUrl: this.config.rabbitmq.url,
+            queueName: 'appointments-service.department-events',
+            exchangeName: this.config.rabbitmq.exchange,
+            routingKeys: [
+                'department.created',
+                'department.staff.assigned',
+                'department.resource.updated',
+                'department.operational_hours.changed',
+                'department.capacity.updated'
+            ],
+            prefetchCount: 10,
+            retryAttempts: 3,
+            retryDelayMs: 1000
+        }, this.appointmentRepository, this.queueRepository, this.conflictResolutionService, this.reminderService, this.inboxRepository);
+        this.clinicalEMREventConsumer = new ClinicalEMREventConsumer_1.ClinicalEMREventConsumer(this.inboxRepository, this.appointmentRepository, this.reminderService, this.conflictResolutionService, this.queueRepository);
+        this.billingEventConsumer = new BillingEventConsumer_1.BillingEventConsumer({
+            rabbitmqUrl: this.config.rabbitmq.url,
+            queueName: 'appointments-service.billing-events',
+            exchangeName: this.config.rabbitmq.exchange,
+            routingKey: 'billing.*'
+        }, this.appointmentRepository, this.queueRepository, this.reminderService, this.conflictResolutionService, this.inboxRepository);
+        console.log("[DI] ✅ Event handlers initialized (7 total)");
         console.log("[DI]    - AppointmentReadModelEventHandler");
         console.log("[DI]    - PatientEventConsumer (Pure Outbox)");
         console.log("[DI]    - ProviderEventConsumer (Pure Outbox)");
+        console.log("[DI]    - StaffEventConsumer (RabbitMQ)");
+        console.log("[DI]    - DepartmentEventConsumer (RabbitMQ)");
+        console.log("[DI]    - ClinicalEMREventConsumer (RabbitMQ)");
+        console.log("[DI]    - BillingEventConsumer (RabbitMQ)");
     }
     /**
      * Initialize event subscriptions
@@ -297,7 +372,12 @@ class DIContainer {
         this.appointmentQueryController = new AppointmentQueryController_1.AppointmentQueryController(this.getAppointmentDetailsQuery, this.listAppointmentsQuery);
         this.availabilityController = new AvailabilityController_1.AvailabilityController(this.findAvailableTimeSlotsUseCase, this.providerScheduleRepository);
         this.waitlistController = new WaitlistController_1.WaitlistController(this.addToWaitlistUseCase, this.getWaitlistUseCase, this.updateWaitlistEntryUseCase, this.removeFromWaitlistUseCase, this.convertWaitlistToAppointmentUseCase);
-        console.log("[DI] ✅ Controllers initialized (4 total)");
+        // Rescheduling Queue Controller
+        this.reschedulingQueueController = new ReschedulingQueueController_1.ReschedulingQueueController({
+            reschedulingService: this.reschedulingService,
+            reschedulingQueueRepository: this.reschedulingQueueRepository,
+        });
+        console.log("[DI] ✅ Controllers initialized (5 total)");
     }
     /**
      * Get appointment controller
@@ -464,6 +544,9 @@ class DIContainer {
     /**
      * Get availability controller
      */
+    getReschedulingQueueController() {
+        return this.reschedulingQueueController;
+    }
     getAvailabilityController() {
         return this.availabilityController;
     }
@@ -492,6 +575,30 @@ class DIContainer {
         return this.providerEventConsumer;
     }
     /**
+     * Get staff event consumer
+     */
+    getStaffEventConsumer() {
+        return this.staffEventConsumer;
+    }
+    /**
+     * Get department event consumer
+     */
+    getDepartmentEventConsumer() {
+        return this.departmentEventConsumer;
+    }
+    /**
+     * Get clinical EMR event consumer
+     */
+    getClinicalEMREventConsumer() {
+        return this.clinicalEMREventConsumer;
+    }
+    /**
+     * Get billing event consumer
+     */
+    getBillingEventConsumer() {
+        return this.billingEventConsumer;
+    }
+    /**
      * Get patient read model repository
      */
     getPatientReadModelRepository() {
@@ -502,6 +609,12 @@ class DIContainer {
      */
     getProviderReadModelRepository() {
         return this.providerReadModelRepository;
+    }
+    /**
+     * Get reminder controller
+     */
+    getReminderController() {
+        return this.reminderController;
     }
     /**
      * Get inbox repository

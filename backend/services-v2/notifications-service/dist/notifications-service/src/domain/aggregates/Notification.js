@@ -28,7 +28,13 @@ class Notification extends aggregate_root_1.HealthcareAggregateRoot {
     get notificationId() {
         return this.props.notificationId;
     }
+    getId() {
+        return this.props.notificationId;
+    }
     get recipient() {
+        return this.props.recipient;
+    }
+    getRecipient() {
         return this.props.recipient;
     }
     get templateType() {
@@ -37,16 +43,31 @@ class Notification extends aggregate_root_1.HealthcareAggregateRoot {
     get content() {
         return this.props.content;
     }
+    getContent() {
+        return this.props.content;
+    }
     get channels() {
+        return this.props.channels;
+    }
+    getChannels() {
         return this.props.channels;
     }
     get status() {
         return this.props.status;
     }
+    getStatus() {
+        return this.props.status;
+    }
     get priority() {
         return this.props.priority;
     }
+    getPriority() {
+        return this.props.priority;
+    }
     get sentAt() {
+        return this.props.sentAt;
+    }
+    getSentAt() {
         return this.props.sentAt;
     }
     get deliveryResults() {
@@ -60,6 +81,24 @@ class Notification extends aggregate_root_1.HealthcareAggregateRoot {
     }
     get updatedAt() {
         return this.props.updatedAt;
+    }
+    get deliveredAt() {
+        return this.props.deliveredAt;
+    }
+    getDeliveredAt() {
+        return this.props.deliveredAt;
+    }
+    get readAt() {
+        return this.props.readAt;
+    }
+    getReadAt() {
+        return this.props.readAt;
+    }
+    getHealthcareContext() {
+        return this.props.metadata.healthcareContext;
+    }
+    getCreatedAt() {
+        return this.props.createdAt;
     }
     // ==================== Abstract Methods Implementation ====================
     getPatientId() {
@@ -111,6 +150,8 @@ class Notification extends aggregate_root_1.HealthcareAggregateRoot {
             status: "PENDING",
             priority,
             sentAt: undefined,
+            deliveredAt: undefined,
+            readAt: undefined,
             deliveryResults: undefined,
             metadata,
             createdAt: new Date(),
@@ -157,6 +198,12 @@ class Notification extends aggregate_root_1.HealthcareAggregateRoot {
     }
     isUrgent() {
         return this.props.priority === "URGENT";
+    }
+    isRead() {
+        return this.props.readAt !== undefined && this.props.readAt !== null;
+    }
+    isUnread() {
+        return !this.isRead();
     }
     // ==================== Required Abstract Methods ====================
     /**

@@ -1,84 +1,120 @@
 {
-  "defaultReminders": [
-    {
-      "type": "email",
-      "timing": {
-        "value": 24,
-        "unit": "hours",
-        "before": true
+  "version": "1.0",
+  "default": {
+    "ROUTINE": [
+      { 
+        "window": "24h", 
+        "channels": ["email"], 
+        "description": "24 hour reminder for routine appointments" 
       },
-      "enabled": true
-    },
-    {
-      "type": "sms",
-      "timing": {
-        "value": 2,
-        "unit": "hours",
-        "before": true
-      },
-      "enabled": true
-    },
-    {
-      "type": "push",
-      "timing": {
-        "value": 15,
-        "unit": "minutes",
-        "before": true
-      },
-      "enabled": true
-    }
-  ],
-  "appointmentTypeOverrides": {
-    "CONSULTATION": [
-      {
-        "type": "email",
-        "timing": {
-          "value": 24,
-          "unit": "hours",
-          "before": true
-        },
-        "enabled": true
-      },
-      {
-        "type": "sms",
-        "timing": {
-          "value": 1,
-          "unit": "hours",
-          "before": true
-        },
-        "enabled": true
+      { 
+        "window": "2h", 
+        "channels": ["sms"], 
+        "description": "2 hour reminder for routine appointments" 
       }
     ],
-    "FOLLOW_UP": [
-      {
-        "type": "email",
-        "timing": {
-          "value": 48,
-          "unit": "hours",
-          "before": true
-        },
-        "enabled": true
+    "URGENT": [
+      { 
+        "window": "24h", 
+        "channels": ["email", "sms"], 
+        "description": "24 hour reminder for urgent appointments" 
+      },
+      { 
+        "window": "2h", 
+        "channels": ["sms", "email"], 
+        "description": "2 hour reminder for urgent appointments" 
+      },
+      { 
+        "window": "30min", 
+        "channels": ["sms", "push"], 
+        "description": "30 minute reminder for urgent appointments" 
       }
     ],
     "EMERGENCY": [
-      {
-        "type": "sms",
-        "timing": {
-          "value": 30,
-          "unit": "minutes",
-          "before": true
-        },
-        "enabled": true
+      { 
+        "window": "24h", 
+        "channels": ["email", "sms", "push"], 
+        "description": "24 hour reminder for emergency appointments" 
+      },
+      { 
+        "window": "2h", 
+        "channels": ["sms", "email", "push"], 
+        "description": "2 hour reminder for emergency appointments" 
+      },
+      { 
+        "window": "30min", 
+        "channels": ["sms", "email", "push"], 
+        "description": "30 minute reminder for emergency appointments" 
+      },
+      { 
+        "window": "1h", 
+        "channels": ["sms", "push"], 
+        "description": "1 hour reminder for emergency appointments" 
       }
     ]
   },
-  "confirmationReminder": {
+  "tenants": {
+    "hospital-1": {
+      "ROUTINE": [
+        { 
+          "window": "24h", 
+          "channels": ["email"], 
+          "description": "24 hour reminder for hospital-1" 
+        },
+        { 
+          "window": "2h", 
+          "channels": ["sms"], 
+          "description": "2 hour reminder for hospital-1" 
+        }
+      ],
+      "URGENT": [
+        { 
+          "window": "24h", 
+          "channels": ["email", "sms"], 
+          "description": "24 hour urgent reminder for hospital-1" 
+        },
+        { 
+          "window": "2h", 
+          "channels": ["sms", "email"], 
+          "description": "2 hour urgent reminder for hospital-1" 
+        },
+        { 
+          "window": "30min", 
+          "channels": ["sms", "push"], 
+          "description": "30 minute urgent reminder for hospital-1" 
+        }
+      ],
+      "EMERGENCY": [
+        { 
+          "window": "24h", 
+          "channels": ["email", "sms", "push"], 
+          "description": "24 hour emergency reminder for hospital-1" 
+        },
+        { 
+          "window": "2h", 
+          "channels": ["sms", "email", "push"], 
+          "description": "2 hour emergency reminder for hospital-1" 
+        },
+        { 
+          "window": "30min", 
+          "channels": ["sms", "email", "push"], 
+          "description": "30 minute emergency reminder for hospital-1" 
+        }
+      ]
+    }
+  },
+  "quietHours": {
     "enabled": true,
-    "timing": {
-      "value": 5,
-      "unit": "minutes",
-      "before": false
-    },
-    "channels": ["email", "push"]
+    "start": "22:00",
+    "end": "07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "allowedChannels": ["email"],
+    "blockedChannels": ["sms", "push"]
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "baseDelayMs": 1000,
+    "maxDelayMs": 30000,
+    "strategy": "exp"
   }
 }

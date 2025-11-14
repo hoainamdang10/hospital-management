@@ -11,11 +11,11 @@
 import {
   OptimizedSupabaseClient,
   OptimizedSupabaseClientConfig,
-} from "@shared/infrastructure/database/optimized-supabase-client";
+} from "../../../../shared/infrastructure/database/optimized-supabase-client";
 import {
   DIContainer,
   ServiceLifetime,
-} from "@shared/infrastructure/di/container";
+} from "../../../../shared/infrastructure/di/container";
 // import { ILogger } from "@shared/infrastructure/logging/logger.interface";
 // import { IAuditService } from "@shared/application/services/audit.service.interface";
 // import { ConsoleLogger } from "@shared/infrastructure/logging/console-logger";
@@ -25,6 +25,8 @@ import {
 import { NotificationApplicationService } from "../../application/services/NotificationApplicationService";
 // import { ScheduleNotificationUseCase } from "../../application/use-cases/ScheduleNotificationUseCase";
 import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
+import { GetNotificationUseCase } from "../../application/use-cases/GetNotificationUseCase";
+import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
 // import { ProcessNotificationQueueUseCase } from "../../application/use-cases/ProcessNotificationQueueUseCase";
 // import { NotificationCommandHandlers } from "../../application/handlers/NotificationCommandHandlers";
 // import { NotificationQueryHandlers } from "../../application/handlers/NotificationQueryHandlers";
@@ -32,15 +34,25 @@ import { GetTemplatesUseCase } from "../../application/use-cases/GetTemplatesUse
 import { CreateTemplateUseCase } from "../../application/use-cases/CreateTemplateUseCase";
 import { UpdateTemplateUseCase } from "../../application/use-cases/UpdateTemplateUseCase";
 import { DeleteTemplateUseCase } from "../../application/use-cases/DeleteTemplateUseCase";
+import { MarkNotificationAsReadUseCase } from "../../application/use-cases/MarkNotificationAsReadUseCase";
+import { GetUserNotificationsUseCase } from "../../application/use-cases/GetUserNotificationsUseCase";
+import { UpdateNotificationPreferencesUseCase } from "../../application/use-cases/UpdateNotificationPreferencesUseCase";
 
 // Infrastructure Layer
 import { SupabaseNotificationRepository } from "../persistence/SupabaseNotificationRepository";
 import { SupabaseInboxRepository } from "../persistence/SupabaseInboxRepository";
+import { SupabaseTemplateRepository } from "../persistence/SupabaseTemplateRepository";
+import { SupabasePreferencesRepository } from "../persistence/SupabasePreferencesRepository";
 import { MultiChannelDeliveryService } from "../delivery/MultiChannelDeliveryService";
 import { VietnameseTemplateService } from "../templates/VietnameseTemplateService";
 // import { RealTimeNotificationService } from "../realtime/RealTimeNotificationService";
 // import { SupabaseEventBus } from "../messaging/SupabaseEventBus";
 import { NotificationEventHandlers } from "../events/NotificationEventHandlers";
+import { AppointmentEventConsumer } from "../events/AppointmentEventConsumer";
+import { StaffEventConsumer } from "../events/StaffEventConsumer";
+import { BillingEventConsumer } from "../events/BillingEventConsumer";
+import { ClinicalEMREventConsumer } from "../events/ClinicalEMREventConsumer";
+import { NotificationController } from "../../presentation/controllers/NotificationController";
 
 // Service Tokens
 export const ServiceTokens = {
@@ -53,6 +65,8 @@ export const ServiceTokens = {
   // Repositories
   NOTIFICATION_REPOSITORY: "NotificationRepository",
   INBOX_REPOSITORY: "InboxRepository",
+  TEMPLATE_REPOSITORY: "TemplateRepository",
+  PREFERENCES_REPOSITORY: "PreferencesRepository",
 
   // External Services
   DELIVERY_SERVICE: "DeliveryService",
@@ -60,13 +74,17 @@ export const ServiceTokens = {
   REALTIME_SERVICE: "RealTimeService",
 
   // Use Cases
-  SCHEDULE_NOTIFICATION_USE_CASE: "ScheduleNotificationUseCase",
   SEND_NOTIFICATION_USE_CASE: "SendNotificationUseCase",
+  GET_NOTIFICATION_USE_CASE: "GetNotificationUseCase",
+  GET_NOTIFICATION_PREFERENCES_USE_CASE: "GetNotificationPreferencesUseCase",
   PROCESS_NOTIFICATION_QUEUE_USE_CASE: "ProcessNotificationQueueUseCase",
   GET_TEMPLATES_USE_CASE: "GetTemplatesUseCase",
   CREATE_TEMPLATE_USE_CASE: "CreateTemplateUseCase",
   UPDATE_TEMPLATE_USE_CASE: "UpdateTemplateUseCase",
   DELETE_TEMPLATE_USE_CASE: "DeleteTemplateUseCase",
+  MARK_AS_READ_USE_CASE: "MarkNotificationAsReadUseCase",
+  GET_USER_NOTIFICATIONS_USE_CASE: "GetUserNotificationsUseCase",
+  UPDATE_PREFERENCES_USE_CASE: "UpdateNotificationPreferencesUseCase",
 
   // Handlers
   NOTIFICATION_COMMAND_HANDLERS: "NotificationCommandHandlers",
@@ -75,8 +93,17 @@ export const ServiceTokens = {
   // Event Handlers
   NOTIFICATION_EVENT_HANDLERS: "NotificationEventHandlers",
 
+  // Event Consumers
+  APPOINTMENT_EVENT_CONSUMER: "AppointmentEventConsumer",
+  STAFF_EVENT_CONSUMER: "StaffEventConsumer",
+  BILLING_EVENT_CONSUMER: "BillingEventConsumer",
+  CLINICAL_EMR_EVENT_CONSUMER: "ClinicalEMREventConsumer",
+
   // Application Services
   NOTIFICATION_APPLICATION_SERVICE: "NotificationApplicationService",
+  
+  // Controllers
+  NOTIFICATION_CONTROLLER: "NotificationController",
 } as const;
 
 export function setupDependencies(container: DIContainer): void {
@@ -119,23 +146,27 @@ export function setupDependencies(container: DIContainer): void {
     ServiceLifetime.SINGLETON
   );
 
-  // Comment out EventBus - not needed for now
-  // container.registerFactory(
-  //   ServiceTokens.EVENT_BUS,
-  //   (container) => {
-  //     const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
-  //     const logger = container.resolve(ServiceTokens.LOGGER);
-  //     return new SupabaseEventBus({ supabase: supabaseClient, logger });
-  //   },
-  //   ServiceLifetime.SCOPED
-  // );
+  // Register RabbitMQ Event Bus for publishing domain events
+  container.registerFactory(
+    ServiceTokens.EVENT_BUS,
+    () => {
+      const { RabbitMQEventBus } = require('../../../../shared/infrastructure/event-bus/EventBus');
+      return new RabbitMQEventBus({
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@rabbitmq-v2:5672',
+        exchangeName: 'hospital.events',
+        serviceName: 'notifications-service'
+      });
+    },
+    ServiceLifetime.SINGLETON
+  );
 
   // Register repositories
   container.registerFactory(
     ServiceTokens.NOTIFICATION_REPOSITORY,
     (container) => {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
-      return new SupabaseNotificationRepository(supabaseClient);
+      const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
+      return new SupabaseNotificationRepository(supabaseClient, eventBus);
     },
     ServiceLifetime.SCOPED
   );
@@ -145,6 +176,24 @@ export function setupDependencies(container: DIContainer): void {
     (container) => {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
       return new SupabaseInboxRepository(supabaseClient);
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  container.registerFactory(
+    ServiceTokens.TEMPLATE_REPOSITORY,
+    (container) => {
+      const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+      return new SupabaseTemplateRepository(supabaseClient);
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  container.registerFactory(
+    ServiceTokens.PREFERENCES_REPOSITORY,
+    (container) => {
+      const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+      return new SupabasePreferencesRepository(supabaseClient);
     },
     ServiceLifetime.SCOPED
   );
@@ -214,6 +263,29 @@ export function setupDependencies(container: DIContainer): void {
         notificationRepository,
         templateService,
         deliveryService
+      );
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.registerFactory(
+    ServiceTokens.GET_NOTIFICATION_USE_CASE,
+    (container) => {
+      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+
+      return new GetNotificationUseCase(notificationRepository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  // Register GetNotificationPreferencesUseCase
+  container.registerFactory(
+    ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE,
+    (container) => {
+      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+
+      return new GetNotificationPreferencesUseCase(
+        notificationRepository
       );
     },
     ServiceLifetime.TRANSIENT
@@ -313,8 +385,10 @@ export function setupDependencies(container: DIContainer): void {
     ServiceTokens.NOTIFICATION_APPLICATION_SERVICE,
     (container) => {
       const sendUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+      const getUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_USE_CASE);
+      const getPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
 
-      return new NotificationApplicationService(sendUseCase);
+      return new NotificationApplicationService(sendUseCase, getUseCase, getPreferencesUseCase);
     },
     ServiceLifetime.SCOPED
   );
@@ -331,6 +405,190 @@ export function setupDependencies(container: DIContainer): void {
         notificationService,
         inboxRepo,
         sendUseCase
+      );
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  // Register Event Consumers
+  container.registerFactory(
+    ServiceTokens.APPOINTMENT_EVENT_CONSUMER,
+    (container) => {
+      const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+      const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
+      const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
+      
+      const config = {
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
+        queueName: process.env.APPOINTMENT_EVENT_QUEUE || 'notifications.appointment.events',
+        exchangeName: process.env.APPOINTMENT_EVENT_EXCHANGE || 'appointments.events',
+        routingKeys: [
+          'appointment.scheduled',
+          'appointment.confirmed', 
+          'appointment.cancelled',
+          'appointment.completed',
+          'appointment.rescheduled',
+          'appointment.reminder',
+          'appointment.no_show'
+        ],
+        prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
+        retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
+        retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+      };
+
+      return new AppointmentEventConsumer(
+        config,
+        sendNotificationUseCase,
+        getNotificationPreferencesUseCase,
+        inboxRepo
+      );
+    },
+    ServiceLifetime.SINGLETON
+  );
+
+  container.registerFactory(
+    ServiceTokens.STAFF_EVENT_CONSUMER,
+    (container) => {
+      const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+      const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
+      const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
+      
+      const config = {
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
+        queueName: process.env.STAFF_EVENT_QUEUE || 'notifications.staff.events',
+        exchangeName: process.env.STAFF_EVENT_EXCHANGE || 'staff.events',
+        routingKeys: [
+          'availability.staff.changed',
+          'shift.staff.assigned',
+          'shift.staff.cancelled',
+          'schedule.staff.updated',
+          'department.staff.assigned',
+          'oncall.staff.assigned',
+          'performance.staff.reviewed'
+        ],
+        prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
+        retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
+        retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+      };
+
+      return new StaffEventConsumer(
+        config,
+        sendNotificationUseCase,
+        getNotificationPreferencesUseCase,
+        inboxRepo
+      );
+    },
+    ServiceLifetime.SINGLETON
+  );
+
+  container.registerFactory(
+    ServiceTokens.BILLING_EVENT_CONSUMER,
+    (container) => {
+      const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+      const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
+      const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
+      
+      const config = {
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
+        queueName: process.env.BILLING_EVENT_QUEUE || 'notifications.billing.events',
+        exchangeName: process.env.BILLING_EVENT_EXCHANGE || 'hospital.events',
+        routingKeys: [
+          'billing.invoice.generated',
+          'billing.payment.completed',
+          'billing.payment.reminder.*',
+          'billing.insurance.*',
+          'billing.rate.updated'
+        ],
+        prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
+        retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
+        retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+      };
+
+      return new BillingEventConsumer(
+        config,
+        sendNotificationUseCase,
+        getNotificationPreferencesUseCase,
+        inboxRepo
+      );
+    },
+    ServiceLifetime.SINGLETON
+  );
+
+  container.registerFactory(
+    ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER,
+    (container) => {
+      const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+      const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
+      const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
+      
+      const config = {
+        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
+        queueName: process.env.CLINICAL_EVENT_QUEUE || 'notifications.clinical.events',
+        exchangeName: process.env.CLINICAL_EVENT_EXCHANGE || 'hospital.events',
+        routingKeys: [
+          'clinical.medical_record_updated',
+          'clinical.medication.reminder.*',
+          'clinical.test_result.ready',
+          'clinical.prescription.created',
+          'emergency.alert'
+        ],
+        prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
+        retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
+        retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+      };
+
+      return new ClinicalEMREventConsumer(
+        config,
+        sendNotificationUseCase,
+        getNotificationPreferencesUseCase,
+        inboxRepo
+      );
+    },
+    ServiceLifetime.SINGLETON
+  );
+
+  // Register new use cases
+  container.registerFactory(
+    ServiceTokens.MARK_AS_READ_USE_CASE,
+    (container) => {
+      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+      return new MarkNotificationAsReadUseCase(notificationRepository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.registerFactory(
+    ServiceTokens.GET_USER_NOTIFICATIONS_USE_CASE,
+    (container) => {
+      const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
+      return new GetUserNotificationsUseCase(notificationRepository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  container.registerFactory(
+    ServiceTokens.UPDATE_PREFERENCES_USE_CASE,
+    (container) => {
+      const preferencesRepository = container.resolve(ServiceTokens.PREFERENCES_REPOSITORY);
+      return new UpdateNotificationPreferencesUseCase(preferencesRepository);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  // Register Controllers
+  container.registerFactory(
+    ServiceTokens.NOTIFICATION_CONTROLLER,
+    (container) => {
+      const notificationApplicationService = container.resolve(ServiceTokens.NOTIFICATION_APPLICATION_SERVICE);
+      const markAsReadUseCase = container.resolve(ServiceTokens.MARK_AS_READ_USE_CASE);
+      const getUserNotificationsUseCase = container.resolve(ServiceTokens.GET_USER_NOTIFICATIONS_USE_CASE);
+      const updatePreferencesUseCase = container.resolve(ServiceTokens.UPDATE_PREFERENCES_USE_CASE);
+
+      return new NotificationController(
+        notificationApplicationService,
+        markAsReadUseCase,
+        getUserNotificationsUseCase,
+        updatePreferencesUseCase
       );
     },
     ServiceLifetime.SCOPED

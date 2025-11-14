@@ -647,15 +647,6 @@ class SupabaseAppointmentRepository {
         }
         return (data || []).map(record => this.toDomain(record));
     }
-    async updateStatus(appointmentId, status) {
-        const { error } = await this.supabase
-            .from(this.tableName)
-            .update({ status: status.toUpperCase(), updated_at: new Date().toISOString() })
-            .eq('appointment_id', appointmentId.value);
-        if (error) {
-            throw new Error(`Failed to update appointment status: ${error.message}`);
-        }
-    }
     async bulkUpdate(appointments) {
         const records = appointments.map(apt => this.toPersistence(apt));
         const { error } = await this.supabase
@@ -835,13 +826,8 @@ class SupabaseAppointmentRepository {
         const utilizationRate = totalSlots > 0 ? (bookedSlots / totalSlots) * 100 : 0;
         const noShowRate = totalSlots > 0 ? (noShowCount / totalSlots) * 100 : 0;
         const cancellationRate = totalSlots > 0 ? (cancelledCount / totalSlots) * 100 : 0;
-        return {
-            totalSlots,
-            bookedSlots,
-            utilizationRate,
-            noShowRate,
-            cancellationRate
-        };
+        // Return only utilization rate as specified by interface
+        return utilizationRate;
     }
     /**
      * Convert domain aggregate to database record
@@ -942,6 +928,330 @@ class SupabaseAppointmentRepository {
         };
         // Reconstitute with UUID from database
         return Appointment_aggregate_1.Appointment.reconstitute(props, record.id);
+    }
+    // ==================== MISSING METHODS - CRITICAL ====================
+    /**
+     * Update appointment (alias for save - uses aggregate pattern)
+     * Used by event consumers for status changes and updates
+     */
+    async update(appointment) {
+        return this.save(appointment);
+    }
+    /**
+     * Create appointment (alias for save - uses aggregate pattern)
+     * Used by event consumers when creating new appointments
+     */
+    async create(appointment) {
+        return this.save(appointment);
+    }
+    /**
+     * Find appointments by department ID
+     * Used by department event consumers for department operations
+     */
+    async findByDepartmentId(departmentId) {
+        try {
+            const { data, error } = await this.supabase
+                .from(this.tableName)
+                .select('*')
+                .eq('department_id', departmentId);
+            if (error) {
+                throw new Error(`Failed to find appointments by department ID: ${error.message}`);
+            }
+            return (data || []).map(record => this.toDomain(record));
+        }
+        catch (error) {
+            console.error('Failed to find appointments by department ID:', error);
+            throw error;
+        }
+    }
+    /**
+     * Find appointments by department and date
+     * Used by department event consumers for daily operations
+     */
+    async findByDepartmentAndDate(departmentId, date) {
+        try {
+            const dateStr = date.toISOString().split('T')[0];
+            const { data, error } = await this.supabase
+                .from(this.tableName)
+                .select('*')
+                .eq('department_id', departmentId)
+                .eq('appointment_date', dateStr);
+            if (error) {
+                throw new Error(`Failed to find appointments by department and date: ${error.message}`);
+            }
+            return (data || []).map(record => this.toDomain(record));
+        }
+        catch (error) {
+            console.error('Failed to find appointments by department and date:', error);
+            throw error;
+        }
+    }
+    /**
+     * Check staff availability for appointment
+     * Used by staff event consumers for availability checks
+     */
+    async checkStaffAvailability(staffId, startTime, endTime) {
+        try {
+            const startStr = startTime.toISOString();
+            const endStr = endTime.toISOString();
+            const { data, error } = await this.supabase
+                .from(this.tableName)
+                .select('*')
+                .eq('doctor_id', staffId)
+                .gte('appointment_time', startStr)
+                .lte('appointment_time', endStr)
+                .in('status', ['confirmed', 'in-progress']);
+            if (error) {
+                throw new Error(`Failed to check staff availability: ${error.message}`);
+            }
+            return !data || data.length === 0;
+        }
+        catch (error) {
+            console.error('Failed to check staff availability:', error);
+            throw error;
+        }
+    }
+    // ==================== PATIENT HISTORY METHODS (APPOINTMENT SERVICE CONTEXT) ====================
+    /**
+     * Update patient appointment history
+     * Patient history management is core to appointment service
+     */
+    async updatePatientHistory(data) {
+        try {
+            console.log(`Updating patient history for patient: ${data.patientId}, appointment: ${data.appointmentId}`);
+            // Store patient history in appointments_schema.patient_history table
+            const { error } = await this.supabase
+                .from('patient_history')
+                .upsert({
+                patient_id: data.patientId,
+                appointment_id: data.appointmentId,
+                visit_type: data.visitType,
+                diagnosis: data.diagnosis,
+                treatment: data.treatment,
+                notes: data.notes,
+                updated_at: data.updatedAt,
+                created_at: new Date()
+            }, {
+                onConflict: 'appointment_id'
+            });
+            if (error) {
+                throw new Error(`Failed to update patient history: ${error.message}`);
+            }
+            console.log(`Successfully updated patient history for appointment: ${data.appointmentId}`);
+        }
+        catch (error) {
+            console.error('Failed to update patient history:', error);
+            throw error;
+        }
+    }
+    /**
+     * Update patient vital signs profile for appointments
+     * Vital signs are linked to appointments (pre-op, post-op)
+     */
+    async updatePatientVitalSignsProfile(data) {
+        try {
+            console.log(`Updating vital signs for patient: ${data.patientId}, appointment: ${data.appointmentId}`);
+            // Store vital signs in appointments_schema.vital_signs table
+            const { error } = await this.supabase
+                .from('vital_signs')
+                .upsert({
+                patient_id: data.patientId,
+                appointment_id: data.appointmentId,
+                blood_pressure: data.vitalSigns.bloodPressure,
+                heart_rate: data.vitalSigns.heartRate,
+                temperature: data.vitalSigns.temperature,
+                weight: data.vitalSigns.weight,
+                height: data.vitalSigns.height,
+                recorded_at: data.recordedAt,
+                recorded_by: data.recordedBy,
+                created_at: new Date()
+            }, {
+                onConflict: 'appointment_id'
+            });
+            if (error) {
+                throw new Error(`Failed to update vital signs: ${error.message}`);
+            }
+            console.log(`Successfully updated vital signs for appointment: ${data.appointmentId}`);
+        }
+        catch (error) {
+            console.error('Failed to update vital signs:', error);
+            throw error;
+        }
+    }
+    /**
+     * Add appointment to urgent care list
+     * Urgent care appointments are appointment types managed by appointment service
+     */
+    async addToUrgentCareList(appointmentId, priority) {
+        try {
+            console.log(`Adding appointment ${appointmentId} to urgent care list with priority: ${priority}`);
+            // Add to urgent care queue in appointments_schema.urgent_care_queue table
+            const { error } = await this.supabase
+                .from('urgent_care_queue')
+                .insert({
+                appointment_id: appointmentId,
+                priority: priority,
+                status: 'pending',
+                added_at: new Date(),
+                created_at: new Date()
+            });
+            if (error) {
+                throw new Error(`Failed to add to urgent care list: ${error.message}`);
+            }
+            console.log(`Successfully added appointment ${appointmentId} to urgent care list`);
+        }
+        catch (error) {
+            console.error('Failed to add to urgent care list:', error);
+            throw error;
+        }
+    }
+    // ==================== MISSING METHODS FROM INTERFACE ====================
+    /**
+     * Update appointment status
+     * Loads aggregate, updates status, saves back
+     */
+    async updateStatus(appointmentId, status) {
+        try {
+            const appointment = await this.findById(appointmentId);
+            if (!appointment) {
+                throw new Error(`Appointment not found: ${appointmentId.value}`);
+            }
+            // TODO: Add proper domain method for status update
+            // For now, use direct update (should be moved to domain)
+            const { error } = await this.supabase
+                .from(this.tableName)
+                .update({
+                status,
+                updated_at: new Date().toISOString()
+            })
+                .eq('id', appointmentId.value);
+            if (error) {
+                throw new Error(`Failed to update appointment status: ${error.message}`);
+            }
+            console.log(`Successfully updated appointment ${appointmentId.value} status to ${status}`);
+        }
+        catch (error) {
+            console.error('Failed to update appointment status:', error);
+            throw error;
+        }
+    }
+    /**
+     * Update billing rates for appointments
+     * Updates all appointments of a specific service type
+     */
+    async updateBillingRates(data) {
+        try {
+            const { error } = await this.supabase
+                .from(this.tableName)
+                .update({
+                estimated_cost: data.newRate,
+                updated_at: new Date().toISOString()
+            })
+                .eq('type', data.serviceType)
+                .gte('appointment_date', data.effectiveDate.toISOString().split('T')[0]);
+            if (error) {
+                throw new Error(`Failed to update billing rates: ${error.message}`);
+            }
+            console.log(`Successfully updated billing rates for ${data.serviceType} to ${data.newRate}`);
+        }
+        catch (error) {
+            console.error('Failed to update billing rates:', error);
+            throw error;
+        }
+    }
+    /**
+     * Find appointments by service type and date
+     */
+    async findByServiceTypeAndDate(serviceType, date) {
+        try {
+            const dateStr = date.toISOString().split('T')[0];
+            const { data, error } = await this.supabase
+                .from(this.tableName)
+                .select('*')
+                .eq('type', serviceType)
+                .eq('appointment_date', dateStr);
+            if (error) {
+                throw new Error(`Failed to find appointments by service type and date: ${error.message}`);
+            }
+            if (!data || data.length === 0) {
+                return [];
+            }
+            // Convert to Appointment aggregates
+            return data.map(row => this.toDomain(row));
+        }
+        catch (error) {
+            console.error('Failed to find appointments by service type and date:', error);
+            throw error;
+        }
+    }
+    /**
+     * Find pending appointments by service type
+     */
+    async findPendingByServiceType(serviceType) {
+        try {
+            const { data, error } = await this.supabase
+                .from(this.tableName)
+                .select('*')
+                .eq('type', serviceType)
+                .eq('status', 'pending');
+            if (error) {
+                throw new Error(`Failed to find pending appointments by service type: ${error.message}`);
+            }
+            if (!data || data.length === 0) {
+                return [];
+            }
+            // Convert to Appointment aggregates
+            return data.map(row => this.toDomain(row));
+        }
+        catch (error) {
+            console.error('Failed to find pending appointments by service type:', error);
+            throw error;
+        }
+    }
+    // ... rest of the code remains the same ...
+    /**
+     * Update patient insurance coverage
+     * Updates all future appointments for a patient
+     */
+    async updatePatientInsuranceCoverage(data) {
+        try {
+            const { error } = await this.supabase
+                .from(this.tableName)
+                .update({
+                insurance_provider: data.insuranceProvider,
+                policy_number: data.policyNumber,
+                coverage_type: data.coverageType,
+                updated_at: new Date().toISOString()
+            })
+                .eq('patient_id', data.patientId)
+                .gte('appointment_date', data.validFrom.toISOString().split('T')[0])
+                .lte('appointment_date', data.validUntil.toISOString().split('T')[0]);
+            if (error) {
+                throw new Error(`Failed to update patient insurance coverage: ${error.message}`);
+            }
+            console.log(`Successfully updated insurance coverage for patient ${data.patientId}`);
+        }
+        catch (error) {
+            console.error('Failed to update patient insurance coverage:', error);
+            throw error;
+        }
+    }
+    /**
+     * Update patient scheduling preferences
+     * Note: This would typically be stored in a separate patient_preferences table
+     */
+    async updatePatientSchedulingPreferences(data) {
+        try {
+            // For now, log the preference update
+            // In a real implementation, this would update a patient_preferences table
+            console.log(`Updating scheduling preferences for patient ${data.patientId}:`, data);
+            // TODO: Implement patient preferences table update
+            console.log('Patient scheduling preferences updated (placeholder implementation)');
+        }
+        catch (error) {
+            console.error('Failed to update patient scheduling preferences:', error);
+            throw error;
+        }
     }
 }
 exports.SupabaseAppointmentRepository = SupabaseAppointmentRepository;

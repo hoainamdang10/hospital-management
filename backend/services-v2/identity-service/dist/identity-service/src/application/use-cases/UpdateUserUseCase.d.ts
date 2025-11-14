@@ -24,6 +24,7 @@ export interface UpdateUserRequest {
         address?: string;
         isActive?: boolean;
     };
+    isCompleteReplace?: boolean;
 }
 export interface UpdateUserResponse {
     success: boolean;

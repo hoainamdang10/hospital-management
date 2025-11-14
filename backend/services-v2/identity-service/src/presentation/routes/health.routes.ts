@@ -79,6 +79,29 @@ export function createHealthRoutes(deps: RouteDependencies): Router {
     }
   });
 
+  // Outbox statistics endpoint
+  router.get('/outbox/stats', async (_req, res) => {
+    try {
+      const stats = await deps.outboxPublisher.getStats();
+      res.json(stats);
+    } catch (error) {
+      logger.error('Failed to get outbox stats', { error: getErrorMessage(error) });
+      res.status(500).json({ error: 'Failed to get outbox stats' });
+    }
+  });
+
+  // Outbox failed events endpoint
+  router.get('/outbox/failed', async (_req, res) => {
+    try {
+      const limit = parseInt(_req.query.limit as string) || 50;
+      const failed = await deps.outboxPublisher.getFailedEvents(limit);
+      res.json(failed);
+    } catch (error) {
+      logger.error('Failed to get failed events', { error: getErrorMessage(error) });
+      res.status(500).json({ error: 'Failed to get failed events' });
+    }
+  });
+
   return router;
 }
 

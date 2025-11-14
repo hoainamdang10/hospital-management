@@ -21,6 +21,7 @@ export interface NotificationSearchCriteria {
     scheduledBefore?: Date;
     createdAfter?: Date;
     createdBefore?: Date;
+    isRead?: boolean;
     healthcareContext?: {
         patientId?: string;
         doctorId?: string;
@@ -209,6 +210,10 @@ export interface INotificationRepository {
      * Mark notification as failed
      */
     markAsFailed(id: NotificationId, failureReason: string, failedAt: Date): Promise<void>;
+    /**
+     * Mark notification as read/unread
+     */
+    markAsRead(id: NotificationId, readAt: Date | null): Promise<void>;
     /**
      * Bulk update notifications
      */

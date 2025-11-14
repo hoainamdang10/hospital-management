@@ -21,31 +21,31 @@ class BaseRepository {
         const aggregate = await this.findById(id);
         return aggregate !== null;
     }
-    async count(criteria) {
+    async count(_criteria) {
         // Implementation depends on database provider
         throw new Error('count method must be implemented by subclasses');
     }
-    async findWithPagination(criteria, pagination) {
+    async findWithPagination(_criteria, _pagination) {
         // Implementation depends on database provider
         throw new Error('findWithPagination method must be implemented by subclasses');
     }
-    async findByPatientId(patientId) {
+    async findByPatientId(_patientId) {
         // Implementation depends on aggregate type
         throw new Error('findByPatientId method must be implemented by subclasses');
     }
-    async findByUserId(userId) {
+    async findByUserId(_userId) {
         // Implementation depends on aggregate type
         throw new Error('findByUserId method must be implemented by subclasses');
     }
-    async findByDateRange(startDate, endDate) {
+    async findByDateRange(_startDate, _endDate) {
         // Implementation depends on aggregate type
         throw new Error('findByDateRange method must be implemented by subclasses');
     }
-    async getAuditTrail(aggregateId) {
+    async getAuditTrail(_aggregateId) {
         // Implementation depends on audit system
         throw new Error('getAuditTrail method must be implemented by subclasses');
     }
-    async anonymize(aggregateId) {
+    async anonymize(_aggregateId) {
         // Implementation depends on aggregate type
         throw new Error('anonymize method must be implemented by subclasses');
     }

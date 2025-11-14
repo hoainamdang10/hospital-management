@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationFailedEvent = void 0;
-const domain_event_1 = require("@shared/domain/base/domain-event");
+const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 class NotificationFailedEvent extends domain_event_1.DomainEvent {
     constructor(notificationId, recipientId, failureReason, patientId, correlationId, userId) {
         const eventData = {

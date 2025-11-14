@@ -423,14 +423,39 @@ class ApiGatewayApplication {
         requiredPermissions: ["clinical:read"],
       }),
 
-      // Billing Service - Invoicing & Payments (port 3029)
+      // Clinical EMR Service - Patient Medical Records (port 3027)
+      // Patients can view their own medical records
+      // Authorization handled by service (ownership-based)
+      ServiceRoute.create({
+        serviceName: "clinical-emr-service",
+        baseUrl:
+          process.env.CLINICAL_EMR_SERVICE_URL ||
+          "http://clinical-emr-service:3027",
+        pathPrefix: "/api/v2/clinical-emr/patients",
+        requiresAuth: true,
+        // No requiredPermissions - authorization handled by downstream service
+      }),
+
+      // Billing Service - Invoicing & Payments (port 3009)
       ServiceRoute.create({
         serviceName: "billing-service",
         baseUrl:
-          process.env.BILLING_SERVICE_URL || "http://billing-service:3029",
+          process.env.BILLING_SERVICE_URL || "http://billing-service:3009",
         pathPrefix: "/api/v1/billing",
         requiresAuth: true,
         requiredPermissions: ["billing:read"],
+      }),
+
+      // Billing Service - Patient Invoices (port 3009)
+      // Patients can view their own invoices and make payments
+      // Authorization handled by service (ownership-based)
+      ServiceRoute.create({
+        serviceName: "billing-service",
+        baseUrl:
+          process.env.BILLING_SERVICE_URL || "http://billing-service:3009",
+        pathPrefix: "/api/v1/billing/patient",
+        requiresAuth: true,
+        // No requiredPermissions - authorization handled by downstream service
       }),
 
       // Notifications Service - Multi-channel Notifications (port 3011)

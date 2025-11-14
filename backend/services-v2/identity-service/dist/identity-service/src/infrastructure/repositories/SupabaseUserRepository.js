@@ -25,7 +25,7 @@ const UserSession_1 = require("../../domain/entities/UserSession");
  * Returns Domain aggregates, not DTOs
  */
 class SupabaseUserRepository {
-    constructor(supabaseClient, logger, cacheService, permissionRepository, eventPublisher) {
+    constructor(supabaseClient, logger, cacheService, permissionRepository, eventPublisher, outboxService) {
         this.logger = logger;
         this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker("user-repository");
         // Cache TTL constants (in seconds)
@@ -39,6 +39,7 @@ class SupabaseUserRepository {
         this.cacheService = cacheService;
         this.permissionRepository = permissionRepository;
         this.eventPublisher = eventPublisher;
+        this.outboxService = outboxService;
     }
     /**
      * Find user by ID with circuit breaker protection and caching
@@ -391,12 +392,53 @@ class SupabaseUserRepository {
             });
         }
         catch (error) {
-            this.logger.error("Failed to update Supabase Auth email_confirmed_at", {
+            this.logger.error("Error updating auth email confirmed", {
                 userId: id,
                 error: (0, error_helper_1.getErrorMessage)(error),
             });
             throw error;
         }
+    }
+    /**
+     * Update user profile data (for patient sync)
+     * Updates auth_schema.user_profiles table
+     */
+    async updateProfile(userId, profileData) {
+        return await this.circuitBreaker.execute(async () => {
+            try {
+                // Remove undefined values
+                const cleanData = {};
+                for (const [key, value] of Object.entries(profileData)) {
+                    if (value !== undefined && value !== null) {
+                        cleanData[key] = value;
+                    }
+                }
+                if (Object.keys(cleanData).length === 0) {
+                    this.logger.debug('No profile data to update', { userId });
+                    return;
+                }
+                const { error } = await this.supabaseClient
+                    .from('user_profiles')
+                    .update(cleanData)
+                    .eq('user_id', userId);
+                if (error) {
+                    throw new Error(`Failed to update user profile: ${(0, error_helper_1.getErrorMessage)(error)}`);
+                }
+                this.logger.info('User profile updated successfully', {
+                    userId,
+                    updatedFields: Object.keys(cleanData)
+                });
+                // Invalidate cache after profile update
+                await this.invalidateUserCache(userId);
+            }
+            catch (error) {
+                this.logger.error('Error updating user profile', {
+                    userId,
+                    error: (0, error_helper_1.getErrorMessage)(error)
+                });
+                throw error;
+            }
+        });
     }
     /**
      * Save user (create or update) - minimal implementation for schema-per-service
@@ -417,10 +459,11 @@ class SupabaseUserRepository {
     }
     /**
      * Publish domain events from aggregate
+     * Uses Outbox Pattern for guaranteed event publishing
      */
     async publishDomainEvents(user) {
-        if (!this.eventPublisher) {
-            this.logger.debug("Event publisher not configured, skipping event publishing");
+        if (!this.eventPublisher && !this.outboxService) {
+            this.logger.debug("Event publisher and outbox service not configured, skipping event publishing");
             return;
         }
         const events = user.getUncommittedEvents();
@@ -428,24 +471,44 @@ class SupabaseUserRepository {
             return;
         }
         try {
-            // Publish events in batch
-            await this.eventPublisher.publishDomainEvents(events);
-            // Mark events as committed after successful publishing
+            // Store events in outbox (guaranteed persistence)
+            if (this.outboxService) {
+                for (const event of events) {
+                    await this.outboxService.storeEvent(event);
+                }
+                this.logger.info("Domain events stored in outbox", {
+                    userId: user.id,
+                    eventCount: events.length,
+                    eventTypes: events.map((event) => event.eventType),
+                });
+            }
+            // Also publish immediately if eventPublisher available (best effort)
+            if (this.eventPublisher) {
+                try {
+                    await this.eventPublisher.publishDomainEvents(events);
+                    this.logger.info("Domain events published immediately", {
+                        userId: user.id,
+                        eventCount: events.length,
+                    });
+                }
+                catch (publishError) {
+                    this.logger.warn("Failed to publish events immediately, outbox will retry", {
+                        userId: user.id,
+                        error: publishError instanceof Error ? publishError.message : String(publishError),
+                    });
+                    // Don't throw - outbox will handle retry
+                }
+            }
+            // Mark events as committed (they're safely stored in outbox)
             user.markEventsAsCommitted();
-            this.logger.info("Domain events published", {
-                userId: user.id,
-                eventCount: events.length,
-                eventTypes: events.map((event) => event.eventType),
-            });
         }
         catch (error) {
-            this.logger.error("Failed to publish domain events", {
+            this.logger.error("Failed to handle domain events", {
                 userId: user.id,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: error instanceof Error ? error.message : String(error),
                 eventCount: events.length,
             });
-            // Don't throw - event publishing failure shouldn't fail the transaction
-            // Events will be retried on next save or can be published via outbox pattern
+            // Don't throw - outbox will retry, but we should not fail the transaction
         }
     }
     /**

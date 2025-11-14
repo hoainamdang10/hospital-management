@@ -10,12 +10,14 @@
 import { Request, Response } from 'express';
 import { IDepartmentRepository } from '../../domain/repositories/IDepartmentRepository';
 import { RedisDepartmentCache } from '../../infrastructure/cache/RedisDepartmentCache';
+import { DepartmentEventPublisher } from '../../infrastructure/events/DepartmentEventPublisher';
 import axios from 'axios';
 
 export class DepartmentController {
   constructor(
     private repository: IDepartmentRepository,
-    private cache: RedisDepartmentCache
+    private cache: RedisDepartmentCache,
+    private eventPublisher?: DepartmentEventPublisher
   ) {}
 
   /**
@@ -216,6 +218,11 @@ export class DepartmentController {
 
       // Save to database
       await this.repository.save(department);
+
+      // Publish domain events
+      if (this.eventPublisher) {
+        await this.eventPublisher.publishDepartmentEvents(department);
+      }
 
       // Invalidate cache
       await this.cache.clear();

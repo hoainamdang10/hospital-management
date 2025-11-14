@@ -17,6 +17,7 @@ import { Email } from "../../domain/value-objects/Email";
 import { UserSession } from "../../domain/entities/UserSession";
 import { ILogger } from "../../application/services/ILogger";
 import { IEventPublisher } from "../../application/services/IEventPublisher";
+import { OutboxService } from "../outbox/OutboxService";
 export interface CreateUserRequest {
     email: string;
     fullName: string;
@@ -59,8 +60,9 @@ export declare class SupabaseUserRepository implements IUserRepository {
     private cacheService?;
     private permissionRepository?;
     private eventPublisher?;
+    private outboxService?;
     private readonly CACHE_TTL;
-    constructor(supabaseClient: SupabaseClient, logger: ILogger, cacheService?: RedisCacheService, permissionRepository?: IPermissionRepository, eventPublisher?: IEventPublisher);
+    constructor(supabaseClient: SupabaseClient, logger: ILogger, cacheService?: RedisCacheService, permissionRepository?: IPermissionRepository, eventPublisher?: IEventPublisher, outboxService?: OutboxService);
     /**
      * Find user by ID with circuit breaker protection and caching
      * Returns Domain aggregate, not DTO
@@ -97,11 +99,31 @@ export declare class SupabaseUserRepository implements IUserRepository {
      */
     updateAuthEmailConfirmed(userId: UserId): Promise<void>;
     /**
+     * Update user profile data (for patient sync)
+     * Updates auth_schema.user_profiles table
+     */
+    updateProfile(userId: string, profileData: {
+        full_name?: string;
+        date_of_birth?: Date;
+        gender?: string;
+        citizen_id?: string;
+        phone_number?: string;
+        address?: string;
+        ward?: string;
+        district?: string;
+        city?: string;
+        province?: string;
+        country?: string;
+        updated_at?: Date;
+        updated_by?: string;
+    }): Promise<void>;
+    /**
      * Save user (create or update) - minimal implementation for schema-per-service
      */
     save(user: User): Promise<void>;
     /**
      * Publish domain events from aggregate
+     * Uses Outbox Pattern for guaranteed event publishing
      */
     private publishDomainEvents;
     /**

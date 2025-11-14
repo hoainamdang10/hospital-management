@@ -18,6 +18,13 @@ import { RedisDepartmentCache } from './infrastructure/cache/RedisDepartmentCach
 import { DepartmentController } from './presentation/controllers/DepartmentController';
 import { createDepartmentRoutes } from './presentation/routes/department.routes';
 
+// Event System
+import { RabbitMQEventBus } from '@shared/infrastructure/event-bus/EventBus';
+import { DepartmentEventPublisher } from './infrastructure/events/DepartmentEventPublisher';
+import { StaffDepartmentChangeConsumer } from './infrastructure/events/StaffDepartmentChangeConsumer';
+import { IdentityRoleChangeConsumer } from './infrastructure/events/IdentityRoleChangeConsumer';
+import { Logger } from '@infrastructure/logging/Logger';
+
 // Load environment variables
 dotenv.config();
 
@@ -32,6 +39,10 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Redis configuration
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+
+// RabbitMQ configuration
+const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+const RABBITMQ_EXCHANGE = process.env.RABBITMQ_EXCHANGE || 'hospital.events';
 
 // CORS configuration
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
@@ -73,7 +84,74 @@ app.use((_req: Request, res: Response, next) => {
 // Initialize dependencies
 const repository = new SupabaseDepartmentRepository(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const cache = new RedisDepartmentCache(REDIS_URL);
-const controller = new DepartmentController(repository, cache);
+
+// Initialize Event System
+const logger: Logger = {
+  info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta || ""),
+  error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta || ""),
+  warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta || ""),
+  debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta || ""),
+  fatal: (message: string, meta?: any) => console.error(`[FATAL] ${message}`, meta || ""),
+};
+
+const eventBus = new RabbitMQEventBus({
+  rabbitmqUrl: RABBITMQ_URL,
+  exchangeName: RABBITMQ_EXCHANGE,
+  serviceName: SERVICE_NAME,
+});
+
+const eventPublisher = new DepartmentEventPublisher(
+  {
+    rabbitmqUrl: RABBITMQ_URL,
+    exchangeName: RABBITMQ_EXCHANGE,
+    serviceName: SERVICE_NAME,
+    retryAttempts: 3,
+    retryDelayMs: 1000,
+  },
+  eventBus,
+  logger,
+);
+
+const staffEventConsumer = new StaffDepartmentChangeConsumer(
+  {
+    rabbitmqUrl: RABBITMQ_URL,
+    queueName: 'department.staff.events',
+    exchangeName: RABBITMQ_EXCHANGE,
+    routingKeys: [
+      'provider.department.assigned',   // StaffDepartmentAssignedEvent from Provider Staff
+      'provider.department.changed',    // StaffDepartmentChangedEvent
+      'provider.status.changed',        // StaffStatusChangedEvent from Provider Staff
+      'provider.role.changed',          // StaffRoleChangedEvent
+      'department.created',             // DepartmentCreatedEvent from Department Service
+      'department.updated'              // DepartmentUpdatedEvent from Department Service
+    ],
+    prefetchCount: 10,
+    retryAttempts: 3,
+    retryDelayMs: 1000,
+  },
+  logger,
+  repository,
+  eventBus,
+);
+
+const identityEventConsumer = new IdentityRoleChangeConsumer(
+  {
+    rabbitmqUrl: RABBITMQ_URL,
+    queueName: 'department.identity.events',
+    exchangeName: RABBITMQ_EXCHANGE,
+    routingKeys: [
+      'user.role.changed',
+      'user.deactivated',
+    ],
+    prefetchCount: 10,
+    retryAttempts: 3,
+    retryDelayMs: 1000,
+  },
+  logger,
+  repository,
+);
+
+const controller = new DepartmentController(repository, cache, eventPublisher);
 
 // Health check endpoint - MUST BE BEFORE department routes to avoid /:id conflict
 app.get('/health', (_req: Request, res: Response) => {
@@ -128,26 +206,65 @@ app.use((err: Error, _req: Request, res: Response, _next: any) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('[Department Service] SIGTERM received, shutting down gracefully...');
+  
+  // Disconnect event system first
+  await staffEventConsumer.disconnect();
+  await identityEventConsumer.disconnect();
+  await eventPublisher.disconnect();
+  await eventBus.disconnect();
+  
+  // Disconnect cache
   await cache.disconnect();
+  
+  console.log('[Department Service] Shutdown complete');
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('[Department Service] SIGINT received, shutting down gracefully...');
+  
+  // Disconnect event system first
+  await staffEventConsumer.disconnect();
+  await identityEventConsumer.disconnect();
+  await eventPublisher.disconnect();
+  await eventBus.disconnect();
+  
+  // Disconnect cache
   await cache.disconnect();
+  
+  console.log('[Department Service] Shutdown complete');
   process.exit(0);
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log('='.repeat(60));
-  console.log(`[Department Service] Started successfully`);
-  console.log(`[Department Service] Environment: ${NODE_ENV}`);
-  console.log(`[Department Service] Port: ${PORT}`);
-  console.log(`[Department Service] Health: http://localhost:${PORT}/health`);
-  console.log(`[Department Service] API: http://localhost:${PORT}/api/departments`);
-  console.log('='.repeat(60));
-});
+async function startServer() {
+  try {
+    console.log('='.repeat(60));
+    console.log(`[Department Service] Starting...`);
+    
+    // Initialize event system
+    await eventBus.connect();
+    await eventPublisher.initialize();
+    await staffEventConsumer.connect();
+    await identityEventConsumer.connect();
+    
+    console.log(`[Department Service] Event system connected`);
+    
+    app.listen(PORT, () => {
+      console.log(`[Department Service] Started successfully`);
+      console.log(`[Department Service] Environment: ${NODE_ENV}`);
+      console.log(`[Department Service] Port: ${PORT}`);
+      console.log(`[Department Service] Health: http://localhost:${PORT}/health`);
+      console.log(`[Department Service] API: http://localhost:${PORT}/api/departments`);
+      console.log('='.repeat(60));
+    });
+  } catch (error: any) {
+    console.error('[Department Service] Failed to start:', error.message);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;
 

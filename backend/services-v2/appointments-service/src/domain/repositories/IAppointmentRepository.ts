@@ -279,11 +279,151 @@ export interface IAppointmentRepository {
     department?: string,
     dateFrom?: Date,
     dateTo?: Date
-  ): Promise<{
-    totalSlots: number;
-    bookedSlots: number;
-    utilizationRate: number;
-    noShowRate: number;
-    cancellationRate: number;
-  }>;
+  ): Promise<number>;
+
+  // ==================== CRITICAL METHODS - IMPLEMENTED ====================
+
+  /**
+   * Update appointment (direct update method)
+   * Used by event consumers for status changes and updates
+   */
+  update(appointment: Appointment): Promise<void>;
+
+  /**
+   * Create appointment (alias for save)
+   * Used by event consumers when creating new appointments
+   */
+  create(appointment: Appointment): Promise<void>;
+
+  /**
+   * Find appointments by department ID
+   * Used by department event consumers
+   */
+  findByDepartmentId(
+    departmentId: string,
+    dateFrom?: Date,
+    dateTo?: Date,
+    limit?: number,
+    offset?: number
+  ): Promise<Appointment[]>;
+
+  /**
+   * Find appointments by department and specific date
+   * Used by department event consumers for daily operations
+   */
+  findByDepartmentAndDate(
+    departmentId: string,
+    date: Date
+  ): Promise<Appointment[]>;
+
+  /**
+   * Check staff availability for appointments
+   * Used by staff event consumers
+   */
+  checkStaffAvailability(
+    staffId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<boolean>;
+
+  // ==================== PATIENT HISTORY METHODS (APPOINTMENT SERVICE CONTEXT) ====================
+
+  /**
+   * Update patient appointment history
+   * Patient history management is core to appointment service
+   */
+  updatePatientHistory(data: {
+    patientId: string;
+    appointmentId: string;
+    visitType: string;
+    diagnosis?: string;
+    treatment?: string;
+    notes?: string;
+    updatedAt: Date;
+  }): Promise<void>;
+
+  /**
+   * Update patient vital signs profile for appointments
+   * Vital signs are linked to appointments (pre-op, post-op)
+   */
+  updatePatientVitalSignsProfile(data: {
+    patientId: string;
+    appointmentId: string;
+    vitalSigns: {
+      bloodPressure?: string;
+      heartRate?: number;
+      temperature?: number;
+      weight?: number;
+      height?: number;
+    };
+    recordedAt: Date;
+    recordedBy: string;
+  }): Promise<void>;
+
+  /**
+   * Add appointment to urgent care list
+   * Urgent care appointments are appointment types managed by appointment service
+   */
+  addToUrgentCareList(appointmentId: string, priority: 'urgent' | 'emergency'): Promise<void>;
+
+  // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+
+  /**
+   * Update appointment (alias for save)
+   * Used by event consumers for appointment updates
+   */
+  update(appointment: Appointment): Promise<void>;
+
+  /**
+   * Update appointment status
+   * Used by event consumers for status changes
+   */
+  updateStatus(appointmentId: AppointmentId, status: string): Promise<void>;
+
+  /**
+   * Update billing rates for appointments
+   * Used by BillingEventConsumer for rate changes
+   */
+  updateBillingRates(data: {
+    serviceType: string;
+    newRate: number;
+    effectiveDate: Date;
+  }): Promise<void>;
+
+  /**
+   * Find appointments by service type and date
+   * Used by BillingEventConsumer for rate updates
+   */
+  findByServiceTypeAndDate(serviceType: string, date: Date): Promise<Appointment[]>;
+
+  /**
+   * Find pending appointments by service type
+   * Used by BillingEventConsumer for rate updates
+   */
+  findPendingByServiceType(serviceType: string): Promise<Appointment[]>;
+
+  /**
+   * Update patient insurance coverage
+   * Used by BillingEventConsumer for insurance updates
+   */
+  updatePatientInsuranceCoverage(data: {
+    patientId: string;
+    insuranceProvider: string;
+    policyNumber: string;
+    coverageType: string;
+    validFrom: Date;
+    validUntil: Date;
+  }): Promise<void>;
+
+  /**
+   * Update patient scheduling preferences
+   * Used by BillingEventConsumer for preference updates
+   */
+  updatePatientSchedulingPreferences(data: {
+    patientId: string;
+    preferredDays: string[];
+    preferredTimes: string[];
+    preferredProviders: string[];
+    specialRequirements: string[];
+  }): Promise<void>;
 }

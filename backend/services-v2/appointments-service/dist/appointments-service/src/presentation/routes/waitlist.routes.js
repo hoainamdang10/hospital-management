@@ -27,14 +27,16 @@ function createWaitlistRoutes() {
      * Add patient to waitlist
      */
     router.post("/", AuthMiddleware_1.authenticate, [
-        (0, express_validator_1.body)("patientId").isUUID().withMessage("Valid patient ID is required"),
+        (0, express_validator_1.body)("patientId")
+            .matches(/^PAT-\d{6}-\d{3}$/)
+            .withMessage("Valid patient ID is required (e.g., PAT-202511-142)"),
         (0, express_validator_1.body)("preferredDoctorId")
             .optional()
-            .isUUID()
-            .withMessage("Valid doctor ID required"),
+            .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+            .withMessage("Valid doctor ID required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
         (0, express_validator_1.body)("preferredDepartmentId")
             .optional()
-            .isUUID()
+            .isString()
             .withMessage("Valid department ID required"),
         (0, express_validator_1.body)("preferredDate")
             .optional()
@@ -93,15 +95,15 @@ function createWaitlistRoutes() {
     router.get("/", AuthMiddleware_1.authenticate, [
         (0, express_validator_1.query)("patientId")
             .optional()
-            .isUUID()
-            .withMessage("Valid patient ID required"),
+            .matches(/^PAT-\d{6}-\d{3}$/)
+            .withMessage("Valid patient ID required (e.g., PAT-202511-142)"),
         (0, express_validator_1.query)("doctorId")
             .optional()
-            .isUUID()
-            .withMessage("Valid doctor ID required"),
+            .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+            .withMessage("Valid doctor ID required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
         (0, express_validator_1.query)("departmentId")
             .optional()
-            .isUUID()
+            .isString()
             .withMessage("Valid department ID required"),
         (0, express_validator_1.query)("date")
             .optional()
@@ -149,8 +151,8 @@ function createWaitlistRoutes() {
             .withMessage("Valid time slot required"),
         (0, express_validator_1.body)("preferredDoctorId")
             .optional()
-            .isUUID()
-            .withMessage("Valid doctor ID required"),
+            .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+            .withMessage("Valid doctor ID required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
         (0, express_validator_1.body)("priority")
             .optional()
             .isIn(["EMERGENCY", "URGENT", "NORMAL", "LOW"])
@@ -198,10 +200,12 @@ function createWaitlistRoutes() {
         (0, express_validator_1.body)("appointmentTime")
             .matches(/^\d{2}:\d{2}(:\d{2})?$/)
             .withMessage("Valid time required (HH:mm or HH:mm:ss)"),
-        (0, express_validator_1.body)("doctorId").isUUID().withMessage("Valid doctor ID is required"),
+        (0, express_validator_1.body)("doctorId")
+            .matches(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/)
+            .withMessage("Valid doctor ID is required (e.g., PEDI-DOC-202502-010 or DOC-GEN-202511-955)"),
         (0, express_validator_1.body)("departmentId")
             .optional()
-            .isUUID()
+            .isString()
             .withMessage("Valid department ID required"),
         (0, express_validator_1.body)("durationMinutes")
             .optional()

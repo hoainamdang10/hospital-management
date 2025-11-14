@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegisterUserUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
+// import { ICircuitBreaker } from "../services/ICircuitBreaker"; // DISABLED: Circuit breaker disabled for development
 const Email_1 = require("../../domain/value-objects/Email");
 const PendingRegistration_1 = require("../../domain/entities/PendingRegistration");
 const EmailVerificationToken_1 = require("../../domain/value-objects/EmailVerificationToken");
@@ -50,29 +51,35 @@ const bcrypt = __importStar(require("bcrypt"));
  * This prevents database pollution from unverified users.
  */
 class RegisterUserUseCase {
-    constructor(userRepository, pendingRegistrationRepository, logger, circuitBreaker, emailService, jwtSecret, frontendUrl, eventPublisher, // Optional for backward compatibility
-    autoVerification) {
+    constructor(userRepository, pendingRegistrationRepository, logger, 
+    // private circuitBreaker: ICircuitBreaker, // DISABLED: Circuit breaker disabled for development
+    emailService, jwtSecret, frontendUrl, eventPublisher, outboxService) {
         this.userRepository = userRepository;
         this.pendingRegistrationRepository = pendingRegistrationRepository;
         this.logger = logger;
-        this.circuitBreaker = circuitBreaker;
         this.emailService = emailService;
         this.jwtSecret = jwtSecret;
         this.frontendUrl = frontendUrl;
         this.eventPublisher = eventPublisher;
-        this.autoVerification = autoVerification;
+        this.outboxService = outboxService;
         this.BCRYPT_ROUNDS = 10; // Bcrypt salt rounds
     }
     async execute(request) {
-        return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
-            this.logger.error("Circuit breaker open for RegisterUserUseCase");
-            return {
-                success: false,
-                message: "Dịch vụ đăng ký tạm thời không khả dụng. Vui lòng thử lại sau.",
-                requiresEmailVerification: false,
-                error: "SERVICE_UNAVAILABLE",
-            };
-        });
+        // DEV: Disable circuit breaker for development
+        return await this.executeImpl(request);
+        // PROD: Enable circuit breaker for production
+        // return await this.circuitBreaker.execute(
+        //   async () => this.executeImpl(request),
+        //   async () => {
+        //     this.logger.error("Circuit breaker open for RegisterUserUseCase");
+        //     return {
+        //       success: false,
+        //       error: "SERVICE_TEMPORARILY_UNAVAILABLE",
+        //       message: "Dịch vụ tạm thời không khả dụng, vui lòng thử lại sau",
+        //       requiresEmailVerification: true
+        //     };
+        //   }
+        // );
     }
     async executeImpl(request) {
         try {
@@ -202,25 +209,35 @@ class RegisterUserUseCase {
                     error: "EMAIL_SENDING_FAILED",
                 };
             }
-            if (this.autoVerification?.enabled) {
-                await this.autoVerifyPendingRegistration(verificationToken.token, pendingRegistration.id, email.value);
-            }
-            // 9. Publish domain event
+            // Auto-verification disabled - always require email verification
+            // 9. Publish domain event using Outbox Pattern for guaranteed delivery
             if (this.eventPublisher) {
                 try {
                     const event = new PendingRegistrationCreatedEvent_1.PendingRegistrationCreatedEvent(pendingRegistration.id, email.value, request.fullName, roleType, // Always 'PATIENT'
                     pendingRegistration.expiresAt);
+                    // Store in outbox first (guaranteed persistence)
+                    if (this.outboxService) {
+                        await this.outboxService.storeEvent(event);
+                        this.logger.info("PendingRegistrationCreated event stored in outbox", {
+                            pendingRegistrationId: pendingRegistration.id,
+                        });
+                    }
+                    // Publish immediately
                     await this.eventPublisher.publishDomainEvents([event]);
                     this.logger.info("PendingRegistrationCreated event published", {
                         pendingRegistrationId: pendingRegistration.id,
                     });
+                    this.logger.info("PendingRegistrationCreated event processed successfully", {
+                        pendingRegistrationId: pendingRegistration.id,
+                        publishedImmediately: !!this.eventPublisher,
+                    });
                 }
                 catch (error) {
-                    this.logger.error("Failed to publish domain event", {
+                    this.logger.error("Failed to process PendingRegistrationCreated event", {
                         pendingRegistrationId: pendingRegistration.id,
                         error: (0, error_helper_1.getErrorMessage)(error),
                     });
-                    // Don't fail registration if event publishing fails
+                    // Don't fail registration if event processing fails
                 }
             }
             // 10. Return success response
@@ -229,13 +246,16 @@ class RegisterUserUseCase {
                 pendingRegistrationId: pendingRegistration.id,
                 email: email.value,
                 message: "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Link xác thực có hiệu lực trong 24 giờ.",
-                requiresEmailVerification: !this.autoVerification?.enabled,
+                requiresEmailVerification: true,
             };
         }
         catch (error) {
             this.logger.error("User registration failed", {
                 email: request.email,
                 error: (0, error_helper_1.getErrorMessage)(error),
+                errorType: error instanceof Error ? error.constructor.name : typeof error,
+                errorStack: error instanceof Error ? error.stack : 'No stack',
+                fullError: JSON.stringify(error),
             });
             return {
                 success: false,
@@ -266,35 +286,6 @@ class RegisterUserUseCase {
             return "Số CMND/CCCD không hợp lệ (phải có 9-12 chữ số)";
         }
         return null;
-    }
-    async autoVerifyPendingRegistration(verificationToken, pendingRegistrationId, email) {
-        if (!this.autoVerification?.verifyToken) {
-            return;
-        }
-        try {
-            const result = await this.autoVerification.verifyToken(verificationToken);
-            if (result.success) {
-                this.logger.info("Auto verification completed successfully", {
-                    pendingRegistrationId,
-                    email,
-                });
-            }
-            else {
-                this.logger.warn("Auto verification failed", {
-                    pendingRegistrationId,
-                    email,
-                    error: result.error,
-                    message: result.message,
-                });
-            }
-        }
-        catch (error) {
-            this.logger.error("Auto verification encountered an error", {
-                pendingRegistrationId,
-                email,
-                error: (0, error_helper_1.getErrorMessage)(error),
-            });
-        }
     }
 }
 exports.RegisterUserUseCase = RegisterUserUseCase;

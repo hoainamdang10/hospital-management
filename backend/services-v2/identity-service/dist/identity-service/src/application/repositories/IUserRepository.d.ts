@@ -51,6 +51,25 @@ export interface IUserRepository {
      */
     update(user: User): Promise<void>;
     /**
+     * Update user profile data (for patient sync)
+     * Updates auth_schema.user_profiles table
+     */
+    updateProfile(userId: string, profileData: {
+        full_name?: string;
+        date_of_birth?: Date;
+        gender?: string;
+        citizen_id?: string;
+        phone_number?: string;
+        address?: string;
+        ward?: string;
+        district?: string;
+        city?: string;
+        province?: string;
+        country?: string;
+        updated_at?: Date;
+        updated_by?: string;
+    }): Promise<void>;
+    /**
      * Update Supabase Auth email_confirmed_at timestamp
      * Used after email verification to allow login
      */

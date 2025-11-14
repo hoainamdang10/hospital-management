@@ -89,6 +89,12 @@ class SupabaseQueueRepository {
                     throw new Error(`Failed to delete queue entries: ${deleteError.message}`);
                 }
             }
+            // 5. Publish domain events if publisher is wired
+            const events = queue.getUncommittedEvents?.() || [];
+            if (this.eventPublisher && Array.isArray(events) && events.length > 0) {
+                await this.eventPublisher.publishBatch(events);
+                queue.markEventsAsCommitted?.();
+            }
         }
         catch (error) {
             throw new Error(`Failed to save queue aggregate: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -240,6 +246,64 @@ class SupabaseQueueRepository {
             createdAt: new Date(queueRow.created_at),
             updatedAt: queueRow.updated_at ? new Date(queueRow.updated_at) : new Date(queueRow.created_at)
         });
+    }
+    // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+    /**
+     * Add appointment to rescheduling queue
+     * Used by event consumers for rescheduling operations
+     */
+    async addToReschedulingQueue(appointment) {
+        try {
+            // Insert into rescheduling queue table with proper normalization
+            // Only store appointment_id as FK, other data retrieved via joins
+            const { error } = await this.supabase
+                .from('rescheduling_queue')
+                .insert({
+                appointment_id: appointment.appointmentId || appointment.id,
+                conflict_reason: appointment.conflictReason || 'staff_unavailable',
+                conflict_details: {
+                    originalTimeSlot: appointment.timeSlot,
+                    priority: appointment.priority || 'normal',
+                    detectedAt: new Date().toISOString(),
+                    departmentId: appointment.departmentId
+                },
+                status: 'PENDING_RESCHEDULE',
+                priority: (appointment.priority || 'normal').toUpperCase(),
+                created_by: 'system',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+            if (error) {
+                console.error('Supabase addToReschedulingQueue error:', error);
+                throw new Error(`Failed to add to rescheduling queue: ${error.message || JSON.stringify(error)}`);
+            }
+            console.log(`✅ Added appointment ${appointment.appointmentId || appointment.id} to rescheduling queue`);
+        }
+        catch (error) {
+            console.error('Error adding to rescheduling queue:', error);
+            throw error;
+        }
+    }
+    // ==================== MISSING METHODS FROM INTERFACE ====================
+    async addToPreAuthTrackingQueue(data) {
+        console.log('Adding to pre-auth tracking queue:', data);
+        // TODO: Implement actual database logic
+    }
+    async updatePreAuthTracking(data) {
+        console.log('Updating pre-auth tracking:', data);
+        // TODO: Implement actual database logic
+    }
+    async addToBillingResolutionQueue(data) {
+        console.log('Adding to billing resolution queue:', data);
+        // TODO: Implement actual database logic
+    }
+    async addToBillingReviewQueue(data) {
+        console.log('Adding to billing review queue:', data);
+        // TODO: Implement actual database logic
+    }
+    async addToUrgentProcessingQueue(data) {
+        console.log('Adding to urgent processing queue:', data);
+        // TODO: Implement actual database logic
     }
 }
 exports.SupabaseQueueRepository = SupabaseQueueRepository;

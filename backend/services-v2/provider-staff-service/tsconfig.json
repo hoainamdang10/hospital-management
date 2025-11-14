@@ -60,7 +60,9 @@
     "**/*.test.ts",
     "../shared/examples/**/*",
     "../shared/testing/**/*",
-    "../shared/workflows/**/*"
+    "../shared/workflows/**/*",
+    "src/infrastructure/events/ReviewEventConsumer.ts",
+    "src/infrastructure/events/SchedulingEventConsumer.ts"
   ],
   "ts-node": {
     "require": ["tsconfig-paths/register"],

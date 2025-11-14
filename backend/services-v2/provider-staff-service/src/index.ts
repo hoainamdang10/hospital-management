@@ -26,7 +26,6 @@ import { StaffCommandHandlers } from "./application/handlers/StaffCommandHandler
 import { StaffQueryHandlers } from "./application/handlers/StaffQueryHandlers";
 import { RabbitMQEventPublisher } from "./infrastructure/events/RabbitMQEventPublisher";
 import { IdentityEventConsumer } from "./infrastructure/events/IdentityEventConsumer";
-import { AppointmentsEventConsumer } from "./infrastructure/events/AppointmentsEventConsumer";
 import { PatientEventConsumer } from "./infrastructure/events/PatientEventConsumer";
 import { RabbitMQStaffEventHandler } from "./infrastructure/events/RabbitMQStaffEventHandler";
 import { IEventBus } from "@shared/events/event-bus.interface";
@@ -63,7 +62,6 @@ async function initializeEventBus() {
 // Initialize RabbitMQ Event Publisher and Consumers
 let eventPublisher: RabbitMQEventPublisher | null = null;
 let identityEventConsumer: IdentityEventConsumer | null = null;
-let appointmentsEventConsumer: AppointmentsEventConsumer | null = null;
 let patientEventConsumer: PatientEventConsumer | null = null;
 let staffEventHandler: RabbitMQStaffEventHandler | null = null;
 
@@ -169,22 +167,6 @@ async function initializeIdentityEventConsumer() {
   }
 }
 
-// Initialize Appointments Event Consumer
-async function initializeAppointmentsEventConsumer() {
-  try {
-    appointmentsEventConsumer = container.resolve<AppointmentsEventConsumer>(
-      ServiceTokens.APPOINTMENTS_EVENT_CONSUMER,
-    );
-    await appointmentsEventConsumer.connect();
-    logger.info("Appointments Event Consumer initialized successfully");
-  } catch (error) {
-    logger.error("Failed to initialize Appointments Event Consumer", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-    logger.warn("Continuing without Appointments event consumption");
-  }
-}
-
 // Initialize Patient Event Consumer
 async function initializePatientEventConsumer() {
   try {
@@ -205,7 +187,6 @@ async function initializePatientEventConsumer() {
 initializeEventBus();
 initializeEventPublisher();
 initializeIdentityEventConsumer();
-initializeAppointmentsEventConsumer();
 initializePatientEventConsumer();
 
 // Middleware
@@ -327,10 +308,6 @@ process.on("SIGTERM", async () => {
     await identityEventConsumer.disconnect();
     logger.info("Identity Event Consumer disconnected");
   }
-  if (appointmentsEventConsumer) {
-    await appointmentsEventConsumer.disconnect();
-    logger.info("Appointments Event Consumer disconnected");
-  }
   if (patientEventConsumer) {
     await patientEventConsumer.disconnect();
     logger.info("Patient Event Consumer disconnected");
@@ -360,10 +337,6 @@ process.on("SIGINT", async () => {
   if (identityEventConsumer) {
     await identityEventConsumer.disconnect();
     logger.info("Identity Event Consumer disconnected");
-  }
-  if (appointmentsEventConsumer) {
-    await appointmentsEventConsumer.disconnect();
-    logger.info("Appointments Event Consumer disconnected");
   }
   if (patientEventConsumer) {
     await patientEventConsumer.disconnect();

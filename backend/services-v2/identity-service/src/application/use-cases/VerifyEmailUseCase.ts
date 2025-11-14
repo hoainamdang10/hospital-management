@@ -26,6 +26,7 @@ import { UserActivatedEvent } from "../../domain/events/UserActivatedEvent";
 import { UserCreatedEvent } from "../../domain/events/UserCreatedEvent";
 import { ILogger } from "../services/ILogger";
 import { decryptPassword } from "../../utils/password-crypto";
+import { OutboxService } from "../../infrastructure/outbox/OutboxService";
 
 export interface VerifyEmailRequest {
   token: string;
@@ -50,6 +51,7 @@ export class VerifyEmailUseCase
     private circuitBreaker: ICircuitBreaker,
     private jwtSecret: string,
     private eventPublisher?: IEventPublisher, // Optional for backward compatibility
+    private outboxService?: OutboxService, // Outbox pattern support
   ) {}
 
   async execute(request: VerifyEmailRequest): Promise<VerifyEmailResponse> {
@@ -246,8 +248,8 @@ export class VerifyEmailUseCase
         // Don't fail verification if email sending fails
       }
 
-      // 10. Publish domain events
-      if (this.eventPublisher) {
+      // 10. Publish domain events using Outbox Pattern
+      if (this.outboxService || this.eventPublisher) {
         try {
           // Create UserCreatedEvent manually since user was reconstituted from database
           // and doesn't have uncommitted events
@@ -258,23 +260,46 @@ export class VerifyEmailUseCase
             user.personalInfo, // Include personal info for patient creation
           );
 
-          // Publish UserCreated event
-          await this.eventPublisher.publishDomainEvents([userCreatedEvent]);
-
-          // Publish UserActivated event
+          // Create UserActivated event
           const activatedEvent = new UserActivatedEvent(
             user.id,
             user.email.value,
+            user.personalInfo.fullName, // Add full name from personal info
             new Date(),
           );
-          await this.eventPublisher.publishDomainEvents([activatedEvent]);
 
-          this.logger.info("Domain events published", {
-            userId: user.id,
-            eventCount: 2, // UserCreated + UserActivated
-          });
+          const events = [userCreatedEvent, activatedEvent];
+
+          // Store events in outbox (guaranteed persistence)
+          if (this.outboxService) {
+            for (const event of events) {
+              await this.outboxService.storeEvent(event);
+            }
+            this.logger.info("Domain events stored in outbox", {
+              userId: user.id,
+              eventCount: events.length,
+              eventTypes: events.map((event) => event.eventType),
+            });
+          }
+
+          // Also publish immediately if eventPublisher available (best effort)
+          if (this.eventPublisher) {
+            try {
+              await this.eventPublisher.publishDomainEvents(events);
+              this.logger.info("Domain events published immediately", {
+                userId: user.id,
+                eventCount: events.length,
+              });
+            } catch (publishError) {
+              this.logger.warn("Failed to publish events immediately, outbox will retry", {
+                userId: user.id,
+                error: publishError instanceof Error ? publishError.message : String(publishError),
+              });
+              // Don't throw - outbox will handle retry
+            }
+          }
         } catch (error) {
-          this.logger.error("Failed to publish domain events", {
+          this.logger.error("Failed to handle domain events", {
             userId: user.id,
             error: getErrorMessage(error),
           });

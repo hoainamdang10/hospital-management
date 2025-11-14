@@ -48,4 +48,30 @@ export interface IProviderScheduleRepository {
    * Count total schedules
    */
   count(): Promise<number>;
+
+  // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+
+  /**
+   * Update provider availability
+   * Used by staff event consumers for availability updates
+   */
+  updateAvailability(providerId: string, availability: any): Promise<void>;
+
+  /**
+   * Add shift to provider schedule
+   * Used by staff event consumers for shift management
+   */
+  addShift(providerId: string, shift: any): Promise<void>;
+
+  /**
+   * Remove shift from provider schedule
+   * Used by staff event consumers for shift management
+   */
+  removeShift(providerId: string, shiftId: string): Promise<void>;
+
+  /**
+   * Update schedule pattern
+   * Used by staff event consumers for pattern changes
+   */
+  updatePattern(providerId: string, pattern: any): Promise<void>;
 }

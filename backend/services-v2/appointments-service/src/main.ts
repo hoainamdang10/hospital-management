@@ -21,6 +21,7 @@ import { createAppointmentQueryRoutes } from "./presentation/routes/appointmentQ
 import { createAvailabilityRoutes } from "./presentation/routes/availability.routes";
 import { createQueueRoutes } from "./presentation/routes/queue.routes";
 import { createWaitlistRoutes } from "./presentation/routes/waitlist.routes";
+import { createReminderRoutes } from "./presentation/routes/reminder.routes";
 import { getContainer } from "./infrastructure/di/container";
 import { idempotencyMiddleware } from "./presentation/middleware/IdempotencyMiddleware";
 import { redisCacheService } from "./infrastructure/cache/RedisCacheService";
@@ -44,6 +45,7 @@ import {
 import { prometheusMetrics } from "./infrastructure/monitoring/PrometheusMetrics";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
+import { initializeReschedulingQueueRoutes } from './presentation/routes/reschedulingQueue.routes';
 
 const app: Application = express();
 
@@ -294,6 +296,14 @@ app.use("/api/v1/queue", createQueueRoutes());
 // Waitlist routes (Waitlist management)
 app.use("/api/v1/appointments/waitlist", createWaitlistRoutes());
 
+// Rescheduling Queue routes
+const reschedulingQueueController = container.getReschedulingQueueController();
+app.use('/api/v1/rescheduling-queue', initializeReschedulingQueueRoutes(reschedulingQueueController));
+
+// Reminder routes (Manual reminder management)
+const reminderController = container.getReminderController();
+app.use("/api/v1/appointments", createReminderRoutes(reminderController));
+
 // 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
@@ -338,6 +348,87 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+/**
+ * Initialize Event Consumers
+ */
+async function initializeEventConsumers(): Promise<void> {
+  try {
+    logger.info("Initializing Event Consumers...");
+
+    // Initialize Staff Event Consumer
+    const staffEventConsumer = container.getStaffEventConsumer();
+    await staffEventConsumer.connect();
+    logger.info("Staff Event Consumer initialized successfully");
+
+    // Initialize Department Event Consumer
+    const departmentEventConsumer = container.getDepartmentEventConsumer();
+    await departmentEventConsumer.connect();
+    logger.info("Department Event Consumer initialized successfully");
+
+    // Initialize Clinical EMR Event Consumer
+    const clinicalEMREventConsumer = container.getClinicalEMREventConsumer();
+    await clinicalEMREventConsumer.connect();
+    logger.info("Clinical EMR Event Consumer initialized successfully");
+
+    // Initialize Billing Event Consumer
+    const billingEventConsumer = container.getBillingEventConsumer();
+    await billingEventConsumer.connect();
+    logger.info("Billing Event Consumer initialized successfully");
+
+    logger.info("All Event Consumers initialized successfully");
+
+  } catch (error) {
+    logger.error("Failed to initialize Event Consumers", error as Error);
+    throw error;
+  }
+}
+
+/**
+ * Shutdown Event Consumers
+ */
+async function shutdownEventConsumers(): Promise<void> {
+  try {
+    logger.info("Shutting down Event Consumers...");
+
+    try {
+      const staffEventConsumer = container.getStaffEventConsumer();
+      await staffEventConsumer.disconnect();
+      logger.info("Staff Event Consumer disconnected");
+    } catch (error) {
+      logger.error("Error disconnecting Staff Event Consumer", error as Error);
+    }
+
+    try {
+      const departmentEventConsumer = container.getDepartmentEventConsumer();
+      await departmentEventConsumer.disconnect();
+      logger.info("Department Event Consumer disconnected");
+    } catch (error) {
+      logger.error("Error disconnecting Department Event Consumer", error as Error);
+    }
+
+    try {
+      const clinicalEMREventConsumer = container.getClinicalEMREventConsumer();
+      await clinicalEMREventConsumer.disconnect();
+      logger.info("Clinical EMR Event Consumer disconnected");
+    } catch (error) {
+      logger.error("Error disconnecting Clinical EMR Event Consumer", error as Error);
+    }
+
+    try {
+      const billingEventConsumer = container.getBillingEventConsumer();
+      await billingEventConsumer.disconnect();
+      logger.info("Billing Event Consumer disconnected");
+    } catch (error) {
+      logger.error("Error disconnecting Billing Event Consumer", error as Error);
+    }
+
+    logger.info("Event Consumers shut down successfully");
+
+  } catch (error) {
+    logger.error("Error shutting down Event Consumers", error as Error);
+  }
+}
+
 // Start server
 const server = app.listen(PORT, async () => {
   console.log("=".repeat(60));
@@ -362,18 +453,19 @@ const server = app.listen(PORT, async () => {
   console.log(`   GET    /api/v1/appointments - List appointments (legacy)`);
   console.log("=".repeat(60));
   console.log(
-    "📊 API V2 - Query Endpoints (Read Model with Patient/Doctor Info):",
+    "📊 API V1 - Query Endpoints (Read Model with Patient/Doctor Info):",
   );
-  console.log(`   GET    /api/v2/appointments/:id - Get appointment details`);
+  console.log(`   GET    /api/v1/appointments/:id - Get appointment details`);
   console.log(
-    `   GET    /api/v2/appointments - List appointments with filters`,
-  );
-  console.log(
-    `   GET    /api/v2/patients/:patientId/appointments - Patient appointments`,
+    `   GET    /api/v1/appointments - List appointments with filters`,
   );
   console.log(
-    `   GET    /api/v2/doctors/:doctorId/appointments - Doctor appointments`,
+    `   GET    /api/v1/patients/:patientId/appointments - Patient appointments`,
   );
+  console.log(
+    `   GET    /api/v1/doctors/:doctorId/appointments - Doctor appointments`,
+  );
+  console.log(`   GET    /api/v1/rescheduling-queue/* - Rescheduling management`);
   console.log("=".repeat(60));
 
   // Connect event subscriptions
@@ -382,6 +474,9 @@ const server = app.listen(PORT, async () => {
     const eventSubscriptions = container.getEventSubscriptions();
     await eventSubscriptions.connect();
     logger.info("Event subscriptions connected successfully");
+
+    // Initialize new Event Consumers
+    await initializeEventConsumers();
 
     // Update HealthCheckService with EventSubscriptions dependency
     container.updateHealthCheckDependencies();
@@ -444,6 +539,9 @@ const gracefulShutdown = async (signal: string) => {
   } catch (error) {
     logger.error("Failed to disconnect event subscriptions", error as Error);
   }
+
+  // Shutdown Event Consumers
+  await shutdownEventConsumers();
 
   // Stop outbox worker
   try {

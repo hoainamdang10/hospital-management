@@ -14,6 +14,8 @@ import { Queue } from '../../domain/aggregates/Queue.aggregate';
 import { QueueEntry, QueueStatus, QueuePriority } from '../../domain/entities/QueueEntry.entity';
 
 export class SupabaseQueueRepository implements IQueueRepository {
+  // Optional event publisher (wired via DI like Appointment repository)
+  private eventPublisher?: { publishBatch: (events: any[]) => Promise<void> };
   private supabase: SupabaseClient<any, any, any>;
   private readonly queuesTable = 'queues';
   private readonly entriesTable = 'queue_entries';
@@ -101,6 +103,13 @@ export class SupabaseQueueRepository implements IQueueRepository {
         if (deleteError) {
           throw new Error(`Failed to delete queue entries: ${deleteError.message}`);
         }
+      }
+
+      // 5. Publish domain events if publisher is wired
+      const events = (queue as any).getUncommittedEvents?.() || [];
+      if (this.eventPublisher && Array.isArray(events) && events.length > 0) {
+        await this.eventPublisher.publishBatch(events);
+        (queue as any).markEventsAsCommitted?.();
       }
     } catch (error) {
       throw new Error(`Failed to save queue aggregate: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -269,6 +278,108 @@ export class SupabaseQueueRepository implements IQueueRepository {
       createdAt: new Date(queueRow.created_at),
       updatedAt: queueRow.updated_at ? new Date(queueRow.updated_at) : new Date(queueRow.created_at)
     });
+  }
+
+  // ==================== MISSING METHODS FROM COMPILE ERRORS ====================
+
+  /**
+   * Add appointment to rescheduling queue
+   * Used by event consumers for rescheduling operations
+   */
+  async addToReschedulingQueue(appointment: any): Promise<void> {
+    try {
+      // Insert into rescheduling queue table with proper normalization
+      // Only store appointment_id as FK, other data retrieved via joins
+      const { error } = await this.supabase
+        .from('rescheduling_queue')
+        .insert({
+          appointment_id: appointment.appointmentId || appointment.id,
+          conflict_reason: appointment.conflictReason || 'staff_unavailable',
+          conflict_details: {
+            originalTimeSlot: appointment.timeSlot,
+            priority: appointment.priority || 'normal',
+            detectedAt: new Date().toISOString(),
+            departmentId: appointment.departmentId
+          },
+          status: 'PENDING_RESCHEDULE',
+          priority: (appointment.priority || 'normal').toUpperCase(),
+          created_by: 'system',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Supabase addToReschedulingQueue error:', error);
+        throw new Error(`Failed to add to rescheduling queue: ${error.message || JSON.stringify(error)}`);
+      }
+
+      console.log(`✅ Added appointment ${appointment.appointmentId || appointment.id} to rescheduling queue`);
+    } catch (error) {
+      console.error('Error adding to rescheduling queue:', error);
+      throw error;
+    }
+  }
+
+  // ==================== MISSING METHODS FROM INTERFACE ====================
+
+  async addToPreAuthTrackingQueue(data: {
+    authorizationId: string;
+    patientId: string;
+    appointmentId?: string;
+    procedureCode: string;
+    urgencyLevel: string;
+    requestedAt: Date;
+    status: string;
+  }): Promise<void> {
+    console.log('Adding to pre-auth tracking queue:', data);
+    // TODO: Implement actual database logic
+  }
+
+  async updatePreAuthTracking(data: {
+    authorizationId: string;
+    status: string;
+    approvedAt?: Date;
+    approvedBy?: string;
+    validUntil?: Date;
+    deniedAt?: Date;
+    denialReason?: string;
+    appealProcess?: string;
+  }): Promise<void> {
+    console.log('Updating pre-auth tracking:', data);
+    // TODO: Implement actual database logic
+  }
+
+  async addToBillingResolutionQueue(data: {
+    authorizationId: string;
+    appointmentId?: string;
+    patientId: string;
+    issueType: string;
+    priority: string;
+    addedAt: Date;
+  }): Promise<void> {
+    console.log('Adding to billing resolution queue:', data);
+    // TODO: Implement actual database logic
+  }
+
+  async addToBillingReviewQueue(data: {
+    appointmentId: string;
+    patientId: string;
+    issueType: string;
+    priority: string;
+    addedAt: Date;
+  }): Promise<void> {
+    console.log('Adding to billing review queue:', data);
+    // TODO: Implement actual database logic
+  }
+
+  async addToUrgentProcessingQueue(data: {
+    appointmentId: string;
+    priority: string;
+    reason: string;
+    addedAt: Date;
+  }): Promise<void> {
+    console.log('Adding to urgent processing queue:', data);
+    // TODO: Implement actual database logic
   }
 }
 

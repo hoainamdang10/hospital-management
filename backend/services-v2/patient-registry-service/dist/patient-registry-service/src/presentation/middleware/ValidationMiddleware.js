@@ -157,6 +157,7 @@ exports.validateUpdatePatient = [
         .withMessage('Patient ID không được để trống')
         .matches(/^PAT-\d{6}-\d{3}$/)
         .withMessage('Patient ID không đúng định dạng (PAT-YYYYMM-XXX)'),
+    // Personal Info fields - all optional for partial update
     (0, express_validator_1.body)('fullName')
         .optional()
         .isLength({ min: 2, max: 255 })
@@ -169,11 +170,123 @@ exports.validateUpdatePatient = [
         .optional()
         .isIn(['male', 'female', 'other'])
         .withMessage('Giới tính không hợp lệ'),
+    (0, express_validator_1.body)('nationalId')
+        .optional()
+        .isLength({ min: 9, max: 12 })
+        .withMessage('Số CMND/CCCD phải từ 9-12 ký tự'),
+    (0, express_validator_1.body)('nationality')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Quốc tịch phải từ 2-100 ký tự'),
+    (0, express_validator_1.body)('ethnicity')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Dân tộc phải từ 2-100 ký tự'),
+    (0, express_validator_1.body)('occupation')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Nghề nghiệp phải từ 2-100 ký tự'),
+    (0, express_validator_1.body)('maritalStatus')
+        .optional()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Tình trạng hôn nhân phải từ 2-50 ký tự'),
+    // Contact Info fields
     (0, express_validator_1.body)('primaryPhone')
         .optional()
         .matches(/^(0|\+84)[0-9]{9,10}$/)
         .withMessage('Số điện thoại không đúng định dạng'),
-    (0, express_validator_1.body)('email').optional().isEmail().withMessage('Email không đúng định dạng'),
+    (0, express_validator_1.body)('secondaryPhone')
+        .optional()
+        .matches(/^(0|\+84)[0-9]{9,10}$/)
+        .withMessage('Số điện thoại phụ không đúng định dạng'),
+    (0, express_validator_1.body)('email')
+        .optional()
+        .isEmail()
+        .withMessage('Email không đúng định dạng'),
+    (0, express_validator_1.body)('preferredContactMethod')
+        .optional()
+        .isIn(['phone', 'email', 'sms'])
+        .withMessage('Phương thức liên hệ không hợp lệ'),
+    // Address fields
+    (0, express_validator_1.body)('address.street')
+        .optional()
+        .isLength({ min: 5, max: 255 })
+        .withMessage('Địa chỉ đường phải từ 5-255 ký tự'),
+    (0, express_validator_1.body)('address.ward')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Phường/Xã phải từ 2-100 ký tự'),
+    (0, express_validator_1.body)('address.district')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Quận/Huyện phải từ 2-100 ký tự'),
+    (0, express_validator_1.body)('address.city')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Thành phố phải từ 2-100 ký tự'),
+    (0, express_validator_1.body)('address.province')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Tỉnh phải từ 2-100 ký tự'),
+    (0, express_validator_1.body)('address.postalCode')
+        .optional()
+        .matches(/^\d{5,6}$/)
+        .withMessage('Mã bưu điện phải từ 5-6 số'),
+    (0, express_validator_1.body)('address.country')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Quốc gia phải từ 2-100 ký tự'),
+    // Basic Medical Info
+    (0, express_validator_1.body)('bloodType')
+        .optional()
+        .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+        .withMessage('Nhóm máu không hợp lệ'),
+    (0, express_validator_1.body)('knownAllergies')
+        .optional()
+        .isArray()
+        .withMessage('Dị ứng đã biết phải là mảng'),
+    (0, express_validator_1.body)('knownAllergies.*')
+        .optional()
+        .isString()
+        .withMessage('Dị ứng phải là chuỗi ký tự'),
+    (0, express_validator_1.body)('emergencyMedicalInfo')
+        .optional()
+        .isString()
+        .withMessage('Thông tin y tế khẩn cấp phải là chuỗi ký tự'),
+    // Custom validation: at least one field must be provided
+    (req, res, next) => {
+        const fields = [
+            'fullName',
+            'dateOfBirth',
+            'gender',
+            'nationalId',
+            'nationality',
+            'ethnicity',
+            'occupation',
+            'maritalStatus',
+            'primaryPhone',
+            'secondaryPhone',
+            'email',
+            'preferredContactMethod',
+            'bloodType',
+            'knownAllergies',
+            'emergencyMedicalInfo',
+            'address'
+        ];
+        const hasAny = fields.some((field) => {
+            if (field === 'address') {
+                return req.body.address && Object.keys(req.body.address).length > 0;
+            }
+            return Object.prototype.hasOwnProperty.call(req.body, field);
+        });
+        if (!hasAny) {
+            res.status(400).json({
+                message: 'Ít nhất một trường phải được cung cấp để cập nhật'
+            });
+            return;
+        }
+        next();
+    },
     exports.handleValidationErrors,
 ];
 /**

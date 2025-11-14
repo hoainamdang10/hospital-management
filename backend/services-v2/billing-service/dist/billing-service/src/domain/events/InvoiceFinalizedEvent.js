@@ -9,7 +9,7 @@ class InvoiceFinalizedEvent extends domain_event_1.DomainEvent {
             invoiceNumber,
             finalizedAt: new Date()
         };
-        super('InvoiceFinalized', invoiceId, 'Invoice', eventData, 1, correlationId, causationId, userIdForAudit);
+        super('invoice.finalized', invoiceId, 'billing', eventData, 1, correlationId, causationId, userIdForAudit);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
     }

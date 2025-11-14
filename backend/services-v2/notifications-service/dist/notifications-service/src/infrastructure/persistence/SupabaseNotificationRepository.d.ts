@@ -11,13 +11,15 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { INotificationRepository, NotificationSearchCriteria, NotificationStatistics, DeliveryMetrics, NotificationStatus, NotificationPriority } from '../../domain/repositories/INotificationRepository';
 import { Notification } from '../../domain/aggregates/Notification';
 import { NotificationId } from '../../domain/value-objects/NotificationId';
+import { IEventBus } from '../../../../shared/infrastructure/event-bus/EventBus';
 /**
  * Supabase Notification Repository
  * Implements full INotificationRepository interface
  */
 export declare class SupabaseNotificationRepository implements INotificationRepository {
     private readonly supabase;
-    constructor(supabase: SupabaseClient);
+    private readonly eventBus?;
+    constructor(supabase: SupabaseClient, eventBus?: IEventBus | undefined);
     /**
      * Save notification aggregate
      */
@@ -26,6 +28,10 @@ export declare class SupabaseNotificationRepository implements INotificationRepo
      * Update existing notification
      */
     update(notification: Notification): Promise<void>;
+    /**
+     * Publish domain events from aggregate
+     */
+    private publishDomainEvents;
     /**
      * Find notification by ID
      */
@@ -94,6 +100,7 @@ export declare class SupabaseNotificationRepository implements INotificationRepo
     updateRetryInfo(id: NotificationId, retryCount: number, nextRetryAt?: Date): Promise<void>;
     markAsProcessed(id: NotificationId, _processedAt: Date, deliveryResults: any[]): Promise<void>;
     markAsFailed(id: NotificationId, failureReason: string, _failedAt: Date): Promise<void>;
+    markAsRead(id: NotificationId, readAt: Date | null): Promise<void>;
     bulkUpdate(ids: NotificationId[], updates: Partial<{
         status: NotificationStatus;
         retryCount: number;

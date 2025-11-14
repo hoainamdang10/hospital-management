@@ -10,11 +10,18 @@ import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRe
 import { IAppointmentReadModelRepository } from "../../domain/repositories/IAppointmentReadModelRepository";
 import { IQueueRepository } from "../../domain/repositories/IQueueRepository";
 import { IProviderScheduleRepository } from "../../domain/repositories/IProviderScheduleRepository";
+import { ReminderController } from "../../presentation/controllers/ReminderController";
+import { ManageAppointmentRemindersUseCase } from "../../application/use-cases/ManageAppointmentReminders.use-case";
+import { ReschedulingQueueController } from "../../presentation/controllers/ReschedulingQueueController";
 import { PatientReadModelRepository } from "../repositories/PatientReadModelRepository";
 import { ProviderReadModelRepository } from "../repositories/ProviderReadModelRepository";
 import { InboxRepository } from "../inbox/InboxRepository";
 import { PatientEventConsumer } from "../events/PatientEventConsumer";
 import { ProviderEventConsumer } from "../events/ProviderEventConsumer";
+import { StaffEventConsumer } from "../events/StaffEventConsumer";
+import { DepartmentEventConsumer } from "../events/DepartmentEventConsumer";
+import { ClinicalEMREventConsumer } from "../events/ClinicalEMREventConsumer";
+import { BillingEventConsumer } from "../events/BillingEventConsumer";
 import { RescheduleAppointmentUseCase } from "../../application/use-cases/RescheduleAppointment.use-case";
 import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
 import { MarkAsNoShowUseCase } from "../../application/use-cases/MarkAsNoShow.use-case";
@@ -24,7 +31,6 @@ import { JoinQueueUseCase } from "../../application/use-cases/JoinQueue.use-case
 import { LeaveQueueUseCase } from "../../application/use-cases/LeaveQueue.use-case";
 import { GetQueueStatusUseCase } from "../../application/use-cases/GetQueueStatus.use-case";
 import { ValidateCancellationPolicyUseCase } from "../../application/use-cases/ValidateCancellationPolicy.use-case";
-import { ManageAppointmentRemindersUseCase } from "../../application/use-cases/ManageAppointmentReminders.use-case";
 import { CreateRecurringAppointmentSeriesUseCase } from "../../application/use-cases/CreateRecurringAppointmentSeries.use-case";
 import { BulkRescheduleAppointmentsUseCase } from "../../application/use-cases/BulkRescheduleAppointments.use-case";
 import { GetAppointmentHistoryUseCase } from "../../application/use-cases/GetAppointmentHistory.use-case";
@@ -51,17 +57,24 @@ export declare class DIContainer {
     private queueRepository;
     private providerScheduleRepository;
     private waitlistRepository;
+    private reminderRepository;
+    private reschedulingQueueRepository;
     private patientReadModelRepository;
     private providerReadModelRepository;
     private inboxRepository;
-    private patientEventConsumer;
-    private providerEventConsumer;
     private patientService;
     private providerService;
     private schedulerAdapter;
     private conflictResolutionService;
     private authorizationService;
     private reminderService;
+    private reschedulingService;
+    private reminderController;
+    private createAppointmentReminderUseCase;
+    private getAppointmentRemindersUseCase;
+    private updateAppointmentReminderUseCase;
+    private deleteAppointmentReminderUseCase;
+    private manageAppointmentRemindersUseCase;
     private cacheService;
     private circuitBreaker;
     private healthCheckService;
@@ -82,7 +95,6 @@ export declare class DIContainer {
     private leaveQueueUseCase;
     private queueStatusUseCase;
     private validateCancellationPolicyUseCase;
-    private manageAppointmentRemindersUseCase;
     private createRecurringSeriesUseCase;
     private bulkRescheduleAppointmentsUseCase;
     private appointmentHistoryUseCase;
@@ -99,10 +111,17 @@ export declare class DIContainer {
     private listAppointmentsQuery;
     private appointmentReadModelEventHandler;
     private eventSubscriptions;
+    private patientEventConsumer;
+    private providerEventConsumer;
+    private staffEventConsumer;
+    private departmentEventConsumer;
+    private clinicalEMREventConsumer;
+    private billingEventConsumer;
     private appointmentController;
     private appointmentQueryController;
     private availabilityController;
     private waitlistController;
+    private reschedulingQueueController;
     constructor();
     /**
      * Initialize cache service and circuit breaker
@@ -264,6 +283,7 @@ export declare class DIContainer {
     /**
      * Get availability controller
      */
+    getReschedulingQueueController(): ReschedulingQueueController;
     getAvailabilityController(): AvailabilityController;
     /**
      * Get find available time slots use case
@@ -282,6 +302,22 @@ export declare class DIContainer {
      */
     getProviderEventConsumer(): ProviderEventConsumer;
     /**
+     * Get staff event consumer
+     */
+    getStaffEventConsumer(): StaffEventConsumer;
+    /**
+     * Get department event consumer
+     */
+    getDepartmentEventConsumer(): DepartmentEventConsumer;
+    /**
+     * Get clinical EMR event consumer
+     */
+    getClinicalEMREventConsumer(): ClinicalEMREventConsumer;
+    /**
+     * Get billing event consumer
+     */
+    getBillingEventConsumer(): BillingEventConsumer;
+    /**
      * Get patient read model repository
      */
     getPatientReadModelRepository(): PatientReadModelRepository;
@@ -289,6 +325,10 @@ export declare class DIContainer {
      * Get provider read model repository
      */
     getProviderReadModelRepository(): ProviderReadModelRepository;
+    /**
+     * Get reminder controller
+     */
+    getReminderController(): ReminderController;
     /**
      * Get inbox repository
      */

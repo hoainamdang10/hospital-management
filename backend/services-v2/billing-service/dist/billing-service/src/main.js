@@ -21,6 +21,7 @@ const compression_1 = __importDefault(require("compression"));
 const optimized_supabase_client_1 = require("../../shared/infrastructure/database/optimized-supabase-client");
 const EventBus_1 = require("../../shared/infrastructure/event-bus/EventBus");
 const SupabaseInvoiceRepository_1 = require("./infrastructure/repositories/SupabaseInvoiceRepository");
+const SupabasePatientRepository_1 = require("./infrastructure/repositories/SupabasePatientRepository");
 // Application
 const CreateInvoiceUseCase_1 = require("./application/use-cases/CreateInvoiceUseCase");
 const GetInvoiceUseCase_1 = require("./application/use-cases/GetInvoiceUseCase");
@@ -37,6 +38,11 @@ const GetRevenueReportUseCase_1 = require("./application/use-cases/GetRevenueRep
 const CreatePayOSPaymentLinkUseCase_1 = require("./application/use-cases/CreatePayOSPaymentLinkUseCase");
 const HandlePayOSWebhookUseCase_1 = require("./application/use-cases/HandlePayOSWebhookUseCase");
 const PayOSIntegrationService_1 = require("./infrastructure/services/PayOSIntegrationService");
+const BillingService_1 = require("./application/services/BillingService");
+// Event Consumers
+const AppointmentEventConsumer_1 = require("./infrastructure/events/AppointmentEventConsumer");
+const ClinicalEventConsumer_1 = require("./infrastructure/events/ClinicalEventConsumer");
+const logger_1 = require("./infrastructure/logging/logger");
 // Presentation
 const InvoiceController_1 = require("./presentation/controllers/InvoiceController");
 const invoiceRoutes_1 = require("./presentation/routes/invoiceRoutes");
@@ -45,7 +51,7 @@ const ErrorHandlingMiddleware_1 = require("./presentation/middleware/ErrorHandli
 const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
 // Configuration
 const config = {
-    port: process.env.PORT || 3009,
+    port: process.env.PORT || 3029,
     supabaseUrl: process.env.SUPABASE_URL || "",
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
@@ -59,20 +65,13 @@ const config = {
     payosApiKey: process.env.PAYOS_API_KEY || "",
     payosChecksumKey: process.env.PAYOS_CHECKSUM_KEY || "",
 };
-// Simple logger
-const logger = {
-    info: (message, meta) => console.log(`[INFO] ${message}`, meta || ""),
-    error: (message, meta) => console.error(`[ERROR] ${message}`, meta || ""),
-    warn: (message, meta) => console.warn(`[WARN] ${message}`, meta || ""),
-    debug: (message, meta) => console.debug(`[DEBUG] ${message}`, meta || ""),
-    fatal: (message, meta) => console.error(`[FATAL] ${message}`, meta || ""),
-};
+// Logger is imported from ./infrastructure/logging/logger
 class BillingServiceApp {
     constructor() {
         this.app = (0, express_1.default)();
     }
     async initializeDependencies() {
-        logger.info("Initializing dependencies...");
+        logger_1.logger.info("Initializing dependencies...");
         // Validate configuration
         if (!config.supabaseUrl || !config.supabaseKey) {
             throw new Error("Missing required environment variables");
@@ -84,7 +83,7 @@ class BillingServiceApp {
             serviceName: config.serviceName,
         });
         await this.eventBus.connect();
-        logger.info("EventBus initialized");
+        logger_1.logger.info("EventBus initialized");
         // Initialize Supabase
         this.optimizedSupabase = (0, optimized_supabase_client_1.createOptimizedSupabaseClient)({
             supabaseUrl: config.supabaseUrl,
@@ -95,40 +94,71 @@ class BillingServiceApp {
         });
         // Initialize Repository
         this.invoiceRepository = new SupabaseInvoiceRepository_1.SupabaseInvoiceRepository();
+        this.patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(this.optimizedSupabase, logger_1.logger);
         // Initialize PayOS Service
         this.payosService = new PayOSIntegrationService_1.PayOSIntegrationService({
             clientId: config.payosClientId,
             apiKey: config.payosApiKey,
             checksumKey: config.payosChecksumKey,
-        }, logger);
+        }, logger_1.logger);
         // Initialize Use Cases
-        this.createInvoiceUseCase = new CreateInvoiceUseCase_1.CreateInvoiceUseCase(this.invoiceRepository, this.eventBus, logger);
-        this.getInvoiceUseCase = new GetInvoiceUseCase_1.GetInvoiceUseCase(this.invoiceRepository, logger);
-        this.finalizeInvoiceUseCase = new FinalizeInvoiceUseCase_1.FinalizeInvoiceUseCase(this.invoiceRepository, this.eventBus, logger);
-        this.cancelInvoiceUseCase = new CancelInvoiceUseCase_1.CancelInvoiceUseCase(this.invoiceRepository, this.eventBus, logger);
-        this.processPaymentUseCase = new ProcessPaymentUseCase_1.ProcessPaymentUseCase(this.invoiceRepository, this.eventBus, logger);
-        this.getPatientInvoicesUseCase = new GetPatientInvoicesUseCase_1.GetPatientInvoicesUseCase(this.invoiceRepository, logger);
-        this.processInsuranceClaimUseCase = new ProcessInsuranceClaimUseCase_1.ProcessInsuranceClaimUseCase(this.invoiceRepository, this.eventBus, logger);
-        this.refundPaymentUseCase = new RefundPaymentUseCase_1.RefundPaymentUseCase(this.invoiceRepository, this.eventBus, logger);
-        this.searchInvoicesUseCase = new SearchInvoicesUseCase_1.SearchInvoicesUseCase(this.invoiceRepository, logger);
-        this.getOverdueInvoicesUseCase = new GetOverdueInvoicesUseCase_1.GetOverdueInvoicesUseCase(this.invoiceRepository, logger);
-        this.getPatientBillingSummaryUseCase = new GetPatientBillingSummaryUseCase_1.GetPatientBillingSummaryUseCase(this.invoiceRepository, logger);
-        this.getRevenueReportUseCase = new GetRevenueReportUseCase_1.GetRevenueReportUseCase(this.invoiceRepository, logger);
-        this.createPayOSPaymentLinkUseCase = new CreatePayOSPaymentLinkUseCase_1.CreatePayOSPaymentLinkUseCase(this.invoiceRepository, this.payosService, logger);
-        this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase(this.invoiceRepository, this.eventBus, this.payosService, logger);
+        this.createInvoiceUseCase = new CreateInvoiceUseCase_1.CreateInvoiceUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.getInvoiceUseCase = new GetInvoiceUseCase_1.GetInvoiceUseCase(this.invoiceRepository, logger_1.logger);
+        this.finalizeInvoiceUseCase = new FinalizeInvoiceUseCase_1.FinalizeInvoiceUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.cancelInvoiceUseCase = new CancelInvoiceUseCase_1.CancelInvoiceUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.processPaymentUseCase = new ProcessPaymentUseCase_1.ProcessPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.getPatientInvoicesUseCase = new GetPatientInvoicesUseCase_1.GetPatientInvoicesUseCase(this.invoiceRepository, logger_1.logger);
+        this.processInsuranceClaimUseCase = new ProcessInsuranceClaimUseCase_1.ProcessInsuranceClaimUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.refundPaymentUseCase = new RefundPaymentUseCase_1.RefundPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.searchInvoicesUseCase = new SearchInvoicesUseCase_1.SearchInvoicesUseCase(this.invoiceRepository, logger_1.logger);
+        this.getOverdueInvoicesUseCase = new GetOverdueInvoicesUseCase_1.GetOverdueInvoicesUseCase(this.invoiceRepository, logger_1.logger);
+        this.getPatientBillingSummaryUseCase = new GetPatientBillingSummaryUseCase_1.GetPatientBillingSummaryUseCase(this.invoiceRepository, logger_1.logger);
+        this.getRevenueReportUseCase = new GetRevenueReportUseCase_1.GetRevenueReportUseCase(this.invoiceRepository, logger_1.logger);
+        this.createPayOSPaymentLinkUseCase = new CreatePayOSPaymentLinkUseCase_1.CreatePayOSPaymentLinkUseCase(this.invoiceRepository, this.payosService, logger_1.logger);
+        this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase(this.invoiceRepository, this.eventBus, this.payosService, logger_1.logger);
+        // Initialize Billing Service
+        this.billingService = new BillingService_1.BillingService(this.invoiceRepository, this.patientRepository, this.createInvoiceUseCase, this.processPaymentUseCase, logger_1.logger);
+        // Initialize Event Consumers
+        this.appointmentEventConsumer = new AppointmentEventConsumer_1.AppointmentEventConsumer({
+            rabbitmqUrl: config.rabbitmqUrl,
+            queueName: 'billing.appointment.events',
+            exchangeName: 'hospital.events',
+            routingKeys: [
+                'appointment.completed',
+                'appointment.cancelled_late',
+                'appointment.no_show',
+            ],
+            prefetchCount: 10,
+            retryAttempts: 3,
+            retryDelayMs: 1000,
+        }, logger_1.logger, this.billingService, this.invoiceRepository, this.patientRepository);
+        this.clinicalEventConsumer = new ClinicalEventConsumer_1.ClinicalEventConsumer({
+            rabbitmqUrl: config.rabbitmqUrl,
+            queueName: 'billing.clinical.events',
+            exchangeName: 'hospital.events',
+            routingKeys: [
+                'clinical.prescription.created',
+                'clinical.lab_result.created',
+                'clinical.treatment_plan.created',
+                'clinical.medical_record.created',
+            ],
+            prefetchCount: 10,
+            retryAttempts: 3,
+            retryDelayMs: 1000,
+        }, logger_1.logger, this.billingService, this.invoiceRepository, this.patientRepository);
         // Initialize Controllers
         this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.finalizeInvoiceUseCase, this.cancelInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.processInsuranceClaimUseCase, this.refundPaymentUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPayOSPaymentLinkUseCase, this.handlePayOSWebhookUseCase);
         // Initialize Middleware
-        this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
+        this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger_1.logger);
         this.authMiddleware = new AuthenticationMiddleware_1.AuthenticationMiddleware({
             identityServiceUrl: config.identityServiceUrl,
-            logger,
+            logger: logger_1.logger,
             skipPaths: ["/health"],
         });
-        logger.info("Dependencies initialized successfully");
+        logger_1.logger.info("Dependencies initialized successfully");
     }
     setupMiddleware() {
-        logger.info("Setting up middleware...");
+        logger_1.logger.info("Setting up middleware...");
         // Security
         this.app.use((0, helmet_1.default)());
         // CORS
@@ -156,17 +186,17 @@ class BillingServiceApp {
         }
         // Request logging
         this.app.use((req, _res, next) => {
-            logger.info("Incoming request", {
+            logger_1.logger.info("Incoming request", {
                 method: req.method,
                 path: req.path,
                 ip: req.ip,
             });
             next();
         });
-        logger.info("Middleware setup complete");
+        logger_1.logger.info("Middleware setup complete");
     }
     setupRoutes() {
-        logger.info("Setting up routes...");
+        logger_1.logger.info("Setting up routes...");
         // Health routes
         const healthRoutes = (0, healthRoutes_1.createHealthRoutes)();
         this.app.use("/", healthRoutes);
@@ -177,16 +207,20 @@ class BillingServiceApp {
         this.app.use(this.errorHandlingMiddleware.notFound());
         // Error handling middleware (must be last)
         this.app.use(this.errorHandlingMiddleware.handle());
-        logger.info("Routes setup complete");
+        logger_1.logger.info("Routes setup complete");
     }
     async start() {
         try {
-            logger.info(`Starting ${config.serviceName} v${config.version}...`);
+            logger_1.logger.info(`Starting ${config.serviceName} v${config.version}...`);
             await this.initializeDependencies();
             this.setupMiddleware();
             this.setupRoutes();
+            // Connect Event Consumers
+            await this.appointmentEventConsumer.connect();
+            await this.clinicalEventConsumer.connect();
+            logger_1.logger.info('Event consumers connected');
             this.app.listen(config.port, () => {
-                logger.info(`${config.serviceName} is running`, {
+                logger_1.logger.info(`${config.serviceName} is running`, {
                     port: config.port,
                     environment: config.nodeEnv,
                     version: config.version,
@@ -194,28 +228,37 @@ class BillingServiceApp {
             });
         }
         catch (error) {
-            logger.fatal("Failed to start service", {
+            logger_1.logger.fatal("Failed to start service", {
                 error: error instanceof Error ? error.message : "Unknown error",
             });
             process.exit(1);
         }
     }
     async shutdown() {
-        logger.info("Shutting down gracefully...");
+        logger_1.logger.info("Shutting down gracefully...");
         try {
+            // Disconnect event consumers first
+            if (this.appointmentEventConsumer) {
+                await this.appointmentEventConsumer.disconnect();
+                logger_1.logger.info("Appointment event consumer disconnected");
+            }
+            if (this.clinicalEventConsumer) {
+                await this.clinicalEventConsumer.disconnect();
+                logger_1.logger.info("Clinical event consumer disconnected");
+            }
             if (this.eventBus) {
                 await this.eventBus.disconnect();
-                logger.info("EventBus disconnected");
+                logger_1.logger.info("EventBus disconnected");
             }
             if (this.optimizedSupabase) {
                 await this.optimizedSupabase.close();
-                logger.info("Supabase client closed");
+                logger_1.logger.info("Supabase client closed");
             }
-            logger.info("Graceful shutdown complete");
+            logger_1.logger.info("Graceful shutdown complete");
             process.exit(0);
         }
         catch (error) {
-            logger.error("Error during shutdown", {
+            logger_1.logger.error("Error during shutdown", {
                 error: error instanceof Error ? error.message : "Unknown error",
             });
             process.exit(1);
@@ -229,7 +272,7 @@ process.on("SIGTERM", () => app.shutdown());
 process.on("SIGINT", () => app.shutdown());
 // Start the service
 app.start().catch((error) => {
-    logger.fatal("Unhandled error during startup", {
+    logger_1.logger.fatal("Unhandled error during startup", {
         error: error instanceof Error ? error.message : "Unknown error",
     });
     process.exit(1);

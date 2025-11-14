@@ -30,9 +30,9 @@ export class InvoiceCreatedEvent extends DomainEvent {
     };
 
     super(
-      'InvoiceCreated',
+      'invoice.generated',
       invoiceId,
-      'Invoice',
+      'billing',
       eventData,
       1,
       correlationId,
