@@ -23,11 +23,9 @@ import {
   AccountStatusHelper,
 } from "../value-objects/AccountStatus";
 import { UserCreatedEvent } from "@shared/domain/events/domain-events";
-import { UserAuthenticatedEvent } from "../events/UserAuthenticatedEvent";
 import { UserRoleChangedEvent } from "../events/UserRoleChangedEvent";
 import { UserDeactivatedEvent } from "../events/UserDeactivatedEvent";
 import { UserActivatedEvent } from "../events/UserActivatedEvent";
-import { UserAccountLockedEvent } from "../events/UserAccountLockedEvent";
 
 /**
  * Convert HealthcareRoleType to shared role type
@@ -249,7 +247,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * Record authentication event (password verification done by Supabase Auth)
    * This method is called AFTER successful authentication via SupabaseAuthService
    */
-  public recordAuthentication(ipAddress: string, userAgent: string): void {
+  public recordAuthentication(_ipAddress: string, _userAgent: string): void {
     if (this.props.accountStatus !== AccountStatus.ACTIVE) {
       throw new Error(
         `Tài khoản đã bị vô hiệu hóa: ${this.props.accountStatus}`,
@@ -260,15 +258,8 @@ export class User extends HealthcareAggregateRoot<UserProps> {
     this.props.lastLoginAt = new Date();
     this.props.updatedAt = new Date();
 
-    // Domain event for successful authentication
-    this.addDomainEvent(
-      new UserAuthenticatedEvent(
-        this.props.id,
-        ipAddress,
-        userAgent,
-        new Date(),
-      ),
-    );
+    // Authentication logging moved to internal audit trail
+    // No longer publishing UserAuthenticatedEvent (audit-only event)
   }
 
   /**
@@ -639,16 +630,8 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       this.props.deactivatedBy = lockedBy;
       this.props.updatedAt = now;
 
-      this.addDomainEvent(
-        new UserAccountLockedEvent(
-          this.props.id,
-          lockedBy,
-          reason,
-          terminatedSessions,
-          this.props.email.value,
-          this.roleTypes[0] || "UNKNOWN",
-        ),
-      );
+      // Account lock logging moved to internal audit trail
+      // No longer publishing UserAccountLockedEvent (audit-only event)
     } catch (error) {
       throw new Error(`Failed to lock user: ${getErrorMessage(error)}`);
     }

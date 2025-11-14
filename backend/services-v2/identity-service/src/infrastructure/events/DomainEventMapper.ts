@@ -9,21 +9,12 @@
 import { DomainEvent as BaseDomainEvent } from '@shared/domain/base/domain-event';
 import { IntegrationEventPayload } from '../../application/services/IEventPublisher';
 import { UserCreatedEvent } from "@shared/domain/events/domain-events";
-import { UserAuthenticatedEvent } from '../../domain/events/UserAuthenticatedEvent';
 import { UserRoleChangedEvent } from '../../domain/events/UserRoleChangedEvent';
-import { UserLoggedOutEvent } from '../../domain/events/UserLoggedOutEvent';
 import { UserActivatedEvent } from '../../domain/events/UserActivatedEvent';
-import { UserDeletedEvent } from '../../domain/events/UserDeletedEvent';
 import { UserUpdatedEvent } from '../../domain/events/UserUpdatedEvent';
 import { UserDeactivatedEvent } from '../../domain/events/UserDeactivatedEvent';
 import { StaffInvitationCreatedEvent } from '../../domain/events/StaffInvitationCreatedEvent';
-import { PasswordChangedEvent } from '../../domain/events/PasswordChangedEvent';
-import { UserAccountLockedEvent } from '../../domain/events/UserAccountLockedEvent';
-import { UserAccountUnlockedEvent } from '../../domain/events/UserAccountUnlockedEvent';
-import { MFAEnabledEvent } from '../../domain/events/MFAEnabledEvent';
-import { MFADisabledEvent } from '../../domain/events/MFADisabledEvent';
 import { PendingRegistrationCreatedEvent } from '../../domain/events/PendingRegistrationCreatedEvent';
-import { PasswordResetEvent } from '../../domain/events/PasswordResetEvent';
 
 export class DomainEventMapper {
   /**
@@ -55,18 +46,6 @@ export class DomainEventMapper {
       };
     }
 
-    if (domainEvent instanceof UserAuthenticatedEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          ipAddress: domainEvent.ipAddress,
-          userAgent: domainEvent.userAgent,
-          timestamp: domainEvent.timestamp
-        }
-      };
-    }
-
     if (domainEvent instanceof UserRoleChangedEvent) {
       return {
         ...baseEvent,
@@ -79,17 +58,6 @@ export class DomainEventMapper {
       };
     }
 
-    if (domainEvent instanceof UserLoggedOutEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdValue,
-          sessionId: domainEvent.sessionId,
-          loggedOutAt: domainEvent.loggedOutAt
-        }
-      };
-    }
-
     if (domainEvent instanceof UserActivatedEvent) {
       return {
         ...baseEvent,
@@ -97,21 +65,6 @@ export class DomainEventMapper {
           userId: domainEvent.userIdValue,
           email: domainEvent.emailValue,
           activatedAt: domainEvent.activatedAt
-        }
-      };
-    }
-
-    if (domainEvent instanceof UserDeletedEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          deletedBy: domainEvent.deletedBy,
-          deletionType: domainEvent.deletionType,
-          reason: domainEvent.reason,
-          email: domainEvent.userEmail,
-          role: domainEvent.userRole,
-          deletedAt: domainEvent.occurredAt
         }
       };
     }
@@ -157,76 +110,6 @@ export class DomainEventMapper {
       };
     }
 
-    if (domainEvent instanceof PasswordChangedEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          changedBy: domainEvent.changedBy,
-          invalidatedSessions: domainEvent.invalidatedSessions,
-          email: domainEvent.userEmail,
-          role: domainEvent.userRole,
-          changedAt: domainEvent.occurredAt
-        }
-      };
-    }
-
-    if (domainEvent instanceof UserAccountLockedEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          lockedBy: domainEvent.lockedBy,
-          reason: domainEvent.reason,
-          terminatedSessions: domainEvent.terminatedSessions,
-          email: domainEvent.userEmail,
-          role: domainEvent.userRole,
-          lockedAt: domainEvent.occurredAt
-        }
-      };
-    }
-
-    if (domainEvent instanceof UserAccountUnlockedEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          unlockedBy: domainEvent.unlockedBy,
-          reason: domainEvent.reason,
-          email: domainEvent.userEmail,
-          role: domainEvent.userRole,
-          unlockedAt: domainEvent.occurredAt
-        }
-      };
-    }
-
-    if (domainEvent instanceof MFAEnabledEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          method: domainEvent.method,
-          enabledBy: domainEvent.enabledBy,
-          email: domainEvent.userEmail,
-          role: domainEvent.userRole,
-          enabledAt: domainEvent.occurredAt
-        }
-      };
-    }
-
-    if (domainEvent instanceof MFADisabledEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          disabledBy: domainEvent.disabledBy,
-          email: domainEvent.userEmail,
-          role: domainEvent.userRole,
-          disabledAt: domainEvent.occurredAt
-        }
-      };
-    }
-
     if (domainEvent instanceof PendingRegistrationCreatedEvent) {
       return {
         ...baseEvent,
@@ -237,20 +120,6 @@ export class DomainEventMapper {
           fullName: domainEvent.data.fullName,
           roleType: domainEvent.data.roleType,
           expiresAt: domainEvent.data.expiresAt
-        }
-      };
-    }
-
-    if (domainEvent instanceof PasswordResetEvent) {
-      return {
-        ...baseEvent,
-        payload: {
-          userId: domainEvent.userIdVO.value,
-          email: domainEvent.userEmail,
-          role: domainEvent.userRole,
-          resetMethod: domainEvent.resetMethod,
-          invalidatedSessions: domainEvent.invalidatedSessions,
-          resetAt: domainEvent.occurredAt
         }
       };
     }
