@@ -436,6 +436,35 @@ Login → Profile Update → PatientUpdatedEvent → Cross-Service Synchronizati
 
 **Endpoint**: `POST /api/auth/register`
 
+#### **🔍 CRITICAL DATA REQUIREMENTS**
+
+**Required Fields for Registration:**
+```json
+{
+  "email": "patient@hospital.vn",           // ✅ REQUIRED - Must be valid email format
+  "password": "Patient@123456",             // ✅ REQUIRED - Min 8 chars, 1 uppercase, 1 number, 1 special
+  "fullName": "Nguyễn Văn An",               // ✅ REQUIRED - Vietnamese name with proper encoding
+  "phoneNumber": "0912345678",               // ✅ REQUIRED - Vietnamese mobile format
+  "citizenId": "123456789012",               // ✅ REQUIRED - 12-digit Vietnamese ID
+  "dateOfBirth": "1990-01-01",               // ✅ REQUIRED - ISO date format
+  "gender": "MALE",                          // ✅ REQUIRED - MALE|FEMALE|OTHER
+  "address": "123 Nguyễn Huệ, Q1, TP.HCM"    // ✅ REQUIRED - Vietnamese address format
+}
+```
+
+**🎯 IMPORTANT NOTES:**
+- **fullName**: Vietnamese characters supported (UTF-8 encoding)
+- **phoneNumber**: Must start with 09, 03, 07, or 08 (Vietnamese mobile)
+- **citizenId**: Exactly 12 digits, no spaces or dashes
+- **dateOfBirth**: Patient must be 18+ years old
+- **address**: Full Vietnamese address format
+
+**📊 Event Data Flow:**
+```
+Registration Data → UserActivatedEvent.eventData → Patient Registry
+fullName: "Nguyễn Văn An" → fullName: "Nguyễn Văn An" → personalInfo.fullName: "Nguyễn Văn An"
+```
+
 **Security Features**:
 ```json
 {
@@ -564,6 +593,95 @@ $verificationResponse
   "message": "Email đã được xác thực thành công!"
 }
 ```
+
+#### **🔍 VERIFICATION TESTING CHECKLIST**
+
+**Step 2A - Verify Token in Database:**
+```sql
+-- Check pending registration exists
+SELECT id, email, verification_token, expires_at, status 
+FROM auth_schema.pending_registrations 
+WHERE email = 'patient.test@example.com';
+
+-- Expected: status = 'PENDING', expires_at > NOW()
+```
+
+**Step 2B - Verify User Creation:**
+```sql
+-- Check user created in auth.users
+SELECT id, email, email_confirmed_at, created_at 
+FROM auth.users 
+WHERE email = 'patient.test@example.com';
+
+-- Expected: email_confirmed_at NOT NULL
+```
+
+**Step 2C - Verify Profile Creation:**
+```sql
+-- Check user profile created with fullName
+SELECT user_id, full_name, phone_number, created_at 
+FROM auth_schema.user_profiles 
+WHERE user_id = '5243ee89-dbab-4843-a14b-c00fc99f2c37';
+
+-- Expected: full_name = 'Nguyễn Văn An' (from registration)
+```
+
+**Step 2D - Verify Event Publishing:**
+```sql
+-- Check events published to outbox
+SELECT event_type, status, payload->'eventData'->>'fullName' as fullName
+FROM auth_schema.event_outbox 
+WHERE aggregate_id = '5243ee89-dbab-4843-a14b-c00fc99f2c37'
+ORDER BY created_at;
+
+-- Expected: 
+-- 1. UserCreatedEvent (status = PUBLISHED)
+-- 2. UserActivatedEvent (status = PUBLISHED, fullName = 'Nguyễn Văn An')
+```
+
+**Step 2E - Verify Patient Record Creation:**
+```sql
+-- Check patient record created with correct fullName
+SELECT patient_id, user_id, personal_info->>'fullName' as fullName, email, status
+FROM patient_schema.patients 
+WHERE user_id = '5243ee89-dbab-4843-a14b-c00fc99f2c37';
+
+-- Expected: fullName = 'Nguyễn Văn An', status = 'active'
+```
+
+**Step 2F - Verify Service Logs:**
+```bash
+# Check Identity Service logs
+tail -f backend/services-v2/identity-service/logs/app.log | grep "Email verified"
+
+# Check Patient Registry logs  
+tail -f backend/services-v2/patient-registry-service/logs/app.log | grep "Creating patient from user event"
+
+# Expected: 
+# Identity: "Email verified successfully for user: 5243ee89..."
+# Patient: "Creating patient from user event { fullName: 'Nguyễn Văn An', userId: '5243ee89...' }"
+```
+
+**🚨 VERIFICATION FAILURE DIAGNOSTICS:**
+
+| Test Step | Failure Symptom | Root Cause | Fix |
+|-----------|-----------------|------------|-----|
+| **Token Invalid** | 400/403 HTTP error | Token expired or malformed | Register again |
+| **User Not Created** | No auth.users row | Database error or constraint violation | Check identity service logs |
+| **Profile Missing** | No user_profiles row | Profile creation failed | Check database permissions |
+| **Events Not Published** | outbox status = PENDING | RabbitMQ connection down | Restart RabbitMQ service |
+| **Wrong fullName** | Patient has email prefix | Event data mapping error | Check event consumer code |
+| **Patient Not Created** | No patient_schema.patients row | Event consumer error | Check patient service logs |
+
+**✅ COMPLETE VERIFICATION SUCCESS:**
+- ✅ HTTP 200 from verification endpoint
+- ✅ User in auth.users with email_confirmed_at
+- ✅ Profile in auth_schema.user_profiles with correct fullName
+- ✅ Both events in outbox with status = PUBLISHED
+- ✅ Patient record with correct personalInfo.fullName
+- ✅ No errors in either service log
+
+---
 
 #### **3. Patient Login**
 ```powershell
@@ -793,12 +911,99 @@ ORDER BY created_at DESC LIMIT 5;
 
 **Endpoint**: `GET /api/auth/verify-email?token=jwt-token`
 
+#### **🔍 VERIFICATION PROCESS FLOW**
+
+**Step-by-Step Process:**
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Identity
+    participant Database
+    participant Outbox
+    participant RabbitMQ
+    participant PatientService
+
+    Client->>Identity: GET /api/auth/verify-email?token=jwt
+    Identity->>Database: Find pending registration by token
+    Identity->>Database: Validate token (24-hour expiry)
+    Identity->>Database: Create user in auth.users
+    Identity->>Database: Create user profile in auth_schema.user_profiles
+    Identity->>Outbox: Store UserCreatedEvent (PENDING)
+    Identity->>Outbox: Store UserActivatedEvent (PENDING)
+    Identity->>Database: Delete from pending_registrations
+    Identity-->>Client: 200 - Email verified successfully
+    
+    Note over Outbox: Background Process (5s intervals)
+    Outbox->>RabbitMQ: Publish UserCreatedEvent
+    Outbox->>RabbitMQ: Publish UserActivatedEvent
+    Outbox->>Database: Update status to PUBLISHED
+    
+    Note over PatientService: Event Consumer Processing
+    RabbitMQ->>PatientService: user.created event (log only)
+    RabbitMQ->>PatientService: user.activated event
+    PatientService->>Database: Create patient record with fullName
+```
+
+**🎯 CRITICAL VERIFICATION REQUIREMENTS:**
+
+**Token Structure:**
+```json
+{
+  "email": "patient@hospital.vn",
+  "userId": "pending",           // Special value for pending registrations
+  "type": "email_verification",  // Token type identifier
+  "exp": 1763188504,             // 24-hour expiry timestamp
+  "iat": 1763102104              // Issued at timestamp
+}
+```
+
+**Event Data Validation:**
+```json
+// UserActivatedEvent.payload.eventData
+{
+  "userId": "cf84955d-49ba-462d-807a-685ca82a8837",    // Real UUID after verification
+  "email": "patient@hospital.vn",
+  "fullName": "Nguyễn Văn An",                         // ✅ From registration data
+  "activatedAt": "2025-11-14T06:35:24.039Z"
+}
+```
+
+**🔧 VERIFICATION CHECKLIST:**
+
+| Check | Expected | How to Verify |
+|-------|----------|---------------|
+| **Token Valid** | Not expired, valid signature | Try verification endpoint |
+| **User Created** | auth.users row exists | `SELECT id, email FROM auth.users WHERE email = 'test@example.com'` |
+| **Profile Created** | auth_schema.user_profiles row exists | `SELECT full_name FROM auth_schema.user_profiles WHERE user_id = 'uuid'` |
+| **Events Published** | UserCreatedEvent + UserActivatedEvent in outbox | `SELECT event_type FROM auth_schema.event_outbox WHERE aggregate_id = 'uuid'` |
+| **Patient Record** | patient_schema.patients row with correct fullName | `SELECT personal_info->>'fullName' FROM patient_schema.patients WHERE user_id = 'uuid'` |
+| **Event Consumer** | Patient Service logs show event processing | Check service logs for "Creating patient from user event" |
+
+**🚨 COMMON VERIFICATION ISSUES:**
+
+| Issue | Symptoms | Fix |
+|-------|----------|-----|
+| **Token Expired** | 400/403 error on verification | Register again with new email |
+| **Event Not Published** | User created but no patient record | Check RabbitMQ connection and outbox status |
+| **Wrong Event Data** | Patient record has wrong fullName | Verify `event.payload.eventData` structure in consumer |
+| **Consumer Error** | Events in DLQ (Dead Letter Queue) | Check service logs for parsing errors |
+
+**✅ SUCCESS INDICATORS:**
+- ✅ HTTP 200 response from verification endpoint
+- ✅ User exists in `auth.users` with `email_confirmed_at` not null
+- ✅ Profile exists in `auth_schema.user_profiles` with correct `full_name`
+- ✅ Events published to RabbitMQ (status = PUBLISHED)
+- ✅ Patient record created with correct `personalInfo.fullName`
+- ✅ No errors in service logs
+
 **Process**:
 1. User clicks verification link in email
 2. Token validated (24-hour expiry)
 3. User moved from `pending_registrations` to `auth.users`
-4. Patient profile created in Patient Service
-5. Welcome email sent
+4. Profile created in `auth_schema.user_profiles` with fullName
+5. `UserCreatedEvent` and `UserActivatedEvent` published
+6. Patient profile created in Patient Service using event data
+7. Welcome email sent (if configured)
 
 ---
 
