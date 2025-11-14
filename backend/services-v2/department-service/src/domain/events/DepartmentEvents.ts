@@ -80,50 +80,6 @@ export class DepartmentUpdatedEvent extends HealthcareDomainEvent<DepartmentUpda
 }
 
 /**
- * Department Head Assigned Event
- * Published when a department head is assigned or changed
- */
-export interface DepartmentHeadAssignedEventData extends DepartmentEventData {
-  previousHeadId?: string;
-  newHeadId: string;
-  newHeadName: string;
-  newHeadEmail: string;
-  assignedAt: Date;
-}
-
-export class DepartmentHeadAssignedEvent extends HealthcareDomainEvent<DepartmentHeadAssignedEventData> {
-  constructor(data: DepartmentHeadAssignedEventData) {
-    super('department.head.assigned', data);
-  }
-
-  static create(
-    departmentId: string,
-    departmentCode: string,
-    departmentNameEn: string,
-    departmentNameVi: string,
-    newHeadId: string,
-    newHeadName: string,
-    newHeadEmail: string,
-    previousHeadId?: string,
-    triggeredBy?: string
-  ): DepartmentHeadAssignedEvent {
-    return new DepartmentHeadAssignedEvent({
-      departmentId,
-      departmentCode,
-      departmentNameEn,
-      departmentNameVi,
-      timestamp: new Date(),
-      previousHeadId,
-      newHeadId,
-      newHeadName,
-      newHeadEmail,
-      assignedAt: new Date(),
-      triggeredBy,
-    });
-  }
-}
-
-/**
  * Department Activated Event
  * Published when a department is activated
  */
@@ -180,51 +136,6 @@ export class DepartmentDeactivatedEvent extends HealthcareDomainEvent<Department
       timestamp: new Date(),
       reason,
       deactivatedAt: new Date(),
-      triggeredBy,
-    });
-  }
-}
-
-/**
- * Department Staff Count Changed Event
- * Published when staff count in a department changes
- */
-export interface DepartmentStaffCountChangedEventData extends DepartmentEventData {
-  previousCount: number;
-  newCount: number;
-  changeType: 'added' | 'removed' | 'transferred_in' | 'transferred_out';
-  staffId?: string;
-  staffName?: string;
-}
-
-export class DepartmentStaffCountChangedEvent extends HealthcareDomainEvent<DepartmentStaffCountChangedEventData> {
-  constructor(data: DepartmentStaffCountChangedEventData) {
-    super('department.staff.count.changed', data);
-  }
-
-  static create(
-    departmentId: string,
-    departmentCode: string,
-    departmentNameEn: string,
-    departmentNameVi: string,
-    previousCount: number,
-    newCount: number,
-    changeType: 'added' | 'removed' | 'transferred_in' | 'transferred_out',
-    staffId?: string,
-    staffName?: string,
-    triggeredBy?: string
-  ): DepartmentStaffCountChangedEvent {
-    return new DepartmentStaffCountChangedEvent({
-      departmentId,
-      departmentCode,
-      departmentNameEn,
-      departmentNameVi,
-      timestamp: new Date(),
-      previousCount,
-      newCount,
-      changeType,
-      staffId,
-      staffName,
       triggeredBy,
     });
   }
