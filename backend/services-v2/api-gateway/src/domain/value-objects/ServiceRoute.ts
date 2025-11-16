@@ -1,29 +1,4 @@
 import { ValueObject } from '@shared/domain/base/value-object';
-import { Request } from 'express';
-
-/**
- * Path rewrite configuration
- * Supports both static rules and dynamic function
- */
-export interface PathRewriteRules {
-  /**
-   * Static rewrite rules: pattern -> replacement
-   * Example: { '^/api/v2': '/api/v1' }
-   */
-  rules?: Record<string, string>;
-  
-  /**
-   * Custom rewrite function for complex logic
-   * Return undefined to skip rewriting
-   */
-  rewriteFn?: (path: string, req: Request) => string | undefined;
-  
-  /**
-   * Strip the pathPrefix from the request before forwarding
-   * Example: /api/v1/appointments/123 -> /123 (if pathPrefix is /api/v1/appointments)
-   */
-  stripPrefix?: boolean;
-}
 
 export interface ServiceRouteProps {
   serviceName: string;
@@ -32,7 +7,6 @@ export interface ServiceRouteProps {
   requiresAuth: boolean;
   requiredPermissions?: string[];
   requiredRoles?: string[];
-  pathRewrite?: PathRewriteRules;
 }
 
 export class ServiceRoute extends ValueObject<ServiceRouteProps> {
@@ -71,8 +45,7 @@ export class ServiceRoute extends ValueObject<ServiceRouteProps> {
       pathPrefix: props.pathPrefix.trim(),
       requiresAuth: props.requiresAuth,
       requiredPermissions: props.requiredPermissions,
-      requiredRoles: props.requiredRoles,
-      pathRewrite: props.pathRewrite // ✅ FIX: Copy pathRewrite into props
+      requiredRoles: props.requiredRoles
     });
   }
 
@@ -98,10 +71,6 @@ export class ServiceRoute extends ValueObject<ServiceRouteProps> {
 
   public get requiredRoles(): string[] | undefined {
     return this.props.requiredRoles;
-  }
-
-  public get pathRewrite(): PathRewriteRules | undefined {
-    return this.props.pathRewrite;
   }
 
   /**
@@ -133,49 +102,13 @@ export class ServiceRoute extends ValueObject<ServiceRouteProps> {
   }
 
   /**
-   * Rewrite the request path according to configured rules
-   */
-  public rewritePath(originalPath: string, req?: Request): string {
-    let path = originalPath;
-    
-    if (!this.props.pathRewrite) {
-      return path;
-    }
-    
-    // Apply static rewrite rules
-    if (this.props.pathRewrite.rules) {
-      for (const [pattern, replacement] of Object.entries(this.props.pathRewrite.rules)) {
-        const regex = new RegExp(pattern);
-        path = path.replace(regex, replacement);
-      }
-    }
-    
-    // Apply custom rewrite function
-    if (this.props.pathRewrite.rewriteFn && req) {
-      const rewritten = this.props.pathRewrite.rewriteFn(path, req);
-      if (rewritten !== undefined) {
-        path = rewritten;
-      }
-    }
-    
-    // Strip prefix if configured
-    if (this.props.pathRewrite.stripPrefix && path.startsWith(this.props.pathPrefix)) {
-      path = path.substring(this.props.pathPrefix.length) || '/';
-    }
-    
-    return path;
-  }
-
-  /**
    * Get the full target URL for proxying
    */
-  public getTargetUrl(originalPath: string, req?: Request): string {
-    const rewrittenPath = this.rewritePath(originalPath, req);
-    
+  public getTargetUrl(originalPath: string): string {
     // Ensure path starts with /
-    const normalizedPath = rewrittenPath.startsWith('/') ? rewrittenPath : `/${rewrittenPath}`;
+    const normalizedPath = originalPath.startsWith('/') ? originalPath : `/${originalPath}`;
     
-    // Combine base URL with rewritten path
+    // Combine base URL with original path (no rewriting)
     return `${this.props.baseUrl}${normalizedPath}`;
   }
 
@@ -190,7 +123,6 @@ export class ServiceRoute extends ValueObject<ServiceRouteProps> {
       requiresAuth: this.props.requiresAuth,
       requiredPermissions: this.props.requiredPermissions,
       requiredRoles: this.props.requiredRoles,
-      hasPathRewrite: !!this.props.pathRewrite,
       specificity: this.getSpecificity()
     };
   }

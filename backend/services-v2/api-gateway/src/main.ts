@@ -335,13 +335,7 @@ class ApiGatewayApplication {
           (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
         pathPrefix: "/api/v2/appointments",
         requiresAuth: true,
-        requiredPermissions: ["appointment:read"],
-        // ✅ FIX: Rewrite v2 to v1 (service only supports v1)
-        pathRewrite: {
-          rules: {
-            '^/api/v2/appointments': '/api/v1/appointments'
-          }
-        }
+        requiredPermissions: ["appointment:read"]
       }),
 
       // Appointments Service V2 - Patient appointments endpoint (port 3004)
@@ -352,13 +346,7 @@ class ApiGatewayApplication {
           process.env.APPOINTMENTS_SERVICE_URL ||
           (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
         pathPrefix: "/api/v2/patients",
-        requiresAuth: true,
-        // ✅ FIX: Rewrite v2 to v1 (service only supports v1)
-        pathRewrite: {
-          rules: {
-            '^/api/v2/patients': '/api/v1/patients'
-          }
-        }
+        requiresAuth: true
       }),
 
       // Appointments Service V2 - Doctor appointments endpoint (port 3004)
@@ -368,13 +356,7 @@ class ApiGatewayApplication {
           process.env.APPOINTMENTS_SERVICE_URL ||
           (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
         pathPrefix: "/api/v2/doctors",
-        requiresAuth: true,
-        // ✅ FIX: Rewrite v2 to v1 (service only supports v1)
-        pathRewrite: {
-          rules: {
-            '^/api/v2/doctors': '/api/v1/doctors'
-          }
-        }
+        requiresAuth: true
       }),
 
       // Clinical EMR Service - Electronic Medical Records (port 3027)

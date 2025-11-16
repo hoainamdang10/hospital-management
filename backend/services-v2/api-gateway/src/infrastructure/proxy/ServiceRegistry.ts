@@ -70,7 +70,6 @@ export class ServiceRegistry implements IServiceRegistry {
     baseUrl: string;
     requiresAuth: boolean;
     specificity: number;
-    hasPathRewrite: boolean;
   }> {
     return this.sortedRoutes.map((route, index) => ({
       priority: index + 1,
@@ -78,8 +77,7 @@ export class ServiceRegistry implements IServiceRegistry {
       serviceName: route.serviceName,
       baseUrl: route.baseUrl,
       requiresAuth: route.requiresAuth,
-      specificity: route.getSpecificity(),
-      hasPathRewrite: !!route.pathRewrite
+      specificity: route.getSpecificity()
     }));
   }
 

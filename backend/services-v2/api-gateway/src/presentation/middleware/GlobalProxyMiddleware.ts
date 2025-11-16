@@ -4,8 +4,7 @@
  * 
  * This middleware intercepts ALL /api/* requests and:
  * 1. Looks up the matching route from ServiceRegistry
- * 2. Applies path rewrite rules
- * 3. Proxies to the target service
+ * 2. Proxies to the target service
  * 
  * Benefits:
  * - Single source of truth for routing
@@ -128,14 +127,11 @@ export class GlobalProxyMiddleware {
       // This ensures http-proxy-middleware sees the full path with /api prefix
       req.url = originalPath;
 
-      // Apply path rewrite
-      const rewrittenPath = route.rewritePath(originalPath, req);
-      const targetUrl = route.getTargetUrl(originalPath, req);
+      const targetUrl = route.getTargetUrl(originalPath);
 
-      this.logger.debug('Global proxy: Path rewrite applied', {
+      this.logger.debug('Global proxy: Forwarding request', {
         requestId: req.requestId,
         originalPath,
-        rewrittenPath,
         targetUrl,
         reqUrlSet: req.url
       });
@@ -150,12 +146,6 @@ export class GlobalProxyMiddleware {
         // Cookie domain rewrite
         cookieDomainRewrite: {
           "*": "" // Remove domain from cookies
-        },
-
-        // ✅ FIX: Path rewrite now works because req.url contains full path
-        // Match the original path and replace with rewritten path
-        pathRewrite: {
-          [`^${originalPath}`]: rewrittenPath
         },
 
         onProxyReq: (proxyReq, request: AuthenticatedRequest) => {
