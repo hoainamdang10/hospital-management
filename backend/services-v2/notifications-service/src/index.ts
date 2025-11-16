@@ -32,25 +32,23 @@ async function initializeEventConsumers(container: DIContainer): Promise<void> {
   try {
     console.log('🔄 Initializing event consumers...');
 
-    // Resolve all event consumers from container
+    // Resolve event consumers from container (THESIS SCOPE)
     const appointmentEventConsumer = container.resolve(ServiceTokens.APPOINTMENT_EVENT_CONSUMER) as any;
-    const staffEventConsumer = container.resolve(ServiceTokens.STAFF_EVENT_CONSUMER) as any;
+    // Staff Event Consumer REMOVED - notifications handled via AppointmentEventConsumer
     const billingEventConsumer = container.resolve(ServiceTokens.BILLING_EVENT_CONSUMER) as any;
     // Clinical EMR Event Consumer REMOVED FOR MVP - Focus on Appointments only
 
     // Connect event consumers
     await Promise.all([
       appointmentEventConsumer.connect(),
-      staffEventConsumer.connect(),
       billingEventConsumer.connect()
     ]);
 
     console.log('✅ All event consumers connected successfully');
-    console.log('📋 Active event consumers (MVP Scope):');
-    console.log('   - Appointment Event Consumer (7 event types)');
-    console.log('   - Staff Event Consumer (7 event types)');
-    console.log('   - Billing Event Consumer (5 event types)');
-    console.log('🎯 MVP event-driven architecture enabled (Clinical EMR removed)!');
+    console.log('📋 Active event consumers (THESIS SCOPE):');
+    console.log('   - Appointment Event Consumer (appointment.scheduled, confirmed, cancelled, rescheduled)');
+    console.log('   - Billing Event Consumer (payment.completed)');
+    console.log('🎯 Event-driven architecture enabled - Focused on booking + payment flow!');
 
   } catch (error) {
     console.error('❌ Failed to initialize event consumers:', error);
