@@ -11,7 +11,7 @@ API Gateway là **entry point duy nhất** cho tất cả client requests vào H
 - ✅ **Request Routing**: Proxy requests to appropriate microservices
 - ✅ **Cross-Cutting Concerns**: Rate limiting, logging, error handling
 - ✅ **Security**: CORS, Helmet, Security headers
-- ✅ **Resilience**: Circuit breaker, retry policy, timeout handling
+- ✅ **Resilience**: Timeout handling with health check caching
 - ✅ **API Documentation**: Swagger UI for interactive API testing
 - ✅ **Monitoring**: Visual dashboard & performance metrics
 - ✅ **i18n**: Vietnamese error messages for better UX

@@ -222,24 +222,6 @@ npm test -- CircuitBreaker.test.ts
 npm test -- ProxyError.test.ts
 ```
 
-### 5. Retry Policy
-
-**File**: `src/infrastructure/resilience/RetryPolicy.test.ts`
-
-**Test Cases**:
-- ✅ Executes successfully on first attempt
-- ✅ Retries on retryable errors
-- ✅ Doesn't retry non-retryable errors
-- ✅ Uses exponential backoff
-- ✅ Adds jitter to delay
-- ✅ Respects max delay
-- ✅ Stops after max retries
-
-**Run**:
-```bash
-npm test -- RetryPolicy.test.ts
-```
-
 ---
 
 ## 🔗 Integration Tests
