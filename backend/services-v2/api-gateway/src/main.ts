@@ -11,8 +11,8 @@ import { WinstonLogger } from "@infrastructure/logging/WinstonLogger";
 import { SupabaseJWTTokenVerifier } from "@infrastructure/auth/SupabaseJWTTokenVerifier";
 import { IdentityServiceClient } from "@infrastructure/auth/IdentityServiceClient";
 import { ServiceRegistry } from "@infrastructure/proxy/ServiceRegistry";
-import { RedisRateLimitClient } from "@infrastructure/cache/RedisRateLimitClient";
-// import { AdvancedRateLimitMiddleware } from "@presentation/middleware/AdvancedRateLimitMiddleware"; // Disabled for development
+// import { RedisRateLimitClient } from "@infrastructure/cache/RedisRateLimitClient"; // Disabled for thesis scope
+// import { AdvancedRateLimitMiddleware } from "@presentation/middleware/AdvancedRateLimitMiddleware"; // Disabled for thesis scope
 
 import { AuthenticateRequestUseCase } from "@application/use-cases/AuthenticateRequestUseCase";
 import { AuthorizeRequestUseCase } from "@application/use-cases/AuthorizeRequestUseCase";
@@ -49,8 +49,8 @@ class ApiGatewayApplication {
   private authorizationMiddleware: AuthorizationMiddleware;
   private loggingMiddleware: LoggingMiddleware;
   private errorHandlingMiddleware: ErrorHandlingMiddleware;
-  private redisRateLimitClient?: RedisRateLimitClient;
-  // private rateLimitMiddleware?: AdvancedRateLimitMiddleware; // Disabled for development
+  // private redisRateLimitClient?: RedisRateLimitClient; // Disabled for thesis scope
+  // private rateLimitMiddleware?: AdvancedRateLimitMiddleware; // Disabled for thesis scope
 
   constructor() {
     this.app = express();
@@ -150,19 +150,20 @@ class ApiGatewayApplication {
   async initialize(): Promise<void> {
     logger.info("Initializing API Gateway...");
 
+    // DISABLED FOR THESIS SCOPE - Rate limiting completely disabled
     // Initialize Redis for rate limiting
-    try {
-      this.redisRateLimitClient = new RedisRateLimitClient(
-        {
-          url: process.env.REDIS_URL || "redis://redis-v2:6379",
-          password: process.env.REDIS_PASSWORD,
-          db: parseInt(process.env.REDIS_RATE_LIMIT_DB || "1"),
-        },
-        logger,
-      );
+    // try {
+    //   this.redisRateLimitClient = new RedisRateLimitClient(
+    //     {
+    //       url: process.env.REDIS_URL || "redis://redis-v2:6379",
+    //       password: process.env.REDIS_PASSWORD,
+    //       db: parseInt(process.env.REDIS_RATE_LIMIT_DB || "1"),
+    //     },
+    //     logger,
+    //   );
 
-      await this.redisRateLimitClient.connect();
-      logger.info("Redis rate limit client connected successfully");
+    //   await this.redisRateLimitClient.connect();
+    //   logger.info("Redis rate limit client connected successfully");
 
       // DISABLED FOR DEVELOPMENT - Advanced rate limiting
       // const rateLimitConfig = {
@@ -233,12 +234,12 @@ class ApiGatewayApplication {
       //   perUserMax: rateLimitConfig.perUser.max,
       //   endpointCount: Object.keys(rateLimitConfig.perEndpoint).length,
       // });
-    } catch (error) {
-      logger.error("Failed to initialize Redis rate limiting", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      logger.warn("Falling back to in-memory rate limiting");
-    }
+    // } catch (error) {
+    //   logger.error("Failed to initialize Redis rate limiting", {
+    //     error: error instanceof Error ? error.message : "Unknown error",
+    //   });
+    //   logger.warn("Falling back to in-memory rate limiting");
+    // }
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -693,17 +694,18 @@ class ApiGatewayApplication {
   private async shutdown(): Promise<void> {
     logger.info("Shutting down API Gateway...");
 
+    // DISABLED FOR THESIS SCOPE - Rate limiting disabled
     // Disconnect Redis client
-    if (this.redisRateLimitClient) {
-      try {
-        await this.redisRateLimitClient.disconnect();
-        logger.info("Redis rate limit client disconnected");
-      } catch (error) {
-        logger.error("Error disconnecting Redis rate limit client", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    }
+    // if (this.redisRateLimitClient) {
+    //   try {
+    //     await this.redisRateLimitClient.disconnect();
+    //     logger.info("Redis rate limit client disconnected");
+    //   } catch (error) {
+    //     logger.error("Error disconnecting Redis rate limit client", {
+    //       error: error instanceof Error ? error.message : "Unknown error",
+    //     });
+    //   }
+    // }
 
     logger.info("API Gateway shutdown complete");
     process.exit(0);
