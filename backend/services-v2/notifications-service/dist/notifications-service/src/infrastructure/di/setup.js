@@ -324,15 +324,12 @@ function setupDependencies(container) {
         const config = {
             rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
             queueName: process.env.APPOINTMENT_EVENT_QUEUE || 'notifications.appointment.events',
-            exchangeName: process.env.APPOINTMENT_EVENT_EXCHANGE || 'appointments.events',
+            exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events', // ✅ FIX: Use hospital.events to match all services
             routingKeys: [
-                'appointment.scheduled',
-                'appointment.confirmed',
-                'appointment.cancelled',
-                'appointment.completed',
-                'appointment.rescheduled',
-                'appointment.reminder',
-                'appointment.no_show'
+                'appointment.scheduled', // ✅ THESIS SCOPE
+                'appointment.confirmed', // ✅ THESIS SCOPE
+                'appointment.cancelled', // ✅ THESIS SCOPE
+                // FUTURE: appointment.completed, appointment.rescheduled, appointment.reminder, appointment.no_show
             ],
             prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
             retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
@@ -370,13 +367,10 @@ function setupDependencies(container) {
         const config = {
             rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
             queueName: process.env.BILLING_EVENT_QUEUE || 'notifications.billing.events',
-            exchangeName: process.env.BILLING_EVENT_EXCHANGE || 'hospital.events',
+            exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events', // ✅ Unified exchange
             routingKeys: [
-                'billing.invoice.generated',
-                'billing.payment.completed',
-                'billing.payment.reminder.*',
-                'billing.insurance.*',
-                'billing.rate.updated'
+                'billing.payment.completed', // ✅ THESIS SCOPE - Payment receipt
+                // FUTURE: billing.invoice.generated, billing.payment.reminder, billing.insurance
             ],
             prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
             retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
