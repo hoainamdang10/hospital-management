@@ -79,36 +79,6 @@ export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
      * Add emergency contact
      */
     addEmergencyContact(contact: EmergencyContact, updatedBy: string): void;
-    /**
-     * Remove emergency contact
-     */
-    removeEmergencyContact(contactId: string, updatedBy: string): void;
-    /**
-     * Grant consent
-     */
-    grantConsent(consent: PatientConsent, updatedBy: string): void;
-    /**
-     * Merge into master patient (mark as duplicate)
-     */
-    mergeInto(masterPatientId: PatientId, reason: string, performedBy: string): void;
-    /**
-     * Link to another patient
-     */
-    linkTo(otherPatientId: PatientId, linkType: 'refer' | 'seealso', performedBy: string): void;
-    /**
-     * Deactivate patient
-     */
-    deactivate(reason: string, performedBy: string): void;
-    /**
-     * Mark patient as deceased
-     */
-    markAsDeceased(performedBy: string): void;
-    /**
-     * Reactivate patient (from INACTIVE status or, when allowed, DECEASED)
-     */
-    reactivate(_reason: string, performedBy: string, options?: {
-        allowDeceased?: boolean;
-    }): void;
     getPatientId(): string | null;
     getPatientIdObject(): PatientId;
     getUserId(): string;
@@ -117,10 +87,7 @@ export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
     getBasicMedicalInfo(): BasicMedicalInfo;
     getInsuranceInfo(): InsuranceInfo | undefined;
     getEmergencyContacts(): EmergencyContact[];
-    getConsents(): PatientConsent[];
     getStatus(): PatientStatus;
-    getMergedInto(): PatientId | undefined;
-    getLinks(): PatientLink[];
     getProps(): PatientProps;
     /**
      * Validate entity state (required by Entity base class)
@@ -139,35 +106,10 @@ export declare class Patient extends HealthcareAggregateRoot<PatientProps> {
      */
     protected applyEvent(_event: DomainEvent): void;
     isActive(): boolean;
-    isInactive(): boolean;
-    isMerged(): boolean;
-    isDeceased(): boolean;
     hasBHYTInsurance(): boolean;
     hasValidInsurance(): boolean;
     hasEmergencyContacts(): boolean;
-    hasActiveConsents(): boolean;
-    hasLinks(): boolean;
     protected validateBusinessInvariants(): void;
     private ensureCanUpdate;
-    /**
-     * Update patient photo URL
-     */
-    updatePhoto(photoUrl: string, updatedBy: string): void;
-    /**
-     * Remove patient photo
-     */
-    removePhoto(updatedBy: string): void;
-    /**
-     * Get patient photo URL
-     */
-    getPhotoUrl(): string | undefined;
-    /**
-     * Update communication preferences
-     */
-    updateCommunicationPreference(preference: CommunicationPreference, updatedBy: string): void;
-    /**
-     * Get communication preferences
-     */
-    getCommunicationPreference(): CommunicationPreference | undefined;
 }
 //# sourceMappingURL=Patient.d.ts.map

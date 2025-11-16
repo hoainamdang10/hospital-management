@@ -1,6 +1,6 @@
 /**
  * Provider Event Consumer
- * Consumes events from Provider/Staff Service to maintain local read model
+ * Consumes events from Provider Staff Service to maintain local read model
  *
  * @author Hospital Management Team
  * @version 1.0.0
@@ -15,6 +15,7 @@ import { InboxRepository } from '../inbox/InboxRepository';
  * - provider.staff.created
  * - provider.staff.updated
  * - provider.staff.deactivated
+ * - provider.staff.deleted
  *
  * Pattern: Inbox Pattern for idempotency
  */
@@ -35,19 +36,12 @@ export declare class ProviderEventConsumer {
      */
     private handleStaffUpdated;
     /**
-     * Handle staff deactivated event
+     * Handle staff status changed event
      */
-    private handleStaffDeactivated;
+    private handleStaffStatusChanged;
     /**
      * Handle staff deleted event
      */
     private handleStaffDeleted;
-    private extractFullName;
-    private extractSpecialization;
-    private extractDepartment;
-    private extractLicenseNumber;
-    private extractPhone;
-    private extractEmail;
-    private extractIsActive;
 }
 //# sourceMappingURL=ProviderEventConsumer.d.ts.map

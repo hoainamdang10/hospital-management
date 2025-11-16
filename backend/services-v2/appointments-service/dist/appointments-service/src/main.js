@@ -56,7 +56,7 @@ const appointment_routes_1 = require("./presentation/routes/appointment.routes")
 const appointmentQueryRoutes_1 = require("./presentation/routes/appointmentQueryRoutes");
 const availability_routes_1 = require("./presentation/routes/availability.routes");
 const queue_routes_1 = require("./presentation/routes/queue.routes");
-const waitlist_routes_1 = require("./presentation/routes/waitlist.routes");
+// ===== ARCHIVED FOR POST-MVP: Waitlist Routes (removed import to prevent module resolution errors) =====
 const reminder_routes_1 = require("./presentation/routes/reminder.routes");
 const container_1 = require("./infrastructure/di/container");
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
@@ -69,6 +69,8 @@ const PrometheusMetrics_1 = require("./infrastructure/monitoring/PrometheusMetri
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
 const reschedulingQueue_routes_1 = require("./presentation/routes/reschedulingQueue.routes");
+const node_cron_1 = __importDefault(require("node-cron"));
+const ExpireUnpaidAppointments_use_case_1 = require("./application/use-cases/ExpireUnpaidAppointments.use-case");
 const app = (0, express_1.default)();
 // Initialize DI Container
 console.log("[Main] Initializing DI Container...");
@@ -263,8 +265,8 @@ app.use("/api/v1/appointments", (0, availability_routes_1.createAvailabilityRout
 // Queue routes (Queue management)
 // Moved from /api/queue to /api/v1/queue for consistency
 app.use("/api/v1/queue", (0, queue_routes_1.createQueueRoutes)());
-// Waitlist routes (Waitlist management)
-app.use("/api/v1/appointments/waitlist", (0, waitlist_routes_1.createWaitlistRoutes)());
+// ===== ARCHIVED FOR POST-MVP: Waitlist Routes =====
+// app.use("/api/v1/appointments/waitlist", createWaitlistRoutes());
 // Rescheduling Queue routes
 const reschedulingQueueController = container.getReschedulingQueueController();
 app.use('/api/v1/rescheduling-queue', (0, reschedulingQueue_routes_1.initializeReschedulingQueueRoutes)(reschedulingQueueController));
@@ -324,15 +326,13 @@ async function initializeEventConsumers() {
         const departmentEventConsumer = container.getDepartmentEventConsumer();
         await departmentEventConsumer.connect();
         logger.info("Department Event Consumer initialized successfully");
-        // Initialize Clinical EMR Event Consumer
-        const clinicalEMREventConsumer = container.getClinicalEMREventConsumer();
-        await clinicalEMREventConsumer.connect();
-        logger.info("Clinical EMR Event Consumer initialized successfully");
-        // Initialize Billing Event Consumer
+        // Initialize Billing Event Consumer (ENABLED for Prepaid Billing Flow)
         const billingEventConsumer = container.getBillingEventConsumer();
         await billingEventConsumer.connect();
-        logger.info("Billing Event Consumer initialized successfully");
-        logger.info("All Event Consumers initialized successfully");
+        logger.info("Billing Event Consumer initialized successfully (Prepaid Flow)");
+        // ===== ARCHIVED FOR POST-MVP: Event Consumers =====
+        // Clinical EMR Event Consumer REMOVED FOR MVP - Focus on Appointments only
+        logger.info("All Event Consumers initialized successfully (MVP scope)");
     }
     catch (error) {
         logger.error("Failed to initialize Event Consumers", error);
@@ -361,14 +361,7 @@ async function shutdownEventConsumers() {
         catch (error) {
             logger.error("Error disconnecting Department Event Consumer", error);
         }
-        try {
-            const clinicalEMREventConsumer = container.getClinicalEMREventConsumer();
-            await clinicalEMREventConsumer.disconnect();
-            logger.info("Clinical EMR Event Consumer disconnected");
-        }
-        catch (error) {
-            logger.error("Error disconnecting Clinical EMR Event Consumer", error);
-        }
+        // Disconnect Billing Event Consumer
         try {
             const billingEventConsumer = container.getBillingEventConsumer();
             await billingEventConsumer.disconnect();
@@ -377,6 +370,8 @@ async function shutdownEventConsumers() {
         catch (error) {
             logger.error("Error disconnecting Billing Event Consumer", error);
         }
+        // ===== ARCHIVED FOR POST-MVP: Event Consumers =====
+        // Clinical EMR Event Consumer REMOVED FOR MVP - No need to disconnect
         logger.info("Event Consumers shut down successfully");
     }
     catch (error) {
@@ -452,6 +447,34 @@ const server = app.listen(PORT, async () => {
     catch (e) {
         logger.error("Failed to start Outbox publisher worker", e);
     }
+    // ==================== FLOW 3 - PHASE 1B: PAYMENT TIMEOUT CRON JOB ====================
+    // Setup cron job to expire unpaid appointments every 5 minutes
+    try {
+        const container = (0, container_1.getContainer)();
+        const appointmentRepository = container.getAppointmentRepository();
+        const expireUnpaidAppointmentsUseCase = new ExpireUnpaidAppointments_use_case_1.ExpireUnpaidAppointmentsUseCase(appointmentRepository);
+        // Run every 5 minutes: */5 * * * *
+        node_cron_1.default.schedule('*/5 * * * *', async () => {
+            try {
+                logger.info('[PaymentTimeoutCron] Starting payment timeout check...');
+                const result = await expireUnpaidAppointmentsUseCase.execute();
+                logger.info(`[PaymentTimeoutCron] Payment timeout check completed. Expired: ${result.expiredCount}, Errors: ${result.errors.length}`);
+                if (result.errors.length > 0) {
+                    logger.warn('[PaymentTimeoutCron] Errors during payment timeout check', undefined, {
+                        errors: result.errors
+                    });
+                }
+            }
+            catch (error) {
+                logger.error('[PaymentTimeoutCron] Fatal error during payment timeout check', error);
+            }
+        });
+        logger.info('[PaymentTimeoutCron] Payment timeout cron job scheduled (every 5 minutes)');
+    }
+    catch (error) {
+        logger.error('[PaymentTimeoutCron] Failed to setup payment timeout cron job', error);
+    }
+    // ==================== END FLOW 3 - PHASE 1B ====================
 });
 // Graceful shutdown
 const gracefulShutdown = async (signal) => {

@@ -7,6 +7,7 @@ export interface PaymentProcessedEventData {
   currency: string;
   method: string;
   processedAt: Date;
+  appointmentId?: string; // Added for prepaid flow - link payment to appointment
 }
 
 export class PaymentProcessedEvent extends DomainEvent {
@@ -16,6 +17,7 @@ export class PaymentProcessedEvent extends DomainEvent {
     public readonly amount: number,
     public readonly currency: string,
     public readonly method: string,
+    public readonly appointmentId?: string,
     correlationId?: string,
     causationId?: string,
     userIdForAudit?: string
@@ -26,11 +28,12 @@ export class PaymentProcessedEvent extends DomainEvent {
       amount,
       currency,
       method,
-      processedAt: new Date()
+      processedAt: new Date(),
+      appointmentId
     };
 
     super(
-      'payment.completed',
+      'billing.payment.completed',
       invoiceId,
       'billing',
       eventData,
@@ -56,7 +59,8 @@ export class PaymentProcessedEvent extends DomainEvent {
       amount: this.amount,
       currency: this.currency,
       method: this.method,
-      processedAt: this.occurredAt
+      processedAt: this.occurredAt,
+      appointmentId: this.appointmentId
     };
   }
 

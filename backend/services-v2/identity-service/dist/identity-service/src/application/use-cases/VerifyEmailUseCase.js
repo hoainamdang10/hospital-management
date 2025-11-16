@@ -4,10 +4,26 @@ exports.VerifyEmailUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
 const EmailVerificationToken_1 = require("../../domain/value-objects/EmailVerificationToken");
 const Email_1 = require("../../domain/value-objects/Email");
-const UserId_1 = require("../../domain/value-objects/UserId");
 const UserActivatedEvent_1 = require("../../domain/events/UserActivatedEvent");
-const UserCreatedEvent_1 = require("../../domain/events/UserCreatedEvent");
+const domain_events_1 = require("../../../../shared/domain/events/domain-events");
 const password_crypto_1 = require("../../utils/password-crypto");
+/**
+ * Convert HealthcareRoleType to shared role type
+ */
+function convertToSharedRoleType(roleType) {
+    const roleMapping = {
+        'ADMIN': 'admin',
+        'DOCTOR': 'doctor',
+        'NURSE': 'nurse',
+        'RECEPTIONIST': 'receptionist',
+        'PATIENT': 'patient'
+    };
+    const converted = roleMapping[roleType.toUpperCase()];
+    if (!converted) {
+        throw new Error(`Unsupported role type: ${roleType}`);
+    }
+    return converted;
+}
 class VerifyEmailUseCase {
     constructor(userRepository, pendingRegistrationRepository, emailService, logger, circuitBreaker, jwtSecret, eventPublisher, // Optional for backward compatibility
     outboxService) {
@@ -186,8 +202,7 @@ class VerifyEmailUseCase {
                 try {
                     // Create UserCreatedEvent manually since user was reconstituted from database
                     // and doesn't have uncommitted events
-                    const userCreatedEvent = new UserCreatedEvent_1.UserCreatedEvent(UserId_1.UserId.fromString(user.id), user.email, user.healthcareRoles[0], // Primary role
-                    user.personalInfo);
+                    const userCreatedEvent = new domain_events_1.UserCreatedEvent(user.id, user.email.value, user.personalInfo?.fullName || '', convertToSharedRoleType(user.healthcareRoles[0]?.type || 'PATIENT'), user.personalInfo?.citizenId, user.personalInfo?.phoneNumber);
                     // Create UserActivated event
                     const activatedEvent = new UserActivatedEvent_1.UserActivatedEvent(user.id, user.email.value, user.personalInfo.fullName, // Add full name from personal info
                     new Date());

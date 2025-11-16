@@ -26,8 +26,9 @@ var StaffEventConsumer_1 = require("./StaffEventConsumer");
 Object.defineProperty(exports, "StaffEventConsumer", { enumerable: true, get: function () { return StaffEventConsumer_1.StaffEventConsumer; } });
 var DepartmentEventConsumer_1 = require("./DepartmentEventConsumer");
 Object.defineProperty(exports, "DepartmentEventConsumer", { enumerable: true, get: function () { return DepartmentEventConsumer_1.DepartmentEventConsumer; } });
-__exportStar(require("./BillingEventConsumer"), exports);
-__exportStar(require("./ClinicalEMREventConsumer"), exports);
+// ===== ARCHIVED FOR POST-MVP: Non-operational Event Consumers =====
+// export * from './BillingEventConsumer'; // REMOVED FOR MVP - Billing service incomplete
+// export * from './ClinicalEMREventConsumer'; // REMOVED FOR MVP
 __exportStar(require("./EventBusAdapter"), exports);
 __exportStar(require("./EventHandlers"), exports);
 __exportStar(require("./EventSubscriptions"), exports);

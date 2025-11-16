@@ -59,6 +59,8 @@
     "coverage",
     "**/*.spec.ts",
     "**/*.test.ts",
+    "src/**/_archived_post_mvp/**/*",
+    "tests/**/_archived_post_mvp/**/*",
     "../shared/examples/**/*",
     "../shared/testing/**/*",
     "../shared/workflows/**/*",

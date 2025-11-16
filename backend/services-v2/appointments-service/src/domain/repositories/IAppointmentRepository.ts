@@ -149,6 +149,15 @@ export interface IAppointmentRepository {
   findOverdue(): Promise<Appointment[]>;
 
   /**
+   * Find expired unpaid appointments
+   * Used by ExpireUnpaidAppointmentsUseCase for payment timeout handling
+   * Query: payment_status = 'pending' AND payment_deadline < NOW()
+   *
+   * Flow 3 - Phase 1B: Payment Timeout Handling
+   */
+  findExpiredUnpaidAppointments(): Promise<Appointment[]>;
+
+  /**
    * Get appointment statistics
    */
   getStatistics(

@@ -192,15 +192,21 @@ export class UserCreatedEventHandler {
   }
 
   /**
-   * Map Identity Service role to Staff type
+   * Map Identity Service role to Staff type (scope reduced to 2 types)
    */
-  private mapRoleToStaffType(roleType: string): 'doctor' | 'nurse' {
-    const roleMap: Record<string, 'doctor' | 'nurse'> = {
+  private mapRoleToStaffType(roleType: string): 'doctor' | 'receptionist' {
+    const roleMap: Record<string, 'doctor' | 'receptionist'> = {
+      'DOCTOR': 'doctor',
+      'RECEPTIONIST': 'receptionist',
+      'ADMIN': 'receptionist', // Admin staff are receptionists in provider context
+      // Legacy support (fallback to receptionist)
+      'NURSE': 'receptionist',
       'doctor': 'doctor',
-      'nurse': 'nurse'
+      'nurse': 'receptionist',
+      'receptionist': 'receptionist'
     };
 
-    return roleMap[roleType] || 'nurse';
+    return roleMap[roleType] || 'receptionist';
   }
 
   /**
@@ -209,24 +215,26 @@ export class UserCreatedEventHandler {
    */
   private async generateStaffId(staffType: string): Promise<StaffId> {
     // Use domain's StaffId.generate() which handles sequence generation properly
-    // Map string to StaffType enum for type safety
-    const staffTypeMap: Record<string, 'doctor' | 'nurse' | 'admin' | 'receptionist'> = {
+    // Map string to StaffType enum for type safety (scope reduced to 2 types)
+    const staffTypeMap: Record<string, 'doctor' | 'receptionist'> = {
       'doctor': 'doctor',
-      'nurse': 'nurse', 
-      'admin': 'admin',
-      'receptionist': 'receptionist'
+      'receptionist': 'receptionist',
+      // Legacy mappings (fallback to receptionist)
+      'nurse': 'receptionist',
+      'admin': 'receptionist'
     };
     
-    // 🔄 NEW: Map role to department for proper ID generation
+    // 🔄 Map role to department for proper ID generation
     const departmentMap: Record<string, string> = {
       'doctor': 'INTE',     // General practitioners -> Internal Medicine
-      'nurse': 'INTE',      // General nurses -> Internal Medicine  
-      'admin': 'ADMI',      // Admin -> Administration
-      'receptionist': 'ADMI' // Receptionist -> Administration
+      'receptionist': 'ADMI', // Receptionist -> Administration
+      // Legacy mappings
+      'nurse': 'ADMI',
+      'admin': 'ADMI'
     };
     
-    const validStaffType = staffTypeMap[staffType] || 'nurse';
-    const departmentCode = departmentMap[staffType] || 'INTE';
+    const validStaffType = staffTypeMap[staffType] || 'receptionist';
+    const departmentCode = departmentMap[staffType] || 'ADMI';
     
     return StaffId.generate(validStaffType, departmentCode);
   }

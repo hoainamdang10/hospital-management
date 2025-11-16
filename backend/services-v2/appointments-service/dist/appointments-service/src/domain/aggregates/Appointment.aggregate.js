@@ -41,6 +41,7 @@ var AppointmentPriority;
 var AppointmentStatus;
 (function (AppointmentStatus) {
     AppointmentStatus["SCHEDULED"] = "scheduled";
+    AppointmentStatus["PENDING_PAYMENT"] = "pending_payment";
     AppointmentStatus["CONFIRMED"] = "confirmed";
     AppointmentStatus["ARRIVED"] = "arrived";
     AppointmentStatus["IN_PROGRESS"] = "in_progress";
@@ -107,6 +108,18 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
      */
     getConsultationFee() {
         return this.props.consultationFee;
+    }
+    /**
+     * Get payment status (Flow 3 - Prepaid Model)
+     */
+    get paymentStatus() {
+        return this.props.paymentStatus;
+    }
+    /**
+     * Get payment deadline (Flow 3 - Prepaid Model)
+     */
+    get paymentDeadline() {
+        return this.props.paymentDeadline;
     }
     getCheckedInAt() {
         return this.props.checkedInAt;
@@ -190,6 +203,9 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
             departmentId,
             requiredEquipment,
             consultationFee, // Immutable reference for billing-service
+            // Payment tracking for prepaid model (Flow 3)
+            paymentStatus: 'pending',
+            paymentDeadline: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
             reminderSent: false,
             confirmationRequired: true,
             version: 1,
@@ -220,21 +236,64 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         }
     }
     /**
-     * Confirm appointment
+     * Confirm appointment (after payment completed)
+     *
+     * ✅ PURE DOMAIN LOGIC - No infrastructure dependencies
+     * ✅ Logging moved to application/infrastructure layer
+     *
+     * BUSINESS RULES:
+     * - Can only confirm appointments in PENDING_PAYMENT or SCHEDULED status
+     * - Must have valid confirmedBy actor
+     * - Payment deadline must not be expired (if set)
+     * - Emits AppointmentConfirmedEvent for downstream services
+     *
+     * @param confirmedBy - Actor confirming the appointment (user ID or 'system')
+     * @param notes - Optional confirmation notes
+     * @throws Error if appointment cannot be confirmed
      */
-    confirm(confirmedBy) {
-        if (this.props.status !== AppointmentStatus.SCHEDULED) {
-            throw new Error('Only scheduled appointments can be confirmed');
+    confirm(confirmedBy, notes) {
+        // ===== GUARD 1: Validate current status =====
+        // Allow confirm from both PENDING_PAYMENT (prepaid flow) and SCHEDULED (traditional flow)
+        const validStatuses = [AppointmentStatus.PENDING_PAYMENT, AppointmentStatus.SCHEDULED];
+        if (!validStatuses.includes(this.props.status)) {
+            throw new Error(`Cannot confirm appointment in ${this.props.status} status. ` +
+                `Expected: ${validStatuses.join(' or ')}`);
         }
+        // ===== GUARD 2: Validate confirmedBy =====
+        if (!confirmedBy || confirmedBy.trim() === '') {
+            throw new Error('confirmedBy is required for appointment confirmation');
+        }
+        // ===== GUARD 3: Check payment deadline not expired (prepaid flow) =====
+        if (this.props.paymentDeadline && new Date() > this.props.paymentDeadline) {
+            throw new Error(`Cannot confirm appointment - payment deadline has passed. ` +
+                `Deadline: ${this.props.paymentDeadline.toISOString()}, ` +
+                `Current: ${new Date().toISOString()}`);
+        }
+        // ===== STATE MUTATION =====
+        const previousStatus = this.props.status;
         this.props.status = AppointmentStatus.CONFIRMED;
         this.props.confirmedAt = new Date();
         this.props.confirmedBy = confirmedBy;
         this.props.updatedAt = new Date();
         this.props.lastModifiedBy = confirmedBy;
-        // Domain event
-        this.addDomainEvent(new AppointmentConfirmedEvent_1.AppointmentConfirmedEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, this.props.confirmedAt, 'manual' // confirmation method
-        ));
+        // Update payment status if in prepaid flow
+        if (this.props.paymentStatus === 'pending') {
+            this.props.paymentStatus = 'paid';
+        }
+        // Store notes if provided
+        if (notes) {
+            this.props.notes = notes;
+        }
+        // ===== DOMAIN EVENT =====
+        // ⚠️ Names will be enriched from read model in Repository layer
+        this.addDomainEvent(new AppointmentConfirmedEvent_1.AppointmentConfirmedEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, this.props.timeSlot.appointmentDate, this.props.timeSlot.appointmentTime.toString(), confirmedBy, 'payment_completed', // confirmation method for prepaid flow
+        undefined, // patientName - enriched in repository
+        undefined, // doctorName - enriched in repository
+        this.props.departmentId, undefined, // departmentName - enriched in repository
+        this.props.durationMinutes, this.props.consultationFee));
         this.incrementVersion();
+        // ✅ NO LOGGING HERE - Pure domain logic only
+        // Logging sẽ được thực hiện ở application/infrastructure layer
     }
     /**
      * Check in patient
@@ -264,15 +323,27 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.startedAt = actualStartTime;
         this.props.updatedAt = new Date();
         // Domain event
-        this.addDomainEvent(new AppointmentStartedEvent_1.AppointmentStartedEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, actualStartTime, this.props.roomId));
+        this.addDomainEvent(new AppointmentStartedEvent_1.AppointmentStartedEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, this.props.timeSlot.appointmentDate, // Already a string
+        this.props.timeSlot.appointmentTime.toString(), 'system' // startedBy - using system as default
+        ));
         this.incrementVersion();
     }
     /**
      * Complete appointment
+     * Hybrid Approach: Allow completion from both ARRIVED and IN_PROGRESS status
+     * Auto-starts appointment if currently ARRIVED (for flexibility)
      */
     complete() {
-        if (this.props.status !== AppointmentStatus.IN_PROGRESS) {
-            throw new Error('Only in-progress appointments can be completed');
+        // Relaxed state machine: Allow complete from ARRIVED or IN_PROGRESS
+        if (this.props.status !== AppointmentStatus.IN_PROGRESS &&
+            this.props.status !== AppointmentStatus.ARRIVED) {
+            throw new Error('Only in-progress or arrived appointments can be completed');
+        }
+        // Auto-start if currently ARRIVED (hybrid approach)
+        if (this.props.status === AppointmentStatus.ARRIVED) {
+            this.props.status = AppointmentStatus.IN_PROGRESS;
+            this.props.startedAt = new Date();
+            // Note: Not emitting AppointmentStartedEvent here to avoid duplicate events
         }
         this.props.status = AppointmentStatus.COMPLETED;
         this.props.completedAt = new Date();
@@ -311,6 +382,30 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         this.incrementVersion();
     }
     /**
+     * Mark appointment as paid
+     * Called by PaymentCompletedHandler after successful payment
+     * Idempotent - safe to call multiple times
+     */
+    markAsPaid() {
+        if (this.props.paymentStatus === 'paid') {
+            return; // Already paid, idempotent
+        }
+        this.props.paymentStatus = 'paid';
+        this.props.updatedAt = new Date();
+        this.incrementVersion();
+    }
+    /**
+     * Check if payment deadline has expired
+     * Used by ExpireUnpaidAppointmentsUseCase to find expired appointments
+     */
+    isPaymentExpired() {
+        if (!this.props.paymentDeadline) {
+            return false; // No deadline set (backward compatibility)
+        }
+        // Only consider expired if status is still pending
+        return new Date() > this.props.paymentDeadline && this.props.paymentStatus === 'pending';
+    }
+    /**
      * Mark as no-show
      */
     markAsNoShow(markedBy) {
@@ -322,7 +417,9 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         this.props.lastModifiedBy = markedBy;
         // Domain event
-        this.addDomainEvent(new AppointmentNoShowEvent_1.AppointmentNoShowEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, new Date(this.props.timeSlot.appointmentDate), this.props.timeSlot.appointmentTime, new Date()));
+        this.addDomainEvent(new AppointmentNoShowEvent_1.AppointmentNoShowEvent(this.props.appointmentId.value, this.props.patientId, this.props.doctorId, this.props.timeSlot.appointmentDate, // Already a string
+        this.props.timeSlot.appointmentTime.toString(), 'system' // markedBy - using system as default
+        ));
         this.incrementVersion();
     }
     /**

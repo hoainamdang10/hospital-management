@@ -1,7 +1,7 @@
 "use strict";
 /**
  * Provider Event Consumer
- * Consumes events from Provider/Staff Service to maintain local read model
+ * Consumes events from Provider Staff Service to maintain local read model
  *
  * @author Hospital Management Team
  * @version 1.0.0
@@ -16,6 +16,7 @@ exports.ProviderEventConsumer = void 0;
  * - provider.staff.created
  * - provider.staff.updated
  * - provider.staff.deactivated
+ * - provider.staff.deleted
  *
  * Pattern: Inbox Pattern for idempotency
  */
@@ -45,13 +46,17 @@ class ProviderEventConsumer {
             // Route to handler based on event type
             switch (eventType) {
                 case 'provider.staff.created':
+                case 'StaffRegisteredEvent':
                     await this.handleStaffCreated(event);
                     break;
                 case 'provider.staff.updated':
+                case 'StaffUpdatedEvent':
                     await this.handleStaffUpdated(event);
                     break;
                 case 'provider.staff.deactivated':
-                    await this.handleStaffDeactivated(event);
+                case 'provider.staff.status.changed':
+                case 'StaffStatusChangedEvent':
+                    await this.handleStaffStatusChanged(event);
                     break;
                 case 'provider.staff.deleted':
                     await this.handleStaffDeleted(event);
@@ -64,158 +69,101 @@ class ProviderEventConsumer {
             await this.inboxRepo.save({
                 eventId,
                 eventType,
-                sourceService: 'provider-staff',
+                sourceService: 'provider-staff-service',
                 payloadJson: event
             });
-            console.log(`[ProviderEventConsumer] ✓ Event ${eventId} processed successfully`);
+            console.log(`[ProviderEventConsumer] Event processed successfully: ${eventId}`);
         }
         catch (error) {
             console.error(`[ProviderEventConsumer] Error processing event ${eventId}:`, error);
-            throw error; // Let RabbitMQ retry
+            throw error; // Let message broker handle retry
         }
     }
     /**
      * Handle staff created event
      */
     async handleStaffCreated(event) {
-        const payload = event.payload || event.data;
-        if (!payload) {
-            throw new Error('Invalid staff.created event: missing payload');
-        }
-        const providerId = payload.staffId || payload.providerId;
-        if (!providerId) {
-            throw new Error('Invalid staff.created event: missing staffId/providerId');
-        }
-        await this.providerReadRepo.upsert({
-            providerId,
-            tenantId: payload.tenantId || 'hospital-1',
-            fullName: this.extractFullName(payload),
-            specialization: this.extractSpecialization(payload),
-            department: this.extractDepartment(payload),
-            licenseNumber: this.extractLicenseNumber(payload),
-            phone: this.extractPhone(payload),
-            email: this.extractEmail(payload),
-            isActive: this.extractIsActive(payload)
-        });
-        console.log(`[ProviderEventConsumer] ✓ Provider ${providerId} created in read model`);
+        const payload = event.payload || event.data || event;
+        const staffData = {
+            providerId: payload.staffId || payload.id,
+            tenantId: payload.tenantId || 'default-tenant',
+            fullName: `${payload.firstName} ${payload.lastName}`,
+            specialization: payload.specialization,
+            department: payload.departmentId,
+            licenseNumber: payload.licenseNumber,
+            phone: payload.phone,
+            email: payload.email,
+            isActive: payload.status === 'active',
+            syncedAt: new Date(),
+            createdAt: payload.createdAt || new Date(),
+            updatedAt: payload.updatedAt || new Date()
+        };
+        await this.providerReadRepo.upsert(staffData);
+        console.log(`[ProviderEventConsumer] Staff created in read model: ${staffData.providerId}`);
     }
     /**
      * Handle staff updated event
      */
     async handleStaffUpdated(event) {
-        const payload = event.payload || event.data;
-        if (!payload) {
-            throw new Error('Invalid staff.updated event: missing payload');
+        const payload = event.payload || event.data || event;
+        const staffId = payload.staffId || payload.id;
+        const updates = {
+            providerId: staffId,
+            tenantId: payload.tenantId || 'default-tenant',
+            isActive: payload.status === 'active',
+            syncedAt: new Date(),
+            updatedAt: new Date()
+        };
+        // Only update fields that are present
+        if (payload.firstName && payload.lastName) {
+            updates.fullName = `${payload.firstName} ${payload.lastName}`;
         }
-        const providerId = payload.staffId || payload.providerId;
-        if (!providerId) {
-            throw new Error('Invalid staff.updated event: missing staffId/providerId');
-        }
-        await this.providerReadRepo.upsert({
-            providerId,
-            tenantId: payload.tenantId || 'hospital-1',
-            fullName: this.extractFullName(payload),
-            specialization: this.extractSpecialization(payload),
-            department: this.extractDepartment(payload),
-            licenseNumber: this.extractLicenseNumber(payload),
-            phone: this.extractPhone(payload),
-            email: this.extractEmail(payload),
-            isActive: this.extractIsActive(payload)
-        });
-        console.log(`[ProviderEventConsumer] ✓ Provider ${providerId} updated in read model`);
+        if (payload.email !== undefined)
+            updates.email = payload.email;
+        if (payload.phone !== undefined)
+            updates.phone = payload.phone;
+        if (payload.specialization !== undefined)
+            updates.specialization = payload.specialization;
+        if (payload.licenseNumber !== undefined)
+            updates.licenseNumber = payload.licenseNumber;
+        if (payload.departmentId !== undefined)
+            updates.department = payload.departmentId;
+        await this.providerReadRepo.upsert(updates);
+        console.log(`[ProviderEventConsumer] Staff updated in read model: ${staffId}`);
     }
     /**
-     * Handle staff deactivated event
+     * Handle staff status changed event
      */
-    async handleStaffDeactivated(event) {
-        const payload = event.payload || event.data;
-        if (!payload) {
-            throw new Error('Invalid staff.deactivated event: missing payload');
+    async handleStaffStatusChanged(event) {
+        const payload = event.payload || event.data || event;
+        const staffId = payload.staffId || payload.id;
+        const status = payload.status || payload.newStatus;
+        const isActive = status === 'active';
+        await this.providerReadRepo.upsert({
+            providerId: staffId,
+            tenantId: payload.tenantId || 'default-tenant',
+            fullName: payload.fullName || 'Unknown', // Required field, use placeholder if not provided
+            isActive,
+            syncedAt: new Date(),
+            updatedAt: new Date()
+        });
+        console.log(`[ProviderEventConsumer] Staff status updated: ${staffId} -> ${status}`);
+        // If staff is deactivated, handle appointment implications
+        if (!isActive) {
+            console.warn(`[ProviderEventConsumer] Staff ${staffId} deactivated - should trigger appointment rescheduling`);
+            // TODO: Trigger rescheduling use case or emit internal event
         }
-        const providerId = payload.staffId || payload.providerId;
-        if (!providerId) {
-            throw new Error('Invalid staff.deactivated event: missing staffId/providerId');
-        }
-        // Update to set isActive = false
-        const existing = await this.providerReadRepo.findById(providerId);
-        if (existing) {
-            await this.providerReadRepo.upsert({
-                ...existing,
-                isActive: false
-            });
-        }
-        console.log(`[ProviderEventConsumer] ✓ Provider ${providerId} deactivated in read model`);
     }
     /**
      * Handle staff deleted event
      */
     async handleStaffDeleted(event) {
-        const payload = event.payload || event.data;
-        if (!payload) {
-            throw new Error('Invalid staff.deleted event: missing payload');
-        }
-        const providerId = payload.staffId || payload.providerId;
-        if (!providerId) {
-            throw new Error('Invalid staff.deleted event: missing staffId/providerId');
-        }
-        await this.providerReadRepo.delete(providerId);
-        console.log(`[ProviderEventConsumer] ✓ Provider ${providerId} deleted from read model`);
-    }
-    // ==========================================================================
-    // Helper Methods - Extract data from various event payload structures
-    // ==========================================================================
-    extractFullName(payload) {
-        return (payload.personalInfo?.fullName ||
-            payload.fullName ||
-            payload.full_name ||
-            `${payload.firstName || ''} ${payload.lastName || ''}`.trim() ||
-            'Unknown');
-    }
-    extractSpecialization(payload) {
-        // Credentials may have multiple specializations, take first one
-        const specializations = payload.credentials?.specializations || payload.specializations;
-        if (Array.isArray(specializations) && specializations.length > 0) {
-            return specializations[0];
-        }
-        return (payload.specialization ||
-            payload.specialty ||
-            undefined);
-    }
-    extractDepartment(payload) {
-        return (payload.department ||
-            payload.departmentName ||
-            payload.department_name ||
-            undefined);
-    }
-    extractLicenseNumber(payload) {
-        return (payload.credentials?.licenseNumber ||
-            payload.licenseNumber ||
-            payload.license_number ||
-            undefined);
-    }
-    extractPhone(payload) {
-        return (payload.contactInfo?.primaryPhone ||
-            payload.contactInfo?.phone ||
-            payload.phone ||
-            payload.phoneNumber ||
-            undefined);
-    }
-    extractEmail(payload) {
-        return (payload.contactInfo?.email ||
-            payload.email ||
-            undefined);
-    }
-    extractIsActive(payload) {
-        // Default to true if not specified
-        if (payload.status === 'ACTIVE' || payload.status === 'active')
-            return true;
-        if (payload.status === 'INACTIVE' || payload.status === 'inactive')
-            return false;
-        if (payload.isActive !== undefined)
-            return payload.isActive;
-        if (payload.is_active !== undefined)
-            return payload.is_active;
-        return true; // Default to active
+        const payload = event.payload || event.data || event;
+        const staffId = payload.staffId || payload.id;
+        await this.providerReadRepo.delete(staffId);
+        console.log(`[ProviderEventConsumer] Staff deleted from read model: ${staffId}`);
+        // Appointments with this staff should be handled
+        console.warn(`[ProviderEventConsumer] Staff ${staffId} deleted - appointments require attention`);
     }
 }
 exports.ProviderEventConsumer = ProviderEventConsumer;

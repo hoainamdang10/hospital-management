@@ -2,13 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseInvoiceRepository = void 0;
 const InvoiceMapper_1 = require("../mappers/InvoiceMapper");
-const supabase_js_1 = require("@supabase/supabase-js");
 class SupabaseInvoiceRepository {
-    constructor() {
-        this.supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-            db: { schema: 'billing_schema' },
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
+    constructor(supabase) {
+        this.supabase = supabase;
         this.invoicesTable = 'invoices';
         this.itemsTable = 'billing_items';
         this.paymentsTable = 'payment_records';
@@ -255,14 +251,8 @@ class SupabaseInvoiceRepository {
                 }
             });
         });
-        // Aggregate by insurance type
+        // REMOVED (Phase 1 Prepaid Model): Insurance breakdown - no insurance coverage in MVP
         const byInsuranceType = {};
-        paidInvoices.forEach(invoice => {
-            if (invoice.insurance) {
-                const type = invoice.insurance.provider;
-                byInsuranceType[type] = (byInsuranceType[type] || 0) + invoice.insuranceCoverage.amount;
-            }
-        });
         return {
             totalRevenue,
             totalInvoices: invoices.length,

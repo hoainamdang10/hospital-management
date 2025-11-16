@@ -9,6 +9,6 @@ export { SupabasePatientRepository } from './repositories/SupabasePatientReposit
 export { AppointmentEventConsumer } from './events/AppointmentEventConsumer';
 export { ClinicalEventConsumer } from './events/ClinicalEventConsumer';
 export { PayOSIntegrationService } from './services/PayOSIntegrationService';
-export type { AppointmentEventConsumerConfig, AppointmentCompletedEventData, AppointmentCancelledLateEventData, AppointmentNoShowEventData } from './events/AppointmentEventConsumer';
+export type { AppointmentEventConsumerConfig, AppointmentScheduledEventData, AppointmentCancelledLateEventData, AppointmentNoShowEventData } from './events/AppointmentEventConsumer';
 export type { ClinicalEventConsumerConfig, ClinicalPrescriptionCreatedEventData, ClinicalLabResultCreatedEventData, ClinicalTreatmentPlanCreatedEventData, ClinicalMedicalRecordCreatedEventData } from './events/ClinicalEventConsumer';
 //# sourceMappingURL=index.d.ts.map

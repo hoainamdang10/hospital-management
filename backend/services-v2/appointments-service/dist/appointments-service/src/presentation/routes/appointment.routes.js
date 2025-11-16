@@ -34,7 +34,14 @@ function createAppointmentRoutes() {
     router.post('/appointments/:id/no-show', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['RECEPTIONIST', 'DOCTOR', 'NURSE', 'ADMIN']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.markAsNoShow(req, res));
     router.post('/appointments/:id/start', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['DOCTOR']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.startAppointment(req, res));
     // Phase 3: Nice-to-Have Features
-    router.post('/appointments/bulk-reschedule', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['ADMIN', 'DOCTOR']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.bulkRescheduleAppointments(req, res));
+    // ===== ARCHIVED FOR POST-MVP: BulkReschedule Route =====
+    // router.post(
+    //   '/appointments/bulk-reschedule',
+    //   authenticate,
+    //   requireRole(['ADMIN', 'DOCTOR']),
+    //   idempotencyMiddleware,
+    //   (req, res) => controller.bulkRescheduleAppointments(req, res)
+    // );
     router.get('/appointments/history', AuthMiddleware_1.authenticate, (req, res) => controller.getAppointmentHistory(req, res));
     router.get('/appointments/statistics', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['ADMIN', 'DOCTOR']), (req, res) => controller.getAppointmentStatistics(req, res));
     router.post('/appointments/emergency', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['DOCTOR', 'NURSE', 'ADMIN']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.createEmergencyAppointment(req, res));

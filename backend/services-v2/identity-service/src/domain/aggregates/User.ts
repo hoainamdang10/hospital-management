@@ -609,7 +609,7 @@ export class User extends HealthcareAggregateRoot<UserProps> {
   public lock(
     lockedBy: string,
     reason: string,
-    terminatedSessions = false,
+    _terminatedSessions = false, // Prefixed with _ to indicate intentionally unused
   ): void {
     try {
       if (

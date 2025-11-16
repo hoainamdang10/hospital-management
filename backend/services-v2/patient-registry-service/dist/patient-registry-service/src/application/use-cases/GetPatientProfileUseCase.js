@@ -65,8 +65,10 @@ class GetPatientProfileUseCase {
             const basicMedicalInfo = patient.getBasicMedicalInfo();
             const insuranceInfo = patient.getInsuranceInfo();
             const emergencyContacts = patient.getEmergencyContacts();
+            /* POST-MVP: HIPAA Consent & FHIR Advanced features not needed for graduation project
             const consents = patient.getConsents();
             const links = patient.getLinks();
+            END POST-MVP */
             this.logger.info('Patient profile retrieved successfully', {
                 patientId: patient.getPatientId(),
                 requestedBy: request.requestedBy
@@ -128,22 +130,26 @@ class GetPatientProfileUseCase {
                         address: contact.address,
                         isPrimary: contact.isPrimary
                     })),
+                    /* POST-MVP: HIPAA Consent & FHIR Advanced features not needed for graduation project
                     consents: consents.map(consent => ({
-                        id: consent.getId(),
-                        consentType: consent.consentType,
-                        isGranted: consent.isGranted(),
-                        grantedAt: consent.grantedAt.toISOString(),
-                        revokedAt: consent.revokedAt()?.toISOString(),
-                        expiresAt: consent.expiresAt?.toISOString()
+                      id: consent.getId(),
+                      consentType: consent.consentType,
+                      isGranted: consent.isGranted(),
+                      grantedAt: consent.grantedAt.toISOString(),
+                      revokedAt: consent.revokedAt()?.toISOString(),
+                      expiresAt: consent.expiresAt?.toISOString()
                     })),
+                    END POST-MVP */
                     status: patient.getStatus().valueOf(),
+                    /* POST-MVP: PMI & FHIR Advanced features not needed for graduation project
                     mergedInto: patient.getMergedInto()?.value,
                     links: links.map(link => ({
-                        otherPatientId: link.otherPatientId.value,
-                        linkType: link.linkType,
-                        createdAt: link.createdAt.toISOString(),
-                        createdBy: link.createdBy
+                      otherPatientId: link.otherPatientId.value,
+                      linkType: link.linkType,
+                      createdAt: link.createdAt.toISOString(),
+                      createdBy: link.createdBy
                     })),
+                    END POST-MVP */
                     createdAt: patient.getProps().createdAt.toISOString(),
                     updatedAt: patient.getProps().updatedAt.toISOString()
                 }

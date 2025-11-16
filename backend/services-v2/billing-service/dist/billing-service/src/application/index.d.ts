@@ -6,12 +6,8 @@
  */
 export { CreateInvoiceUseCase } from './use-cases/CreateInvoiceUseCase';
 export { GetInvoiceUseCase } from './use-cases/GetInvoiceUseCase';
-export { FinalizeInvoiceUseCase } from './use-cases/FinalizeInvoiceUseCase';
-export { CancelInvoiceUseCase } from './use-cases/CancelInvoiceUseCase';
 export { ProcessPaymentUseCase } from './use-cases/ProcessPaymentUseCase';
 export { GetPatientInvoicesUseCase } from './use-cases/GetPatientInvoicesUseCase';
-export { ProcessInsuranceClaimUseCase } from './use-cases/ProcessInsuranceClaimUseCase';
-export { RefundPaymentUseCase } from './use-cases/RefundPaymentUseCase';
 export { SearchInvoicesUseCase } from './use-cases/SearchInvoicesUseCase';
 export { GetOverdueInvoicesUseCase } from './use-cases/GetOverdueInvoicesUseCase';
 export { GetPatientBillingSummaryUseCase } from './use-cases/GetPatientBillingSummaryUseCase';

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
-import { getDepartmentById, updateDepartment, type Department } from '@/lib/api/departments.service';
+import { getDepartmentById, updateDepartment } from '@/lib/api/departments.service';
 import { toast } from 'sonner';
 
 /**
@@ -17,14 +17,14 @@ export default function EditDepartmentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
-    department_code: '',
-    department_name_vi: '',
-    department_name_en: '',
+    code: '',
+    nameVi: '',
+    nameEn: '',
     description: '',
     phone: '',
     email: '',
     location: '',
-    is_active: true
+    isActive: true
   });
 
   useEffect(() => {
@@ -40,14 +40,14 @@ export default function EditDepartmentPage() {
       if (response.success) {
         const dept = response.data;
         setFormData({
-          department_code: dept.department_code,
-          department_name_vi: dept.department_name_vi,
-          department_name_en: dept.department_name_en,
+          code: dept.code,
+          nameVi: dept.nameVi,
+          nameEn: dept.nameEn,
           description: dept.description,
           phone: dept.phone || '',
           email: dept.email || '',
           location: dept.location || '',
-          is_active: dept.is_active
+          isActive: dept.isActive
         });
       }
     } catch (error) {
@@ -111,8 +111,8 @@ export default function EditDepartmentPage() {
               <input
                 type="text"
                 required
-                value={formData.department_code}
-                onChange={(e) => setFormData({ ...formData, department_code: e.target.value.toUpperCase() })}
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
                 maxLength={10}
               />
@@ -125,8 +125,8 @@ export default function EditDepartmentPage() {
               <input
                 type="text"
                 required
-                value={formData.department_name_vi}
-                onChange={(e) => setFormData({ ...formData, department_name_vi: e.target.value })}
+                value={formData.nameVi}
+                onChange={(e) => setFormData({ ...formData, nameVi: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -137,8 +137,8 @@ export default function EditDepartmentPage() {
               </label>
               <input
                 type="text"
-                value={formData.department_name_en}
-                onChange={(e) => setFormData({ ...formData, department_name_en: e.target.value })}
+                value={formData.nameEn}
+                onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -197,8 +197,8 @@ export default function EditDepartmentPage() {
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                   className="rounded border-gray-300"
                 />
                 <span className="text-sm text-gray-700">Khoa đang hoạt động</span>

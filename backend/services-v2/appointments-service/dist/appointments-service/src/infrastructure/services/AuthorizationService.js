@@ -259,30 +259,43 @@ class AuthorizationService {
         // Nurses and patients cannot transfer appointments
         return false;
     }
-    /**
-     * Bulk reschedule authorization
-     * Rules:
-     * - SUPER_ADMIN/ADMIN: Can bulk reschedule any doctor's appointments
-     * - DOCTOR: Can only bulk reschedule their own appointments
-     * - NURSE/PATIENT: Cannot bulk reschedule
-     */
-    async canBulkReschedule(userId, doctorId) {
-        const role = await this.getUserRole(userId);
-        if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'bulk_reschedule', doctorId);
-        }
-        // Admins can bulk reschedule any doctor's appointments
-        if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN) {
-            return true;
-        }
-        // Doctors can only bulk reschedule their own appointments
-        if (role === IAuthorizationService_1.UserRole.DOCTOR) {
-            const userDoctorId = await this.resolveUserIdToDoctorId(userId);
-            return userDoctorId === doctorId;
-        }
-        // Nurses and patients cannot bulk reschedule
-        return false;
-    }
+    // ===== ARCHIVED FOR POST-MVP: BulkReschedule Authorization =====
+    // /**
+    //  * Bulk reschedule authorization
+    //  * Rules:
+    //  * - SUPER_ADMIN/ADMIN: Can bulk reschedule any doctor's appointments
+    //  * - DOCTOR: Can only bulk reschedule their own appointments
+    //  * - NURSE/PATIENT: Cannot bulk reschedule
+    //  */
+    // async canBulkReschedule(
+    //   userId: string,
+    //   doctorId: string
+    // ): Promise<boolean> {
+    //   const role = await this.getUserRole(userId);
+    //
+    //   if (!role) {
+    //     throw new AuthorizationError(
+    //       'User not found or has no role',
+    //       userId,
+    //       'bulk_reschedule',
+    //       doctorId
+    //     );
+    //   }
+    //
+    //   // Admins can bulk reschedule any doctor's appointments
+    //   if (role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN) {
+    //     return true;
+    //   }
+    //
+    //   // Doctors can only bulk reschedule their own appointments
+    //   if (role === UserRole.DOCTOR) {
+    //     const userDoctorId = await this.resolveUserIdToDoctorId(userId);
+    //     return userDoctorId === doctorId;
+    //   }
+    //
+    //   // Nurses and patients cannot bulk reschedule
+    //   return false;
+    // }
     /**
      * Create emergency appointment authorization
      * Rules:

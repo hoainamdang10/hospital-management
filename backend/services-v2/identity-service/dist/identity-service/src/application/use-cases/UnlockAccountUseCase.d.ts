@@ -30,8 +30,8 @@ export declare class UnlockAccountUseCase implements IUseCase<UnlockAccountReque
     private userRepository;
     private logger;
     private circuitBreaker;
-    private eventPublisher?;
-    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    private _eventPublisher?;
+    constructor(userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, _eventPublisher?: IEventPublisher | undefined);
     execute(request: UnlockAccountRequest): Promise<UnlockAccountResponse>;
     private executeImpl;
     private validateRequest;

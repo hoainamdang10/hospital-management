@@ -3,55 +3,82 @@
  * Handles HTTP requests for Patient Registry operations
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.0.0 (MVP Scope - Graduation Project)
  * @compliance Clean Architecture, RESTful API, HIPAA
+ * @scope-reduction 2025-01-15: Removed 20 post-MVP use cases for graduation project
  */
 
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { ILogger } from '@shared/application/services/logger.interface';
+
+// ============================================================================
+// ✅ ESSENTIAL USE CASES - MVP SCOPE (14 use cases)
+// ============================================================================
 import { RegisterPatientUseCase } from '../../application/use-cases/RegisterPatientUseCase';
 import {
   UpdatePatientInfoUseCase,
   UpdatePatientInfoRequest,
 } from '../../application/use-cases/UpdatePatientInfoUseCase';
 import { PatientQueryHandlers } from '../../application/handlers/PatientQueryHandlers';
-import { MatchPatientsUseCase } from '../../application/use-cases/MatchPatientsUseCase';
-import { MergePatientsUseCase } from '../../application/use-cases/MergePatientsUseCase';
-import { LinkPatientsUseCase } from '../../application/use-cases/LinkPatientsUseCase';
-import { DeactivatePatientUseCase } from '../../application/use-cases/DeactivatePatientUseCase';
 import { ValidateInsuranceUseCase } from '../../application/use-cases/ValidateInsuranceUseCase';
 import { AddEmergencyContactUseCase } from '../../application/use-cases/AddEmergencyContactUseCase';
 import { GetEmergencyContactsUseCase } from '../../application/use-cases/GetEmergencyContactsUseCase';
 import { UpdateEmergencyContactUseCase } from '../../application/use-cases/UpdateEmergencyContactUseCase';
-import { RemoveEmergencyContactUseCase } from '../../application/use-cases/RemoveEmergencyContactUseCase';
-import { SetPrimaryEmergencyContactUseCase } from '../../application/use-cases/SetPrimaryEmergencyContactUseCase';
-import { GrantConsentUseCase } from '../../application/use-cases/GrantConsentUseCase';
-import { GetConsentsUseCase } from '../../application/use-cases/GetConsentsUseCase';
-import { GetConsentDetailsUseCase } from '../../application/use-cases/GetConsentDetailsUseCase';
-import { RevokeConsentUseCase } from '../../application/use-cases/RevokeConsentUseCase';
-import { GetActiveConsentsUseCase } from '../../application/use-cases/GetActiveConsentsUseCase';
 import { GetInsuranceInfoUseCase } from '../../application/use-cases/GetInsuranceInfoUseCase';
 import { AddInsuranceInfoUseCase } from '../../application/use-cases/AddInsuranceInfoUseCase';
 import { UpdateInsuranceInfoUseCase } from '../../application/use-cases/UpdateInsuranceInfoUseCase';
 import { VerifyInsuranceUseCase } from '../../application/use-cases/VerifyInsuranceUseCase';
-import { MarkAsDeceasedUseCase } from '../../application/use-cases/MarkAsDeceasedUseCase';
-import { ReactivatePatientUseCase } from '../../application/use-cases/ReactivatePatientUseCase';
-import { GetPatientStatisticsUseCase } from '../../application/use-cases/GetPatientStatisticsUseCase';
-import { UploadPatientPhotoUseCase } from '../../application/use-cases/UploadPatientPhotoUseCase';
-import { GetPatientPhotoUseCase } from '../../application/use-cases/GetPatientPhotoUseCase';
-import { DeletePatientPhotoUseCase } from '../../application/use-cases/DeletePatientPhotoUseCase';
-import { UpdateCommunicationPreferencesUseCase } from '../../application/use-cases/UpdateCommunicationPreferencesUseCase';
-import { GetCommunicationPreferencesUseCase } from '../../application/use-cases/GetCommunicationPreferencesUseCase';
-import { GetPatientHistoryUseCase } from '../../application/use-cases/GetPatientHistoryUseCase';
+
+// ============================================================================
+// ❌ POST-MVP USE CASES - ARCHIVED FOR GRADUATION PROJECT (20 use cases)
+// ============================================================================
+// These use cases have been moved to: src/application/use-cases/_archived_post_mvp/
+// Reason: Beyond graduation project demo flow scope
+// To restore: Move files back and uncomment imports
+//
+// PMI Features (2):
+// import { MatchPatientsUseCase } from '../../application/use-cases/MatchPatientsUseCase';
+// import { MergePatientsUseCase } from '../../application/use-cases/MergePatientsUseCase';
+//
+// FHIR Advanced (6):
+// import { LinkPatientsUseCase } from '../../application/use-cases/LinkPatientsUseCase';
+// import { UploadPatientPhotoUseCase } from '../../application/use-cases/UploadPatientPhotoUseCase';
+// import { GetPatientPhotoUseCase } from '../../application/use-cases/GetPatientPhotoUseCase';
+// import { DeletePatientPhotoUseCase } from '../../application/use-cases/DeletePatientPhotoUseCase';
+// import { UpdateCommunicationPreferencesUseCase } from '../../application/use-cases/UpdateCommunicationPreferencesUseCase';
+// import { GetCommunicationPreferencesUseCase } from '../../application/use-cases/GetCommunicationPreferencesUseCase';
+//
+// Lifecycle (3):
+// import { DeactivatePatientUseCase } from '../../application/use-cases/DeactivatePatientUseCase';
+// import { MarkAsDeceasedUseCase } from '../../application/use-cases/MarkAsDeceasedUseCase';
+// import { ReactivatePatientUseCase } from '../../application/use-cases/ReactivatePatientUseCase';
+//
+// HIPAA Consent (5):
+// import { GrantConsentUseCase } from '../../application/use-cases/GrantConsentUseCase';
+// import { GetConsentsUseCase } from '../../application/use-cases/GetConsentsUseCase';
+// import { GetConsentDetailsUseCase } from '../../application/use-cases/GetConsentDetailsUseCase';
+// import { RevokeConsentUseCase } from '../../application/use-cases/RevokeConsentUseCase';
+// import { GetActiveConsentsUseCase } from '../../application/use-cases/GetActiveConsentsUseCase';
+//
+// Audit & Analytics (2):
+// import { GetPatientHistoryUseCase } from '../../application/use-cases/GetPatientHistoryUseCase';
+// import { GetPatientStatisticsUseCase } from '../../application/use-cases/GetPatientStatisticsUseCase';
+//
+// Advanced Emergency Contacts (2):
+// import { RemoveEmergencyContactUseCase } from '../../application/use-cases/RemoveEmergencyContactUseCase';
+// import { SetPrimaryEmergencyContactUseCase } from '../../application/use-cases/SetPrimaryEmergencyContactUseCase';
+// ============================================================================
+// DTOs - Essential for MVP
 import {
   RegisterPatientRequest,
   UpdatePatientRequest,
   AddEmergencyContactRequest,
   UpdateEmergencyContactRequest,
-  GrantConsentRequest,
-  ReactivatePatientRequest,
   AddInsuranceRequest,
+  // POST-MVP DTOs (commented out):
+  // GrantConsentRequest,
+  // ReactivatePatientRequest,
 } from '../dtos/PatientDTOs';
 import {
   ResponseHelper,
@@ -116,41 +143,70 @@ function userHasAnyRole(req: Request, allowedRoles: string[]): boolean {
 
 /**
  * Patient Controller
+ * @version 2.0.0 (MVP Scope - Graduation Project)
+ * @scope-reduction 2025-01-15: Constructor reduced from 32 to 12 dependencies
  */
 export class PatientController {
   constructor(
+    // ============================================================================
+    // ✅ ESSENTIAL DEPENDENCIES - MVP SCOPE (12 dependencies)
+    // ============================================================================
     private logger: ILogger,
+
+    // Core CRUD (3)
     private registerPatientUseCase: RegisterPatientUseCase,
     private updatePatientInfoUseCase: UpdatePatientInfoUseCase,
-    private matchPatientsUseCase: MatchPatientsUseCase,
-    private mergePatientsUseCase: MergePatientsUseCase,
-    private linkPatientsUseCase: LinkPatientsUseCase,
-    private deactivatePatientUseCase: DeactivatePatientUseCase,
+    private patientQueryHandlers: PatientQueryHandlers,
+
+    // Insurance Management (4) - Required for Demo Flow 4
     private validateInsuranceUseCase: ValidateInsuranceUseCase,
-    private addEmergencyContactUseCase: AddEmergencyContactUseCase,
-    private getEmergencyContactsUseCase: GetEmergencyContactsUseCase,
-    private updateEmergencyContactUseCase: UpdateEmergencyContactUseCase,
-    private removeEmergencyContactUseCase: RemoveEmergencyContactUseCase,
-    private setPrimaryEmergencyContactUseCase: SetPrimaryEmergencyContactUseCase,
-    private grantConsentUseCase: GrantConsentUseCase,
-    private getConsentsUseCase: GetConsentsUseCase,
-    private getConsentDetailsUseCase: GetConsentDetailsUseCase,
-    private revokeConsentUseCase: RevokeConsentUseCase,
-    private getActiveConsentsUseCase: GetActiveConsentsUseCase,
     private getInsuranceInfoUseCase: GetInsuranceInfoUseCase,
     private addInsuranceInfoUseCase: AddInsuranceInfoUseCase,
     private updateInsuranceInfoUseCase: UpdateInsuranceInfoUseCase,
     private verifyInsuranceUseCase: VerifyInsuranceUseCase,
-    private markAsDeceasedUseCase: MarkAsDeceasedUseCase,
-    private reactivatePatientUseCase: ReactivatePatientUseCase,
-    private getPatientStatisticsUseCase: GetPatientStatisticsUseCase,
-    private uploadPatientPhotoUseCase: UploadPatientPhotoUseCase,
-    private getPatientPhotoUseCase: GetPatientPhotoUseCase,
-    private deletePatientPhotoUseCase: DeletePatientPhotoUseCase,
-    private updateCommunicationPreferencesUseCase: UpdateCommunicationPreferencesUseCase,
-    private getCommunicationPreferencesUseCase: GetCommunicationPreferencesUseCase,
-    private getPatientHistoryUseCase: GetPatientHistoryUseCase,
-    private patientQueryHandlers: PatientQueryHandlers,
+
+    // Emergency Contacts (3) - Required for Demo Flow 1
+    private addEmergencyContactUseCase: AddEmergencyContactUseCase,
+    private getEmergencyContactsUseCase: GetEmergencyContactsUseCase,
+    private updateEmergencyContactUseCase: UpdateEmergencyContactUseCase,
+
+    // ============================================================================
+    // ❌ POST-MVP DEPENDENCIES - ARCHIVED FOR GRADUATION PROJECT (20 dependencies)
+    // ============================================================================
+    // These use cases have been moved to: src/application/use-cases/_archived_post_mvp/
+    // To restore: Uncomment these lines and update DI container registrations
+
+    // PMI Features (2):
+    // private matchPatientsUseCase: MatchPatientsUseCase,
+    // private mergePatientsUseCase: MergePatientsUseCase,
+
+    // FHIR Advanced Features (3):
+    // private linkPatientsUseCase: LinkPatientsUseCase,
+    // private uploadPatientPhotoUseCase: UploadPatientPhotoUseCase,
+    // private getPatientPhotoUseCase: GetPatientPhotoUseCase,
+    // private deletePatientPhotoUseCase: DeletePatientPhotoUseCase,
+    // private updateCommunicationPreferencesUseCase: UpdateCommunicationPreferencesUseCase,
+    // private getCommunicationPreferencesUseCase: GetCommunicationPreferencesUseCase,
+
+    // Patient Lifecycle (3):
+    // private deactivatePatientUseCase: DeactivatePatientUseCase,
+    // private markAsDeceasedUseCase: MarkAsDeceasedUseCase,
+    // private reactivatePatientUseCase: ReactivatePatientUseCase,
+
+    // HIPAA Consent Management (5):
+    // private grantConsentUseCase: GrantConsentUseCase,
+    // private getConsentsUseCase: GetConsentsUseCase,
+    // private getConsentDetailsUseCase: GetConsentDetailsUseCase,
+    // private revokeConsentUseCase: RevokeConsentUseCase,
+    // private getActiveConsentsUseCase: GetActiveConsentsUseCase,
+
+    // Audit & Analytics (2):
+    // private getPatientStatisticsUseCase: GetPatientStatisticsUseCase,
+    // private getPatientHistoryUseCase: GetPatientHistoryUseCase,
+
+    // Advanced Emergency Contacts (2):
+    // private removeEmergencyContactUseCase: RemoveEmergencyContactUseCase,
+    // private setPrimaryEmergencyContactUseCase: SetPrimaryEmergencyContactUseCase,
   ) {}
 
   /**
@@ -721,10 +777,19 @@ export class PatientController {
     }
   }
 
-  /**
+  // ============================================================================
+  // ❌ POST-MVP METHODS - ARCHIVED FOR GRADUATION PROJECT
+  // ============================================================================
+  // The following methods have been commented out as part of scope reduction.
+  // Use cases moved to: src/application/use-cases/_archived_post_mvp/
+  // Routes to be commented out in: patientRoutes.ts
+  // To restore: Uncomment these methods, restore use cases, update DI container
+
+  /* POST-MVP: PMI Features (Patient Master Index) - Not required for graduation project
+  **
    * Match patients (PMI)
    * POST /api/v1/patients/match
-   */
+   *
   async matchPatients(req: Request, res: Response): Promise<void> {
     try {
       const {
@@ -772,10 +837,10 @@ export class PatientController {
     }
   }
 
-  /**
+  **
    * Merge patients
    * POST /api/v1/patients/merge
-   */
+   *
   async mergePatients(req: Request, res: Response): Promise<void> {
     try {
       const { duplicatePatientId, masterPatientId, reason } = req.body;
@@ -819,11 +884,13 @@ export class PatientController {
       throw error;
     }
   }
+  END POST-MVP: PMI Features */
 
-  /**
+  /* POST-MVP: FHIR Advanced - Patient Linking
+  **
    * Link patients
    * POST /api/v1/patients/:patientId/link
-   */
+   *
   async linkPatients(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
@@ -867,11 +934,13 @@ export class PatientController {
       throw error;
     }
   }
+  END POST-MVP: FHIR Advanced - Patient Linking */
 
-  /**
+  /* POST-MVP: Patient Lifecycle - Deactivation
+  **
    * Deactivate patient
    * POST /api/v1/patients/:patientId/deactivate
-   */
+   *
   async deactivatePatient(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
@@ -924,6 +993,7 @@ export class PatientController {
       throw error;
     }
   }
+  END POST-MVP: Patient Lifecycle - Deactivation */
 
   /**
    * Validate insurance
@@ -1030,10 +1100,11 @@ export class PatientController {
     );
   }
 
-  /**
+  /* POST-MVP: Advanced Emergency Contact Management
+  **
    * Remove emergency contact
    * DELETE /api/v1/patients/:patientId/emergency-contacts/:contactId
-   */
+   *
   async removeEmergencyContact(req: Request, res: Response): Promise<void> {
     const { patientId, contactId } = req.params;
     const performedBy = getUserId(req);
@@ -1058,10 +1129,10 @@ export class PatientController {
     ResponseHelper.success(res, null, result.message);
   }
 
-  /**
+  **
    * Set primary emergency contact
    * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId/set-primary
-   */
+   *
   async setPrimaryEmergencyContact(req: Request, res: Response): Promise<void> {
     const { patientId, contactId } = req.params;
     const performedBy = getUserId(req);
@@ -1088,10 +1159,12 @@ export class PatientController {
 
     ResponseHelper.success(res, null, result.message);
   }
+  END POST-MVP: Advanced Emergency Contact Management */
 
-  /**
+  /* POST-MVP: HIPAA Consent Management
+  **
    * Grant consent
-   */
+   *
   async grantConsent(req: Request, res: Response): Promise<void> {
     const { patientId } = req.params;
     const request: GrantConsentRequest = req.body;
@@ -1112,10 +1185,12 @@ export class PatientController {
 
     ResponseHelper.success(res, result, result.message);
   }
+  END POST-MVP: HIPAA Consent Management */
 
-  /**
+  /* POST-MVP: Patient Lifecycle - Deceased/Reactivation
+  **
    * Mark patient as deceased
-   */
+   *
   async markAsDeceased(req: Request, res: Response): Promise<void> {
     const { patientId } = req.params;
     const performedBy = getUserId(req);
@@ -1130,9 +1205,9 @@ export class PatientController {
     ResponseHelper.success(res, result, result.message);
   }
 
-  /**
+  **
    * Reactivate patient
-   */
+   *
   async reactivatePatient(req: Request, res: Response): Promise<void> {
     const { patientId } = req.params;
     const request: ReactivatePatientRequest = req.body;
@@ -1149,6 +1224,7 @@ export class PatientController {
 
     ResponseHelper.success(res, result, result.message);
   }
+  END POST-MVP: Patient Lifecycle - Deceased/Reactivation */
 
   /**
    * Add insurance info after registration
@@ -1187,10 +1263,11 @@ export class PatientController {
     ResponseHelper.success(res, { success: true }, result.message);
   }
 
-  /**
+  /* POST-MVP: HIPAA Consent Management - Retrieval Methods
+  **
    * Get all consents for a patient
    * GET /api/v1/patients/:patientId/consents
-   */
+   *
   async getConsents(req: Request, res: Response): Promise<void> {
     const { patientId } = req.params;
     const requestedBy = getUserId(req);
@@ -1212,10 +1289,10 @@ export class PatientController {
     ResponseHelper.success(res, result.data, result.message);
   }
 
-  /**
+  **
    * Get consent details
    * GET /api/v1/patients/:patientId/consents/:consentId
-   */
+   *
   async getConsentDetails(req: Request, res: Response): Promise<void> {
     const { patientId, consentId } = req.params;
     const requestedBy = getUserId(req);
@@ -1238,10 +1315,10 @@ export class PatientController {
     ResponseHelper.success(res, result.data, result.message);
   }
 
-  /**
+  **
    * Revoke consent
    * POST /api/v1/patients/:patientId/consents/:consentId/revoke
-   */
+   *
   async revokeConsent(req: Request, res: Response): Promise<void> {
     const { patientId, consentId } = req.params;
     const performedBy = getUserId(req);
@@ -1264,10 +1341,10 @@ export class PatientController {
     ResponseHelper.success(res, { success: true }, result.message);
   }
 
-  /**
+  **
    * Get active consents only
    * GET /api/v1/patients/:patientId/consents/active
-   */
+   *
   async getActiveConsents(req: Request, res: Response): Promise<void> {
     const { patientId } = req.params;
     const requestedBy = getUserId(req);
@@ -1288,6 +1365,7 @@ export class PatientController {
 
     ResponseHelper.success(res, result.data, result.message);
   }
+  END POST-MVP: HIPAA Consent Management - Retrieval Methods */
 
   /**
    * Get insurance info
@@ -1365,10 +1443,11 @@ export class PatientController {
     ResponseHelper.success(res, result.data, result.message);
   }
 
-  /**
+  /* POST-MVP: Analytics - Not required for graduation project demo flows
+  **
    * Get patient statistics
    * GET /api/v1/patients/statistics
-   */
+   *
   async getStatistics(req: Request, res: Response): Promise<void> {
     try {
       this.logger.info('Getting patient statistics');
@@ -1388,11 +1467,13 @@ export class PatientController {
       });
     }
   }
+  END POST-MVP: Analytics */
 
-  /**
+  /* POST-MVP: FHIR Photo Management - Patient.photo field not needed for graduation project
+  **
    * Upload patient photo
    * POST /api/v1/patients/:patientId/photo
-   */
+   *
   async uploadPhoto(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
@@ -1429,10 +1510,10 @@ export class PatientController {
     }
   }
 
-  /**
+  **
    * Get patient photo
    * GET /api/v1/patients/:patientId/photo
-   */
+   *
   async getPhoto(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
@@ -1455,10 +1536,10 @@ export class PatientController {
     }
   }
 
-  /**
+  **
    * Delete patient photo
    * DELETE /api/v1/patients/:patientId/photo
-   */
+   *
   async deletePhoto(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
@@ -1484,11 +1565,13 @@ export class PatientController {
       });
     }
   }
+  END POST-MVP: FHIR Photo Management */
 
-  /**
+  /* POST-MVP: FHIR Communication Preferences - Patient.communication field not needed for graduation project
+  **
    * Update communication preferences
    * PUT /api/v1/patients/:patientId/communication
-   */
+   *
   async updateCommunicationPreferences(
     req: Request,
     res: Response,
@@ -1528,10 +1611,10 @@ export class PatientController {
     }
   }
 
-  /**
+  **
    * Get communication preferences
    * GET /api/v1/patients/:patientId/communication
-   */
+   *
   async getCommunicationPreferences(
     req: Request,
     res: Response,
@@ -1560,11 +1643,13 @@ export class PatientController {
       });
     }
   }
+  END POST-MVP: FHIR Communication Preferences */
 
-  /**
+  /* POST-MVP: Audit Trail - Advanced analytics not required for graduation project
+  **
    * Get patient history (audit logs and access logs)
    * GET /api/v1/patients/:patientId/history
-   */
+   *
   async getPatientHistory(req: Request, res: Response): Promise<void> {
     try {
       const { patientId } = req.params;
@@ -1604,4 +1689,5 @@ export class PatientController {
       throw error;
     }
   }
+  END POST-MVP: Audit Trail */
 }

@@ -36,11 +36,12 @@ export declare class ResetPasswordWithTokenUseCase implements IUseCase<ResetPass
     private passwordPolicyRepository;
     private recoveryHistoryRepository;
     private sessionRepository;
-    private userRepository;
+    private _userRepository;
     private logger;
     private circuitBreaker;
-    private eventPublisher?;
-    constructor(authService: IAuthenticationService, passwordPolicyRepository: IPasswordPolicyRepository, recoveryHistoryRepository: IRecoveryHistoryRepository, sessionRepository: ISessionRepository, userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    private _eventPublisher?;
+    constructor(authService: IAuthenticationService, passwordPolicyRepository: IPasswordPolicyRepository, recoveryHistoryRepository: IRecoveryHistoryRepository, sessionRepository: ISessionRepository, _userRepository: IUserRepository, // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
+    logger: ILogger, circuitBreaker: ICircuitBreaker, _eventPublisher?: IEventPublisher | undefined);
     execute(request: ResetPasswordWithTokenRequest): Promise<ResetPasswordWithTokenResponse>;
     private executeImpl;
     /**

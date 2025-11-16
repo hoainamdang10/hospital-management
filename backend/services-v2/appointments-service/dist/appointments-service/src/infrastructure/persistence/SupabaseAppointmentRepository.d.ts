@@ -7,10 +7,10 @@
  * @version 3.0.0
  * @compliance Clean Architecture, DDD, HIPAA, Vietnamese Healthcare Standards
  */
-import { Appointment } from '../../domain/aggregates/Appointment.aggregate';
-import { AppointmentId } from '../../domain/value-objects/AppointmentId.vo';
-import { IAppointmentRepository, AppointmentSearchCriteria, AppointmentSearchResult, AppointmentConflictCheck, AppointmentStatistics } from '../../domain/repositories/IAppointmentRepository';
-import { IDomainEventPublisher } from '../../../../shared/domain/events/IDomainEventPublisher';
+import { Appointment } from "../../domain/aggregates/Appointment.aggregate";
+import { AppointmentId } from "../../domain/value-objects/AppointmentId.vo";
+import { IAppointmentRepository, AppointmentSearchCriteria, AppointmentSearchResult, AppointmentConflictCheck, AppointmentStatistics } from "../../domain/repositories/IAppointmentRepository";
+import { IDomainEventPublisher } from "../../../../shared/domain/events/IDomainEventPublisher";
 /**
  * Supabase Appointment Repository
  * Implements persistence for Appointment aggregate
@@ -27,6 +27,9 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
     save(appointment: Appointment): Promise<void>;
     /**
      * Publish domain events from aggregate
+     *
+     * ✅ ENRICHMENT: Get data from appointment_read_model before publishing
+     * This provides denormalized names for Notifications Service
      */
     private publishDomainEvents;
     /**
@@ -65,8 +68,14 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
     findUpcomingByPatientId(patientId: string, limit?: number): Promise<Appointment[]>;
     findUpcomingByProviderId(providerId: string, limit?: number): Promise<Appointment[]>;
     findByStatus(status: string, limit?: number, offset?: number): Promise<Appointment[]>;
-    findRequiringReminders(reminderType: '24h' | '2h' | '30min'): Promise<Appointment[]>;
+    findRequiringReminders(reminderType: "24h" | "2h" | "30min"): Promise<Appointment[]>;
     findOverdue(): Promise<Appointment[]>;
+    /**
+     * Find expired unpaid appointments
+     * Flow 3 - Phase 1B: Payment Timeout Handling
+     * Query: payment_status = 'PENDING' AND payment_deadline < NOW()
+     */
+    findExpiredUnpaidAppointments(): Promise<Appointment[]>;
     getStatistics(dateFrom?: Date, dateTo?: Date, providerId?: string, department?: string): Promise<AppointmentStatistics>;
     count(criteria: Partial<AppointmentSearchCriteria>): Promise<number>;
     exists(appointmentId: AppointmentId): Promise<boolean>;
@@ -177,7 +186,7 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
      * Add appointment to urgent care list
      * Urgent care appointments are appointment types managed by appointment service
      */
-    addToUrgentCareList(appointmentId: string, priority: 'urgent' | 'emergency'): Promise<void>;
+    addToUrgentCareList(appointmentId: string, priority: "urgent" | "emergency"): Promise<void>;
     /**
      * Update appointment status
      * Loads aggregate, updates status, saves back

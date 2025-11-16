@@ -1,6 +1,11 @@
 /**
  * AppointmentEventConsumer - Consumes appointment events from Appointments Service
- * Handles automatic invoice generation and fee calculations
+ * Phase 1 (Prepaid Model): Handles invoice generation when appointment is scheduled
+ *
+ * Flow:
+ * 1. appointment.scheduled → Create invoice (PENDING) + PayOS payment link
+ * 2. appointment.cancelled_late → Cancel invoice (if not paid yet)
+ * 3. appointment.no_show → (Future: apply no-show fee)
  *
  * @author Hospital Management Team
  * @version 2.0.0
@@ -10,6 +15,8 @@ import { logger } from '../logging/logger';
 import { BillingService } from '../../application/services/BillingService';
 import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
 import { IPatientRepository } from '../../domain/entities/Patient';
+import { CreatePayOSPaymentLinkUseCase } from '../../application/use-cases/CreatePayOSPaymentLinkUseCase';
+import { IEventBus } from '../../../../shared/application/services/event-bus.interface';
 export interface AppointmentEventConsumerConfig {
     rabbitmqUrl: string;
     queueName: string;
@@ -19,15 +26,14 @@ export interface AppointmentEventConsumerConfig {
     retryAttempts?: number;
     retryDelayMs?: number;
 }
-export interface AppointmentCompletedEventData {
+export interface AppointmentScheduledEventData {
     appointmentId: string;
     patientId: string;
     staffId: string;
     departmentId: string;
     scheduledAt: Date;
-    completedAt: Date;
     duration: number;
-    status: 'completed';
+    status: 'pending_payment';
     serviceType: 'consultation' | 'procedure' | 'follow_up';
     notes?: string;
 }
@@ -62,10 +68,12 @@ export declare class AppointmentEventConsumer {
     private billingService;
     private invoiceRepository;
     private patientRepository;
+    private createPayOSPaymentLinkUseCase;
+    private eventBus;
     private connection?;
     private channel?;
     private isConnected;
-    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository);
+    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus);
     /**
      * Connect to RabbitMQ and start consuming
      */
@@ -75,9 +83,10 @@ export declare class AppointmentEventConsumer {
      */
     private handleMessage;
     /**
-     * Handle appointment completed event
+     * Handle appointment scheduled event (Prepaid Model)
+     * Creates invoice with PENDING status and generates PayOS payment link
      */
-    private handleAppointmentCompleted;
+    private handleAppointmentScheduled;
     /**
      * Handle appointment cancelled late event
      */

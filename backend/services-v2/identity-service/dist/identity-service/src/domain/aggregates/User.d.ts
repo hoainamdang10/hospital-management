@@ -92,7 +92,7 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      * Record authentication event (password verification done by Supabase Auth)
      * This method is called AFTER successful authentication via SupabaseAuthService
      */
-    recordAuthentication(ipAddress: string, userAgent: string): void;
+    recordAuthentication(_ipAddress: string, _userAgent: string): void;
     /**
      * Get all role types assigned to this user (read-only)
      * Use this for validation in use cases before calling PermissionRepository
@@ -192,7 +192,7 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
     /**
      * Lock account temporarily (can be unlocked by admin)
      */
-    lock(lockedBy: string, reason: string, terminatedSessions?: boolean): void;
+    lock(lockedBy: string, reason: string, _terminatedSessions?: boolean): void;
     /**
      * Record staff activation from invitation acceptance
      * This is used when a staff account is provisioned and later activated

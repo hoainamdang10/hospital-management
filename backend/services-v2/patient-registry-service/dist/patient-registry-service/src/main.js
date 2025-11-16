@@ -42,38 +42,42 @@ const RegisterPatientUseCase_1 = require("./application/use-cases/RegisterPatien
 const UpdatePatientInfoUseCase_1 = require("./application/use-cases/UpdatePatientInfoUseCase");
 const GetPatientProfileUseCase_1 = require("./application/use-cases/GetPatientProfileUseCase");
 const SearchPatientsUseCase_1 = require("./application/use-cases/SearchPatientsUseCase");
-const MatchPatientsUseCase_1 = require("./application/use-cases/MatchPatientsUseCase");
-const MergePatientsUseCase_1 = require("./application/use-cases/MergePatientsUseCase");
-const LinkPatientsUseCase_1 = require("./application/use-cases/LinkPatientsUseCase");
-const DeactivatePatientUseCase_1 = require("./application/use-cases/DeactivatePatientUseCase");
+/* POST-MVP: Archived use case imports - Not required for graduation project
+import { MatchPatientsUseCase } from './application/use-cases/MatchPatientsUseCase';
+import { MergePatientsUseCase } from './application/use-cases/MergePatientsUseCase';
+import { LinkPatientsUseCase } from './application/use-cases/LinkPatientsUseCase';
+import { DeactivatePatientUseCase } from './application/use-cases/DeactivatePatientUseCase';
+END POST-MVP: Archived use case imports */
 const ValidateInsuranceUseCase_1 = require("./application/use-cases/ValidateInsuranceUseCase");
 const AddEmergencyContactUseCase_1 = require("./application/use-cases/AddEmergencyContactUseCase");
 const GetEmergencyContactsUseCase_1 = require("./application/use-cases/GetEmergencyContactsUseCase");
 const UpdateEmergencyContactUseCase_1 = require("./application/use-cases/UpdateEmergencyContactUseCase");
-const RemoveEmergencyContactUseCase_1 = require("./application/use-cases/RemoveEmergencyContactUseCase");
-const SetPrimaryEmergencyContactUseCase_1 = require("./application/use-cases/SetPrimaryEmergencyContactUseCase");
-const GrantConsentUseCase_1 = require("./application/use-cases/GrantConsentUseCase");
-const GetConsentsUseCase_1 = require("./application/use-cases/GetConsentsUseCase");
-const GetConsentDetailsUseCase_1 = require("./application/use-cases/GetConsentDetailsUseCase");
-const RevokeConsentUseCase_1 = require("./application/use-cases/RevokeConsentUseCase");
-const GetActiveConsentsUseCase_1 = require("./application/use-cases/GetActiveConsentsUseCase");
+/* POST-MVP: Archived use case imports - Not required for graduation project
+import { RemoveEmergencyContactUseCase } from './application/use-cases/RemoveEmergencyContactUseCase';
+import { SetPrimaryEmergencyContactUseCase } from './application/use-cases/SetPrimaryEmergencyContactUseCase';
+import { GrantConsentUseCase } from './application/use-cases/GrantConsentUseCase';
+import { GetConsentsUseCase } from './application/use-cases/GetConsentsUseCase';
+import { GetConsentDetailsUseCase } from './application/use-cases/GetConsentDetailsUseCase';
+import { RevokeConsentUseCase } from './application/use-cases/RevokeConsentUseCase';
+import { GetActiveConsentsUseCase } from './application/use-cases/GetActiveConsentsUseCase';
+END POST-MVP: Archived use case imports */
 const GetInsuranceInfoUseCase_1 = require("./application/use-cases/GetInsuranceInfoUseCase");
 const AddInsuranceInfoUseCase_1 = require("./application/use-cases/AddInsuranceInfoUseCase");
 const UpdateInsuranceInfoUseCase_1 = require("./application/use-cases/UpdateInsuranceInfoUseCase");
 const VerifyInsuranceUseCase_1 = require("./application/use-cases/VerifyInsuranceUseCase");
-const MarkAsDeceasedUseCase_1 = require("./application/use-cases/MarkAsDeceasedUseCase");
-const ReactivatePatientUseCase_1 = require("./application/use-cases/ReactivatePatientUseCase");
-const GetPatientStatisticsUseCase_1 = require("./application/use-cases/GetPatientStatisticsUseCase");
-const UploadPatientPhotoUseCase_1 = require("./application/use-cases/UploadPatientPhotoUseCase");
-const GetPatientPhotoUseCase_1 = require("./application/use-cases/GetPatientPhotoUseCase");
-const DeletePatientPhotoUseCase_1 = require("./application/use-cases/DeletePatientPhotoUseCase");
-const UpdateCommunicationPreferencesUseCase_1 = require("./application/use-cases/UpdateCommunicationPreferencesUseCase");
-const GetCommunicationPreferencesUseCase_1 = require("./application/use-cases/GetCommunicationPreferencesUseCase");
-const GetPatientHistoryUseCase_1 = require("./application/use-cases/GetPatientHistoryUseCase");
+/* POST-MVP: Archived use case imports - Not required for graduation project
+import { MarkAsDeceasedUseCase } from './application/use-cases/MarkAsDeceasedUseCase';
+import { ReactivatePatientUseCase } from './application/use-cases/ReactivatePatientUseCase';
+import { GetPatientStatisticsUseCase } from './application/use-cases/GetPatientStatisticsUseCase';
+import { UploadPatientPhotoUseCase } from './application/use-cases/UploadPatientPhotoUseCase';
+import { GetPatientPhotoUseCase } from './application/use-cases/GetPatientPhotoUseCase';
+import { DeletePatientPhotoUseCase } from './application/use-cases/DeletePatientPhotoUseCase';
+import { UpdateCommunicationPreferencesUseCase } from './application/use-cases/UpdateCommunicationPreferencesUseCase';
+import { GetCommunicationPreferencesUseCase } from './application/use-cases/GetCommunicationPreferencesUseCase';
+import { GetPatientHistoryUseCase } from './application/use-cases/GetPatientHistoryUseCase';
+END POST-MVP: Archived use case imports */
 const PatientCommandHandlers_1 = require("./application/handlers/PatientCommandHandlers");
 const PatientQueryHandlers_1 = require("./application/handlers/PatientQueryHandlers");
-// Infrastructure imports
-const SupabaseStorageService_1 = require("./infrastructure/storage/SupabaseStorageService");
 const AuditService_1 = require("./infrastructure/audit/AuditService");
 const infrastructure_1 = require("./infrastructure");
 // Presentation imports
@@ -223,48 +227,149 @@ class PatientRegistryServiceApp {
             this.updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(this.patientRepository, this.eventBus, logger, this.auditService);
             this.getPatientProfileUseCase = new GetPatientProfileUseCase_1.GetPatientProfileUseCase(this.patientRepository, logger, this.auditService);
             this.searchPatientsUseCase = new SearchPatientsUseCase_1.SearchPatientsUseCase(this.patientRepository);
-            this.matchPatientsUseCase = new MatchPatientsUseCase_1.MatchPatientsUseCase(this.patientRepository, this.matchingService, logger);
-            this.mergePatientsUseCase = new MergePatientsUseCase_1.MergePatientsUseCase(this.patientRepository);
-            this.linkPatientsUseCase = new LinkPatientsUseCase_1.LinkPatientsUseCase(this.patientRepository);
-            this.deactivatePatientUseCase = new DeactivatePatientUseCase_1.DeactivatePatientUseCase(this.patientRepository, this.eventBus, logger, this.auditService);
+            /* POST-MVP: PMI Features - Not required for graduation project
+            this.matchPatientsUseCase = new MatchPatientsUseCase(
+              this.patientRepository,
+              this.matchingService,
+              logger,
+            );
+      
+            this.mergePatientsUseCase = new MergePatientsUseCase(
+              this.patientRepository,
+            );
+            END POST-MVP: PMI Features */
+            /* POST-MVP: FHIR Advanced - Patient Linking not required for graduation project
+            this.linkPatientsUseCase = new LinkPatientsUseCase(
+              this.patientRepository,
+            );
+            END POST-MVP: FHIR Advanced */
+            /* POST-MVP: Patient Lifecycle - Deactivation not required for graduation project
+            this.deactivatePatientUseCase = new DeactivatePatientUseCase(
+              this.patientRepository,
+              this.eventBus,
+              logger,
+              this.auditService,
+            );
+            END POST-MVP: Patient Lifecycle */
             this.validateInsuranceUseCase = new ValidateInsuranceUseCase_1.ValidateInsuranceUseCase(this.patientRepository, this.insuranceValidationService, logger);
             this.addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(this.patientRepository, this.eventBus, logger, this.auditService);
             this.getEmergencyContactsUseCase = new GetEmergencyContactsUseCase_1.GetEmergencyContactsUseCase(this.patientRepository, logger);
             this.updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase_1.UpdateEmergencyContactUseCase(this.patientRepository, this.eventBus, logger);
-            this.removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase_1.RemoveEmergencyContactUseCase(this.patientRepository, this.eventBus, logger, this.auditService);
+            /* POST-MVP: Advanced Emergency Contact Management - Not required for graduation project
+            this.removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(
+              this.patientRepository,
+              this.eventBus,
+              logger,
+              this.auditService,
+            );
+      
             this.setPrimaryEmergencyContactUseCase =
-                new SetPrimaryEmergencyContactUseCase_1.SetPrimaryEmergencyContactUseCase(this.patientRepository, this.eventBus, logger);
-            this.grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(this.patientRepository, this.auditService, logger);
-            this.getConsentsUseCase = new GetConsentsUseCase_1.GetConsentsUseCase(this.patientRepository, logger);
-            this.getConsentDetailsUseCase = new GetConsentDetailsUseCase_1.GetConsentDetailsUseCase(this.patientRepository, logger);
-            this.revokeConsentUseCase = new RevokeConsentUseCase_1.RevokeConsentUseCase(this.patientRepository, this.eventBus, logger, this.auditService);
-            this.getActiveConsentsUseCase = new GetActiveConsentsUseCase_1.GetActiveConsentsUseCase(this.patientRepository, logger);
+              new SetPrimaryEmergencyContactUseCase(
+                this.patientRepository,
+                this.eventBus,
+                logger,
+              );
+            END POST-MVP: Advanced Emergency Contact Management */
+            /* POST-MVP: HIPAA Consent Management - Not required for graduation project
+            this.grantConsentUseCase = new GrantConsentUseCase(
+              this.patientRepository,
+              this.auditService,
+              logger,
+            );
+      
+            this.getConsentsUseCase = new GetConsentsUseCase(
+              this.patientRepository,
+              logger,
+            );
+      
+            this.getConsentDetailsUseCase = new GetConsentDetailsUseCase(
+              this.patientRepository,
+              logger,
+            );
+      
+            this.revokeConsentUseCase = new RevokeConsentUseCase(
+              this.patientRepository,
+              this.eventBus,
+              logger,
+              this.auditService,
+            );
+      
+            this.getActiveConsentsUseCase = new GetActiveConsentsUseCase(
+              this.patientRepository,
+              logger,
+            );
+            END POST-MVP: HIPAA Consent Management */
             this.getInsuranceInfoUseCase = new GetInsuranceInfoUseCase_1.GetInsuranceInfoUseCase(this.patientRepository, logger);
             this.addInsuranceInfoUseCase = new AddInsuranceInfoUseCase_1.AddInsuranceInfoUseCase(this.patientRepository, logger);
             this.updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase_1.UpdateInsuranceInfoUseCase(this.patientRepository, this.eventBus, logger);
             this.verifyInsuranceUseCase = new VerifyInsuranceUseCase_1.VerifyInsuranceUseCase(this.patientRepository, logger);
-            this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(this.patientRepository);
-            this.reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(this.patientRepository);
-            this.getPatientStatisticsUseCase = new GetPatientStatisticsUseCase_1.GetPatientStatisticsUseCase(this.patientRepository);
+            /* POST-MVP: Patient Lifecycle & Analytics - Not required for graduation project
+            this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase(
+              this.patientRepository,
+            );
+      
+            this.reactivatePatientUseCase = new ReactivatePatientUseCase(
+              this.patientRepository,
+            );
+      
+            this.getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(
+              this.patientRepository,
+            );
+            END POST-MVP: Patient Lifecycle & Analytics */
+            /* POST-MVP: FHIR Photo Management - Patient.photo field not needed for graduation project
             // Initialize Storage Service
             // Type cast needed due to duplicate @supabase/supabase-js in root and service node_modules
-            this.storageService = new SupabaseStorageService_1.SupabaseStorageService(this.optimizedSupabase.getConnection(), logger);
+            this.storageService = new SupabaseStorageService(
+              this.optimizedSupabase.getConnection() as unknown as SupabaseClient,
+              logger,
+            );
+      
             // Initialize Photo Use Cases
-            this.uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase_1.UploadPatientPhotoUseCase(this.patientRepository, this.storageService);
-            this.getPatientPhotoUseCase = new GetPatientPhotoUseCase_1.GetPatientPhotoUseCase(this.patientRepository);
-            this.deletePatientPhotoUseCase = new DeletePatientPhotoUseCase_1.DeletePatientPhotoUseCase(this.patientRepository, this.storageService);
+            this.uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase(
+              this.patientRepository,
+              this.storageService,
+            );
+      
+            this.getPatientPhotoUseCase = new GetPatientPhotoUseCase(
+              this.patientRepository,
+            );
+      
+            this.deletePatientPhotoUseCase = new DeletePatientPhotoUseCase(
+              this.patientRepository,
+              this.storageService,
+            );
+            END POST-MVP: FHIR Photo Management */
+            /* POST-MVP: FHIR Communication & Audit Trail - Not required for graduation project
             // Initialize Communication Preferences Use Cases
             this.updateCommunicationPreferencesUseCase =
-                new UpdateCommunicationPreferencesUseCase_1.UpdateCommunicationPreferencesUseCase(this.patientRepository);
+              new UpdateCommunicationPreferencesUseCase(this.patientRepository);
+      
             this.getCommunicationPreferencesUseCase =
-                new GetCommunicationPreferencesUseCase_1.GetCommunicationPreferencesUseCase(this.patientRepository);
+              new GetCommunicationPreferencesUseCase(this.patientRepository);
+      
             // Initialize Patient History Use Case
-            this.getPatientHistoryUseCase = new GetPatientHistoryUseCase_1.GetPatientHistoryUseCase(this.patientRepository, logger);
+            this.getPatientHistoryUseCase = new GetPatientHistoryUseCase(
+              this.patientRepository,
+              logger,
+            );
+            END POST-MVP: FHIR Communication & Audit Trail */
             this.patientQueryHandlers = new PatientQueryHandlers_1.PatientQueryHandlers(this.getPatientProfileUseCase, this.searchPatientsUseCase, this.patientRepository, logger);
             // Initialize Command Handlers (CQRS)
-            this.patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(this.registerPatientUseCase, this.updatePatientInfoUseCase, this.deactivatePatientUseCase, this.grantConsentUseCase, this.addEmergencyContactUseCase, logger);
+            this.patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(this.registerPatientUseCase, this.updatePatientInfoUseCase, 
+            /* POST-MVP: Archived use cases - Not required for graduation project
+            this.deactivatePatientUseCase,
+            this.grantConsentUseCase,
+            END POST-MVP */
+            this.addEmergencyContactUseCase, logger);
             // Initialize Presentation Layer
-            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.matchPatientsUseCase, this.mergePatientsUseCase, this.linkPatientsUseCase, this.deactivatePatientUseCase, this.validateInsuranceUseCase, this.addEmergencyContactUseCase, this.getEmergencyContactsUseCase, this.updateEmergencyContactUseCase, this.removeEmergencyContactUseCase, this.setPrimaryEmergencyContactUseCase, this.grantConsentUseCase, this.getConsentsUseCase, this.getConsentDetailsUseCase, this.revokeConsentUseCase, this.getActiveConsentsUseCase, this.getInsuranceInfoUseCase, this.addInsuranceInfoUseCase, this.updateInsuranceInfoUseCase, this.verifyInsuranceUseCase, this.markAsDeceasedUseCase, this.reactivatePatientUseCase, this.getPatientStatisticsUseCase, this.uploadPatientPhotoUseCase, this.getPatientPhotoUseCase, this.deletePatientPhotoUseCase, this.updateCommunicationPreferencesUseCase, this.getCommunicationPreferencesUseCase, this.getPatientHistoryUseCase, this.patientQueryHandlers);
+            this.patientController = new PatientController_1.PatientController(logger, this.registerPatientUseCase, this.updatePatientInfoUseCase, this.patientQueryHandlers, 
+            /* POST-MVP: Archived use case constructor parameters - Not required for graduation project
+            this.matchPatientsUseCase,
+            this.mergePatientsUseCase,
+            this.linkPatientsUseCase,
+            this.deactivatePatientUseCase,
+            END POST-MVP */
+            this.validateInsuranceUseCase, this.getInsuranceInfoUseCase, this.addInsuranceInfoUseCase, this.updateInsuranceInfoUseCase, this.verifyInsuranceUseCase, this.addEmergencyContactUseCase, this.getEmergencyContactsUseCase, this.updateEmergencyContactUseCase);
             this.commandController = new CommandController_1.CommandController(logger, this.patientCommandHandlers);
             this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
             // Initialize Authentication Middleware

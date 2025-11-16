@@ -7,9 +7,11 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { IInboxRepository } from '../../domain/repositories/IInboxRepository';
-import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
-import { GetNotificationPreferencesUseCase } from '../../application/use-cases/GetNotificationPreferencesUseCase';
+import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
+import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
+import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
+import { CreateAppointmentRemindersUseCase } from "../../application/use-cases/CreateAppointmentRemindersUseCase";
+import { IAppointmentReminderRepository } from "../../domain/repositories/IAppointmentReminderRepository";
 export interface AppointmentEventConsumerConfig {
     rabbitmqUrl: string;
     queueName: string;
@@ -41,11 +43,15 @@ export interface AppointmentScheduledEventData {
 export interface AppointmentConfirmedEventData {
     appointmentId: string;
     patientId: string;
-    patientName: string;
+    patientName?: string;
     doctorId: string;
-    doctorName: string;
+    doctorName?: string;
+    departmentId?: string;
+    departmentName?: string;
     appointmentDate: Date;
     appointmentTime: string;
+    durationMinutes?: number;
+    consultationFee?: number;
     confirmedBy: string;
     confirmedAt: Date;
     previousStatus: string;
@@ -103,7 +109,7 @@ export interface AppointmentReminderEventData {
     doctorName: string;
     appointmentDate: Date;
     appointmentTime: string;
-    reminderType: '24_hours' | '2_hours' | '30_minutes';
+    reminderType: "24_hours" | "2_hours" | "30_minutes";
     reminderSentAt: Date;
     departmentName: string;
     address?: string;
@@ -129,11 +135,13 @@ export declare class AppointmentEventConsumer {
     private config;
     private sendNotificationUseCase;
     private getNotificationPreferencesUseCase;
+    private createAppointmentRemindersUseCase;
+    private appointmentReminderRepo;
     private inboxRepo;
     private connection?;
     private channel?;
     private isConnected;
-    constructor(config: AppointmentEventConsumerConfig, sendNotificationUseCase: SendNotificationUseCase, getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase, inboxRepo: IInboxRepository);
+    constructor(config: AppointmentEventConsumerConfig, sendNotificationUseCase: SendNotificationUseCase, getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase, createAppointmentRemindersUseCase: CreateAppointmentRemindersUseCase, appointmentReminderRepo: IAppointmentReminderRepository, inboxRepo: IInboxRepository);
     /**
      * Connect to RabbitMQ and start consuming
      */
@@ -144,14 +152,31 @@ export declare class AppointmentEventConsumer {
     private handleMessage;
     /**
      * Handle appointment scheduled event
+     *
+     * ⚠️ REFACTORED FOR MVP:
+     * - Send "yêu cầu đã nhận, vui lòng thanh toán" notification
+     * - DO NOT create reminders yet (waiting for payment confirmation)
+     * - Use new template: APPOINTMENT_SCHEDULED
      */
     private handleAppointmentScheduled;
     /**
-     * Handle appointment confirmed event
+     * Handle appointment confirmed event (after payment completed)
+     *
+     * ✅ REFACTORED FOR MVP:
+     * - Send "lịch hẹn đã được xác nhận" notification
+     * - Create appointment reminders (24H, 2H, 30M)
+     * - Notify both patient AND doctor
+     * - Use new template: APPOINTMENT_CONFIRMED
      */
     private handleAppointmentConfirmed;
     /**
      * Handle appointment cancelled event
+     *
+     * ✅ REFACTORED FOR MVP:
+     * - Send cancellation notification (payment timeout or user cancellation)
+     * - Cancel all pending reminders
+     * - Notify both patient AND doctor
+     * - Use new template: APPOINTMENT_CANCELLED
      */
     private handleAppointmentCancelled;
     /**
@@ -183,7 +208,7 @@ export declare class AppointmentEventConsumer {
      */
     private sendUrgentAppointmentNotification;
     /**
-     * Schedule appointment reminders
+     * Schedule appointment reminders (creates reminder records in database)
      */
     private scheduleAppointmentReminders;
     /**
@@ -255,7 +280,7 @@ export declare class AppointmentEventConsumer {
      */
     private sendDoctorAppointmentRescheduledNotification;
     /**
-     * Update reminder schedules
+     * Update reminder schedules (cancel old reminders and create new ones for rescheduled appointment)
      */
     private updateReminderSchedules;
     /**

@@ -9,8 +9,6 @@
  */
 import { RegisterPatientUseCase, RegisterPatientRequest, RegisterPatientResponse } from '../use-cases/RegisterPatientUseCase';
 import { UpdatePatientInfoUseCase, UpdatePatientInfoRequest, UpdatePatientInfoResponse } from '../use-cases/UpdatePatientInfoUseCase';
-import { DeactivatePatientUseCase, DeactivatePatientResponse } from '../use-cases/DeactivatePatientUseCase';
-import { GrantConsentUseCase, GrantConsentResult } from '../use-cases/GrantConsentUseCase';
 import { AddEmergencyContactUseCase, AddEmergencyContactResult } from '../use-cases/AddEmergencyContactUseCase';
 import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface RegisterPatientCommand {
@@ -76,7 +74,7 @@ export type PatientCommand = RegisterPatientCommand | UpdatePatientInfoCommand |
 /**
  * Union type for all command results
  */
-export type PatientCommandResult = RegisterPatientResponse | UpdatePatientInfoResponse | DeactivatePatientResponse | GrantConsentResult | AddEmergencyContactResult | {
+export type PatientCommandResult = RegisterPatientResponse | UpdatePatientInfoResponse | AddEmergencyContactResult | {
     success: false;
     message: string;
 };
@@ -87,11 +85,9 @@ export type PatientCommandResult = RegisterPatientResponse | UpdatePatientInfoRe
 export declare class PatientCommandHandlers {
     private readonly registerPatientUseCase;
     private readonly updatePatientInfoUseCase;
-    private readonly deactivatePatientUseCase;
-    private readonly grantConsentUseCase;
     private readonly addEmergencyContactUseCase;
     private readonly logger;
-    constructor(registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, deactivatePatientUseCase: DeactivatePatientUseCase, grantConsentUseCase: GrantConsentUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, logger: ILogger);
+    constructor(registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, logger: ILogger);
     /**
      * Handle RegisterPatient command
      */
@@ -100,20 +96,6 @@ export declare class PatientCommandHandlers {
      * Handle UpdatePatientInfo command
      */
     handleUpdatePatientInfo(command: UpdatePatientInfoCommand): Promise<UpdatePatientInfoResponse>;
-    /**
-     * Handle DeactivatePatient command
-     */
-    handleDeactivatePatient(command: DeactivatePatientCommand): Promise<{
-        success: boolean;
-        message: string;
-    }>;
-    /**
-     * Handle GrantPatientConsent command
-     */
-    handleGrantPatientConsent(command: GrantPatientConsentCommand): Promise<{
-        success: boolean;
-        message: string;
-    }>;
     /**
      * Handle AddEmergencyContact command
      */
@@ -127,8 +109,6 @@ export declare class PatientCommandHandlers {
     handleCommand(command: PatientCommand): Promise<PatientCommandResult>;
     private isValidRegisterPatientCommand;
     private isValidUpdatePatientInfoCommand;
-    private isValidDeactivatePatientCommand;
-    private isValidGrantPatientConsentCommand;
     private isValidAddEmergencyContactCommand;
     /**
      * Get handler status for health checks

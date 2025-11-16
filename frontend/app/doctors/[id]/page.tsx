@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Star, Calendar, Award, GraduationCap } from 'lucide-react';
 
 /**
@@ -113,13 +114,13 @@ export default function DoctorProfilePage() {
                 <InfoRow label="Giá khám" value="500,000 VNĐ" />
                 <InfoRow label="Thời gian khám" value="30 phút" />
               </div>
-              <a
+              <Link
                 href="/patient/appointments/book"
                 className="block w-full rounded-lg bg-primary py-3 text-center font-semibold text-white transition-colors hover:bg-primary/90"
               >
                 <Calendar className="mr-2 inline h-5 w-5" />
                 Đặt lịch ngay
-              </a>
+              </Link>
             </div>
 
             {/* Schedule */}

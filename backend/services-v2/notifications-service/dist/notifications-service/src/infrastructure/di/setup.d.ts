@@ -17,6 +17,7 @@ export declare const ServiceTokens: {
     readonly INBOX_REPOSITORY: "InboxRepository";
     readonly TEMPLATE_REPOSITORY: "TemplateRepository";
     readonly PREFERENCES_REPOSITORY: "PreferencesRepository";
+    readonly APPOINTMENT_REMINDER_REPOSITORY: "AppointmentReminderRepository";
     readonly DELIVERY_SERVICE: "DeliveryService";
     readonly TEMPLATE_SERVICE: "TemplateService";
     readonly REALTIME_SERVICE: "RealTimeService";
@@ -31,13 +32,14 @@ export declare const ServiceTokens: {
     readonly MARK_AS_READ_USE_CASE: "MarkNotificationAsReadUseCase";
     readonly GET_USER_NOTIFICATIONS_USE_CASE: "GetUserNotificationsUseCase";
     readonly UPDATE_PREFERENCES_USE_CASE: "UpdateNotificationPreferencesUseCase";
+    readonly CREATE_APPOINTMENT_REMINDERS_USE_CASE: "CreateAppointmentRemindersUseCase";
     readonly NOTIFICATION_COMMAND_HANDLERS: "NotificationCommandHandlers";
     readonly NOTIFICATION_QUERY_HANDLERS: "NotificationQueryHandlers";
     readonly NOTIFICATION_EVENT_HANDLERS: "NotificationEventHandlers";
     readonly APPOINTMENT_EVENT_CONSUMER: "AppointmentEventConsumer";
     readonly STAFF_EVENT_CONSUMER: "StaffEventConsumer";
     readonly BILLING_EVENT_CONSUMER: "BillingEventConsumer";
-    readonly CLINICAL_EMR_EVENT_CONSUMER: "ClinicalEMREventConsumer";
+    readonly REMINDER_CRON_JOB: "ReminderCronJob";
     readonly NOTIFICATION_APPLICATION_SERVICE: "NotificationApplicationService";
     readonly NOTIFICATION_CONTROLLER: "NotificationController";
 };

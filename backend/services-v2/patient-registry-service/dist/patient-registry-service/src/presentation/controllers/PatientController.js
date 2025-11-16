@@ -4,8 +4,9 @@
  * Handles HTTP requests for Patient Registry operations
  *
  * @author Hospital Management Team
- * @version 2.0.0
+ * @version 2.0.0 (MVP Scope - Graduation Project)
  * @compliance Clean Architecture, RESTful API, HIPAA
+ * @scope-reduction 2025-01-15: Removed 20 post-MVP use cases for graduation project
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatientController = void 0;
@@ -43,41 +44,33 @@ function userHasAnyRole(req, allowedRoles) {
 }
 /**
  * Patient Controller
+ * @version 2.0.0 (MVP Scope - Graduation Project)
+ * @scope-reduction 2025-01-15: Constructor reduced from 32 to 12 dependencies
  */
 class PatientController {
-    constructor(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, getPatientHistoryUseCase, patientQueryHandlers) {
+    constructor(
+    // ============================================================================
+    // ✅ ESSENTIAL DEPENDENCIES - MVP SCOPE (12 dependencies)
+    // ============================================================================
+    logger, 
+    // Core CRUD (3)
+    registerPatientUseCase, updatePatientInfoUseCase, patientQueryHandlers, 
+    // Insurance Management (4) - Required for Demo Flow 4
+    validateInsuranceUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, 
+    // Emergency Contacts (3) - Required for Demo Flow 1
+    addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase) {
         this.logger = logger;
         this.registerPatientUseCase = registerPatientUseCase;
         this.updatePatientInfoUseCase = updatePatientInfoUseCase;
-        this.matchPatientsUseCase = matchPatientsUseCase;
-        this.mergePatientsUseCase = mergePatientsUseCase;
-        this.linkPatientsUseCase = linkPatientsUseCase;
-        this.deactivatePatientUseCase = deactivatePatientUseCase;
+        this.patientQueryHandlers = patientQueryHandlers;
         this.validateInsuranceUseCase = validateInsuranceUseCase;
-        this.addEmergencyContactUseCase = addEmergencyContactUseCase;
-        this.getEmergencyContactsUseCase = getEmergencyContactsUseCase;
-        this.updateEmergencyContactUseCase = updateEmergencyContactUseCase;
-        this.removeEmergencyContactUseCase = removeEmergencyContactUseCase;
-        this.setPrimaryEmergencyContactUseCase = setPrimaryEmergencyContactUseCase;
-        this.grantConsentUseCase = grantConsentUseCase;
-        this.getConsentsUseCase = getConsentsUseCase;
-        this.getConsentDetailsUseCase = getConsentDetailsUseCase;
-        this.revokeConsentUseCase = revokeConsentUseCase;
-        this.getActiveConsentsUseCase = getActiveConsentsUseCase;
         this.getInsuranceInfoUseCase = getInsuranceInfoUseCase;
         this.addInsuranceInfoUseCase = addInsuranceInfoUseCase;
         this.updateInsuranceInfoUseCase = updateInsuranceInfoUseCase;
         this.verifyInsuranceUseCase = verifyInsuranceUseCase;
-        this.markAsDeceasedUseCase = markAsDeceasedUseCase;
-        this.reactivatePatientUseCase = reactivatePatientUseCase;
-        this.getPatientStatisticsUseCase = getPatientStatisticsUseCase;
-        this.uploadPatientPhotoUseCase = uploadPatientPhotoUseCase;
-        this.getPatientPhotoUseCase = getPatientPhotoUseCase;
-        this.deletePatientPhotoUseCase = deletePatientPhotoUseCase;
-        this.updateCommunicationPreferencesUseCase = updateCommunicationPreferencesUseCase;
-        this.getCommunicationPreferencesUseCase = getCommunicationPreferencesUseCase;
-        this.getPatientHistoryUseCase = getPatientHistoryUseCase;
-        this.patientQueryHandlers = patientQueryHandlers;
+        this.addEmergencyContactUseCase = addEmergencyContactUseCase;
+        this.getEmergencyContactsUseCase = getEmergencyContactsUseCase;
+        this.updateEmergencyContactUseCase = updateEmergencyContactUseCase;
     }
     /**
      * Register new patient
@@ -537,156 +530,220 @@ class PatientController {
             throw error;
         }
     }
-    /**
+    // ============================================================================
+    // ❌ POST-MVP METHODS - ARCHIVED FOR GRADUATION PROJECT
+    // ============================================================================
+    // The following methods have been commented out as part of scope reduction.
+    // Use cases moved to: src/application/use-cases/_archived_post_mvp/
+    // Routes to be commented out in: patientRoutes.ts
+    // To restore: Uncomment these methods, restore use cases, update DI container
+    /* POST-MVP: PMI Features (Patient Master Index) - Not required for graduation project
+    **
      * Match patients (PMI)
      * POST /api/v1/patients/match
-     */
-    async matchPatients(req, res) {
-        try {
-            const { fullName, dateOfBirth, nationalId, primaryPhone, email, onlyCertainMatches, limit, } = req.body;
-            // Do NOT log PHI/PII (fullName, nationalId)
-            this.logger.info('Matching patients');
-            const result = await this.matchPatientsUseCase.execute({
-                criteria: {
-                    fullName,
-                    dateOfBirth,
-                    nationalId,
-                    primaryPhone,
-                    email,
-                },
-                onlyCertainMatches: onlyCertainMatches || false,
-                limit: limit || 10,
-                requestedBy: getUserId(req),
-            });
-            if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to match patients');
-            }
-            const matches = result.data?.matches ?? [];
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, matches, `Tìm thấy ${matches.length} kết quả khớp`);
+     *
+    async matchPatients(req: Request, res: Response): Promise<void> {
+      try {
+        const {
+          fullName,
+          dateOfBirth,
+          nationalId,
+          primaryPhone,
+          email,
+          onlyCertainMatches,
+          limit,
+        } = req.body;
+  
+        // Do NOT log PHI/PII (fullName, nationalId)
+        this.logger.info('Matching patients');
+  
+        const result = await this.matchPatientsUseCase.execute({
+          criteria: {
+            fullName,
+            dateOfBirth,
+            nationalId,
+            primaryPhone,
+            email,
+          },
+          onlyCertainMatches: onlyCertainMatches || false,
+          limit: limit || 10,
+          requestedBy: getUserId(req),
+        });
+  
+        if (!result.success) {
+          throw new DomainError(result.errors?.[0] || 'Failed to match patients');
         }
-        catch (error) {
-            this.logger.error('Error matching patients', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-        }
+  
+        const matches = result.data?.matches ?? [];
+  
+        ResponseHelper.success(
+          res,
+          matches,
+          `Tìm thấy ${matches.length} kết quả khớp`,
+        );
+      } catch (error) {
+        this.logger.error('Error matching patients', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
+      }
     }
-    /**
+  
+    **
      * Merge patients
      * POST /api/v1/patients/merge
-     */
-    async mergePatients(req, res) {
-        try {
-            const { duplicatePatientId, masterPatientId, reason } = req.body;
-            // Redact patient IDs for HIPAA compliance
-            this.logger.info('Merging patients', {
-                duplicatePatientId: duplicatePatientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
-                masterPatientId: masterPatientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
-            });
-            const result = await this.mergePatientsUseCase.execute({
-                duplicatePatientId,
-                masterPatientId,
-                reason,
-                performedBy: getUserId(req),
-            });
-            if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to merge patients');
-            }
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, {
-                masterPatientId,
-                duplicatePatientId,
-                mergedAt: new Date().toISOString(),
-            }, 'Gộp bệnh nhân thành công');
+     *
+    async mergePatients(req: Request, res: Response): Promise<void> {
+      try {
+        const { duplicatePatientId, masterPatientId, reason } = req.body;
+  
+        // Redact patient IDs for HIPAA compliance
+        this.logger.info('Merging patients', {
+          duplicatePatientId: duplicatePatientId.replace(
+            /PAT-\d{6}-\d{3}/g,
+            'PAT-***-***',
+          ),
+          masterPatientId: masterPatientId.replace(
+            /PAT-\d{6}-\d{3}/g,
+            'PAT-***-***',
+          ),
+        });
+  
+        const result = await this.mergePatientsUseCase.execute({
+          duplicatePatientId,
+          masterPatientId,
+          reason,
+          performedBy: getUserId(req),
+        });
+  
+        if (!result.success) {
+          throw new DomainError(result.errors?.[0] || 'Failed to merge patients');
         }
-        catch (error) {
-            this.logger.error('Error merging patients', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-        }
+  
+        ResponseHelper.success(
+          res,
+          {
+            masterPatientId,
+            duplicatePatientId,
+            mergedAt: new Date().toISOString(),
+          },
+          'Gộp bệnh nhân thành công',
+        );
+      } catch (error) {
+        this.logger.error('Error merging patients', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
+      }
     }
-    /**
+    END POST-MVP: PMI Features */
+    /* POST-MVP: FHIR Advanced - Patient Linking
+    **
      * Link patients
      * POST /api/v1/patients/:patientId/link
-     */
-    async linkPatients(req, res) {
-        try {
-            const { patientId } = req.params;
-            const { otherPatientId, linkType } = req.body;
-            // Redact patient IDs for HIPAA compliance
-            this.logger.info('Linking patients', {
-                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
-                otherPatientId: otherPatientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
-                linkType,
-            });
-            const result = await this.linkPatientsUseCase.execute({
-                patientId,
-                otherPatientId,
-                linkType,
-                performedBy: getUserId(req),
-            });
-            if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to link patients');
-            }
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, {
-                patientId,
-                otherPatientId,
-                linkType,
-                linkedAt: new Date().toISOString(),
-            }, 'Liên kết bệnh nhân thành công');
+     *
+    async linkPatients(req: Request, res: Response): Promise<void> {
+      try {
+        const { patientId } = req.params;
+        const { otherPatientId, linkType } = req.body;
+  
+        // Redact patient IDs for HIPAA compliance
+        this.logger.info('Linking patients', {
+          patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+          otherPatientId: otherPatientId.replace(
+            /PAT-\d{6}-\d{3}/g,
+            'PAT-***-***',
+          ),
+          linkType,
+        });
+  
+        const result = await this.linkPatientsUseCase.execute({
+          patientId,
+          otherPatientId,
+          linkType,
+          performedBy: getUserId(req),
+        });
+  
+        if (!result.success) {
+          throw new DomainError(result.errors?.[0] || 'Failed to link patients');
         }
-        catch (error) {
-            this.logger.error('Error linking patients', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-        }
+  
+        ResponseHelper.success(
+          res,
+          {
+            patientId,
+            otherPatientId,
+            linkType,
+            linkedAt: new Date().toISOString(),
+          },
+          'Liên kết bệnh nhân thành công',
+        );
+      } catch (error) {
+        this.logger.error('Error linking patients', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
+      }
     }
-    /**
+    END POST-MVP: FHIR Advanced - Patient Linking */
+    /* POST-MVP: Patient Lifecycle - Deactivation
+    **
      * Deactivate patient
      * POST /api/v1/patients/:patientId/deactivate
-     */
-    async deactivatePatient(req, res) {
-        try {
-            const { patientId } = req.params;
-            const { reason } = req.body;
-            // Redact patient ID for HIPAA compliance
-            this.logger.info('Deactivating patient', {
-                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
-            });
-            if (!userHasAnyRole(req, ['ADMIN', 'SUPER_ADMIN', 'RECEPTIONIST'])) {
-                this.logger.warn('Unauthorized patient deactivation attempt', {
-                    patientId,
-                    requestedBy: getUserId(req),
-                    roles: getUserRoles(req),
-                });
-                res.status(403).json({
-                    success: false,
-                    error: 'FORBIDDEN',
-                    message: 'Bạn không có quyền vô hiệu hóa bệnh nhân',
-                });
-                return;
-            }
-            const result = await this.deactivatePatientUseCase.execute({
-                patientId,
-                reason,
-                performedBy: getUserId(req),
-            });
-            if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to deactivate patient');
-            }
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, {
-                patientId,
-                deactivatedAt: new Date().toISOString(),
-            }, 'Vô hiệu hóa bệnh nhân thành công');
+     *
+    async deactivatePatient(req: Request, res: Response): Promise<void> {
+      try {
+        const { patientId } = req.params;
+        const { reason } = req.body;
+  
+        // Redact patient ID for HIPAA compliance
+        this.logger.info('Deactivating patient', {
+          patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+        });
+  
+        if (!userHasAnyRole(req, ['ADMIN', 'SUPER_ADMIN', 'RECEPTIONIST'])) {
+          this.logger.warn('Unauthorized patient deactivation attempt', {
+            patientId,
+            requestedBy: getUserId(req),
+            roles: getUserRoles(req),
+          });
+  
+          res.status(403).json({
+            success: false,
+            error: 'FORBIDDEN',
+            message: 'Bạn không có quyền vô hiệu hóa bệnh nhân',
+          });
+          return;
         }
-        catch (error) {
-            this.logger.error('Error deactivating patient', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
+  
+        const result = await this.deactivatePatientUseCase.execute({
+          patientId,
+          reason,
+          performedBy: getUserId(req),
+        });
+  
+        if (!result.success) {
+          throw new DomainError(
+            result.errors?.[0] || 'Failed to deactivate patient',
+          );
         }
+  
+        ResponseHelper.success(
+          res,
+          {
+            patientId,
+            deactivatedAt: new Date().toISOString(),
+          },
+          'Vô hiệu hóa bệnh nhân thành công',
+        );
+      } catch (error) {
+        this.logger.error('Error deactivating patient', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
+      }
     }
+    END POST-MVP: Patient Lifecycle - Deactivation */
     /**
      * Validate insurance
      * POST /api/v1/patients/validate-insurance
@@ -771,104 +828,129 @@ class PatientController {
         }
         ErrorHandlingMiddleware_1.ResponseHelper.success(res, { contactId: result.contactId }, result.message);
     }
-    /**
+    /* POST-MVP: Advanced Emergency Contact Management
+    **
      * Remove emergency contact
      * DELETE /api/v1/patients/:patientId/emergency-contacts/:contactId
-     */
-    async removeEmergencyContact(req, res) {
-        const { patientId, contactId } = req.params;
-        const performedBy = getUserId(req);
-        this.logger.info('Removing emergency contact', { patientId, contactId });
-        const result = await this.removeEmergencyContactUseCase.execute({
-            patientId,
-            contactId,
-            performedBy,
+     *
+    async removeEmergencyContact(req: Request, res: Response): Promise<void> {
+      const { patientId, contactId } = req.params;
+      const performedBy = getUserId(req);
+  
+      this.logger.info('Removing emergency contact', { patientId, contactId });
+  
+      const result = await this.removeEmergencyContactUseCase.execute({
+        patientId,
+        contactId,
+        performedBy,
+      });
+  
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          errors: result.errors,
         });
-        if (!result.success) {
-            res.status(400).json({
-                success: false,
-                message: result.message,
-                errors: result.errors,
-            });
-            return;
-        }
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, null, result.message);
+        return;
+      }
+  
+      ResponseHelper.success(res, null, result.message);
     }
-    /**
+  
+    **
      * Set primary emergency contact
      * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId/set-primary
-     */
-    async setPrimaryEmergencyContact(req, res) {
-        const { patientId, contactId } = req.params;
-        const performedBy = getUserId(req);
-        this.logger.info('Setting primary emergency contact', {
-            patientId,
-            contactId,
+     *
+    async setPrimaryEmergencyContact(req: Request, res: Response): Promise<void> {
+      const { patientId, contactId } = req.params;
+      const performedBy = getUserId(req);
+  
+      this.logger.info('Setting primary emergency contact', {
+        patientId,
+        contactId,
+      });
+  
+      const result = await this.setPrimaryEmergencyContactUseCase.execute({
+        patientId,
+        contactId,
+        performedBy,
+      });
+  
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          errors: result.errors,
         });
-        const result = await this.setPrimaryEmergencyContactUseCase.execute({
-            patientId,
-            contactId,
-            performedBy,
-        });
-        if (!result.success) {
-            res.status(400).json({
-                success: false,
-                message: result.message,
-                errors: result.errors,
-            });
-            return;
-        }
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, null, result.message);
+        return;
+      }
+  
+      ResponseHelper.success(res, null, result.message);
     }
-    /**
+    END POST-MVP: Advanced Emergency Contact Management */
+    /* POST-MVP: HIPAA Consent Management
+    **
      * Grant consent
-     */
-    async grantConsent(req, res) {
-        const { patientId } = req.params;
-        const request = req.body;
-        const userId = getUserId(req);
-        this.logger.info('Granting consent for patient', {
-            patientId,
-            consentType: request.consentType,
-        });
-        const result = await this.grantConsentUseCase.execute({
-            patientId,
-            consentType: request.consentType,
-            grantedBy: userId,
-            expiresAt: request.expiresAt ? new Date(request.expiresAt) : undefined,
-            performedBy: userId,
-        });
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+     *
+    async grantConsent(req: Request, res: Response): Promise<void> {
+      const { patientId } = req.params;
+      const request: GrantConsentRequest = req.body;
+      const userId = getUserId(req);
+  
+      this.logger.info('Granting consent for patient', {
+        patientId,
+        consentType: request.consentType,
+      });
+  
+      const result = await this.grantConsentUseCase.execute({
+        patientId,
+        consentType: request.consentType,
+        grantedBy: userId,
+        expiresAt: request.expiresAt ? new Date(request.expiresAt) : undefined,
+        performedBy: userId,
+      });
+  
+      ResponseHelper.success(res, result, result.message);
     }
-    /**
+    END POST-MVP: HIPAA Consent Management */
+    /* POST-MVP: Patient Lifecycle - Deceased/Reactivation
+    **
      * Mark patient as deceased
-     */
-    async markAsDeceased(req, res) {
-        const { patientId } = req.params;
-        const performedBy = getUserId(req);
-        this.logger.info('Marking patient as deceased', { patientId });
-        const result = await this.markAsDeceasedUseCase.execute({
-            patientId,
-            performedBy,
-        });
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+     *
+    async markAsDeceased(req: Request, res: Response): Promise<void> {
+      const { patientId } = req.params;
+      const performedBy = getUserId(req);
+  
+      this.logger.info('Marking patient as deceased', { patientId });
+  
+      const result = await this.markAsDeceasedUseCase.execute({
+        patientId,
+        performedBy,
+      });
+  
+      ResponseHelper.success(res, result, result.message);
     }
-    /**
+  
+    **
      * Reactivate patient
-     */
-    async reactivatePatient(req, res) {
-        const { patientId } = req.params;
-        const request = req.body;
-        const performedBy = getUserId(req);
-        this.logger.info('Reactivating patient', { patientId });
-        const result = await this.reactivatePatientUseCase.execute({
-            patientId,
-            reason: request.reason,
-            performedBy,
-            allowDeceasedReactivate: request.allowDeceasedReactivate,
-        });
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
+     *
+    async reactivatePatient(req: Request, res: Response): Promise<void> {
+      const { patientId } = req.params;
+      const request: ReactivatePatientRequest = req.body;
+      const performedBy = getUserId(req);
+  
+      this.logger.info('Reactivating patient', { patientId });
+  
+      const result = await this.reactivatePatientUseCase.execute({
+        patientId,
+        reason: request.reason,
+        performedBy,
+        allowDeceasedReactivate: request.allowDeceasedReactivate,
+      });
+  
+      ResponseHelper.success(res, result, result.message);
     }
+    END POST-MVP: Patient Lifecycle - Deceased/Reactivation */
     /**
      * Add insurance info after registration
      */
@@ -902,92 +984,109 @@ class PatientController {
         }
         ErrorHandlingMiddleware_1.ResponseHelper.success(res, { success: true }, result.message);
     }
-    /**
+    /* POST-MVP: HIPAA Consent Management - Retrieval Methods
+    **
      * Get all consents for a patient
      * GET /api/v1/patients/:patientId/consents
-     */
-    async getConsents(req, res) {
-        const { patientId } = req.params;
-        const requestedBy = getUserId(req);
-        const result = await this.getConsentsUseCase.execute({
-            patientId,
-            requestedBy,
+     *
+    async getConsents(req: Request, res: Response): Promise<void> {
+      const { patientId } = req.params;
+      const requestedBy = getUserId(req);
+  
+      const result = await this.getConsentsUseCase.execute({
+        patientId,
+        requestedBy,
+      });
+  
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          errors: result.errors,
         });
-        if (!result.success) {
-            res.status(400).json({
-                success: false,
-                message: result.message,
-                errors: result.errors,
-            });
-            return;
-        }
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+        return;
+      }
+  
+      ResponseHelper.success(res, result.data, result.message);
     }
-    /**
+  
+    **
      * Get consent details
      * GET /api/v1/patients/:patientId/consents/:consentId
-     */
-    async getConsentDetails(req, res) {
-        const { patientId, consentId } = req.params;
-        const requestedBy = getUserId(req);
-        const result = await this.getConsentDetailsUseCase.execute({
-            patientId,
-            consentId,
-            requestedBy,
+     *
+    async getConsentDetails(req: Request, res: Response): Promise<void> {
+      const { patientId, consentId } = req.params;
+      const requestedBy = getUserId(req);
+  
+      const result = await this.getConsentDetailsUseCase.execute({
+        patientId,
+        consentId,
+        requestedBy,
+      });
+  
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          errors: result.errors,
         });
-        if (!result.success) {
-            res.status(400).json({
-                success: false,
-                message: result.message,
-                errors: result.errors,
-            });
-            return;
-        }
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+        return;
+      }
+  
+      ResponseHelper.success(res, result.data, result.message);
     }
-    /**
+  
+    **
      * Revoke consent
      * POST /api/v1/patients/:patientId/consents/:consentId/revoke
-     */
-    async revokeConsent(req, res) {
-        const { patientId, consentId } = req.params;
-        const performedBy = getUserId(req);
-        const result = await this.revokeConsentUseCase.execute({
-            patientId,
-            consentId,
-            performedBy,
+     *
+    async revokeConsent(req: Request, res: Response): Promise<void> {
+      const { patientId, consentId } = req.params;
+      const performedBy = getUserId(req);
+  
+      const result = await this.revokeConsentUseCase.execute({
+        patientId,
+        consentId,
+        performedBy,
+      });
+  
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          errors: result.errors,
         });
-        if (!result.success) {
-            res.status(400).json({
-                success: false,
-                message: result.message,
-                errors: result.errors,
-            });
-            return;
-        }
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, { success: true }, result.message);
+        return;
+      }
+  
+      ResponseHelper.success(res, { success: true }, result.message);
     }
-    /**
+  
+    **
      * Get active consents only
      * GET /api/v1/patients/:patientId/consents/active
-     */
-    async getActiveConsents(req, res) {
-        const { patientId } = req.params;
-        const requestedBy = getUserId(req);
-        const result = await this.getActiveConsentsUseCase.execute({
-            patientId,
-            requestedBy,
+     *
+    async getActiveConsents(req: Request, res: Response): Promise<void> {
+      const { patientId } = req.params;
+      const requestedBy = getUserId(req);
+  
+      const result = await this.getActiveConsentsUseCase.execute({
+        patientId,
+        requestedBy,
+      });
+  
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          errors: result.errors,
         });
-        if (!result.success) {
-            res.status(400).json({
-                success: false,
-                message: result.message,
-                errors: result.errors,
-            });
-            return;
-        }
-        ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+        return;
+      }
+  
+      ResponseHelper.success(res, result.data, result.message);
     }
+    END POST-MVP: HIPAA Consent Management - Retrieval Methods */
     /**
      * Get insurance info
      * GET /api/v1/patients/:patientId/insurance
@@ -1051,208 +1150,6 @@ class PatientController {
             return;
         }
         ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
-    }
-    /**
-     * Get patient statistics
-     * GET /api/v1/patients/statistics
-     */
-    async getStatistics(req, res) {
-        try {
-            this.logger.info('Getting patient statistics');
-            const statistics = await this.getPatientStatisticsUseCase.execute();
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, statistics, 'Thống kê bệnh nhân thành công');
-        }
-        catch (error) {
-            this.logger.error('Failed to get patient statistics', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            res.status(500).json({
-                success: false,
-                message: 'Lỗi khi lấy thống kê bệnh nhân',
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-        }
-    }
-    /**
-     * Upload patient photo
-     * POST /api/v1/patients/:patientId/photo
-     */
-    async uploadPhoto(req, res) {
-        try {
-            const { patientId } = req.params;
-            const userId = getUserId(req);
-            if (!req.file) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Không có file ảnh được tải lên',
-                });
-                return;
-            }
-            this.logger.info('Uploading patient photo', { patientId, userId });
-            const result = await this.uploadPatientPhotoUseCase.execute({
-                patientId,
-                fileBuffer: req.file.buffer,
-                fileName: req.file.originalname,
-                contentType: req.file.mimetype,
-                uploadedBy: userId,
-            });
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
-        }
-        catch (error) {
-            this.logger.error('Failed to upload patient photo', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            res.status(500).json({
-                success: false,
-                message: error instanceof Error ? error.message : 'Lỗi khi tải ảnh lên',
-            });
-        }
-    }
-    /**
-     * Get patient photo
-     * GET /api/v1/patients/:patientId/photo
-     */
-    async getPhoto(req, res) {
-        try {
-            const { patientId } = req.params;
-            this.logger.info('Getting patient photo', { patientId });
-            const result = await this.getPatientPhotoUseCase.execute({ patientId });
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, 'Lấy ảnh bệnh nhân thành công');
-        }
-        catch (error) {
-            this.logger.error('Failed to get patient photo', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            res.status(500).json({
-                success: false,
-                message: error instanceof Error ? error.message : 'Lỗi khi lấy ảnh bệnh nhân',
-            });
-        }
-    }
-    /**
-     * Delete patient photo
-     * DELETE /api/v1/patients/:patientId/photo
-     */
-    async deletePhoto(req, res) {
-        try {
-            const { patientId } = req.params;
-            const userId = getUserId(req);
-            this.logger.info('Deleting patient photo', { patientId, userId });
-            const result = await this.deletePatientPhotoUseCase.execute({
-                patientId,
-                deletedBy: userId,
-            });
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
-        }
-        catch (error) {
-            this.logger.error('Failed to delete patient photo', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            res.status(500).json({
-                success: false,
-                message: error instanceof Error ? error.message : 'Lỗi khi xóa ảnh bệnh nhân',
-            });
-        }
-    }
-    /**
-     * Update communication preferences
-     * PUT /api/v1/patients/:patientId/communication
-     */
-    async updateCommunicationPreferences(req, res) {
-        try {
-            const { patientId } = req.params;
-            const { language, preferred, contactMethod, timezone } = req.body;
-            const userId = getUserId(req);
-            this.logger.info('Updating communication preferences', {
-                patientId,
-                userId,
-            });
-            const result = await this.updateCommunicationPreferencesUseCase.execute({
-                patientId,
-                language,
-                preferred,
-                contactMethod,
-                timezone,
-                updatedBy: userId,
-            });
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, result.message);
-        }
-        catch (error) {
-            this.logger.error('Failed to update communication preferences', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            res.status(500).json({
-                success: false,
-                message: error instanceof Error
-                    ? error.message
-                    : 'Lỗi khi cập nhật tùy chọn liên hệ',
-            });
-        }
-    }
-    /**
-     * Get communication preferences
-     * GET /api/v1/patients/:patientId/communication
-     */
-    async getCommunicationPreferences(req, res) {
-        try {
-            const { patientId } = req.params;
-            this.logger.info('Getting communication preferences', { patientId });
-            const result = await this.getCommunicationPreferencesUseCase.execute({
-                patientId,
-            });
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, 'Lấy tùy chọn liên hệ thành công');
-        }
-        catch (error) {
-            this.logger.error('Failed to get communication preferences', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            res.status(500).json({
-                success: false,
-                message: error instanceof Error
-                    ? error.message
-                    : 'Lỗi khi lấy tùy chọn liên hệ',
-            });
-        }
-    }
-    /**
-     * Get patient history (audit logs and access logs)
-     * GET /api/v1/patients/:patientId/history
-     */
-    async getPatientHistory(req, res) {
-        try {
-            const { patientId } = req.params;
-            const { limit, offset, dateFrom, dateTo, eventTypes } = req.query;
-            const requestedBy = getUserId(req);
-            this.logger.info('Getting patient history', {
-                patientId,
-                limit,
-                offset,
-                requestedBy,
-            });
-            const result = await this.getPatientHistoryUseCase.execute({
-                patientId,
-                limit: limit ? parseInt(limit) : undefined,
-                offset: offset ? parseInt(offset) : undefined,
-                dateFrom: dateFrom,
-                dateTo: dateTo,
-                eventTypes: eventTypes
-                    ? Array.isArray(eventTypes)
-                        ? eventTypes
-                        : [eventTypes]
-                    : undefined,
-                requestedBy,
-            });
-            if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.NotFoundError('Lịch sử bệnh nhân', patientId);
-            }
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
-        }
-        catch (error) {
-            this.logger.error('Failed to get patient history', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-        }
     }
 }
 exports.PatientController = PatientController;

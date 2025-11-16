@@ -6,29 +6,25 @@ import { Insurance } from '../value-objects/Insurance';
 import { InvoiceItem } from '../entities/InvoiceItem';
 import { Payment } from '../entities/Payment';
 import { InvoiceCreatedEvent } from '../events/InvoiceCreatedEvent';
-import { InvoiceFinalizedEvent } from '../events/InvoiceFinalizedEvent';
-import { InvoiceCancelledEvent } from '../events/InvoiceCancelledEvent';
 import { PaymentProcessedEvent } from '../events/PaymentProcessedEvent';
-import { InsuranceClaimProcessedEvent } from '../events/InsuranceClaimProcessedEvent';
+// REMOVED: InvoiceFinalizedEvent, InvoiceCancelledEvent, InsuranceClaimProcessedEvent - Out of scope for Phase 1
 
 export interface InvoiceProps {
   id: InvoiceId;
   patientId: string;
+  appointmentId?: string;
+  staffId?: string;
   invoiceNumber?: string;
   items: InvoiceItem[];
   subtotal: Money;
   tax: Money;
-  insuranceCoverage: Money;
   totalAmount: Money;
   outstandingAmount: Money;
   status: InvoiceStatus;
-  insurance?: Insurance;
   payments: Payment[];
   createdAt: Date;
   updatedAt: Date;
-  finalizedAt?: Date;
-  cancelledAt?: Date;
-  cancellationReason?: string;
+  // REMOVED (Phase 1 Prepaid Model): finalizedAt, cancelledAt, cancellationReason, insurance, insuranceCoverage
 }
 
 export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
@@ -38,8 +34,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
 
   public static create(
     patientId: string,
-    items: InvoiceItem[],
-    insurance?: Insurance
+    items: InvoiceItem[]
   ): Invoice {
     if (items.length === 0) {
       throw new Error('Invoice must have at least one item');
@@ -57,28 +52,23 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     // Calculate tax (10% VAT)
     const tax = subtotal.multiply(0.1);
 
-    // Calculate insurance coverage
-    let insuranceCoverage = Money.zero();
-    if (insurance) {
-      const totalBeforeInsurance = subtotal.add(tax);
-      insuranceCoverage = totalBeforeInsurance.multiply(insurance.coveragePercentage / 100);
-    }
-
-    // Calculate total and outstanding
+    // Calculate total and outstanding (no insurance coverage in Phase 1 Prepaid Model)
     const totalAmount = subtotal.add(tax);
-    const outstandingAmount = totalAmount.subtract(insuranceCoverage);
+    const outstandingAmount = totalAmount;
+
+    // Generate invoice number automatically
+    const invoiceNumber = Invoice.generateInvoiceNumber();
 
     const invoice = new Invoice({
       id: invoiceId,
       patientId,
+      invoiceNumber,
       items,
       subtotal,
       tax,
-      insuranceCoverage,
       totalAmount,
       outstandingAmount,
-      status: InvoiceStatus.draft(),
-      insurance,
+      status: InvoiceStatus.pending(), // Phase 1: Start with PENDING (waiting for payment)
       payments: [],
       createdAt: now,
       updatedAt: now
@@ -97,45 +87,8 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     return invoice;
   }
 
-  public finalize(): void {
-    if (!this.props.status.isDraft()) {
-      throw new Error('Can only finalize draft invoices');
-    }
-
-    const invoiceNumber = this.generateInvoiceNumber();
-    this.props.invoiceNumber = invoiceNumber;
-    this.props.status = InvoiceStatus.pending();
-    this.props.finalizedAt = new Date();
-    this.props.updatedAt = new Date();
-
-    this.addDomainEvent(
-      new InvoiceFinalizedEvent(
-        this.props.id.value,
-        invoiceNumber
-      )
-    );
-  }
-
-  public cancel(reason: string): void {
-    if (this.props.status.isCancelled()) {
-      throw new Error('Invoice is already cancelled');
-    }
-    if (this.props.status.isPaid()) {
-      throw new Error('Cannot cancel paid invoice');
-    }
-
-    this.props.status = InvoiceStatus.cancelled();
-    this.props.cancelledAt = new Date();
-    this.props.cancellationReason = reason;
-    this.props.updatedAt = new Date();
-
-    this.addDomainEvent(
-      new InvoiceCancelledEvent(
-        this.props.id.value,
-        reason
-      )
-    );
-  }
+  // REMOVED (Phase 1 Prepaid Model): finalize(), cancel(), processInsuranceClaim()
+  // These are out of scope for MVP. Future implementation for Phase 2+
 
   public processPayment(payment: Payment): void {
     if (this.props.status.isCancelled()) {
@@ -153,45 +106,29 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       Money.zero()
     );
 
-    this.props.outstandingAmount = this.props.totalAmount.subtract(this.props.insuranceCoverage).subtract(totalPaid);
+    // Phase 1 Prepaid Model: No insurance coverage deduction
+    this.props.outstandingAmount = this.props.totalAmount.subtract(totalPaid);
 
     if (this.props.outstandingAmount.amount <= 0) {
       this.props.status = InvoiceStatus.paid();
-    } else if (totalPaid.amount > 0) {
-      this.props.status = InvoiceStatus.partiallyPaid();
     }
 
     this.props.updatedAt = new Date();
 
+    // Emit PaymentProcessedEvent with appointmentId for prepaid flow
     this.addDomainEvent(
       new PaymentProcessedEvent(
         this.props.id.value,
         payment.id,
         payment.amount.amount,
         payment.amount.currency,
-        payment.method
+        payment.method,
+        this.props.appointmentId // Pass appointmentId to event
       )
     );
   }
 
-  public processInsuranceClaim(): void {
-    if (!this.props.insurance) {
-      throw new Error('No insurance information available');
-    }
-
-    const approved = this.props.insurance.provider === 'BHYT' || this.props.insurance.provider === 'BHTN';
-
-    this.addDomainEvent(
-      new InsuranceClaimProcessedEvent(
-        this.props.id.value,
-        this.props.insuranceCoverage.amount,
-        this.props.insuranceCoverage.currency,
-        approved
-      )
-    );
-  }
-
-  private generateInvoiceNumber(): string {
+  private static generateInvoiceNumber(): string {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -217,6 +154,24 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     return this.props.patientId;
   }
 
+  public setAppointmentId(appointmentId: string): void {
+    this.props.appointmentId = appointmentId;
+    this.props.updatedAt = new Date();
+  }
+
+  public getAppointmentId(): string | undefined {
+    return this.props.appointmentId;
+  }
+
+  public setStaffId(staffId: string): void {
+    this.props.staffId = staffId;
+    this.props.updatedAt = new Date();
+  }
+
+  public getStaffId(): string | undefined {
+    return this.props.staffId;
+  }
+
   public applyEvent(event: any): void {
     // Event sourcing not implemented yet
   }
@@ -229,26 +184,20 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     return {
       id: this.props.id.value,
       patientId: this.props.patientId,
+      appointmentId: this.props.appointmentId,
+      staffId: this.props.staffId,
       invoiceNumber: this.props.invoiceNumber,
       items: this.props.items.map(item => item.toPersistence()),
       subtotal: this.props.subtotal.amount,
       tax: this.props.tax.amount,
-      insuranceCoverage: this.props.insuranceCoverage.amount,
       totalAmount: this.props.totalAmount.amount,
       outstandingAmount: this.props.outstandingAmount.amount,
       currency: this.props.totalAmount.currency,
       status: this.props.status.value,
-      insurance: this.props.insurance ? {
-        provider: this.props.insurance.provider,
-        policyNumber: this.props.insurance.policyNumber,
-        coveragePercentage: this.props.insurance.coveragePercentage
-      } : null,
       payments: this.props.payments.map(p => p.toPersistence()),
       createdAt: this.props.createdAt,
-      updatedAt: this.props.updatedAt,
-      finalizedAt: this.props.finalizedAt,
-      cancelledAt: this.props.cancelledAt,
-      cancellationReason: this.props.cancellationReason
+      updatedAt: this.props.updatedAt
+      // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
     };
   }
 
@@ -277,10 +226,6 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     return this.props.tax;
   }
 
-  get insuranceCoverage(): Money {
-    return this.props.insuranceCoverage;
-  }
-
   get totalAmount(): Money {
     return this.props.totalAmount;
   }
@@ -291,10 +236,6 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
 
   get status(): InvoiceStatus {
     return this.props.status;
-  }
-
-  get insurance(): Insurance | undefined {
-    return this.props.insurance;
   }
 
   get payments(): Payment[] {

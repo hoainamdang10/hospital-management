@@ -1,0 +1,168 @@
+
+> notifications-service@1.0.0 build
+> tsc
+
+src/application/use-cases/CreateAppointmentRemindersUseCase.ts(9,24): error TS2307: Cannot find module '@shared/core/Result' or its corresponding type declarations.
+src/application/use-cases/CreateTemplateUseCase.ts(63,11): error TS2353: Object literal may only specify known properties, and 'preview' does not exist in type 'TemplateContent'.
+src/application/use-cases/CreateTemplateUseCase.ts(129,24): error TS2673: Constructor of class 'NotificationTemplate' is private and only accessible within the class declaration.
+src/application/use-cases/DeleteTemplateUseCase.ts(52,9): error TS2741: Property 'templateId' is missing in type '{ deletedAt: string; }' but required in type '{ templateId: string; deletedAt: string; }'.
+src/application/use-cases/GetTemplatesUseCase.ts(132,22): error TS2339: Property 'id' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(133,24): error TS2341: Property 'name' is private and only accessible within class 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(134,24): error TS2339: Property 'type' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(135,27): error TS2339: Property 'subject' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(136,24): error TS2339: Property 'body' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(137,28): error TS2341: Property 'language' is private and only accessible within class 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(138,29): error TS2339: Property 'variables' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(141,24): error TS2339: Property 'tags' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(142,29): error TS2339: Property 'createdAt' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(143,29): error TS2339: Property 'updatedAt' does not exist on type 'NotificationTemplate'.
+src/application/use-cases/GetTemplatesUseCase.ts(149,11): error TS2322: Type '{ id: any; name: string; type: any; subject: any; body: any; language: "vi" | "en"; variables: any; isActive: () => boolean; isApproved: () => boolean; tags: any; createdAt: any; updatedAt: any; }[]' is not assignable to type '{ id: string; name: string; type: string; subject?: string | undefined; body: string; language: string; variables: string[]; isActive: boolean; isApproved: boolean; tags: string[]; createdAt: string; updatedAt: string; }[]'.
+  Type '{ id: any; name: string; type: any; subject: any; body: any; language: "vi" | "en"; variables: any; isActive: () => boolean; isApproved: () => boolean; tags: any; createdAt: any; updatedAt: any; }' is not assignable to type '{ id: string; name: string; type: string; subject?: string | undefined; body: string; language: string; variables: string[]; isActive: boolean; isApproved: boolean; tags: string[]; createdAt: string; updatedAt: string; }'.
+    Types of property 'isActive' are incompatible.
+      Type '() => boolean' is not assignable to type 'boolean'.
+src/application/use-cases/GetUserNotificationsUseCase.ts(132,55): error TS2339: Property 'getChannelType' does not exist on type 'NotificationChannel'.
+src/application/use-cases/SendBulkNotificationsUseCase.ts(61,34): error TS2339: Property 'notificationId' does not exist on type 'DeliveryResult[]'.
+src/application/use-cases/UpdateNotificationPreferencesUseCase.ts(10,40): error TS2307: Cannot find module '../../domain/repositories/IPreferencesRepository' or its corresponding type declarations.
+src/domain/aggregates/AppointmentReminder.ts(9,31): error TS2307: Cannot find module '@shared/domain/base/AggregateRoot' or its corresponding type declarations.
+src/domain/aggregates/AppointmentReminder.ts(10,24): error TS2307: Cannot find module '@shared/core/Result' or its corresponding type declarations.
+src/domain/aggregates/AppointmentReminder.ts(11,32): error TS2307: Cannot find module '@shared/domain/base/UniqueEntityID' or its corresponding type declarations.
+src/domain/aggregates/AppointmentReminder.ts(144,17): error TS2339: Property '_id' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(148,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(152,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(156,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(160,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(164,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(168,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(172,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(176,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(180,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(184,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(188,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(192,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(196,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(200,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(204,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(208,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(212,17): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(224,12): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(225,12): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(234,12): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(235,12): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(235,37): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(243,15): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(245,54): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(249,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(250,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(258,15): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(260,59): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(264,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(265,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(266,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(267,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(275,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(276,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(277,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(278,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(278,35): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(279,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(283,47): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(286,12): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(289,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(297,15): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(299,53): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(303,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(304,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(305,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(306,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(307,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(315,14): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(319,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(320,10): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(329,25): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(330,24): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(331,34): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(332,45): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(333,29): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(334,29): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(335,20): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(336,26): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(337,15): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(357,35): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/AppointmentReminder.ts(358,36): error TS2339: Property 'props' does not exist on type 'AppointmentReminder'.
+src/domain/aggregates/Notification.ts(13,41): error TS2307: Cannot find module '../events/NotificationFailedEvent' or its corresponding type declarations.
+src/domain/repositories/IAppointmentReminderRepository.ts(10,24): error TS2307: Cannot find module '@shared/core/Result' or its corresponding type declarations.
+src/infrastructure/cron/ReminderCronJob.ts(149,26): error TS2339: Property 'isSuccess' does not exist on type 'DeliveryResult[]'.
+src/infrastructure/cron/ReminderCronJob.ts(151,47): error TS2339: Property 'getValue' does not exist on type 'DeliveryResult[]'.
+src/infrastructure/cron/ReminderCronJob.ts(163,46): error TS2339: Property 'getError' does not exist on type 'DeliveryResult[]'.
+src/infrastructure/cron/ReminderCronJob.ts(260,26): error TS2339: Property 'isSuccess' does not exist on type 'DeliveryResult[]'.
+src/infrastructure/cron/ReminderCronJob.ts(261,47): error TS2339: Property 'getValue' does not exist on type 'DeliveryResult[]'.
+src/infrastructure/cron/ReminderCronJob.ts(266,46): error TS2339: Property 'getError' does not exist on type 'DeliveryResult[]'.
+src/infrastructure/events/AppointmentEventConsumer.ts(369,9): error TS2353: Object literal may only specify known properties, and 'recipientName' does not exist in type 'SendNotificationCommand'.
+src/infrastructure/events/AppointmentEventConsumer.ts(370,45): error TS2339: Property 'email' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/AppointmentEventConsumer.ts(371,45): error TS2339: Property 'phone' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/AppointmentEventConsumer.ts(453,9): error TS2353: Object literal may only specify known properties, and 'recipientName' does not exist in type 'SendNotificationCommand'.
+src/infrastructure/events/AppointmentEventConsumer.ts(454,45): error TS2339: Property 'email' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/AppointmentEventConsumer.ts(455,45): error TS2339: Property 'phone' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/AppointmentEventConsumer.ts(463,32): error TS2551: Property 'departmentName' does not exist on type 'AppointmentConfirmedEventData'. Did you mean 'patientName'?
+src/infrastructure/events/AppointmentEventConsumer.ts(466,33): error TS2339: Property 'durationMinutes' does not exist on type 'AppointmentConfirmedEventData'.
+src/infrastructure/events/AppointmentEventConsumer.ts(467,33): error TS2339: Property 'consultationFee' does not exist on type 'AppointmentConfirmedEventData'.
+src/infrastructure/events/AppointmentEventConsumer.ts(495,9): error TS2353: Object literal may only specify known properties, and 'recipientName' does not exist in type 'SendNotificationCommand'.
+src/infrastructure/events/AppointmentEventConsumer.ts(496,44): error TS2339: Property 'email' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/AppointmentEventConsumer.ts(506,33): error TS2339: Property 'durationMinutes' does not exist on type 'AppointmentConfirmedEventData'.
+src/infrastructure/events/AppointmentEventConsumer.ts(531,13): error TS2559: Type 'GetPreferencesResult' has no properties in common with type 'NotificationPreferencesSubset'.
+src/infrastructure/events/AppointmentEventConsumer.ts(677,9): error TS2353: Object literal may only specify known properties, and 'recipientName' does not exist in type 'SendNotificationCommand'.
+src/infrastructure/events/AppointmentEventConsumer.ts(678,45): error TS2339: Property 'email' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/AppointmentEventConsumer.ts(679,45): error TS2339: Property 'phone' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/AppointmentEventConsumer.ts(726,9): error TS2353: Object literal may only specify known properties, and 'recipientName' does not exist in type 'SendNotificationCommand'.
+src/infrastructure/events/AppointmentEventConsumer.ts(727,44): error TS2339: Property 'email' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/BillingEventConsumer.ts(605,9): error TS2353: Object literal may only specify known properties, and 'recipientName' does not exist in type 'SendNotificationCommand'.
+src/infrastructure/events/BillingEventConsumer.ts(606,45): error TS2339: Property 'email' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/events/BillingEventConsumer.ts(607,45): error TS2339: Property 'phone' does not exist on type 'GetPreferencesResult'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(10,24): error TS2307: Cannot find module '@shared/core/Result' or its corresponding type declarations.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(11,32): error TS2307: Cannot find module '@shared/domain/base/UniqueEntityID' or its corresponding type declarations.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(410,25): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(411,18): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(413,30): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(416,25): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(417,15): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(421,17): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(422,26): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(425,21): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(426,18): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(427,23): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(430,22): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(431,22): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(432,20): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(434,23): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(435,21): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(436,21): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(437,28): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(438,17): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(439,19): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(440,19): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/infrastructure/persistence/SupabaseAppointmentReminderRepository.ts(441,19): error TS7053: Element implicitly has an 'any' type because expression of type '"props"' can't be used to index type 'AppointmentReminder'.
+  Property 'props' does not exist on type 'AppointmentReminder'.
+src/presentation/middleware/validationMiddleware.ts(41,34): error TS2307: Cannot find module 'express-validator' or its corresponding type declarations.
+src/presentation/middleware/validationMiddleware.ts(50,34): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/presentation/routes/templateRoutes.ts(10,36): error TS2307: Cannot find module 'express-validator' or its corresponding type declarations.
+src/presentation/routes/templateRoutes.ts(13,33): error TS2307: Cannot find module '../middleware/validation.middleware' or its corresponding type declarations.

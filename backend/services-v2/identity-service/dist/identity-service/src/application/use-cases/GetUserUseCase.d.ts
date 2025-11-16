@@ -28,6 +28,10 @@ export interface GetUserResponse {
         roleType: string;
         isActive: boolean;
         isEmailVerified: boolean;
+        accountStatus?: string;
+        deactivationReason?: string;
+        deactivatedAt?: string;
+        deactivatedBy?: string;
         lastLoginAt?: string;
         createdAt: string;
         updatedAt: string;

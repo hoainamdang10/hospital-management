@@ -1,40 +1,32 @@
 import { Request, Response } from 'express';
 import { CreateInvoiceUseCase } from '../../application/use-cases/CreateInvoiceUseCase';
 import { GetInvoiceUseCase } from '../../application/use-cases/GetInvoiceUseCase';
-import { FinalizeInvoiceUseCase } from '../../application/use-cases/FinalizeInvoiceUseCase';
-import { CancelInvoiceUseCase } from '../../application/use-cases/CancelInvoiceUseCase';
+// REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase
 import { ProcessPaymentUseCase } from '../../application/use-cases/ProcessPaymentUseCase';
 import { GetPatientInvoicesUseCase } from '../../application/use-cases/GetPatientInvoicesUseCase';
-import { ProcessInsuranceClaimUseCase } from '../../application/use-cases/ProcessInsuranceClaimUseCase';
-import { RefundPaymentUseCase } from '../../application/use-cases/RefundPaymentUseCase';
+// REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase, RefundPaymentUseCase
 import { SearchInvoicesUseCase } from '../../application/use-cases/SearchInvoicesUseCase';
 import { GetOverdueInvoicesUseCase } from '../../application/use-cases/GetOverdueInvoicesUseCase';
 import { GetPatientBillingSummaryUseCase } from '../../application/use-cases/GetPatientBillingSummaryUseCase';
 import { GetRevenueReportUseCase } from '../../application/use-cases/GetRevenueReportUseCase';
 import { CreatePayOSPaymentLinkUseCase } from '../../application/use-cases/CreatePayOSPaymentLinkUseCase';
 import { HandlePayOSWebhookUseCase } from '../../application/use-cases/HandlePayOSWebhookUseCase';
-import { SendInvoiceEmailUseCase } from '../../application/use-cases/SendInvoiceEmailUseCase';
-import { CreatePaymentReminderUseCase } from '../../application/use-cases/CreatePaymentReminderUseCase';
+// REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 import { AuthenticatedRequest } from '../middleware/AuthenticationMiddleware';
 
 export class InvoiceController {
   constructor(
     private readonly createInvoiceUseCase: CreateInvoiceUseCase,
     private readonly getInvoiceUseCase: GetInvoiceUseCase,
-    private readonly finalizeInvoiceUseCase: FinalizeInvoiceUseCase,
-    private readonly cancelInvoiceUseCase: CancelInvoiceUseCase,
     private readonly processPaymentUseCase: ProcessPaymentUseCase,
     private readonly getPatientInvoicesUseCase: GetPatientInvoicesUseCase,
-    private readonly processInsuranceClaimUseCase: ProcessInsuranceClaimUseCase,
-    private readonly refundPaymentUseCase: RefundPaymentUseCase,
     private readonly searchInvoicesUseCase: SearchInvoicesUseCase,
     private readonly getOverdueInvoicesUseCase: GetOverdueInvoicesUseCase,
     private readonly getPatientBillingSummaryUseCase: GetPatientBillingSummaryUseCase,
     private readonly getRevenueReportUseCase: GetRevenueReportUseCase,
     private readonly createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase,
-    private readonly handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase,
-    private readonly sendInvoiceEmailUseCase: SendInvoiceEmailUseCase,
-    private readonly createPaymentReminderUseCase: CreatePaymentReminderUseCase
+    private readonly handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase
+    // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
   ) {}
 
   public createInvoice = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -55,27 +47,7 @@ export class InvoiceController {
     }
   };
 
-  public finalizeInvoice = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const result = await this.finalizeInvoiceUseCase.execute({ invoiceId: req.params.id });
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
-
-  public cancelInvoice = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const { reason } = req.body;
-      const result = await this.cancelInvoiceUseCase.execute({ 
-        invoiceId: req.params.id, 
-        reason 
-      });
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
+  // REMOVED (Phase 1 Out-of-Scope): finalizeInvoice(), cancelInvoice() methods
 
   public processPayment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
@@ -103,30 +75,7 @@ export class InvoiceController {
     }
   };
 
-  public processInsuranceClaim = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const result = await this.processInsuranceClaimUseCase.execute({ 
-        invoiceId: req.params.id 
-      });
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
-
-  public refundPayment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const { paymentId, reason } = req.body;
-      const result = await this.refundPaymentUseCase.execute({
-        invoiceId: req.params.id,
-        paymentId,
-        reason
-      });
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
+  // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaim(), refundPayment() methods
 
   public searchInvoices = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -196,27 +145,5 @@ export class InvoiceController {
     }
   };
 
-  public sendInvoiceEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const result = await this.sendInvoiceEmailUseCase.execute({
-        invoiceId: req.params.id,
-        recipientEmail: req.body.recipientEmail
-      });
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
-
-  public createPaymentReminder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const result = await this.createPaymentReminderUseCase.execute({
-        invoiceId: req.params.id,
-        reminderDays: req.body.reminderDays
-      });
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
+  // REMOVED: sendInvoiceEmail, createPaymentReminder methods - Out of scope for Phase 1
 }

@@ -63,18 +63,38 @@ export class HandlePayOSWebhookUseCase extends BaseHealthcareUseCase<HandlePayOS
     }
 
     // Find invoice by description (contains invoice ID or invoice number)
+    // Try multiple strategies to find the invoice:
+    // 1. Try invoice number pattern (INV-YYYYMM-XXXX)
+    // 2. Try UUID pattern (fallback for invoices created before auto-generation)
+    // 3. Try direct UUID if description contains it
     const description = request.webhookData.description;
-    const invoiceIdMatch = description.match(/INV-\d{6}-\d{4}/);
-    
     let invoice = null;
-    if (invoiceIdMatch) {
-      invoice = await this.invoiceRepository.findByInvoiceNumber(invoiceIdMatch[0]);
+    
+    // Strategy 1: Try invoice number pattern
+    const invoiceNumberMatch = description.match(/INV-\d{6}-\d{4}/);
+    if (invoiceNumberMatch) {
+      this.logger.debug('Attempting to find invoice by invoice number', {
+        invoiceNumber: invoiceNumberMatch[0]
+      });
+      invoice = await this.invoiceRepository.findByInvoiceNumber(invoiceNumberMatch[0]);
+    }
+    
+    // Strategy 2: Fallback to UUID pattern if invoice number search failed
+    if (!invoice) {
+      const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const uuidMatch = description.match(uuidPattern);
+      if (uuidMatch) {
+        this.logger.debug('Invoice number search failed, attempting to find by UUID', {
+          invoiceId: uuidMatch[0]
+        });
+        invoice = await this.invoiceRepository.findById(uuidMatch[0]);
+      }
     }
 
     if (!invoice) {
-      this.logger.error('Invoice not found from webhook', { 
+      this.logger.error('Invoice not found from webhook (tried invoice number and UUID)', {
         description,
-        orderCode: request.webhookData.orderCode 
+        orderCode: request.webhookData.orderCode
       });
       throw new Error('Invoice not found');
     }

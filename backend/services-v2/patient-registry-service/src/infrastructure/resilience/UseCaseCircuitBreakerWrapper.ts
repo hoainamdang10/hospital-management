@@ -12,10 +12,12 @@ import { RegisterPatientUseCase, RegisterPatientRequest, RegisterPatientResponse
 import { UpdatePatientInfoUseCase, UpdatePatientInfoRequest, UpdatePatientInfoResponse } from '../../application/use-cases/UpdatePatientInfoUseCase';
 import { GetPatientProfileUseCase, GetPatientProfileRequest, GetPatientProfileResponse } from '../../application/use-cases/GetPatientProfileUseCase';
 import { SearchPatientsUseCase, SearchPatientsRequest, SearchPatientsResponse } from '../../application/use-cases/SearchPatientsUseCase';
+/* POST-MVP: Archived use case imports - Not required for graduation project
 import { MatchPatientsUseCase, MatchPatientsRequest, MatchPatientsResponse } from '../../application/use-cases/MatchPatientsUseCase';
 import { MergePatientsUseCase, MergePatientsRequest, MergePatientsResponse } from '../../application/use-cases/MergePatientsUseCase';
 import { LinkPatientsUseCase, LinkPatientsRequest, LinkPatientsResponse } from '../../application/use-cases/LinkPatientsUseCase';
 import { DeactivatePatientUseCase, DeactivatePatientRequest, DeactivatePatientResponse } from '../../application/use-cases/DeactivatePatientUseCase';
+END POST-MVP */
 import { ValidateInsuranceUseCase, ValidateInsuranceRequest, ValidateInsuranceResponse } from '../../application/use-cases/ValidateInsuranceUseCase';
 
 /**
@@ -100,9 +102,8 @@ export class CircuitBreakerSearchPatientsUseCase {
   }
 }
 
-/**
- * Wrapped Match Patients Use Case
- */
+/* POST-MVP: Archived circuit breaker wrappers - Not required for graduation project
+// Wrapped Match Patients Use Case
 export class CircuitBreakerMatchPatientsUseCase {
   private breaker = CircuitBreakerFactory.getBreaker('match-patients-use-case');
 
@@ -121,9 +122,7 @@ export class CircuitBreakerMatchPatientsUseCase {
   }
 }
 
-/**
- * Wrapped Merge Patients Use Case
- */
+// Wrapped Merge Patients Use Case
 export class CircuitBreakerMergePatientsUseCase {
   private breaker = CircuitBreakerFactory.getBreaker('merge-patients-use-case');
 
@@ -141,9 +140,7 @@ export class CircuitBreakerMergePatientsUseCase {
   }
 }
 
-/**
- * Wrapped Link Patients Use Case
- */
+// Wrapped Link Patients Use Case
 export class CircuitBreakerLinkPatientsUseCase {
   private breaker = CircuitBreakerFactory.getBreaker('link-patients-use-case');
 
@@ -161,9 +158,7 @@ export class CircuitBreakerLinkPatientsUseCase {
   }
 }
 
-/**
- * Wrapped Deactivate Patient Use Case
- */
+// Wrapped Deactivate Patient Use Case
 export class CircuitBreakerDeactivatePatientUseCase {
   private breaker = CircuitBreakerFactory.getBreaker('deactivate-patient-use-case');
 
@@ -180,6 +175,7 @@ export class CircuitBreakerDeactivatePatientUseCase {
     );
   }
 }
+END POST-MVP: Archived circuit breaker wrappers */
 
 /**
  * Wrapped Validate Insurance Use Case

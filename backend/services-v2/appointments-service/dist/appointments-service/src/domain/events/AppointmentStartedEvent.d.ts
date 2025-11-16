@@ -11,20 +11,23 @@ export interface AppointmentStartedEventData {
     appointmentId: string;
     patientId: string;
     doctorId: string;
+    appointmentDate: string;
+    appointmentTime: string;
     startedAt: Date;
-    roomId?: string;
+    startedBy: string;
 }
 /**
  * Appointment Started Event
- * Emitted when doctor starts the appointment
+ * Emitted when doctor starts the consultation/appointment
  */
 export declare class AppointmentStartedEvent extends DomainEvent {
     readonly appointmentId: string;
     readonly patientId: string;
     readonly doctorId: string;
-    readonly startedAt: Date;
-    readonly roomId?: string | undefined;
-    constructor(appointmentId: string, patientId: string, doctorId: string, startedAt: Date, roomId?: string | undefined, correlationId?: string, causationId?: string, userId?: string);
+    readonly appointmentDate: string;
+    readonly appointmentTime: string;
+    readonly startedBy: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, appointmentDate: string, appointmentTime: string, startedBy: string, correlationId?: string, causationId?: string, userId?: string);
     /**
      * Get event data payload (required by DomainEvent base class)
      */

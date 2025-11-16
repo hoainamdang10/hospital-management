@@ -1,6 +1,6 @@
 'use client';
 
-import { DollarSign, TrendingUp, Download, Calendar } from 'lucide-react';
+import { TrendingUp, Download, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 

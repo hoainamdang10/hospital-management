@@ -80,13 +80,8 @@ export class GetRevenueReportUseCase extends BaseHealthcareUseCase<GetRevenueRep
       });
     });
 
+    // REMOVED (Phase 1 Prepaid Model): Insurance breakdown - no insurance coverage in MVP
     const byInsuranceType: { [type: string]: number } = {};
-    paidInvoices.forEach(invoice => {
-      if (invoice.insurance) {
-        const type = invoice.insurance.provider;
-        byInsuranceType[type] = (byInsuranceType[type] || 0) + invoice.insuranceCoverage.amount;
-      }
-    });
 
     this.logger.info('Revenue report generated', { 
       totalRevenue,

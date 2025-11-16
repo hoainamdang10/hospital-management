@@ -26,7 +26,7 @@ import { StaffCommandHandlers } from "./application/handlers/StaffCommandHandler
 import { StaffQueryHandlers } from "./application/handlers/StaffQueryHandlers";
 import { RabbitMQEventPublisher } from "./infrastructure/events/RabbitMQEventPublisher";
 import { IdentityEventConsumer } from "./infrastructure/events/IdentityEventConsumer";
-import { PatientEventConsumer } from "./infrastructure/events/PatientEventConsumer";
+// import { PatientEventConsumer } from "./infrastructure/events/PatientEventConsumer"; // Removed in scope reduction
 import { RabbitMQStaffEventHandler } from "./infrastructure/events/RabbitMQStaffEventHandler";
 import { IEventBus } from "@shared/events/event-bus.interface";
 import { HybridEventBus } from "./infrastructure/events/HybridEventBus";
@@ -62,7 +62,7 @@ async function initializeEventBus() {
 // Initialize RabbitMQ Event Publisher and Consumers
 let eventPublisher: RabbitMQEventPublisher | null = null;
 let identityEventConsumer: IdentityEventConsumer | null = null;
-let patientEventConsumer: PatientEventConsumer | null = null;
+// let patientEventConsumer: PatientEventConsumer | null = null; // Removed in scope reduction
 let staffEventHandler: RabbitMQStaffEventHandler | null = null;
 
 async function initializeEventPublisher() {
@@ -167,27 +167,27 @@ async function initializeIdentityEventConsumer() {
   }
 }
 
-// Initialize Patient Event Consumer
-async function initializePatientEventConsumer() {
-  try {
-    patientEventConsumer = container.resolve<PatientEventConsumer>(
-      ServiceTokens.PATIENT_EVENT_CONSUMER,
-    );
-    await patientEventConsumer.connect();
-    logger.info("Patient Event Consumer initialized successfully");
-  } catch (error) {
-    logger.error("Failed to initialize Patient Event Consumer", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-    logger.warn("Continuing without Patient event consumption");
-  }
-}
+// Initialize Patient Event Consumer - Removed in scope reduction
+// async function initializePatientEventConsumer() {
+//   try {
+//     patientEventConsumer = container.resolve<PatientEventConsumer>(
+//       ServiceTokens.PATIENT_EVENT_CONSUMER,
+//     );
+//     await patientEventConsumer.connect();
+//     logger.info("Patient Event Consumer initialized successfully");
+//   } catch (error) {
+//     logger.error("Failed to initialize Patient Event Consumer", {
+//       error: error instanceof Error ? error.message : "Unknown error",
+//     });
+//     logger.warn("Continuing without Patient event consumption");
+//   }
+// }
 
 // Initialize event publisher and consumers (non-blocking)
 initializeEventBus();
 initializeEventPublisher();
 initializeIdentityEventConsumer();
-initializePatientEventConsumer();
+// initializePatientEventConsumer(); // Removed in scope reduction
 
 // Middleware
 app.use(helmet());
@@ -308,10 +308,11 @@ process.on("SIGTERM", async () => {
     await identityEventConsumer.disconnect();
     logger.info("Identity Event Consumer disconnected");
   }
-  if (patientEventConsumer) {
-    await patientEventConsumer.disconnect();
-    logger.info("Patient Event Consumer disconnected");
-  }
+  // Removed in scope reduction
+  // if (patientEventConsumer) {
+  //   await patientEventConsumer.disconnect();
+  //   logger.info("Patient Event Consumer disconnected");
+  // }
 
   if (eventBus) {
     await eventBus.disconnect();
@@ -338,10 +339,11 @@ process.on("SIGINT", async () => {
     await identityEventConsumer.disconnect();
     logger.info("Identity Event Consumer disconnected");
   }
-  if (patientEventConsumer) {
-    await patientEventConsumer.disconnect();
-    logger.info("Patient Event Consumer disconnected");
-  }
+  // Removed in scope reduction
+  // if (patientEventConsumer) {
+  //   await patientEventConsumer.disconnect();
+  //   logger.info("Patient Event Consumer disconnected");
+  // }
 
   if (eventBus) {
     await eventBus.disconnect();

@@ -33,6 +33,10 @@ export interface GetUserResponse {
     roleType: string;
     isActive: boolean;
     isEmailVerified: boolean;
+    accountStatus?: string;
+    deactivationReason?: string;
+    deactivatedAt?: string;
+    deactivatedBy?: string;
     lastLoginAt?: string;
     createdAt: string;
     updatedAt: string;
@@ -120,6 +124,10 @@ export class GetUserUseCase implements IUseCase<GetUserRequest, GetUserResponse>
           roleType: user.healthcareRole.type,
           isActive: user.isActive,
           isEmailVerified: user.isEmailVerified,
+          accountStatus: user.accountStatus,
+          deactivationReason: user.deactivationReason,
+          deactivatedAt: user.deactivatedAt?.toISOString(),
+          deactivatedBy: user.deactivatedBy,
           lastLoginAt: user.lastLoginAt?.toISOString(),
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString()

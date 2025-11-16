@@ -336,9 +336,14 @@ class BillingEventConsumer {
     }
     /**
      * Handle payment processed event
+     *
+     * ✅ REFACTORED FOR MVP:
+     * - Send payment receipt when status = 'completed'
+     * - Use new template: PAYMENT_COMPLETED
+     * - Skip failed/refunded in MVP (future work)
      */
     async handlePaymentProcessed(data) {
-        console.log('Processing payment processing for notifications', {
+        console.log('[BillingEventConsumer] Processing payment processed for notifications', {
             paymentId: data.paymentId,
             patientId: data.patientId,
             amount: data.amount,
@@ -346,24 +351,61 @@ class BillingEventConsumer {
             paymentMethod: data.paymentMethod,
         });
         try {
+            // ===== GUARD: Only process completed payments in MVP =====
+            if (data.paymentStatus !== 'completed') {
+                console.log('[BillingEventConsumer] Ignoring non-completed payment (MVP scope)', {
+                    paymentId: data.paymentId,
+                    paymentStatus: data.paymentStatus
+                });
+                return;
+            }
             // Get patient notification preferences
             const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
                 userId: data.patientId,
                 userType: 'patient',
             });
-            // Send payment notification to patient
-            await this.sendPaymentNotification(data, patientPreferences);
-            // Send payment failure notification if applicable
-            if (data.paymentStatus === 'failed') {
-                await this.sendPaymentFailureNotification(data, patientPreferences);
-            }
-            // Send refund notification if applicable
-            if (data.paymentStatus === 'refunded' || data.paymentStatus === 'partial_refund') {
-                await this.sendRefundNotification(data, patientPreferences);
-            }
+            // ===== Send payment receipt notification =====
+            await this.sendNotificationUseCase.execute({
+                recipientId: data.patientId,
+                recipientType: 'PATIENT',
+                recipientName: data.patientName,
+                recipientEmail: patientPreferences?.preferences?.email,
+                recipientPhone: patientPreferences?.preferences?.phoneNumber,
+                templateType: 'PAYMENT_COMPLETED', // ✅ NEW template
+                channels: ['EMAIL'],
+                priority: 'NORMAL',
+                data: {
+                    patientName: data.patientName,
+                    paymentId: data.paymentId,
+                    appointmentId: data.appointmentId || 'N/A',
+                    amount: data.amount,
+                    paymentMethod: data.paymentMethod,
+                    transactionId: data.transactionId || data.paymentId,
+                    completedAt: data.processedAt,
+                    statusMessage: 'Thanh toán thành công. Lịch hẹn của bạn đã được xác nhận.'
+                },
+                scheduledAt: new Date(),
+                metadata: {
+                    paymentId: data.paymentId,
+                    invoiceId: data.invoiceId,
+                    flow: 'prepaid_payment_receipt'
+                }
+            });
+            console.log('[BillingEventConsumer] Payment receipt sent', {
+                paymentId: data.paymentId,
+                patientId: data.patientId,
+                templateUsed: 'PAYMENT_COMPLETED'
+            });
+            // ===== FUTURE WORK: Payment failures/refunds =====
+            // if (data.paymentStatus === 'failed') {
+            //   await this.sendPaymentFailureNotification(data, patientPreferences);
+            // }
+            // if (data.paymentStatus === 'refunded') {
+            //   await this.sendRefundNotification(data, patientPreferences);
+            // }
         }
         catch (error) {
-            console.error('Failed to process payment processing', {
+            console.error('[BillingEventConsumer] Failed to process payment', {
                 paymentId: data.paymentId,
                 patientId: data.patientId,
                 error: error instanceof Error ? error.message : 'Unknown error',
@@ -494,11 +536,12 @@ class BillingEventConsumer {
                     dueDate: data.dueDate,
                     reminderType: data.reminderType,
                     daysBeforeDue: data.daysBeforeDue,
-                },
-                healthcareContext: {
-                    contextType: 'billing',
-                    relatedEntityType: 'invoice',
-                    relatedEntityId: data.invoiceId,
+                    source: 'scheduler-service',
+                    healthcareContext: {
+                        contextType: 'billing',
+                        relatedEntityType: 'invoice',
+                        relatedEntityId: data.invoiceId,
+                    },
                 },
             });
             console.log('Payment reminder notification sent successfully', {

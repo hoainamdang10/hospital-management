@@ -165,7 +165,7 @@ class IdentityEventConsumer {
                             await this.userUpdatedHandler.handle(event.payload);
                             break;
                         case 'user.activated.event':
-                            await this.userActivatedHandler.handle(event.payload);
+                            await this.userActivatedHandler.handle(event.payload.eventData);
                             break;
                         default:
                             this.logger.warn('Unknown identity event routing key', {

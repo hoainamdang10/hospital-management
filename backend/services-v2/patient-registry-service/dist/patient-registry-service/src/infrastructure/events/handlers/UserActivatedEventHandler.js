@@ -44,6 +44,7 @@ class UserActivatedEventHandler {
             this.logger.info('Creating patient record for activated user', {
                 userId: eventData.userId,
                 email: eventData.email,
+                fullName: eventData.fullName,
                 activatedAt: eventData.activatedAt
             });
             // Create patient using repository - use fullName from event data

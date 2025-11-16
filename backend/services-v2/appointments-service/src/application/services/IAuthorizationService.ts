@@ -100,14 +100,15 @@ export interface IAuthorizationService {
     appointment: { patientId: string; doctorId: string }
   ): Promise<boolean>;
 
-  /**
-   * Check if user can bulk reschedule appointments
-   * Only admin or the doctor whose appointments are being rescheduled
-   */
-  canBulkReschedule(
-    userId: string,
-    doctorId: string
-  ): Promise<boolean>;
+  // ===== ARCHIVED FOR POST-MVP: BulkReschedule Authorization =====
+  // /**
+  //  * Check if user can bulk reschedule appointments
+  //  * Only admin or the doctor whose appointments are being rescheduled
+  //  */
+  // canBulkReschedule(
+  //   userId: string,
+  //   doctorId: string
+  // ): Promise<boolean>;
 
   /**
    * Check if user can create emergency appointments

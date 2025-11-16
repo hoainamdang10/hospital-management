@@ -12,7 +12,7 @@ class InvoiceCreatedEvent extends domain_event_1.DomainEvent {
             status,
             timestamp: new Date()
         };
-        super('invoice.generated', invoiceId, 'billing', eventData, 1, correlationId, causationId, userIdForAudit);
+        super('billing.invoice.created', invoiceId, 'billing', eventData, 1, correlationId, causationId, userIdForAudit);
         this.invoiceId = invoiceId;
         this.patientId = patientId;
         this.totalAmount = totalAmount;

@@ -3,7 +3,7 @@
  * Handles all billing-related API calls
  */
 
-import { apiClient } from '@/lib/api-client';
+import apiClient from '@/lib/api/axios';
 
 export interface Invoice {
   id: string;

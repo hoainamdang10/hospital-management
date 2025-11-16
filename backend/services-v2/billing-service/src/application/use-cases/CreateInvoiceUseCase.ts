@@ -5,20 +5,17 @@ import { ILogger } from '@shared/application/services/logger.interface';
 import { Invoice } from '../../domain/aggregates/Invoice';
 import { InvoiceItem } from '../../domain/entities/InvoiceItem';
 import { Money } from '../../domain/value-objects/Money';
-import { Insurance } from '../../domain/value-objects/Insurance';
 
 export interface CreateInvoiceRequest {
   patientId: string;
+  appointmentId?: string;
+  staffId?: string;
   items: Array<{
     description: string;
     quantity: number;
     unitPrice: number;
   }>;
-  insurance?: {
-    provider: string;
-    policyNumber: string;
-    coveragePercentage: number;
-  };
+  // REMOVED (Phase 1 Prepaid Model): insurance
 }
 
 export interface CreateInvoiceResponse {
@@ -53,17 +50,18 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<CreateInvoiceReq
       )
     );
 
-    // Create insurance if provided
-    const insurance = request.insurance
-      ? Insurance.create(
-          request.insurance.provider,
-          request.insurance.policyNumber,
-          request.insurance.coveragePercentage
-        )
-      : undefined;
-
-    // Create invoice
-    const invoice = Invoice.create(request.patientId, items, insurance);
+    // Create invoice (Phase 1 Prepaid Model: no insurance)
+    const invoice = Invoice.create(request.patientId, items);
+    
+    // Set appointment ID if provided
+    if (request.appointmentId) {
+      invoice.setAppointmentId(request.appointmentId);
+    }
+    
+    // Set staff ID if provided
+    if (request.staffId) {
+      invoice.setStaffId(request.staffId);
+    }
 
     // Save invoice
     await this.invoiceRepository.save(invoice);

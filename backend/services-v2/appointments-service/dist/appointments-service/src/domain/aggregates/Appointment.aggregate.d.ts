@@ -31,6 +31,7 @@ export declare enum AppointmentPriority {
 }
 export declare enum AppointmentStatus {
     SCHEDULED = "scheduled",
+    PENDING_PAYMENT = "pending_payment",// ✅ ADDED for prepaid flow
     CONFIRMED = "confirmed",
     ARRIVED = "arrived",
     IN_PROGRESS = "in_progress",
@@ -63,6 +64,8 @@ export interface AppointmentProps {
     departmentId?: string;
     requiredEquipment?: string[];
     consultationFee: number;
+    paymentStatus?: 'pending' | 'paid' | 'refunded';
+    paymentDeadline?: Date;
     checkedInAt?: Date;
     startedAt?: Date;
     completedAt?: Date;
@@ -110,6 +113,14 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
      * NOTE: Appointments service does NOT manage payment state
      */
     getConsultationFee(): number;
+    /**
+     * Get payment status (Flow 3 - Prepaid Model)
+     */
+    get paymentStatus(): 'pending' | 'paid' | 'refunded' | undefined;
+    /**
+     * Get payment deadline (Flow 3 - Prepaid Model)
+     */
+    get paymentDeadline(): Date | undefined;
     getCheckedInAt(): Date | undefined;
     getStartedAt(): Date | undefined;
     getCompletedAt(): Date | undefined;
@@ -142,9 +153,22 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
      */
     private static validateAppointmentCreation;
     /**
-     * Confirm appointment
+     * Confirm appointment (after payment completed)
+     *
+     * ✅ PURE DOMAIN LOGIC - No infrastructure dependencies
+     * ✅ Logging moved to application/infrastructure layer
+     *
+     * BUSINESS RULES:
+     * - Can only confirm appointments in PENDING_PAYMENT or SCHEDULED status
+     * - Must have valid confirmedBy actor
+     * - Payment deadline must not be expired (if set)
+     * - Emits AppointmentConfirmedEvent for downstream services
+     *
+     * @param confirmedBy - Actor confirming the appointment (user ID or 'system')
+     * @param notes - Optional confirmation notes
+     * @throws Error if appointment cannot be confirmed
      */
-    confirm(confirmedBy: string): void;
+    confirm(confirmedBy: string, notes?: string): void;
     /**
      * Check in patient
      */
@@ -155,12 +179,25 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
     start(startTime?: Date): void;
     /**
      * Complete appointment
+     * Hybrid Approach: Allow completion from both ARRIVED and IN_PROGRESS status
+     * Auto-starts appointment if currently ARRIVED (for flexibility)
      */
     complete(): void;
     /**
      * Cancel appointment
      */
     cancel(reason: string, cancelledBy: string): void;
+    /**
+     * Mark appointment as paid
+     * Called by PaymentCompletedHandler after successful payment
+     * Idempotent - safe to call multiple times
+     */
+    markAsPaid(): void;
+    /**
+     * Check if payment deadline has expired
+     * Used by ExpireUnpaidAppointmentsUseCase to find expired appointments
+     */
+    isPaymentExpired(): boolean;
     /**
      * Mark as no-show
      */

@@ -60,6 +60,7 @@ export class IdentityUserDeletedEventHandler {
         return;
       }
 
+      /* POST-MVP: Patient Lifecycle - Deactivation not required for graduation project
       // Deactivate patient (soft delete)
       // Note: We don't hard delete patient records for compliance/audit reasons
       if (patient.isActive()) {
@@ -76,6 +77,13 @@ export class IdentityUserDeletedEventHandler {
           patientId: patient.id
         });
       }
+      END POST-MVP: Patient Lifecycle */
+
+      // For MVP: Log the event but do not deactivate
+      this.logger.info('User deleted - patient record retained (MVP behavior)', {
+        userId: eventData.userId,
+        patientId: patient.id
+      });
 
     } catch (error) {
       this.logger.error('Error handling identity.user.deleted event', {

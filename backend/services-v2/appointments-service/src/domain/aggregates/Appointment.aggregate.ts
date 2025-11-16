@@ -43,6 +43,7 @@ export enum AppointmentPriority {
 
 export enum AppointmentStatus {
   SCHEDULED = 'scheduled',
+  PENDING_PAYMENT = 'pending_payment', // ✅ ADDED for prepaid flow
   CONFIRMED = 'confirmed',
   ARRIVED = 'arrived',
   IN_PROGRESS = 'in_progress',
@@ -81,7 +82,12 @@ export interface AppointmentProps {
   // Appointments service does NOT manage payment state
   // Only stores fee as reference for billing-service to consume via events
   consultationFee: number;
-  
+
+  // Payment Tracking (for prepaid model - Flow 3)
+  // Track payment status and deadline for online booking with prepayment
+  paymentStatus?: 'pending' | 'paid' | 'refunded';
+  paymentDeadline?: Date; // Timeout for pending payment (default: 30 minutes)
+
   checkedInAt?: Date;
   startedAt?: Date;
   completedAt?: Date;
@@ -177,6 +183,20 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
    */
   public getConsultationFee(): number {
     return this.props.consultationFee;
+  }
+
+  /**
+   * Get payment status (Flow 3 - Prepaid Model)
+   */
+  public get paymentStatus(): 'pending' | 'paid' | 'refunded' | undefined {
+    return this.props.paymentStatus;
+  }
+
+  /**
+   * Get payment deadline (Flow 3 - Prepaid Model)
+   */
+  public get paymentDeadline(): Date | undefined {
+    return this.props.paymentDeadline;
   }
 
   public getCheckedInAt(): Date | undefined {
@@ -302,6 +322,9 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
       departmentId,
       requiredEquipment,
       consultationFee, // Immutable reference for billing-service
+      // Payment tracking for prepaid model (Flow 3)
+      paymentStatus: 'pending',
+      paymentDeadline: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
       reminderSent: false,
       confirmationRequired: true,
       version: 1,
@@ -360,31 +383,90 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
   }
 
   /**
-   * Confirm appointment
+   * Confirm appointment (after payment completed)
+   * 
+   * ✅ PURE DOMAIN LOGIC - No infrastructure dependencies
+   * ✅ Logging moved to application/infrastructure layer
+   * 
+   * BUSINESS RULES:
+   * - Can only confirm appointments in PENDING_PAYMENT or SCHEDULED status
+   * - Must have valid confirmedBy actor
+   * - Payment deadline must not be expired (if set)
+   * - Emits AppointmentConfirmedEvent for downstream services
+   * 
+   * @param confirmedBy - Actor confirming the appointment (user ID or 'system')
+   * @param notes - Optional confirmation notes
+   * @throws Error if appointment cannot be confirmed
    */
-  public confirm(confirmedBy: string): void {
-    if (this.props.status !== AppointmentStatus.SCHEDULED) {
-      throw new Error('Only scheduled appointments can be confirmed');
+  public confirm(confirmedBy: string, notes?: string): void {
+    // ===== GUARD 1: Validate current status =====
+    // Allow confirm from both PENDING_PAYMENT (prepaid flow) and SCHEDULED (traditional flow)
+    const validStatuses = [AppointmentStatus.PENDING_PAYMENT, AppointmentStatus.SCHEDULED];
+    
+    if (!validStatuses.includes(this.props.status)) {
+      throw new Error(
+        `Cannot confirm appointment in ${this.props.status} status. ` +
+        `Expected: ${validStatuses.join(' or ')}`
+      );
     }
 
+    // ===== GUARD 2: Validate confirmedBy =====
+    if (!confirmedBy || confirmedBy.trim() === '') {
+      throw new Error('confirmedBy is required for appointment confirmation');
+    }
+
+    // ===== GUARD 3: Check payment deadline not expired (prepaid flow) =====
+    if (this.props.paymentDeadline && new Date() > this.props.paymentDeadline) {
+      throw new Error(
+        `Cannot confirm appointment - payment deadline has passed. ` +
+        `Deadline: ${this.props.paymentDeadline.toISOString()}, ` +
+        `Current: ${new Date().toISOString()}`
+      );
+    }
+
+    // ===== STATE MUTATION =====
+    const previousStatus = this.props.status;
+    
     this.props.status = AppointmentStatus.CONFIRMED;
     this.props.confirmedAt = new Date();
     this.props.confirmedBy = confirmedBy;
     this.props.updatedAt = new Date();
     this.props.lastModifiedBy = confirmedBy;
+    
+    // Update payment status if in prepaid flow
+    if (this.props.paymentStatus === 'pending') {
+      this.props.paymentStatus = 'paid';
+    }
 
-    // Domain event
+    // Store notes if provided
+    if (notes) {
+      this.props.notes = notes;
+    }
+
+    // ===== DOMAIN EVENT =====
+    // ⚠️ Names will be enriched from read model in Repository layer
     this.addDomainEvent(
       new AppointmentConfirmedEvent(
         this.props.appointmentId.value,
         this.props.patientId,
         this.props.doctorId,
-        this.props.confirmedAt,
-        'manual' // confirmation method
+        this.props.timeSlot.appointmentDate,
+        this.props.timeSlot.appointmentTime.toString(),
+        confirmedBy,
+        'payment_completed', // confirmation method for prepaid flow
+        undefined, // patientName - enriched in repository
+        undefined, // doctorName - enriched in repository
+        this.props.departmentId,
+        undefined, // departmentName - enriched in repository
+        this.props.durationMinutes,
+        this.props.consultationFee
       )
     );
 
     this.incrementVersion();
+    
+    // ✅ NO LOGGING HERE - Pure domain logic only
+    // Logging sẽ được thực hiện ở application/infrastructure layer
   }
 
   /**
@@ -434,8 +516,9 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
         this.props.appointmentId.value,
         this.props.patientId,
         this.props.doctorId,
-        actualStartTime,
-        this.props.roomId
+        this.props.timeSlot.appointmentDate, // Already a string
+        this.props.timeSlot.appointmentTime.toString(),
+        'system' // startedBy - using system as default
       )
     );
 
@@ -444,10 +527,21 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
 
   /**
    * Complete appointment
+   * Hybrid Approach: Allow completion from both ARRIVED and IN_PROGRESS status
+   * Auto-starts appointment if currently ARRIVED (for flexibility)
    */
   public complete(): void {
-    if (this.props.status !== AppointmentStatus.IN_PROGRESS) {
-      throw new Error('Only in-progress appointments can be completed');
+    // Relaxed state machine: Allow complete from ARRIVED or IN_PROGRESS
+    if (this.props.status !== AppointmentStatus.IN_PROGRESS && 
+        this.props.status !== AppointmentStatus.ARRIVED) {
+      throw new Error('Only in-progress or arrived appointments can be completed');
+    }
+
+    // Auto-start if currently ARRIVED (hybrid approach)
+    if (this.props.status === AppointmentStatus.ARRIVED) {
+      this.props.status = AppointmentStatus.IN_PROGRESS;
+      this.props.startedAt = new Date();
+      // Note: Not emitting AppointmentStartedEvent here to avoid duplicate events
     }
 
     this.props.status = AppointmentStatus.COMPLETED;
@@ -516,6 +610,34 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
   }
 
   /**
+   * Mark appointment as paid
+   * Called by PaymentCompletedHandler after successful payment
+   * Idempotent - safe to call multiple times
+   */
+  public markAsPaid(): void {
+    if (this.props.paymentStatus === 'paid') {
+      return; // Already paid, idempotent
+    }
+
+    this.props.paymentStatus = 'paid';
+    this.props.updatedAt = new Date();
+    this.incrementVersion();
+  }
+
+  /**
+   * Check if payment deadline has expired
+   * Used by ExpireUnpaidAppointmentsUseCase to find expired appointments
+   */
+  public isPaymentExpired(): boolean {
+    if (!this.props.paymentDeadline) {
+      return false; // No deadline set (backward compatibility)
+    }
+
+    // Only consider expired if status is still pending
+    return new Date() > this.props.paymentDeadline && this.props.paymentStatus === 'pending';
+  }
+
+  /**
    * Mark as no-show
    */
   public markAsNoShow(markedBy: string): void {
@@ -534,9 +656,9 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
         this.props.appointmentId.value,
         this.props.patientId,
         this.props.doctorId,
-        new Date(this.props.timeSlot.appointmentDate),
-        this.props.timeSlot.appointmentTime,
-        new Date()
+        this.props.timeSlot.appointmentDate, // Already a string
+        this.props.timeSlot.appointmentTime.toString(),
+        'system' // markedBy - using system as default
       )
     );
 

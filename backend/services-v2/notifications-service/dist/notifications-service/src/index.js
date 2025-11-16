@@ -35,24 +35,38 @@ async function initializeEventConsumers(container) {
         const appointmentEventConsumer = container.resolve(setup_1.ServiceTokens.APPOINTMENT_EVENT_CONSUMER);
         const staffEventConsumer = container.resolve(setup_1.ServiceTokens.STAFF_EVENT_CONSUMER);
         const billingEventConsumer = container.resolve(setup_1.ServiceTokens.BILLING_EVENT_CONSUMER);
-        const clinicalEMREventConsumer = container.resolve(setup_1.ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER);
+        // Clinical EMR Event Consumer REMOVED FOR MVP - Focus on Appointments only
         // Connect event consumers
         await Promise.all([
             appointmentEventConsumer.connect(),
             staffEventConsumer.connect(),
-            billingEventConsumer.connect(),
-            clinicalEMREventConsumer.connect()
+            billingEventConsumer.connect()
         ]);
         console.log('✅ All event consumers connected successfully');
-        console.log('📋 Active event consumers:');
+        console.log('📋 Active event consumers (MVP Scope):');
         console.log('   - Appointment Event Consumer (7 event types)');
         console.log('   - Staff Event Consumer (7 event types)');
         console.log('   - Billing Event Consumer (5 event types)');
-        console.log('   - Clinical EMR Event Consumer (5 event types)');
-        console.log('🎯 Full event-driven architecture enabled!');
+        console.log('🎯 MVP event-driven architecture enabled (Clinical EMR removed)!');
     }
     catch (error) {
         console.error('❌ Failed to initialize event consumers:', error);
+        throw error;
+    }
+}
+/**
+ * Initialize Reminder Cron Job
+ */
+async function initializeReminderCronJob(container) {
+    try {
+        console.log('⏰ Initializing Reminder Cron Job...');
+        const reminderCronJob = container.resolve(setup_1.ServiceTokens.REMINDER_CRON_JOB);
+        reminderCronJob.start();
+        console.log('✅ Reminder Cron Job started successfully');
+        console.log('📋 Cron job will check for due reminders every 5 minutes');
+    }
+    catch (error) {
+        console.error('❌ Failed to initialize Reminder Cron Job:', error);
         throw error;
     }
 }
@@ -66,19 +80,33 @@ async function shutdownEventConsumers(container) {
         const appointmentEventConsumer = container.resolve(setup_1.ServiceTokens.APPOINTMENT_EVENT_CONSUMER);
         const staffEventConsumer = container.resolve(setup_1.ServiceTokens.STAFF_EVENT_CONSUMER);
         const billingEventConsumer = container.resolve(setup_1.ServiceTokens.BILLING_EVENT_CONSUMER);
-        const clinicalEMREventConsumer = container.resolve(setup_1.ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER);
+        // Clinical EMR Event Consumer REMOVED FOR MVP
         // Disconnect event consumers
         await Promise.all([
             appointmentEventConsumer.disconnect(),
             staffEventConsumer.disconnect(),
-            billingEventConsumer.disconnect(),
-            clinicalEMREventConsumer.disconnect()
+            billingEventConsumer.disconnect()
         ]);
         console.log('✅ All event consumers disconnected successfully');
     }
     catch (error) {
         console.error('❌ Failed to shutdown event consumers:', error);
         // Continue with shutdown even if some consumers fail to disconnect
+    }
+}
+/**
+ * Graceful Shutdown Reminder Cron Job
+ */
+async function shutdownReminderCronJob(container) {
+    try {
+        console.log('⏰ Shutting down Reminder Cron Job...');
+        const reminderCronJob = container.resolve(setup_1.ServiceTokens.REMINDER_CRON_JOB);
+        reminderCronJob.stop();
+        console.log('✅ Reminder Cron Job stopped successfully');
+    }
+    catch (error) {
+        console.error('❌ Failed to shutdown Reminder Cron Job:', error);
+        // Continue with shutdown even if cron job fails to stop
     }
 }
 /**
@@ -147,6 +175,9 @@ async function bootstrap() {
         // Initialize Event Consumers
         await initializeEventConsumers(container);
         console.log('✅ Event consumers initialized');
+        // Initialize Reminder Cron Job
+        await initializeReminderCronJob(container);
+        console.log('✅ Reminder Cron Job initialized');
         // Mount routes with /api/v1 prefix
         const notificationRoutes = (0, notificationRoutes_1.createNotificationRoutes)(notificationController);
         app.use('/api/v1/notifications', notificationRoutes);
@@ -253,7 +284,10 @@ async function bootstrap() {
         // Graceful shutdown
         process.on('SIGTERM', async () => {
             console.log('SIGTERM signal received: closing HTTP server and event consumers');
-            // Shutdown event consumers first
+            // Shutdown Reminder Cron Job first
+            await shutdownReminderCronJob(container);
+            console.log('✅ Reminder Cron Job shutdown');
+            // Shutdown event consumers
             await shutdownEventConsumers(container);
             console.log('✅ Event consumers shutdown');
             server.close(() => {
@@ -263,7 +297,10 @@ async function bootstrap() {
         });
         process.on('SIGINT', async () => {
             console.log('SIGINT signal received: closing HTTP server and event consumers');
-            // Shutdown event consumers first
+            // Shutdown Reminder Cron Job first
+            await shutdownReminderCronJob(container);
+            console.log('✅ Reminder Cron Job shutdown');
+            // Shutdown event consumers
             await shutdownEventConsumers(container);
             console.log('✅ Event consumers shutdown');
             server.close(() => {

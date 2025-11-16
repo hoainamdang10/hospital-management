@@ -25,6 +25,7 @@ export interface AppConfig {
     providerServiceUrl: string;
     schedulerServiceUrl: string;
     schedulerApiKey: string; // Required for scheduler integration
+    billingServiceUrl: string; // Required for payment link creation
   };
 
   // CORS
@@ -120,6 +121,8 @@ export function loadConfig(): AppConfig {
       schedulerServiceUrl:
         process.env.SCHEDULER_SERVICE_URL || "http://localhost:3030",
       schedulerApiKey: process.env.SCHEDULER_API_KEY!, // Required, validated above
+      billingServiceUrl:
+        process.env.BILLING_SERVICE_URL || "http://localhost:3006",
     },
 
     // CORS

@@ -13,7 +13,7 @@ import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { UserId } from '../../domain/value-objects/UserId';
 import { ILogger } from '../services/ILogger';
 import { IEventPublisher } from '../services/IEventPublisher';
-import { UserAccountUnlockedEvent } from '../../domain/events/UserAccountUnlockedEvent';
+// import { UserAccountUnlockedEvent } from '../../domain/events/UserAccountUnlockedEvent'; // Event removed in scope reduction
 
 export interface UnlockAccountRequest {
   userId: string; // User to unlock
@@ -39,7 +39,7 @@ export class UnlockAccountUseCase
     private userRepository: IUserRepository,
     private logger: ILogger,
     private circuitBreaker: ICircuitBreaker,
-    private eventPublisher?: IEventPublisher // Optional for backward compatibility
+    private _eventPublisher?: IEventPublisher // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
   ) {}
 
   async execute(request: UnlockAccountRequest): Promise<UnlockAccountResponse> {
@@ -116,30 +116,30 @@ export class UnlockAccountUseCase
         reason: request.reason
       });
 
-      // 6. Publish UserAccountUnlockedEvent
-      if (this.eventPublisher) {
-        try {
-          const event = new UserAccountUnlockedEvent(
-            userIdVO,
-            request.unlockedBy,
-            request.reason,
-            user.email.value,
-            user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
-          );
+      // 6. Publish UserAccountUnlockedEvent - Disabled in scope reduction
+      // if (this.eventPublisher) {
+      //   try {
+      //     const event = new UserAccountUnlockedEvent(
+      //       userIdVO,
+      //       request.unlockedBy,
+      //       request.reason,
+      //       user.email.value,
+      //       user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+      //     );
 
-          await this.eventPublisher.publishDomainEvents([event]);
+      //     await this.eventPublisher.publishDomainEvents([event]);
 
-          this.logger.info('UserAccountUnlockedEvent published', {
-            userId: request.userId
-          });
-        } catch (error) {
-          this.logger.error('Failed to publish UserAccountUnlockedEvent', {
-            userId: request.userId,
-            error: error instanceof Error ? error.message : String(error)
-          });
-          // Don't fail unlock operation if event publishing fails
-        }
-      }
+      //     this.logger.info('UserAccountUnlockedEvent published', {
+      //       userId: request.userId
+      //     });
+      //   } catch (error) {
+      //     this.logger.error('Failed to publish UserAccountUnlockedEvent', {
+      //       userId: request.userId,
+      //       error: error instanceof Error ? error.message : String(error)
+      //     });
+      //     // Don't fail unlock operation if event publishing fails
+      //   }
+      // }
 
       return {
         success: true,

@@ -140,3 +140,90 @@ export class DepartmentDeactivatedEvent extends HealthcareDomainEvent<Department
     });
   }
 }
+
+/**
+ * Department Head Assigned Event
+ * Published when a department head is assigned or changed
+ */
+export interface DepartmentHeadAssignedEventData extends DepartmentEventData {
+  headId: string;
+  headName: string;
+  headEmail: string;
+  previousHeadId?: string;
+}
+
+export class DepartmentHeadAssignedEvent extends HealthcareDomainEvent<DepartmentHeadAssignedEventData> {
+  constructor(data: DepartmentHeadAssignedEventData) {
+    super('department.head.assigned', data);
+  }
+
+  static create(
+    departmentId: string,
+    departmentCode: string,
+    departmentNameEn: string,
+    departmentNameVi: string,
+    headId: string,
+    headName: string,
+    headEmail: string,
+    previousHeadId?: string,
+    triggeredBy?: string
+  ): DepartmentHeadAssignedEvent {
+    return new DepartmentHeadAssignedEvent({
+      departmentId,
+      departmentCode,
+      departmentNameEn,
+      departmentNameVi,
+      timestamp: new Date(),
+      headId,
+      headName,
+      headEmail,
+      previousHeadId,
+      triggeredBy,
+    });
+  }
+}
+
+/**
+ * Department Staff Count Changed Event
+ * Published when department staff count changes (staff added/removed)
+ */
+export interface DepartmentStaffCountChangedEventData extends DepartmentEventData {
+  previousCount: number;
+  newCount: number;
+  changeType: 'added' | 'removed' | 'transferred_in' | 'transferred_out';
+  staffId?: string;
+  staffName?: string;
+}
+
+export class DepartmentStaffCountChangedEvent extends HealthcareDomainEvent<DepartmentStaffCountChangedEventData> {
+  constructor(data: DepartmentStaffCountChangedEventData) {
+    super('department.staff.count.changed', data);
+  }
+
+  static create(
+    departmentId: string,
+    departmentCode: string,
+    departmentNameEn: string,
+    departmentNameVi: string,
+    previousCount: number,
+    newCount: number,
+    changeType: 'added' | 'removed' | 'transferred_in' | 'transferred_out',
+    staffId?: string,
+    staffName?: string,
+    triggeredBy?: string
+  ): DepartmentStaffCountChangedEvent {
+    return new DepartmentStaffCountChangedEvent({
+      departmentId,
+      departmentCode,
+      departmentNameEn,
+      departmentNameVi,
+      timestamp: new Date(),
+      previousCount,
+      newCount,
+      changeType,
+      staffId,
+      staffName,
+      triggeredBy,
+    });
+  }
+}

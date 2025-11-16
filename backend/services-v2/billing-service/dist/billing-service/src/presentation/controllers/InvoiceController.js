@@ -2,15 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoiceController = void 0;
 class InvoiceController {
-    constructor(createInvoiceUseCase, getInvoiceUseCase, finalizeInvoiceUseCase, cancelInvoiceUseCase, processPaymentUseCase, getPatientInvoicesUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, searchInvoicesUseCase, getOverdueInvoicesUseCase, getPatientBillingSummaryUseCase, getRevenueReportUseCase, createPayOSPaymentLinkUseCase, handlePayOSWebhookUseCase) {
+    constructor(createInvoiceUseCase, getInvoiceUseCase, processPaymentUseCase, getPatientInvoicesUseCase, searchInvoicesUseCase, getOverdueInvoicesUseCase, getPatientBillingSummaryUseCase, getRevenueReportUseCase, createPayOSPaymentLinkUseCase, handlePayOSWebhookUseCase
+    // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
+    ) {
         this.createInvoiceUseCase = createInvoiceUseCase;
         this.getInvoiceUseCase = getInvoiceUseCase;
-        this.finalizeInvoiceUseCase = finalizeInvoiceUseCase;
-        this.cancelInvoiceUseCase = cancelInvoiceUseCase;
         this.processPaymentUseCase = processPaymentUseCase;
         this.getPatientInvoicesUseCase = getPatientInvoicesUseCase;
-        this.processInsuranceClaimUseCase = processInsuranceClaimUseCase;
-        this.refundPaymentUseCase = refundPaymentUseCase;
         this.searchInvoicesUseCase = searchInvoicesUseCase;
         this.getOverdueInvoicesUseCase = getOverdueInvoicesUseCase;
         this.getPatientBillingSummaryUseCase = getPatientBillingSummaryUseCase;
@@ -35,28 +33,7 @@ class InvoiceController {
                 res.status(404).json({ error: error.message });
             }
         };
-        this.finalizeInvoice = async (req, res) => {
-            try {
-                const result = await this.finalizeInvoiceUseCase.execute({ invoiceId: req.params.id });
-                res.status(200).json(result);
-            }
-            catch (error) {
-                res.status(400).json({ error: error.message });
-            }
-        };
-        this.cancelInvoice = async (req, res) => {
-            try {
-                const { reason } = req.body;
-                const result = await this.cancelInvoiceUseCase.execute({
-                    invoiceId: req.params.id,
-                    reason
-                });
-                res.status(200).json(result);
-            }
-            catch (error) {
-                res.status(400).json({ error: error.message });
-            }
-        };
+        // REMOVED (Phase 1 Out-of-Scope): finalizeInvoice(), cancelInvoice() methods
         this.processPayment = async (req, res) => {
             try {
                 const { amount, method, transactionId } = req.body;
@@ -83,31 +60,7 @@ class InvoiceController {
                 res.status(400).json({ error: error.message });
             }
         };
-        this.processInsuranceClaim = async (req, res) => {
-            try {
-                const result = await this.processInsuranceClaimUseCase.execute({
-                    invoiceId: req.params.id
-                });
-                res.status(200).json(result);
-            }
-            catch (error) {
-                res.status(400).json({ error: error.message });
-            }
-        };
-        this.refundPayment = async (req, res) => {
-            try {
-                const { paymentId, reason } = req.body;
-                const result = await this.refundPaymentUseCase.execute({
-                    invoiceId: req.params.id,
-                    paymentId,
-                    reason
-                });
-                res.status(200).json(result);
-            }
-            catch (error) {
-                res.status(400).json({ error: error.message });
-            }
-        };
+        // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaim(), refundPayment() methods
         this.searchInvoices = async (req, res) => {
             try {
                 const result = await this.searchInvoicesUseCase.execute(req.query);

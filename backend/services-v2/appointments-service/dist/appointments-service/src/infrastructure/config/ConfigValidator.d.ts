@@ -19,6 +19,7 @@ export interface AppConfig {
         providerServiceUrl: string;
         schedulerServiceUrl: string;
         schedulerApiKey: string;
+        billingServiceUrl: string;
     };
     cors: {
         origin: string | string[];

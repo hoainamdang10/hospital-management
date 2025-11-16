@@ -22,10 +22,6 @@ type StaffIdSegments = {
 
 export type StaffType =
   | "doctor"
-  | "nurse"
-  | "pharmacist"
-  | "therapist"
-  | "admin"
   | "receptionist";
 
 export class StaffId extends ValueObject<StaffIdProps> {
@@ -77,7 +73,7 @@ export class StaffId extends ValueObject<StaffIdProps> {
   public getStaffType(): StaffType {
     const segments = StaffId.parseSegments(this.props.value);
     if (!segments) {
-      return "admin";
+      return "receptionist";
     }
     const typePrefix = segments.typePrefix;
     return StaffId.getStaffTypeFromPrefix(typePrefix);
@@ -147,10 +143,6 @@ export class StaffId extends ValueObject<StaffIdProps> {
   private static getTypePrefix(staffType: StaffType): string {
     const prefixes: Record<StaffType, string> = {
       doctor: "DOC",
-      nurse: "NUR",
-      pharmacist: "PHA",
-      therapist: "THE",
-      admin: "ADM",
       receptionist: "REC",
     };
 
@@ -160,15 +152,14 @@ export class StaffId extends ValueObject<StaffIdProps> {
   private static getStaffTypeFromPrefix(prefix: string): StaffType {
     const types: Record<string, StaffType> = {
       DOC: "doctor",
-      NUR: "nurse",
-      PHA: "pharmacist",
-      THE: "therapist",
-      ADM: "admin",
-      ADMI: "admin", // Legacy format support (legacy IDs flip segments)
       REC: "receptionist",
+      // Legacy support for old staff types (fallback to receptionist)
+      NUR: "receptionist",
+      ADM: "receptionist",
+      ADMI: "receptionist",
     };
 
-    return types[prefix] || "admin";
+    return types[prefix] || "receptionist";
   }
 
   private static isValidStaffId(value: string): boolean {
@@ -199,12 +190,10 @@ export class StaffId extends ValueObject<StaffIdProps> {
 
   private static readonly TYPE_PREFIXES = [
     "DOC",
-    "NUR",
-    "TEC",
-    "PHA",
-    "THE",
-    "ADM",
     "REC",
+    // Legacy prefixes (for backward compatibility)
+    "NUR",
+    "ADM",
     "ADMI",
   ];
 

@@ -21,6 +21,7 @@ export default function PaymentSuccessPage() {
 
   const orderCode = searchParams.get('orderCode');
   const status = searchParams.get('status');
+  const appointmentId = searchParams.get('appointmentId');
 
   useEffect(() => {
     // Simulate verification delay
@@ -33,7 +34,12 @@ export default function PaymentSuccessPage() {
   }, []);
 
   const handleBackToBilling = () => {
-    router.push('/patient/billing');
+    // If payment is for appointment, redirect to appointments page
+    if (appointmentId) {
+      router.push('/patient/appointments');
+    } else {
+      router.push('/patient/billing');
+    }
   };
 
   return (
@@ -72,7 +78,7 @@ export default function PaymentSuccessPage() {
               <div className="mt-8 space-y-3">
                 <Button onClick={handleBackToBilling} className="w-full">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Quay lại trang thanh toán
+                  {appointmentId ? 'Xem danh sách lịch hẹn' : 'Quay lại trang thanh toán'}
                 </Button>
                 <Button
                   variant="outline"

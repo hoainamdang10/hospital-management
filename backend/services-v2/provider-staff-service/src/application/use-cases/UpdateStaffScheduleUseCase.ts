@@ -13,6 +13,7 @@ import { IProviderStaffRepository } from '../../domain/repositories/IProviderSta
 import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
 import { StaffId } from '../../domain/value-objects/StaffId';
 import { WorkSchedule } from '../../domain/value-objects/WorkSchedule';
+import { IEventBus } from '@shared/events/event-bus.interface';
 import { ILogger } from '../interfaces/ILogger';
 
 export interface UpdateStaffScheduleRequest {
@@ -54,6 +55,7 @@ export interface UpdateStaffScheduleResponse {
 export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaffScheduleRequest, UpdateStaffScheduleResponse> {
   constructor(
     private readonly staffRepository: IProviderStaffRepository,
+    private readonly eventBus: IEventBus,
     private readonly logger: ILogger
   ) {
     super();
@@ -123,7 +125,19 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       // 7. Save updated staff
       await this.staffRepository.save(staff);
 
-      // 8. HIPAA audit logging
+      // 8. Publish domain events (best effort pattern)
+      try {
+        await this.publishDomainEvents(staff);
+      } catch (eventError) {
+        const errorMessage = eventError instanceof Error ? eventError.message : 'Unknown error';
+        this.logger.warn('Failed to publish schedule update events', {
+          staffId: staff.id,
+          error: errorMessage
+        });
+        // Don't fail the update if event publishing fails
+      }
+
+      // 9. HIPAA audit logging
       await this.auditScheduleUpdate(staff, request);
 
       this.logger.info('Staff schedule updated successfully', {
@@ -237,6 +251,20 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       authorized: false, 
       reason: `Role ${updatedByRole} not authorized for schedule updates` 
     };
+  }
+
+  /**
+   * Publish domain events
+   * Pattern: Best effort - log warning if fails, don't throw error
+   */
+  private async publishDomainEvents(staff: ProviderStaff): Promise<void> {
+    const events = staff.getUncommittedEvents();
+
+    for (const event of events) {
+      await this.eventBus.publish(event);
+    }
+
+    staff.markEventsAsCommitted();
   }
 
   /**

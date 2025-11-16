@@ -16,15 +16,9 @@ export interface GetInvoiceResponse {
     }>;
     subtotal: number;
     tax: number;
-    insuranceCoverage: number;
     totalAmount: number;
     outstandingAmount: number;
     status: string;
-    insurance?: {
-        provider: string;
-        policyNumber: string;
-        coveragePercentage: number;
-    };
     payments: Array<{
         id: string;
         amount: number;

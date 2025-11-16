@@ -103,7 +103,8 @@ class Queue extends aggregate_root_1.HealthcareAggregateRoot {
         // Update timestamp
         this.props.updatedAt = new Date();
         // Emit domain event
-        this.addDomainEvent(new PatientJoinedQueueEvent_1.PatientJoinedQueueEvent(this.id, this.doctorId, patientId, appointmentId, queueNumber, priority, estimatedWaitMinutes, checkInTime));
+        this.addDomainEvent(new PatientJoinedQueueEvent_1.PatientJoinedQueueEvent(this.id, this.doctorId, patientId, appointmentId, queueNumber, priority // Convert enum to string
+        ));
         return entry;
     }
     /**
@@ -121,7 +122,7 @@ class Queue extends aggregate_root_1.HealthcareAggregateRoot {
         // Update timestamp
         this.props.updatedAt = new Date();
         // Emit domain event
-        this.addDomainEvent(new PatientCalledEvent_1.PatientCalledEvent(this.id, this.doctorId, nextPatient.patientId, nextPatient.appointmentId, nextPatient.queueNumber, nextPatient.calledTime, calledBy));
+        this.addDomainEvent(new PatientCalledEvent_1.PatientCalledEvent(this.id, this.doctorId, nextPatient.patientId, nextPatient.appointmentId, nextPatient.queueNumber));
         return nextPatient;
     }
     /**
@@ -144,7 +145,7 @@ class Queue extends aggregate_root_1.HealthcareAggregateRoot {
         // Update timestamp
         this.props.updatedAt = new Date();
         // Emit domain event
-        this.addDomainEvent(new PatientLeftQueueEvent_1.PatientLeftQueueEvent(this.id, this.doctorId, patientId, entry.appointmentId, entry.queueNumber, reason, removedBy, new Date()));
+        this.addDomainEvent(new PatientLeftQueueEvent_1.PatientLeftQueueEvent(this.id, this.doctorId, patientId, entry.appointmentId, entry.queueNumber, reason));
         return entry;
     }
     /**

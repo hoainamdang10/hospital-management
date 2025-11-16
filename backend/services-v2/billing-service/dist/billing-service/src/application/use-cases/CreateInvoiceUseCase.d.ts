@@ -4,16 +4,13 @@ import { IEventBus } from '../../../../shared/application/services/event-bus.int
 import { ILogger } from '../../../../shared/application/services/logger.interface';
 export interface CreateInvoiceRequest {
     patientId: string;
+    appointmentId?: string;
+    staffId?: string;
     items: Array<{
         description: string;
         quantity: number;
         unitPrice: number;
     }>;
-    insurance?: {
-        provider: string;
-        policyNumber: string;
-        coveragePercentage: number;
-    };
 }
 export interface CreateInvoiceResponse {
     invoiceId: string;

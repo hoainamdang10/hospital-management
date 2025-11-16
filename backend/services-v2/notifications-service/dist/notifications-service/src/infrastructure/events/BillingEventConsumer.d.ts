@@ -103,6 +103,8 @@ export interface PaymentProcessedEventData {
     processedAt: Date;
     processedBy: string;
     invoiceId: string;
+    appointmentId?: string;
+    transactionId?: string;
     dueAmount?: number;
     refundAmount?: number;
 }
@@ -199,6 +201,11 @@ export declare class BillingEventConsumer {
     private handleRateUpdated;
     /**
      * Handle payment processed event
+     *
+     * ✅ REFACTORED FOR MVP:
+     * - Send payment receipt when status = 'completed'
+     * - Use new template: PAYMENT_COMPLETED
+     * - Skip failed/refunded in MVP (future work)
      */
     private handlePaymentProcessed;
     /**

@@ -13,14 +13,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Patient = void 0;
 const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const PatientId_1 = require("../value-objects/PatientId");
-const PatientLink_1 = require("../value-objects/PatientLink");
 const PatientStatus_1 = require("../value-objects/PatientStatus");
 const PatientRegisteredEvent_1 = require("../events/PatientRegisteredEvent");
 const PatientUpdatedEvent_1 = require("../events/PatientUpdatedEvent");
-const PatientMergedEvent_1 = require("../events/PatientMergedEvent");
-const PatientLinkedEvent_1 = require("../events/PatientLinkedEvent");
-const PatientDeactivatedEvent_1 = require("../events/PatientDeactivatedEvent");
-const PatientConsentGrantedEvent_1 = require("../events/PatientConsentGrantedEvent");
 class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     constructor(props, id) {
         super(props, id);
@@ -217,130 +212,235 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
         'emergency_contact', updatedBy));
     }
+    /* POST-MVP: Advanced Emergency Contact Management - Not required for graduation project
     /**
      * Remove emergency contact
-     */
-    removeEmergencyContact(contactId, updatedBy) {
-        this.ensureCanUpdate();
-        this.props.emergencyContacts = this.props.emergencyContacts.filter((contact) => contact.id !== contactId);
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = updatedBy;
-        const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'emergency_contact', updatedBy));
+     *
+    public removeEmergencyContact(contactId: string, updatedBy: string): void {
+      this.ensureCanUpdate();
+  
+      this.props.emergencyContacts = this.props.emergencyContacts.filter(
+        (contact) => contact.id !== contactId,
+      );
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = updatedBy;
+  
+      const patientId = this.props.id.value;
+      this.addDomainEvent(
+        new PatientUpdatedEvent(
+          patientId,
+          this.props.userId, // Identity Service user ID
+          'emergency_contact',
+          updatedBy
+        ),
+      );
     }
+    END POST-MVP: Advanced Emergency Contact Management */
+    /* POST-MVP: HIPAA Consent Management - Not required for graduation project
     /**
      * Grant consent
-     */
-    grantConsent(consent, updatedBy) {
-        this.ensureCanUpdate();
-        this.props.consents.push(consent);
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = updatedBy;
-        const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientConsentGrantedEvent_1.PatientConsentGrantedEvent(patientId, consent.getId(), consent.consentType, updatedBy));
+     *
+    public grantConsent(consent: PatientConsent, updatedBy: string): void {
+      this.ensureCanUpdate();
+  
+      this.props.consents.push(consent);
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = updatedBy;
+  
+      // Event removed in scope reduction
+      // const patientId = this.props.id.value;
+      // this.addDomainEvent(
+      //   new PatientConsentGrantedEvent(
+      //     patientId,
+      //     consent.getId(),
+      //     consent.consentType,
+      //     updatedBy,
+      //   ),
+      // );
     }
+    END POST-MVP: HIPAA Consent Management */
+    /* POST-MVP: PMI Features (Patient Master Index) - Not required for graduation project
     /**
      * Merge into master patient (mark as duplicate)
-     */
-    mergeInto(masterPatientId, reason, performedBy) {
-        if (this.props.status === PatientStatus_1.PatientStatus.MERGED) {
-            throw new Error('Bệnh nhân đã được gộp trước đó');
-        }
-        if (this.props.status === PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error('Không thể gộp bệnh nhân đã qua đời');
-        }
-        if (this.props.id.equals(masterPatientId)) {
-            throw new Error('Không thể gộp bệnh nhân vào chính nó');
-        }
-        this.props.status = PatientStatus_1.PatientStatus.MERGED;
-        this.props.mergedInto = masterPatientId;
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = performedBy;
-        // Create "replaced-by" link
-        const link = PatientLink_1.PatientLink.createReplacedBy(masterPatientId, performedBy);
-        this.props.links.push(link);
-        const duplicatePatientId = this.props.id.value;
-        this.addDomainEvent(new PatientMergedEvent_1.PatientMergedEvent(duplicatePatientId, masterPatientId.value, reason, performedBy));
+     *
+    public mergeInto(
+      masterPatientId: PatientId,
+      reason: string,
+      performedBy: string,
+    ): void {
+      if (this.props.status === PatientStatus.MERGED) {
+        throw new Error('Bệnh nhân đã được gộp trước đó');
+      }
+  
+      if (this.props.status === PatientStatus.DECEASED) {
+        throw new Error('Không thể gộp bệnh nhân đã qua đời');
+      }
+  
+      if (this.props.id.equals(masterPatientId)) {
+        throw new Error('Không thể gộp bệnh nhân vào chính nó');
+      }
+  
+      this.props.status = PatientStatus.MERGED;
+      this.props.mergedInto = masterPatientId;
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = performedBy;
+  
+      // Create "replaced-by" link
+      const link = PatientLink.createReplacedBy(masterPatientId, performedBy);
+      this.props.links.push(link);
+  
+      // Event removed in scope reduction
+      // const duplicatePatientId = this.props.id.value;
+      // this.addDomainEvent(
+      //   new PatientMergedEvent(
+      //     duplicatePatientId,
+      //     masterPatientId.value,
+      //     reason,
+      //     performedBy,
+      //   ),
+      // );
     }
+    END POST-MVP: PMI Features */
+    /* POST-MVP: FHIR Advanced - Patient Linking not required for graduation project
     /**
      * Link to another patient
-     */
-    linkTo(otherPatientId, linkType, performedBy) {
-        if (this.props.id.equals(otherPatientId)) {
-            throw new Error('Không thể liên kết bệnh nhân với chính nó');
-        }
-        // Check if link already exists
-        const existingLink = this.props.links.find((link) => link.otherPatientId.equals(otherPatientId) &&
-            link.linkType === linkType);
-        if (existingLink) {
-            throw new Error(`Liên kết ${linkType} đã tồn tại với bệnh nhân ${otherPatientId.getValue()}`);
-        }
-        const link = PatientLink_1.PatientLink.create(otherPatientId, linkType, performedBy);
-        this.props.links.push(link);
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = performedBy;
-        const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientLinkedEvent_1.PatientLinkedEvent(patientId, otherPatientId.value, linkType, performedBy));
+     *
+    public linkTo(
+      otherPatientId: PatientId,
+      linkType: 'refer' | 'seealso',
+      performedBy: string,
+    ): void {
+      if (this.props.id.equals(otherPatientId)) {
+        throw new Error('Không thể liên kết bệnh nhân với chính nó');
+      }
+  
+      // Check if link already exists
+      const existingLink = this.props.links.find(
+        (link) =>
+          link.otherPatientId.equals(otherPatientId) &&
+          link.linkType === linkType,
+      );
+  
+      if (existingLink) {
+        throw new Error(
+          `Liên kết ${linkType} đã tồn tại với bệnh nhân ${otherPatientId.getValue()}`,
+        );
+      }
+  
+      const link = PatientLink.create(otherPatientId, linkType, performedBy);
+      this.props.links.push(link);
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = performedBy;
+  
+      // Event removed in scope reduction
+      // const patientId = this.props.id.value;
+      // this.addDomainEvent(
+      //   new PatientLinkedEvent(
+      //     patientId,
+      //     otherPatientId.value,
+      //     linkType,
+      //     performedBy,
+      //   ),
+      // );
     }
+    END POST-MVP: FHIR Advanced - Patient Linking */
+    /* POST-MVP: Patient Lifecycle - Deactivation/Deceased/Reactivation not required for graduation project
     /**
      * Deactivate patient
-     */
-    deactivate(reason, performedBy) {
-        if (this.props.status === PatientStatus_1.PatientStatus.INACTIVE) {
-            throw new Error('Bệnh nhân đã bị vô hiệu hóa');
-        }
-        if (this.props.status === PatientStatus_1.PatientStatus.MERGED) {
-            throw new Error('Không thể vô hiệu hóa bệnh nhân đã được gộp');
-        }
-        if (this.props.status === PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error('Không thể vô hiệu hóa bệnh nhân đã qua đời');
-        }
-        this.props.status = PatientStatus_1.PatientStatus.INACTIVE;
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = performedBy;
-        const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientDeactivatedEvent_1.PatientDeactivatedEvent(patientId, reason, performedBy));
+     *
+    public deactivate(reason: string, performedBy: string): void {
+      if (this.props.status === PatientStatus.INACTIVE) {
+        throw new Error('Bệnh nhân đã bị vô hiệu hóa');
+      }
+  
+      if (this.props.status === PatientStatus.MERGED) {
+        throw new Error('Không thể vô hiệu hóa bệnh nhân đã được gộp');
+      }
+  
+      if (this.props.status === PatientStatus.DECEASED) {
+        throw new Error('Không thể vô hiệu hóa bệnh nhân đã qua đời');
+      }
+  
+      this.props.status = PatientStatus.INACTIVE;
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = performedBy;
+  
+      const patientId = this.props.id.value;
+      this.addDomainEvent(
+        new PatientDeactivatedEvent(patientId, reason, performedBy),
+      );
     }
+  
     /**
      * Mark patient as deceased
-     */
-    markAsDeceased(performedBy) {
-        if (this.props.status === PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error('Bệnh nhân đã được đánh dấu qua đời');
-        }
-        this.props.status = PatientStatus_1.PatientStatus.DECEASED;
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = performedBy;
-        const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'status', performedBy));
+     *
+    public markAsDeceased(performedBy: string): void {
+      if (this.props.status === PatientStatus.DECEASED) {
+        throw new Error('Bệnh nhân đã được đánh dấu qua đời');
+      }
+  
+      this.props.status = PatientStatus.DECEASED;
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = performedBy;
+  
+      const patientId = this.props.id.value;
+      this.addDomainEvent(
+        new PatientUpdatedEvent(
+          patientId,
+          this.props.userId, // Identity Service user ID
+          'status',
+          performedBy
+        ),
+      );
     }
+  
     /**
      * Reactivate patient (from INACTIVE status or, when allowed, DECEASED)
-     */
-    reactivate(_reason, performedBy, options) {
-        if (this.props.status === PatientStatus_1.PatientStatus.MERGED) {
-            throw new Error('Không thể kích hoạt lại bệnh nhân đã được gộp');
-        }
-        if (this.props.status === PatientStatus_1.PatientStatus.ACTIVE) {
-            throw new Error('Bệnh nhân đang ở trạng thái hoạt động');
-        }
-        if (this.props.status === PatientStatus_1.PatientStatus.DECEASED &&
-            !options?.allowDeceased) {
-            throw new Error('Chỉ có thể kích hoạt lại bệnh nhân đã bị vô hiệu hóa');
-        }
-        if (this.props.status !== PatientStatus_1.PatientStatus.INACTIVE &&
-            this.props.status !== PatientStatus_1.PatientStatus.DECEASED) {
-            throw new Error('Không thể kích hoạt lại bệnh nhân ở trạng thái hiện tại');
-        }
-        this.props.status = PatientStatus_1.PatientStatus.ACTIVE;
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = performedBy;
-        const patientId = this.props.id.value;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'status', performedBy));
+     *
+    public reactivate(
+      _reason: string,
+      performedBy: string,
+      options?: { allowDeceased?: boolean },
+    ): void {
+      if (this.props.status === PatientStatus.MERGED) {
+        throw new Error('Không thể kích hoạt lại bệnh nhân đã được gộp');
+      }
+  
+      if (this.props.status === PatientStatus.ACTIVE) {
+        throw new Error('Bệnh nhân đang ở trạng thái hoạt động');
+      }
+  
+      if (
+        this.props.status === PatientStatus.DECEASED &&
+        !options?.allowDeceased
+      ) {
+        throw new Error('Chỉ có thể kích hoạt lại bệnh nhân đã bị vô hiệu hóa');
+      }
+  
+      if (
+        this.props.status !== PatientStatus.INACTIVE &&
+        this.props.status !== PatientStatus.DECEASED
+      ) {
+        throw new Error(
+          'Không thể kích hoạt lại bệnh nhân ở trạng thái hiện tại',
+        );
+      }
+  
+      this.props.status = PatientStatus.ACTIVE;
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = performedBy;
+  
+      const patientId = this.props.id.value;
+      this.addDomainEvent(
+        new PatientUpdatedEvent(
+          patientId,
+          this.props.userId, // Identity Service user ID
+          'status',
+          performedBy
+        ),
+      );
     }
+    END POST-MVP: Patient Lifecycle */
     // ==================== Getters ====================
     getPatientId() {
         return this.props.id.value;
@@ -366,18 +466,24 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     getEmergencyContacts() {
         return this.props.emergencyContacts.slice(); // Return copy
     }
-    getConsents() {
-        return this.props.consents.slice(); // Return copy
+    /* POST-MVP: HIPAA Consent Management - Getter not required for graduation project
+    public getConsents(): PatientConsent[] {
+      return this.props.consents.slice(); // Return copy
     }
+    END POST-MVP: HIPAA Consent Management */
     getStatus() {
         return this.props.status;
     }
-    getMergedInto() {
-        return this.props.mergedInto;
+    /* POST-MVP: PMI Features - Getter not required for graduation project
+    public getMergedInto(): PatientId | undefined {
+      return this.props.mergedInto;
     }
-    getLinks() {
-        return this.props.links.slice(); // Return copy
+    END POST-MVP: PMI Features */
+    /* POST-MVP: FHIR Advanced - Getter not required for graduation project
+    public getLinks(): PatientLink[] {
+      return this.props.links.slice(); // Return copy
     }
+    END POST-MVP: FHIR Advanced */
     getProps() {
         // Deep clone to prevent external mutation of nested collections
         return {
@@ -416,15 +522,21 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     isActive() {
         return this.props.status === PatientStatus_1.PatientStatus.ACTIVE;
     }
-    isInactive() {
-        return this.props.status === PatientStatus_1.PatientStatus.INACTIVE;
+    /* POST-MVP: Patient Lifecycle - Helper not required for graduation project
+    public isInactive(): boolean {
+      return this.props.status === PatientStatus.INACTIVE;
     }
-    isMerged() {
-        return this.props.status === PatientStatus_1.PatientStatus.MERGED;
+    END POST-MVP: Patient Lifecycle */
+    /* POST-MVP: PMI Features - Helper not required for graduation project
+    public isMerged(): boolean {
+      return this.props.status === PatientStatus.MERGED;
     }
-    isDeceased() {
-        return this.props.status === PatientStatus_1.PatientStatus.DECEASED;
+    END POST-MVP: PMI Features */
+    /* POST-MVP: Patient Lifecycle - Helper not required for graduation project
+    public isDeceased(): boolean {
+      return this.props.status === PatientStatus.DECEASED;
     }
+    END POST-MVP: Patient Lifecycle */
     hasBHYTInsurance() {
         return this.props.insuranceInfo?.isBHYT() ?? false;
     }
@@ -434,12 +546,16 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     hasEmergencyContacts() {
         return this.props.emergencyContacts.length > 0;
     }
-    hasActiveConsents() {
-        return this.props.consents.some((consent) => consent.isActive);
+    /* POST-MVP: HIPAA Consent Management - Helper not required for graduation project
+    public hasActiveConsents(): boolean {
+      return this.props.consents.some((consent) => consent.isActive);
     }
-    hasLinks() {
-        return this.props.links.length > 0;
+    END POST-MVP: HIPAA Consent Management */
+    /* POST-MVP: FHIR Advanced - Helper not required for graduation project
+    public hasLinks(): boolean {
+      return this.props.links.length > 0;
     }
+    END POST-MVP: FHIR Advanced */
     // ==================== Business Invariants ====================
     validateBusinessInvariants() {
         if (!this.props.personalInfo) {
@@ -459,56 +575,6 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         if (this.props.status !== PatientStatus_1.PatientStatus.ACTIVE) {
             throw new Error(`Không thể cập nhật bệnh nhân với trạng thái: ${this.props.status}`);
         }
-    }
-    // ==================== Photo Management (FHIR: photo field) ====================
-    /**
-     * Update patient photo URL
-     */
-    updatePhoto(photoUrl, updatedBy) {
-        this.ensureCanUpdate();
-        if (!photoUrl || photoUrl.trim() === '') {
-            throw new Error('URL ảnh không được để trống');
-        }
-        this.props.photoUrl = photoUrl;
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = updatedBy;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
-        'photo_updated', updatedBy));
-    }
-    /**
-     * Remove patient photo
-     */
-    removePhoto(updatedBy) {
-        this.ensureCanUpdate();
-        this.props.photoUrl = undefined;
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = updatedBy;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
-        'photo_removed', updatedBy));
-    }
-    /**
-     * Get patient photo URL
-     */
-    getPhotoUrl() {
-        return this.props.photoUrl;
-    }
-    // ==================== Communication Preferences (FHIR: communication field) ====================
-    /**
-     * Update communication preferences
-     */
-    updateCommunicationPreference(preference, updatedBy) {
-        this.ensureCanUpdate();
-        this.props.communicationPreference = preference;
-        this.props.updatedAt = new Date();
-        this.props.updatedBy = updatedBy;
-        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, // Add identityUserId as second parameter
-        'communication_preference_updated', updatedBy));
-    }
-    /**
-     * Get communication preferences
-     */
-    getCommunicationPreference() {
-        return this.props.communicationPreference;
     }
 }
 exports.Patient = Patient;

@@ -4,13 +4,14 @@
  * Handles:
  * - patient.deceased → Permanently deactivate user account
  *
+ * DISABLED FOR GRADUATION PROJECT SCOPE - DeactivateUserUseCase removed
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Event-Driven Architecture, HIPAA
  */
 
 import { ILogger } from "../../../application/services/ILogger";
-import { DeactivateUserUseCase } from "../../../application/use-cases/DeactivateUserUseCase";
 import { InboxService } from "../../inbox/InboxService";
 
 export interface PatientDeceasedEvent {
@@ -25,7 +26,7 @@ export interface PatientDeceasedEvent {
 
 export class PatientLifecycleEventHandler {
   constructor(
-    private deactivateUserUseCase: DeactivateUserUseCase,
+    private deactivateUserUseCase: any, // DISABLED: DeactivateUserUseCase removed
     private inboxService: InboxService,
     private logger: ILogger,
   ) {}
@@ -65,20 +66,9 @@ export class PatientLifecycleEventHandler {
         dateOfDeath: event.dateOfDeath,
       });
 
-      // Permanently deactivate user account
-      await this.deactivateUserUseCase.execute({
-        userId: event.userId,
-        deactivatedBy: "SYSTEM_AUTO",
-        reason: `Patient deceased on ${event.dateOfDeath.toISOString().split("T")[0]}${
-          event.deathCertificateNumber
-            ? ` (Certificate: ${event.deathCertificateNumber})`
-            : ""
-        }`,
-        terminateSessions: true,
-      });
-
-      this.logger.info(
-        "User account permanently deactivated for deceased patient",
+      // DISABLED: DeactivateUserUseCase removed for graduation project scope
+      this.logger.warn(
+        "Patient deceased event received but handler is disabled - DeactivateUserUseCase removed",
         {
           userId: event.userId,
           patientId: event.patientId,

@@ -12,11 +12,15 @@ import { IDeliveryService, DeliveryResult } from "../../domain/services/IDeliver
 export interface SendNotificationCommand {
     recipientId: string;
     recipientType: "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | string;
+    recipientName?: string;
+    recipientEmail?: string;
+    recipientPhone?: string;
     type?: string;
     title?: string;
     content?: string;
     templateType?: string;
     templateData?: Record<string, any>;
+    data?: Record<string, any>;
     channels: string[];
     priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT" | string;
     scheduledAt?: Date;

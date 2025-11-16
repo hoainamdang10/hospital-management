@@ -1,20 +1,14 @@
 import { IInvoiceRepository, SearchCriteria, RevenueSummary } from '../../domain/repositories/IInvoiceRepository';
 import { Invoice } from '../../domain/aggregates/Invoice';
 import { InvoiceMapper } from '../mappers/InvoiceMapper';
-import { createClient } from '@supabase/supabase-js';
+import type { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
 
 export class SupabaseInvoiceRepository implements IInvoiceRepository {
-  private readonly supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      db: { schema: 'billing_schema' },
-      auth: { autoRefreshToken: false, persistSession: false }
-    }
-  );
   private readonly invoicesTable = 'invoices';
   private readonly itemsTable = 'billing_items';
   private readonly paymentsTable = 'payment_records';
+
+  constructor(private readonly supabase: OptimizedSupabaseClient) {}
 
   async save(invoice: Invoice): Promise<void> {
     const { invoice: invoiceRecord, items, payments } = InvoiceMapper.toPersistence(invoice);
@@ -309,14 +303,8 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
       });
     });
 
-    // Aggregate by insurance type
+    // REMOVED (Phase 1 Prepaid Model): Insurance breakdown - no insurance coverage in MVP
     const byInsuranceType: { [type: string]: number } = {};
-    paidInvoices.forEach(invoice => {
-      if (invoice.insurance) {
-        const type = invoice.insurance.provider;
-        byInsuranceType[type] = (byInsuranceType[type] || 0) + invoice.insuranceCoverage.amount;
-      }
-    });
 
     return {
       totalRevenue,

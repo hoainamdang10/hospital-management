@@ -13,6 +13,7 @@ import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRe
 import { IConflictResolutionService, TimeSlotSuggestion } from '../services/IConflictResolutionService';
 import { IAuthorizationService } from '../services/IAuthorizationService';
 import { IReminderService } from '../services/IReminderService';
+import { BillingServiceClient } from '../../infrastructure/clients/BillingServiceClient';
 export interface ScheduleAppointmentRequest {
     tenantId?: string;
     patientId: string;
@@ -49,7 +50,11 @@ export interface ScheduleAppointmentResponse {
         priority: string;
         status: string;
         consultationFee: number;
+        paymentStatus?: string;
+        paymentDeadline?: string;
     };
+    paymentLink?: string;
+    invoiceId?: string;
     errors?: string[];
     conflictInfo?: {
         hasConflicts: boolean;
@@ -66,11 +71,16 @@ export declare class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<Sc
     private readonly conflictResolutionService;
     private readonly authorizationService;
     private readonly reminderService;
-    constructor(appointmentRepository: IAppointmentRepository, conflictResolutionService: IConflictResolutionService, authorizationService: IAuthorizationService, reminderService: IReminderService);
+    private readonly billingServiceClient;
+    constructor(appointmentRepository: IAppointmentRepository, conflictResolutionService: IConflictResolutionService, authorizationService: IAuthorizationService, reminderService: IReminderService, billingServiceClient: BillingServiceClient);
     /**
      * Execute use case
      */
     protected executeInternal(request: ScheduleAppointmentRequest): Promise<ScheduleAppointmentResponse>;
+    /**
+     * Sleep helper for event processing delay
+     */
+    private sleep;
     /**
      * Validate request
      */

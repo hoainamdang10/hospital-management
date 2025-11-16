@@ -18,7 +18,8 @@ import { RescheduleAppointmentUseCase } from '../../application/use-cases/Resche
 import { CheckInAppointmentUseCase } from '../../application/use-cases/CheckInAppointment.use-case';
 import { MarkAsNoShowUseCase } from '../../application/use-cases/MarkAsNoShow.use-case';
 import { StartAppointmentUseCase } from '../../application/use-cases/StartAppointment.use-case';
-import { BulkRescheduleAppointmentsUseCase } from '../../application/use-cases/BulkRescheduleAppointments.use-case';
+// ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
+// import { BulkRescheduleAppointmentsUseCase } from '../../application/use-cases/BulkRescheduleAppointments.use-case';
 import { GetAppointmentHistoryUseCase } from '../../application/use-cases/GetAppointmentHistory.use-case';
 import { GetAppointmentStatisticsUseCase } from '../../application/use-cases/GetAppointmentStatistics.use-case';
 import { CreateEmergencyAppointmentUseCase } from '../../application/use-cases/CreateEmergencyAppointment.use-case';
@@ -37,7 +38,8 @@ export class AppointmentController {
     private readonly checkInAppointmentUseCase: CheckInAppointmentUseCase,
     private readonly markAsNoShowUseCase: MarkAsNoShowUseCase,
     private readonly startAppointmentUseCase: StartAppointmentUseCase,
-    private readonly bulkRescheduleAppointmentsUseCase: BulkRescheduleAppointmentsUseCase,
+    // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
+    // private readonly bulkRescheduleAppointmentsUseCase: BulkRescheduleAppointmentsUseCase,
     private readonly getAppointmentHistoryUseCase: GetAppointmentHistoryUseCase,
     private readonly getAppointmentStatisticsUseCase: GetAppointmentStatisticsUseCase,
     private readonly createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase,
@@ -475,35 +477,36 @@ export class AppointmentController {
     }
   }
 
-  /**
-   * POST /api/appointments/bulk-reschedule
-   * Bulk reschedule appointments (doctor unavailable)
-   */
-  async bulkRescheduleAppointments(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = (req as any).user?.id;
-      if (!userId) {
-        res.status(401).json({ success: false, message: 'Unauthorized' });
-        return;
-      }
-
-      const result = await this.bulkRescheduleAppointmentsUseCase.execute(
-        {
-          ...req.body,
-          rescheduledBy: userId
-        },
-        { userId, timestamp: new Date() }
-      );
-
-      res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        errors: [error instanceof Error ? error.message : 'Unknown error']
-      });
-    }
-  }
+  // ===== ARCHIVED FOR POST-MVP: BulkReschedule Method =====
+  // /**
+  //  * POST /api/appointments/bulk-reschedule
+  //  * Bulk reschedule appointments (doctor unavailable)
+  //  */
+  // async bulkRescheduleAppointments(req: Request, res: Response): Promise<void> {
+  //   try {
+  //     const userId = (req as any).user?.id;
+  //     if (!userId) {
+  //       res.status(401).json({ success: false, message: 'Unauthorized' });
+  //       return;
+  //     }
+  //
+  //     const result = await this.bulkRescheduleAppointmentsUseCase.execute(
+  //       {
+  //         ...req.body,
+  //         rescheduledBy: userId
+  //       },
+  //       { userId, timestamp: new Date() }
+  //     );
+  //
+  //     res.status(result.success ? 200 : 400).json(result);
+  //   } catch (error) {
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Internal server error',
+  //       errors: [error instanceof Error ? error.message : 'Unknown error']
+  //     });
+  //   }
+  // }
 
   /**
    * GET /api/appointments/history

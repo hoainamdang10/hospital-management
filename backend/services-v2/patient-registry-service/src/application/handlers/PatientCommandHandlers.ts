@@ -10,8 +10,10 @@
 
 import { RegisterPatientUseCase, RegisterPatientRequest, RegisterPatientResponse } from '../use-cases/RegisterPatientUseCase';
 import { UpdatePatientInfoUseCase, UpdatePatientInfoRequest, UpdatePatientInfoResponse } from '../use-cases/UpdatePatientInfoUseCase';
+/* POST-MVP: Archived use case imports - Not required for graduation project
 import { DeactivatePatientUseCase, DeactivatePatientResponse } from '../use-cases/DeactivatePatientUseCase';
 import { GrantConsentUseCase, GrantConsentResult } from '../use-cases/GrantConsentUseCase';
+END POST-MVP */
 import { AddEmergencyContactUseCase, AddEmergencyContactResult } from '../use-cases/AddEmergencyContactUseCase';
 import { ILogger } from '@shared/application/services/logger.interface';
 
@@ -93,8 +95,10 @@ export type PatientCommand =
 export type PatientCommandResult =
   | RegisterPatientResponse
   | UpdatePatientInfoResponse
+  /* POST-MVP: Archived use case types - Not required for graduation project
   | DeactivatePatientResponse
   | GrantConsentResult
+  END POST-MVP */
   | AddEmergencyContactResult
   | { success: false; message: string }; // For unknown command types
 
@@ -106,8 +110,10 @@ export class PatientCommandHandlers {
   constructor(
     private readonly registerPatientUseCase: RegisterPatientUseCase,
     private readonly updatePatientInfoUseCase: UpdatePatientInfoUseCase,
+    /* POST-MVP: Archived use cases - Not required for graduation project
     private readonly deactivatePatientUseCase: DeactivatePatientUseCase,
     private readonly grantConsentUseCase: GrantConsentUseCase,
+    END POST-MVP */
     private readonly addEmergencyContactUseCase: AddEmergencyContactUseCase,
     private readonly logger: ILogger
   ) {}
@@ -198,9 +204,8 @@ export class PatientCommandHandlers {
     }
   }
 
-  /**
-   * Handle DeactivatePatient command
-   */
+  /* POST-MVP: Archived handler methods - Not required for graduation project
+  // Handle DeactivatePatient command
   async handleDeactivatePatient(command: DeactivatePatientCommand): Promise<{ success: boolean; message: string }> {
     try {
       this.logger.info('Processing DeactivatePatient command', {
@@ -245,9 +250,7 @@ export class PatientCommandHandlers {
     }
   }
 
-  /**
-   * Handle GrantPatientConsent command
-   */
+  // Handle GrantPatientConsent command
   async handleGrantPatientConsent(command: GrantPatientConsentCommand): Promise<{ success: boolean; message: string }> {
     try {
       this.logger.info('Processing GrantPatientConsent command', {
@@ -297,6 +300,7 @@ export class PatientCommandHandlers {
       };
     }
   }
+  END POST-MVP: Archived handler methods */
 
   /**
    * Handle AddEmergencyContact command
@@ -366,11 +370,13 @@ export class PatientCommandHandlers {
       case 'UpdatePatientInfo':
         return this.handleUpdatePatientInfo(command as UpdatePatientInfoCommand);
 
+      /* POST-MVP: Archived command cases - Not required for graduation project
       case 'DeactivatePatient':
         return this.handleDeactivatePatient(command as DeactivatePatientCommand);
 
       case 'GrantPatientConsent':
         return this.handleGrantPatientConsent(command as GrantPatientConsentCommand);
+      END POST-MVP */
 
       case 'AddEmergencyContact':
         return this.handleAddEmergencyContact(command as AddEmergencyContactCommand);
@@ -408,6 +414,7 @@ export class PatientCommandHandlers {
     );
   }
 
+  /* POST-MVP: Archived validation methods - Not required for graduation project
   private isValidDeactivatePatientCommand(command: DeactivatePatientCommand): boolean {
     return !!(
       command.commandId &&
@@ -429,6 +436,7 @@ export class PatientCommandHandlers {
       command.data.grantedBy
     );
   }
+  END POST-MVP: Archived validation methods */
 
   private isValidAddEmergencyContactCommand(command: AddEmergencyContactCommand): boolean {
     return !!(
@@ -457,8 +465,7 @@ export class PatientCommandHandlers {
       supportedCommands: [
         'RegisterPatient',
         'UpdatePatientInfo',
-        'DeactivatePatient',
-        'GrantPatientConsent',
+        // POST-MVP: 'DeactivatePatient', 'GrantPatientConsent' archived
         'AddEmergencyContact'
       ],
       isHealthy: true,

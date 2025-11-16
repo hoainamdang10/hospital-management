@@ -26,8 +26,8 @@ export declare class LogoutUserUseCase implements IUseCase<LogoutUserRequest, Lo
     private userRepository;
     private logger;
     private circuitBreaker;
-    private eventPublisher?;
-    constructor(authService: IAuthenticationService, userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    private _eventPublisher?;
+    constructor(authService: IAuthenticationService, userRepository: IUserRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, _eventPublisher?: IEventPublisher | undefined);
     execute(request: LogoutUserRequest): Promise<LogoutUserResponse>;
     private executeImpl;
 }

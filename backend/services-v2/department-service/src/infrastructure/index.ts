@@ -14,7 +14,6 @@ export { RedisDepartmentCache } from './cache/RedisDepartmentCache';
 // Event System
 export { DepartmentEventPublisher } from './events/DepartmentEventPublisher';
 export { StaffDepartmentChangeConsumer } from './events/StaffDepartmentChangeConsumer';
-export { IdentityRoleChangeConsumer } from './events/IdentityRoleChangeConsumer';
 
 // Types
 export type { DepartmentEventPublisherConfig } from './events/DepartmentEventPublisher';
@@ -27,8 +26,7 @@ export type {
   DepartmentCreatedEventData,
   DepartmentUpdatedEventData
 } from './events/StaffDepartmentChangeConsumer';
-export type {
-  IdentityRoleChangeConsumerConfig,
-  UserRoleChangedEventData,
-  UserDeactivatedEventData
-} from './events/IdentityRoleChangeConsumer';
+
+// NOTE: IdentityRoleChangeConsumer removed - not needed for MVP
+// Department Service focuses on department master data only
+// User role changes are handled by Identity Service directly

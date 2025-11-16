@@ -22,7 +22,7 @@ import { createDepartmentRoutes } from './presentation/routes/department.routes'
 import { RabbitMQEventBus } from '@shared/infrastructure/event-bus/EventBus';
 import { DepartmentEventPublisher } from './infrastructure/events/DepartmentEventPublisher';
 import { StaffDepartmentChangeConsumer } from './infrastructure/events/StaffDepartmentChangeConsumer';
-import { IdentityRoleChangeConsumer } from './infrastructure/events/IdentityRoleChangeConsumer';
+// import { IdentityRoleChangeConsumer } from './infrastructure/events/IdentityRoleChangeConsumer'; // TODO: Implement this consumer
 import { Logger } from '@infrastructure/logging/Logger';
 
 // Load environment variables
@@ -134,22 +134,23 @@ const staffEventConsumer = new StaffDepartmentChangeConsumer(
   eventBus,
 );
 
-const identityEventConsumer = new IdentityRoleChangeConsumer(
-  {
-    rabbitmqUrl: RABBITMQ_URL,
-    queueName: 'department.identity.events',
-    exchangeName: RABBITMQ_EXCHANGE,
-    routingKeys: [
-      'user.role.changed',
-      'user.deactivated',
-    ],
-    prefetchCount: 10,
-    retryAttempts: 3,
-    retryDelayMs: 1000,
-  },
-  logger,
-  repository,
-);
+// TODO: Implement IdentityRoleChangeConsumer
+// const identityEventConsumer = new IdentityRoleChangeConsumer(
+//   {
+//     rabbitmqUrl: RABBITMQ_URL,
+//     queueName: 'department.identity.events',
+//     exchangeName: RABBITMQ_EXCHANGE,
+//     routingKeys: [
+//       'user.role.changed',
+//       'user.deactivated',
+//     ],
+//     prefetchCount: 10,
+//     retryAttempts: 3,
+//     retryDelayMs: 1000,
+//   },
+//   logger,
+//   repository,
+// );
 
 const controller = new DepartmentController(repository, cache, eventPublisher);
 
@@ -209,7 +210,7 @@ process.on('SIGTERM', async () => {
   
   // Disconnect event system first
   await staffEventConsumer.disconnect();
-  await identityEventConsumer.disconnect();
+  // await identityEventConsumer.disconnect(); // TODO: Uncomment when implemented
   await eventPublisher.disconnect();
   await eventBus.disconnect();
   
@@ -225,7 +226,7 @@ process.on('SIGINT', async () => {
   
   // Disconnect event system first
   await staffEventConsumer.disconnect();
-  await identityEventConsumer.disconnect();
+  // await identityEventConsumer.disconnect(); // TODO: Uncomment when implemented
   await eventPublisher.disconnect();
   await eventBus.disconnect();
   
@@ -246,7 +247,7 @@ async function startServer() {
     await eventBus.connect();
     await eventPublisher.initialize();
     await staffEventConsumer.connect();
-    await identityEventConsumer.connect();
+    // await identityEventConsumer.connect(); // TODO: Uncomment when implemented
     
     console.log(`[Department Service] Event system connected`);
     

@@ -47,9 +47,9 @@ docker-compose -f docker-compose.v2.yml --profile core up -d
 5. **Verify services**
 ```bash
 # Check health
-curl http://localhost:3021/health  # Identity Service
-curl http://localhost:3023/health  # Patient Registry
-curl http://localhost:3022/health  # Provider/Staff
+curl http://localhost:3001/health  # Identity Service
+curl http://localhost:3002/health  # Patient Registry
+curl http://localhost:3003/health  # Provider/Staff
 ```
 
 ---
@@ -71,13 +71,15 @@ curl http://localhost:3022/health  # Provider/Staff
 
 | Service | Port | Status | Description |
 |---------|------|--------|-------------|
-| **Identity Service** | 3021 | ✅ Ready | Authentication, authorization, user management |
-| **Patient Registry** | 3023 | ✅ Ready | Patient demographics, registration |
-| **Provider/Staff** | 3022 | ✅ Ready | Doctor, nurse, staff management |
-| **Scheduling** | 3024 | 🔄 In Dev | Appointments, slots, availability |
-| **Clinical/EMR** | 3027 | 🔄 In Dev | Medical records, prescriptions |
-| **Billing** | 3029 | 🔄 In Dev | Invoices, payments, insurance |
-| **Notifications** | 3031 | 🔄 In Dev | Email, SMS, push notifications |
+| **Identity Service** | 3001 | ✅ Ready | Authentication, authorization, user management |
+| **Patient Registry** | 3002 | ✅ Ready | Patient demographics, registration |
+| **Provider/Staff** | 3003 | ✅ Ready | Doctor, nurse, staff management |
+| **Appointments** | 3004 | 🔄 In Dev | Appointments, queue management, conflict detection |
+| **Clinical/EMR** | 3005 | 🔄 In Dev | Medical records, prescriptions |
+| **Billing** | 3006 | 🔄 In Dev | Invoices, payments, insurance |
+| **Notifications** | 3007 | 🔄 In Dev | Email, SMS, push, reminder cron jobs |
+| **Department** | 3008 | 🔄 In Dev | Department management (needs refactoring) |
+| **API Gateway** | 3009 | 🔄 In Dev | Unified API entry point |
 
 ### Infrastructure
 
@@ -175,10 +177,12 @@ services-v2/
 ├── identity-service/               # ✅ Identity & Access
 ├── patient-registry-service/       # ✅ Patient Management
 ├── provider-staff-service/         # ✅ Staff Management
-├── scheduling-service/             # 🔄 Appointments
+├── appointments-service/           # 🔄 Appointments
 ├── clinical-emr-service/           # 🔄 Medical Records
 ├── billing-service/                # 🔄 Billing
 ├── notifications-service/          # 🔄 Notifications
+├── department-service/             # 🔄 Department Management
+├── api-gateway/                    # 🔄 API Gateway
 │
 ├── docker-compose.v2.yml          # Service orchestration
 ├── package.json                    # Root package
@@ -217,8 +221,11 @@ Run in Supabase SQL Editor:
 CREATE SCHEMA IF NOT EXISTS auth_schema;
 CREATE SCHEMA IF NOT EXISTS patient_schema;
 CREATE SCHEMA IF NOT EXISTS provider_schema;
-CREATE SCHEMA IF NOT EXISTS scheduling_schema;
+CREATE SCHEMA IF NOT EXISTS appointments_schema;
 CREATE SCHEMA IF NOT EXISTS clinical_schema;
+CREATE SCHEMA IF NOT EXISTS payment_schema;
+CREATE SCHEMA IF NOT EXISTS notifications_schema;
+CREATE SCHEMA IF NOT EXISTS department_schema;
 CREATE SCHEMA IF NOT EXISTS billing_schema;
 CREATE SCHEMA IF NOT EXISTS notification_schema;
 
@@ -234,7 +241,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 **Port conflicts**
 ```bash
 # Check if ports are in use
-netstat -ano | findstr :3021
+netstat -ano | findstr :3001
 netstat -ano | findstr :6380
 
 # Kill process if needed
@@ -268,7 +275,7 @@ curl https://your-project.supabase.co
 
 ### 🔄 In Development (4/7)
 
-4. **Scheduling Service** - Appointment booking, calendar
+4. **Appointments Service** - Appointment booking, queue management
 5. **Clinical/EMR Service** - Medical records, prescriptions
 6. **Billing Service** - Invoices, payments
 7. **Notifications Service** - Email, SMS, push
@@ -283,8 +290,9 @@ curl https://your-project.supabase.co
 - [x] Provider/Staff Service
 
 ### Phase 2: Clinical Services (In Progress)
-- [ ] Scheduling Service
+- [ ] Appointments Service
 - [ ] Clinical/EMR Service
+- [ ] Department Service refactoring
 
 ### Phase 3: Support Services (Planned)
 - [ ] Billing Service

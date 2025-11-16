@@ -102,6 +102,10 @@ export interface ScheduleAppointmentResponse {
   appointmentId: string;
   message: string;
   appointment: Appointment;
+  // Payment link (Flow 3 - Priority 1: Frontend UI)
+  paymentLink?: string; // PayOS checkout URL (may be undefined if Billing Service hasn't processed event yet)
+  invoiceId?: string; // Invoice ID for reference
+  paymentDeadline?: string; // ISO string for countdown timer
 }
 
 export interface ListAppointmentsResponse {

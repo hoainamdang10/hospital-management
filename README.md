@@ -9,18 +9,19 @@
 **Status**: 🚧 In Active Development (40-50% Complete)
 
 ### **✅ Completed Services (3/7)**
-- **Identity Service** - Authentication & Authorization (Port 3021)
-- **Patient Registry** - Patient management with HIPAA compliance (Port 3023)
-- **Provider/Staff** - Doctor/Staff management (Port 3022)
+- **Identity Service** - Authentication & Authorization (Port 3001)
+- **Patient Registry** - Patient management with HIPAA compliance (Port 3002)
+- **Provider/Staff** - Doctor/Staff management (Port 3003)
 
 ### **🔄 In Development (4/7)**
-- **Appointments Service** - Appointments & Queue Management (Port 3024)
-- **Clinical EMR Service** - Medical Records & FHIR compliance (Port 3027)
-- **Billing Service** - Payments & Insurance (Port 3029)
-- **Notifications Service** - Multi-channel alerts (Port 3031)
+- **Appointments Service** - Appointments & Queue Management (Port 3004)
+- **Clinical EMR Service** - Medical Records & FHIR compliance (Port 3005)
+- **Billing Service** - Payments & Insurance (Port 3006)
+- **Notifications Service** - Multi-channel alerts (Port 3007)
 
 ### **❌ Not Started**
-- **API Gateway V2** - Unified entry point (Port 3101)
+- **API Gateway V2** - Unified entry point (Port 3009)
+- **Department Service** - Department management (Port 3008)
 
 ---
 
@@ -121,9 +122,9 @@ docker-compose ps
 ```
 
 ### **4. Access Services**
-- **Identity Service**: http://localhost:3021/health
-- **Patient Registry**: http://localhost:3023/health  
-- **Provider/Staff**: http://localhost:3022/health
+- **Identity Service**: http://localhost:3001/health
+- **Patient Registry**: http://localhost:3002/health
+- **Provider/Staff**: http://localhost:3003/health
 - **Redis**: localhost:6380
 - **RabbitMQ UI**: http://localhost:15673 (admin/admin)
 
@@ -150,7 +151,6 @@ npm run dev
 - **[backend/services-v2/README.md](./backend/services-v2/README.md)** - V2 overview & services
 - **[backend/services-v2/ARCHITECTURE_AUDIT_REPORT.md](./backend/services-v2/ARCHITECTURE_AUDIT_REPORT.md)** - Detailed audit of 3 completed services
 - **[backend/services-v2/STRATEGIC_DEVELOPMENT_PLAN.md](./backend/services-v2/STRATEGIC_DEVELOPMENT_PLAN.md)** - 4-week completion roadmap
-- **[backend/services-v2/PORT-MAPPING.md](./backend/services-v2/PORT-MAPPING.md)** - Service port configuration
 
 ### **Service-Specific Docs**
 Each service has its own README:
@@ -221,9 +221,9 @@ cd backend/services-v2
 docker-compose ps
 
 # Individual service health
-curl http://localhost:3021/health  # Identity
-curl http://localhost:3023/health  # Patient
-curl http://localhost:3022/health  # Provider
+curl http://localhost:3001/health  # Identity
+curl http://localhost:3002/health  # Patient
+curl http://localhost:3003/health  # Provider
 ```
 
 ### **Run Tests** (⚠️ Not fully implemented yet)

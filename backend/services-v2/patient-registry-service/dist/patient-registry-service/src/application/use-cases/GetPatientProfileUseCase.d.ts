@@ -75,22 +75,7 @@ export interface GetPatientProfileResponse {
             address?: string;
             isPrimary: boolean;
         }>;
-        consents: Array<{
-            id: string;
-            consentType: string;
-            isGranted: boolean;
-            grantedAt?: string;
-            revokedAt?: string;
-            expiresAt?: string;
-        }>;
         status: string;
-        mergedInto?: string;
-        links: Array<{
-            otherPatientId: string;
-            linkType: string;
-            createdAt: string;
-            createdBy: string;
-        }>;
         createdAt: string;
         updatedAt: string;
     };

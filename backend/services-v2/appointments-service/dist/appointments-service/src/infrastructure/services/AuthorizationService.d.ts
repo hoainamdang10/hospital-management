@@ -105,14 +105,6 @@ export declare class AuthorizationService implements IAuthorizationService {
         doctorId: string;
     }): Promise<boolean>;
     /**
-     * Bulk reschedule authorization
-     * Rules:
-     * - SUPER_ADMIN/ADMIN: Can bulk reschedule any doctor's appointments
-     * - DOCTOR: Can only bulk reschedule their own appointments
-     * - NURSE/PATIENT: Cannot bulk reschedule
-     */
-    canBulkReschedule(userId: string, doctorId: string): Promise<boolean>;
-    /**
      * Create emergency appointment authorization
      * Rules:
      * - SUPER_ADMIN/ADMIN/DOCTOR/NURSE: Can create emergency appointments

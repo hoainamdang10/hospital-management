@@ -35,7 +35,7 @@ npm run dev:core
 # Business Services (Appointments, Clinical, Billing)
 npm run dev:business
 
-# Supporting Services (Notifications, Scheduler)
+# Supporting Services (Notifications)
 npm run dev:supporting
 
 # All Services
@@ -46,17 +46,18 @@ npm run build:all            # Build all services
 npm run test:all             # Run all tests
 
 # Health Checks
-curl http://localhost:3021/health  # Identity
-curl http://localhost:3023/health  # Patient
-curl http://localhost:3022/health  # Provider
-curl http://localhost:3024/health  # Appointments
-curl http://localhost:3027/health  # Clinical EMR
-curl http://localhost:3029/health  # Billing
-curl http://localhost:3031/health  # Notifications
-curl http://localhost:3101/health  # API Gateway
+curl http://localhost:3001/health  # Identity
+curl http://localhost:3002/health  # Patient
+curl http://localhost:3003/health  # Provider
+curl http://localhost:3004/health  # Appointments
+curl http://localhost:3005/health  # Clinical EMR
+curl http://localhost:3006/health  # Billing
+curl http://localhost:3007/health  # Notifications
+curl http://localhost:3008/health  # Department
+curl http://localhost:3009/health  # API Gateway
 
 # Windows PowerShell Health Check
-Invoke-WebRequest -Uri http://localhost:3021/health
+Invoke-WebRequest -Uri http://localhost:3001/health
 
 # Cleanup
 npm run dev:stop             # Stop services
@@ -67,16 +68,15 @@ npm run dev:clean            # Remove containers + volumes
 
 | Service | Port | Status | Coverage |
 |---------|------|--------|----------|
-| identity-service | 3021 | ✅ Ready | 90%+ |
-| patient-registry-service | 3023 | ✅ Ready | 90%+ |
-| provider-staff-service | 3022 | ✅ Ready | 85%+ |
-| appointments-service | 3024 | 🔄 Dev | 70%+ |
-| clinical-emr-service | 3027 | 🔄 Dev | 60%+ |
-| billing-service | 3029 | 🔄 Dev | 50%+ |
-| notifications-service | 3031 | 🔄 Dev | 60%+ |
-| department-service | 3025 | 🔄 Dev | 40%+ |
-| scheduler-service | 3030 | 🔄 Dev | 50%+ |
-| api-gateway | 3101 | 🔄 Dev | 70%+ |
+| identity-service | 3001 | ✅ Ready | 90%+ |
+| patient-registry-service | 3002 | ✅ Ready | 90%+ |
+| provider-staff-service | 3003 | ✅ Ready | 85%+ |
+| appointments-service | 3004 | 🔄 Dev | 70%+ |
+| clinical-emr-service | 3005 | 🔄 Dev | 60%+ |
+| billing-service | 3006 | 🔄 Dev | 50%+ |
+| notifications-service | 3007 | 🔄 Dev | 60%+ |
+| department-service | 3008 | 🔄 Dev | 40%+ |
+| api-gateway | 3009 | 🔄 Dev | 70%+ |
 | **Infrastructure** | | | |
 | Redis | 6380 | ✅ Infra | - |
 | RabbitMQ | 5673 | ✅ Infra | - |
@@ -100,7 +100,6 @@ hospital-management-V2/
 │       ├── billing-service/            # 🔄 Payments & Billing
 │       ├── notifications-service/      # 🔄 Notifications
 │       ├── department-service/         # 🔄 Department Management
-│       ├── scheduler-service/          # 🔄 Job Scheduling
 │       ├── api-gateway/                # 🔄 API Gateway
 │       ├── shared/                     # Shared domain primitives
 │       │   ├── domain/                 # Base entities, value objects
@@ -171,7 +170,7 @@ SUPABASE_JWT_SECRET=your-jwt-secret
 # Service
 NODE_ENV=development
 JWT_SECRET=your-jwt-secret
-PORT=3021  # Service-specific port
+PORT=3001  # Service-specific port (standardized 300x format)
 
 # Infrastructure (auto-configured by docker-compose)
 REDIS_URL=redis://redis-v2:6379
@@ -204,7 +203,7 @@ npm run dev:infrastructure
 npm run dev:core
 
 # Verify
-curl http://localhost:3021/health
+curl http://localhost:3001/health
 ```
 
 ---
@@ -247,7 +246,7 @@ npm run logs:identity
 
 # Health checks
 npm run health:check
-curl http://localhost:3021/health
+curl http://localhost:3001/health
 ```
 
 ### Single Service Development
@@ -356,7 +355,7 @@ shared/
 │   ├── AppointmentBillingWorkflow.ts
 │   └── NotificationTriggerWorkflow.ts
 └── sdk/                       # Client SDKs
-    └── scheduler-client/      # Scheduler service client
+    └── (future client SDKs)
 ```
 
 ### Usage in Services
@@ -598,7 +597,7 @@ Examples:
 
 ### Core Services (Ready for Production)
 
-#### Identity Service (3021) ✅
+#### Identity Service (3001) ✅
 
 **Status**: Production Ready | **Coverage**: 90%+
 
@@ -628,7 +627,7 @@ GET  /health
 GET  /metrics
 ```
 
-#### Patient Registry (3023) ✅
+#### Patient Registry (3002) ✅
 
 **Status**: Production Ready | **Coverage**: 90%+
 
@@ -657,7 +656,7 @@ POST /api/patients/:id/insurance
 GET  /health
 ```
 
-#### Provider/Staff (3022) ✅
+#### Provider/Staff (3003) ✅
 
 **Status**: Production Ready | **Coverage**: 85%+
 
@@ -687,7 +686,7 @@ GET  /health
 
 ### Business Services (In Development)
 
-#### Appointments Service (3024) 🔄
+#### Appointments Service (3004) 🔄
 
 **Status**: 70% Complete | **Coverage**: 70%+
 
@@ -695,15 +694,14 @@ GET  /health
 
 **Key Features**:
 - Appointment booking & cancellation
-- Queue management
-- Conflict detection
-- Calendar integration
-- Reminder notifications
-- Integration with Scheduler Service
+- Queue management (check-in with position calculation)
+- Conflict detection (PostgreSQL exclusion constraints)
+- Available time slots calculation
+- Reminder notifications (via cron jobs in Notifications service)
 
 **Schema**: `appointments_schema`
 
-**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ, Scheduler SDK
+**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
 
 **Endpoints**:
 ```
@@ -716,7 +714,7 @@ POST /api/appointments/:id/reschedule
 GET  /health
 ```
 
-#### Clinical EMR (3027) 🔄
+#### Clinical EMR (3005) 🔄
 
 **Status**: 60% Complete | **Coverage**: 60%+
 
@@ -745,7 +743,7 @@ GET  /api/emr/records/:id/history
 GET  /health
 ```
 
-#### Billing Service (3029) 🔄
+#### Billing Service (3006) 🔄
 
 **Status**: 50% Complete | **Coverage**: 50%+
 
@@ -775,7 +773,7 @@ GET  /health
 
 ### Supporting Services
 
-#### Notifications Service (3031) 🔄
+#### Notifications Service (3007) 🔄
 
 **Status**: 60% Complete | **Coverage**: 60%+
 
@@ -788,6 +786,7 @@ GET  /health
 - Push notifications
 - Template management
 - Delivery tracking
+- **Appointment reminder cron job** (runs every 5 minutes)
 
 **Schema**: `notifications_schema`
 
@@ -802,7 +801,7 @@ PUT  /api/notifications/:id/read
 GET  /health
 ```
 
-#### Department Service (3025) 🔄
+#### Department Service (3008) 🔄
 
 **Status**: 40% Complete | **Coverage**: 40%+
 
@@ -818,24 +817,9 @@ GET  /health
 
 **Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
 
-#### Scheduler Service (3030) 🔄
+**Note**: ⚠️ Architecture violation - currently lacking application layer (use cases). Controller talks directly to repository. Should be refactored before production use.
 
-**Status**: 50% Complete | **Coverage**: 50%+
-
-**Responsibilities**: Job Scheduling, Recurring Tasks
-
-**Key Features**:
-- Cron-based scheduling
-- Recurring tasks
-- Job monitoring
-- Dead letter queue
-- SDK for other services
-
-**Schema**: `scheduler_schema`
-
-**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
-
-#### API Gateway (3101) 🔄
+#### API Gateway (3009) 🔄
 
 **Status**: 70% Complete | **Coverage**: 70%+
 
@@ -876,7 +860,7 @@ test(provider): add credential validation tests
 
 **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
-**Scopes**: `identity`, `patient`, `provider`, `appointments`, `clinical`, `billing`, `notifications`
+**Scopes**: `identity`, `patient`, `provider`, `appointments`, `clinical`, `billing`, `notifications`, `department`
 
 ### PR Checklist
 
@@ -920,7 +904,7 @@ test(provider): add credential validation tests
 
 ```powershell
 # Find process using port
-netstat -ano | findstr :3021
+netstat -ano | findstr :3001
 Get-Process -Id <PID>
 
 # Kill process
@@ -928,7 +912,7 @@ taskkill /PID <PID> /F
 Stop-Process -Id <PID> -Force
 
 # Health check
-Invoke-WebRequest -Uri http://localhost:3021/health
+Invoke-WebRequest -Uri http://localhost:3001/health
 
 # View logs
 docker logs hospital-identity-service-v2 -f
@@ -945,7 +929,7 @@ cd D:\hospital-management-V2\backend\services-v2
 
 ```bash
 # Find process using port
-lsof -i :3021
+lsof -i :3001
 ps aux | grep node
 
 # Kill process
@@ -953,7 +937,7 @@ kill -9 <PID>
 pkill -f "node.*identity-service"
 
 # Health check
-curl http://localhost:3021/health
+curl http://localhost:3001/health
 
 # View logs
 docker logs hospital-identity-service-v2 -f
@@ -972,7 +956,7 @@ printenv
 **Windows:**
 ```powershell
 # Find and kill process
-netstat -ano | findstr :3021
+netstat -ano | findstr :3001
 taskkill /PID <PID> /F
 
 # Or use Docker
@@ -983,7 +967,7 @@ docker stop hospital-identity-service-v2
 **macOS/Linux:**
 ```bash
 # Find and kill process
-lsof -i :3021
+lsof -i :3001
 kill -9 <PID>
 
 # Or use Docker
@@ -1257,9 +1241,9 @@ npm run dev:infrastructure  # Start Redis + RabbitMQ
 npm run dev:core           # Start core services
 
 # Health checks
-curl http://localhost:3021/health  # Identity
-curl http://localhost:3023/health  # Patient
-curl http://localhost:3022/health  # Provider
+curl http://localhost:3001/health  # Identity
+curl http://localhost:3002/health  # Patient
+curl http://localhost:3003/health  # Provider
 
 # Build & test
 npm run build:all

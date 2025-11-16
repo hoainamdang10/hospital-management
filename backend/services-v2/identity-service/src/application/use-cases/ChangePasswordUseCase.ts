@@ -16,7 +16,7 @@ import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { UserId } from '../../domain/value-objects/UserId';
 import { ILogger } from '../services/ILogger';
 import { IEventPublisher } from '../services/IEventPublisher';
-import { PasswordChangedEvent } from '../../domain/events/PasswordChangedEvent';
+// import { PasswordChangedEvent } from '../../domain/events/PasswordChangedEvent'; // Event removed in scope reduction
 
 export interface ChangePasswordRequest {
   userId: string;
@@ -48,7 +48,7 @@ export class ChangePasswordUseCase
     private sessionRepository: ISessionRepository,
     private logger: ILogger,
     private circuitBreaker: ICircuitBreaker,
-    private eventPublisher?: IEventPublisher // Optional for backward compatibility
+    private _eventPublisher?: IEventPublisher // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
   ) {}
 
   async execute(request: ChangePasswordRequest): Promise<ChangePasswordResponse> {
@@ -147,31 +147,31 @@ export class ChangePasswordUseCase
         invalidatedSessions: invalidateOtherSessions
       });
 
-      // Publish PasswordChangedEvent
-      if (this.eventPublisher) {
-        try {
-          const userIdVO = UserId.fromString(request.userId);
-          const event = new PasswordChangedEvent(
-            userIdVO,
-            request.userId, // changedBy (user changes their own password)
-            invalidateOtherSessions,
-            user.email.value,
-            user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
-          );
+      // Publish PasswordChangedEvent - Disabled in scope reduction
+      // if (this.eventPublisher) {
+      //   try {
+      //     const userIdVO = UserId.fromString(request.userId);
+      //     const event = new PasswordChangedEvent(
+      //       userIdVO,
+      //       request.userId, // changedBy (user changes their own password)
+      //       invalidateOtherSessions,
+      //       user.email.value,
+      //       user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+      //     );
 
-          await this.eventPublisher.publishDomainEvents([event]);
+      //     await this.eventPublisher.publishDomainEvents([event]);
 
-          this.logger.info('PasswordChangedEvent published', {
-            userId: request.userId
-          });
-        } catch (error) {
-          this.logger.error('Failed to publish PasswordChangedEvent', {
-            userId: request.userId,
-            error: error instanceof Error ? error.message : String(error)
-          });
-          // Don't fail password change if event publishing fails
-        }
-      }
+      //     this.logger.info('PasswordChangedEvent published', {
+      //       userId: request.userId
+      //     });
+      //   } catch (error) {
+      //     this.logger.error('Failed to publish PasswordChangedEvent', {
+      //       userId: request.userId,
+      //       error: error instanceof Error ? error.message : String(error)
+      //     });
+      //     // Don't fail password change if event publishing fails
+      //   }
+      // }
 
       return {
         success: true,

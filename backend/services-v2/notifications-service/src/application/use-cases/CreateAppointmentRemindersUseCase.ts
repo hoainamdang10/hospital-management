@@ -1,0 +1,199 @@
+/**
+ * CreateAppointmentRemindersUseCase
+ * Creates reminder records in database when appointment is scheduled
+ *
+ * @author Hospital Management Team
+ * @version 2.0.0
+ */
+
+import { IAppointmentReminderRepository } from '../../domain/repositories/IAppointmentReminderRepository';
+import { AppointmentReminder } from '../../domain/aggregates/AppointmentReminder';
+import { ReminderType } from '../../domain/value-objects/ReminderType';
+import { ReminderStatus } from '../../domain/value-objects/ReminderStatus';
+
+export interface CreateAppointmentRemindersRequest {
+  appointmentId: string;
+  tenantId?: string;
+  patientId: string;
+  patientName?: string;
+  patientPhone?: string;
+  patientEmail?: string;
+  patientLanguage?: string;
+  doctorId?: string;
+  doctorName?: string;
+  doctorSpecialization?: string;
+  appointmentDate: Date;
+  appointmentTime: string;
+  appointmentType?: string;
+  reason?: string;
+}
+
+export interface CreateAppointmentRemindersResponse {
+  success: boolean;
+  created: number;
+  message?: string;
+}
+
+export class CreateAppointmentRemindersUseCase {
+  constructor(private reminderRepo: IAppointmentReminderRepository) {}
+
+  /**
+   * Execute use case - create 3 reminders for an appointment
+   */
+  public async execute(
+    request: CreateAppointmentRemindersRequest
+  ): Promise<CreateAppointmentRemindersResponse> {
+    try {
+      // Validate input
+      if (!request.appointmentId || !request.patientId) {
+        return {
+          success: false,
+          created: 0,
+          message: 'Appointment ID and Patient ID are required'
+        };
+      }
+
+      if (!request.appointmentDate || !request.appointmentTime) {
+        return {
+          success: false,
+          created: 0,
+          message: 'Appointment date and time are required'
+        };
+      }
+
+      if (!request.patientPhone && !request.patientEmail) {
+        return {
+          success: false,
+          created: 0,
+          message: 'Patient must have at least one contact method'
+        };
+      }
+
+      // Calculate appointment datetime
+      const appointmentDateTime = this.combineDateTime(
+        request.appointmentDate,
+        request.appointmentTime
+      );
+
+      // Check if appointment is in the future
+      if (appointmentDateTime <= new Date()) {
+        console.warn('[CreateAppointmentRemindersUseCase] Appointment is in the past, skipping reminders');
+        return { success: true, created: 0, message: 'Appointment in past, no reminders created' };
+      }
+
+      // Create 3 standard reminders
+      const reminderTypes = ReminderType.getAllStandardTypes();
+      let created = 0;
+
+      for (const reminderType of reminderTypes) {
+        const scheduledSendTime = reminderType.calculateSendTime(appointmentDateTime);
+
+        // Only create reminder if send time is in the future
+        if (scheduledSendTime > new Date()) {
+          try {
+            const reminder = AppointmentReminder.create({
+              appointmentId: request.appointmentId,
+              tenantId: request.tenantId || 'hospital-1',
+              patientId: request.patientId,
+              patientName: request.patientName,
+              patientPhone: request.patientPhone,
+              patientEmail: request.patientEmail,
+              patientLanguage: request.patientLanguage || 'vi',
+              doctorId: request.doctorId,
+              doctorName: request.doctorName,
+              doctorSpecialization: request.doctorSpecialization,
+              appointmentDate: request.appointmentDate,
+              appointmentTime: request.appointmentTime,
+              appointmentType: request.appointmentType,
+              reason: request.reason,
+              reminderType,
+              scheduledSendTime,
+              status: ReminderStatus.PENDING,
+              channels: this.determineChannels(request),
+              preferredChannel: this.determinePreferredChannel(request),
+            });
+
+            await this.reminderRepo.save(reminder);
+            created++;
+
+            console.log(
+              `[CreateAppointmentRemindersUseCase] Created ${reminderType.toString()} reminder for appointment ${request.appointmentId}`
+            );
+          } catch (error: any) {
+            console.error(
+              `[CreateAppointmentRemindersUseCase] Failed to create/save reminder: ${error.message}`
+            );
+            continue;
+          }
+        } else {
+          console.warn(
+            `[CreateAppointmentRemindersUseCase] Skipping ${reminderType.toString()} reminder (send time in past)`
+          );
+        }
+      }
+
+      console.log(
+        `[CreateAppointmentRemindersUseCase] Created ${created}/${reminderTypes.length} reminders for appointment ${request.appointmentId}`
+      );
+
+      return {
+        success: true,
+        created,
+        message: `Created ${created} reminders`
+      };
+    } catch (error: any) {
+      console.error('[CreateAppointmentRemindersUseCase] Unexpected error:', error);
+      return {
+        success: false,
+        created: 0,
+        message: `Failed to create reminders: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * Combine date and time into single datetime
+   */
+  private combineDateTime(date: Date, time: string): Date {
+    const [hours, minutes] = time.split(':').map(Number);
+    const datetime = new Date(date);
+    datetime.setHours(hours, minutes, 0, 0);
+    return datetime;
+  }
+
+  /**
+   * Determine notification channels based on patient contact info
+   */
+  private determineChannels(request: CreateAppointmentRemindersRequest): string[] {
+    const channels: string[] = [];
+
+    if (request.patientPhone) {
+      channels.push('SMS');
+    }
+
+    if (request.patientEmail) {
+      channels.push('EMAIL');
+    }
+
+    // Always include IN_APP if available
+    channels.push('IN_APP');
+
+    return channels.length > 0 ? channels : ['SMS', 'EMAIL'];
+  }
+
+  /**
+   * Determine preferred channel
+   */
+  private determinePreferredChannel(request: CreateAppointmentRemindersRequest): string {
+    // Prefer SMS for reminders (more immediate)
+    if (request.patientPhone) {
+      return 'SMS';
+    }
+
+    if (request.patientEmail) {
+      return 'EMAIL';
+    }
+
+    return 'IN_APP';
+  }
+}

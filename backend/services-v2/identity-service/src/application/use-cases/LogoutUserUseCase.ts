@@ -12,7 +12,7 @@ import { IAuthenticationService } from '../services/IAuthenticationService';
 import { IUserRepository } from '../repositories/IUserRepository';
 import { ICircuitBreaker } from '../services/ICircuitBreaker';
 import { IEventPublisher } from '../services/IEventPublisher';
-import { UserLoggedOutEvent } from '../../domain/events/UserLoggedOutEvent';
+// import { UserLoggedOutEvent } from '../../domain/events/UserLoggedOutEvent'; // Event removed in scope reduction
 import { ILogger } from '../services/ILogger';
 import { UserId } from '../../domain/value-objects/UserId';
 
@@ -34,7 +34,7 @@ export class LogoutUserUseCase implements IUseCase<LogoutUserRequest, LogoutUser
     private userRepository: IUserRepository,
     private logger: ILogger,
     private circuitBreaker: ICircuitBreaker,
-    private eventPublisher?: IEventPublisher // Optional for backward compatibility
+    private _eventPublisher?: IEventPublisher // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
   ) {}
 
   async execute(request: LogoutUserRequest): Promise<LogoutUserResponse> {
@@ -88,28 +88,28 @@ export class LogoutUserUseCase implements IUseCase<LogoutUserRequest, LogoutUser
       }
     }
 
-    // Try to publish UserLoggedOut event
-    if (this.eventPublisher) {
-      try {
-        const event = new UserLoggedOutEvent(
-          request.userId,
-          request.sessionId || 'unknown',
-          new Date()
-        );
+    // Try to publish UserLoggedOut event - Disabled in scope reduction
+    // if (this.eventPublisher) {
+    //   try {
+    //     const event = new UserLoggedOutEvent(
+    //       request.userId,
+    //       request.sessionId || 'unknown',
+    //       new Date()
+    //     );
 
-        await this.eventPublisher.publishDomainEvents([event]);
+    //     await this.eventPublisher.publishDomainEvents([event]);
 
-        this.logger.info('UserLoggedOut event published', {
-          userId: request.userId
-        });
-      } catch (eventError) {
-        // Log error but continue - graceful degradation
-        this.logger.error('Failed to publish UserLoggedOut event', {
-          userId: request.userId,
-          error: getErrorMessage(eventError)
-        });
-      }
-    }
+    //     this.logger.info('UserLoggedOut event published', {
+    //       userId: request.userId
+    //     });
+    //   } catch (eventError) {
+    //     // Log error but continue - graceful degradation
+    //     this.logger.error('Failed to publish UserLoggedOut event', {
+    //       userId: request.userId,
+    //       error: getErrorMessage(eventError)
+    //     });
+    //   }
+    // }
 
     // Always return success - graceful degradation
     // Logout is a critical operation that should always succeed from user's perspective

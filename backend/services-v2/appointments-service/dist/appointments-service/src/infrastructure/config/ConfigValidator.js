@@ -41,6 +41,7 @@ function loadConfig() {
             providerServiceUrl: process.env.PROVIDER_SERVICE_URL || "http://localhost:3022",
             schedulerServiceUrl: process.env.SCHEDULER_SERVICE_URL || "http://localhost:3030",
             schedulerApiKey: process.env.SCHEDULER_API_KEY, // Required, validated above
+            billingServiceUrl: process.env.BILLING_SERVICE_URL || "http://localhost:3006",
         },
         // CORS
         cors: {

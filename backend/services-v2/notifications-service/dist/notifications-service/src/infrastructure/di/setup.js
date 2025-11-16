@@ -33,11 +33,13 @@ const DeleteTemplateUseCase_1 = require("../../application/use-cases/DeleteTempl
 const MarkNotificationAsReadUseCase_1 = require("../../application/use-cases/MarkNotificationAsReadUseCase");
 const GetUserNotificationsUseCase_1 = require("../../application/use-cases/GetUserNotificationsUseCase");
 const UpdateNotificationPreferencesUseCase_1 = require("../../application/use-cases/UpdateNotificationPreferencesUseCase");
+const CreateAppointmentRemindersUseCase_1 = require("../../application/use-cases/CreateAppointmentRemindersUseCase");
 // Infrastructure Layer
 const SupabaseNotificationRepository_1 = require("../persistence/SupabaseNotificationRepository");
 const SupabaseInboxRepository_1 = require("../persistence/SupabaseInboxRepository");
 const SupabaseTemplateRepository_1 = require("../persistence/SupabaseTemplateRepository");
 const SupabasePreferencesRepository_1 = require("../persistence/SupabasePreferencesRepository");
+const SupabaseAppointmentReminderRepository_1 = require("../persistence/SupabaseAppointmentReminderRepository");
 const MultiChannelDeliveryService_1 = require("../delivery/MultiChannelDeliveryService");
 const VietnameseTemplateService_1 = require("../templates/VietnameseTemplateService");
 // import { RealTimeNotificationService } from "../realtime/RealTimeNotificationService";
@@ -46,7 +48,8 @@ const NotificationEventHandlers_1 = require("../events/NotificationEventHandlers
 const AppointmentEventConsumer_1 = require("../events/AppointmentEventConsumer");
 const StaffEventConsumer_1 = require("../events/StaffEventConsumer");
 const BillingEventConsumer_1 = require("../events/BillingEventConsumer");
-const ClinicalEMREventConsumer_1 = require("../events/ClinicalEMREventConsumer");
+// import { ClinicalEMREventConsumer } from "../events/ClinicalEMREventConsumer"; // REMOVED FOR MVP
+const ReminderCronJob_1 = require("../cron/ReminderCronJob");
 const NotificationController_1 = require("../../presentation/controllers/NotificationController");
 // Service Tokens
 exports.ServiceTokens = {
@@ -60,6 +63,7 @@ exports.ServiceTokens = {
     INBOX_REPOSITORY: "InboxRepository",
     TEMPLATE_REPOSITORY: "TemplateRepository",
     PREFERENCES_REPOSITORY: "PreferencesRepository",
+    APPOINTMENT_REMINDER_REPOSITORY: "AppointmentReminderRepository",
     // External Services
     DELIVERY_SERVICE: "DeliveryService",
     TEMPLATE_SERVICE: "TemplateService",
@@ -76,6 +80,7 @@ exports.ServiceTokens = {
     MARK_AS_READ_USE_CASE: "MarkNotificationAsReadUseCase",
     GET_USER_NOTIFICATIONS_USE_CASE: "GetUserNotificationsUseCase",
     UPDATE_PREFERENCES_USE_CASE: "UpdateNotificationPreferencesUseCase",
+    CREATE_APPOINTMENT_REMINDERS_USE_CASE: "CreateAppointmentRemindersUseCase",
     // Handlers
     NOTIFICATION_COMMAND_HANDLERS: "NotificationCommandHandlers",
     NOTIFICATION_QUERY_HANDLERS: "NotificationQueryHandlers",
@@ -85,7 +90,9 @@ exports.ServiceTokens = {
     APPOINTMENT_EVENT_CONSUMER: "AppointmentEventConsumer",
     STAFF_EVENT_CONSUMER: "StaffEventConsumer",
     BILLING_EVENT_CONSUMER: "BillingEventConsumer",
-    CLINICAL_EMR_EVENT_CONSUMER: "ClinicalEMREventConsumer",
+    // CLINICAL_EMR_EVENT_CONSUMER: "ClinicalEMREventConsumer", // REMOVED FOR MVP
+    // Cron Jobs
+    REMINDER_CRON_JOB: "ReminderCronJob",
     // Application Services
     NOTIFICATION_APPLICATION_SERVICE: "NotificationApplicationService",
     // Controllers
@@ -146,6 +153,10 @@ function setupDependencies(container) {
     container.registerFactory(exports.ServiceTokens.PREFERENCES_REPOSITORY, (container) => {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
         return new SupabasePreferencesRepository_1.SupabasePreferencesRepository(supabaseClient);
+    }, container_1.ServiceLifetime.SCOPED);
+    container.registerFactory(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY, (container) => {
+        const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
+        return new SupabaseAppointmentReminderRepository_1.SupabaseAppointmentReminderRepository(supabaseClient);
     }, container_1.ServiceLifetime.SCOPED);
     // Register external services
     container.registerFactory(exports.ServiceTokens.DELIVERY_SERVICE, () => {
@@ -288,6 +299,8 @@ function setupDependencies(container) {
     container.registerFactory(exports.ServiceTokens.APPOINTMENT_EVENT_CONSUMER, (container) => {
         const sendNotificationUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
         const getNotificationPreferencesUseCase = container.resolve(exports.ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
+        const createAppointmentRemindersUseCase = container.resolve(exports.ServiceTokens.CREATE_APPOINTMENT_REMINDERS_USE_CASE);
+        const appointmentReminderRepo = container.resolve(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
         const inboxRepo = container.resolve(exports.ServiceTokens.INBOX_REPOSITORY);
         const config = {
             rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
@@ -306,7 +319,7 @@ function setupDependencies(container) {
             retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
             retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
         };
-        return new AppointmentEventConsumer_1.AppointmentEventConsumer(config, sendNotificationUseCase, getNotificationPreferencesUseCase, inboxRepo);
+        return new AppointmentEventConsumer_1.AppointmentEventConsumer(config, sendNotificationUseCase, getNotificationPreferencesUseCase, createAppointmentRemindersUseCase, appointmentReminderRepo, inboxRepo);
     }, container_1.ServiceLifetime.SINGLETON);
     container.registerFactory(exports.ServiceTokens.STAFF_EVENT_CONSUMER, (container) => {
         const sendNotificationUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
@@ -352,27 +365,41 @@ function setupDependencies(container) {
         };
         return new BillingEventConsumer_1.BillingEventConsumer(config, sendNotificationUseCase, getNotificationPreferencesUseCase, inboxRepo);
     }, container_1.ServiceLifetime.SINGLETON);
-    container.registerFactory(exports.ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER, (container) => {
-        const sendNotificationUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
-        const getNotificationPreferencesUseCase = container.resolve(exports.ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
-        const inboxRepo = container.resolve(exports.ServiceTokens.INBOX_REPOSITORY);
+    // CLINICAL EMR EVENT CONSUMER REMOVED FOR MVP - Focus on Appointments only
+    /*
+    container.registerFactory(
+      ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER,
+      (container) => {
+        const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+        const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
+        const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
+  
         const config = {
-            rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
-            queueName: process.env.CLINICAL_EVENT_QUEUE || 'notifications.clinical.events',
-            exchangeName: process.env.CLINICAL_EVENT_EXCHANGE || 'hospital.events',
-            routingKeys: [
-                'clinical.medical_record_updated',
-                'clinical.medication.reminder.*',
-                'clinical.test_result.ready',
-                'clinical.prescription.created',
-                'emergency.alert'
-            ],
-            prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
-            retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
-            retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+          rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
+          queueName: process.env.CLINICAL_EVENT_QUEUE || 'notifications.clinical.events',
+          exchangeName: process.env.CLINICAL_EVENT_EXCHANGE || 'hospital.events',
+          routingKeys: [
+            'clinical.medical_record_updated',
+            'clinical.medication.reminder.*',
+            'clinical.test_result.ready',
+            'clinical.prescription.created',
+            'emergency.alert'
+          ],
+          prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
+          retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
+          retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
         };
-        return new ClinicalEMREventConsumer_1.ClinicalEMREventConsumer(config, sendNotificationUseCase, getNotificationPreferencesUseCase, inboxRepo);
-    }, container_1.ServiceLifetime.SINGLETON);
+  
+        return new ClinicalEMREventConsumer(
+          config,
+          sendNotificationUseCase,
+          getNotificationPreferencesUseCase,
+          inboxRepo
+        );
+      },
+      ServiceLifetime.SINGLETON
+    );
+    */
     // Register new use cases
     container.registerFactory(exports.ServiceTokens.MARK_AS_READ_USE_CASE, (container) => {
         const notificationRepository = container.resolve(exports.ServiceTokens.NOTIFICATION_REPOSITORY);
@@ -386,6 +413,21 @@ function setupDependencies(container) {
         const preferencesRepository = container.resolve(exports.ServiceTokens.PREFERENCES_REPOSITORY);
         return new UpdateNotificationPreferencesUseCase_1.UpdateNotificationPreferencesUseCase(preferencesRepository);
     }, container_1.ServiceLifetime.TRANSIENT);
+    container.registerFactory(exports.ServiceTokens.CREATE_APPOINTMENT_REMINDERS_USE_CASE, (container) => {
+        const reminderRepo = container.resolve(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
+        return new CreateAppointmentRemindersUseCase_1.CreateAppointmentRemindersUseCase(reminderRepo);
+    }, container_1.ServiceLifetime.TRANSIENT);
+    // Register Cron Jobs
+    container.registerFactory(exports.ServiceTokens.REMINDER_CRON_JOB, (container) => {
+        const reminderRepo = container.resolve(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
+        const sendNotificationUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+        const config = {
+            cronExpression: process.env.REMINDER_CRON_EXPRESSION || '*/5 * * * *', // Every 5 minutes
+            batchSize: parseInt(process.env.REMINDER_BATCH_SIZE || '50'),
+            enabled: process.env.REMINDER_CRON_ENABLED !== 'false' // Enabled by default
+        };
+        return new ReminderCronJob_1.ReminderCronJob(config, reminderRepo, sendNotificationUseCase);
+    }, container_1.ServiceLifetime.SINGLETON);
     // Register Controllers
     container.registerFactory(exports.ServiceTokens.NOTIFICATION_CONTROLLER, (container) => {
         const notificationApplicationService = container.resolve(exports.ServiceTokens.NOTIFICATION_APPLICATION_SERVICE);

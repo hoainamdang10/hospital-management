@@ -17,12 +17,27 @@ exports.User = void 0;
 const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const UserId_1 = require("../value-objects/UserId");
 const AccountStatus_1 = require("../value-objects/AccountStatus");
-const UserCreatedEvent_1 = require("../events/UserCreatedEvent");
-const UserAuthenticatedEvent_1 = require("../events/UserAuthenticatedEvent");
+const domain_events_1 = require("../../../../shared/domain/events/domain-events");
 const UserRoleChangedEvent_1 = require("../events/UserRoleChangedEvent");
 const UserDeactivatedEvent_1 = require("../events/UserDeactivatedEvent");
 const UserActivatedEvent_1 = require("../events/UserActivatedEvent");
-const UserAccountLockedEvent_1 = require("../events/UserAccountLockedEvent");
+/**
+ * Convert HealthcareRoleType to shared role type
+ */
+function convertToSharedRoleType(roleType) {
+    const roleMapping = {
+        'ADMIN': 'admin',
+        'DOCTOR': 'doctor',
+        'NURSE': 'nurse',
+        'RECEPTIONIST': 'receptionist',
+        'PATIENT': 'patient'
+    };
+    const converted = roleMapping[roleType.toUpperCase()];
+    if (!converted) {
+        throw new Error(`Unsupported role type: ${roleType}`);
+    }
+    return converted;
+}
 /**
  * User Aggregate Root with Enhanced Error Handling
  * Implements anti-patterns mitigation and graceful degradation
@@ -63,7 +78,8 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             // Validate business invariants before creating
             user.validateBusinessInvariants();
             // Domain event for user creation (with primary role)
-            user.addDomainEvent(new UserCreatedEvent_1.UserCreatedEvent(userId, email, healthcareRoles[0]));
+            user.addDomainEvent(new domain_events_1.UserCreatedEvent(userId.value, email.value, '', // Empty fullName for initial registration
+            convertToSharedRoleType(healthcareRoles[0].type)));
             return user;
         }
         catch (error) {
@@ -161,15 +177,15 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
      * Record authentication event (password verification done by Supabase Auth)
      * This method is called AFTER successful authentication via SupabaseAuthService
      */
-    recordAuthentication(ipAddress, userAgent) {
+    recordAuthentication(_ipAddress, _userAgent) {
         if (this.props.accountStatus !== AccountStatus_1.AccountStatus.ACTIVE) {
             throw new Error(`Tài khoản đã bị vô hiệu hóa: ${this.props.accountStatus}`);
         }
         // Update last login
         this.props.lastLoginAt = new Date();
         this.props.updatedAt = new Date();
-        // Domain event for successful authentication
-        this.addDomainEvent(new UserAuthenticatedEvent_1.UserAuthenticatedEvent(this.props.id, ipAddress, userAgent, new Date()));
+        // Authentication logging moved to internal audit trail
+        // No longer publishing UserAuthenticatedEvent (audit-only event)
     }
     /**
      * Get all role types assigned to this user (read-only)
@@ -436,7 +452,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
     /**
      * Lock account temporarily (can be unlocked by admin)
      */
-    lock(lockedBy, reason, terminatedSessions = false) {
+    lock(lockedBy, reason, _terminatedSessions = false) {
         try {
             if (!AccountStatus_1.AccountStatusHelper.canTransition(this.props.accountStatus, AccountStatus_1.AccountStatus.LOCKED)) {
                 throw new Error(`Cannot lock account with status: ${this.props.accountStatus}`);
@@ -447,7 +463,8 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             this.props.deactivatedAt = now;
             this.props.deactivatedBy = lockedBy;
             this.props.updatedAt = now;
-            this.addDomainEvent(new UserAccountLockedEvent_1.UserAccountLockedEvent(this.props.id, lockedBy, reason, terminatedSessions, this.props.email.value, this.roleTypes[0] || "UNKNOWN"));
+            // Account lock logging moved to internal audit trail
+            // No longer publishing UserAccountLockedEvent (audit-only event)
         }
         catch (error) {
             throw new Error(`Failed to lock user: ${getErrorMessage(error)}`);
@@ -472,7 +489,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             if (!primaryRole) {
                 throw new Error('User must have at least one role for staff activation');
             }
-            this.addDomainEvent(new UserCreatedEvent_1.UserCreatedEvent(this.props.id, this.props.email, primaryRole, personalInfo));
+            this.addDomainEvent(new domain_events_1.UserCreatedEvent(this.props.id.value, this.props.email.value, personalInfo.fullName, convertToSharedRoleType(primaryRole.type), personalInfo.citizenId, personalInfo.phoneNumber));
             this.props.updatedAt = new Date();
         }
         catch (error) {

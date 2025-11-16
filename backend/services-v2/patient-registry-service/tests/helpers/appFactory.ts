@@ -29,27 +29,34 @@ import { RegisterPatientUseCase } from '../../src/application/use-cases/Register
 import { UpdatePatientInfoUseCase } from '../../src/application/use-cases/UpdatePatientInfoUseCase';
 import { GetPatientProfileUseCase } from '../../src/application/use-cases/GetPatientProfileUseCase';
 import { SearchPatientsUseCase } from '../../src/application/use-cases/SearchPatientsUseCase';
+/* POST-MVP: Archived use case imports - Not required for graduation project
 import { MatchPatientsUseCase } from '../../src/application/use-cases/MatchPatientsUseCase';
 import { MergePatientsUseCase } from '../../src/application/use-cases/MergePatientsUseCase';
 import { LinkPatientsUseCase } from '../../src/application/use-cases/LinkPatientsUseCase';
 import { DeactivatePatientUseCase } from '../../src/application/use-cases/DeactivatePatientUseCase';
+END POST-MVP */
 import { ValidateInsuranceUseCase } from '../../src/application/use-cases/ValidateInsuranceUseCase';
 import { AddEmergencyContactUseCase } from '../../src/application/use-cases/AddEmergencyContactUseCase';
+/* POST-MVP: Archived use case imports - Not required for graduation project
 import { GrantConsentUseCase } from '../../src/application/use-cases/GrantConsentUseCase';
 import { MarkAsDeceasedUseCase } from '../../src/application/use-cases/MarkAsDeceasedUseCase';
 import { ReactivatePatientUseCase } from '../../src/application/use-cases/ReactivatePatientUseCase';
+END POST-MVP */
 import { GetEmergencyContactsUseCase } from '../../src/application/use-cases/GetEmergencyContactsUseCase';
 import { UpdateEmergencyContactUseCase } from '../../src/application/use-cases/UpdateEmergencyContactUseCase';
+/* POST-MVP: Archived use case imports - Not required for graduation project
 import { RemoveEmergencyContactUseCase } from '../../src/application/use-cases/RemoveEmergencyContactUseCase';
 import { SetPrimaryEmergencyContactUseCase } from '../../src/application/use-cases/SetPrimaryEmergencyContactUseCase';
 import { GetConsentsUseCase } from '../../src/application/use-cases/GetConsentsUseCase';
 import { GetConsentDetailsUseCase } from '../../src/application/use-cases/GetConsentDetailsUseCase';
 import { RevokeConsentUseCase } from '../../src/application/use-cases/RevokeConsentUseCase';
 import { GetActiveConsentsUseCase } from '../../src/application/use-cases/GetActiveConsentsUseCase';
+END POST-MVP */
 import { GetInsuranceInfoUseCase } from '../../src/application/use-cases/GetInsuranceInfoUseCase';
 import { AddInsuranceInfoUseCase } from '../../src/application/use-cases/AddInsuranceInfoUseCase';
 import { UpdateInsuranceInfoUseCase } from '../../src/application/use-cases/UpdateInsuranceInfoUseCase';
 import { VerifyInsuranceUseCase } from '../../src/application/use-cases/VerifyInsuranceUseCase';
+/* POST-MVP: Archived use case imports - Not required for graduation project
 import { GetPatientStatisticsUseCase } from '../../src/application/use-cases/GetPatientStatisticsUseCase';
 import { UploadPatientPhotoUseCase } from '../../src/application/use-cases/UploadPatientPhotoUseCase';
 import { GetPatientPhotoUseCase } from '../../src/application/use-cases/GetPatientPhotoUseCase';
@@ -57,6 +64,7 @@ import { DeletePatientPhotoUseCase } from '../../src/application/use-cases/Delet
 import { UpdateCommunicationPreferencesUseCase } from '../../src/application/use-cases/UpdateCommunicationPreferencesUseCase';
 import { GetCommunicationPreferencesUseCase } from '../../src/application/use-cases/GetCommunicationPreferencesUseCase';
 import { GetPatientHistoryUseCase } from '../../src/application/use-cases/GetPatientHistoryUseCase';
+END POST-MVP */
 import { PatientCommandHandlers } from '../../src/application/handlers/PatientCommandHandlers';
 import { PatientQueryHandlers } from '../../src/application/handlers/PatientQueryHandlers';
 
@@ -224,6 +232,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   );
   const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, logger, auditService);
   const searchPatientsUseCase = new SearchPatientsUseCase(patientRepository);
+  /* POST-MVP: Archived use case instantiations - Not required for graduation project
   const matchPatientsUseCase = new MatchPatientsUseCase(patientRepository, matchingService, logger);
   const mergePatientsUseCase = new MergePatientsUseCase(patientRepository);
   const linkPatientsUseCase = new LinkPatientsUseCase(patientRepository);
@@ -233,6 +242,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger,
     auditService
   );
+  END POST-MVP */
   const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
   const addEmergencyContactUseCase = new AddEmergencyContactUseCase(
     patientRepository,
@@ -240,9 +250,11 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger,
     auditService
   );
+  /* POST-MVP: Archived use case instantiations - Not required for graduation project
   const grantConsentUseCase = new GrantConsentUseCase(patientRepository, auditService, logger);
   const markAsDeceasedUseCase = new MarkAsDeceasedUseCase(patientRepository);
   const reactivatePatientUseCase = new ReactivatePatientUseCase(patientRepository);
+  END POST-MVP */
 
   // New use cases
   const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase(patientRepository, logger);
@@ -251,6 +263,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     eventBus as IEventBus,
     logger
   );
+  /* POST-MVP: Archived use case instantiations - Not required for graduation project
   const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(
     patientRepository,
     eventBus as IEventBus,
@@ -271,6 +284,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     auditService
   );
   const getActiveConsentsUseCase = new GetActiveConsentsUseCase(patientRepository, logger);
+  END POST-MVP */
   const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase(patientRepository, logger);
   const addInsuranceInfoUseCase = new AddInsuranceInfoUseCase(patientRepository, logger);
   const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase(
@@ -280,6 +294,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   );
   const verifyInsuranceUseCase = new VerifyInsuranceUseCase(patientRepository, logger);
 
+  /* POST-MVP: Archived use case instantiations - Not required for graduation project
   // Additional use cases for PatientController
   const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(patientRepository);
 
@@ -301,6 +316,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase(patientRepository);
   const getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase(patientRepository);
   const getPatientHistoryUseCase = new GetPatientHistoryUseCase(patientRepository, logger);
+  END POST-MVP */
 
   const patientQueryHandlers = new PatientQueryHandlers(
     getPatientProfileUseCase,
@@ -313,8 +329,10 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const patientCommandHandlers = new PatientCommandHandlers(
     registerPatientUseCase,
     updatePatientInfoUseCase,
+    /* POST-MVP: Archived use cases - Not required for graduation project
     deactivatePatientUseCase,
     grantConsentUseCase,
+    END POST-MVP */
     addEmergencyContactUseCase,
     logger
   );
@@ -324,14 +342,22 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     logger,
     registerPatientUseCase,
     updatePatientInfoUseCase,
+    patientQueryHandlers,
+    /* POST-MVP: Archived use case constructor parameters - Not required for graduation project
     matchPatientsUseCase,
     mergePatientsUseCase,
     linkPatientsUseCase,
     deactivatePatientUseCase,
+    END POST-MVP */
     validateInsuranceUseCase,
+    getInsuranceInfoUseCase,
+    addInsuranceInfoUseCase,
+    updateInsuranceInfoUseCase,
+    verifyInsuranceUseCase,
     addEmergencyContactUseCase,
     getEmergencyContactsUseCase,
     updateEmergencyContactUseCase,
+    /* POST-MVP: Archived use case constructor parameters - Not required for graduation project
     removeEmergencyContactUseCase,
     setPrimaryEmergencyContactUseCase,
     grantConsentUseCase,
@@ -339,10 +365,6 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     getConsentDetailsUseCase,
     revokeConsentUseCase,
     getActiveConsentsUseCase,
-    getInsuranceInfoUseCase,
-    addInsuranceInfoUseCase,
-    updateInsuranceInfoUseCase,
-    verifyInsuranceUseCase,
     markAsDeceasedUseCase,
     reactivatePatientUseCase,
     getPatientStatisticsUseCase,
@@ -352,7 +374,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     updateCommunicationPreferencesUseCase,
     getCommunicationPreferencesUseCase,
     getPatientHistoryUseCase,
-    patientQueryHandlers
+    END POST-MVP */
   );
 
   const commandController = new CommandController(logger, patientCommandHandlers);

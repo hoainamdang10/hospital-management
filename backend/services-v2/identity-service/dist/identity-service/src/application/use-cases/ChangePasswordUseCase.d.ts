@@ -39,8 +39,8 @@ export declare class ChangePasswordUseCase implements IUseCase<ChangePasswordReq
     private sessionRepository;
     private logger;
     private circuitBreaker;
-    private eventPublisher?;
-    constructor(authService: IAuthenticationService, userRepository: IUserRepository, passwordPolicyRepository: IPasswordPolicyRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    private _eventPublisher?;
+    constructor(authService: IAuthenticationService, userRepository: IUserRepository, passwordPolicyRepository: IPasswordPolicyRepository, sessionRepository: ISessionRepository, logger: ILogger, circuitBreaker: ICircuitBreaker, _eventPublisher?: IEventPublisher | undefined);
     execute(request: ChangePasswordRequest): Promise<ChangePasswordResponse>;
     private executeImpl;
     private validateRequest;

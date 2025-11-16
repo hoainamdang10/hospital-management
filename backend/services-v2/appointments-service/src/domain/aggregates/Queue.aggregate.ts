@@ -171,9 +171,7 @@ export class Queue extends HealthcareAggregateRoot<QueueProps> {
         patientId,
         appointmentId,
         queueNumber,
-        priority,
-        estimatedWaitMinutes,
-        checkInTime
+        priority as string // Convert enum to string
       )
     );
 
@@ -205,9 +203,7 @@ export class Queue extends HealthcareAggregateRoot<QueueProps> {
         this.doctorId,
         nextPatient.patientId,
         nextPatient.appointmentId,
-        nextPatient.queueNumber,
-        nextPatient.calledTime!,
-        calledBy
+        nextPatient.queueNumber
       )
     );
 
@@ -248,9 +244,7 @@ export class Queue extends HealthcareAggregateRoot<QueueProps> {
         patientId,
         entry.appointmentId,
         entry.queueNumber,
-        reason,
-        removedBy,
-        new Date()
+        reason
       )
     );
 

@@ -6,10 +6,7 @@
  */
 export { Invoice } from './aggregates/Invoice';
 export { InvoiceCreatedEvent } from './events/InvoiceCreatedEvent';
-export { InvoiceFinalizedEvent } from './events/InvoiceFinalizedEvent';
-export { InvoiceCancelledEvent } from './events/InvoiceCancelledEvent';
 export { PaymentProcessedEvent } from './events/PaymentProcessedEvent';
-export { InsuranceClaimProcessedEvent } from './events/InsuranceClaimProcessedEvent';
 export type { IInvoiceRepository } from './repositories/IInvoiceRepository';
 export type { Money } from './value-objects/Money';
 export type { InvoiceStatus } from './value-objects/InvoiceStatus';

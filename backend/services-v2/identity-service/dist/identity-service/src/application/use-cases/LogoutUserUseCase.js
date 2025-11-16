@@ -2,16 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LogoutUserUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
-const UserLoggedOutEvent_1 = require("../../domain/events/UserLoggedOutEvent");
 const UserId_1 = require("../../domain/value-objects/UserId");
 class LogoutUserUseCase {
-    constructor(authService, userRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    constructor(authService, userRepository, logger, circuitBreaker, _eventPublisher // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
     ) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
-        this.eventPublisher = eventPublisher;
+        this._eventPublisher = _eventPublisher;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -58,23 +57,26 @@ class LogoutUserUseCase {
                 });
             }
         }
-        // Try to publish UserLoggedOut event
-        if (this.eventPublisher) {
-            try {
-                const event = new UserLoggedOutEvent_1.UserLoggedOutEvent(request.userId, request.sessionId || 'unknown', new Date());
-                await this.eventPublisher.publishDomainEvents([event]);
-                this.logger.info('UserLoggedOut event published', {
-                    userId: request.userId
-                });
-            }
-            catch (eventError) {
-                // Log error but continue - graceful degradation
-                this.logger.error('Failed to publish UserLoggedOut event', {
-                    userId: request.userId,
-                    error: (0, error_helper_1.getErrorMessage)(eventError)
-                });
-            }
-        }
+        // Try to publish UserLoggedOut event - Disabled in scope reduction
+        // if (this.eventPublisher) {
+        //   try {
+        //     const event = new UserLoggedOutEvent(
+        //       request.userId,
+        //       request.sessionId || 'unknown',
+        //       new Date()
+        //     );
+        //     await this.eventPublisher.publishDomainEvents([event]);
+        //     this.logger.info('UserLoggedOut event published', {
+        //       userId: request.userId
+        //     });
+        //   } catch (eventError) {
+        //     // Log error but continue - graceful degradation
+        //     this.logger.error('Failed to publish UserLoggedOut event', {
+        //       userId: request.userId,
+        //       error: getErrorMessage(eventError)
+        //     });
+        //   }
+        // }
         // Always return success - graceful degradation
         // Logout is a critical operation that should always succeed from user's perspective
         return {

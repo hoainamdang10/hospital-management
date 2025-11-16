@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Calendar, DollarSign, UserCog, TrendingUp, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Users, Calendar, DollarSign, UserCog, TrendingUp, Clock, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,7 +24,6 @@ import {
  */
 export default function AdminDashboardPage() {
   const { user } = useAuth();
-  const [dateRange, setDateRange] = useState('Nov 01, 2025 - Nov 07, 2025');
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
   

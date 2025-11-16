@@ -1,54 +1,72 @@
 "use strict";
 /**
- * AppointmentNoShowEvent - Domain Event
- * Published when a patient doesn't show up for their appointment
+ * Appointment No-Show Event - Domain Layer
+ * V3 Clean Architecture + DDD Implementation
  *
  * @author Hospital Management Team
- * @version 1.0.0
- * @compliance Clean Architecture, DDD, Event-Driven Architecture
+ * @version 3.0.0
+ * @compliance Clean Architecture, DDD, Event-Driven Architecture, HIPAA
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentNoShowEvent = void 0;
 const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 /**
  * Appointment No-Show Event
- * Triggered when a patient doesn't show up for their scheduled appointment
- *
- * Subscribers:
- * - Notification Service (send no-show notification)
- * - Billing Service (apply no-show fee if applicable)
- * - Identity Service (track patient reliability)
+ * Emitted when patient does not show up for scheduled appointment
  */
 class AppointmentNoShowEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, patientId, doctorId, scheduledDate, scheduledTime, markedAt) {
-        super('AppointmentNoShow', appointmentId, 'Appointment', {
+    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, markedBy, reason, correlationId, causationId, userId) {
+        const eventData = {
+            appointmentId,
             patientId,
             doctorId,
-            scheduledDate,
-            scheduledTime,
-            markedAt
-        }, 1, undefined, undefined, patientId);
+            appointmentDate,
+            appointmentTime,
+            markedNoShowAt: new Date(),
+            markedBy,
+            reason
+        };
+        super('AppointmentNoShow', appointmentId, 'Appointment', eventData, 1, correlationId, causationId, userId);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
         this.doctorId = doctorId;
-        this.scheduledDate = scheduledDate;
-        this.scheduledTime = scheduledTime;
-        this.markedAt = markedAt;
+        this.appointmentDate = appointmentDate;
+        this.appointmentTime = appointmentTime;
+        this.markedBy = markedBy;
+        this.reason = reason;
     }
+    /**
+     * Get event data payload (required by DomainEvent base class)
+     */
     getEventData() {
         return {
+            appointmentId: this.appointmentId,
             patientId: this.patientId,
             doctorId: this.doctorId,
-            scheduledDate: this.scheduledDate,
-            scheduledTime: this.scheduledTime,
-            markedAt: this.markedAt
+            appointmentDate: this.appointmentDate,
+            appointmentTime: this.appointmentTime,
+            markedNoShowAt: this.occurredAt,
+            markedBy: this.markedBy,
+            reason: this.reason
         };
     }
+    /**
+     * Check if event contains PHI (required by DomainEvent base class)
+     */
     containsPHI() {
-        return true;
+        return true; // Appointments contain Protected Health Information
     }
+    /**
+     * Get patient ID (required for healthcare events)
+     */
     getPatientId() {
         return this.patientId;
+    }
+    /**
+     * Get payload for event publishing
+     */
+    getPayload() {
+        return this.getEventData();
     }
 }
 exports.AppointmentNoShowEvent = AppointmentNoShowEvent;

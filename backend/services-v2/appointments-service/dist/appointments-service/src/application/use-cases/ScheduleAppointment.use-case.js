@@ -22,12 +22,13 @@ const IAuthorizationService_1 = require("../services/IAuthorizationService");
  * Creates a new appointment with proper validation and business rules
  */
 class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
-    constructor(appointmentRepository, conflictResolutionService, authorizationService, reminderService) {
+    constructor(appointmentRepository, conflictResolutionService, authorizationService, reminderService, billingServiceClient) {
         super();
         this.appointmentRepository = appointmentRepository;
         this.conflictResolutionService = conflictResolutionService;
         this.authorizationService = authorizationService;
         this.reminderService = reminderService;
+        this.billingServiceClient = billingServiceClient;
     }
     /**
      * Execute use case
@@ -111,7 +112,52 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
                 // Log but don't fail the appointment creation
                 console.error('[ScheduleAppointment] Failed to schedule reminders:', reminderError);
             }
-            // 8. Return response
+            // 8. Get payment link from Billing Service (Best Effort Pattern - Flow 3 Priority 1)
+            // NOTE: This is a temporary Quick Fix approach for MVP.
+            // Event-driven approach is preferred for production (Billing Service publishes InvoiceCreatedEvent with payment link)
+            let paymentLink;
+            let invoiceId;
+            try {
+                // Wait briefly for event processing (Billing Service creates invoice via AppointmentScheduledEvent)
+                // This is a race condition mitigation - not guaranteed to work
+                await this.sleep(500); // 500ms delay
+                // Try to get invoice by searching (since we don't have findByAppointmentId endpoint)
+                // This is a workaround - ideally Billing Service should have GET /invoices/by-appointment/:appointmentId
+                const searchResponse = await this.billingServiceClient.searchInvoices({
+                    patientId: request.patientId,
+                    // Note: Cannot filter by appointmentId - will get all patient invoices
+                    // Frontend will need to match by appointmentId or use polling
+                });
+                if (searchResponse && searchResponse.invoices && searchResponse.invoices.length > 0) {
+                    // Get the most recent invoice (assumption: it's the one we just created)
+                    const latestInvoice = searchResponse.invoices[0];
+                    invoiceId = latestInvoice.invoiceId;
+                    // Create payment link
+                    const paymentLinkResponse = await this.billingServiceClient.createPaymentLink({
+                        invoiceId: latestInvoice.invoiceId,
+                        buyerName: request.patientId, // Will be enriched by Billing Service
+                        buyerEmail: undefined,
+                        buyerPhone: undefined,
+                    });
+                    if (paymentLinkResponse && paymentLinkResponse.success) {
+                        paymentLink = paymentLinkResponse.checkoutUrl;
+                        console.log(`[ScheduleAppointment] Payment link created for appointment ${appointmentId.value}`, {
+                            invoiceId: latestInvoice.invoiceId,
+                            checkoutUrl: paymentLink,
+                        });
+                    }
+                }
+            }
+            catch (paymentLinkError) {
+                // Best effort pattern: Log warning but don't fail appointment creation
+                // Frontend can poll for payment link or get it from invoice list
+                console.warn('[ScheduleAppointment] Failed to get payment link (non-critical):', {
+                    error: paymentLinkError instanceof Error ? paymentLinkError.message : 'Unknown error',
+                    appointmentId: appointmentId.value,
+                    note: 'Frontend should poll for payment link or redirect to billing page',
+                });
+            }
+            // 9. Return response
             return {
                 success: true,
                 appointmentId: appointmentId.value,
@@ -127,8 +173,15 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
                     type: request.type,
                     priority: request.priority,
                     status: 'scheduled',
-                    consultationFee: request.consultationFee
-                }
+                    consultationFee: request.consultationFee,
+                    // Payment tracking (Flow 3 - Prepaid Model)
+                    paymentStatus: appointment.paymentStatus,
+                    paymentDeadline: appointment.paymentDeadline?.toISOString()
+                },
+                // Payment link (Flow 3 - Priority 1: Frontend UI)
+                // May be undefined if Billing Service hasn't processed event yet
+                paymentLink,
+                invoiceId,
             };
         }
         catch (error) {
@@ -140,6 +193,12 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
                 errors: [error instanceof Error ? error.message : 'Unknown error']
             };
         }
+    }
+    /**
+     * Sleep helper for event processing delay
+     */
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
     /**
      * Validate request

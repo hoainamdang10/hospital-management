@@ -13,7 +13,7 @@ import { BaseHealthcareUseCase, ValidationResult } from "@shared/application/bas
 import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
 import { StaffId } from "../../domain/value-objects/StaffId";
 import { PerformanceMetrics } from "../../domain/entities/PerformanceMetrics";
-import { StaffPerformanceUpdatedEvent } from "../../domain/events/StaffPerformanceUpdatedEvent";
+// import { StaffPerformanceUpdatedEvent } from "../../domain/events/StaffPerformanceUpdatedEvent"; // Event removed in scope reduction
 import { ILogger } from "../interfaces/ILogger";
 import { IAuditService } from "../interfaces/IAuditService";
 import { IDomainEventPublisher } from "@shared/domain/events/IDomainEventPublisher";
@@ -69,7 +69,7 @@ export class UpdateStaffPerformanceUseCase extends BaseHealthcareUseCase<UpdateS
   constructor(
     private readonly staffRepository: IProviderStaffRepository,
     private readonly auditService: IAuditService,
-    private readonly eventPublisher: IDomainEventPublisher,
+    private readonly _eventPublisher: IDomainEventPublisher, // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
     private readonly logger: ILogger
   ) {
     super();
@@ -191,16 +191,16 @@ export class UpdateStaffPerformanceUseCase extends BaseHealthcareUseCase<UpdateS
       // Calculate overall score if not provided
       const overallScore = request.metrics.overallScore || this.calculateOverallScore(request.metrics);
 
-      // Create and publish domain event
-      const performanceUpdatedEvent = new StaffPerformanceUpdatedEvent(
-        request.staffId,
-        overallScore,
-        request.performancePeriod,
-        request.reviewedBy,
-        new Date()
-      );
+      // Create and publish domain event - Disabled in scope reduction
+      // const performanceUpdatedEvent = new StaffPerformanceUpdatedEvent(
+      //   request.staffId,
+      //   overallScore,
+      //   request.performancePeriod,
+      //   request.reviewedBy,
+      //   new Date()
+      // );
 
-      await this.eventPublisher.publish(performanceUpdatedEvent);
+      // await this.eventPublisher.publish(performanceUpdatedEvent);
 
       // Log audit trail
       if (this.auditService.logAction) {

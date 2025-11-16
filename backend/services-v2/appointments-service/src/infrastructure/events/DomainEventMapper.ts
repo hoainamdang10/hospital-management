@@ -13,6 +13,12 @@ import { AppointmentCancelledEvent } from '../../domain/events/AppointmentCancel
 import { AppointmentCompletedEvent } from '../../domain/events/AppointmentCompletedEvent';
 import { AppointmentCheckedInEvent } from '../../domain/events/AppointmentCheckedInEvent';
 import { AppointmentReminderScheduledEvent } from '../../domain/events/AppointmentReminderScheduledEvent';
+import { AppointmentConfirmedEvent } from '../../domain/events/AppointmentConfirmedEvent';
+import { AppointmentStartedEvent } from '../../domain/events/AppointmentStartedEvent';
+import { AppointmentNoShowEvent } from '../../domain/events/AppointmentNoShowEvent';
+import { PatientJoinedQueueEvent } from '../../domain/events/PatientJoinedQueueEvent';
+import { PatientCalledEvent } from '../../domain/events/PatientCalledEvent';
+import { PatientLeftQueueEvent } from '../../domain/events/PatientLeftQueueEvent';
 import { DomainEvent } from '@shared/domain/base/domain-event';
 
 /**
@@ -133,6 +139,96 @@ export class DomainEventMapper {
       };
     }
 
+    if (event instanceof AppointmentConfirmedEvent) {
+      return {
+        eventId: event.eventId,
+        eventType: 'appointment.confirmed',
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        occurredAt: event.occurredAt,
+        version: 1,
+        payload: event.getEventData(),
+        metadata: {
+          correlationId: event.eventId,
+        },
+      };
+    }
+
+    if (event instanceof AppointmentStartedEvent) {
+      return {
+        eventId: event.eventId,
+        eventType: 'appointment.started',
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        occurredAt: event.occurredAt,
+        version: 1,
+        payload: event.getEventData(),
+        metadata: {
+          correlationId: event.eventId,
+        },
+      };
+    }
+
+    if (event instanceof AppointmentNoShowEvent) {
+      return {
+        eventId: event.eventId,
+        eventType: 'appointment.noshow',
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        occurredAt: event.occurredAt,
+        version: 1,
+        payload: event.getEventData(),
+        metadata: {
+          correlationId: event.eventId,
+        },
+      };
+    }
+
+    if (event instanceof PatientJoinedQueueEvent) {
+      return {
+        eventId: event.eventId,
+        eventType: 'queue.patient.joined',
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        occurredAt: event.occurredAt,
+        version: 1,
+        payload: event.getEventData(),
+        metadata: {
+          correlationId: event.eventId,
+        },
+      };
+    }
+
+    if (event instanceof PatientCalledEvent) {
+      return {
+        eventId: event.eventId,
+        eventType: 'queue.patient.called',
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        occurredAt: event.occurredAt,
+        version: 1,
+        payload: event.getEventData(),
+        metadata: {
+          correlationId: event.eventId,
+        },
+      };
+    }
+
+    if (event instanceof PatientLeftQueueEvent) {
+      return {
+        eventId: event.eventId,
+        eventType: 'queue.patient.left',
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        occurredAt: event.occurredAt,
+        version: 1,
+        payload: event.getEventData(),
+        metadata: {
+          correlationId: event.eventId,
+        },
+      };
+    }
+
     throw new Error(`Unknown event type: ${event.constructor.name}`);
   }
 
@@ -157,6 +253,24 @@ export class DomainEventMapper {
     }
     if (event instanceof AppointmentReminderScheduledEvent) {
       return 'appointment.reminder-scheduled';
+    }
+    if (event instanceof AppointmentConfirmedEvent) {
+      return 'appointment.confirmed';
+    }
+    if (event instanceof AppointmentStartedEvent) {
+      return 'appointment.started';
+    }
+    if (event instanceof AppointmentNoShowEvent) {
+      return 'appointment.noshow';
+    }
+    if (event instanceof PatientJoinedQueueEvent) {
+      return 'queue.patient.joined';
+    }
+    if (event instanceof PatientCalledEvent) {
+      return 'queue.patient.called';
+    }
+    if (event instanceof PatientLeftQueueEvent) {
+      return 'queue.patient.left';
     }
 
     throw new Error(`Unknown event type: ${event.constructor.name}`);

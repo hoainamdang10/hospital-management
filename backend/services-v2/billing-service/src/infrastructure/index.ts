@@ -19,7 +19,7 @@ export { PayOSIntegrationService } from './services/PayOSIntegrationService';
 // Types
 export type { 
   AppointmentEventConsumerConfig,
-  AppointmentCompletedEventData,
+  AppointmentScheduledEventData,
   AppointmentCancelledLateEventData,
   AppointmentNoShowEventData
 } from './events/AppointmentEventConsumer';

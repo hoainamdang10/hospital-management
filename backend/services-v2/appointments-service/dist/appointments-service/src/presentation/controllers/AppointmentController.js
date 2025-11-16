@@ -43,7 +43,10 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentController = void 0;
 class AppointmentController {
-    constructor(scheduleAppointmentUseCase, cancelAppointmentUseCase, confirmAppointmentUseCase, completeAppointmentUseCase, getAppointmentUseCase, listAppointmentsUseCase, rescheduleAppointmentUseCase, checkInAppointmentUseCase, markAsNoShowUseCase, startAppointmentUseCase, bulkRescheduleAppointmentsUseCase, getAppointmentHistoryUseCase, getAppointmentStatisticsUseCase, createEmergencyAppointmentUseCase, transferAppointmentUseCase, createRecurringSeriesUseCase) {
+    constructor(scheduleAppointmentUseCase, cancelAppointmentUseCase, confirmAppointmentUseCase, completeAppointmentUseCase, getAppointmentUseCase, listAppointmentsUseCase, rescheduleAppointmentUseCase, checkInAppointmentUseCase, markAsNoShowUseCase, startAppointmentUseCase, 
+    // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
+    // private readonly bulkRescheduleAppointmentsUseCase: BulkRescheduleAppointmentsUseCase,
+    getAppointmentHistoryUseCase, getAppointmentStatisticsUseCase, createEmergencyAppointmentUseCase, transferAppointmentUseCase, createRecurringSeriesUseCase) {
         this.scheduleAppointmentUseCase = scheduleAppointmentUseCase;
         this.cancelAppointmentUseCase = cancelAppointmentUseCase;
         this.confirmAppointmentUseCase = confirmAppointmentUseCase;
@@ -54,7 +57,6 @@ class AppointmentController {
         this.checkInAppointmentUseCase = checkInAppointmentUseCase;
         this.markAsNoShowUseCase = markAsNoShowUseCase;
         this.startAppointmentUseCase = startAppointmentUseCase;
-        this.bulkRescheduleAppointmentsUseCase = bulkRescheduleAppointmentsUseCase;
         this.getAppointmentHistoryUseCase = getAppointmentHistoryUseCase;
         this.getAppointmentStatisticsUseCase = getAppointmentStatisticsUseCase;
         this.createEmergencyAppointmentUseCase = createEmergencyAppointmentUseCase;
@@ -432,31 +434,36 @@ class AppointmentController {
             });
         }
     }
-    /**
-     * POST /api/appointments/bulk-reschedule
-     * Bulk reschedule appointments (doctor unavailable)
-     */
-    async bulkRescheduleAppointments(req, res) {
-        try {
-            const userId = req.user?.id;
-            if (!userId) {
-                res.status(401).json({ success: false, message: 'Unauthorized' });
-                return;
-            }
-            const result = await this.bulkRescheduleAppointmentsUseCase.execute({
-                ...req.body,
-                rescheduledBy: userId
-            }, { userId, timestamp: new Date() });
-            res.status(result.success ? 200 : 400).json(result);
-        }
-        catch (error) {
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                errors: [error instanceof Error ? error.message : 'Unknown error']
-            });
-        }
-    }
+    // ===== ARCHIVED FOR POST-MVP: BulkReschedule Method =====
+    // /**
+    //  * POST /api/appointments/bulk-reschedule
+    //  * Bulk reschedule appointments (doctor unavailable)
+    //  */
+    // async bulkRescheduleAppointments(req: Request, res: Response): Promise<void> {
+    //   try {
+    //     const userId = (req as any).user?.id;
+    //     if (!userId) {
+    //       res.status(401).json({ success: false, message: 'Unauthorized' });
+    //       return;
+    //     }
+    //
+    //     const result = await this.bulkRescheduleAppointmentsUseCase.execute(
+    //       {
+    //         ...req.body,
+    //         rescheduledBy: userId
+    //       },
+    //       { userId, timestamp: new Date() }
+    //     );
+    //
+    //     res.status(result.success ? 200 : 400).json(result);
+    //   } catch (error) {
+    //     res.status(500).json({
+    //       success: false,
+    //       message: 'Internal server error',
+    //       errors: [error instanceof Error ? error.message : 'Unknown error']
+    //     });
+    //   }
+    // }
     /**
      * GET /api/appointments/history
      * Get appointment history

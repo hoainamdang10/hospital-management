@@ -10,19 +10,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UnlockAccountUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
-const UserAccountUnlockedEvent_1 = require("../../domain/events/UserAccountUnlockedEvent");
 /**
  * Unlock Account Use Case
  * Allows administrators to manually unlock user accounts
  * Records audit trail
  */
 class UnlockAccountUseCase {
-    constructor(userRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    constructor(userRepository, logger, circuitBreaker, _eventPublisher // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
     ) {
         this.userRepository = userRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
-        this.eventPublisher = eventPublisher;
+        this._eventPublisher = _eventPublisher;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -86,23 +85,28 @@ class UnlockAccountUseCase {
                 unlockedBy: request.unlockedBy,
                 reason: request.reason
             });
-            // 6. Publish UserAccountUnlockedEvent
-            if (this.eventPublisher) {
-                try {
-                    const event = new UserAccountUnlockedEvent_1.UserAccountUnlockedEvent(userIdVO, request.unlockedBy, request.reason, user.email.value, user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN');
-                    await this.eventPublisher.publishDomainEvents([event]);
-                    this.logger.info('UserAccountUnlockedEvent published', {
-                        userId: request.userId
-                    });
-                }
-                catch (error) {
-                    this.logger.error('Failed to publish UserAccountUnlockedEvent', {
-                        userId: request.userId,
-                        error: error instanceof Error ? error.message : String(error)
-                    });
-                    // Don't fail unlock operation if event publishing fails
-                }
-            }
+            // 6. Publish UserAccountUnlockedEvent - Disabled in scope reduction
+            // if (this.eventPublisher) {
+            //   try {
+            //     const event = new UserAccountUnlockedEvent(
+            //       userIdVO,
+            //       request.unlockedBy,
+            //       request.reason,
+            //       user.email.value,
+            //       user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+            //     );
+            //     await this.eventPublisher.publishDomainEvents([event]);
+            //     this.logger.info('UserAccountUnlockedEvent published', {
+            //       userId: request.userId
+            //     });
+            //   } catch (error) {
+            //     this.logger.error('Failed to publish UserAccountUnlockedEvent', {
+            //       userId: request.userId,
+            //       error: error instanceof Error ? error.message : String(error)
+            //     });
+            //     // Don't fail unlock operation if event publishing fails
+            //   }
+            // }
             return {
                 success: true,
                 message: `Tài khoản đã được mở khóa. Lý do: ${request.reason}`

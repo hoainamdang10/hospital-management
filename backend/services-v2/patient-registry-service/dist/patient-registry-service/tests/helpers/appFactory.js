@@ -66,34 +66,42 @@ const RegisterPatientUseCase_1 = require("../../src/application/use-cases/Regist
 const UpdatePatientInfoUseCase_1 = require("../../src/application/use-cases/UpdatePatientInfoUseCase");
 const GetPatientProfileUseCase_1 = require("../../src/application/use-cases/GetPatientProfileUseCase");
 const SearchPatientsUseCase_1 = require("../../src/application/use-cases/SearchPatientsUseCase");
-const MatchPatientsUseCase_1 = require("../../src/application/use-cases/MatchPatientsUseCase");
-const MergePatientsUseCase_1 = require("../../src/application/use-cases/MergePatientsUseCase");
-const LinkPatientsUseCase_1 = require("../../src/application/use-cases/LinkPatientsUseCase");
-const DeactivatePatientUseCase_1 = require("../../src/application/use-cases/DeactivatePatientUseCase");
+/* POST-MVP: Archived use case imports - Not required for graduation project
+import { MatchPatientsUseCase } from '../../src/application/use-cases/MatchPatientsUseCase';
+import { MergePatientsUseCase } from '../../src/application/use-cases/MergePatientsUseCase';
+import { LinkPatientsUseCase } from '../../src/application/use-cases/LinkPatientsUseCase';
+import { DeactivatePatientUseCase } from '../../src/application/use-cases/DeactivatePatientUseCase';
+END POST-MVP */
 const ValidateInsuranceUseCase_1 = require("../../src/application/use-cases/ValidateInsuranceUseCase");
 const AddEmergencyContactUseCase_1 = require("../../src/application/use-cases/AddEmergencyContactUseCase");
-const GrantConsentUseCase_1 = require("../../src/application/use-cases/GrantConsentUseCase");
-const MarkAsDeceasedUseCase_1 = require("../../src/application/use-cases/MarkAsDeceasedUseCase");
-const ReactivatePatientUseCase_1 = require("../../src/application/use-cases/ReactivatePatientUseCase");
+/* POST-MVP: Archived use case imports - Not required for graduation project
+import { GrantConsentUseCase } from '../../src/application/use-cases/GrantConsentUseCase';
+import { MarkAsDeceasedUseCase } from '../../src/application/use-cases/MarkAsDeceasedUseCase';
+import { ReactivatePatientUseCase } from '../../src/application/use-cases/ReactivatePatientUseCase';
+END POST-MVP */
 const GetEmergencyContactsUseCase_1 = require("../../src/application/use-cases/GetEmergencyContactsUseCase");
 const UpdateEmergencyContactUseCase_1 = require("../../src/application/use-cases/UpdateEmergencyContactUseCase");
-const RemoveEmergencyContactUseCase_1 = require("../../src/application/use-cases/RemoveEmergencyContactUseCase");
-const SetPrimaryEmergencyContactUseCase_1 = require("../../src/application/use-cases/SetPrimaryEmergencyContactUseCase");
-const GetConsentsUseCase_1 = require("../../src/application/use-cases/GetConsentsUseCase");
-const GetConsentDetailsUseCase_1 = require("../../src/application/use-cases/GetConsentDetailsUseCase");
-const RevokeConsentUseCase_1 = require("../../src/application/use-cases/RevokeConsentUseCase");
-const GetActiveConsentsUseCase_1 = require("../../src/application/use-cases/GetActiveConsentsUseCase");
+/* POST-MVP: Archived use case imports - Not required for graduation project
+import { RemoveEmergencyContactUseCase } from '../../src/application/use-cases/RemoveEmergencyContactUseCase';
+import { SetPrimaryEmergencyContactUseCase } from '../../src/application/use-cases/SetPrimaryEmergencyContactUseCase';
+import { GetConsentsUseCase } from '../../src/application/use-cases/GetConsentsUseCase';
+import { GetConsentDetailsUseCase } from '../../src/application/use-cases/GetConsentDetailsUseCase';
+import { RevokeConsentUseCase } from '../../src/application/use-cases/RevokeConsentUseCase';
+import { GetActiveConsentsUseCase } from '../../src/application/use-cases/GetActiveConsentsUseCase';
+END POST-MVP */
 const GetInsuranceInfoUseCase_1 = require("../../src/application/use-cases/GetInsuranceInfoUseCase");
 const AddInsuranceInfoUseCase_1 = require("../../src/application/use-cases/AddInsuranceInfoUseCase");
 const UpdateInsuranceInfoUseCase_1 = require("../../src/application/use-cases/UpdateInsuranceInfoUseCase");
 const VerifyInsuranceUseCase_1 = require("../../src/application/use-cases/VerifyInsuranceUseCase");
-const GetPatientStatisticsUseCase_1 = require("../../src/application/use-cases/GetPatientStatisticsUseCase");
-const UploadPatientPhotoUseCase_1 = require("../../src/application/use-cases/UploadPatientPhotoUseCase");
-const GetPatientPhotoUseCase_1 = require("../../src/application/use-cases/GetPatientPhotoUseCase");
-const DeletePatientPhotoUseCase_1 = require("../../src/application/use-cases/DeletePatientPhotoUseCase");
-const UpdateCommunicationPreferencesUseCase_1 = require("../../src/application/use-cases/UpdateCommunicationPreferencesUseCase");
-const GetCommunicationPreferencesUseCase_1 = require("../../src/application/use-cases/GetCommunicationPreferencesUseCase");
-const GetPatientHistoryUseCase_1 = require("../../src/application/use-cases/GetPatientHistoryUseCase");
+/* POST-MVP: Archived use case imports - Not required for graduation project
+import { GetPatientStatisticsUseCase } from '../../src/application/use-cases/GetPatientStatisticsUseCase';
+import { UploadPatientPhotoUseCase } from '../../src/application/use-cases/UploadPatientPhotoUseCase';
+import { GetPatientPhotoUseCase } from '../../src/application/use-cases/GetPatientPhotoUseCase';
+import { DeletePatientPhotoUseCase } from '../../src/application/use-cases/DeletePatientPhotoUseCase';
+import { UpdateCommunicationPreferencesUseCase } from '../../src/application/use-cases/UpdateCommunicationPreferencesUseCase';
+import { GetCommunicationPreferencesUseCase } from '../../src/application/use-cases/GetCommunicationPreferencesUseCase';
+import { GetPatientHistoryUseCase } from '../../src/application/use-cases/GetPatientHistoryUseCase';
+END POST-MVP */
 const PatientCommandHandlers_1 = require("../../src/application/handlers/PatientCommandHandlers");
 const PatientQueryHandlers_1 = require("../../src/application/handlers/PatientQueryHandlers");
 // Presentation
@@ -193,52 +201,93 @@ async function createTestApp(config) {
     const updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(patientRepository, eventBus, logger, auditService);
     const getPatientProfileUseCase = new GetPatientProfileUseCase_1.GetPatientProfileUseCase(patientRepository, logger, auditService);
     const searchPatientsUseCase = new SearchPatientsUseCase_1.SearchPatientsUseCase(patientRepository);
-    const matchPatientsUseCase = new MatchPatientsUseCase_1.MatchPatientsUseCase(patientRepository, matchingService, logger);
-    const mergePatientsUseCase = new MergePatientsUseCase_1.MergePatientsUseCase(patientRepository);
-    const linkPatientsUseCase = new LinkPatientsUseCase_1.LinkPatientsUseCase(patientRepository);
-    const deactivatePatientUseCase = new DeactivatePatientUseCase_1.DeactivatePatientUseCase(patientRepository, eventBus, logger, auditService);
+    /* POST-MVP: Archived use case instantiations - Not required for graduation project
+    const matchPatientsUseCase = new MatchPatientsUseCase(patientRepository, matchingService, logger);
+    const mergePatientsUseCase = new MergePatientsUseCase(patientRepository);
+    const linkPatientsUseCase = new LinkPatientsUseCase(patientRepository);
+    const deactivatePatientUseCase = new DeactivatePatientUseCase(
+      patientRepository,
+      eventBus as IEventBus,
+      logger,
+      auditService
+    );
+    END POST-MVP */
     const validateInsuranceUseCase = new ValidateInsuranceUseCase_1.ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
     const addEmergencyContactUseCase = new AddEmergencyContactUseCase_1.AddEmergencyContactUseCase(patientRepository, eventBus, logger, auditService);
-    const grantConsentUseCase = new GrantConsentUseCase_1.GrantConsentUseCase(patientRepository, auditService, logger);
-    const markAsDeceasedUseCase = new MarkAsDeceasedUseCase_1.MarkAsDeceasedUseCase(patientRepository);
-    const reactivatePatientUseCase = new ReactivatePatientUseCase_1.ReactivatePatientUseCase(patientRepository);
+    /* POST-MVP: Archived use case instantiations - Not required for graduation project
+    const grantConsentUseCase = new GrantConsentUseCase(patientRepository, auditService, logger);
+    const markAsDeceasedUseCase = new MarkAsDeceasedUseCase(patientRepository);
+    const reactivatePatientUseCase = new ReactivatePatientUseCase(patientRepository);
+    END POST-MVP */
     // New use cases
     const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase_1.GetEmergencyContactsUseCase(patientRepository, logger);
     const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase_1.UpdateEmergencyContactUseCase(patientRepository, eventBus, logger);
-    const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase_1.RemoveEmergencyContactUseCase(patientRepository, eventBus, logger, auditService);
-    const setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase_1.SetPrimaryEmergencyContactUseCase(patientRepository, eventBus, logger);
-    const getConsentsUseCase = new GetConsentsUseCase_1.GetConsentsUseCase(patientRepository, logger);
-    const getConsentDetailsUseCase = new GetConsentDetailsUseCase_1.GetConsentDetailsUseCase(patientRepository, logger);
-    const revokeConsentUseCase = new RevokeConsentUseCase_1.RevokeConsentUseCase(patientRepository, eventBus, logger, auditService);
-    const getActiveConsentsUseCase = new GetActiveConsentsUseCase_1.GetActiveConsentsUseCase(patientRepository, logger);
+    /* POST-MVP: Archived use case instantiations - Not required for graduation project
+    const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(
+      patientRepository,
+      eventBus as IEventBus,
+      logger,
+      auditService
+    );
+    const setPrimaryEmergencyContactUseCase = new SetPrimaryEmergencyContactUseCase(
+      patientRepository,
+      eventBus as IEventBus,
+      logger
+    );
+    const getConsentsUseCase = new GetConsentsUseCase(patientRepository, logger);
+    const getConsentDetailsUseCase = new GetConsentDetailsUseCase(patientRepository, logger);
+    const revokeConsentUseCase = new RevokeConsentUseCase(
+      patientRepository,
+      eventBus as IEventBus,
+      logger,
+      auditService
+    );
+    const getActiveConsentsUseCase = new GetActiveConsentsUseCase(patientRepository, logger);
+    END POST-MVP */
     const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase_1.GetInsuranceInfoUseCase(patientRepository, logger);
     const addInsuranceInfoUseCase = new AddInsuranceInfoUseCase_1.AddInsuranceInfoUseCase(patientRepository, logger);
     const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase_1.UpdateInsuranceInfoUseCase(patientRepository, eventBus, logger);
     const verifyInsuranceUseCase = new VerifyInsuranceUseCase_1.VerifyInsuranceUseCase(patientRepository, logger);
+    /* POST-MVP: Archived use case instantiations - Not required for graduation project
     // Additional use cases for PatientController
-    const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase_1.GetPatientStatisticsUseCase(patientRepository);
+    const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(patientRepository);
+  
     // Mock storage service for photo use cases
     const mockStorageService = {
-        bucketName: 'test-bucket',
-        supabaseClient: null,
-        logger: logger,
-        uploadPatientPhoto: jest.fn(),
-        getPatientPhoto: jest.fn(),
-        deletePatientPhoto: jest.fn(),
-        deleteAllPatientPhotos: jest.fn(),
-        ensureBucketExists: jest.fn()
-    };
-    const uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase_1.UploadPatientPhotoUseCase(patientRepository, mockStorageService);
-    const getPatientPhotoUseCase = new GetPatientPhotoUseCase_1.GetPatientPhotoUseCase(patientRepository);
-    const deletePatientPhotoUseCase = new DeletePatientPhotoUseCase_1.DeletePatientPhotoUseCase(patientRepository, mockStorageService);
-    const updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase_1.UpdateCommunicationPreferencesUseCase(patientRepository);
-    const getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase_1.GetCommunicationPreferencesUseCase(patientRepository);
-    const getPatientHistoryUseCase = new GetPatientHistoryUseCase_1.GetPatientHistoryUseCase(patientRepository, logger);
+      bucketName: 'test-bucket',
+      supabaseClient: null,
+      logger: logger,
+      uploadPatientPhoto: jest.fn(),
+      getPatientPhoto: jest.fn(),
+      deletePatientPhoto: jest.fn(),
+      deleteAllPatientPhotos: jest.fn(),
+      ensureBucketExists: jest.fn()
+    } as unknown as SupabaseStorageService;
+  
+    const uploadPatientPhotoUseCase = new UploadPatientPhotoUseCase(patientRepository, mockStorageService);
+    const getPatientPhotoUseCase = new GetPatientPhotoUseCase(patientRepository);
+    const deletePatientPhotoUseCase = new DeletePatientPhotoUseCase(patientRepository, mockStorageService);
+    const updateCommunicationPreferencesUseCase = new UpdateCommunicationPreferencesUseCase(patientRepository);
+    const getCommunicationPreferencesUseCase = new GetCommunicationPreferencesUseCase(patientRepository);
+    const getPatientHistoryUseCase = new GetPatientHistoryUseCase(patientRepository, logger);
+    END POST-MVP */
     const patientQueryHandlers = new PatientQueryHandlers_1.PatientQueryHandlers(getPatientProfileUseCase, searchPatientsUseCase, patientRepository, logger);
     // Initialize Command Handlers
-    const patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(registerPatientUseCase, updatePatientInfoUseCase, deactivatePatientUseCase, grantConsentUseCase, addEmergencyContactUseCase, logger);
+    const patientCommandHandlers = new PatientCommandHandlers_1.PatientCommandHandlers(registerPatientUseCase, updatePatientInfoUseCase, 
+    /* POST-MVP: Archived use cases - Not required for graduation project
+    deactivatePatientUseCase,
+    grantConsentUseCase,
+    END POST-MVP */
+    addEmergencyContactUseCase, logger);
     // Initialize Controllers
-    const patientController = new PatientController_1.PatientController(logger, registerPatientUseCase, updatePatientInfoUseCase, matchPatientsUseCase, mergePatientsUseCase, linkPatientsUseCase, deactivatePatientUseCase, validateInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, removeEmergencyContactUseCase, setPrimaryEmergencyContactUseCase, grantConsentUseCase, getConsentsUseCase, getConsentDetailsUseCase, revokeConsentUseCase, getActiveConsentsUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, markAsDeceasedUseCase, reactivatePatientUseCase, getPatientStatisticsUseCase, uploadPatientPhotoUseCase, getPatientPhotoUseCase, deletePatientPhotoUseCase, updateCommunicationPreferencesUseCase, getCommunicationPreferencesUseCase, getPatientHistoryUseCase, patientQueryHandlers);
+    const patientController = new PatientController_1.PatientController(logger, registerPatientUseCase, updatePatientInfoUseCase, patientQueryHandlers, 
+    /* POST-MVP: Archived use case constructor parameters - Not required for graduation project
+    matchPatientsUseCase,
+    mergePatientsUseCase,
+    linkPatientsUseCase,
+    deactivatePatientUseCase,
+    END POST-MVP */
+    validateInsuranceUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase);
     const commandController = new CommandController_1.CommandController(logger, patientCommandHandlers);
     const errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
     // Setup Middleware

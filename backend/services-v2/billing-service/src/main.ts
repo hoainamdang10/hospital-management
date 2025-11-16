@@ -27,20 +27,17 @@ import { Patient } from "./domain/entities/Patient";
 // Application
 import { CreateInvoiceUseCase } from "./application/use-cases/CreateInvoiceUseCase";
 import { GetInvoiceUseCase } from "./application/use-cases/GetInvoiceUseCase";
-import { FinalizeInvoiceUseCase } from "./application/use-cases/FinalizeInvoiceUseCase";
-import { CancelInvoiceUseCase } from "./application/use-cases/CancelInvoiceUseCase";
+// REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase
 import { ProcessPaymentUseCase } from "./application/use-cases/ProcessPaymentUseCase";
 import { GetPatientInvoicesUseCase } from "./application/use-cases/GetPatientInvoicesUseCase";
-import { ProcessInsuranceClaimUseCase } from "./application/use-cases/ProcessInsuranceClaimUseCase";
-import { RefundPaymentUseCase } from "./application/use-cases/RefundPaymentUseCase";
+// REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase, RefundPaymentUseCase
 import { SearchInvoicesUseCase } from "./application/use-cases/SearchInvoicesUseCase";
 import { GetOverdueInvoicesUseCase } from "./application/use-cases/GetOverdueInvoicesUseCase";
 import { GetPatientBillingSummaryUseCase } from "./application/use-cases/GetPatientBillingSummaryUseCase";
 import { GetRevenueReportUseCase } from "./application/use-cases/GetRevenueReportUseCase";
 import { CreatePayOSPaymentLinkUseCase } from "./application/use-cases/CreatePayOSPaymentLinkUseCase";
 import { HandlePayOSWebhookUseCase } from "./application/use-cases/HandlePayOSWebhookUseCase";
-import { SendInvoiceEmailUseCase } from "./application/use-cases/SendInvoiceEmailUseCase";
-import { CreatePaymentReminderUseCase } from "./application/use-cases/CreatePaymentReminderUseCase";
+// REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 import { PayOSIntegrationService } from "./infrastructure/services/PayOSIntegrationService";
 import { BillingService } from "./application/services/BillingService";
 
@@ -58,7 +55,7 @@ import { AuthenticationMiddleware } from "./presentation/middleware/Authenticati
 
 // Configuration
 const config = {
-  port: process.env.PORT || 3009,
+  port: process.env.PORT || 3006,
   supabaseUrl: process.env.SUPABASE_URL || "",
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
@@ -74,6 +71,8 @@ const config = {
   payosClientId: process.env.PAYOS_CLIENT_ID || "",
   payosApiKey: process.env.PAYOS_API_KEY || "",
   payosChecksumKey: process.env.PAYOS_CHECKSUM_KEY || "",
+  // Feature Flags
+  enableClinicalEventConsumer: process.env.ENABLE_CLINICAL_CONSUMER === "true", // Phase 1: Disabled by default
 };
 
 // Logger is imported from ./infrastructure/logging/logger
@@ -91,23 +90,19 @@ class BillingServiceApp {
   private appointmentEventConsumer!: AppointmentEventConsumer;
   private clinicalEventConsumer!: ClinicalEventConsumer;
 
-  // Use Cases
+  // Use Cases - Phase 1 (Prepaid Model)
   private createInvoiceUseCase!: CreateInvoiceUseCase;
   private getInvoiceUseCase!: GetInvoiceUseCase;
-  private finalizeInvoiceUseCase!: FinalizeInvoiceUseCase;
-  private cancelInvoiceUseCase!: CancelInvoiceUseCase;
   private processPaymentUseCase!: ProcessPaymentUseCase;
   private getPatientInvoicesUseCase!: GetPatientInvoicesUseCase;
-  private processInsuranceClaimUseCase!: ProcessInsuranceClaimUseCase;
-  private refundPaymentUseCase!: RefundPaymentUseCase;
+  // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase
   private searchInvoicesUseCase!: SearchInvoicesUseCase;
   private getOverdueInvoicesUseCase!: GetOverdueInvoicesUseCase;
   private getPatientBillingSummaryUseCase!: GetPatientBillingSummaryUseCase;
   private getRevenueReportUseCase!: GetRevenueReportUseCase;
   private createPayOSPaymentLinkUseCase!: CreatePayOSPaymentLinkUseCase;
   private handlePayOSWebhookUseCase!: HandlePayOSWebhookUseCase;
-  private sendInvoiceEmailUseCase!: SendInvoiceEmailUseCase;
-  private createPaymentReminderUseCase!: CreatePaymentReminderUseCase;
+  // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase - Out of scope for Phase 1
 
   // Controllers
   private invoiceController!: InvoiceController;
@@ -147,7 +142,7 @@ class BillingServiceApp {
     });
 
     // Initialize Repository
-    this.invoiceRepository = new SupabaseInvoiceRepository();
+    this.invoiceRepository = new SupabaseInvoiceRepository(this.optimizedSupabase);
     this.patientRepository = new SupabasePatientRepository(
       this.optimizedSupabase,
       loggerInstance
@@ -175,17 +170,7 @@ class BillingServiceApp {
       loggerInstance,
     );
 
-    this.finalizeInvoiceUseCase = new FinalizeInvoiceUseCase(
-      this.invoiceRepository,
-      this.eventBus,
-      loggerInstance,
-    );
-
-    this.cancelInvoiceUseCase = new CancelInvoiceUseCase(
-      this.invoiceRepository,
-      this.eventBus,
-      loggerInstance,
-    );
+    // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase initialization
 
     this.processPaymentUseCase = new ProcessPaymentUseCase(
       this.invoiceRepository,
@@ -198,17 +183,7 @@ class BillingServiceApp {
       loggerInstance,
     );
 
-    this.processInsuranceClaimUseCase = new ProcessInsuranceClaimUseCase(
-      this.invoiceRepository,
-      this.eventBus,
-      loggerInstance,
-    );
-
-    this.refundPaymentUseCase = new RefundPaymentUseCase(
-      this.invoiceRepository,
-      this.eventBus,
-      loggerInstance,
-    );
+    // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase, refundPaymentUseCase initialization
 
     this.searchInvoicesUseCase = new SearchInvoicesUseCase(
       this.invoiceRepository,
@@ -243,15 +218,7 @@ class BillingServiceApp {
       loggerInstance,
     );
 
-    this.sendInvoiceEmailUseCase = new SendInvoiceEmailUseCase(
-      this.invoiceRepository,
-      this.eventBus
-    );
-
-    this.createPaymentReminderUseCase = new CreatePaymentReminderUseCase(
-      this.invoiceRepository,
-      this.eventBus
-    );
+    // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase initialization - Out of scope for Phase 1
 
     // Initialize Billing Service
     this.billingService = new BillingService(
@@ -269,9 +236,9 @@ class BillingServiceApp {
         queueName: 'billing.appointment.events',
         exchangeName: 'hospital.events',
         routingKeys: [
-          'appointment.completed',
-          'appointment.cancelled_late',
-          'appointment.no_show',
+          'appointment.scheduled',      // Phase 1 (Prepaid): Create invoice when appointment is scheduled
+          'appointment.cancelled_late', // Cancel invoice if not paid yet
+          'appointment.no_show',        // Future: Apply no-show fee
         ],
         prefetchCount: 10,
         retryAttempts: 3,
@@ -281,47 +248,52 @@ class BillingServiceApp {
       this.billingService,
       this.invoiceRepository,
       this.patientRepository,
+      this.createPayOSPaymentLinkUseCase, // Inject PayOS use case for automatic payment link creation
+      this.eventBus, // Inject EventBus for publishing PaymentLinkCreatedEvent
     );
 
-    this.clinicalEventConsumer = new ClinicalEventConsumer(
-      {
-        rabbitmqUrl: config.rabbitmqUrl,
-        queueName: 'billing.clinical.events',
-        exchangeName: 'hospital.events',
-        routingKeys: [
-          'clinical.prescription.created',
-          'clinical.lab_result.created',
-          'clinical.treatment_plan.created',
-          'clinical.medical_record.created',
-        ],
-        prefetchCount: 10,
-        retryAttempts: 3,
-        retryDelayMs: 1000,
-      },
-      loggerInstance,
-      this.billingService,
-      this.invoiceRepository,
-      this.patientRepository,
-    );
+    // Initialize Clinical Event Consumer (Feature Flag)
+    // Phase 1: Disabled by default - only prepaid appointment billing is in scope
+    // Set ENABLE_CLINICAL_CONSUMER=true to enable post-service billing features
+    if (config.enableClinicalEventConsumer) {
+      this.clinicalEventConsumer = new ClinicalEventConsumer(
+        {
+          rabbitmqUrl: config.rabbitmqUrl,
+          queueName: 'billing.clinical.events',
+          exchangeName: 'hospital.events',
+          routingKeys: [
+            'clinical.prescription.created',
+            'clinical.lab_result.created',
+            'clinical.treatment_plan.created',
+            'clinical.medical_record.created',
+          ],
+          prefetchCount: 10,
+          retryAttempts: 3,
+          retryDelayMs: 1000,
+        },
+        loggerInstance,
+        this.billingService,
+        this.invoiceRepository,
+        this.patientRepository,
+      );
+      loggerInstance.info('Clinical event consumer initialized (feature flag enabled)');
+    } else {
+      loggerInstance.info('Clinical event consumer disabled (Phase 1 scope - prepaid only)');
+    }
 
-    // Initialize Controllers
+    // Initialize Controllers - Phase 1 (Prepaid Model)
     this.invoiceController = new InvoiceController(
       this.createInvoiceUseCase,
       this.getInvoiceUseCase,
-      this.finalizeInvoiceUseCase,
-      this.cancelInvoiceUseCase,
       this.processPaymentUseCase,
       this.getPatientInvoicesUseCase,
-      this.processInsuranceClaimUseCase,
-      this.refundPaymentUseCase,
       this.searchInvoicesUseCase,
       this.getOverdueInvoicesUseCase,
       this.getPatientBillingSummaryUseCase,
       this.getRevenueReportUseCase,
       this.createPayOSPaymentLinkUseCase,
-      this.handlePayOSWebhookUseCase,
-      this.sendInvoiceEmailUseCase,
-      this.createPaymentReminderUseCase
+      this.handlePayOSWebhookUseCase
+      // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
     );
 
     // Initialize Middleware
@@ -417,7 +389,13 @@ class BillingServiceApp {
 
       // Connect Event Consumers
       await this.appointmentEventConsumer.connect();
-      await this.clinicalEventConsumer.connect();
+      
+      // Only connect clinical consumer if feature flag is enabled
+      if (config.enableClinicalEventConsumer && this.clinicalEventConsumer) {
+        await this.clinicalEventConsumer.connect();
+        loggerInstance.info('Clinical event consumer connected');
+      }
+      
       loggerInstance.info('Event consumers connected');
 
       this.app.listen(config.port, () => {
@@ -445,7 +423,7 @@ class BillingServiceApp {
         loggerInstance.info("Appointment event consumer disconnected");
       }
 
-      if (this.clinicalEventConsumer) {
+      if (this.clinicalEventConsumer && config.enableClinicalEventConsumer) {
         await this.clinicalEventConsumer.disconnect();
         loggerInstance.info("Clinical event consumer disconnected");
       }

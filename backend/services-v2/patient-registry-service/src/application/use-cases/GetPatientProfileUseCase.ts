@@ -80,6 +80,7 @@ export interface GetPatientProfileResponse {
       address?: string;
       isPrimary: boolean;
     }>;
+    /* POST-MVP: HIPAA Consent & FHIR Advanced features not needed for graduation project
     consents: Array<{
       id: string;
       consentType: string;
@@ -88,7 +89,9 @@ export interface GetPatientProfileResponse {
       revokedAt?: string;
       expiresAt?: string;
     }>;
+    END POST-MVP */
     status: string;
+    /* POST-MVP: PMI & FHIR Advanced features not needed for graduation project
     mergedInto?: string;
     links: Array<{
       otherPatientId: string;
@@ -96,6 +99,7 @@ export interface GetPatientProfileResponse {
       createdAt: string;
       createdBy: string;
     }>;
+    END POST-MVP */
     createdAt: string;
     updatedAt: string;
   };
@@ -157,8 +161,10 @@ export class GetPatientProfileUseCase {
       const basicMedicalInfo = patient.getBasicMedicalInfo();
       const insuranceInfo = patient.getInsuranceInfo();
       const emergencyContacts = patient.getEmergencyContacts();
+      /* POST-MVP: HIPAA Consent & FHIR Advanced features not needed for graduation project
       const consents = patient.getConsents();
       const links = patient.getLinks();
+      END POST-MVP */
 
       this.logger.info('Patient profile retrieved successfully', {
         patientId: patient.getPatientId(),
@@ -222,6 +228,7 @@ export class GetPatientProfileUseCase {
             address: contact.address,
             isPrimary: contact.isPrimary
           })),
+          /* POST-MVP: HIPAA Consent & FHIR Advanced features not needed for graduation project
           consents: consents.map(consent => ({
             id: consent.getId(),
             consentType: consent.consentType,
@@ -230,7 +237,9 @@ export class GetPatientProfileUseCase {
             revokedAt: consent.revokedAt()?.toISOString(),
             expiresAt: consent.expiresAt?.toISOString()
           })),
+          END POST-MVP */
           status: patient.getStatus().valueOf(),
+          /* POST-MVP: PMI & FHIR Advanced features not needed for graduation project
           mergedInto: patient.getMergedInto()?.value,
           links: links.map(link => ({
             otherPatientId: link.otherPatientId.value,
@@ -238,6 +247,7 @@ export class GetPatientProfileUseCase {
             createdAt: link.createdAt.toISOString(),
             createdBy: link.createdBy
           })),
+          END POST-MVP */
           createdAt: patient.getProps().createdAt.toISOString(),
           updatedAt: patient.getProps().updatedAt.toISOString()
         }

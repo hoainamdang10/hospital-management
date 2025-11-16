@@ -99,26 +99,6 @@ function createUserRoutes(deps) {
             });
         }
     });
-    // Delete user (PROTECTED - admin only)
-    router.delete('/:userId', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requireAdmin(), async (req, res) => {
-        try {
-            const result = await deps.deleteUserUseCase.execute({
-                userId: req.params.userId,
-                requesterId: req.user.userId,
-                hardDelete: req.query.hard === 'true',
-                reason: req.body.reason
-            });
-            const statusCode = result.success ? 200 : 400;
-            res.status(statusCode).json(result);
-        }
-        catch (error) {
-            logger.error('Delete user error', { error: getErrorMessage(error) });
-            res.status(500).json({
-                success: false,
-                error: 'Failed to delete user'
-            });
-        }
-    });
     // Change password (PROTECTED - self or admin)
     router.post('/:userId/change-password', deps.authMiddleware.authenticate(), async (req, res, next) => {
         try {
@@ -156,45 +136,6 @@ function createUserRoutes(deps) {
             });
         }
     });
-    // Lock account (PROTECTED - admin only)
-    router.post('/:userId/lock', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requireAdmin(), async (req, res) => {
-        try {
-            const result = await deps.lockAccountUseCase.execute({
-                userId: req.params.userId,
-                lockedBy: req.user.userId,
-                reason: req.body.reason || 'Locked by administrator',
-                terminateSessions: req.body.terminateSessions !== false
-            });
-            const statusCode = result.success ? 200 : 400;
-            res.status(statusCode).json(result);
-        }
-        catch (error) {
-            logger.error('Lock account error', { error: getErrorMessage(error) });
-            res.status(500).json({
-                success: false,
-                error: 'Khóa tài khoản thất bại'
-            });
-        }
-    });
-    // Unlock account (PROTECTED - admin only)
-    router.post('/:userId/unlock', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requireAdmin(), async (req, res) => {
-        try {
-            const result = await deps.unlockAccountUseCase.execute({
-                userId: req.params.userId,
-                unlockedBy: req.user.userId,
-                reason: req.body.reason || 'Unlocked by administrator'
-            });
-            const statusCode = result.success ? 200 : 400;
-            res.status(statusCode).json(result);
-        }
-        catch (error) {
-            logger.error('Unlock account error', { error: getErrorMessage(error) });
-            res.status(500).json({
-                success: false,
-                error: 'Mở khóa tài khoản thất bại'
-            });
-        }
-    });
     // Assign role (PROTECTED - admin only)
     router.post('/:userId/assign-role', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requireAdmin(), async (req, res) => {
         try {
@@ -212,41 +153,6 @@ function createUserRoutes(deps) {
             res.status(500).json({
                 success: false,
                 error: 'Gán vai trò thất bại'
-            });
-        }
-    });
-    // PUT endpoint for complete user replacement (PROTECTED - admin or self only)
-    // Note: PATCH is preferred for partial updates, PUT for complete replacement
-    router.put('/:userId', deps.authMiddleware.authenticate(), deps.permissionMiddleware.requirePermission({
-        permissions: ['users:update', '*'],
-        checkOwnership: true,
-        getResourceOwnerId: (req) => req.params.userId
-    }), async (req, res) => {
-        try {
-            // For PUT, validate that all required fields are present
-            const requiredFields = ['fullName', 'email'];
-            const missingFields = requiredFields.filter(field => !req.body[field]);
-            if (missingFields.length > 0) {
-                res.status(400).json({
-                    success: false,
-                    error: `Missing required fields for complete replacement: ${missingFields.join(', ')}`
-                });
-                return;
-            }
-            const result = await deps.updateUserUseCase.execute({
-                userId: req.params.userId,
-                requesterId: req.user.userId,
-                updates: req.body,
-                isCompleteReplace: true // Flag to indicate complete replacement
-            });
-            const statusCode = result.success ? 200 : 400;
-            res.status(statusCode).json(result);
-        }
-        catch (error) {
-            logger.error('PUT update user error', { error: getErrorMessage(error) });
-            res.status(500).json({
-                success: false,
-                error: 'Failed to replace user'
             });
         }
     });

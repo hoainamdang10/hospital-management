@@ -14,12 +14,14 @@ import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRe
 import { IQueueRepository } from '../../domain/repositories/IQueueRepository';
 import { IConflictResolutionService } from '../../application/services/IConflictResolutionService';
 import { IReminderService } from '../../application/services/IReminderService';
+import { PaymentCompletedHandler, PaymentCompletedEventData } from './handlers/PaymentCompletedHandler';
 
 export interface BillingEventConsumerConfig {
   rabbitmqUrl: string;
   queueName: string;
   exchangeName: string;
   routingKey: string;
+  routingKeys?: string[]; // Support multiple routing keys
 }
 
 /**
@@ -87,7 +89,8 @@ export class BillingEventConsumer {
     private readonly queueRepository: IQueueRepository,
     private readonly reminderService: IReminderService,
     private readonly conflictResolutionService: IConflictResolutionService,
-    private readonly inboxRepository: InboxRepository
+    private readonly inboxRepository: InboxRepository,
+    private readonly paymentCompletedHandler: PaymentCompletedHandler
   ) {}
 
   /**
@@ -102,7 +105,13 @@ export class BillingEventConsumer {
       // Declare exchange and queue
       await this.channel.assertExchange(this.config.exchangeName, 'topic', { durable: true });
       const queue = await this.channel.assertQueue(this.config.queueName, { durable: true });
-      await this.channel.bindQueue(queue.queue, this.config.exchangeName, this.config.routingKey);
+      
+      // Bind queue to routing keys (support multiple keys)
+      const routingKeys = this.config.routingKeys || [this.config.routingKey];
+      for (const key of routingKeys) {
+        await this.channel.bindQueue(queue.queue, this.config.exchangeName, key);
+        console.log(`Bound queue to routing key: ${key}`);
+      }
 
       // Start consuming
       await this.channel.consume(queue.queue, (msg: ConsumeMessage | null) => {
@@ -130,11 +139,21 @@ export class BillingEventConsumer {
       const content = msg.content.toString();
       const event = JSON.parse(content);
 
-      // TODO: Implement inbox pattern for idempotency
-      // For now, process all events (may result in duplicates on retry)
+      // Inbox pattern for idempotency
+      const eventId = event.eventId || event.id || `${event.type}-${Date.now()}`;
+      const exists = await this.inboxRepository.exists(eventId);
+      if (exists) {
+        console.log('Event already processed (idempotent)', { eventId, type: event.type });
+        this.channel.ack(msg);
+        return;
+      }
 
       // Route to appropriate handler
       switch (event.type) {
+        case 'PaymentCompleted':
+        case 'billing.payment.completed':
+          await this.paymentCompletedHandler.handle(event.data as PaymentCompletedEventData);
+          break;
         case 'PreAuthorizationRequested':
           await this.handlePreAuthorizationRequested(event.data);
           break;
@@ -154,6 +173,14 @@ export class BillingEventConsumer {
           console.warn(`Unknown event type: ${event.type}`);
       }
 
+      // Save to inbox after successful processing
+      await this.inboxRepository.save({
+        eventId,
+        eventType: event.type,
+        sourceService: 'billing-service',
+        payloadJson: event.data,
+        processedAt: new Date()
+      });
       this.channel.ack(msg);
     } catch (error) {
       console.error('Error processing billing event:', error);

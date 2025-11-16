@@ -29,10 +29,10 @@ import {
   PatientRegisteredEventInsuranceInfo,
 } from '../events/PatientRegisteredEvent';
 import { PatientUpdatedEvent } from '../events/PatientUpdatedEvent';
-import { PatientMergedEvent } from '../events/PatientMergedEvent';
-import { PatientLinkedEvent } from '../events/PatientLinkedEvent';
+// import { PatientMergedEvent } from '../events/PatientMergedEvent'; // Event removed in scope reduction
+// import { PatientLinkedEvent } from '../events/PatientLinkedEvent'; // Event removed in scope reduction
 import { PatientDeactivatedEvent } from '../events/PatientDeactivatedEvent';
-import { PatientConsentGrantedEvent } from '../events/PatientConsentGrantedEvent';
+// import { PatientConsentGrantedEvent } from '../events/PatientConsentGrantedEvent'; // Event removed in scope reduction
 
 export interface PatientProps {
   // Identity
@@ -397,9 +397,10 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     );
   }
 
+  /* POST-MVP: Advanced Emergency Contact Management - Not required for graduation project
   /**
    * Remove emergency contact
-   */
+   *
   public removeEmergencyContact(contactId: string, updatedBy: string): void {
     this.ensureCanUpdate();
 
@@ -419,10 +420,12 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       ),
     );
   }
+  END POST-MVP: Advanced Emergency Contact Management */
 
+  /* POST-MVP: HIPAA Consent Management - Not required for graduation project
   /**
    * Grant consent
-   */
+   *
   public grantConsent(consent: PatientConsent, updatedBy: string): void {
     this.ensureCanUpdate();
 
@@ -430,20 +433,23 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = updatedBy;
 
-    const patientId = this.props.id.value;
-    this.addDomainEvent(
-      new PatientConsentGrantedEvent(
-        patientId,
-        consent.getId(),
-        consent.consentType,
-        updatedBy,
-      ),
-    );
+    // Event removed in scope reduction
+    // const patientId = this.props.id.value;
+    // this.addDomainEvent(
+    //   new PatientConsentGrantedEvent(
+    //     patientId,
+    //     consent.getId(),
+    //     consent.consentType,
+    //     updatedBy,
+    //   ),
+    // );
   }
+  END POST-MVP: HIPAA Consent Management */
 
+  /* POST-MVP: PMI Features (Patient Master Index) - Not required for graduation project
   /**
    * Merge into master patient (mark as duplicate)
-   */
+   *
   public mergeInto(
     masterPatientId: PatientId,
     reason: string,
@@ -470,20 +476,23 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     const link = PatientLink.createReplacedBy(masterPatientId, performedBy);
     this.props.links.push(link);
 
-    const duplicatePatientId = this.props.id.value;
-    this.addDomainEvent(
-      new PatientMergedEvent(
-        duplicatePatientId,
-        masterPatientId.value,
-        reason,
-        performedBy,
-      ),
-    );
+    // Event removed in scope reduction
+    // const duplicatePatientId = this.props.id.value;
+    // this.addDomainEvent(
+    //   new PatientMergedEvent(
+    //     duplicatePatientId,
+    //     masterPatientId.value,
+    //     reason,
+    //     performedBy,
+    //   ),
+    // );
   }
+  END POST-MVP: PMI Features */
 
+  /* POST-MVP: FHIR Advanced - Patient Linking not required for graduation project
   /**
    * Link to another patient
-   */
+   *
   public linkTo(
     otherPatientId: PatientId,
     linkType: 'refer' | 'seealso',
@@ -511,20 +520,23 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.props.updatedAt = new Date();
     this.props.updatedBy = performedBy;
 
-    const patientId = this.props.id.value;
-    this.addDomainEvent(
-      new PatientLinkedEvent(
-        patientId,
-        otherPatientId.value,
-        linkType,
-        performedBy,
-      ),
-    );
+    // Event removed in scope reduction
+    // const patientId = this.props.id.value;
+    // this.addDomainEvent(
+    //   new PatientLinkedEvent(
+    //     patientId,
+    //     otherPatientId.value,
+    //     linkType,
+    //     performedBy,
+    //   ),
+    // );
   }
+  END POST-MVP: FHIR Advanced - Patient Linking */
 
+  /* POST-MVP: Patient Lifecycle - Deactivation/Deceased/Reactivation not required for graduation project
   /**
    * Deactivate patient
-   */
+   *
   public deactivate(reason: string, performedBy: string): void {
     if (this.props.status === PatientStatus.INACTIVE) {
       throw new Error('Bệnh nhân đã bị vô hiệu hóa');
@@ -550,7 +562,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   /**
    * Mark patient as deceased
-   */
+   *
   public markAsDeceased(performedBy: string): void {
     if (this.props.status === PatientStatus.DECEASED) {
       throw new Error('Bệnh nhân đã được đánh dấu qua đời');
@@ -573,7 +585,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   /**
    * Reactivate patient (from INACTIVE status or, when allowed, DECEASED)
-   */
+   *
   public reactivate(
     _reason: string,
     performedBy: string,
@@ -617,6 +629,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       ),
     );
   }
+  END POST-MVP: Patient Lifecycle */
 
   // ==================== Getters ====================
 
@@ -652,21 +665,27 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     return this.props.emergencyContacts.slice(); // Return copy
   }
 
+  /* POST-MVP: HIPAA Consent Management - Getter not required for graduation project
   public getConsents(): PatientConsent[] {
     return this.props.consents.slice(); // Return copy
   }
+  END POST-MVP: HIPAA Consent Management */
 
   public getStatus(): PatientStatus {
     return this.props.status;
   }
 
+  /* POST-MVP: PMI Features - Getter not required for graduation project
   public getMergedInto(): PatientId | undefined {
     return this.props.mergedInto;
   }
+  END POST-MVP: PMI Features */
 
+  /* POST-MVP: FHIR Advanced - Getter not required for graduation project
   public getLinks(): PatientLink[] {
     return this.props.links.slice(); // Return copy
   }
+  END POST-MVP: FHIR Advanced */
 
   override getProps(): PatientProps {
     // Deep clone to prevent external mutation of nested collections
@@ -713,17 +732,23 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     return this.props.status === PatientStatus.ACTIVE;
   }
 
+  /* POST-MVP: Patient Lifecycle - Helper not required for graduation project
   public isInactive(): boolean {
     return this.props.status === PatientStatus.INACTIVE;
   }
+  END POST-MVP: Patient Lifecycle */
 
+  /* POST-MVP: PMI Features - Helper not required for graduation project
   public isMerged(): boolean {
     return this.props.status === PatientStatus.MERGED;
   }
+  END POST-MVP: PMI Features */
 
+  /* POST-MVP: Patient Lifecycle - Helper not required for graduation project
   public isDeceased(): boolean {
     return this.props.status === PatientStatus.DECEASED;
   }
+  END POST-MVP: Patient Lifecycle */
 
   public hasBHYTInsurance(): boolean {
     return this.props.insuranceInfo?.isBHYT() ?? false;
@@ -737,13 +762,17 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     return this.props.emergencyContacts.length > 0;
   }
 
+  /* POST-MVP: HIPAA Consent Management - Helper not required for graduation project
   public hasActiveConsents(): boolean {
     return this.props.consents.some((consent) => consent.isActive);
   }
+  END POST-MVP: HIPAA Consent Management */
 
+  /* POST-MVP: FHIR Advanced - Helper not required for graduation project
   public hasLinks(): boolean {
     return this.props.links.length > 0;
   }
+  END POST-MVP: FHIR Advanced */
 
   // ==================== Business Invariants ====================
 
@@ -777,9 +806,10 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   // ==================== Photo Management (FHIR: photo field) ====================
 
+  /* POST-MVP: FHIR Photo Management - Patient.photo field not needed for graduation project
   /**
    * Update patient photo URL
-   */
+   *
   public updatePhoto(photoUrl: string, updatedBy: string): void {
     this.ensureCanUpdate();
 
@@ -803,7 +833,7 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   /**
    * Remove patient photo
-   */
+   *
   public removePhoto(updatedBy: string): void {
     this.ensureCanUpdate();
 
@@ -823,16 +853,18 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   /**
    * Get patient photo URL
-   */
+   *
   public getPhotoUrl(): string | undefined {
     return this.props.photoUrl;
   }
+  END POST-MVP: FHIR Photo Management */
 
   // ==================== Communication Preferences (FHIR: communication field) ====================
 
+  /* POST-MVP: FHIR Communication Preferences - Patient.communication field not needed for graduation project
   /**
    * Update communication preferences
-   */
+   *
   public updateCommunicationPreference(
     preference: CommunicationPreference,
     updatedBy: string,
@@ -855,8 +887,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   /**
    * Get communication preferences
-   */
+   *
   public getCommunicationPreference(): CommunicationPreference | undefined {
     return this.props.communicationPreference;
   }
+  END POST-MVP: FHIR Communication Preferences */
 }

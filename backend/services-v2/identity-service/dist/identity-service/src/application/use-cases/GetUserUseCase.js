@@ -83,6 +83,10 @@ class GetUserUseCase {
                     roleType: user.healthcareRole.type,
                     isActive: user.isActive,
                     isEmailVerified: user.isEmailVerified,
+                    accountStatus: user.accountStatus,
+                    deactivationReason: user.deactivationReason,
+                    deactivatedAt: user.deactivatedAt?.toISOString(),
+                    deactivatedBy: user.deactivatedBy,
                     lastLoginAt: user.lastLoginAt?.toISOString(),
                     createdAt: user.createdAt.toISOString(),
                     updatedAt: user.updatedAt.toISOString()

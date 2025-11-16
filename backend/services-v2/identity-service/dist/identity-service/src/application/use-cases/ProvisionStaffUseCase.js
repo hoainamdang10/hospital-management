@@ -74,14 +74,14 @@ class ProvisionStaffUseCase {
                     errorCode: 'INVALID_INPUT'
                 };
             }
-            // Validate role type (only staff roles allowed)
+            // Validate role type (only staff roles allowed - scope reduced)
             // Normalize to uppercase for case-insensitive comparison
             const normalizedRole = request.roleType.toUpperCase();
-            const allowedRoles = ['ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST'];
+            const allowedRoles = ['ADMIN', 'DOCTOR', 'RECEPTIONIST'];
             if (!allowedRoles.includes(normalizedRole)) {
                 return {
                     success: false,
-                    error: 'Invalid role type. Only staff roles are allowed.',
+                    error: 'Invalid role type. Only ADMIN, DOCTOR, RECEPTIONIST roles are allowed.',
                     errorCode: 'INVALID_ROLE'
                 };
             }

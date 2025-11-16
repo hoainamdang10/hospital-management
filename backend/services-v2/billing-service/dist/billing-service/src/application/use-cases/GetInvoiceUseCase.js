@@ -26,15 +26,10 @@ class GetInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase
             })),
             subtotal: invoice.subtotal.amount,
             tax: invoice.tax.amount,
-            insuranceCoverage: invoice.insuranceCoverage.amount,
             totalAmount: invoice.totalAmount.amount,
             outstandingAmount: invoice.outstandingAmount.amount,
             status: invoice.status.value,
-            insurance: invoice.insurance ? {
-                provider: invoice.insurance.provider,
-                policyNumber: invoice.insurance.policyNumber,
-                coveragePercentage: invoice.insurance.coveragePercentage
-            } : undefined,
+            // REMOVED (Phase 1): insuranceCoverage, insurance
             payments: invoice.payments.map(p => ({
                 id: p.id,
                 amount: p.amount.amount,

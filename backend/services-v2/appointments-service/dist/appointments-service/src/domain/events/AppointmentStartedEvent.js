@@ -12,23 +12,26 @@ exports.AppointmentStartedEvent = void 0;
 const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 /**
  * Appointment Started Event
- * Emitted when doctor starts the appointment
+ * Emitted when doctor starts the consultation/appointment
  */
 class AppointmentStartedEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, patientId, doctorId, startedAt, roomId, correlationId, causationId, userId) {
+    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, startedBy, correlationId, causationId, userId) {
         const eventData = {
             appointmentId,
             patientId,
             doctorId,
-            startedAt,
-            roomId
+            appointmentDate,
+            appointmentTime,
+            startedAt: new Date(),
+            startedBy
         };
         super('AppointmentStarted', appointmentId, 'Appointment', eventData, 1, correlationId, causationId, userId);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
         this.doctorId = doctorId;
-        this.startedAt = startedAt;
-        this.roomId = roomId;
+        this.appointmentDate = appointmentDate;
+        this.appointmentTime = appointmentTime;
+        this.startedBy = startedBy;
     }
     /**
      * Get event data payload (required by DomainEvent base class)
@@ -38,8 +41,10 @@ class AppointmentStartedEvent extends domain_event_1.DomainEvent {
             appointmentId: this.appointmentId,
             patientId: this.patientId,
             doctorId: this.doctorId,
-            startedAt: this.startedAt,
-            roomId: this.roomId
+            appointmentDate: this.appointmentDate,
+            appointmentTime: this.appointmentTime,
+            startedAt: this.occurredAt,
+            startedBy: this.startedBy
         };
     }
     /**

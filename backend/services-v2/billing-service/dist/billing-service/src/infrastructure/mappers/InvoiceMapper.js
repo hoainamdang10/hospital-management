@@ -25,15 +25,17 @@ class InvoiceMapper {
         const props = {
             id: InvoiceId_1.InvoiceId.create(record.id),
             patientId: record.patient_id,
+            appointmentId: record.appointment_id,
+            staffId: record.doctor_id,
             invoiceNumber: record.vietnamese_invoice_number || record.invoice_id,
             items,
             subtotal: Money_1.Money.create(record.subtotal_amount, record.subtotal_currency),
             tax: Money_1.Money.create(record.tax_amount, record.tax_currency),
-            insuranceCoverage: Money_1.Money.create(record.insurance_coverage_amount, record.insurance_coverage_currency),
+            // REMOVED (Phase 1 Prepaid Model): insuranceCoverage - no insurance in MVP
             totalAmount: Money_1.Money.create(record.total_amount, record.total_currency),
             outstandingAmount: Money_1.Money.create(record.patient_payment_amount, record.patient_payment_currency),
             status: InvoiceStatus_1.InvoiceStatus.create(record.status),
-            insurance,
+            // REMOVED (Phase 1 Prepaid Model): insurance - will be added in Phase 2
             payments,
             createdAt: new Date(record.created_at),
             updatedAt: new Date(record.updated_at),
@@ -55,6 +57,8 @@ class InvoiceMapper {
             invoice_id: persistence.invoiceNumber || `INV-${Date.now()}`,
             vietnamese_invoice_number: persistence.invoiceNumber,
             patient_id: persistence.patientId,
+            appointment_id: persistence.appointmentId,
+            doctor_id: persistence.staffId || '00000000-0000-0000-0000-000000000000',
             status: persistence.status,
             subtotal_amount: persistence.subtotal,
             subtotal_currency: persistence.currency,
@@ -62,14 +66,11 @@ class InvoiceMapper {
             tax_currency: persistence.currency,
             total_amount: persistence.totalAmount,
             total_currency: persistence.currency,
-            insurance_coverage_amount: persistence.insuranceCoverage,
-            insurance_coverage_currency: persistence.currency,
+            // REMOVED (Phase 1 Prepaid Model): insurance_coverage_amount, insurance_coverage_currency - set to 0 by default in schema
             patient_payment_amount: persistence.outstandingAmount,
             patient_payment_currency: persistence.currency,
-            insurance_type: persistence.insurance?.provider,
-            insurance_number: persistence.insurance?.policyNumber,
-            insurance_coverage_level: persistence.insurance?.coveragePercentage,
-            insurance_issued_by: persistence.insurance?.provider,
+            // REMOVED (Phase 1 Prepaid Model): insurance_type, insurance_number, insurance_coverage_level, insurance_issued_by - nullable in schema for Phase 2
+            issued_by: '00000000-0000-0000-0000-000000000000', // System-generated invoice
             created_at: persistence.createdAt.toISOString(),
             updated_at: persistence.updatedAt.toISOString(),
             finalized_at: persistence.finalizedAt?.toISOString(),

@@ -25,6 +25,8 @@ const SupabasePatientSnapshotRepository_1 = require("../../../infrastructure/rep
 const SupabaseProviderSnapshotRepository_1 = require("../../../infrastructure/repositories/SupabaseProviderSnapshotRepository");
 const ClinicalIntegrationSyncService_1 = require("../../../application/services/ClinicalIntegrationSyncService");
 const ClinicalIntegrationEventConsumer_1 = require("../../../infrastructure/events/ClinicalIntegrationEventConsumer");
+const AppointmentEventConsumer_1 = require("../../../infrastructure/events/AppointmentEventConsumer");
+const BillingEventConsumer_1 = require("../../../infrastructure/events/BillingEventConsumer");
 const supabase_client_1 = require("../../../infrastructure/db/supabase-client");
 const ListMedicalRecordsUseCase_1 = require("../../../application/use-cases/ListMedicalRecordsUseCase");
 const GetMedicalRecordUseCase_1 = require("../../../application/use-cases/GetMedicalRecordUseCase");
@@ -48,6 +50,12 @@ const UpdateTreatmentPlanStatusUseCase_1 = require("../../../application/use-cas
 const DeleteTreatmentPlanUseCase_1 = require("../../../application/use-cases/DeleteTreatmentPlanUseCase");
 const CreateAuditLogUseCase_1 = require("../../../application/use-cases/CreateAuditLogUseCase");
 const ListAuditLogsUseCase_1 = require("../../../application/use-cases/ListAuditLogsUseCase");
+// New use cases for enhanced endpoints
+const GetPatientSummaryUseCase_1 = require("../../../application/use-cases/GetPatientSummaryUseCase");
+const GetMedicalRecordHistoryUseCase_1 = require("../../../application/use-cases/GetMedicalRecordHistoryUseCase");
+const SearchClinicalDataUseCase_1 = require("../../../application/use-cases/SearchClinicalDataUseCase");
+const GetServiceMetricsUseCase_1 = require("../../../application/use-cases/GetServiceMetricsUseCase");
+const ExportPatientDataUseCase_1 = require("../../../application/use-cases/ExportPatientDataUseCase");
 const MedicalRecordController_1 = require("../controllers/MedicalRecordController");
 const ClinicalNoteController_1 = require("../controllers/ClinicalNoteController");
 const LabResultController_1 = require("../controllers/LabResultController");
@@ -55,6 +63,7 @@ const ImagingStudyController_1 = require("../controllers/ImagingStudyController"
 const PrescriptionController_1 = require("../controllers/PrescriptionController");
 const TreatmentPlanController_1 = require("../controllers/TreatmentPlanController");
 const AuditLogController_1 = require("../controllers/AuditLogController");
+const ClinicalSummaryController_1 = require("../controllers/ClinicalSummaryController");
 const medical_record_routes_1 = require("../routes/medical-record.routes");
 const clinical_note_routes_1 = require("../routes/clinical-note.routes");
 const lab_result_routes_1 = require("../routes/lab-result.routes");
@@ -62,8 +71,11 @@ const imaging_study_routes_1 = require("../routes/imaging-study.routes");
 const prescription_routes_1 = require("../routes/prescription.routes");
 const treatment_plan_routes_1 = require("../routes/treatment-plan.routes");
 const audit_log_routes_1 = require("../routes/audit-log.routes");
+const clinical_summary_routes_1 = require("../routes/clinical-summary.routes");
 const error_middleware_1 = require("../middlewares/error.middleware");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
+// New repository import
+const SupabaseClinicalEmrRepository_1 = require("../../../infrastructure/repositories/SupabaseClinicalEmrRepository");
 const buildLogger = () => {
     const format = (message, meta) => meta && Object.keys(meta).length
         ? `${message} ${JSON.stringify(meta)}`
@@ -167,12 +179,68 @@ function createHttpServer() {
             routingKeys: env_1.env.integrationConsumer.routingKeys.length,
         });
     }
+    // Initialize Appointment Event Consumer
+    let appointmentConsumer;
+    if (env_1.env.appointmentConsumer.enabled &&
+        env_1.env.appointmentConsumer.routingKeys.length) {
+        appointmentConsumer = new AppointmentEventConsumer_1.AppointmentEventConsumer({
+            rabbitmqUrl: env_1.env.rabbitmqUrl,
+            queueName: env_1.env.appointmentConsumer.queueName,
+            exchangeName: env_1.env.rabbitmqExchange,
+            routingKeys: env_1.env.appointmentConsumer.routingKeys,
+            prefetchCount: env_1.env.appointmentConsumer.prefetch,
+            retryAttempts: 3,
+            retryDelayMs: 1000,
+        }, logger, medicalRecordRepo, clinicalNoteRepo, patientSnapshotRepo, providerSnapshotRepo, integrationSyncService);
+        appointmentConsumer
+            .connect()
+            .catch((error) => logger.error("[ClinicalEMR] Failed to start appointment consumer", {
+            error: error instanceof Error ? error.message : "Unknown error",
+        }));
+    }
+    else {
+        logger.info("[ClinicalEMR] Appointment consumer disabled", {
+            enabled: env_1.env.appointmentConsumer.enabled,
+            routingKeys: env_1.env.appointmentConsumer.routingKeys.length,
+        });
+    }
+    // Initialize Billing Event Consumer
+    let billingConsumer;
+    if (env_1.env.billingConsumer.enabled &&
+        env_1.env.billingConsumer.routingKeys.length) {
+        billingConsumer = new BillingEventConsumer_1.BillingEventConsumer({
+            rabbitmqUrl: env_1.env.rabbitmqUrl,
+            queueName: env_1.env.billingConsumer.queueName,
+            exchangeName: env_1.env.rabbitmqExchange,
+            routingKeys: env_1.env.billingConsumer.routingKeys,
+            prefetchCount: env_1.env.billingConsumer.prefetch,
+            retryAttempts: 3,
+            retryDelayMs: 1000,
+        }, logger, medicalRecordRepo, clinicalNoteRepo, patientSnapshotRepo);
+        billingConsumer
+            .connect()
+            .catch((error) => logger.error("[ClinicalEMR] Failed to start billing consumer", {
+            error: error instanceof Error ? error.message : "Unknown error",
+        }));
+    }
+    else {
+        logger.info("[ClinicalEMR] Billing consumer disabled", {
+            enabled: env_1.env.billingConsumer.enabled,
+            routingKeys: env_1.env.billingConsumer.routingKeys.length,
+        });
+    }
     const eventDispatcher = new ClinicalEventDispatcher_1.ClinicalEventDispatcher(outboxRepository, logger);
     const gracefulShutdown = async () => {
         await outboxWorker.stop().catch(() => undefined);
         await rabbitPublisher.disconnect().catch(() => undefined);
         if (integrationConsumer) {
             await integrationConsumer.stop().catch(() => undefined);
+        }
+        if (appointmentConsumer) {
+            await appointmentConsumer.disconnect().catch(() => undefined);
+        }
+        if (billingConsumer) {
+            await billingConsumer.disconnect().catch(() => undefined);
         }
     };
     process.once("SIGINT", gracefulShutdown);
@@ -187,6 +255,9 @@ function createHttpServer() {
     const prescriptionController = new PrescriptionController_1.PrescriptionController(new CreatePrescriptionUseCase_1.CreatePrescriptionUseCase(prescriptionRepo), new ListPrescriptionsUseCase_1.ListPrescriptionsUseCase(prescriptionRepo), auditLogUseCase, new DeletePrescriptionUseCase_1.DeletePrescriptionUseCase(prescriptionRepo), getMedicalRecordUseCase, eventDispatcher);
     const treatmentPlanController = new TreatmentPlanController_1.TreatmentPlanController(new CreateTreatmentPlanUseCase_1.CreateTreatmentPlanUseCase(treatmentPlanRepo), new ListTreatmentPlansUseCase_1.ListTreatmentPlansUseCase(treatmentPlanRepo), new UpdateTreatmentPlanStatusUseCase_1.UpdateTreatmentPlanStatusUseCase(treatmentPlanRepo), new DeleteTreatmentPlanUseCase_1.DeleteTreatmentPlanUseCase(treatmentPlanRepo), auditLogUseCase, getMedicalRecordUseCase, eventDispatcher);
     const auditLogController = new AuditLogController_1.AuditLogController(new ListAuditLogsUseCase_1.ListAuditLogsUseCase(auditLogRepo), auditLogUseCase, getMedicalRecordUseCase);
+    // New clinical summary controller and repository
+    const clinicalEmrRepository = new SupabaseClinicalEmrRepository_1.SupabaseClinicalEmrRepository();
+    const clinicalSummaryController = new ClinicalSummaryController_1.ClinicalSummaryController(new GetPatientSummaryUseCase_1.GetPatientSummaryUseCase(clinicalEmrRepository), new GetMedicalRecordHistoryUseCase_1.GetMedicalRecordHistoryUseCase(clinicalEmrRepository), new SearchClinicalDataUseCase_1.SearchClinicalDataUseCase(clinicalEmrRepository), new GetServiceMetricsUseCase_1.GetServiceMetricsUseCase(clinicalEmrRepository), new ExportPatientDataUseCase_1.ExportPatientDataUseCase(clinicalEmrRepository), logger);
     app.use(auth_middleware_1.authenticationMiddleware);
     app.use("/api/v2/clinical-emr", (0, medical_record_routes_1.createMedicalRecordRouter)(medicalRecordController));
     app.use("/api/v2/clinical-emr/medical-records/:recordId/notes", (0, clinical_note_routes_1.createClinicalNoteRouter)(clinicalNoteController));
@@ -195,6 +266,8 @@ function createHttpServer() {
     app.use("/api/v2/clinical-emr/medical-records/:recordId/prescriptions", (0, prescription_routes_1.createPrescriptionRouter)(prescriptionController));
     app.use("/api/v2/clinical-emr/medical-records/:recordId/treatment-plans", (0, treatment_plan_routes_1.createTreatmentPlanRouter)(treatmentPlanController));
     app.use("/api/v2/clinical-emr/medical-records/:recordId/audit-logs", (0, audit_log_routes_1.createAuditLogRouter)(auditLogController));
+    // New clinical summary routes
+    app.use("/api/v2/clinical-emr", (0, clinical_summary_routes_1.createClinicalSummaryRouter)(clinicalSummaryController));
     app.use(error_middleware_1.errorMiddleware);
     return app;
 }

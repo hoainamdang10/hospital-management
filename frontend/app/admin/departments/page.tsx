@@ -18,7 +18,6 @@ interface DepartmentWithDetails extends Department {
 export default function AdminDepartmentsPage() {
   const [departments, setDepartments] = useState<DepartmentWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'inactive'>('all');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -30,7 +29,6 @@ export default function AdminDepartmentsPage() {
   const fetchDepartments = async () => {
     try {
       setIsLoading(true);
-      setError(null);
       const data = await getDepartments();
       
       // Fetch head and staff count for each department with delay to avoid rate limiting
@@ -69,7 +67,6 @@ export default function AdminDepartmentsPage() {
       setDepartments(departmentsWithDetails);
     } catch (err: any) {
       console.error('Error fetching departments:', err);
-      setError('Không thể tải danh sách khoa');
     } finally {
       setIsLoading(false);
     }

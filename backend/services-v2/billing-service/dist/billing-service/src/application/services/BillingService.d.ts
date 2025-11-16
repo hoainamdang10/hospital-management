@@ -19,7 +19,7 @@ export interface AppointmentInvoiceRequest {
     departmentId: string;
     serviceType: 'consultation' | 'procedure' | 'follow_up';
     scheduledAt: Date;
-    completedAt: Date;
+    completedAt?: Date;
     duration: number;
     insuranceInfo?: any;
 }

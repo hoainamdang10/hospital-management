@@ -16,7 +16,6 @@ const SupabaseAppointmentRepository_1 = require("../persistence/SupabaseAppointm
 const SupabaseAppointmentReadModelRepository_1 = require("../persistence/SupabaseAppointmentReadModelRepository");
 const SupabaseQueueRepository_1 = require("../persistence/SupabaseQueueRepository");
 const SupabaseProviderScheduleRepository_1 = require("../persistence/SupabaseProviderScheduleRepository");
-const SupabaseAppointmentWaitlistRepository_1 = require("../repositories/SupabaseAppointmentWaitlistRepository");
 const SupabaseAppointmentReminderRepository_1 = require("../repositories/SupabaseAppointmentReminderRepository");
 const SupabaseReschedulingQueueRepository_1 = require("../persistence/SupabaseReschedulingQueueRepository");
 const EventBusAdapter_1 = require("../events/EventBusAdapter");
@@ -25,6 +24,7 @@ const LocalPatientReadModelService_1 = require("../services/LocalPatientReadMode
 const LocalProviderReadModelService_1 = require("../services/LocalProviderReadModelService");
 const RemoteSchedulerAdapter_1 = require("../adapters/RemoteSchedulerAdapter");
 const SchedulerAdapterWrapper_1 = require("../adapters/SchedulerAdapterWrapper");
+const BillingServiceClient_1 = require("../clients/BillingServiceClient");
 const ConflictResolutionService_1 = require("../services/ConflictResolutionService");
 const AuthorizationService_1 = require("../services/AuthorizationService");
 const ReminderService_1 = require("../services/ReminderService");
@@ -47,8 +47,10 @@ const PatientEventConsumer_1 = require("../events/PatientEventConsumer");
 const ProviderEventConsumer_1 = require("../events/ProviderEventConsumer");
 const StaffEventConsumer_1 = require("../events/StaffEventConsumer");
 const DepartmentEventConsumer_1 = require("../events/DepartmentEventConsumer");
-const ClinicalEMREventConsumer_1 = require("../events/ClinicalEMREventConsumer");
-const BillingEventConsumer_1 = require("../events/BillingEventConsumer");
+const BillingEventConsumer_1 = require("../events/BillingEventConsumer"); // ENABLED for Prepaid Billing Flow
+const PaymentCompletedHandler_1 = require("../events/handlers/PaymentCompletedHandler");
+// ===== ARCHIVED FOR POST-MVP: Non-operational Event Consumers =====
+// import { ClinicalEMREventConsumer } from "../events/ClinicalEMREventConsumer"; // REMOVED FOR MVP
 // Resilience & Cache
 const RedisCacheService_1 = require("../cache/RedisCacheService");
 const CircuitBreakerService_1 = require("../resilience/CircuitBreakerService");
@@ -69,17 +71,19 @@ const LeaveQueue_use_case_1 = require("../../application/use-cases/LeaveQueue.us
 const GetQueueStatus_use_case_1 = require("../../application/use-cases/GetQueueStatus.use-case");
 const ValidateCancellationPolicy_use_case_1 = require("../../application/use-cases/ValidateCancellationPolicy.use-case");
 const CreateRecurringAppointmentSeries_use_case_1 = require("../../application/use-cases/CreateRecurringAppointmentSeries.use-case");
-const BulkRescheduleAppointments_use_case_1 = require("../../application/use-cases/BulkRescheduleAppointments.use-case");
+// ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
+// import { BulkRescheduleAppointmentsUseCase } from "../../application/use-cases/BulkRescheduleAppointments.use-case";
 const GetAppointmentHistory_use_case_1 = require("../../application/use-cases/GetAppointmentHistory.use-case");
 const GetAppointmentStatistics_use_case_1 = require("../../application/use-cases/GetAppointmentStatistics.use-case");
 const CreateEmergencyAppointment_use_case_1 = require("../../application/use-cases/CreateEmergencyAppointment.use-case");
 const TransferAppointment_use_case_1 = require("../../application/use-cases/TransferAppointment.use-case");
 const FindAvailableTimeSlotsUseCase_1 = require("../../application/use-cases/FindAvailableTimeSlotsUseCase");
-const AddToWaitlistUseCase_1 = require("../../application/use-cases/AddToWaitlistUseCase");
-const GetWaitlistUseCase_1 = require("../../application/use-cases/GetWaitlistUseCase");
-const UpdateWaitlistEntryUseCase_1 = require("../../application/use-cases/UpdateWaitlistEntryUseCase");
-const RemoveFromWaitlistUseCase_1 = require("../../application/use-cases/RemoveFromWaitlistUseCase");
-const ConvertWaitlistToAppointmentUseCase_1 = require("../../application/use-cases/ConvertWaitlistToAppointmentUseCase");
+// ===== ARCHIVED FOR POST-MVP: Waitlist Use Cases =====
+// import { AddToWaitlistUseCase } from "../../application/use-cases/AddToWaitlistUseCase";
+// import { GetWaitlistUseCase } from "../../application/use-cases/GetWaitlistUseCase";
+// import { UpdateWaitlistEntryUseCase } from "../../application/use-cases/UpdateWaitlistEntryUseCase";
+// import { RemoveFromWaitlistUseCase } from "../../application/use-cases/RemoveFromWaitlistUseCase";
+// import { ConvertWaitlistToAppointmentUseCase } from "../../application/use-cases/ConvertWaitlistToAppointmentUseCase";
 // Queries
 const GetAppointmentDetailsQuery_1 = require("../../application/queries/GetAppointmentDetailsQuery");
 const ListAppointmentsQuery_1 = require("../../application/queries/ListAppointmentsQuery");
@@ -90,7 +94,8 @@ const EventSubscriptions_1 = require("../events/EventSubscriptions");
 const AppointmentController_1 = require("../../presentation/controllers/AppointmentController");
 const AppointmentQueryController_1 = require("../../presentation/controllers/AppointmentQueryController");
 const AvailabilityController_1 = require("../../presentation/controllers/AvailabilityController");
-const WaitlistController_1 = require("../../presentation/controllers/WaitlistController");
+// ===== ARCHIVED FOR POST-MVP: Waitlist Controller =====
+// import { WaitlistController } from "../../presentation/controllers/WaitlistController";
 // Config & Health
 const ConfigValidator_1 = require("../config/ConfigValidator");
 const HealthCheckService_1 = require("../health/HealthCheckService");
@@ -179,18 +184,21 @@ class DIContainer {
         this.queueRepository = new SupabaseQueueRepository_1.SupabaseQueueRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.reschedulingQueueRepository = new SupabaseReschedulingQueueRepository_1.SupabaseReschedulingQueueRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.providerScheduleRepository = new SupabaseProviderScheduleRepository_1.SupabaseProviderScheduleRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
-        // Waitlist Repository
+        // Create Supabase client for repositories that need it
         const { createClient } = require("@supabase/supabase-js");
         const supabaseClient = createClient(this.config.supabase.url, this.config.supabase.serviceRoleKey);
-        this.waitlistRepository = new SupabaseAppointmentWaitlistRepository_1.SupabaseAppointmentWaitlistRepository(supabaseClient);
+        // ===== ARCHIVED FOR POST-MVP: Waitlist Repository =====
+        // this.waitlistRepository = new SupabaseAppointmentWaitlistRepository(
+        //   supabaseClient,
+        // );
         // Reminder Repository
         this.reminderRepository = new SupabaseAppointmentReminderRepository_1.SupabaseAppointmentReminderRepository(supabaseClient);
         // Pure Outbox Pattern - Read Model Repositories
         this.patientReadModelRepository = new PatientReadModelRepository_1.PatientReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.providerReadModelRepository = new ProviderReadModelRepository_1.ProviderReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.inboxRepository = new InboxRepository_1.InboxRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
-        console.log("[DI] ✅ Repositories initialized (8 total)");
-        console.log("[DI]    - Appointment, ReadModel, Queue, ProviderSchedule, Waitlist");
+        console.log("[DI] ✅ Repositories initialized (7 total, Waitlist archived)");
+        console.log("[DI]    - Appointment, ReadModel, Queue, ProviderSchedule, Reminder");
         console.log("[DI]    - PatientReadModel, ProviderReadModel, Inbox (Pure Outbox)");
     }
     /**
@@ -228,12 +236,20 @@ class DIContainer {
         // Create scheduler adapter wrapper for ReminderService
         const schedulerWrapper = new SchedulerAdapterWrapper_1.SchedulerAdapterWrapper(this.schedulerAdapter, this.config.tenantId || "default");
         this.reminderService = new ReminderService_1.ReminderService(schedulerWrapper);
+        // Billing Service Client (for payment link creation)
+        this.billingServiceClient = new BillingServiceClient_1.BillingServiceClient({
+            baseUrl: this.config.services.billingServiceUrl,
+            timeout: 5000,
+            retryAttempts: 3,
+            retryDelay: 1000,
+        });
         // Rescheduling Service
         this.reschedulingService = new ReschedulingService_1.ReschedulingService(this.reschedulingQueueRepository, this.appointmentRepository, this.reminderService);
         console.log("[DI] ✅ Services initialized (Pure Outbox Pattern)");
         console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ⚡");
         console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ⚡");
         console.log(`[DI]    - Scheduler Service: ${this.config.services.schedulerServiceUrl}`);
+        console.log(`[DI]    - Billing Service: ${this.config.services.billingServiceUrl} 💳`);
         console.log("[DI]    - Authorization Service: RBAC enabled 🔐");
         console.log("[DI]    - Reminder Service: Scheduler integration enabled 🔔");
         console.log("[DI]    - Performance: <10ms queries vs 150ms HTTP (15x faster)");
@@ -243,8 +259,8 @@ class DIContainer {
      * Initialize use cases
      */
     initializeUseCases() {
-        // With Authorization & Reminders
-        this.scheduleAppointmentUseCase = new ScheduleAppointment_use_case_1.ScheduleAppointmentUseCase(this.appointmentRepository, this.conflictResolutionService, this.authorizationService, this.reminderService);
+        // With Authorization & Reminders & Billing Service Client
+        this.scheduleAppointmentUseCase = new ScheduleAppointment_use_case_1.ScheduleAppointmentUseCase(this.appointmentRepository, this.conflictResolutionService, this.authorizationService, this.reminderService, this.billingServiceClient);
         this.cancelAppointmentUseCase = new CancelAppointment_use_case_1.CancelAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.reminderService);
         this.confirmAppointmentUseCase = new ConfirmAppointment_use_case_1.ConfirmAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         this.completeAppointmentUseCase = new CompleteAppointment_use_case_1.CompleteAppointmentUseCase(this.appointmentRepository, this.authorizationService);
@@ -265,9 +281,12 @@ class DIContainer {
             new ManageAppointmentReminders_use_case_1.ManageAppointmentRemindersUseCase(this.appointmentRepository, this.reminderService, this.authorizationService);
         this.createRecurringSeriesUseCase =
             new CreateRecurringAppointmentSeries_use_case_1.CreateRecurringAppointmentSeriesUseCase(this.scheduleAppointmentUseCase);
-        // Phase 3: Nice-to-Have Use Cases
-        this.bulkRescheduleAppointmentsUseCase =
-            new BulkRescheduleAppointments_use_case_1.BulkRescheduleAppointmentsUseCase(this.appointmentRepository, this.authorizationService);
+        // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
+        // this.bulkRescheduleAppointmentsUseCase =
+        //   new BulkRescheduleAppointmentsUseCase(
+        //     this.appointmentRepository,
+        //     this.authorizationService,
+        //   );
         this.appointmentHistoryUseCase = new GetAppointmentHistory_use_case_1.GetAppointmentHistoryUseCase(this.appointmentRepository, this.authorizationService);
         this.appointmentStatisticsUseCase = new GetAppointmentStatistics_use_case_1.GetAppointmentStatisticsUseCase(this.appointmentRepository, this.queueRepository, this.authorizationService);
         this.createEmergencyAppointmentUseCase =
@@ -275,13 +294,23 @@ class DIContainer {
         this.transferAppointmentUseCase = new TransferAppointment_use_case_1.TransferAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         // Availability Use Case
         this.findAvailableTimeSlotsUseCase = new FindAvailableTimeSlotsUseCase_1.FindAvailableTimeSlotsUseCase(this.providerScheduleRepository, this.appointmentRepository);
-        // Waitlist Use Cases
-        this.addToWaitlistUseCase = new AddToWaitlistUseCase_1.AddToWaitlistUseCase(this.waitlistRepository);
-        this.getWaitlistUseCase = new GetWaitlistUseCase_1.GetWaitlistUseCase(this.waitlistRepository);
-        this.updateWaitlistEntryUseCase = new UpdateWaitlistEntryUseCase_1.UpdateWaitlistEntryUseCase(this.waitlistRepository);
-        this.removeFromWaitlistUseCase = new RemoveFromWaitlistUseCase_1.RemoveFromWaitlistUseCase(this.waitlistRepository);
-        this.convertWaitlistToAppointmentUseCase =
-            new ConvertWaitlistToAppointmentUseCase_1.ConvertWaitlistToAppointmentUseCase(this.waitlistRepository);
+        // ===== ARCHIVED FOR POST-MVP: Waitlist Use Cases =====
+        // this.addToWaitlistUseCase = new AddToWaitlistUseCase(
+        //   this.waitlistRepository,
+        // );
+        //
+        // this.getWaitlistUseCase = new GetWaitlistUseCase(this.waitlistRepository);
+        //
+        // this.updateWaitlistEntryUseCase = new UpdateWaitlistEntryUseCase(
+        //   this.waitlistRepository,
+        // );
+        //
+        // this.removeFromWaitlistUseCase = new RemoveFromWaitlistUseCase(
+        //   this.waitlistRepository,
+        // );
+        //
+        // this.convertWaitlistToAppointmentUseCase =
+        //   new ConvertWaitlistToAppointmentUseCase(this.waitlistRepository);
         // Reminder Use Cases
         this.createAppointmentReminderUseCase = new CreateAppointmentReminderUseCase_1.CreateAppointmentReminderUseCase(this.reminderRepository, this.appointmentRepository);
         this.getAppointmentRemindersUseCase = new GetAppointmentRemindersUseCase_1.GetAppointmentRemindersUseCase(this.reminderRepository);
@@ -340,21 +369,40 @@ class DIContainer {
             retryAttempts: 3,
             retryDelayMs: 1000
         }, this.appointmentRepository, this.queueRepository, this.conflictResolutionService, this.reminderService, this.inboxRepository);
-        this.clinicalEMREventConsumer = new ClinicalEMREventConsumer_1.ClinicalEMREventConsumer(this.inboxRepository, this.appointmentRepository, this.reminderService, this.conflictResolutionService, this.queueRepository);
+        // CLINICAL EMR EVENT CONSUMER REMOVED FOR MVP - Focus on Appointments only
+        /*
+        this.clinicalEMREventConsumer = new ClinicalEMREventConsumer(
+          this.inboxRepository,
+          this.appointmentRepository,
+          this.reminderService,
+          this.conflictResolutionService,
+          this.queueRepository,
+        );
+        */
+        // ===== ENABLED: BillingEventConsumer for Prepaid Billing Flow =====
+        // Initialize PaymentCompletedHandler
+        this.paymentCompletedHandler = new PaymentCompletedHandler_1.PaymentCompletedHandler(this.appointmentRepository);
+        // Initialize BillingEventConsumer with payment event support
         this.billingEventConsumer = new BillingEventConsumer_1.BillingEventConsumer({
             rabbitmqUrl: this.config.rabbitmq.url,
             queueName: 'appointments-service.billing-events',
             exchangeName: this.config.rabbitmq.exchange,
-            routingKey: 'billing.*'
-        }, this.appointmentRepository, this.queueRepository, this.reminderService, this.conflictResolutionService, this.inboxRepository);
-        console.log("[DI] ✅ Event handlers initialized (7 total)");
+            routingKey: 'billing.*',
+            routingKeys: [
+                'billing.payment.completed', // Prepaid flow: auto-confirm after payment
+                'billing.pre-authorization.*',
+                'billing.rate.updated',
+                'billing.insurance.verified'
+            ]
+        }, this.appointmentRepository, this.queueRepository, this.reminderService, this.conflictResolutionService, this.inboxRepository, this.paymentCompletedHandler);
+        console.log("[DI] ✅ Event handlers initialized (5 total - Prepaid Billing Enabled)");
         console.log("[DI]    - AppointmentReadModelEventHandler");
         console.log("[DI]    - PatientEventConsumer (Pure Outbox)");
         console.log("[DI]    - ProviderEventConsumer (Pure Outbox)");
         console.log("[DI]    - StaffEventConsumer (RabbitMQ)");
         console.log("[DI]    - DepartmentEventConsumer (RabbitMQ)");
-        console.log("[DI]    - ClinicalEMREventConsumer (RabbitMQ)");
-        console.log("[DI]    - BillingEventConsumer (RabbitMQ)");
+        console.log("[DI]    - BillingEventConsumer (RabbitMQ) ✅ ENABLED for Prepaid Flow");
+        console.log("[DI]    ⚠️  ClinicalEMREventConsumer REMOVED FOR MVP");
     }
     /**
      * Initialize event subscriptions
@@ -368,16 +416,25 @@ class DIContainer {
      * Initialize controllers
      */
     initializeControllers() {
-        this.appointmentController = new AppointmentController_1.AppointmentController(this.scheduleAppointmentUseCase, this.cancelAppointmentUseCase, this.confirmAppointmentUseCase, this.completeAppointmentUseCase, this.getAppointmentUseCase, this.listAppointmentsUseCase, this.rescheduleAppointmentUseCase, this.checkInAppointmentUseCase, this.markAsNoShowUseCase, this.startAppointmentUseCase, this.bulkRescheduleAppointmentsUseCase, this.appointmentHistoryUseCase, this.appointmentStatisticsUseCase, this.createEmergencyAppointmentUseCase, this.transferAppointmentUseCase, this.createRecurringSeriesUseCase);
+        this.appointmentController = new AppointmentController_1.AppointmentController(this.scheduleAppointmentUseCase, this.cancelAppointmentUseCase, this.confirmAppointmentUseCase, this.completeAppointmentUseCase, this.getAppointmentUseCase, this.listAppointmentsUseCase, this.rescheduleAppointmentUseCase, this.checkInAppointmentUseCase, this.markAsNoShowUseCase, this.startAppointmentUseCase, 
+        // this.bulkRescheduleAppointmentsUseCase, // ARCHIVED FOR POST-MVP
+        this.appointmentHistoryUseCase, this.appointmentStatisticsUseCase, this.createEmergencyAppointmentUseCase, this.transferAppointmentUseCase, this.createRecurringSeriesUseCase);
         this.appointmentQueryController = new AppointmentQueryController_1.AppointmentQueryController(this.getAppointmentDetailsQuery, this.listAppointmentsQuery);
         this.availabilityController = new AvailabilityController_1.AvailabilityController(this.findAvailableTimeSlotsUseCase, this.providerScheduleRepository);
-        this.waitlistController = new WaitlistController_1.WaitlistController(this.addToWaitlistUseCase, this.getWaitlistUseCase, this.updateWaitlistEntryUseCase, this.removeFromWaitlistUseCase, this.convertWaitlistToAppointmentUseCase);
+        // ===== ARCHIVED FOR POST-MVP: Waitlist Controller =====
+        // this.waitlistController = new WaitlistController(
+        //   this.addToWaitlistUseCase,
+        //   this.getWaitlistUseCase,
+        //   this.updateWaitlistEntryUseCase,
+        //   this.removeFromWaitlistUseCase,
+        //   this.convertWaitlistToAppointmentUseCase,
+        // );
         // Rescheduling Queue Controller
         this.reschedulingQueueController = new ReschedulingQueueController_1.ReschedulingQueueController({
             reschedulingService: this.reschedulingService,
             reschedulingQueueRepository: this.reschedulingQueueRepository,
         });
-        console.log("[DI] ✅ Controllers initialized (5 total)");
+        console.log("[DI] ✅ Controllers initialized (4 total, Waitlist archived)");
     }
     /**
      * Get appointment controller
@@ -391,12 +448,13 @@ class DIContainer {
     getAppointmentQueryController() {
         return this.appointmentQueryController;
     }
-    /**
-     * Get waitlist controller
-     */
-    getWaitlistController() {
-        return this.waitlistController;
-    }
+    // ===== ARCHIVED FOR POST-MVP: Waitlist Controller Getter =====
+    // /**
+    //  * Get waitlist controller
+    //  */
+    // public getWaitlistController(): WaitlistController {
+    //   return this.waitlistController;
+    // }
     /**
      * Get appointment read model event handler
      */
@@ -511,12 +569,13 @@ class DIContainer {
     getQueueRepository() {
         return this.queueRepository;
     }
-    /**
-     * Get bulk reschedule appointments use case
-     */
-    getBulkRescheduleAppointmentsUseCase() {
-        return this.bulkRescheduleAppointmentsUseCase;
-    }
+    // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case Getter =====
+    // /**
+    //  * Get bulk reschedule appointments use case
+    //  */
+    // public getBulkRescheduleAppointmentsUseCase(): BulkRescheduleAppointmentsUseCase {
+    //   return this.bulkRescheduleAppointmentsUseCase;
+    // }
     /**
      * Get appointment history use case
      */
@@ -588,12 +647,16 @@ class DIContainer {
     }
     /**
      * Get clinical EMR event consumer
+     * REMOVED FOR MVP - Focus on Appointments only
      */
-    getClinicalEMREventConsumer() {
-        return this.clinicalEMREventConsumer;
+    /*
+    public getClinicalEMREventConsumer(): ClinicalEMREventConsumer {
+      return this.clinicalEMREventConsumer;
     }
+    */
     /**
      * Get billing event consumer
+     * ENABLED for Prepaid Billing Flow
      */
     getBillingEventConsumer() {
         return this.billingEventConsumer;

@@ -99,13 +99,14 @@ export function createAppointmentRoutes(): Router {
   );
 
   // Phase 3: Nice-to-Have Features
-  router.post(
-    '/appointments/bulk-reschedule',
-    authenticate,
-    requireRole(['ADMIN', 'DOCTOR']),
-    idempotencyMiddleware,
-    (req, res) => controller.bulkRescheduleAppointments(req, res)
-  );
+  // ===== ARCHIVED FOR POST-MVP: BulkReschedule Route =====
+  // router.post(
+  //   '/appointments/bulk-reschedule',
+  //   authenticate,
+  //   requireRole(['ADMIN', 'DOCTOR']),
+  //   idempotencyMiddleware,
+  //   (req, res) => controller.bulkRescheduleAppointments(req, res)
+  // );
 
   router.get(
     '/appointments/history',

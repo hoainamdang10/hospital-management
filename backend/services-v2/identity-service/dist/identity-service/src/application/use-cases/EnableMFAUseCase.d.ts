@@ -36,8 +36,8 @@ export declare class EnableMFAUseCase implements IUseCase<EnableMFARequest, Enab
     private mfaService;
     private logger;
     private circuitBreaker;
-    private eventPublisher?;
-    constructor(userRepository: IUserRepository, mfaService: IMFAService, logger: ILogger, circuitBreaker: ICircuitBreaker, eventPublisher?: IEventPublisher | undefined);
+    private _eventPublisher?;
+    constructor(userRepository: IUserRepository, mfaService: IMFAService, logger: ILogger, circuitBreaker: ICircuitBreaker, _eventPublisher?: IEventPublisher | undefined);
     execute(request: EnableMFARequest): Promise<EnableMFAResponse>;
     private executeImpl;
     /**

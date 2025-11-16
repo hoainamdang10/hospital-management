@@ -335,18 +335,13 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
       errors.push("ID người dùng không được để trống");
     }
 
-    // Staff type validation
+    // Staff type validation (scope reduced to 2 types)
     const validStaffTypes: StaffType[] = [
       "doctor",
-      "nurse",
-      "technician",
-      "pharmacist",
-      "therapist",
-      "admin",
       "receptionist",
     ];
     if (!validStaffTypes.includes(request.staffType)) {
-      errors.push("Loại nhân viên không hợp lệ");
+      errors.push("Loại nhân viên không hợp lệ. Chỉ hỗ trợ: doctor, receptionist");
     }
 
     // Personal info validation

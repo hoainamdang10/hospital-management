@@ -6,13 +6,21 @@
  * @author Hospital Management Team
  * @version 1.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
+ *
+ * TODO: Fix imports and implement findByScheduledTimeRange in repository
+ * Currently disabled for MVP build
  */
 
 import * as cron from 'node-cron';
 import { ILogger } from '@shared/application/services/logger.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { IEventPublisher } from '@shared/application/services/IEventPublisher';
+// import { IEventPublisher } from '@shared/application/services/IEventPublisher'; // TODO: Fix import path
 import { AppointmentReminderScheduledEvent } from '../../domain/events/AppointmentReminderScheduledEvent';
+
+// Temporary stub interface until proper implementation
+interface IEventPublisher {
+  publish(event: any): Promise<void>;
+}
 
 /**
  * Reminder window configuration
@@ -131,10 +139,12 @@ export class ReminderScheduler {
       const windowStart = new Date(reminderTime.getTime() - 5 * 60 * 1000);
       const windowEnd = new Date(reminderTime.getTime() + 5 * 60 * 1000);
 
-      const appointments = await this.appointmentRepository.findByScheduledTimeRange(
-        windowStart,
-        windowEnd
-      );
+      // TODO: Implement findByScheduledTimeRange in repository
+      // const appointments = await this.appointmentRepository.findByScheduledTimeRange(
+      //   windowStart,
+      //   windowEnd
+      // );
+      const appointments: any[] = []; // Temporary stub
 
       if (appointments.length === 0) {
         return;

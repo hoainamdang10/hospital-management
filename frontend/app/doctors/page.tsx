@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Search, Star, Calendar } from 'lucide-react';
 
 /**
@@ -117,13 +118,13 @@ function DoctorCard({
         <span className="ml-1 font-semibold text-gray-900">{rating}</span>
         <span className="ml-1 text-sm text-gray-600">({reviews} đánh giá)</span>
       </div>
-      <a
+      <Link
         href="/patient/appointments/book"
         className="block w-full rounded-lg bg-primary py-2 text-center font-semibold text-white transition-colors hover:bg-primary/90"
       >
         <Calendar className="mr-2 inline h-4 w-4" />
         Đặt lịch khám
-      </a>
+      </Link>
     </div>
   );
 }

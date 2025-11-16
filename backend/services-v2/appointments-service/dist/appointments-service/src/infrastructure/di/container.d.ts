@@ -20,7 +20,6 @@ import { PatientEventConsumer } from "../events/PatientEventConsumer";
 import { ProviderEventConsumer } from "../events/ProviderEventConsumer";
 import { StaffEventConsumer } from "../events/StaffEventConsumer";
 import { DepartmentEventConsumer } from "../events/DepartmentEventConsumer";
-import { ClinicalEMREventConsumer } from "../events/ClinicalEMREventConsumer";
 import { BillingEventConsumer } from "../events/BillingEventConsumer";
 import { RescheduleAppointmentUseCase } from "../../application/use-cases/RescheduleAppointment.use-case";
 import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
@@ -32,7 +31,6 @@ import { LeaveQueueUseCase } from "../../application/use-cases/LeaveQueue.use-ca
 import { GetQueueStatusUseCase } from "../../application/use-cases/GetQueueStatus.use-case";
 import { ValidateCancellationPolicyUseCase } from "../../application/use-cases/ValidateCancellationPolicy.use-case";
 import { CreateRecurringAppointmentSeriesUseCase } from "../../application/use-cases/CreateRecurringAppointmentSeries.use-case";
-import { BulkRescheduleAppointmentsUseCase } from "../../application/use-cases/BulkRescheduleAppointments.use-case";
 import { GetAppointmentHistoryUseCase } from "../../application/use-cases/GetAppointmentHistory.use-case";
 import { GetAppointmentStatisticsUseCase } from "../../application/use-cases/GetAppointmentStatistics.use-case";
 import { CreateEmergencyAppointmentUseCase } from "../../application/use-cases/CreateEmergencyAppointment.use-case";
@@ -43,7 +41,6 @@ import { EventSubscriptions } from "../events/EventSubscriptions";
 import { AppointmentController } from "../../presentation/controllers/AppointmentController";
 import { AppointmentQueryController } from "../../presentation/controllers/AppointmentQueryController";
 import { AvailabilityController } from "../../presentation/controllers/AvailabilityController";
-import { WaitlistController } from "../../presentation/controllers/WaitlistController";
 import { AppConfig } from "../config/ConfigValidator";
 import { HealthCheckService } from "../health/HealthCheckService";
 import { MetricsService } from "../metrics/MetricsService";
@@ -56,7 +53,6 @@ export declare class DIContainer {
     private appointmentReadModelRepository;
     private queueRepository;
     private providerScheduleRepository;
-    private waitlistRepository;
     private reminderRepository;
     private reschedulingQueueRepository;
     private patientReadModelRepository;
@@ -69,6 +65,7 @@ export declare class DIContainer {
     private authorizationService;
     private reminderService;
     private reschedulingService;
+    private billingServiceClient;
     private reminderController;
     private createAppointmentReminderUseCase;
     private getAppointmentRemindersUseCase;
@@ -96,17 +93,11 @@ export declare class DIContainer {
     private queueStatusUseCase;
     private validateCancellationPolicyUseCase;
     private createRecurringSeriesUseCase;
-    private bulkRescheduleAppointmentsUseCase;
     private appointmentHistoryUseCase;
     private appointmentStatisticsUseCase;
     private createEmergencyAppointmentUseCase;
     private transferAppointmentUseCase;
     private findAvailableTimeSlotsUseCase;
-    private addToWaitlistUseCase;
-    private getWaitlistUseCase;
-    private updateWaitlistEntryUseCase;
-    private removeFromWaitlistUseCase;
-    private convertWaitlistToAppointmentUseCase;
     private getAppointmentDetailsQuery;
     private listAppointmentsQuery;
     private appointmentReadModelEventHandler;
@@ -115,12 +106,11 @@ export declare class DIContainer {
     private providerEventConsumer;
     private staffEventConsumer;
     private departmentEventConsumer;
-    private clinicalEMREventConsumer;
     private billingEventConsumer;
+    private paymentCompletedHandler;
     private appointmentController;
     private appointmentQueryController;
     private availabilityController;
-    private waitlistController;
     private reschedulingQueueController;
     constructor();
     /**
@@ -180,10 +170,6 @@ export declare class DIContainer {
      * Get appointment query controller
      */
     getAppointmentQueryController(): AppointmentQueryController;
-    /**
-     * Get waitlist controller
-     */
-    getWaitlistController(): WaitlistController;
     /**
      * Get appointment read model event handler
      */
@@ -261,10 +247,6 @@ export declare class DIContainer {
      */
     getQueueRepository(): IQueueRepository;
     /**
-     * Get bulk reschedule appointments use case
-     */
-    getBulkRescheduleAppointmentsUseCase(): BulkRescheduleAppointmentsUseCase;
-    /**
      * Get appointment history use case
      */
     getAppointmentHistoryUseCase(): GetAppointmentHistoryUseCase;
@@ -311,10 +293,11 @@ export declare class DIContainer {
     getDepartmentEventConsumer(): DepartmentEventConsumer;
     /**
      * Get clinical EMR event consumer
+     * REMOVED FOR MVP - Focus on Appointments only
      */
-    getClinicalEMREventConsumer(): ClinicalEMREventConsumer;
     /**
      * Get billing event consumer
+     * ENABLED for Prepaid Billing Flow
      */
     getBillingEventConsumer(): BillingEventConsumer;
     /**

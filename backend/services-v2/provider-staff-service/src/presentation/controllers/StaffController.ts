@@ -239,11 +239,6 @@ export class StaffController {
         const normalized = value.toLowerCase() as StaffType;
         const allowed: StaffType[] = [
           "doctor",
-          "nurse",
-          "technician",
-          "pharmacist",
-          "therapist",
-          "admin",
           "receptionist",
         ];
         return allowed.includes(normalized) ? normalized : undefined;
@@ -353,11 +348,6 @@ export class StaffController {
         const normalized = value.toLowerCase() as StaffType;
         const allowed: StaffType[] = [
           "doctor",
-          "nurse",
-          "technician",
-          "pharmacist",
-          "therapist",
-          "admin",
           "receptionist",
         ];
         return allowed.includes(normalized) ? normalized : undefined;

@@ -30,19 +30,22 @@ import { GetNotificationPreferencesUseCase } from "../../application/use-cases/G
 // import { ProcessNotificationQueueUseCase } from "../../application/use-cases/ProcessNotificationQueueUseCase";
 // import { NotificationCommandHandlers } from "../../application/handlers/NotificationCommandHandlers";
 // import { NotificationQueryHandlers } from "../../application/handlers/NotificationQueryHandlers";
-import { GetTemplatesUseCase } from "../../application/use-cases/GetTemplatesUseCase";
-import { CreateTemplateUseCase } from "../../application/use-cases/CreateTemplateUseCase";
-import { UpdateTemplateUseCase } from "../../application/use-cases/UpdateTemplateUseCase";
-import { DeleteTemplateUseCase } from "../../application/use-cases/DeleteTemplateUseCase";
+// ARCHIVED - Template management out of MVP scope
+// import { GetTemplatesUseCase } from "../../application/use-cases/GetTemplatesUseCase";
+// import { CreateTemplateUseCase } from "../../application/use-cases/CreateTemplateUseCase";
+// import { UpdateTemplateUseCase } from "../../application/use-cases/UpdateTemplateUseCase";
+// import { DeleteTemplateUseCase } from "../../application/use-cases/DeleteTemplateUseCase";
 import { MarkNotificationAsReadUseCase } from "../../application/use-cases/MarkNotificationAsReadUseCase";
 import { GetUserNotificationsUseCase } from "../../application/use-cases/GetUserNotificationsUseCase";
 import { UpdateNotificationPreferencesUseCase } from "../../application/use-cases/UpdateNotificationPreferencesUseCase";
+import { CreateAppointmentRemindersUseCase } from "../../application/use-cases/CreateAppointmentRemindersUseCase";
 
 // Infrastructure Layer
 import { SupabaseNotificationRepository } from "../persistence/SupabaseNotificationRepository";
 import { SupabaseInboxRepository } from "../persistence/SupabaseInboxRepository";
 import { SupabaseTemplateRepository } from "../persistence/SupabaseTemplateRepository";
 import { SupabasePreferencesRepository } from "../persistence/SupabasePreferencesRepository";
+import { SupabaseAppointmentReminderRepository } from "../persistence/SupabaseAppointmentReminderRepository";
 import { MultiChannelDeliveryService } from "../delivery/MultiChannelDeliveryService";
 import { VietnameseTemplateService } from "../templates/VietnameseTemplateService";
 // import { RealTimeNotificationService } from "../realtime/RealTimeNotificationService";
@@ -51,7 +54,8 @@ import { NotificationEventHandlers } from "../events/NotificationEventHandlers";
 import { AppointmentEventConsumer } from "../events/AppointmentEventConsumer";
 import { StaffEventConsumer } from "../events/StaffEventConsumer";
 import { BillingEventConsumer } from "../events/BillingEventConsumer";
-import { ClinicalEMREventConsumer } from "../events/ClinicalEMREventConsumer";
+// import { ClinicalEMREventConsumer } from "../events/ClinicalEMREventConsumer"; // REMOVED FOR MVP
+import { ReminderCronJob } from "../cron/ReminderCronJob";
 import { NotificationController } from "../../presentation/controllers/NotificationController";
 
 // Service Tokens
@@ -67,6 +71,7 @@ export const ServiceTokens = {
   INBOX_REPOSITORY: "InboxRepository",
   TEMPLATE_REPOSITORY: "TemplateRepository",
   PREFERENCES_REPOSITORY: "PreferencesRepository",
+  APPOINTMENT_REMINDER_REPOSITORY: "AppointmentReminderRepository",
 
   // External Services
   DELIVERY_SERVICE: "DeliveryService",
@@ -78,13 +83,15 @@ export const ServiceTokens = {
   GET_NOTIFICATION_USE_CASE: "GetNotificationUseCase",
   GET_NOTIFICATION_PREFERENCES_USE_CASE: "GetNotificationPreferencesUseCase",
   PROCESS_NOTIFICATION_QUEUE_USE_CASE: "ProcessNotificationQueueUseCase",
-  GET_TEMPLATES_USE_CASE: "GetTemplatesUseCase",
-  CREATE_TEMPLATE_USE_CASE: "CreateTemplateUseCase",
-  UPDATE_TEMPLATE_USE_CASE: "UpdateTemplateUseCase",
-  DELETE_TEMPLATE_USE_CASE: "DeleteTemplateUseCase",
+  // ARCHIVED for MVP
+  // GET_TEMPLATES_USE_CASE: "GetTemplatesUseCase",
+  // CREATE_TEMPLATE_USE_CASE: "CreateTemplateUseCase",
+  // UPDATE_TEMPLATE_USE_CASE: "UpdateTemplateUseCase",
+  // DELETE_TEMPLATE_USE_CASE: "DeleteTemplateUseCase",
   MARK_AS_READ_USE_CASE: "MarkNotificationAsReadUseCase",
   GET_USER_NOTIFICATIONS_USE_CASE: "GetUserNotificationsUseCase",
   UPDATE_PREFERENCES_USE_CASE: "UpdateNotificationPreferencesUseCase",
+  CREATE_APPOINTMENT_REMINDERS_USE_CASE: "CreateAppointmentRemindersUseCase",
 
   // Handlers
   NOTIFICATION_COMMAND_HANDLERS: "NotificationCommandHandlers",
@@ -97,7 +104,10 @@ export const ServiceTokens = {
   APPOINTMENT_EVENT_CONSUMER: "AppointmentEventConsumer",
   STAFF_EVENT_CONSUMER: "StaffEventConsumer",
   BILLING_EVENT_CONSUMER: "BillingEventConsumer",
-  CLINICAL_EMR_EVENT_CONSUMER: "ClinicalEMREventConsumer",
+  // CLINICAL_EMR_EVENT_CONSUMER: "ClinicalEMREventConsumer", // REMOVED FOR MVP
+
+  // Cron Jobs
+  REMINDER_CRON_JOB: "ReminderCronJob",
 
   // Application Services
   NOTIFICATION_APPLICATION_SERVICE: "NotificationApplicationService",
@@ -194,6 +204,15 @@ export function setupDependencies(container: DIContainer): void {
     (container) => {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
       return new SupabasePreferencesRepository(supabaseClient);
+    },
+    ServiceLifetime.SCOPED
+  );
+
+  container.registerFactory(
+    ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY,
+    (container) => {
+      const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
+      return new SupabaseAppointmentReminderRepository(supabaseClient);
     },
     ServiceLifetime.SCOPED
   );
@@ -343,42 +362,42 @@ export function setupDependencies(container: DIContainer): void {
   //   ServiceLifetime.SCOPED
   // );
 
-  // Register template management use cases
-  container.registerFactory(
-    ServiceTokens.GET_TEMPLATES_USE_CASE,
-    (container) => {
-      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
-      return new GetTemplatesUseCase(templateService);
-    },
-    ServiceLifetime.SCOPED
-  );
+  // ARCHIVED - Template management use cases out of MVP scope
+  // container.registerFactory(
+  //   ServiceTokens.GET_TEMPLATES_USE_CASE,
+  //   (container) => {
+  //     const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+  //     return new GetTemplatesUseCase(templateService);
+  //   },
+  //   ServiceLifetime.SCOPED
+  // );
 
-  container.registerFactory(
-    ServiceTokens.CREATE_TEMPLATE_USE_CASE,
-    (container) => {
-      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
-      return new CreateTemplateUseCase(templateService);
-    },
-    ServiceLifetime.SCOPED
-  );
+  // container.registerFactory(
+  //   ServiceTokens.CREATE_TEMPLATE_USE_CASE,
+  //   (container) => {
+  //     const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+  //     return new CreateTemplateUseCase(templateService);
+  //   },
+  //   ServiceLifetime.SCOPED
+  // );
 
-  container.registerFactory(
-    ServiceTokens.UPDATE_TEMPLATE_USE_CASE,
-    (container) => {
-      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
-      return new UpdateTemplateUseCase(templateService);
-    },
-    ServiceLifetime.SCOPED
-  );
+  // container.registerFactory(
+  //   ServiceTokens.UPDATE_TEMPLATE_USE_CASE,
+  //   (container) => {
+  //     const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+  //     return new UpdateTemplateUseCase(templateService);
+  //   },
+  //   ServiceLifetime.SCOPED
+  // );
 
-  container.registerFactory(
-    ServiceTokens.DELETE_TEMPLATE_USE_CASE,
-    (container) => {
-      const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
-      return new DeleteTemplateUseCase(templateService);
-    },
-    ServiceLifetime.SCOPED
-  );
+  // container.registerFactory(
+  //   ServiceTokens.DELETE_TEMPLATE_USE_CASE,
+  //   (container) => {
+  //     const templateService = container.resolve(ServiceTokens.TEMPLATE_SERVICE);
+  //     return new DeleteTemplateUseCase(templateService);
+  //   },
+  //   ServiceLifetime.SCOPED
+  // );
 
   // Register application services
   container.registerFactory(
@@ -416,15 +435,17 @@ export function setupDependencies(container: DIContainer): void {
     (container) => {
       const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
       const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
+      const createAppointmentRemindersUseCase = container.resolve(ServiceTokens.CREATE_APPOINTMENT_REMINDERS_USE_CASE);
+      const appointmentReminderRepo = container.resolve(ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
       const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
-      
+
       const config = {
         rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
         queueName: process.env.APPOINTMENT_EVENT_QUEUE || 'notifications.appointment.events',
         exchangeName: process.env.APPOINTMENT_EVENT_EXCHANGE || 'appointments.events',
         routingKeys: [
           'appointment.scheduled',
-          'appointment.confirmed', 
+          'appointment.confirmed',
           'appointment.cancelled',
           'appointment.completed',
           'appointment.rescheduled',
@@ -440,6 +461,8 @@ export function setupDependencies(container: DIContainer): void {
         config,
         sendNotificationUseCase,
         getNotificationPreferencesUseCase,
+        createAppointmentRemindersUseCase,
+        appointmentReminderRepo,
         inboxRepo
       );
     },
@@ -514,13 +537,15 @@ export function setupDependencies(container: DIContainer): void {
     ServiceLifetime.SINGLETON
   );
 
+  // CLINICAL EMR EVENT CONSUMER REMOVED FOR MVP - Focus on Appointments only
+  /*
   container.registerFactory(
     ServiceTokens.CLINICAL_EMR_EVENT_CONSUMER,
     (container) => {
       const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
       const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
       const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
-      
+
       const config = {
         rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
         queueName: process.env.CLINICAL_EVENT_QUEUE || 'notifications.clinical.events',
@@ -546,6 +571,7 @@ export function setupDependencies(container: DIContainer): void {
     },
     ServiceLifetime.SINGLETON
   );
+  */
 
   // Register new use cases
   container.registerFactory(
@@ -573,6 +599,33 @@ export function setupDependencies(container: DIContainer): void {
       return new UpdateNotificationPreferencesUseCase(preferencesRepository);
     },
     ServiceLifetime.TRANSIENT
+  );
+
+  container.registerFactory(
+    ServiceTokens.CREATE_APPOINTMENT_REMINDERS_USE_CASE,
+    (container) => {
+      const reminderRepo = container.resolve(ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
+      return new CreateAppointmentRemindersUseCase(reminderRepo);
+    },
+    ServiceLifetime.TRANSIENT
+  );
+
+  // Register Cron Jobs
+  container.registerFactory(
+    ServiceTokens.REMINDER_CRON_JOB,
+    (container) => {
+      const reminderRepo = container.resolve(ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
+      const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
+
+      const config = {
+        cronExpression: process.env.REMINDER_CRON_EXPRESSION || '*/5 * * * *', // Every 5 minutes
+        batchSize: parseInt(process.env.REMINDER_BATCH_SIZE || '50'),
+        enabled: process.env.REMINDER_CRON_ENABLED !== 'false' // Enabled by default
+      };
+
+      return new ReminderCronJob(config, reminderRepo, sendNotificationUseCase);
+    },
+    ServiceLifetime.SINGLETON
   );
 
   // Register Controllers

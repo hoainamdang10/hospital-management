@@ -13,10 +13,8 @@ export { Invoice } from './aggregates/Invoice';
 
 // Events
 export { InvoiceCreatedEvent } from './events/InvoiceCreatedEvent';
-export { InvoiceFinalizedEvent } from './events/InvoiceFinalizedEvent';
-export { InvoiceCancelledEvent } from './events/InvoiceCancelledEvent';
 export { PaymentProcessedEvent } from './events/PaymentProcessedEvent';
-export { InsuranceClaimProcessedEvent } from './events/InsuranceClaimProcessedEvent';
+// REMOVED: InvoiceFinalizedEvent, InvoiceCancelledEvent, InsuranceClaimProcessedEvent - Out of scope for Phase 1
 
 // Repositories
 export type { IInvoiceRepository } from './repositories/IInvoiceRepository';

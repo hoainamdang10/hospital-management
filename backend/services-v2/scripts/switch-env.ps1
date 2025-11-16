@@ -33,10 +33,10 @@ $services = @(
     "patient-registry-service",
     "provider-staff-service",
     "appointments-service",
-    "clinical-emr-service",
+    # "clinical-emr-service",  # REMOVED FOR MVP - Focus on Appointments only
     "billing-service",
     "notifications-service",
-    "scheduler-service",
+    # "scheduler-service",  # REMOVED - Functionality moved to cron jobs
     "department-service",
     "api-gateway"
 )

@@ -144,7 +144,7 @@ export default function BookAppointmentPage() {
     try {
       setSubmitting(true);
       
-      await appointmentsService.schedule({
+      const response = await appointmentsService.schedule({
         patientId: user.id,
         doctorId: selectedDoctor.staffId,
         appointmentDate: format(selectedDate, 'yyyy-MM-dd'),
@@ -154,7 +154,25 @@ export default function BookAppointmentPage() {
       });
 
       toast.success('Đặt lịch thành công!');
-      router.push('/patient/appointments');
+      
+      // Redirect to payment pending page with payment link info
+      const params = new URLSearchParams({
+        appointmentId: response.appointmentId,
+      });
+      
+      if (response.paymentLink) {
+        params.append('paymentLink', response.paymentLink);
+      }
+      
+      if (response.invoiceId) {
+        params.append('invoiceId', response.invoiceId);
+      }
+      
+      if (response.appointment?.paymentDeadline) {
+        params.append('paymentDeadline', response.appointment.paymentDeadline);
+      }
+      
+      router.push(`/patient/appointments/payment-pending?${params.toString()}`);
     } catch (error) {
       console.error('Error booking appointment:', error);
       toast.error('Đặt lịch thất bại. Vui lòng thử lại.');

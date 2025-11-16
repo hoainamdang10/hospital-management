@@ -9,6 +9,7 @@
  */
 
 import { ConsumeMessage } from 'amqplib';
+import * as amqp from 'amqplib';
 import { ILogger } from '../../application/interfaces/ILogger';
 import { GetStaffProfileUseCase } from "../../application/use-cases/GetStaffProfileUseCase";
 import { SetDepartmentHeadUseCase } from "../../application/use-cases/SetDepartmentHeadUseCase";
@@ -114,7 +115,6 @@ export class EnhancedDepartmentEventConsumer {
         queueName: this.config.queueName,
       });
 
-      const amqp = require('amqplib');
       this.connection = await amqp.connect(this.config.rabbitmqUrl);
       this.channel = await this.connection.createChannel();
 

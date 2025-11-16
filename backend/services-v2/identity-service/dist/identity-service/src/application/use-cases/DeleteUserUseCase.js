@@ -11,7 +11,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeleteUserUseCase = void 0;
 const UserId_1 = require("../../domain/value-objects/UserId");
 const error_helper_1 = require("../../utils/error-helper");
-const UserDeletedEvent_1 = require("../../domain/events/UserDeletedEvent");
 /**
  * Delete User Use Case
  * Handles user deletion with proper authorization and audit logging
@@ -20,12 +19,10 @@ const UserDeletedEvent_1 = require("../../domain/events/UserDeletedEvent");
  * Hard delete: Only for admin with explicit flag
  */
 class DeleteUserUseCase {
-    constructor(userRepository, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
-    ) {
+    constructor(userRepository, logger, circuitBreaker) {
         this.userRepository = userRepository;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
-        this.eventPublisher = eventPublisher;
     }
     async execute(request) {
         try {
@@ -97,8 +94,8 @@ class DeleteUserUseCase {
                     timestamp: new Date().toISOString(),
                     severity: 'CRITICAL'
                 });
-                // Publish UserDeletedEvent
-                await this.publishUserDeletedEvent(userIdVO, requesterId, 'hard', reason || 'No reason provided', user.email.value, user.healthcareRole.type);
+                // User deletion logging moved to internal audit trail
+                // No longer publishing UserDeletedEvent (audit-only event)
                 return {
                     success: true,
                     message: 'Người dùng đã được xóa vĩnh viễn',
@@ -117,8 +114,8 @@ class DeleteUserUseCase {
                     userEmail: user.email.value,
                     timestamp: new Date().toISOString()
                 });
-                // Publish UserDeletedEvent (soft delete)
-                await this.publishUserDeletedEvent(userIdVO, requesterId, 'soft', reason || 'No reason provided', user.email.value, user.healthcareRole.type);
+                // User deletion logging moved to internal audit trail
+                // No longer publishing UserDeletedEvent (audit-only event)
                 return {
                     success: true,
                     message: 'Người dùng đã được vô hiệu hóa',
@@ -138,31 +135,6 @@ class DeleteUserUseCase {
                 error: (0, error_helper_1.getErrorMessage)(error),
                 message: 'Lỗi khi xóa người dùng'
             };
-        }
-    }
-    /**
-     * Publish UserDeletedEvent
-     */
-    async publishUserDeletedEvent(userIdVO, deletedBy, deletionType, reason, userEmail, userRole) {
-        if (!this.eventPublisher) {
-            this.logger.debug('Event publisher not configured, skipping event publication');
-            return;
-        }
-        try {
-            const event = new UserDeletedEvent_1.UserDeletedEvent(userIdVO, deletedBy, deletionType, reason, userEmail, userRole);
-            await this.eventPublisher.publishDomainEvents([event]);
-            this.logger.info('UserDeletedEvent published', {
-                userId: userIdVO.value,
-                deletionType,
-                deletedBy
-            });
-        }
-        catch (error) {
-            this.logger.error('Failed to publish UserDeletedEvent', {
-                userId: userIdVO.value,
-                error: (0, error_helper_1.getErrorMessage)(error)
-            });
-            // Don't fail deletion if event publishing fails
         }
     }
 }

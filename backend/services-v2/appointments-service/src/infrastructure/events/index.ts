@@ -32,8 +32,10 @@ export type {
   DepartmentOperationalHoursChangedEventData
 } from './DepartmentEventConsumer';
 
-export * from './BillingEventConsumer';
-export * from './ClinicalEMREventConsumer';
+// ===== ARCHIVED FOR POST-MVP: Non-operational Event Consumers =====
+// export * from './BillingEventConsumer'; // REMOVED FOR MVP - Billing service incomplete
+// export * from './ClinicalEMREventConsumer'; // REMOVED FOR MVP
+
 export * from './EventBusAdapter';
 export * from './EventHandlers';
 export * from './EventSubscriptions';

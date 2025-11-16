@@ -53,7 +53,7 @@ import { UserCreatedEventHandler } from "../events/UserCreatedEventHandler";
 import { UserDeactivatedEventHandler } from "../events/UserDeactivatedEventHandler";
 import { UserRoleChangedEventHandler } from "../events/UserRoleChangedEventHandler";
 import { IdentityEventConsumer } from "../events/IdentityEventConsumer";
-import { PatientEventConsumer } from "../events/PatientEventConsumer";
+// import { PatientEventConsumer } from "../events/PatientEventConsumer"; // Removed in scope reduction
 import { EnhancedDepartmentEventConsumer } from "../events/EnhancedDepartmentEventConsumer";
 // TODO: Fix and re-enable other event consumers when needed
 import { ReviewEventConsumer } from "../events/ReviewEventConsumer";
@@ -62,8 +62,8 @@ import { ReviewEventConsumer } from "../events/ReviewEventConsumer";
 import { AppointmentScheduledEventHandler } from "../events/AppointmentScheduledEventHandler";
 import { AppointmentCancelledEventHandler } from "../events/AppointmentCancelledEventHandler";
 import { AppointmentCompletedEventHandler } from "../events/AppointmentCompletedEventHandler";
-import { PatientRegisteredEventHandler } from "../events/PatientRegisteredEventHandler";
-import { PatientUpdatedEventHandler } from "../events/PatientUpdatedEventHandler";
+// import { PatientRegisteredEventHandler } from "../events/PatientRegisteredEventHandler"; // Removed in scope reduction
+// import { PatientUpdatedEventHandler } from "../events/PatientUpdatedEventHandler"; // Removed in scope reduction
 import { ReviewEventHandler } from "../events/ReviewEventHandler";
 import { BillingEventHandler } from "../events/BillingEventHandler";
 import { StaffReadModelRepository } from "../repositories/StaffReadModelRepository";
@@ -130,12 +130,12 @@ export const ServiceTokens = {
   APPOINTMENT_SCHEDULED_EVENT_HANDLER: "AppointmentScheduledEventHandler",
   APPOINTMENT_CANCELLED_EVENT_HANDLER: "AppointmentCancelledEventHandler",
   APPOINTMENT_COMPLETED_EVENT_HANDLER: "AppointmentCompletedEventHandler",
-  
-  // Patient Event Handlers
-  PATIENT_REGISTERED_EVENT_HANDLER: "PatientRegisteredEventHandler",
-  PATIENT_UPDATED_EVENT_HANDLER: "PatientUpdatedEventHandler",
-  PATIENT_EVENT_CONSUMER: "PatientEventConsumer",
-  
+
+  // Patient Event Handlers - Removed in scope reduction
+  // PATIENT_REGISTERED_EVENT_HANDLER: "PatientRegisteredEventHandler",
+  // PATIENT_UPDATED_EVENT_HANDLER: "PatientUpdatedEventHandler",
+  // PATIENT_EVENT_CONSUMER: "PatientEventConsumer",
+
   // Review Event Handlers
   REVIEW_EVENT_HANDLER: "ReviewEventHandler",
   
@@ -360,9 +360,10 @@ export function setupDependencies(): DIContainer {
     ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE,
     (container) => {
       const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
       const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new UpdateStaffScheduleUseCase(staffRepository, logger);
+      return new UpdateStaffScheduleUseCase(staffRepository, eventBus, logger);
     },
     ServiceLifetime.TRANSIENT
   );
@@ -775,57 +776,58 @@ export function setupDependencies(): DIContainer {
   );
 
   // Register Patient Service event handlers
-  container.registerFactory(
-    ServiceTokens.PATIENT_REGISTERED_EVENT_HANDLER,
-    (container) => {
-      const logger = container.resolve(ServiceTokens.LOGGER);
+  // Register Patient Event Handlers - Removed in scope reduction
+  // container.registerFactory(
+  //   ServiceTokens.PATIENT_REGISTERED_EVENT_HANDLER,
+  //   (container) => {
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new PatientRegisteredEventHandler(
-        logger
-      );
-    },
-    ServiceLifetime.SINGLETON
-  );
+  //     return new PatientRegisteredEventHandler(
+  //       logger
+  //     );
+  //   },
+  //   ServiceLifetime.SINGLETON
+  // );
 
-  container.registerFactory(
-    ServiceTokens.PATIENT_UPDATED_EVENT_HANDLER,
-    (container) => {
-      const logger = container.resolve(ServiceTokens.LOGGER);
+  // container.registerFactory(
+  //   ServiceTokens.PATIENT_UPDATED_EVENT_HANDLER,
+  //   (container) => {
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new PatientUpdatedEventHandler(
-        logger
-      );
-    },
-    ServiceLifetime.SINGLETON
-  );
+  //     return new PatientUpdatedEventHandler(
+  //       logger
+  //     );
+  //   },
+  //   ServiceLifetime.SINGLETON
+  // );
 
-  // Register Patient Event Consumer
-  container.registerFactory(
-    ServiceTokens.PATIENT_EVENT_CONSUMER,
-    (container) => {
-      const logger = container.resolve(ServiceTokens.LOGGER);
-      const patientRegisteredHandler = container.resolve(ServiceTokens.PATIENT_REGISTERED_EVENT_HANDLER);
-      const patientUpdatedHandler = container.resolve(ServiceTokens.PATIENT_UPDATED_EVENT_HANDLER);
+  // Register Patient Event Consumer - Removed in scope reduction
+  // container.registerFactory(
+  //   ServiceTokens.PATIENT_EVENT_CONSUMER,
+  //   (container) => {
+  //     const logger = container.resolve(ServiceTokens.LOGGER);
+  //     const patientRegisteredHandler = container.resolve(ServiceTokens.PATIENT_REGISTERED_EVENT_HANDLER);
+  //     const patientUpdatedHandler = container.resolve(ServiceTokens.PATIENT_UPDATED_EVENT_HANDLER);
 
-      const config = {
-        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
-        exchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
-        queueName: 'provider-staff-service.patient-events',
-        routingKeys: ['patient.registered', 'patient.updated', 'patient.deactivated'],
-        prefetchCount: 10,
-        retryAttempts: 3,
-        retryDelayMs: 1000
-      };
+  //     const config = {
+  //       rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
+  //       exchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
+  //       queueName: 'provider-staff-service.patient-events',
+  //       routingKeys: ['patient.registered', 'patient.updated', 'patient.deactivated'],
+  //       prefetchCount: 10,
+  //       retryAttempts: 3,
+  //       retryDelayMs: 1000
+  //     };
 
-      return new PatientEventConsumer(
-        config,
-        logger,
-        patientRegisteredHandler,
-        patientUpdatedHandler
-      );
-    },
-    ServiceLifetime.SINGLETON
-  );
+  //     return new PatientEventConsumer(
+  //       config,
+  //       logger,
+  //       patientRegisteredHandler,
+  //       patientUpdatedHandler
+  //     );
+  //   },
+  //   ServiceLifetime.SINGLETON
+  // );
 
   // Register Review Event Handler
   container.registerFactory(

@@ -3,20 +3,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EnableMFAUseCase = void 0;
 const error_helper_1 = require("../../utils/error-helper");
 const UserId_1 = require("../../domain/value-objects/UserId");
-const MFAEnabledEvent_1 = require("../../domain/events/MFAEnabledEvent");
 /**
  * Enable MFA Use Case - Refactored
  * Generates TOTP secret, QR code, and backup codes for user
  * Uses IMFAService interface for infrastructure independence
  */
 class EnableMFAUseCase {
-    constructor(userRepository, mfaService, logger, circuitBreaker, eventPublisher // Optional for backward compatibility
+    constructor(userRepository, mfaService, logger, circuitBreaker, _eventPublisher // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
     ) {
         this.userRepository = userRepository;
         this.mfaService = mfaService;
         this.logger = logger;
         this.circuitBreaker = circuitBreaker;
-        this.eventPublisher = eventPublisher;
+        this._eventPublisher = _eventPublisher;
     }
     async execute(request) {
         return await this.circuitBreaker.execute(async () => this.executeImpl(request), async () => {
@@ -62,24 +61,28 @@ class EnableMFAUseCase {
             // 4. Enable MFA via service
             const result = await this.mfaService.enableMFA(request.userId, request.method, request.phoneNumber, request.email);
             this.logger.info('MFA setup completed successfully', { userId: request.userId });
-            // Publish MFAEnabledEvent
-            if (this.eventPublisher) {
-                try {
-                    const event = new MFAEnabledEvent_1.MFAEnabledEvent(userId, request.method, request.userId, // enabledBy (user enables their own MFA)
-                    user.email.value, user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN');
-                    await this.eventPublisher.publishDomainEvents([event]);
-                    this.logger.info('MFAEnabledEvent published', {
-                        userId: request.userId
-                    });
-                }
-                catch (error) {
-                    this.logger.error('Failed to publish MFAEnabledEvent', {
-                        userId: request.userId,
-                        error: (0, error_helper_1.getErrorMessage)(error)
-                    });
-                    // Don't fail MFA setup if event publishing fails
-                }
-            }
+            // Publish MFAEnabledEvent - Disabled in scope reduction
+            // if (this.eventPublisher) {
+            //   try {
+            //     const event = new MFAEnabledEvent(
+            //       userId,
+            //       request.method,
+            //       request.userId, // enabledBy (user enables their own MFA)
+            //       user.email.value,
+            //       user.roleTypes.length > 0 ? user.roleTypes[0] : 'UNKNOWN'
+            //     );
+            //     await this.eventPublisher.publishDomainEvents([event]);
+            //     this.logger.info('MFAEnabledEvent published', {
+            //       userId: request.userId
+            //     });
+            //   } catch (error) {
+            //     this.logger.error('Failed to publish MFAEnabledEvent', {
+            //       userId: request.userId,
+            //       error: getErrorMessage(error)
+            //     });
+            //     // Don't fail MFA setup if event publishing fails
+            //   }
+            // }
             return {
                 success: true,
                 secret: result.secret,

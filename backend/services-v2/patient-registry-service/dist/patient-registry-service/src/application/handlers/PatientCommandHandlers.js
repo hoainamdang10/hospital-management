@@ -15,11 +15,14 @@ exports.PatientCommandHandlers = void 0;
  * Handles all patient-related commands with proper validation and authorization
  */
 class PatientCommandHandlers {
-    constructor(registerPatientUseCase, updatePatientInfoUseCase, deactivatePatientUseCase, grantConsentUseCase, addEmergencyContactUseCase, logger) {
+    constructor(registerPatientUseCase, updatePatientInfoUseCase, 
+    /* POST-MVP: Archived use cases - Not required for graduation project
+    private readonly deactivatePatientUseCase: DeactivatePatientUseCase,
+    private readonly grantConsentUseCase: GrantConsentUseCase,
+    END POST-MVP */
+    addEmergencyContactUseCase, logger) {
         this.registerPatientUseCase = registerPatientUseCase;
         this.updatePatientInfoUseCase = updatePatientInfoUseCase;
-        this.deactivatePatientUseCase = deactivatePatientUseCase;
-        this.grantConsentUseCase = grantConsentUseCase;
         this.addEmergencyContactUseCase = addEmergencyContactUseCase;
         this.logger = logger;
     }
@@ -97,94 +100,103 @@ class PatientCommandHandlers {
             };
         }
     }
-    /**
-     * Handle DeactivatePatient command
-     */
-    async handleDeactivatePatient(command) {
-        try {
-            this.logger.info('Processing DeactivatePatient command', {
-                commandId: command.commandId,
-                requestedBy: command.requestedBy,
-                patientId: command.data.patientId
-            });
-            // Validate command structure
-            if (!this.isValidDeactivatePatientCommand(command)) {
-                return {
-                    success: false,
-                    message: 'Cấu trúc lệnh vô hiệu hóa bệnh nhân không hợp lệ'
-                };
-            }
-            // Execute use case
-            const result = await this.deactivatePatientUseCase.execute({
-                patientId: command.data.patientId,
-                reason: command.data.reason,
-                performedBy: command.data.requestedBy
-            });
-            this.logger.info('DeactivatePatient command processed', {
-                commandId: command.commandId,
-                patientId: command.data.patientId,
-                success: result.success
-            });
-            return result;
+    /* POST-MVP: Archived handler methods - Not required for graduation project
+    // Handle DeactivatePatient command
+    async handleDeactivatePatient(command: DeactivatePatientCommand): Promise<{ success: boolean; message: string }> {
+      try {
+        this.logger.info('Processing DeactivatePatient command', {
+          commandId: command.commandId,
+          requestedBy: command.requestedBy,
+          patientId: command.data.patientId
+        });
+  
+        // Validate command structure
+        if (!this.isValidDeactivatePatientCommand(command)) {
+          return {
+            success: false,
+            message: 'Cấu trúc lệnh vô hiệu hóa bệnh nhân không hợp lệ'
+          };
         }
-        catch (error) {
-            this.logger.error('Error processing DeactivatePatient command', {
-                commandId: command.commandId,
-                error: error instanceof Error ? error.message : 'Unknown error'
-            });
-            return {
-                success: false,
-                message: 'Lỗi hệ thống khi xử lý lệnh vô hiệu hóa bệnh nhân'
-            };
-        }
+  
+        // Execute use case
+        const result = await this.deactivatePatientUseCase.execute({
+          patientId: command.data.patientId,
+          reason: command.data.reason,
+          performedBy: command.data.requestedBy
+        });
+  
+        this.logger.info('DeactivatePatient command processed', {
+          commandId: command.commandId,
+          patientId: command.data.patientId,
+          success: result.success
+        });
+  
+        return result;
+  
+      } catch (error) {
+        this.logger.error('Error processing DeactivatePatient command', {
+          commandId: command.commandId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+  
+        return {
+          success: false,
+          message: 'Lỗi hệ thống khi xử lý lệnh vô hiệu hóa bệnh nhân'
+        };
+      }
     }
-    /**
-     * Handle GrantPatientConsent command
-     */
-    async handleGrantPatientConsent(command) {
-        try {
-            this.logger.info('Processing GrantPatientConsent command', {
-                commandId: command.commandId,
-                requestedBy: command.requestedBy,
-                patientId: command.data.patientId
-            });
-            // Validate command structure
-            if (!this.isValidGrantPatientConsentCommand(command)) {
-                return {
-                    success: false,
-                    message: 'Cấu trúc lệnh cấp phép bệnh nhân không hợp lệ'
-                };
-            }
-            // Execute use case
-            const result = await this.grantConsentUseCase.execute({
-                patientId: command.data.patientId,
-                consentType: command.data.consentType,
-                grantedBy: command.data.grantedBy,
-                expiresAt: command.data.expiresAt,
-                performedBy: command.requestedBy
-            });
-            this.logger.info('GrantPatientConsent command processed', {
-                commandId: command.commandId,
-                patientId: command.data.patientId,
-                success: result.success,
-                consentId: result.consentId
-            });
-            return {
-                success: result.success,
-                message: result.message
-            };
+  
+    // Handle GrantPatientConsent command
+    async handleGrantPatientConsent(command: GrantPatientConsentCommand): Promise<{ success: boolean; message: string }> {
+      try {
+        this.logger.info('Processing GrantPatientConsent command', {
+          commandId: command.commandId,
+          requestedBy: command.requestedBy,
+          patientId: command.data.patientId
+        });
+  
+        // Validate command structure
+        if (!this.isValidGrantPatientConsentCommand(command)) {
+          return {
+            success: false,
+            message: 'Cấu trúc lệnh cấp phép bệnh nhân không hợp lệ'
+          };
         }
-        catch (error) {
-            this.logger.error('Error processing GrantPatientConsent command', {
-                commandId: command.commandId,
-                error: error instanceof Error ? error.message : 'Unknown error'
-            });
-            return {
-                success: false,
-                message: 'Lỗi hệ thống khi xử lý lệnh cấp phép bệnh nhân'
-            };
-        }
+  
+        // Execute use case
+        const result = await this.grantConsentUseCase.execute({
+          patientId: command.data.patientId,
+          consentType: command.data.consentType,
+          grantedBy: command.data.grantedBy,
+          expiresAt: command.data.expiresAt,
+          performedBy: command.requestedBy
+        });
+  
+        this.logger.info('GrantPatientConsent command processed', {
+          commandId: command.commandId,
+          patientId: command.data.patientId,
+          success: result.success,
+          consentId: result.consentId
+        });
+  
+        return {
+          success: result.success,
+          message: result.message
+        };
+  
+      } catch (error) {
+        this.logger.error('Error processing GrantPatientConsent command', {
+          commandId: command.commandId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+  
+        return {
+          success: false,
+          message: 'Lỗi hệ thống khi xử lý lệnh cấp phép bệnh nhân'
+        };
+      }
     }
+    END POST-MVP: Archived handler methods */
     /**
      * Handle AddEmergencyContact command
      */
@@ -245,10 +257,13 @@ class PatientCommandHandlers {
                 return this.handleRegisterPatient(command);
             case 'UpdatePatientInfo':
                 return this.handleUpdatePatientInfo(command);
+            /* POST-MVP: Archived command cases - Not required for graduation project
             case 'DeactivatePatient':
-                return this.handleDeactivatePatient(command);
+              return this.handleDeactivatePatient(command as DeactivatePatientCommand);
+      
             case 'GrantPatientConsent':
-                return this.handleGrantPatientConsent(command);
+              return this.handleGrantPatientConsent(command as GrantPatientConsentCommand);
+            END POST-MVP */
             case 'AddEmergencyContact':
                 return this.handleAddEmergencyContact(command);
             default:
@@ -276,22 +291,29 @@ class PatientCommandHandlers {
             command.data.patientId &&
             command.data.updatedBy);
     }
-    isValidDeactivatePatientCommand(command) {
-        return !!(command.commandId &&
-            command.commandType === 'DeactivatePatient' &&
-            command.data &&
-            command.data.patientId &&
-            command.data.reason &&
-            command.data.requestedBy);
+    /* POST-MVP: Archived validation methods - Not required for graduation project
+    private isValidDeactivatePatientCommand(command: DeactivatePatientCommand): boolean {
+      return !!(
+        command.commandId &&
+        command.commandType === 'DeactivatePatient' &&
+        command.data &&
+        command.data.patientId &&
+        command.data.reason &&
+        command.data.requestedBy
+      );
     }
-    isValidGrantPatientConsentCommand(command) {
-        return !!(command.commandId &&
-            command.commandType === 'GrantPatientConsent' &&
-            command.data &&
-            command.data.patientId &&
-            command.data.consentType &&
-            command.data.grantedBy);
+  
+    private isValidGrantPatientConsentCommand(command: GrantPatientConsentCommand): boolean {
+      return !!(
+        command.commandId &&
+        command.commandType === 'GrantPatientConsent' &&
+        command.data &&
+        command.data.patientId &&
+        command.data.consentType &&
+        command.data.grantedBy
+      );
     }
+    END POST-MVP: Archived validation methods */
     isValidAddEmergencyContactCommand(command) {
         return !!(command.commandId &&
             command.commandType === 'AddEmergencyContact' &&
@@ -311,8 +333,7 @@ class PatientCommandHandlers {
             supportedCommands: [
                 'RegisterPatient',
                 'UpdatePatientInfo',
-                'DeactivatePatient',
-                'GrantPatientConsent',
+                // POST-MVP: 'DeactivatePatient', 'GrantPatientConsent' archived
                 'AddEmergencyContact'
             ],
             isHealthy: true,

@@ -14,10 +14,10 @@ export declare class UserCreatedEvent extends DomainEvent {
     readonly userId: string;
     readonly email: string;
     readonly fullName: string;
-    readonly roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' | 'technician';
+    readonly roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist';
     readonly citizenId?: string | undefined;
     readonly phoneNumber?: string | undefined;
-    constructor(userId: string, email: string, fullName: string, roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' | 'technician', citizenId?: string | undefined, phoneNumber?: string | undefined);
+    constructor(userId: string, email: string, fullName: string, roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist', citizenId?: string | undefined, phoneNumber?: string | undefined);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;

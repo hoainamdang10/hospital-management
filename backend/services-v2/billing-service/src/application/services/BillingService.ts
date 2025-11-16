@@ -21,7 +21,7 @@ export interface AppointmentInvoiceRequest {
   departmentId: string;
   serviceType: 'consultation' | 'procedure' | 'follow_up';
   scheduledAt: Date;
-  completedAt: Date;
+  completedAt?: Date; // Optional: only for appointment.completed event
   duration: number;
   insuranceInfo?: any;
 }
@@ -151,16 +151,14 @@ export class BillingService {
       // Create invoice using CreateInvoiceUseCase
       const invoiceResponse = await this.createInvoiceUseCase.execute({
         patientId: request.patientId,
+        appointmentId: request.appointmentId,
+        staffId: request.staffId,
         items: lineItems.map(item => ({
           description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
         })),
-        insurance: request.insuranceInfo ? {
-          provider: request.insuranceInfo.provider || 'BHYT',
-          policyNumber: request.insuranceInfo.policyNumber || '',
-          coveragePercentage: request.insuranceInfo.coveragePercentage || 0,
-        } : undefined,
+        // REMOVED (Phase 1 Prepaid Model): insurance
       });
 
       this.loggerInstance.info('Appointment invoice generated successfully', {
@@ -207,8 +205,9 @@ export class BillingService {
 
       const invoiceResponse = await this.createInvoiceUseCase.execute({
         patientId: request.patientId,
+        appointmentId: request.appointmentId,
         items: lineItems,
-        insurance: undefined, // Penalties not covered by insurance
+        // REMOVED (Phase 1): insurance
       });
 
       this.loggerInstance.info('Late cancellation fee invoice generated', {
@@ -256,8 +255,9 @@ export class BillingService {
 
       const invoiceResponse = await this.createInvoiceUseCase.execute({
         patientId: request.patientId,
+        appointmentId: request.appointmentId,
         items: lineItems,
-        insurance: undefined, // Penalties not covered by insurance
+        // REMOVED (Phase 1): insurance
       });
 
       this.loggerInstance.info('No-show fee invoice generated', {
@@ -303,11 +303,7 @@ export class BillingService {
       const invoiceResponse = await this.createInvoiceUseCase.execute({
         patientId: request.patientId,
         items: lineItems,
-        insurance: request.insuranceInfo ? {
-          provider: request.insuranceInfo.provider || 'BHYT',
-          policyNumber: request.insuranceInfo.policyNumber || '',
-          coveragePercentage: request.insuranceInfo.coveragePercentage || 0,
-        } : undefined,
+        // REMOVED (Phase 1 Prepaid Model): insurance
       });
 
       this.loggerInstance.info('Prescription invoice generated', {
@@ -360,11 +356,7 @@ export class BillingService {
       const invoiceResponse = await this.createInvoiceUseCase.execute({
         patientId: request.patientId,
         items: lineItems,
-        insurance: request.insuranceInfo ? {
-          provider: request.insuranceInfo.provider || 'BHYT',
-          policyNumber: request.insuranceInfo.policyNumber || '',
-          coveragePercentage: request.insuranceInfo.coveragePercentage || 0,
-        } : undefined,
+        // REMOVED (Phase 1 Prepaid Model): insurance
       });
 
       this.loggerInstance.info('Lab test invoice generated', {
@@ -410,11 +402,7 @@ export class BillingService {
       const invoiceResponse = await this.createInvoiceUseCase.execute({
         patientId: request.patientId,
         items: lineItems,
-        insurance: request.insuranceInfo ? {
-          provider: request.insuranceInfo.provider || 'BHYT',
-          policyNumber: request.insuranceInfo.policyNumber || '',
-          coveragePercentage: request.insuranceInfo.coveragePercentage || 0,
-        } : undefined,
+        // REMOVED (Phase 1 Prepaid Model): insurance
       });
 
       this.loggerInstance.info('Treatment plan invoice generated', {
@@ -461,11 +449,7 @@ export class BillingService {
       const invoiceResponse = await this.createInvoiceUseCase.execute({
         patientId: request.patientId,
         items: lineItems,
-        insurance: request.insuranceInfo ? {
-          provider: request.insuranceInfo.provider || 'BHYT',
-          policyNumber: request.insuranceInfo.policyNumber || '',
-          coveragePercentage: request.insuranceInfo.coveragePercentage || 0,
-        } : undefined,
+        // REMOVED (Phase 1 Prepaid Model): insurance
       });
 
       this.loggerInstance.info('Medical record invoice generated', {

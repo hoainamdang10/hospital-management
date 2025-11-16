@@ -1,7 +1,12 @@
 "use strict";
 /**
  * AppointmentEventConsumer - Consumes appointment events from Appointments Service
- * Handles automatic invoice generation and fee calculations
+ * Phase 1 (Prepaid Model): Handles invoice generation when appointment is scheduled
+ *
+ * Flow:
+ * 1. appointment.scheduled → Create invoice (PENDING) + PayOS payment link
+ * 2. appointment.cancelled_late → Cancel invoice (if not paid yet)
+ * 3. appointment.no_show → (Future: apply no-show fee)
  *
  * @author Hospital Management Team
  * @version 2.0.0
@@ -9,16 +14,19 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentEventConsumer = void 0;
+const PaymentLinkCreatedEvent_1 = require("../../domain/events/PaymentLinkCreatedEvent");
 /**
  * AppointmentEventConsumer - Handles appointment lifecycle events for billing
  */
 class AppointmentEventConsumer {
-    constructor(config, loggerInstance, billingService, invoiceRepository, patientRepository) {
+    constructor(config, loggerInstance, billingService, invoiceRepository, patientRepository, createPayOSPaymentLinkUseCase, eventBus) {
         this.config = config;
         this.loggerInstance = loggerInstance;
         this.billingService = billingService;
         this.invoiceRepository = invoiceRepository;
         this.patientRepository = patientRepository;
+        this.createPayOSPaymentLinkUseCase = createPayOSPaymentLinkUseCase;
+        this.eventBus = eventBus;
         this.isConnected = false;
     }
     /**
@@ -91,8 +99,8 @@ class AppointmentEventConsumer {
             });
             // Route to appropriate handler
             switch (routingKey) {
-                case 'appointment.completed':
-                    await this.handleAppointmentCompleted(event.payload);
+                case 'appointment.scheduled':
+                    await this.handleAppointmentScheduled(event.payload);
                     break;
                 case 'appointment.cancelled_late':
                     await this.handleAppointmentCancelledLate(event.payload);
@@ -119,13 +127,15 @@ class AppointmentEventConsumer {
         }
     }
     /**
-     * Handle appointment completed event
+     * Handle appointment scheduled event (Prepaid Model)
+     * Creates invoice with PENDING status and generates PayOS payment link
      */
-    async handleAppointmentCompleted(data) {
-        this.loggerInstance.info('Processing appointment completed for billing', {
+    async handleAppointmentScheduled(data) {
+        this.loggerInstance.info('Processing appointment scheduled for billing (Prepaid Model)', {
             appointmentId: data.appointmentId,
             patientId: data.patientId,
             staffId: data.staffId,
+            serviceType: data.serviceType,
         });
         try {
             // Get patient billing information
@@ -138,6 +148,7 @@ class AppointmentEventConsumer {
                 return;
             }
             // Generate invoice based on service type
+            // Invoice status will be PENDING (waiting for payment)
             const invoice = await this.billingService.generateAppointmentInvoice({
                 appointmentId: data.appointmentId,
                 patientId: data.patientId,
@@ -145,18 +156,60 @@ class AppointmentEventConsumer {
                 departmentId: data.departmentId,
                 serviceType: data.serviceType,
                 scheduledAt: data.scheduledAt,
-                completedAt: data.completedAt,
                 duration: data.duration,
                 insuranceInfo: patient.insuranceInfo,
             });
-            this.loggerInstance.info('Invoice generated for completed appointment', {
+            this.loggerInstance.info('Invoice created for scheduled appointment (Prepaid)', {
                 appointmentId: data.appointmentId,
                 invoiceId: invoice.id,
                 amount: invoice.totalAmount,
+                status: invoice.status,
             });
+            // Automatically create PayOS payment link for prepaid flow
+            try {
+                const paymentLinkResult = await this.createPayOSPaymentLinkUseCase.execute({
+                    invoiceId: invoice.id,
+                    buyerName: patient.fullName,
+                    buyerEmail: patient.email,
+                    buyerPhone: patient.phone,
+                });
+                if (paymentLinkResult.success) {
+                    this.loggerInstance.info('PayOS payment link created automatically', {
+                        appointmentId: data.appointmentId,
+                        invoiceId: invoice.id,
+                        checkoutUrl: paymentLinkResult.checkoutUrl,
+                        qrCode: paymentLinkResult.qrCode,
+                        orderCode: paymentLinkResult.orderCode,
+                    });
+                    // Emit PaymentLinkCreatedEvent for Notifications Service to send to patient
+                    const paymentLinkEvent = new PaymentLinkCreatedEvent_1.PaymentLinkCreatedEvent(invoice.id, data.patientId, paymentLinkResult.orderCode, paymentLinkResult.checkoutUrl, paymentLinkResult.qrCode, invoice.totalAmount.amount, invoice.totalAmount.currency, `Payment for appointment ${data.appointmentId}`, data.appointmentId, // correlationId
+                    data.appointmentId // causationId
+                    );
+                    await this.eventBus.publish(paymentLinkEvent);
+                    this.loggerInstance.info('PaymentLinkCreatedEvent published', {
+                        appointmentId: data.appointmentId,
+                        invoiceId: invoice.id,
+                        eventType: 'billing.payment_link.created',
+                    });
+                }
+                else {
+                    this.loggerInstance.error('Failed to create PayOS payment link', {
+                        appointmentId: data.appointmentId,
+                        invoiceId: invoice.id,
+                    });
+                }
+            }
+            catch (payosError) {
+                // Log error but don't fail the entire flow - invoice is already created
+                this.loggerInstance.error('Exception creating PayOS payment link', {
+                    appointmentId: data.appointmentId,
+                    invoiceId: invoice.id,
+                    error: payosError instanceof Error ? payosError.message : 'Unknown error',
+                });
+            }
         }
         catch (error) {
-            this.loggerInstance.error('Failed to generate invoice for completed appointment', {
+            this.loggerInstance.error('Failed to generate invoice for scheduled appointment', {
                 appointmentId: data.appointmentId,
                 error: error instanceof Error ? error.message : 'Unknown error',
             });

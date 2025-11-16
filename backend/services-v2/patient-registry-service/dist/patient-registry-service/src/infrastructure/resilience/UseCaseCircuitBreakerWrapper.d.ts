@@ -10,10 +10,6 @@ import { RegisterPatientUseCase, RegisterPatientRequest, RegisterPatientResponse
 import { UpdatePatientInfoUseCase, UpdatePatientInfoRequest, UpdatePatientInfoResponse } from '../../application/use-cases/UpdatePatientInfoUseCase';
 import { GetPatientProfileUseCase, GetPatientProfileRequest, GetPatientProfileResponse } from '../../application/use-cases/GetPatientProfileUseCase';
 import { SearchPatientsUseCase, SearchPatientsRequest, SearchPatientsResponse } from '../../application/use-cases/SearchPatientsUseCase';
-import { MatchPatientsUseCase, MatchPatientsRequest, MatchPatientsResponse } from '../../application/use-cases/MatchPatientsUseCase';
-import { MergePatientsUseCase, MergePatientsRequest, MergePatientsResponse } from '../../application/use-cases/MergePatientsUseCase';
-import { LinkPatientsUseCase, LinkPatientsRequest, LinkPatientsResponse } from '../../application/use-cases/LinkPatientsUseCase';
-import { DeactivatePatientUseCase, DeactivatePatientRequest, DeactivatePatientResponse } from '../../application/use-cases/DeactivatePatientUseCase';
 import { ValidateInsuranceUseCase, ValidateInsuranceRequest, ValidateInsuranceResponse } from '../../application/use-cases/ValidateInsuranceUseCase';
 /**
  * Wrapped Register Patient Use Case
@@ -50,42 +46,6 @@ export declare class CircuitBreakerSearchPatientsUseCase {
     private breaker;
     constructor(useCase: SearchPatientsUseCase);
     execute(request: SearchPatientsRequest): Promise<SearchPatientsResponse>;
-}
-/**
- * Wrapped Match Patients Use Case
- */
-export declare class CircuitBreakerMatchPatientsUseCase {
-    private useCase;
-    private breaker;
-    constructor(useCase: MatchPatientsUseCase);
-    execute(request: MatchPatientsRequest): Promise<MatchPatientsResponse>;
-}
-/**
- * Wrapped Merge Patients Use Case
- */
-export declare class CircuitBreakerMergePatientsUseCase {
-    private useCase;
-    private breaker;
-    constructor(useCase: MergePatientsUseCase);
-    execute(request: MergePatientsRequest): Promise<MergePatientsResponse>;
-}
-/**
- * Wrapped Link Patients Use Case
- */
-export declare class CircuitBreakerLinkPatientsUseCase {
-    private useCase;
-    private breaker;
-    constructor(useCase: LinkPatientsUseCase);
-    execute(request: LinkPatientsRequest): Promise<LinkPatientsResponse>;
-}
-/**
- * Wrapped Deactivate Patient Use Case
- */
-export declare class CircuitBreakerDeactivatePatientUseCase {
-    private useCase;
-    private breaker;
-    constructor(useCase: DeactivatePatientUseCase);
-    execute(request: DeactivatePatientRequest): Promise<DeactivatePatientResponse>;
 }
 /**
  * Wrapped Validate Insurance Use Case
