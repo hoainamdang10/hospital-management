@@ -1,13 +1,13 @@
 /**
  * AppointmentReminder Aggregate Root
  * Represents an appointment reminder schedule in the domain
+ * Refactored to match project architecture patterns
  *
  * @author Hospital Management Team
- * @version 1.0.0
+ * @version 2.0.0
  */
-import { AggregateRoot } from '@shared/domain/base/AggregateRoot';
-import { Result } from '@shared/core/Result';
-import { UniqueEntityID } from '@shared/domain/base/UniqueEntityID';
+import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { ReminderType } from '../value-objects/ReminderType';
 import { ReminderStatus } from '../value-objects/ReminderStatus';
 export interface AppointmentReminderProps {
@@ -50,13 +50,13 @@ export interface AppointmentReminderProps {
     updatedAt?: Date;
     createdBy?: string;
 }
-export declare class AppointmentReminder extends AggregateRoot<AppointmentReminderProps> {
+export declare class AppointmentReminder extends HealthcareAggregateRoot<AppointmentReminderProps> {
     private constructor();
     /**
      * Factory method to create a new reminder
      */
-    static create(props: AppointmentReminderProps, id?: UniqueEntityID): Result<AppointmentReminder>;
-    get reminderId(): UniqueEntityID;
+    static create(props: AppointmentReminderProps, id?: string): AppointmentReminder;
+    get reminderId(): string;
     get appointmentId(): string;
     get tenantId(): string;
     get patientId(): string;
@@ -85,23 +85,23 @@ export declare class AppointmentReminder extends AggregateRoot<AppointmentRemind
     /**
      * Mark as processing
      */
-    markAsProcessing(): Result<void>;
+    markAsProcessing(): void;
     /**
      * Mark as sent
      */
-    markAsSent(notificationId: string): Result<void>;
+    markAsSent(notificationId: string): void;
     /**
      * Mark as failed
      */
-    markAsFailed(reason: string): Result<void>;
+    markAsFailed(reason: string): void;
     /**
      * Cancel reminder
      */
-    cancel(reason: string, cancelledBy: string): Result<void>;
+    cancel(reason: string, cancelledBy: string): void;
     /**
      * Mark as expired (past appointment date)
      */
-    markAsExpired(): Result<void>;
+    markAsExpired(): void;
     /**
      * Get template variables for reminder message
      */
@@ -118,5 +118,10 @@ export declare class AppointmentReminder extends AggregateRoot<AppointmentRemind
      * Check if appointment is in the past
      */
     isAppointmentPast(currentTime?: Date): boolean;
+    getPatientId(): string | null;
+    protected validateBusinessInvariants(): void;
+    protected applyEvent(event: DomainEvent): void;
+    validate(): void;
+    toPersistence(): any;
 }
 //# sourceMappingURL=AppointmentReminder.d.ts.map

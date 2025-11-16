@@ -133,18 +133,21 @@ export class ReminderCronJob {
             templateData: reminder.getTemplateVariables(),
           };
 
-          const sendResult = await this.sendNotificationUseCase.execute(notificationData);
+          const sendResults = await this.sendNotificationUseCase.execute(notificationData);
+          
+          // Check if any channel succeeded
+          const hasSuccess = sendResults.some(r => r.success);
+          const notificationId = sendResults.find(r => r.success)?.notificationId || 'UNKNOWN';
 
-          if (sendResult.success) {
+          if (hasSuccess) {
             // Mark as sent
-            const notificationId = sendResult.notificationId || 'UNKNOWN';
             reminder.markAsSent(notificationId);
             await this.reminderRepo.save(reminder);
             sentCount++;
             console.log(`[ReminderCronJob] Successfully sent reminder ${reminder.reminderId} for appointment ${reminder.appointmentId}`);
           } else {
             // Mark as failed
-            const failureReason = sendResult.message || 'Unknown error';
+            const failureReason = sendResults.map(r => r.failureReason || 'Unknown error').join('; ');
             reminder.markAsFailed(failureReason);
             await this.reminderRepo.save(reminder);
             failedCount++;
@@ -214,15 +217,17 @@ export class ReminderCronJob {
             templateData: reminder.getTemplateVariables(),
           };
 
-          const sendResult = await this.sendNotificationUseCase.execute(notificationData);
+          const sendResults = await this.sendNotificationUseCase.execute(notificationData);
+          
+          const hasSuccess = sendResults.some(r => r.success);
+          const notificationId = sendResults.find(r => r.success)?.notificationId || 'UNKNOWN';
 
-          if (sendResult.success) {
-            const notificationId = sendResult.notificationId || 'UNKNOWN';
+          if (hasSuccess) {
             reminder.markAsSent(notificationId);
             await this.reminderRepo.save(reminder);
             console.log(`[ReminderCronJob] Successfully sent retry reminder ${reminder.reminderId}`);
           } else {
-            const failureReason = sendResult.message || 'Unknown error';
+            const failureReason = sendResults.map(r => r.failureReason || 'Unknown error').join('; ');
             reminder.markAsFailed(failureReason);
             await this.reminderRepo.save(reminder);
             console.error(`[ReminderCronJob] Failed to send retry reminder ${reminder.reminderId}: ${failureReason}`);

@@ -3,7 +3,7 @@
  * Periodically checks for due reminders and sends them
  *
  * @author Hospital Management Team
- * @version 1.0.0
+ * @version 2.0.0
  * @compliance Clean Architecture, Cron Job Pattern
  */
 import { IAppointmentReminderRepository } from '../../domain/repositories/IAppointmentReminderRepository';
@@ -45,10 +45,6 @@ export declare class ReminderCronJob {
      * Process retryable reminders (failed reminders with retry count < max)
      */
     private processRetryableReminders;
-    /**
-     * Expire old reminders (appointment date has passed)
-     */
-    private expireOldReminders;
     /**
      * Get reminder title based on type
      */

@@ -183,7 +183,15 @@ class Notification extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         // Raise domain event
         const failureReason = channelFailures.map(f => `${f.channel}: ${f.errorMessage}`).join('; ');
-        const event = new NotificationFailedEvent_1.NotificationFailedEvent(this.props.notificationId.value, this.props.recipient.getRecipientId(), failureReason, this.props.metadata.healthcareContext?.patientId, this.props.metadata.correlationId, this.props.metadata.userId);
+        const event = new NotificationFailedEvent_1.NotificationFailedEvent({
+            notificationId: this.props.notificationId.value,
+            recipientId: this.props.recipient.getRecipientId(),
+            channel: channelFailures.length > 0 ? channelFailures[0].channel : 'UNKNOWN',
+            errorCode: 'DELIVERY_FAILED',
+            errorMessage: failureReason,
+            attemptCount: 1,
+            timestamp: new Date()
+        }, this.props.notificationId.value);
         this.addDomainEvent(event);
     }
     // ==================== Queries ====================

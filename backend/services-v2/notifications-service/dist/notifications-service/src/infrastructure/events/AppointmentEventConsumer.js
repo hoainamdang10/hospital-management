@@ -359,20 +359,19 @@ class AppointmentEventConsumer {
                 }
                 // ✅ Execute with type-safe request
                 const result = await this.createAppointmentRemindersUseCase.execute(remindersRequest);
-                if (result.isSuccess) {
-                    const { created } = result.getValue();
+                if (result.success) {
                     console.log("[AppointmentEventConsumer] Reminders created successfully", {
                         appointmentId: data.appointmentId,
-                        remindersCreated: created,
+                        remindersCreated: result.created,
                         reminderTypes: ["24H", "2H", "30M"],
                     });
                 }
                 else {
                     console.error("[AppointmentEventConsumer] Failed to create reminders", {
                         appointmentId: data.appointmentId,
-                        error: result.getError(),
+                        error: result.message,
                     });
-                    throw new Error(result.getError());
+                    throw new Error(result.message || 'Failed to create reminders');
                 }
             }
             catch (reminderError) {
@@ -417,19 +416,10 @@ class AppointmentEventConsumer {
         try {
             // ===== 1. Cancel all pending reminders for this appointment =====
             try {
-                const cancelResult = await this.appointmentReminderRepo.cancelByAppointmentId(data.appointmentId, data.cancellationReason, data.cancelledBy);
-                if (cancelResult.isSuccess) {
-                    const cancelledCount = cancelResult.getValue();
-                    console.log("[AppointmentEventConsumer] Reminders cancelled", {
-                        appointmentId: data.appointmentId,
-                        cancelledCount,
-                    });
-                }
-                else {
-                    console.error("[AppointmentEventConsumer] Failed to cancel reminders (non-critical)", {
-                        error: cancelResult.getError(),
-                    });
-                }
+                await this.appointmentReminderRepo.cancelByAppointmentId(data.appointmentId, data.cancellationReason, data.cancelledBy);
+                console.log("[AppointmentEventConsumer] Reminders cancelled", {
+                    appointmentId: data.appointmentId,
+                });
             }
             catch (reminderError) {
                 console.error("[AppointmentEventConsumer] Error cancelling reminders (non-critical)", {
@@ -828,12 +818,11 @@ class AppointmentEventConsumer {
                 appointmentType: data.type,
                 reason: data.notes,
             });
-            if (result.isSuccess) {
-                const { created } = result.getValue();
-                console.log(`[AppointmentEventConsumer] Created ${created} reminder(s) for appointment ${data.appointmentId}`);
+            if (result.success) {
+                console.log(`[AppointmentEventConsumer] Created ${result.created} reminder(s) for appointment ${data.appointmentId}`);
             }
             else {
-                console.error(`[AppointmentEventConsumer] Failed to create reminders: ${result.getError()}`);
+                console.error(`[AppointmentEventConsumer] Failed to create reminders: ${result.message}`);
             }
         }
         catch (error) {
@@ -1264,14 +1253,8 @@ class AppointmentEventConsumer {
     async updateReminderSchedules(data, preferences) {
         try {
             // Cancel old reminders
-            const cancelResult = await this.appointmentReminderRepo.cancelByAppointmentId(data.appointmentId, `Appointment rescheduled: ${data.reason}`, data.rescheduledBy);
-            if (cancelResult.isSuccess) {
-                const cancelledCount = cancelResult.getValue();
-                console.log(`[AppointmentEventConsumer] Cancelled ${cancelledCount} old reminder(s) for rescheduled appointment ${data.appointmentId}`);
-            }
-            else {
-                console.error(`[AppointmentEventConsumer] Failed to cancel old reminders: ${cancelResult.getError()}`);
-            }
+            await this.appointmentReminderRepo.cancelByAppointmentId(data.appointmentId, `Appointment rescheduled: ${data.reason}`, data.rescheduledBy);
+            console.log(`[AppointmentEventConsumer] Cancelled old reminder(s) for rescheduled appointment ${data.appointmentId}`);
             // Extract patient contact info from preferences
             const patientPhone = preferences?.phoneNumber || preferences?.phone;
             const patientEmail = preferences?.email;
@@ -1293,12 +1276,11 @@ class AppointmentEventConsumer {
                 appointmentType: undefined,
                 reason: data.reason,
             });
-            if (createResult.isSuccess) {
-                const { created } = createResult.getValue();
-                console.log(`[AppointmentEventConsumer] Created ${created} new reminder(s) for rescheduled appointment ${data.appointmentId}`);
+            if (createResult.success) {
+                console.log(`[AppointmentEventConsumer] Created ${createResult.created} new reminder(s) for rescheduled appointment ${data.appointmentId}`);
             }
             else {
-                console.error(`[AppointmentEventConsumer] Failed to create new reminders: ${createResult.getError()}`);
+                console.error(`[AppointmentEventConsumer] Failed to create new reminders: ${createResult.message}`);
             }
         }
         catch (error) {

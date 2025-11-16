@@ -4,7 +4,7 @@
  * Periodically checks for due reminders and sends them
  *
  * @author Hospital Management Team
- * @version 1.0.0
+ * @version 2.0.0
  * @compliance Clean Architecture, Cron Job Pattern
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
@@ -104,12 +104,7 @@ class ReminderCronJob {
         try {
             console.log('[ReminderCronJob] Starting reminder processing run');
             // 1. Query due reminders
-            const dueRemindersResult = await this.reminderRepo.findDueReminders(this.config.batchSize);
-            if (dueRemindersResult.isFailure) {
-                console.error('[ReminderCronJob] Failed to fetch due reminders:', dueRemindersResult.getError());
-                return;
-            }
-            const dueReminders = dueRemindersResult.getValue();
+            const dueReminders = await this.reminderRepo.findDueReminders(new Date());
             if (dueReminders.length === 0) {
                 console.log('[ReminderCronJob] No due reminders found');
                 return;
@@ -121,76 +116,65 @@ class ReminderCronJob {
             for (const reminder of dueReminders) {
                 try {
                     // Mark as processing
-                    const processingResult = reminder.markAsProcessing();
-                    if (processingResult.isFailure) {
-                        console.error(`[ReminderCronJob] Cannot process reminder ${reminder.reminderId.toString()}: ${processingResult.getError()}`);
-                        continue;
-                    }
+                    reminder.markAsProcessing();
                     await this.reminderRepo.save(reminder);
                     // Send notification
                     const notificationData = {
                         recipientId: reminder.patientId,
                         recipientType: 'patient',
+                        recipientName: reminder.patientName || 'Quý khách',
+                        recipientEmail: reminder.patientEmail,
+                        recipientPhone: reminder.patientPhone,
                         type: 'appointment_reminder',
                         title: this.getReminderTitle(reminder.reminderType.toString()),
                         content: this.getReminderContent(reminder),
-                        channels: reminder.templateData.channels || ['SMS', 'EMAIL', 'IN_APP'],
+                        channels: ['SMS', 'EMAIL', 'IN_APP'],
                         priority: 'normal',
                         scheduledAt: new Date(),
-                        metadata: {
+                        data: {
                             appointmentId: reminder.appointmentId,
-                            reminderId: reminder.reminderId.toString(),
+                            reminderId: reminder.reminderId,
                             reminderType: reminder.reminderType.toString(),
-                            appointmentDate: reminder.appointmentDate,
+                            appointmentDate: reminder.appointmentDate.toISOString(),
                             appointmentTime: reminder.appointmentTime,
                         },
                         templateData: reminder.getTemplateVariables(),
                     };
-                    const sendResult = await this.sendNotificationUseCase.execute(notificationData);
-                    if (sendResult.isSuccess) {
+                    const sendResults = await this.sendNotificationUseCase.execute(notificationData);
+                    // Check if any channel succeeded
+                    const hasSuccess = sendResults.some(r => r.success);
+                    const notificationId = sendResults.find(r => r.success)?.notificationId || 'UNKNOWN';
+                    if (hasSuccess) {
                         // Mark as sent
-                        const notificationId = sendResult.getValue()?.notificationId || 'UNKNOWN';
-                        const sentResult = reminder.markAsSent(notificationId);
-                        if (sentResult.isSuccess) {
-                            await this.reminderRepo.save(reminder);
-                            sentCount++;
-                            console.log(`[ReminderCronJob] Successfully sent reminder ${reminder.reminderId.toString()} for appointment ${reminder.appointmentId}`);
-                        }
-                        else {
-                            console.error(`[ReminderCronJob] Failed to mark reminder as sent: ${sentResult.getError()}`);
-                        }
+                        reminder.markAsSent(notificationId);
+                        await this.reminderRepo.save(reminder);
+                        sentCount++;
+                        console.log(`[ReminderCronJob] Successfully sent reminder ${reminder.reminderId} for appointment ${reminder.appointmentId}`);
                     }
                     else {
                         // Mark as failed
-                        const failureReason = sendResult.getError() || 'Unknown error';
-                        const failedResult = reminder.markAsFailed(failureReason);
-                        if (failedResult.isSuccess) {
-                            await this.reminderRepo.save(reminder);
-                            failedCount++;
-                            console.error(`[ReminderCronJob] Failed to send reminder ${reminder.reminderId.toString()}: ${failureReason}`);
-                            if (reminder.canRetry()) {
-                                console.log(`[ReminderCronJob] Reminder will be retried at ${reminder.templateData.nextRetryAt}`);
-                            }
-                            else {
-                                console.warn(`[ReminderCronJob] Reminder has exhausted all retries (${reminder.retryCount}/${reminder.maxRetries})`);
-                            }
+                        const failureReason = sendResults.map(r => r.failureReason || 'Unknown error').join('; ');
+                        reminder.markAsFailed(failureReason);
+                        await this.reminderRepo.save(reminder);
+                        failedCount++;
+                        console.error(`[ReminderCronJob] Failed to send reminder ${reminder.reminderId}: ${failureReason}`);
+                        if (reminder.canRetry()) {
+                            console.log(`[ReminderCronJob] Reminder will be retried`);
                         }
                         else {
-                            console.error(`[ReminderCronJob] Failed to mark reminder as failed: ${failedResult.getError()}`);
+                            console.warn(`[ReminderCronJob] Reminder has exhausted all retries (${reminder.retryCount}/${reminder.maxRetries})`);
                         }
                     }
                 }
                 catch (error) {
-                    console.error(`[ReminderCronJob] Unexpected error processing reminder ${reminder.reminderId.toString()}:`, error);
+                    console.error(`[ReminderCronJob] Unexpected error processing reminder ${reminder.reminderId}:`, error);
                     failedCount++;
                 }
             }
             const duration = Date.now() - startTime;
             console.log(`[ReminderCronJob] Completed run in ${duration}ms: ${sentCount} sent, ${failedCount} failed`);
-            // 3. Process retryable reminders (failed reminders that can be retried)
+            // 3. Process retryable reminders
             await this.processRetryableReminders();
-            // 4. Expire old reminders
-            await this.expireOldReminders();
         }
         catch (error) {
             console.error('[ReminderCronJob] Unexpected error in run:', error);
@@ -204,88 +188,57 @@ class ReminderCronJob {
      */
     async processRetryableReminders() {
         try {
-            const retryableResult = await this.reminderRepo.findRetryableReminders(Math.min(this.config.batchSize, 50) // Limit retries to 50 per run
-            );
-            if (retryableResult.isFailure) {
-                console.error('[ReminderCronJob] Failed to fetch retryable reminders:', retryableResult.getError());
-                return;
-            }
-            const retryableReminders = retryableResult.getValue();
+            const retryableReminders = await this.reminderRepo.findRetriableReminders();
             if (retryableReminders.length === 0) {
                 return;
             }
             console.log(`[ReminderCronJob] Found ${retryableReminders.length} retryable reminder(s)`);
             for (const reminder of retryableReminders) {
-                // Check if it's time to retry
-                const nextRetryAt = reminder.templateData.nextRetryAt;
-                if (!nextRetryAt || new Date(nextRetryAt) > new Date()) {
-                    continue; // Not yet time to retry
-                }
-                // Process the retry (same logic as due reminders)
                 try {
-                    const processingResult = reminder.markAsProcessing();
-                    if (processingResult.isFailure) {
-                        continue;
-                    }
+                    reminder.markAsProcessing();
                     await this.reminderRepo.save(reminder);
                     const notificationData = {
                         recipientId: reminder.patientId,
                         recipientType: 'patient',
+                        recipientName: reminder.patientName || 'Quý khách',
+                        recipientEmail: reminder.patientEmail,
+                        recipientPhone: reminder.patientPhone,
                         type: 'appointment_reminder',
                         title: this.getReminderTitle(reminder.reminderType.toString()),
                         content: this.getReminderContent(reminder),
-                        channels: reminder.templateData.channels || ['SMS', 'EMAIL', 'IN_APP'],
+                        channels: ['SMS', 'EMAIL', 'IN_APP'],
                         priority: 'normal',
                         scheduledAt: new Date(),
-                        metadata: {
+                        data: {
                             appointmentId: reminder.appointmentId,
-                            reminderId: reminder.reminderId.toString(),
+                            reminderId: reminder.reminderId,
                             reminderType: reminder.reminderType.toString(),
                             retryAttempt: reminder.retryCount,
                         },
                         templateData: reminder.getTemplateVariables(),
                     };
-                    const sendResult = await this.sendNotificationUseCase.execute(notificationData);
-                    if (sendResult.isSuccess) {
-                        const notificationId = sendResult.getValue()?.notificationId || 'UNKNOWN';
+                    const sendResults = await this.sendNotificationUseCase.execute(notificationData);
+                    const hasSuccess = sendResults.some(r => r.success);
+                    const notificationId = sendResults.find(r => r.success)?.notificationId || 'UNKNOWN';
+                    if (hasSuccess) {
                         reminder.markAsSent(notificationId);
                         await this.reminderRepo.save(reminder);
-                        console.log(`[ReminderCronJob] Successfully sent retry reminder ${reminder.reminderId.toString()}`);
+                        console.log(`[ReminderCronJob] Successfully sent retry reminder ${reminder.reminderId}`);
                     }
                     else {
-                        const failureReason = sendResult.getError() || 'Unknown error';
+                        const failureReason = sendResults.map(r => r.failureReason || 'Unknown error').join('; ');
                         reminder.markAsFailed(failureReason);
                         await this.reminderRepo.save(reminder);
-                        console.error(`[ReminderCronJob] Failed to send retry reminder ${reminder.reminderId.toString()}: ${failureReason}`);
+                        console.error(`[ReminderCronJob] Failed to send retry reminder ${reminder.reminderId}: ${failureReason}`);
                     }
                 }
                 catch (error) {
-                    console.error(`[ReminderCronJob] Error processing retry reminder ${reminder.reminderId.toString()}:`, error);
+                    console.error(`[ReminderCronJob] Error processing retry reminder ${reminder.reminderId}:`, error);
                 }
             }
         }
         catch (error) {
             console.error('[ReminderCronJob] Error in processRetryableReminders:', error);
-        }
-    }
-    /**
-     * Expire old reminders (appointment date has passed)
-     */
-    async expireOldReminders() {
-        try {
-            const expireResult = await this.reminderRepo.expireOldReminders();
-            if (expireResult.isSuccess) {
-                const expiredCount = expireResult.getValue();
-                if (expiredCount > 0) {
-                    console.log(`[ReminderCronJob] Expired ${expiredCount} old reminder(s)`);
-                }
-            }
-            else {
-                console.error('[ReminderCronJob] Failed to expire old reminders:', expireResult.getError());
-            }
-        }
-        catch (error) {
-            console.error('[ReminderCronJob] Error expiring old reminders:', error);
         }
     }
     /**

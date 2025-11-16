@@ -3,9 +3,8 @@
  * Creates reminder records in database when appointment is scheduled
  *
  * @author Hospital Management Team
- * @version 1.0.0
+ * @version 2.0.0
  */
-import { Result } from '@shared/core/Result';
 import { IAppointmentReminderRepository } from '../../domain/repositories/IAppointmentReminderRepository';
 export interface CreateAppointmentRemindersRequest {
     appointmentId: string;
@@ -23,15 +22,18 @@ export interface CreateAppointmentRemindersRequest {
     appointmentType?: string;
     reason?: string;
 }
+export interface CreateAppointmentRemindersResponse {
+    success: boolean;
+    created: number;
+    message?: string;
+}
 export declare class CreateAppointmentRemindersUseCase {
     private reminderRepo;
     constructor(reminderRepo: IAppointmentReminderRepository);
     /**
      * Execute use case - create 3 reminders for an appointment
      */
-    execute(request: CreateAppointmentRemindersRequest): Promise<Result<{
-        created: number;
-    }>>;
+    execute(request: CreateAppointmentRemindersRequest): Promise<CreateAppointmentRemindersResponse>;
     /**
      * Combine date and time into single datetime
      */

@@ -558,13 +558,12 @@ export class AppointmentEventConsumer {
             remindersRequest
           );
 
-        if (result.isSuccess) {
-          const { created } = result.getValue()!;
+        if (result.success) {
           console.log(
             "[AppointmentEventConsumer] Reminders created successfully",
             {
               appointmentId: data.appointmentId,
-              remindersCreated: created,
+              remindersCreated: result.created,
               reminderTypes: ["24H", "2H", "30M"],
             }
           );
@@ -573,10 +572,10 @@ export class AppointmentEventConsumer {
             "[AppointmentEventConsumer] Failed to create reminders",
             {
               appointmentId: data.appointmentId,
-              error: result.getError(),
+              error: result.message,
             }
           );
-          throw new Error(result.getError());
+          throw new Error(result.message || 'Failed to create reminders');
         }
       } catch (reminderError) {
         console.error(
@@ -634,27 +633,15 @@ export class AppointmentEventConsumer {
     try {
       // ===== 1. Cancel all pending reminders for this appointment =====
       try {
-        const cancelResult =
-          await this.appointmentReminderRepo.cancelByAppointmentId(
-            data.appointmentId,
-            data.cancellationReason,
-            data.cancelledBy
-          );
+        await this.appointmentReminderRepo.cancelByAppointmentId(
+          data.appointmentId,
+          data.cancellationReason,
+          data.cancelledBy
+        );
 
-        if (cancelResult.isSuccess) {
-          const cancelledCount = cancelResult.getValue()!;
-          console.log("[AppointmentEventConsumer] Reminders cancelled", {
-            appointmentId: data.appointmentId,
-            cancelledCount,
-          });
-        } else {
-          console.error(
-            "[AppointmentEventConsumer] Failed to cancel reminders (non-critical)",
-            {
-              error: cancelResult.getError(),
-            }
-          );
-        }
+        console.log("[AppointmentEventConsumer] Reminders cancelled", {
+          appointmentId: data.appointmentId,
+        });
       } catch (reminderError) {
         console.error(
           "[AppointmentEventConsumer] Error cancelling reminders (non-critical)",
@@ -1136,14 +1123,13 @@ export class AppointmentEventConsumer {
         reason: data.notes,
       });
 
-      if (result.isSuccess) {
-        const { created } = result.getValue()!;
+      if (result.success) {
         console.log(
-          `[AppointmentEventConsumer] Created ${created} reminder(s) for appointment ${data.appointmentId}`
+          `[AppointmentEventConsumer] Created ${result.created} reminder(s) for appointment ${data.appointmentId}`
         );
       } else {
         console.error(
-          `[AppointmentEventConsumer] Failed to create reminders: ${result.getError()}`
+          `[AppointmentEventConsumer] Failed to create reminders: ${result.message}`
         );
       }
     } catch (error) {
@@ -1655,23 +1641,15 @@ export class AppointmentEventConsumer {
   ): Promise<void> {
     try {
       // Cancel old reminders
-      const cancelResult =
-        await this.appointmentReminderRepo.cancelByAppointmentId(
-          data.appointmentId,
-          `Appointment rescheduled: ${data.reason}`,
-          data.rescheduledBy
-        );
+      await this.appointmentReminderRepo.cancelByAppointmentId(
+        data.appointmentId,
+        `Appointment rescheduled: ${data.reason}`,
+        data.rescheduledBy
+      );
 
-      if (cancelResult.isSuccess) {
-        const cancelledCount = cancelResult.getValue()!;
-        console.log(
-          `[AppointmentEventConsumer] Cancelled ${cancelledCount} old reminder(s) for rescheduled appointment ${data.appointmentId}`
-        );
-      } else {
-        console.error(
-          `[AppointmentEventConsumer] Failed to cancel old reminders: ${cancelResult.getError()}`
-        );
-      }
+      console.log(
+        `[AppointmentEventConsumer] Cancelled old reminder(s) for rescheduled appointment ${data.appointmentId}`
+      );
 
       // Extract patient contact info from preferences
       const patientPhone = preferences?.phoneNumber || preferences?.phone;
@@ -1698,14 +1676,13 @@ export class AppointmentEventConsumer {
         }
       );
 
-      if (createResult.isSuccess) {
-        const { created } = createResult.getValue()!;
+      if (createResult.success) {
         console.log(
-          `[AppointmentEventConsumer] Created ${created} new reminder(s) for rescheduled appointment ${data.appointmentId}`
+          `[AppointmentEventConsumer] Created ${createResult.created} new reminder(s) for rescheduled appointment ${data.appointmentId}`
         );
       } else {
         console.error(
-          `[AppointmentEventConsumer] Failed to create new reminders: ${createResult.getError()}`
+          `[AppointmentEventConsumer] Failed to create new reminders: ${createResult.message}`
         );
       }
     } catch (error) {

@@ -1,26 +1,24 @@
 /**
- * NotificationFailedEvent - Domain Event
- * Fired when a notification fails to send
+ * Notification Failed Event
+ * Emitted when a notification fails to send
  *
  * @author Hospital Management Team
  * @version 2.0.0
- * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
-import { DomainEvent } from "../../../../shared/domain/base/domain-event";
+import { DomainEvent } from '@shared/domain/base/domain-event';
 export interface NotificationFailedEventData {
     notificationId: string;
     recipientId: string;
-    failureReason: string;
-    failedAt: Date;
-    patientId?: string;
+    channel: string;
+    errorCode: string;
+    errorMessage: string;
+    attemptCount: number;
+    timestamp: Date;
 }
 export declare class NotificationFailedEvent extends DomainEvent {
-    readonly notificationId: string;
-    readonly recipientId: string;
-    readonly failureReason: string;
-    readonly patientId?: string | undefined;
-    constructor(notificationId: string, recipientId: string, failureReason: string, patientId?: string | undefined, correlationId?: string, userId?: string);
-    getEventData(): NotificationFailedEventData;
+    readonly eventData: NotificationFailedEventData;
+    constructor(eventData: NotificationFailedEventData, aggregateId: string);
+    getEventData(): any;
     containsPHI(): boolean;
     getPatientId(): string | null;
 }

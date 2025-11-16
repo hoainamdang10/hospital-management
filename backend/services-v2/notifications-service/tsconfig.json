@@ -56,7 +56,9 @@
     "dist",
     "coverage",
     "**/*.spec.ts",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "**/_archived/**/*",
+    "**/_out_of_scope/**/*"
   ],
   "ts-node": {
     "require": ["tsconfig-paths/register"],

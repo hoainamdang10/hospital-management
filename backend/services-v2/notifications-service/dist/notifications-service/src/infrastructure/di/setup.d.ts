@@ -25,10 +25,6 @@ export declare const ServiceTokens: {
     readonly GET_NOTIFICATION_USE_CASE: "GetNotificationUseCase";
     readonly GET_NOTIFICATION_PREFERENCES_USE_CASE: "GetNotificationPreferencesUseCase";
     readonly PROCESS_NOTIFICATION_QUEUE_USE_CASE: "ProcessNotificationQueueUseCase";
-    readonly GET_TEMPLATES_USE_CASE: "GetTemplatesUseCase";
-    readonly CREATE_TEMPLATE_USE_CASE: "CreateTemplateUseCase";
-    readonly UPDATE_TEMPLATE_USE_CASE: "UpdateTemplateUseCase";
-    readonly DELETE_TEMPLATE_USE_CASE: "DeleteTemplateUseCase";
     readonly MARK_AS_READ_USE_CASE: "MarkNotificationAsReadUseCase";
     readonly GET_USER_NOTIFICATIONS_USE_CASE: "GetUserNotificationsUseCase";
     readonly UPDATE_PREFERENCES_USE_CASE: "UpdateNotificationPreferencesUseCase";

@@ -1,5 +1,6 @@
 /**
  * Routes Setup - Presentation Layer
+ * Simplified for MVP - Template management routes removed
  *
  * @author Hospital Management Team
  * @version 2.0.0
