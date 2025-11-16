@@ -13,7 +13,7 @@ API Gateway là **entry point duy nhất** cho tất cả client requests vào H
 - ✅ **Security**: CORS, Helmet, Security headers
 - ✅ **Resilience**: Timeout handling with health check caching
 - ✅ **API Documentation**: Swagger UI for interactive API testing
-- ✅ **Monitoring**: Visual dashboard & performance metrics
+- ✅ **Monitoring**: Visual dashboard & basic metrics
 - ✅ **i18n**: Vietnamese error messages for better UX
 
 ## 🏗️ Architecture
@@ -174,8 +174,8 @@ docker-compose up api-gateway
 ```bash
 GET /api-docs            # 📚 Swagger UI - Interactive API documentation
 GET /dashboard           # 📊 Visual dashboard - Service health monitoring
-GET /api/metrics         # 📈 Performance metrics - Request stats & analytics
-GET /api/metrics/summary # 📋 Metrics summary - Quick overview
+GET /metrics/cache       # 📈 Cache metrics - Cache statistics
+GET /metrics/summary     # 📋 Metrics summary - Quick overview
 ```
 
 ### Health Checks
@@ -254,32 +254,18 @@ Access the visual dashboard at `http://localhost:3101/dashboard` để xem:
 - ✅ Auto-refresh mỗi 5 giây
 - ✅ Responsive design (mobile-friendly)
 
-### Performance Metrics
+### Cache Metrics
 
-Access performance metrics tại `http://localhost:3101/api/metrics`:
+Access cache metrics tại `http://localhost:3101/metrics/cache`:
 
 ```json
 {
   "success": true,
   "timestamp": "2025-01-11T10:00:00.000Z",
-  "metrics": {
-    "totalRequests": 1500,
-    "successfulRequests": 1450,
-    "failedRequests": 50,
-    "avgResponseTime": 125.5,
-    "requestsPerMinute": 25.5,
-    "errorRate": 3.33,
-    "slowestEndpoints": [
-      {
-        "path": "/api/v1/clinical/records",
-        "avgTime": 450.2,
-        "count": 100
-      }
-    ],
-    "errorsByStatusCode": {
-      "404": 30,
-      "500": 20
-    }
+  "cache": {
+    "size": 150,
+    "maxSize": 1000,
+    "hitRate": 85.5
   }
 }
 ```

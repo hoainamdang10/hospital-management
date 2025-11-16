@@ -1,13 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { ILogger } from '@application/services/ILogger';
 import { AuthenticatedRequest } from './AuthenticationMiddleware';
-import { PerformanceMonitor } from '@infrastructure/monitoring/PerformanceMonitor';
 
 export class LoggingMiddleware {
-  constructor(
-    private logger: ILogger,
-    private performanceMonitor?: PerformanceMonitor
-  ) {}
+  constructor(private logger: ILogger) {}
 
   logRequests() {
     return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
@@ -36,18 +32,6 @@ export class LoggingMiddleware {
           duration: `${duration}ms`,
           userId: req.user?.userId
         });
-
-        // Record performance metric
-        if (this.performanceMonitor) {
-          this.performanceMonitor.recordRequest({
-            timestamp: Date.now(),
-            path: req.path,
-            method: req.method,
-            statusCode: res.statusCode,
-            responseTime: duration,
-            success: res.statusCode < 400
-          });
-        }
       });
 
       next();

@@ -28,8 +28,6 @@ import { createHealthRoutes } from "@presentation/routes/healthRoutes";
 import { createMetricsRoutes } from "@presentation/routes/metricsRoutes";
 import { createDocsRoutes } from "@presentation/routes/docsRoutes";
 import { createDashboardRoutes } from "@presentation/routes/dashboardRoutes";
-import { createPerformanceRoutes } from "@presentation/routes/performanceRoutes";
-import { PerformanceMonitor } from "@infrastructure/monitoring/PerformanceMonitor";
 
 import { ServiceRoute } from "@domain/value-objects/ServiceRoute";
 
@@ -55,7 +53,6 @@ class ApiGatewayApplication {
   private redisRateLimitClient?: RedisRateLimitClient;
   // private rateLimitMiddleware?: AdvancedRateLimitMiddleware; // Disabled for development
   private sizeLimitMiddleware: SizeLimitMiddleware;
-  private performanceMonitor: PerformanceMonitor;
 
   constructor() {
     this.app = express();
@@ -134,22 +131,13 @@ class ApiGatewayApplication {
       logger,
     );
 
-    // Initialize performance monitor
-    this.performanceMonitor = new PerformanceMonitor(
-      parseInt(process.env.PERFORMANCE_WINDOW_MS || "3600000"), // 1 hour
-      parseInt(process.env.PERFORMANCE_MAX_METRICS || "10000"),
-    );
-
     this.authenticationMiddleware = new AuthenticationMiddleware(
       authenticateRequestUseCase,
     );
     this.authorizationMiddleware = new AuthorizationMiddleware(
       authorizeRequestUseCase,
     );
-    this.loggingMiddleware = new LoggingMiddleware(
-      logger,
-      this.performanceMonitor,
-    );
+    this.loggingMiddleware = new LoggingMiddleware(logger);
     this.errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
 
     const endpointLimits = new Map<string, number>();
@@ -654,12 +642,6 @@ class ApiGatewayApplication {
 
     // Metrics routes
     this.app.use("/metrics", createMetricsRoutes(this.serviceRegistry, logger));
-
-    // Performance metrics routes
-    this.app.use(
-      "/api/metrics",
-      createPerformanceRoutes(this.performanceMonitor, logger),
-    );
 
     // =========================================================================
     // DEBUG ENDPOINT - Routing Table

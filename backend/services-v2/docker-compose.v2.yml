@@ -538,10 +538,20 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - REDIS_URL=redis://redis-v2:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
-      - DATABASE_SCHEMA=notification_schema
+      - DATABASE_SCHEMA=notifications_schema
       - IDENTITY_SERVICE_URL=http://identity-service:3001
-      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY}
-      - SMS_SERVICE_API_KEY=${SMS_SERVICE_API_KEY}
+      # SendGrid Email Configuration
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
+      - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME}
+      # Twilio SMS Configuration
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      # Reminder Cron Job Configuration
+      - REMINDER_CRON_ENABLED=true
+      - REMINDER_CRON_EXPRESSION=*/5 * * * *
+      - REMINDER_BATCH_SIZE=100
     depends_on:
       - redis-v2
       - rabbitmq-v2
@@ -552,68 +562,41 @@ services:
       - supporting
       - dev
       - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
-  # Notifications Consumer - RabbitMQ Consumer for Scheduled Notifications
-  notifications-consumer:
-    build:
-      context: .
-      dockerfile: ./notifications-service/Dockerfile.consumer
-    container_name: hospital-notifications-consumer-v2
-    environment:
-      # - NODE_ENV=development # Commented for production mode
-      - NODE_ENV=production
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
-      - DATABASE_SCHEMA=notification_schema
-      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY}
-      - SMS_SERVICE_API_KEY=${SMS_SERVICE_API_KEY}
-    depends_on:
-      - redis-v2
-      - rabbitmq-v2
-      - notifications-service
-    networks:
-      - hospital-v2-network
-    profiles:
-      - supporting
-      - dev
-      - full
-    restart: unless-stopped
+  # ARCHIVED - Notifications Consumer (Replaced by ReminderCronJob in Notifications Service)
+  # The cron job now runs inside notifications-service container
+  # Uncomment if need to revert to separate consumer architecture
+  # notifications-consumer:
+  #   build:
+  #     context: .
+  #     dockerfile: ./notifications-service/Dockerfile.consumer
+  #   container_name: hospital-notifications-consumer-v2
+  #   environment:
+  #     - NODE_ENV=production
+  #     - SUPABASE_URL=${SUPABASE_URL}
+  #     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+  #     - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
+  #     - DATABASE_SCHEMA=notifications_schema
+  #     - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+  #     - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+  #   depends_on:
+  #     - redis-v2
+  #     - rabbitmq-v2
+  #     - notifications-service
+  #   networks:
+  #     - hospital-v2-network
+  #   profiles:
+  #     - supporting
+  #     - dev
+  #     - full
+  #   restart: unless-stopped
 
-  # API Gateway V2
-  api-gateway-v2:
-    build:
-      context: .
-      dockerfile: ./api-gateway-v2/Dockerfile
-    container_name: hospital-api-gateway-v2
-    ports:
-      - "3101:3101"
-    environment:
-      # - NODE_ENV=development # Commented for production mode
-      - NODE_ENV=production
-      - PORT=3101
-      - IDENTITY_SERVICE_URL=http://identity-service:3001
-      - PATIENT_SERVICE_URL=http://patient-registry-service:3003
-      - PROVIDER_SERVICE_URL=http://provider-staff-service:3002
-      - APPOINTMENTS_SERVICE_URL=http://appointments-service:3004
-      # Clinical EMR Service - REMOVED FOR MVP (Focus on Appointments)
-      # - CLINICAL_SERVICE_URL=http://clinical-emr-service:3007
-      - BILLING_SERVICE_URL=http://billing-service:3009
-      - NOTIFICATIONS_SERVICE_URL=http://notifications-service:3011
-      - REDIS_URL=redis://redis-v2:6379
-      - CORS_ORIGIN=http://localhost:3000,http://localhost:3101
-    depends_on:
-      - identity-service
-      - patient-registry-service
-      - provider-staff-service
-      - appointments-service
-      # - clinical-emr-service # REMOVED FOR MVP
-      - billing-service
-      - notifications-service
-    networks:
-      - hospital-v2-network
-    profiles:
-      - gateway
-      - dev
-      - full
+  # REMOVED - Duplicate API Gateway V2 (consolidated with api-gateway service above)
+  # All gateway functionality is in the main api-gateway service
