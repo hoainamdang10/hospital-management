@@ -1,15 +1,12 @@
 import { IServiceRegistry } from '@application/services/IServiceRegistry';
 import { ServiceRoute } from '@domain/value-objects/ServiceRoute';
 import { ILogger } from '@application/services/ILogger';
-import { CircuitBreaker, CircuitBreakerConfig } from '@infrastructure/resilience/CircuitBreaker';
 import { CachedResponseService } from '@infrastructure/cache/CachedResponseService';
-import { CircuitBreakerConfigValidator } from '../../../../shared/infrastructure/validation/CircuitBreakerConfigValidator';
 import { loadTimeoutConfig } from '../../../../shared/infrastructure/config/TimeoutConfig';
 
 export class ServiceRegistry implements IServiceRegistry {
   private routes: Map<string, ServiceRoute> = new Map();
   private sortedRoutes: ServiceRoute[] = []; // Sorted by specificity for fast lookup
-  private circuitBreakers: Map<string, CircuitBreaker> = new Map();
   private cacheService: CachedResponseService;
   
   // ✅ FIX: Primary health check cache to avoid checking on every request
@@ -88,43 +85,10 @@ export class ServiceRegistry implements IServiceRegistry {
 
   registerRoute(route: ServiceRoute): void {
     this.routes.set(route.pathPrefix, route);
-    
+
     // Rebuild sorted routes array for efficient lookup
     this.sortedRoutes = Array.from(this.routes.values())
       .sort((a, b) => b.getSpecificity() - a.getSpecificity());
-
-    const timeouts = loadTimeoutConfig();
-
-    const rawConfig: CircuitBreakerConfig = {
-      failureThreshold: parseInt(process.env.CIRCUIT_BREAKER_THRESHOLD || '5'),
-      resetTimeout: timeouts.circuitBreaker.reset,
-      monitoringPeriod: parseInt(process.env.CIRCUIT_BREAKER_MONITORING_PERIOD || '60000'),
-      halfOpenMaxCalls: parseInt(process.env.CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS || '3')
-    };
-
-    const validationResult = CircuitBreakerConfigValidator.validate(rawConfig);
-
-    if (!validationResult.valid) {
-      this.logger.error('Invalid circuit breaker configuration', {
-        serviceName: route.serviceName,
-        errors: validationResult.errors,
-        config: rawConfig
-      });
-      throw new Error(`Invalid circuit breaker config for ${route.serviceName}: ${validationResult.errors.join(', ')}`);
-    }
-
-    if (validationResult.warnings.length > 0) {
-      this.logger.warn('Circuit breaker configuration warnings', {
-        serviceName: route.serviceName,
-        warnings: validationResult.warnings,
-        config: rawConfig
-      });
-    }
-
-    const circuitBreakerConfig = CircuitBreakerConfigValidator.sanitize(rawConfig);
-
-    const circuitBreaker = new CircuitBreaker(route.serviceName, circuitBreakerConfig);
-    this.circuitBreakers.set(route.serviceName, circuitBreaker);
 
     this.logger.info('Service route registered', {
       serviceName: route.serviceName,
@@ -133,13 +97,7 @@ export class ServiceRegistry implements IServiceRegistry {
       requiresAuth: route.requiresAuth,
       specificity: route.getSpecificity(),
       priority: this.sortedRoutes.findIndex(r => r === route) + 1,
-      totalRoutes: this.sortedRoutes.length,
-      circuitBreaker: {
-        failureThreshold: circuitBreakerConfig.failureThreshold,
-        resetTimeout: circuitBreakerConfig.resetTimeout,
-        halfOpenMaxCalls: circuitBreakerConfig.halfOpenMaxCalls,
-        validated: true
-      }
+      totalRoutes: this.sortedRoutes.length
     });
   }
 
@@ -147,7 +105,7 @@ export class ServiceRegistry implements IServiceRegistry {
     // ✅ FIX: Check primary cache first to avoid expensive health checks on every request
     const cached = this.healthCheckCache.get(serviceName);
     const now = Date.now();
-    
+
     if (cached && (now - cached.timestamp) < this.HEALTH_CHECK_TTL_MS) {
       this.logger.debug('Using cached health check result', {
         serviceName,
@@ -164,61 +122,24 @@ export class ServiceRegistry implements IServiceRegistry {
       return false;
     }
 
-    const circuitBreaker = this.circuitBreakers.get(serviceName);
-
-    if (!circuitBreaker) {
-      this.logger.warn('Circuit breaker not found for service', { serviceName });
-      const result = await this.performHealthCheck(route);
-      // Cache the result
-      this.healthCheckCache.set(serviceName, { isHealthy: result, timestamp: now });
-      return result;
-    }
-
     try {
-      return await circuitBreaker.execute(
-        async () => {
-          const isHealthy = await this.performHealthCheck(route);
-          
-          // ✅ FIX: Cache the health check result
-          this.healthCheckCache.set(serviceName, { isHealthy, timestamp: Date.now() });
+      const isHealthy = await this.performHealthCheck(route);
 
-          if (isHealthy) {
-            const cacheKey = this.cacheService.generateCacheKey(serviceName, '/health', 'GET');
-            this.cacheService.set(cacheKey, { status: 'healthy' }, 200);
-          }
+      // Cache the health check result
+      this.healthCheckCache.set(serviceName, { isHealthy, timestamp: now });
 
-          return isHealthy;
-        },
-        async () => {
-          this.logger.warn('Using fallback for health check', {
-            serviceName,
-            reason: 'Circuit breaker OPEN'
-          });
+      if (isHealthy) {
+        const cacheKey = this.cacheService.generateCacheKey(serviceName, '/health', 'GET');
+        this.cacheService.set(cacheKey, { status: 'healthy' }, 200);
+      }
 
-          const cacheKey = this.cacheService.generateCacheKey(serviceName, '/health', 'GET');
-          const cached = this.cacheService.get(cacheKey);
-
-          if (cached && cached.statusCode === 200) {
-            this.logger.info('Using cached health check result', {
-              serviceName,
-              age: Date.now() - cached.timestamp.getTime()
-            });
-            // ✅ FIX: Cache the fallback result too
-            this.healthCheckCache.set(serviceName, { isHealthy: true, timestamp: Date.now() });
-            return true;
-          }
-
-          // ✅ FIX: Cache unhealthy state to prevent repeated checks
-          this.healthCheckCache.set(serviceName, { isHealthy: false, timestamp: Date.now() });
-          return false;
-        }
-      );
+      return isHealthy;
     } catch (error) {
       this.logger.error('Health check failed', {
         serviceName,
         error: error instanceof Error ? error.message : String(error)
       });
-      // ✅ FIX: Invalidate cache on error to force recheck on next request
+      // Invalidate cache on error to force recheck on next request
       this.healthCheckCache.delete(serviceName);
       return false;
     }
@@ -283,21 +204,7 @@ export class ServiceRegistry implements IServiceRegistry {
     }
   }
 
-  getCircuitBreakerStats(): Array<{
-    serviceName: string;
-    state: string;
-    failureCount: number;
-    successCount: number;
-    metrics: any;
-  }> {
-    const stats: Array<any> = [];
 
-    for (const [, circuitBreaker] of this.circuitBreakers.entries()) {
-      stats.push(circuitBreaker.getStats());
-    }
-
-    return stats;
-  }
 
   getCacheStats(): any {
     return this.cacheService.getStats();
