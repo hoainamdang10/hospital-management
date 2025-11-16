@@ -21,7 +21,6 @@ import { AuthenticationMiddleware } from "@presentation/middleware/Authenticatio
 import { AuthorizationMiddleware } from "@presentation/middleware/AuthorizationMiddleware";
 import { LoggingMiddleware } from "@presentation/middleware/LoggingMiddleware";
 import { ErrorHandlingMiddleware } from "@presentation/middleware/ErrorHandlingMiddleware";
-import { SizeLimitMiddleware } from "@presentation/middleware/SizeLimitMiddleware";
 import { GlobalProxyMiddleware } from "@presentation/middleware/GlobalProxyMiddleware";
 
 import { createHealthRoutes } from "@presentation/routes/healthRoutes";
@@ -52,7 +51,6 @@ class ApiGatewayApplication {
   private errorHandlingMiddleware: ErrorHandlingMiddleware;
   private redisRateLimitClient?: RedisRateLimitClient;
   // private rateLimitMiddleware?: AdvancedRateLimitMiddleware; // Disabled for development
-  private sizeLimitMiddleware: SizeLimitMiddleware;
 
   constructor() {
     this.app = express();
@@ -139,26 +137,6 @@ class ApiGatewayApplication {
     );
     this.loggingMiddleware = new LoggingMiddleware(logger);
     this.errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
-
-    const endpointLimits = new Map<string, number>();
-    endpointLimits.set("/api/v1/clinical/*/attachments", 50 * 1024 * 1024);
-    endpointLimits.set("/api/v1/patients/*/documents", 50 * 1024 * 1024);
-    endpointLimits.set("/api/v1/billing/*/receipts", 10 * 1024 * 1024);
-
-    this.sizeLimitMiddleware = new SizeLimitMiddleware(
-      {
-        defaultLimit: parseInt(
-          process.env.REQUEST_SIZE_LIMIT || String(1024 * 1024),
-        ),
-        endpointLimits,
-        enableResponseSizeMonitoring:
-          process.env.ENABLE_RESPONSE_SIZE_MONITORING !== "false",
-        maxResponseSize: parseInt(
-          process.env.MAX_RESPONSE_SIZE || String(10 * 1024 * 1024),
-        ),
-      },
-      logger,
-    );
 
     // Initialize GlobalProxyMiddleware for centralized routing
     this.globalProxyMiddleware = new GlobalProxyMiddleware(
@@ -575,13 +553,9 @@ class ApiGatewayApplication {
       }),
     );
 
-    this.app.use(this.sizeLimitMiddleware.requestSizeLimit());
-    this.app.use(this.sizeLimitMiddleware.responseSizeMonitor());
-
-    const stats = this.sizeLimitMiddleware.getStats();
     logger.info("Size limits configured", {
-      defaultLimit: stats.defaultLimit,
-      maxResponseSize: stats.maxResponseSize,
+      defaultLimit: "10MB",
+      note: "Using Express built-in body parser limits"
     });
 
     // Apply rate limiting (Redis-based if available, fallback to in-memory)
