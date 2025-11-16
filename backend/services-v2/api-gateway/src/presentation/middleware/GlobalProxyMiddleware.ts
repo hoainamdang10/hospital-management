@@ -202,7 +202,7 @@ export class GlobalProxyMiddleware {
             requestId: request.requestId,
             method: request.method,
             target: route.baseUrl,
-            rewrittenPath,
+            path: originalPath,
             userId: request.user?.userId
           });
         },
