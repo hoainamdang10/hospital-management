@@ -50,11 +50,9 @@ curl http://localhost:3001/health  # Identity
 curl http://localhost:3002/health  # Patient
 curl http://localhost:3003/health  # Provider
 curl http://localhost:3004/health  # Appointments
-curl http://localhost:3005/health  # Clinical EMR
-curl http://localhost:3006/health  # Billing
-curl http://localhost:3007/health  # Notifications
-curl http://localhost:3008/health  # Department
-curl http://localhost:3009/health  # API Gateway
+curl http://localhost:3009/health  # Billing
+curl http://localhost:3011/health  # Notifications
+curl http://localhost:3101/health  # API Gateway
 
 # Windows PowerShell Health Check
 Invoke-WebRequest -Uri http://localhost:3001/health
@@ -70,19 +68,20 @@ npm run dev:clean            # Remove containers + volumes
 |---------|------|--------|----------|
 | identity-service | 3001 | ✅ Ready | 90%+ |
 | patient-registry-service | 3002 | ✅ Ready | 90%+ |
-| provider-staff-service | 3003 | ✅ Ready | 85%+ |
+| provider-staff-service (+ Departments) | 3003 | ✅ Ready | 85%+ |
 | appointments-service | 3004 | 🔄 Dev | 70%+ |
-| clinical-emr-service | 3005 | 🔄 Dev | 60%+ |
-| billing-service | 3006 | 🔄 Dev | 50%+ |
-| notifications-service | 3007 | 🔄 Dev | 60%+ |
-| department-service | 3008 | 🔄 Dev | 40%+ |
-| api-gateway | 3009 | 🔄 Dev | 70%+ |
+| billing-service | 3009 | 🔄 Dev | 50%+ |
+| notifications-service | 3011 | 🔄 Dev | 60%+ |
+| api-gateway | 3101 | 🔄 Dev | 70%+ |
 | **Infrastructure** | | | |
-| Redis | 6380 | ✅ Infra | - |
-| RabbitMQ | 5673 | ✅ Infra | - |
-| RabbitMQ UI | 15673 | ✅ Infra | - |
+| Redis | 6379 (Docker: 6380) | ✅ Infra | - |
+| RabbitMQ | 5672 (Docker: 5673) | ✅ Infra | - |
+| RabbitMQ UI | 15672 (Docker: 15673) | ✅ Infra | - |
 | **Frontend** | | | |
 | Next.js App | 3000 | ✅ Ready | 60%+ |
+| **Removed Services** | | | |
+| ~~clinical-emr-service~~ | ~~3005~~ | ❌ Disabled | MVP scope |
+| ~~department-service~~ | ~~3025~~ | ❌ Merged | Into provider-staff |
 
 ---
 
@@ -94,12 +93,11 @@ hospital-management-V2/
 │   └── services-v2/                    # Microservices root
 │       ├── identity-service/           # ✅ Auth & User Management
 │       ├── patient-registry-service/   # ✅ Patient Management
-│       ├── provider-staff-service/     # ✅ Doctor/Staff Management
+│       ├── provider-staff-service/     # ✅ Doctor/Staff + Department Management
 │       ├── appointments-service/       # 🔄 Appointments & Scheduling
 │       ├── clinical-emr-service/       # 🔄 Medical Records & FHIR
 │       ├── billing-service/            # 🔄 Payments & Billing
 │       ├── notifications-service/      # 🔄 Notifications
-│       ├── department-service/         # 🔄 Department Management
 │       ├── api-gateway/                # 🔄 API Gateway
 │       ├── shared/                     # Shared domain primitives
 │       │   ├── domain/                 # Base entities, value objects
@@ -660,29 +658,36 @@ GET  /health
 
 **Status**: Production Ready | **Coverage**: 85%+
 
-**Responsibilities**: Doctor/Staff Management, Schedules, Credentials
+**Responsibilities**: Doctor/Staff Management, Department Management, Schedules, Credentials
 
 **Key Features**:
 - Doctor/Staff profiles
 - Credentials & certifications
+- **Department management (merged module)**
 - Department assignments
 - Schedule management
 - Specializations
 - Availability tracking
 
-**Schema**: `provider_schema`
+**Schema**: `provider_schema` (includes departments tables)
 
 **Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
 
 **Endpoints**:
 ```
-POST /api/providers
-GET  /api/providers/:id
-PUT  /api/providers/:id
-GET  /api/providers/:id/schedule
-POST /api/providers/:id/credentials
+POST /api/v1/staff
+GET  /api/v1/staff/:id
+PUT  /api/v1/staff/:id
+GET  /api/v1/staff/:id/schedule
+POST /api/v1/staff/:id/credentials
+GET  /api/v1/departments
+GET  /api/v1/departments/:id
+POST /api/v1/departments
+PUT  /api/v1/departments/:id
 GET  /health
 ```
+
+**Note**: Department Service đã được merge vào Provider/Staff Service. Departments được quản lý như một module trong cùng bounded context "Staff & Organization Management".
 
 ### Business Services (In Development)
 
@@ -801,24 +806,6 @@ PUT  /api/notifications/:id/read
 GET  /health
 ```
 
-#### Department Service (3008) 🔄
-
-**Status**: 40% Complete | **Coverage**: 40%+
-
-**Responsibilities**: Department Management, Organizational Structure
-
-**Key Features**:
-- Department CRUD
-- Hierarchical structure
-- Staff assignments
-- Resource management
-
-**Schema**: `department_schema`
-
-**Tech Stack**: Express, TypeScript, Supabase, RabbitMQ
-
-**Note**: ⚠️ Architecture violation - currently lacking application layer (use cases). Controller talks directly to repository. Should be refactored before production use.
-
 #### API Gateway (3009) 🔄
 
 **Status**: 70% Complete | **Coverage**: 70%+
@@ -878,11 +865,16 @@ test(provider): add credential validation tests
 
 - `auth_schema` - Identity
 - `patient_schema` - Patient Registry
-- `provider_schema` - Provider/Staff
+- `provider_schema` - Provider/Staff + Departments (merged)
 - `appointments_schema` - Appointments
 - `clinical_schema` - Clinical EMR
 - `billing_schema` - Billing
 - `notifications_schema` - Notifications
+
+**Removed Legacy Schemas:**
+- ~~`departments_schema`~~ - Merged into `provider_schema`
+- ~~`payment_schema`~~ - Duplicate of `billing_schema`
+- ~~`scheduler`~~ - Service removed
 
 ### Migrations
 

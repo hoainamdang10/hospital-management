@@ -60,6 +60,7 @@ export declare class DIContainer {
     private inboxRepository;
     private patientService;
     private providerService;
+    private httpProviderService;
     private schedulerAdapter;
     private conflictResolutionService;
     private authorizationService;

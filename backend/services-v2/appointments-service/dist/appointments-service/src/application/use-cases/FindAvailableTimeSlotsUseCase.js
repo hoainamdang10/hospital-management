@@ -37,9 +37,10 @@ const TimeSlot_vo_1 = require("../../domain/value-objects/TimeSlot.vo");
  * 4. Return available time slots
  */
 class FindAvailableTimeSlotsUseCase {
-    constructor(providerScheduleRepository, appointmentRepository) {
+    constructor(providerScheduleRepository, appointmentRepository, httpProviderService) {
         this.providerScheduleRepository = providerScheduleRepository;
         this.appointmentRepository = appointmentRepository;
+        this.httpProviderService = httpProviderService;
     }
     /**
      * Execute use case
@@ -52,8 +53,9 @@ class FindAvailableTimeSlotsUseCase {
         const { providerId, date, durationMinutes } = command;
         // Validate inputs
         this.validateCommand(command);
-        // 1. Get cached work schedule template
-        const providerSchedule = await this.providerScheduleRepository.findByProviderId(providerId);
+        // 1. Get work schedule from Provider/Staff Service (HTTP call)
+        // Simple approach for MVP: direct API call instead of event-driven read model
+        const providerSchedule = await this.httpProviderService.getWorkSchedule(providerId);
         if (!providerSchedule) {
             throw new Error(`Provider schedule not found for provider: ${providerId}`);
         }

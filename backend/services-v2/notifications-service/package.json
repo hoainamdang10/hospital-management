@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "dev:consumer": "nodemon src/consumer.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "start:consumer": "node dist/consumer.js",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/notifications-service/src/index.js",
+    "start:consumer": "node dist/notifications-service/src/consumer.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -58,6 +58,7 @@
     "nodemon": "^3.0.1",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
+    "tsc-alias": "^1.8.8",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.6"
   },

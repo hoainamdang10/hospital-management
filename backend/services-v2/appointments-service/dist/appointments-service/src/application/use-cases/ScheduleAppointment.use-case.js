@@ -172,7 +172,8 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
                     durationMinutes: request.durationMinutes,
                     type: request.type,
                     priority: request.priority,
-                    status: 'scheduled',
+                    // ✅ FIX: Return actual status from aggregate (pending_payment)
+                    status: appointment.status,
                     consultationFee: request.consultationFee,
                     // Payment tracking (Flow 3 - Prepaid Model)
                     paymentStatus: appointment.paymentStatus,

@@ -21,11 +21,32 @@ class AppointmentReadModelEventHandler {
      */
     async handleAppointmentScheduled(event) {
         try {
-            console.log(`[ReadModel] Processing AppointmentScheduledEvent: ${event.appointmentId}`);
+            // FIX: After deserialization, event data is spread into root level of event object
+            // Access properties directly instead of relying on readonly properties
+            const eventAny = event;
+            const appointmentId = eventAny.appointmentId;
+            const patientId = eventAny.patientId;
+            const doctorId = eventAny.doctorId;
+            const appointmentDate = eventAny.appointmentDate;
+            const appointmentTime = eventAny.appointmentTime;
+            const durationMinutes = eventAny.durationMinutes;
+            const type = eventAny.type;
+            const priority = eventAny.priority;
+            const status = eventAny.status;
+            const roomId = eventAny.roomId;
+            const departmentId = eventAny.departmentId;
+            const consultationFee = eventAny.consultationFee;
+            const reason = eventAny.reason;
+            const chiefComplaint = eventAny.chiefComplaint;
+            const symptoms = eventAny.symptoms;
+            const notes = eventAny.notes;
+            const specialInstructions = eventAny.specialInstructions;
+            const requiredEquipment = eventAny.requiredEquipment;
+            console.log(`[ReadModel] Processing AppointmentScheduledEvent: ${appointmentId}`);
             // 1. Fetch patient data from Patient Service
             let patientData;
             try {
-                const patient = await this.patientService.getPatient(event.patientId);
+                const patient = await this.patientService.getPatient(patientId);
                 if (patient) {
                     patientData = {
                         patientFullName: patient.fullName,
@@ -47,7 +68,7 @@ class AppointmentReadModelEventHandler {
             // 2. Fetch doctor data from Provider Service
             let doctorData;
             try {
-                const doctor = await this.providerService.getProvider(event.doctorId);
+                const doctor = await this.providerService.getProvider(doctorId);
                 if (doctor) {
                     doctorData = {
                         doctorFullName: doctor.fullName,
@@ -64,29 +85,33 @@ class AppointmentReadModelEventHandler {
                 // Continue without doctor data - will be synced later via DoctorUpdatedEvent
             }
             // 3. Create read model entry
+            // Convert string date to Date object if needed
+            const appointmentDateObj = typeof appointmentDate === 'string'
+                ? new Date(appointmentDate)
+                : appointmentDate;
             await this.readModelRepo.create({
-                appointmentId: event.appointmentId,
-                patientId: event.patientId,
-                doctorId: event.doctorId,
-                appointmentDate: event.appointmentDate,
-                appointmentTime: event.appointmentTime,
-                durationMinutes: event.durationMinutes,
-                type: event.type,
-                priority: event.priority,
-                status: event.status,
-                roomId: event.roomId,
-                departmentId: event.departmentId,
-                consultationFee: event.consultationFee, // Billing reference only
+                appointmentId,
+                patientId,
+                doctorId,
+                appointmentDate: appointmentDateObj,
+                appointmentTime,
+                durationMinutes,
+                type,
+                priority,
+                status,
+                roomId,
+                departmentId,
+                consultationFee, // Billing reference only
                 patientData,
                 doctorData,
-                reason: event.reason,
-                chiefComplaint: event.chiefComplaint,
-                symptoms: event.symptoms,
-                notes: event.notes,
-                specialInstructions: event.specialInstructions,
-                requiredEquipment: event.requiredEquipment
+                reason,
+                chiefComplaint,
+                symptoms,
+                notes,
+                specialInstructions,
+                requiredEquipment
             });
-            console.log(`[ReadModel] Successfully created read model for appointment: ${event.appointmentId}`);
+            console.log(`[ReadModel] Successfully created read model for appointment: ${appointmentId}`);
         }
         catch (error) {
             console.error(`[ReadModel] Failed to handle AppointmentScheduledEvent: ${error}`);

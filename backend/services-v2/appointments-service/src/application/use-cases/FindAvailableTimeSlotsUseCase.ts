@@ -24,6 +24,7 @@
 import { IProviderScheduleRepository } from '../../domain/repositories/IProviderScheduleRepository';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
 import { TimeSlot } from '../../domain/value-objects/TimeSlot.vo';
+import { HttpProviderService } from '../../infrastructure/services/HttpProviderService';
 
 export interface FindAvailableTimeSlotsCommand {
   providerId: string;
@@ -57,7 +58,8 @@ export interface AvailableTimeSlotDTO {
 export class FindAvailableTimeSlotsUseCase {
   constructor(
     private readonly providerScheduleRepository: IProviderScheduleRepository,
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: IAppointmentRepository,
+    private readonly httpProviderService: HttpProviderService
   ) {}
 
   /**
@@ -73,8 +75,9 @@ export class FindAvailableTimeSlotsUseCase {
     // Validate inputs
     this.validateCommand(command);
 
-    // 1. Get cached work schedule template
-    const providerSchedule = await this.providerScheduleRepository.findByProviderId(providerId);
+    // 1. Get work schedule from Provider/Staff Service (HTTP call)
+    // Simple approach for MVP: direct API call instead of event-driven read model
+    const providerSchedule = await this.httpProviderService.getWorkSchedule(providerId);
     
     if (!providerSchedule) {
       throw new Error(`Provider schedule not found for provider: ${providerId}`);

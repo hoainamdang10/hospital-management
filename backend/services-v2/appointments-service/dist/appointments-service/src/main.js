@@ -151,8 +151,8 @@ if (config.logging.enableRequestLogging) {
     app.use((0, LoggingMiddleware_1.requestLoggingMiddleware)(logger));
     app.use((0, LoggingMiddleware_1.performanceLoggingMiddleware)(logger, 1000)); // Log requests > 1s
 }
-// Rate limiting - Apply globally (reads from env: RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS)
-app.use((0, ValidationMiddleware_1.rateLimitMiddleware)());
+// Rate limiting - DISABLED for development (health checks spam from API Gateway)
+// app.use(rateLimitMiddleware());
 // Request size limit
 app.use((0, ValidationMiddleware_1.requestSizeLimitMiddleware)(10 * 1024 * 1024)); // 10MB
 // Content type validation (for POST/PUT/PATCH)

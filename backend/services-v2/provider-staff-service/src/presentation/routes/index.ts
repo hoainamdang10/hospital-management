@@ -7,6 +7,7 @@
 
 import { Express } from 'express';
 import { createStaffRoutes } from './staffRoutes';
+import { createDepartmentRoutes } from './department.routes';
 import { StaffController } from '../controllers/StaffController';
 import { logger } from '../../infrastructure/logging/logger';
 import { RegisterStaffUseCase } from '../../application/use-cases/RegisterStaffUseCase';
@@ -29,6 +30,7 @@ import { AddStaffSpecializationUseCase } from '../../application/use-cases/AddSt
 import { RemoveStaffSpecializationUseCase } from '../../application/use-cases/RemoveStaffSpecializationUseCase';
 import { StaffCommandHandlers } from '../../application/handlers/StaffCommandHandlers';
 import { StaffQueryHandlers } from '../../application/handlers/StaffQueryHandlers';
+import { SupabaseDepartmentRepository } from '../../infrastructure/repositories/SupabaseDepartmentRepository';
 
 export function setupRoutes(
   app: Express,
@@ -81,6 +83,16 @@ export function setupRoutes(
   // Staff routes
   const staffRoutes = createStaffRoutes(staffController);
   app.use('/api/v1/staff', staffRoutes);
+
+  // Department routes (now integrated into Provider Service)
+  const departmentRepository = new SupabaseDepartmentRepository(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+  const departmentRoutes = createDepartmentRoutes(departmentRepository);
+  app.use('/api/v1/departments', departmentRoutes);
+
+  logger.info('Department routes registered at /api/v1/departments');
 
   // Note: /health endpoint is registered in src/main.ts (detailed version)
   // Removed duplicate registration to avoid conflicts

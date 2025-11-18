@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Calendar, Save } from 'lucide-react';
+import { Calendar, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 

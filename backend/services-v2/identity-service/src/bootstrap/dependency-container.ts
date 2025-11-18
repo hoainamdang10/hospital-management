@@ -69,6 +69,7 @@ import { UpdateUserUseCase } from "../application/use-cases/UpdateUserUseCase";
 import { ListUsersUseCase } from "../application/use-cases/ListUsersUseCase";
 import { ChangePasswordUseCase } from "../application/use-cases/ChangePasswordUseCase";
 import { AssignRoleUseCase } from "../application/use-cases/AssignRoleUseCase";
+import { UnlockAccountUseCase } from "../application/use-cases/UnlockAccountUseCase";
 
 // Use Cases - Staff Management
 import { ProvisionStaffUseCase } from "../application/use-cases/ProvisionStaffUseCase";
@@ -143,6 +144,7 @@ export class DependencyContainer {
   private listUsersUseCase!: ListUsersUseCase;
   private changePasswordUseCase!: ChangePasswordUseCase;
   private assignRoleUseCase!: AssignRoleUseCase;
+  private unlockAccountUseCase!: UnlockAccountUseCase;
 
   // Use Cases - Staff Management
   private provisionStaffUseCase!: ProvisionStaffUseCase;
@@ -559,6 +561,13 @@ export class DependencyContainer {
       CircuitBreakerFactory.getBreaker("assign-role-use-case"),
     );
 
+    this.unlockAccountUseCase = new UnlockAccountUseCase(
+      this.userRepository,
+      this.logger,
+      CircuitBreakerFactory.getBreaker("unlock-account-use-case"),
+      this.eventPublisher,
+    );
+
     // Staff management use cases
     this.provisionStaffUseCase = new ProvisionStaffUseCase(
       this.userRepository,
@@ -834,6 +843,7 @@ export class DependencyContainer {
       listUsersUseCase: this.listUsersUseCase,
       changePasswordUseCase: this.changePasswordUseCase,
       assignRoleUseCase: this.assignRoleUseCase,
+      unlockAccountUseCase: this.unlockAccountUseCase,
 
       // Staff Management Use Cases
       provisionStaffUseCase: this.provisionStaffUseCase,

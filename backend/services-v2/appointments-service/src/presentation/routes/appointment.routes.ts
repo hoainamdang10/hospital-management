@@ -32,6 +32,16 @@ export function createAppointmentRoutes(): Router {
   const controller = container.getAppointmentController();
 
   // Command Routes (Write Operations) - with auth, validation, and idempotency
+  
+  // Simplified booking endpoint for patient self-service (MVP)
+  // Minimal validation - patient enters own info
+  router.post(
+    '/appointments/book',
+    authenticate,
+    idempotencyMiddleware,
+    (req, res) => controller.scheduleAppointmentSimplified(req, res)
+  );
+  
   router.post(
     '/appointments',
     authenticate,

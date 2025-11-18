@@ -17,9 +17,12 @@ const supabase_js_1 = require("@supabase/supabase-js");
 class ProviderReadModelRepository {
     constructor(supabaseUrl, supabaseKey) {
         this.table = 'provider_read_model';
+        this.schema = 'appointments_schema';
+        this.fallbackSchema = 'provider_schema';
+        this.fallbackTable = 'staff_profiles';
+        // Create client without schema restriction for fallback queries
         this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
             auth: { autoRefreshToken: false, persistSession: false },
-            db: { schema: 'appointments_schema' },
             global: { headers: { 'X-Client-Info': 'appointments-provider-read' } }
         });
     }
@@ -49,21 +52,65 @@ class ProviderReadModelRepository {
     }
     /**
      * Find provider by ID
+     * Falls back to provider_schema.staff_profiles if read model is empty
      */
     async findById(providerId) {
+        // Try read model first
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select('*')
             .eq('provider_id', providerId)
             .maybeSingle();
-        if (error) {
+        if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
             throw new Error(`Failed to fetch provider read model: ${error.message}`);
         }
-        if (!data) {
-            console.debug(`[ProviderReadModelRepo] Provider ${providerId} not found in read model`);
+        if (data) {
+            return this.mapToModel(data);
+        }
+        // Fallback to provider_schema.staff_profiles
+        console.debug(`[ProviderReadModelRepo] Provider ${providerId} not found in read model, trying fallback`);
+        return await this.findByIdFallback(providerId);
+    }
+    /**
+     * Fallback: Query provider_schema.staff_profiles directly
+     */
+    async findByIdFallback(providerId) {
+        try {
+            const { data, error } = await this.supabase
+                .schema(this.fallbackSchema)
+                .from(this.fallbackTable)
+                .select('staff_id, personal_info, professional_info, contact_info, status')
+                .eq('staff_id', providerId)
+                .maybeSingle();
+            if (error) {
+                console.error(`[ProviderReadModelRepo] Fallback query failed: ${error.message}`);
+                return null;
+            }
+            if (!data) {
+                console.debug(`[ProviderReadModelRepo] Provider ${providerId} not found in fallback`);
+                return null;
+            }
+            // Map JSONB fields to ProviderReadModel
+            const personalInfo = data.personal_info || {};
+            const professionalInfo = data.professional_info || {};
+            const contactInfo = data.contact_info || {};
+            return {
+                providerId: data.staff_id,
+                tenantId: 'hospital-1', // Default tenant
+                fullName: personalInfo.fullName || '',
+                specialization: professionalInfo.specialization,
+                department: professionalInfo.department,
+                licenseNumber: professionalInfo.licenseNumber,
+                phone: contactInfo.phone,
+                email: contactInfo.email,
+                isActive: data.status === 'ACTIVE'
+            };
+        }
+        catch (error) {
+            console.error(`[ProviderReadModelRepo] Fallback error:`, error);
             return null;
         }
-        return this.mapToModel(data);
     }
     /**
      * Find multiple providers by IDs

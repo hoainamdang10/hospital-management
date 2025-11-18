@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
-const container_1 = require("@shared/infrastructure/di/container");
+const container_1 = require("../../shared/infrastructure/di/container");
 const setup_1 = require("./infrastructure/di/setup");
 const RabbitMQConsumer_1 = require("./infrastructure/messaging/RabbitMQConsumer");
 // Load environment variables

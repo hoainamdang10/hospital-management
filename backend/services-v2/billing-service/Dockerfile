@@ -139,4 +139,4 @@ EXPOSE 3009
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/billing-service/src/main.js"]

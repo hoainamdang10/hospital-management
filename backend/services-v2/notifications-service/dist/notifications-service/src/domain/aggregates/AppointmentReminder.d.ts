@@ -6,8 +6,8 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
+import { HealthcareAggregateRoot } from '../../../../shared/domain/base/aggregate-root';
+import { DomainEvent } from '../../../../shared/domain/base/domain-event';
 import { ReminderType } from '../value-objects/ReminderType';
 import { ReminderStatus } from '../value-objects/ReminderStatus';
 export interface AppointmentReminderProps {

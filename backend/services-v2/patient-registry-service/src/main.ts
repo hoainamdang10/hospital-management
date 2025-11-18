@@ -109,7 +109,7 @@ import { AuthorizationMiddleware } from './presentation/middleware/Authorization
 
 // Configuration
 const config = {
-  port: process.env.PORT || 3003,
+  port: process.env.PORT || 3002,
   supabaseUrl: process.env.SUPABASE_URL || '',
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',

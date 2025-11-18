@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings, Save, Globe, Bell, Lock, Database } from 'lucide-react';
+import { Save, Globe, Bell, Lock, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 

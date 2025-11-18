@@ -90,6 +90,43 @@ function createAdminRoutes(deps) {
             });
         }
     });
+    // Unlock account (PROTECTED - admin only)
+    router.post('/accounts/unlock', async (req, res) => {
+        try {
+            const { userId, reason } = req.body;
+            const adminUserId = req.user?.userId || '';
+            if (!userId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'User ID is required'
+                });
+            }
+            if (!reason) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Reason is required'
+                });
+            }
+            // Use UnlockAccountUseCase
+            const result = await deps.unlockAccountUseCase.execute({
+                userId,
+                unlockedBy: adminUserId,
+                reason
+            });
+            if (!result.success) {
+                return res.status(400).json(result);
+            }
+            logger.info('Account unlocked successfully', { userId, adminUserId, reason });
+            return res.json(result);
+        }
+        catch (error) {
+            logger.error('Unlock account endpoint error', { userId: req.body.userId, error: getErrorMessage(error) });
+            return res.status(500).json({
+                success: false,
+                error: 'Lỗi hệ thống, vui lòng thử lại sau'
+            });
+        }
+    });
     return router;
 }
 //# sourceMappingURL=admin.routes.js.map

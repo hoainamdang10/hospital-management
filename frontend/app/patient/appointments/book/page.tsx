@@ -86,11 +86,9 @@ export default function BookAppointmentPage() {
     try {
       setLoadingDepartments(true);
       const allDepartments = await getDepartments();
-      // Filter out non-clinical departments
-      const clinicalDepts = allDepartments.filter(
-        d => !['ADMI', 'LABO', 'RADI'].includes(d.code)
-      );
-      setDepartments(clinicalDepts);
+      // Show all active departments
+      const activeDepts = allDepartments.filter(d => d.isActive);
+      setDepartments(activeDepts);
     } catch (error) {
       console.error('Error loading departments:', error);
       toast.error('Không thể tải danh sách khoa');
@@ -124,7 +122,7 @@ export default function BookAppointmentPage() {
       const response = await getAvailableSlots(doctorId, dateStr, 30);
       
       if (response.success) {
-        setAvailableSlots(response.data.slots);
+        setAvailableSlots(response.data.availableSlots);
       }
     } catch (error) {
       console.error('Error loading slots:', error);
@@ -136,7 +134,20 @@ export default function BookAppointmentPage() {
   }
 
   async function handleSubmit() {
-    if (!user?.id || !selectedDoctor || !selectedDate || !selectedTime) {
+    console.log('[BookAppointment] handleSubmit called', {
+      user,
+      hasPatientId: !!user?.patientId,
+      patientId: user?.patientId,
+      userId: user?.userId,
+      role: user?.role
+    });
+    
+    if (!user?.patientId || !selectedDoctor || !selectedDate || !selectedTime) {
+      if (!user?.patientId) {
+        console.error('[BookAppointment] Missing patientId!', { user });
+        toast.error('Không tìm thấy thông tin bệnh nhân. Vui lòng cập nhật hồ sơ cá nhân.');
+        return;
+      }
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
@@ -144,11 +155,18 @@ export default function BookAppointmentPage() {
     try {
       setSubmitting(true);
       
+      // Ensure time format is HH:MM:SS
+      let appointmentTime = selectedTime.formattedTime || format(new Date(selectedTime.startTime), 'HH:mm:ss');
+      // Add seconds if missing (09:00 -> 09:00:00)
+      if (appointmentTime.length === 5) {
+        appointmentTime = `${appointmentTime}:00`;
+      }
+      
       const response = await appointmentsService.schedule({
-        patientId: user.id,
+        patientId: user.patientId, // PAT-202511-XXX format
         doctorId: selectedDoctor.staffId,
         appointmentDate: format(selectedDate, 'yyyy-MM-dd'),
-        appointmentTime: selectedTime.startTime,
+        appointmentTime,
         appointmentType,
         reason: reason || 'Khám bệnh',
       });

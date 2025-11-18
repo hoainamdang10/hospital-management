@@ -330,43 +330,66 @@ exports.DoctorAvailabilityChangedEvent = DoctorAvailabilityChangedEvent;
 // SCHEDULING SERVICE EVENTS
 // ============================================================================
 /**
- * Published when appointment is scheduled
- * Subscribers: Patient Service, Doctor Service, Notification Service, Billing Service
+ * PLACEHOLDER: AppointmentScheduledEvent
+ *
+ * This is a placeholder class for EVENT_TYPE_REGISTRY.
+ * The actual implementation is in appointments-service/src/domain/events/AppointmentScheduledEvent.ts
+ *
+ * FIXED: Constructor now accepts all 11 parameters to properly initialize readonly properties
+ * during deserialization.
  */
 class AppointmentScheduledEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, appointmentIdCode, // TYPE-DEPT-YYYYMM-SEQ
-    patientId, doctorId, appointmentDate, startTime, endTime, appointmentType, reason, priority) {
-        super('AppointmentScheduled', appointmentId, 'Appointment', { appointmentIdCode, patientId, doctorId, appointmentDate, startTime, endTime, appointmentType, reason, priority }, 1);
+    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, durationMinutes, type, priority, status, consultationFee, createdBy, correlationId, causationId, userId) {
+        const eventData = {
+            appointmentId,
+            patientId,
+            doctorId,
+            appointmentDate,
+            appointmentTime,
+            durationMinutes,
+            type,
+            priority,
+            status,
+            consultationFee,
+            createdBy,
+            scheduledAt: new Date()
+        };
+        super('AppointmentScheduled', appointmentId, 'Appointment', eventData, 1, correlationId, causationId, userId);
+        // Assign readonly properties
         this.appointmentId = appointmentId;
-        this.appointmentIdCode = appointmentIdCode;
         this.patientId = patientId;
         this.doctorId = doctorId;
         this.appointmentDate = appointmentDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.appointmentType = appointmentType;
-        this.reason = reason;
+        this.appointmentTime = appointmentTime;
+        this.durationMinutes = durationMinutes;
+        this.type = type;
         this.priority = priority;
+        this.status = status;
+        this.consultationFee = consultationFee;
+        this.createdBy = createdBy;
+        this.scheduledAt = eventData.scheduledAt;
     }
     getEventData() {
         return {
             appointmentId: this.appointmentId,
-            appointmentIdCode: this.appointmentIdCode,
             patientId: this.patientId,
             doctorId: this.doctorId,
-            appointmentDate: this.appointmentDate.toISOString(),
-            startTime: this.startTime,
-            endTime: this.endTime,
-            appointmentType: this.appointmentType,
-            reason: this.reason,
-            priority: this.priority
+            appointmentDate: this.appointmentDate,
+            appointmentTime: this.appointmentTime,
+            durationMinutes: this.durationMinutes,
+            type: this.type,
+            priority: this.priority,
+            status: this.status,
+            consultationFee: this.consultationFee,
+            createdBy: this.createdBy,
+            scheduledAt: this.scheduledAt
         };
     }
     containsPHI() {
         return true;
     }
     getPatientId() {
-        return this.patientId;
+        return this.patientId || null;
     }
 }
 exports.AppointmentScheduledEvent = AppointmentScheduledEvent;

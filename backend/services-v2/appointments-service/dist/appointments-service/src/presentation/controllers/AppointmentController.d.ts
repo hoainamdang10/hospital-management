@@ -45,6 +45,11 @@ export declare class AppointmentController {
      */
     scheduleAppointment(req: Request, res: Response): Promise<void>;
     /**
+     * POST /api/appointments/book
+     * Schedule appointment - Simplified MVP endpoint for patient self-booking
+     */
+    scheduleAppointmentSimplified(req: Request, res: Response): Promise<void>;
+    /**
      * GET /api/appointments/:id
      * Get appointment by ID
      */

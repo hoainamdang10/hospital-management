@@ -15,12 +15,12 @@ import type {
  */
 export const appointmentsService = {
   /**
-   * Schedule a new appointment
-   * POST /api/v1/appointments
+   * Schedule a new appointment (Simplified MVP endpoint)
+   * POST /api/v1/appointments/book
    */
-  async schedule(data: ScheduleAppointmentRequest): Promise<ScheduleAppointmentResponse> {
+  async schedule(data: any): Promise<ScheduleAppointmentResponse> {
     const response = await apiClient.post<ScheduleAppointmentResponse>(
-      '/v1/appointments',
+      '/v1/appointments/book',
       data
     );
     return response.data;

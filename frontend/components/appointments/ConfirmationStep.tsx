@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Clock, User, Stethoscope, FileText, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, User, Stethoscope, FileText, AlertCircle, Mail, Phone, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Department } from '@/lib/api/departments.service';
@@ -61,9 +61,11 @@ export function ConfirmationStep({
             </div>
             <div>
               <p className="text-sm text-gray-600">Bác sĩ</p>
-              <p className="font-semibold text-gray-900">BS. {doctor.fullName}</p>
-              {doctor.specialization && doctor.specialization.length > 0 && (
-                <p className="text-sm text-gray-500">{doctor.specialization.join(', ')}</p>
+              <p className="font-semibold text-gray-900">
+                BS. {doctor.personalInfo?.fullName || 'Không rõ'}
+              </p>
+              {doctor.professionalInfo?.title && (
+                <p className="text-sm text-gray-500">{doctor.professionalInfo.title}</p>
               )}
             </div>
           </div>
@@ -88,10 +90,20 @@ export function ConfirmationStep({
             </div>
             <div>
               <p className="text-sm text-gray-600">Giờ khám</p>
-              <p className="font-semibold text-gray-900">{time.startTime}</p>
+              <p className="font-semibold text-gray-900">
+                {time.formattedTime || format(new Date(time.startTime), 'HH:mm')}
+              </p>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Note: Patient info displayed from appointment_read_model after booking */}
+      <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+        <p className="text-sm text-gray-700">
+          💡 <strong>Lưu ý:</strong> Thông tin bệnh nhân sẽ lấy từ hồ sơ của bạn. 
+          Nếu cần cập nhật thông tin, vui lòng vào <span className="text-blue-600 font-medium">Hồ sơ cá nhân</span> trước khi đặt lịch.
+        </p>
       </div>
 
       {/* Appointment Type */}

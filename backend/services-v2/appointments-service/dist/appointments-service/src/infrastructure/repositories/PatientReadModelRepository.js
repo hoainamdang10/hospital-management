@@ -17,9 +17,12 @@ const supabase_js_1 = require("@supabase/supabase-js");
 class PatientReadModelRepository {
     constructor(supabaseUrl, supabaseKey) {
         this.table = 'patient_read_model';
+        this.schema = 'appointments_schema';
+        this.fallbackSchema = 'patient_schema';
+        this.fallbackTable = 'patients';
+        // Create client without schema restriction for fallback queries
         this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
             auth: { autoRefreshToken: false, persistSession: false },
-            db: { schema: 'appointments_schema' },
             global: { headers: { 'X-Client-Info': 'appointments-patient-read' } }
         });
     }
@@ -51,21 +54,67 @@ class PatientReadModelRepository {
     }
     /**
      * Find patient by ID
+     * Falls back to patient_schema.patients if read model is empty
      */
     async findById(patientId) {
+        // Try read model first
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select('*')
             .eq('patient_id', patientId)
             .maybeSingle();
-        if (error) {
+        if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
             throw new Error(`Failed to fetch patient read model: ${error.message}`);
         }
-        if (!data) {
-            console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in read model`);
+        if (data) {
+            return this.mapToModel(data);
+        }
+        // Fallback to patient_schema.patients
+        console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in read model, trying fallback`);
+        return await this.findByIdFallback(patientId);
+    }
+    /**
+     * Fallback: Query patient_schema.patients directly
+     */
+    async findByIdFallback(patientId) {
+        try {
+            const { data, error } = await this.supabase
+                .schema(this.fallbackSchema)
+                .from(this.fallbackTable)
+                .select('patient_id, personal_info, contact_info, basic_medical_info')
+                .eq('patient_id', patientId)
+                .maybeSingle();
+            if (error) {
+                console.error(`[PatientReadModelRepo] Fallback query failed: ${error.message}`);
+                return null;
+            }
+            if (!data) {
+                console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in fallback`);
+                return null;
+            }
+            // Map JSONB fields to PatientReadModel
+            const personalInfo = data.personal_info || {};
+            const contactInfo = data.contact_info || {};
+            const medicalInfo = data.basic_medical_info || {};
+            return {
+                patientId: data.patient_id,
+                tenantId: 'hospital-1', // Default tenant
+                fullName: personalInfo.fullName || '',
+                phone: contactInfo.phone,
+                email: contactInfo.email,
+                dateOfBirth: personalInfo.dateOfBirth ? new Date(personalInfo.dateOfBirth) : undefined,
+                gender: personalInfo.gender,
+                nationalId: personalInfo.nationalId,
+                insuranceNumber: medicalInfo.insuranceNumber,
+                insuranceType: medicalInfo.insuranceType,
+                address: contactInfo.address
+            };
+        }
+        catch (error) {
+            console.error(`[PatientReadModelRepo] Fallback error:`, error);
             return null;
         }
-        return this.mapToModel(data);
     }
     /**
      * Find multiple patients by IDs

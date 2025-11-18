@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/api/auth.service';
+import { patientsService } from '@/lib/api/patients.service';
 import { toast } from 'sonner';
 import type { AuthContextType, User, LoginRequest, RegisterRequest } from '@/lib/types/auth';
 
@@ -22,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // DEV MODE: Controlled by env var
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
         // const isDevMode = process.env.NODE_ENV === 'development';
-        
+
         if (isDevMode) {
           console.log('[AuthContext] DEV MODE: Skipping auth verification');
           // Set mock user for development
@@ -47,12 +48,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Session cookie automatically sent with request
         try {
           const response = await authService.getCurrentUser();
-          
+
           if (response.success && response.user) {
-            setUser(response.user);
+            let user = response.user;
+
+            // Fetch patientId if user is a PATIENT (same logic as login)
+            console.log('[AuthContext] Init - Check if need to fetch patientId', {
+              role: user.role,
+              roleUpperCase: user.role?.toUpperCase(),
+              isPatient: user.role?.toUpperCase() === 'PATIENT'
+            });
+
+            if (user.role?.toUpperCase() === 'PATIENT') {
+              try {
+                console.log('[AuthContext] Init - Fetching patientId for PATIENT role...', {
+                  userId: user.userId
+                });
+                const patientResponse = await patientsService.getByUserId(user.userId);
+
+                console.log('[AuthContext] Init - Patient API response:', patientResponse);
+
+                if (patientResponse.success && patientResponse.data?.patientId) {
+                  user = {
+                    ...user,
+                    patientId: patientResponse.data.patientId,
+                  };
+                  console.log('[AuthContext] Init - PatientId fetched successfully', {
+                    patientId: patientResponse.data.patientId
+                  });
+                } else {
+                  console.warn('[AuthContext] Init - Patient record not found for user', {
+                    response: patientResponse
+                  });
+                }
+              } catch (error) {
+                console.error('[AuthContext] Init - Failed to fetch patientId:', error);
+                // Don't block init if patient fetch fails
+              }
+            } else {
+              console.log('[AuthContext] Init - Skipping patientId fetch - not a PATIENT role');
+            }
+
+            setUser(user);
+
+            console.log('[AuthContext] Init - User data loaded', {
+              userId: user.userId,
+              fullName: user.fullName,
+              role: user.role,
+              patientId: user.patientId
+            });
           }
         } catch (error: any) {
           // 401 or network error - no active session
+          console.log('[AuthContext] Init - No active session');
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -84,13 +132,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('Failed to fetch user data');
         }
 
-        const user = userResponse.user;
+        let user = userResponse.user;
+
+        // Step 3: Fetch patientId if user is a PATIENT (case-insensitive)
+        console.log('[AuthContext] Step 3 - Check if need to fetch patientId', {
+          role: user.role,
+          roleUpperCase: user.role?.toUpperCase(),
+          isPatient: user.role?.toUpperCase() === 'PATIENT'
+        });
+        
+        if (user.role?.toUpperCase() === 'PATIENT') {
+          try {
+            console.log('[AuthContext] Fetching patientId for PATIENT role...', {
+              userId: user.userId
+            });
+            const patientResponse = await patientsService.getByUserId(user.userId);
+            
+            console.log('[AuthContext] Patient API response:', patientResponse);
+            
+            if (patientResponse.success && patientResponse.data?.patientId) {
+              user = {
+                ...user,
+                patientId: patientResponse.data.patientId,
+              };
+              console.log('[AuthContext] PatientId fetched successfully', {
+                patientId: patientResponse.data.patientId
+              });
+            } else {
+              console.warn('[AuthContext] Patient record not found for user', {
+                response: patientResponse
+              });
+            }
+          } catch (error) {
+            console.error('[AuthContext] Failed to fetch patientId:', error);
+            // Don't block login if patient fetch fails
+          }
+        } else {
+          console.log('[AuthContext] Skipping patientId fetch - not a PATIENT role');
+        }
+
         setUser(user);
 
         console.log('[AuthContext] User data fetched', {
           userId: user.userId,
           fullName: user.fullName,
-          role: user.role
+          role: user.role,
+          patientId: user.patientId
         });
 
         toast.success('Đăng nhập thành công!', {

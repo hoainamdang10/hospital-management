@@ -14,6 +14,7 @@ export interface User {
   avatar?: string;
   isActive: boolean;
   isEmailVerified: boolean;
+  patientId?: string; // PAT-202511-XXX format
   createdAt: string;
   updatedAt: string;
 }

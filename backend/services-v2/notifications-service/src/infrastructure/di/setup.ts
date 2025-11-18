@@ -179,7 +179,7 @@ export function setupDependencies(container: DIContainer): void {
       const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
       return new SupabaseNotificationRepository(supabaseClient, eventBus);
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON // FIX: Changed from SCOPED to SINGLETON - repository doesn't need request scope
   );
 
   container.registerFactory(
@@ -188,7 +188,7 @@ export function setupDependencies(container: DIContainer): void {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
       return new SupabaseInboxRepository(supabaseClient);
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by event consumers
   );
 
   container.registerFactory(
@@ -197,7 +197,7 @@ export function setupDependencies(container: DIContainer): void {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
       return new SupabaseTemplateRepository(supabaseClient);
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON // FIX: Changed from SCOPED to SINGLETON - repository doesn't need request scope
   );
 
   container.registerFactory(
@@ -206,7 +206,7 @@ export function setupDependencies(container: DIContainer): void {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
       return new SupabasePreferencesRepository(supabaseClient);
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by GetNotificationPreferencesUseCase
   );
 
   container.registerFactory(
@@ -215,7 +215,7 @@ export function setupDependencies(container: DIContainer): void {
       const supabaseClient = container.resolve(ServiceTokens.SUPABASE_CLIENT);
       return new SupabaseAppointmentReminderRepository(supabaseClient);
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by AppointmentEventConsumer & cron job
   );
 
   // Register external services
@@ -410,7 +410,7 @@ export function setupDependencies(container: DIContainer): void {
 
       return new NotificationApplicationService(sendUseCase, getUseCase, getPreferencesUseCase);
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by NotificationEventHandlers
   );
 
   // Register event handlers (after application service to avoid circular dependency)
@@ -427,7 +427,7 @@ export function setupDependencies(container: DIContainer): void {
         sendUseCase
       );
     },
-    ServiceLifetime.SCOPED
+    ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - event handlers should be singleton
   );
 
   // Register Event Consumers
@@ -473,11 +473,11 @@ export function setupDependencies(container: DIContainer): void {
       const sendNotificationUseCase = container.resolve(ServiceTokens.SEND_NOTIFICATION_USE_CASE);
       const getNotificationPreferencesUseCase = container.resolve(ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
       const inboxRepo = container.resolve(ServiceTokens.INBOX_REPOSITORY);
-      
+
       const config = {
         rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
         queueName: process.env.STAFF_EVENT_QUEUE || 'notifications.staff.events',
-        exchangeName: process.env.STAFF_EVENT_EXCHANGE || 'staff.events',
+        exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events', // ✅ FIX: Use hospital.events to match all services
         routingKeys: [
           'availability.staff.changed',
           'shift.staff.assigned',

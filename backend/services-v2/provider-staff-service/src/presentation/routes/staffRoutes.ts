@@ -104,16 +104,16 @@ export function createStaffRoutes(controller: StaffController): Router {
   // ==================== SEARCH ROUTES ====================
 
   /**
-   * Search staff
-   * GET /api/v1/staff/search?searchTerm=...
-   */
-  router.get(
-    '/search',
-    RateLimitMiddleware.search,
-    requireAuth,
-    validateSearchStaff,
-    asyncHandler(controller.searchStaff.bind(controller))
-  );
+    * Search staff (PUBLIC - for appointment booking)
+    * GET /api/v1/staff/search?searchTerm=...&departmentId=...&staffType=doctor
+    * No authentication required - patients need to search doctors for booking
+    */
+   router.get(
+     '/search',
+     RateLimitMiddleware.search,
+     validateSearchStaff,
+     asyncHandler(controller.searchStaff.bind(controller))
+   );
 
   // ==================== GET STAFF ROUTES ====================
 

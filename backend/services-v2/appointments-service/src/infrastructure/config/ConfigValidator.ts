@@ -87,7 +87,7 @@ export function loadConfig(): AppConfig {
   const required = [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
-    "SCHEDULER_API_KEY", // Required for appointment reminders
+    // SCHEDULER_API_KEY is now optional - scheduler merged into notifications-service
   ];
 
   const missing = required.filter((key) => !process.env[key]);
@@ -115,14 +115,14 @@ export function loadConfig(): AppConfig {
     // External Services
     services: {
       patientServiceUrl:
-        process.env.PATIENT_SERVICE_URL || "http://localhost:3023",
+        process.env.PATIENT_SERVICE_URL || "http://localhost:3002",
       providerServiceUrl:
-        process.env.PROVIDER_SERVICE_URL || "http://localhost:3022",
+        process.env.PROVIDER_SERVICE_URL || "http://localhost:3003",
       schedulerServiceUrl:
-        process.env.SCHEDULER_SERVICE_URL || "http://localhost:3030",
-      schedulerApiKey: process.env.SCHEDULER_API_KEY!, // Required, validated above
+        process.env.SCHEDULER_SERVICE_URL || "http://localhost:3011", // Scheduler merged into notifications-service
+      schedulerApiKey: process.env.SCHEDULER_API_KEY || "default-scheduler-key", // Optional now
       billingServiceUrl:
-        process.env.BILLING_SERVICE_URL || "http://localhost:3006",
+        process.env.BILLING_SERVICE_URL || "http://localhost:3009",
     },
 
     // CORS

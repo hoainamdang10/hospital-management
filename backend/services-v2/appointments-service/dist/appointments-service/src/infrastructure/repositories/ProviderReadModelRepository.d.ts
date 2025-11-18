@@ -27,6 +27,9 @@ export interface ProviderReadModel {
 export declare class ProviderReadModelRepository {
     private supabase;
     private readonly table;
+    private readonly schema;
+    private readonly fallbackSchema;
+    private readonly fallbackTable;
     constructor(supabaseUrl: string, supabaseKey: string);
     /**
      * Upsert provider read model (idempotent)
@@ -34,8 +37,13 @@ export declare class ProviderReadModelRepository {
     upsert(provider: ProviderReadModel): Promise<void>;
     /**
      * Find provider by ID
+     * Falls back to provider_schema.staff_profiles if read model is empty
      */
     findById(providerId: string): Promise<ProviderReadModel | null>;
+    /**
+     * Fallback: Query provider_schema.staff_profiles directly
+     */
+    private findByIdFallback;
     /**
      * Find multiple providers by IDs
      */

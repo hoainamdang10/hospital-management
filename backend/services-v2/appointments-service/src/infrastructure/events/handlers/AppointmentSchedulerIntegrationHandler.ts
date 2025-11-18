@@ -275,7 +275,22 @@ export class AppointmentScheduledSchedulerHandler implements EventHandler<Domain
    */
   async handle(event: DomainEvent): Promise<void> {
     try {
-      const eventData = (event as any).eventData as AppointmentScheduledEventData;
+      // FIX: After deserialization, event data is spread into root level of event object
+      // Access properties directly instead of using getEventData() which relies on readonly properties
+      const eventAny = event as any;
+      const eventData = {
+        appointmentId: eventAny.appointmentId,
+        patientId: eventAny.patientId,
+        doctorId: eventAny.doctorId,
+        appointmentDate: eventAny.appointmentDate,
+        appointmentTime: eventAny.appointmentTime,
+        durationMinutes: eventAny.durationMinutes,
+        type: eventAny.type,
+        priority: eventAny.priority,
+        status: eventAny.status,
+        consultationFee: eventAny.consultationFee,
+        createdBy: eventAny.createdBy
+      } as AppointmentScheduledEventData;
 
       console.log(`[SchedulerHandler] Processing AppointmentScheduled: ${eventData.appointmentId}`);
 
@@ -388,25 +403,28 @@ export class AppointmentCancelledSchedulerHandler implements EventHandler<Domain
    */
   async handle(event: DomainEvent): Promise<void> {
     try {
-      const eventData = (event as any).eventData as AppointmentCancelledEventData;
+      // FIX: After deserialization, event data is spread into root level of event object
+      // Access properties directly instead of using getEventData() which relies on readonly properties
+      const eventAny = event as any;
+      const appointmentId = eventAny.appointmentId;
 
-      console.log(`[SchedulerHandler] Processing AppointmentCancelled: ${eventData.appointmentId}`);
+      console.log(`[SchedulerHandler] Processing AppointmentCancelled: ${appointmentId}`);
 
       // Enqueue cancellation to Outbox
       await this.outboxRepo.enqueue({
         eventType: 'SchedulerReminderCancelByOwner',
         aggregateType: 'Appointment',
-        aggregateId: eventData.appointmentId,
-        dedupKey: `${eventData.appointmentId}:cancel-all`,
+        aggregateId: appointmentId,
+        dedupKey: `${appointmentId}:cancel-all`,
         payload: {
           tenantId: this.tenantId,
           ownerService: 'appointments',
           ownerResourceType: 'APPOINTMENT',
-          ownerResourceId: eventData.appointmentId
+          ownerResourceId: appointmentId
         }
       });
 
-      console.log(`[SchedulerHandler] ✅ Enqueued cancellation for ${eventData.appointmentId}`);
+      console.log(`[SchedulerHandler] ✅ Enqueued cancellation for ${appointmentId}`);
     } catch (error) {
       console.error('[SchedulerHandler] Error handling AppointmentCancelled event:', error);
       throw error;
@@ -436,21 +454,28 @@ export class AppointmentRescheduledSchedulerHandler implements EventHandler<Doma
    */
   async handle(event: DomainEvent): Promise<void> {
     try {
-      const eventData = (event as any).eventData as AppointmentRescheduledEventData;
+      // FIX: After deserialization, event data is spread into root level of event object
+      // Access properties directly instead of using getEventData() which relies on readonly properties
+      const eventAny = event as any;
+      const appointmentId = eventAny.appointmentId;
+      const patientId = eventAny.patientId;
+      const doctorId = eventAny.doctorId;
+      const newStartTime = eventAny.newStartTime ? new Date(eventAny.newStartTime) : new Date();
+      const reason = eventAny.reason;
 
-      console.log(`[SchedulerHandler] Processing AppointmentRescheduled: ${eventData.appointmentId}`);
+      console.log(`[SchedulerHandler] Processing AppointmentRescheduled: ${appointmentId}`);
 
       // Step 1: Cancel old reminders
       await this.outboxRepo.enqueue({
         eventType: 'SchedulerReminderCancelByOwner',
         aggregateType: 'Appointment',
-        aggregateId: eventData.appointmentId,
-        dedupKey: `${eventData.appointmentId}:reschedule-cancel`,
+        aggregateId: appointmentId,
+        dedupKey: `${appointmentId}:reschedule-cancel`,
         payload: {
           tenantId: this.tenantId,
           ownerService: 'appointments',
           ownerResourceType: 'APPOINTMENT',
-          ownerResourceId: eventData.appointmentId
+          ownerResourceId: appointmentId
         }
       });
 
@@ -460,32 +485,32 @@ export class AppointmentRescheduledSchedulerHandler implements EventHandler<Doma
       await this.outboxRepo.enqueue({
         eventType: 'SchedulerReminderCreate',
         aggregateType: 'Appointment',
-        aggregateId: eventData.appointmentId,
-        dedupKey: `${eventData.appointmentId}:reschedule-create`,
+        aggregateId: appointmentId,
+        dedupKey: `${appointmentId}:reschedule-create`,
         payload: {
           tenantId: this.tenantId,
-          dedupKey: `${eventData.appointmentId}:reschedule-create`,
+          dedupKey: `${appointmentId}:reschedule-create`,
           ownerService: 'appointments',
           ownerResourceType: 'APPOINTMENT',
-          ownerResourceId: eventData.appointmentId,
+          ownerResourceId: appointmentId,
           topicOrCommand: `appointments.appointment.reminder.rescheduled`,
           // Flat structure - matches Scheduler API
           scheduleType: 'ONCE',
-          startAtUtc: eventData.newStartTime.toISOString(),
+          startAtUtc: newStartTime.toISOString(),
           timezone: 'UTC',
           payloadJson: {
-            appointmentId: eventData.appointmentId,
-            patientId: eventData.patientId,
-            doctorId: eventData.doctorId,
-            newStartTime: eventData.newStartTime.toISOString(),
-            reason: eventData.reason || 'Appointment rescheduled'
+            appointmentId,
+            patientId,
+            doctorId,
+            newStartTime: newStartTime.toISOString(),
+            reason: reason || 'Appointment rescheduled'
           },
           maxRuns: 1,
           jitterMs: 0
         }
       });
 
-      console.log(`[SchedulerHandler] ✅ Enqueued reschedule (cancel + create) for ${eventData.appointmentId}`);
+      console.log(`[SchedulerHandler] ✅ Enqueued reschedule (cancel + create) for ${appointmentId}`);
     } catch (error) {
       console.error('[SchedulerHandler] Error handling AppointmentRescheduled event:', error);
       throw error;

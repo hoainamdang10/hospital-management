@@ -73,14 +73,14 @@ services:
       - JWT_ISSUER=hospital-management-system
       - JWT_AUDIENCE=api-gateway
       - IDENTITY_SERVICE_URL=http://identity-service:3001
-      - PATIENT_REGISTRY_SERVICE_URL=http://patient-registry-service:3003
-      - PROVIDER_STAFF_SERVICE_URL=http://provider-staff-service:3002
+      - PATIENT_REGISTRY_SERVICE_URL=http://patient-registry-service:3002
+      - PROVIDER_STAFF_SERVICE_URL=http://provider-staff-service:3003
       - APPOINTMENTS_SERVICE_URL=http://appointments-service:3004
       # Clinical EMR Service - REMOVED FOR MVP (Focus on Appointments)
       # - CLINICAL_EMR_SERVICE_URL=http://clinical-emr-service:3007
       - BILLING_SERVICE_URL=http://billing-service:3009
       - NOTIFICATIONS_SERVICE_URL=http://notifications-service:3011
-      - DEPARTMENT_SERVICE_URL=http://department-service:3025
+      # Department Service - REMOVED (merged into Provider/Staff Service)
       # Scheduler Service - REMOVED (functionality moved to cron jobs in Notifications Service)
       # - SCHEDULER_SERVICE_URL=http://scheduler-service:3030
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3101
@@ -246,11 +246,11 @@ services:
       - .env.docker
       - ./patient-registry-service/.env.docker
     ports:
-      - "3003:3003"
+      - "3002:3002"
     environment:
       # - NODE_ENV=development # Commented for production mode
       - NODE_ENV=production
-      - PORT=3003
+      - PORT=3002
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
@@ -281,10 +281,10 @@ services:
       - .env.docker
       - ./provider-staff-service/.env.docker
     ports:
-      - "3002:3002"
+      - "3003:3003"
     environment:
       - NODE_ENV=production
-      - PORT=3002
+      - PORT=3003
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
@@ -292,16 +292,14 @@ services:
       - REDIS_URL=redis://redis-v2:6379
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
       - DATABASE_SCHEMA=provider_schema
+      # Department management now integrated (departments_schema also accessible)
       - IDENTITY_SERVICE_URL=http://identity-service:3001
-      - DEPARTMENT_SERVICE_URL=http://department-service:3025
-      - DEPARTMENT_SERVICE_TIMEOUT=5000
       - BYPASS_AUTH=true # Enable auth bypass for development/testing
       - DISABLE_RATE_LIMIT=true # Disable rate limiting for development
     depends_on:
       - redis-v2
       - rabbitmq-v2
       - identity-service
-      - department-service
     networks:
       - hospital-v2-network
     profiles:
@@ -310,34 +308,10 @@ services:
       - full
 
   # Reference Data Services
-  department-service:
-    build:
-      context: .
-      dockerfile: ./department-service/Dockerfile
-    container_name: hospital-department-v2
-    env_file:
-      - .env.docker
-      - ./department-service/.env.docker
-    ports:
-      - "3025:3025"
-    environment:
-      - NODE_ENV=production
-      - PORT=3025
-      - SERVICE_NAME=department-service
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
-      - REDIS_URL=redis://redis-v2:6379
-      - CORS_ORIGIN=http://localhost:3000
-      - STAFF_SERVICE_URL=http://provider-staff-service:3002
-    depends_on:
-      - redis-v2
-    networks:
-      - hospital-v2-network
-    profiles:
-      - core
-      - dev
-      - full
+  # Department Service - REMOVED
+  # Department functionality is now part of Provider/Staff Service
+  # This eliminates an unnecessary microservice and improves bounded context alignment
+  # Departments are a simple reference data module within Staff & Organization Management
 
   # Business Services
   appointments-service:
@@ -362,8 +336,8 @@ services:
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
       - DATABASE_SCHEMA=appointments_schema
       - IDENTITY_SERVICE_URL=http://identity-service:3001
-      - PATIENT_SERVICE_URL=http://patient-registry-service:3003
-      - PROVIDER_SERVICE_URL=http://provider-staff-service:3002
+      - PATIENT_SERVICE_URL=http://patient-registry-service:3002
+      - PROVIDER_SERVICE_URL=http://provider-staff-service:3003
       # Scheduler Service - REMOVED (functionality moved to cron jobs in Notifications Service)
       # - SCHEDULER_SERVICE_URL=http://scheduler-service:3030
       # - SCHEDULER_API_KEY=${SCHEDULER_API_KEY}
@@ -406,8 +380,8 @@ services:
   #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
   #     - DATABASE_SCHEMA=clinical_schema
   #     - IDENTITY_SERVICE_URL=http://identity-service:3001
-  #     - PATIENT_SERVICE_URL=http://patient-registry-service:3003
-  #     - PROVIDER_SERVICE_URL=http://provider-staff-service:3002
+  #     - PATIENT_SERVICE_URL=http://patient-registry-service:3002
+  #     - PROVIDER_SERVICE_URL=http://provider-staff-service:3003
   #     - APPOINTMENTS_SERVICE_URL=http://appointments-service:3004
   #   depends_on:
   #     - redis-v2
@@ -491,7 +465,7 @@ services:
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq-v2:5672
       - DATABASE_SCHEMA=billing_schema
       - IDENTITY_SERVICE_URL=http://identity-service:3001
-      - PATIENT_SERVICE_URL=http://patient-registry-service:3003
+      - PATIENT_SERVICE_URL=http://patient-registry-service:3002
       # Clinical EMR Service - REMOVED FOR MVP (Focus on Appointments)
       # - CLINICAL_SERVICE_URL=http://clinical-emr-service:3007
       - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID}

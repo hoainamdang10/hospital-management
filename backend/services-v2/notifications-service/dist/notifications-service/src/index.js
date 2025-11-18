@@ -34,17 +34,19 @@ async function initializeEventConsumers(container) {
         console.log('🔄 Initializing event consumers...');
         // Resolve event consumers from container (THESIS SCOPE)
         const appointmentEventConsumer = container.resolve(setup_1.ServiceTokens.APPOINTMENT_EVENT_CONSUMER);
-        // Staff Event Consumer REMOVED - notifications handled via AppointmentEventConsumer
+        const staffEventConsumer = container.resolve(setup_1.ServiceTokens.STAFF_EVENT_CONSUMER);
         const billingEventConsumer = container.resolve(setup_1.ServiceTokens.BILLING_EVENT_CONSUMER);
         // Clinical EMR Event Consumer REMOVED FOR MVP - Focus on Appointments only
         // Connect event consumers
         await Promise.all([
             appointmentEventConsumer.connect(),
+            staffEventConsumer.connect(),
             billingEventConsumer.connect()
         ]);
         console.log('✅ All event consumers connected successfully');
         console.log('📋 Active event consumers (THESIS SCOPE):');
         console.log('   - Appointment Event Consumer (appointment.scheduled, confirmed, cancelled, rescheduled)');
+        console.log('   - Staff Event Consumer (staff.created, staff.updated)');
         console.log('   - Billing Event Consumer (payment.completed)');
         console.log('🎯 Event-driven architecture enabled - Focused on booking + payment flow!');
     }

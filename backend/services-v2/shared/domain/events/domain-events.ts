@@ -455,43 +455,99 @@ export class DoctorAvailabilityChangedEvent extends DomainEvent {
 // ============================================================================
 
 /**
- * Published when appointment is scheduled
- * Subscribers: Patient Service, Doctor Service, Notification Service, Billing Service
+ * PLACEHOLDER: AppointmentScheduledEvent
+ *
+ * This is a placeholder class for EVENT_TYPE_REGISTRY.
+ * The actual implementation is in appointments-service/src/domain/events/AppointmentScheduledEvent.ts
+ *
+ * FIXED: Constructor now accepts all 11 parameters to properly initialize readonly properties
+ * during deserialization.
  */
 export class AppointmentScheduledEvent extends DomainEvent {
+  public readonly appointmentId: string;
+  public readonly patientId: string;
+  public readonly doctorId: string;
+  public readonly appointmentDate: string;
+  public readonly appointmentTime: string;
+  public readonly durationMinutes: number;
+  public readonly type: string;
+  public readonly priority: string;
+  public readonly status: string;
+  public readonly consultationFee: number;
+  public readonly createdBy: string;
+  public readonly scheduledAt: Date;
+
   constructor(
-    public readonly appointmentId: string,
-    public readonly appointmentIdCode: string, // TYPE-DEPT-YYYYMM-SEQ
-    public readonly patientId: string,
-    public readonly doctorId: string,
-    public readonly appointmentDate: Date,
-    public readonly startTime: string,
-    public readonly endTime: string,
-    public readonly appointmentType: string,
-    public readonly reason: string,
-    public readonly priority: string
+    appointmentId: string,
+    patientId: string,
+    doctorId: string,
+    appointmentDate: string,
+    appointmentTime: string,
+    durationMinutes: number,
+    type: string,
+    priority: string,
+    status: string,
+    consultationFee: number,
+    createdBy: string,
+    correlationId?: string,
+    causationId?: string,
+    userId?: string
   ) {
+    const eventData = {
+      appointmentId,
+      patientId,
+      doctorId,
+      appointmentDate,
+      appointmentTime,
+      durationMinutes,
+      type,
+      priority,
+      status,
+      consultationFee,
+      createdBy,
+      scheduledAt: new Date()
+    };
+
     super(
       'AppointmentScheduled',
       appointmentId,
       'Appointment',
-      { appointmentIdCode, patientId, doctorId, appointmentDate, startTime, endTime, appointmentType, reason, priority },
-      1
+      eventData,
+      1,
+      correlationId,
+      causationId,
+      userId
     );
+
+    // Assign readonly properties
+    this.appointmentId = appointmentId;
+    this.patientId = patientId;
+    this.doctorId = doctorId;
+    this.appointmentDate = appointmentDate;
+    this.appointmentTime = appointmentTime;
+    this.durationMinutes = durationMinutes;
+    this.type = type;
+    this.priority = priority;
+    this.status = status;
+    this.consultationFee = consultationFee;
+    this.createdBy = createdBy;
+    this.scheduledAt = eventData.scheduledAt;
   }
 
   getEventData(): Record<string, unknown> {
     return {
       appointmentId: this.appointmentId,
-      appointmentIdCode: this.appointmentIdCode,
       patientId: this.patientId,
       doctorId: this.doctorId,
-      appointmentDate: this.appointmentDate.toISOString(),
-      startTime: this.startTime,
-      endTime: this.endTime,
-      appointmentType: this.appointmentType,
-      reason: this.reason,
-      priority: this.priority
+      appointmentDate: this.appointmentDate,
+      appointmentTime: this.appointmentTime,
+      durationMinutes: this.durationMinutes,
+      type: this.type,
+      priority: this.priority,
+      status: this.status,
+      consultationFee: this.consultationFee,
+      createdBy: this.createdBy,
+      scheduledAt: this.scheduledAt
     };
   }
 
@@ -500,7 +556,7 @@ export class AppointmentScheduledEvent extends DomainEvent {
   }
 
   getPatientId(): string | null {
-    return this.patientId;
+    return this.patientId || null;
   }
 }
 

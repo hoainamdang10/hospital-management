@@ -18,6 +18,7 @@ import { RescheduleAppointmentUseCase } from '../../application/use-cases/Resche
 import { CheckInAppointmentUseCase } from '../../application/use-cases/CheckInAppointment.use-case';
 import { MarkAsNoShowUseCase } from '../../application/use-cases/MarkAsNoShow.use-case';
 import { StartAppointmentUseCase } from '../../application/use-cases/StartAppointment.use-case';
+import { AppointmentType, AppointmentPriority } from '../../domain/aggregates/Appointment.aggregate';
 // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
 // import { BulkRescheduleAppointmentsUseCase } from '../../application/use-cases/BulkRescheduleAppointments.use-case';
 import { GetAppointmentHistoryUseCase } from '../../application/use-cases/GetAppointmentHistory.use-case';
@@ -99,6 +100,69 @@ export class AppointmentController {
         success: false,
         message: 'Internal server error',
         errors: [error instanceof Error ? error.message : 'Unknown error']
+      });
+    }
+  }
+
+  /**
+   * POST /api/appointments/book
+   * Schedule appointment - Simplified MVP endpoint for patient self-booking
+   */
+  async scheduleAppointmentSimplified(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const {
+        patientId,
+        doctorId,
+        patientFullName,
+        patientPhone,
+        patientEmail,
+        patientDateOfBirth,
+        patientNationalId,
+        patientAddress,
+        appointmentDate,
+        appointmentTime,
+        appointmentType,
+        reason,
+      } = req.body;
+
+      // TODO: Lookup real patientId from patient_read_model by userId
+      // For MVP: assume patientId is passed correctly or lookup by userId
+      const resolvedPatientId = patientId && patientId.startsWith('PAT-') 
+        ? patientId 
+        : patientId; // Use as-is for now (will be userId)
+
+      const useCaseRequest = {
+        patientId: resolvedPatientId,
+        doctorId,
+        appointmentDate,
+        appointmentTime,
+        durationMinutes: 30,
+        type: AppointmentType.CONSULTATION, // Map from appointmentType
+        priority: AppointmentPriority.NORMAL,
+        reason: reason || 'Khám bệnh',
+        notes: reason || 'Khám bệnh',
+        consultationFee: 0,
+        departmentId: doctorId.split('-')[0],
+        createdBy: userId,
+      };
+
+      const result = await this.scheduleAppointmentUseCase.execute(
+        useCaseRequest,
+        { userId, timestamp: new Date() }
+      );
+
+      res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      console.error('[AppointmentController] Error in scheduleAppointmentSimplified:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Đặt lịch thất bại',
       });
     }
   }

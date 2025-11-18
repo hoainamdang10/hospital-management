@@ -24,6 +24,9 @@ function createAppointmentRoutes() {
     const container = (0, container_1.getContainer)();
     const controller = container.getAppointmentController();
     // Command Routes (Write Operations) - with auth, validation, and idempotency
+    // Simplified booking endpoint for patient self-service (MVP)
+    // Minimal validation - patient enters own info
+    router.post('/appointments/book', AuthMiddleware_1.authenticate, IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.scheduleAppointmentSimplified(req, res));
     router.post('/appointments', AuthMiddleware_1.authenticate, (0, ValidationMiddleware_1.validateRequest)(ValidationSchemas_1.scheduleAppointmentSchema, 'body'), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.scheduleAppointment(req, res));
     router.post('/appointments/:id/confirm', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['DOCTOR', 'NURSE', 'ADMIN']), (0, ValidationMiddleware_1.validateRequest)(ValidationSchemas_1.confirmAppointmentSchema, 'body'), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.confirmAppointment(req, res));
     router.post('/appointments/:id/complete', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['DOCTOR', 'NURSE']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.completeAppointment(req, res));

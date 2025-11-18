@@ -29,6 +29,9 @@ export interface PatientReadModel {
 export declare class PatientReadModelRepository {
     private supabase;
     private readonly table;
+    private readonly schema;
+    private readonly fallbackSchema;
+    private readonly fallbackTable;
     constructor(supabaseUrl: string, supabaseKey: string);
     /**
      * Upsert patient read model (idempotent)
@@ -36,8 +39,13 @@ export declare class PatientReadModelRepository {
     upsert(patient: PatientReadModel): Promise<void>;
     /**
      * Find patient by ID
+     * Falls back to patient_schema.patients if read model is empty
      */
     findById(patientId: string): Promise<PatientReadModel | null>;
+    /**
+     * Fallback: Query patient_schema.patients directly
+     */
+    private findByIdFallback;
     /**
      * Find multiple patients by IDs
      */

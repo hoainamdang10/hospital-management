@@ -42,6 +42,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentController = void 0;
+const Appointment_aggregate_1 = require("../../domain/aggregates/Appointment.aggregate");
 class AppointmentController {
     constructor(scheduleAppointmentUseCase, cancelAppointmentUseCase, confirmAppointmentUseCase, completeAppointmentUseCase, getAppointmentUseCase, listAppointmentsUseCase, rescheduleAppointmentUseCase, checkInAppointmentUseCase, markAsNoShowUseCase, startAppointmentUseCase, 
     // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
@@ -106,6 +107,48 @@ class AppointmentController {
                 success: false,
                 message: 'Internal server error',
                 errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+        }
+    }
+    /**
+     * POST /api/appointments/book
+     * Schedule appointment - Simplified MVP endpoint for patient self-booking
+     */
+    async scheduleAppointmentSimplified(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ success: false, message: 'Unauthorized' });
+                return;
+            }
+            const { patientId, doctorId, patientFullName, patientPhone, patientEmail, patientDateOfBirth, patientNationalId, patientAddress, appointmentDate, appointmentTime, appointmentType, reason, } = req.body;
+            // TODO: Lookup real patientId from patient_read_model by userId
+            // For MVP: assume patientId is passed correctly or lookup by userId
+            const resolvedPatientId = patientId && patientId.startsWith('PAT-')
+                ? patientId
+                : patientId; // Use as-is for now (will be userId)
+            const useCaseRequest = {
+                patientId: resolvedPatientId,
+                doctorId,
+                appointmentDate,
+                appointmentTime,
+                durationMinutes: 30,
+                type: Appointment_aggregate_1.AppointmentType.CONSULTATION, // Map from appointmentType
+                priority: Appointment_aggregate_1.AppointmentPriority.NORMAL,
+                reason: reason || 'Khám bệnh',
+                notes: reason || 'Khám bệnh',
+                consultationFee: 0,
+                departmentId: doctorId.split('-')[0],
+                createdBy: userId,
+            };
+            const result = await this.scheduleAppointmentUseCase.execute(useCaseRequest, { userId, timestamp: new Date() });
+            res.status(result.success ? 201 : 400).json(result);
+        }
+        catch (error) {
+            console.error('[AppointmentController] Error in scheduleAppointmentSimplified:', error);
+            res.status(500).json({
+                success: false,
+                message: error instanceof Error ? error.message : 'Đặt lịch thất bại',
             });
         }
     }

@@ -18,7 +18,7 @@ export interface AppointmentScheduledEvent {
     appointmentId: string;
     patientId: string;
     doctorId: string;
-    appointmentDate: Date;
+    appointmentDate: string;
     appointmentTime: string;
     durationMinutes: number;
     type: string;
@@ -33,7 +33,7 @@ export interface AppointmentScheduledEvent {
     notes?: string;
     specialInstructions?: string;
     requiredEquipment?: string[];
-    occurredAt: Date;
+    occurredAt: Date | string;
 }
 export interface PatientUpdatedEvent {
     eventId: string;

@@ -947,7 +947,14 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       certifications: (data.certifications || []).map((c: any) => StaffCertification.fromPersistenceData(c)),
       // REMOVED: availability - Belongs to Scheduling/Appointment Service
       // REMOVED: reviews - Belongs to Review/Rating Service
-      departmentAssignments: (data.department_assignments || []).map((d: any) => DepartmentAssignment.fromPersistenceData(d)),
+      departmentAssignments: (() => {
+        // Handle both array and object formats (defensive coding)
+        const deptData = data.department_assignments;
+        if (!deptData) return [];
+        if (Array.isArray(deptData)) return deptData.map((d: any) => DepartmentAssignment.fromPersistenceData(d));
+        // If it's an object (legacy single assignment), wrap in array
+        return [DepartmentAssignment.fromPersistenceData(deptData)];
+      })(),
       licenseNumber: data.license_number,
       employmentType: data.employment_type,
       hireDate: new Date(data.hire_date),

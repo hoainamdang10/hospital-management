@@ -364,7 +364,7 @@ export const createSchedulingClient = () => createOptimizedSupabaseClient({
   supabaseUrl: process.env.SUPABASE_URL!,
   supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   serviceName: 'scheduling-service',
-  schemaName: 'appointment_schema',
+  schemaName: 'appointments_schema', // Fixed: was 'appointment_schema' (missing 's')
   enableOptimizations: process.env.NODE_ENV !== 'test',
 });
 
@@ -380,7 +380,7 @@ export const createBillingClient = () => createOptimizedSupabaseClient({
   supabaseUrl: process.env.SUPABASE_URL!,
   supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   serviceName: 'billing-service',
-  schemaName: 'payment_schema',
+  schemaName: 'billing_schema', // Fixed: was 'payment_schema'
   enableOptimizations: process.env.NODE_ENV !== 'test',
 });
 
@@ -388,6 +388,6 @@ export const createNotificationsClient = () => createOptimizedSupabaseClient({
   supabaseUrl: process.env.SUPABASE_URL!,
   supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   serviceName: 'notifications-service',
-  schemaName: 'auth_schema', // Notifications use auth schema
+  schemaName: 'notifications_schema', // Fixed: was 'auth_schema'
   enableOptimizations: process.env.NODE_ENV !== 'test',
 });

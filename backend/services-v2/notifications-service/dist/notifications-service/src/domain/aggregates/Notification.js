@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Notification = void 0;
-const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const NotificationSentEvent_1 = require("../events/NotificationSentEvent");
 const NotificationFailedEvent_1 = require("../events/NotificationFailedEvent");
 const NotificationId_1 = require("../value-objects/NotificationId");

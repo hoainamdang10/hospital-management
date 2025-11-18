@@ -32,6 +32,7 @@ import { IEventBus } from "@shared/infrastructure/event-bus/EventBus";
 // Services - PURE OUTBOX PATTERN (No HTTP)
 import { LocalPatientReadModelService } from "../services/LocalPatientReadModelService";
 import { LocalProviderReadModelService } from "../services/LocalProviderReadModelService";
+import { HttpProviderService } from "../services/HttpProviderService";
 import { IPatientService } from "../../application/services/IPatientService";
 import { IProviderService } from "../../application/services/IProviderService";
 import { RemoteSchedulerAdapter } from "../adapters/RemoteSchedulerAdapter";
@@ -154,6 +155,7 @@ export class DIContainer {
   // Services
   private patientService: IPatientService;
   private providerService: IProviderService;
+  private httpProviderService: HttpProviderService;
   private schedulerAdapter: RemoteSchedulerAdapter;
   private conflictResolutionService: IConflictResolutionService;
   private authorizationService: IAuthorizationService;
@@ -437,6 +439,11 @@ export class DIContainer {
     this.providerService = new LocalProviderReadModelService(
       this.providerReadModelRepository,
     );
+    
+    // HTTP Provider Service for work schedule (simple MVP approach)
+    this.httpProviderService = new HttpProviderService(
+      this.config.services.providerServiceUrl
+    );
     this.schedulerAdapter = new RemoteSchedulerAdapter({
       baseUrl: this.config.services.schedulerServiceUrl,
       apiKey: this.config.services.schedulerApiKey,
@@ -619,6 +626,7 @@ export class DIContainer {
     this.findAvailableTimeSlotsUseCase = new FindAvailableTimeSlotsUseCase(
       this.providerScheduleRepository,
       this.appointmentRepository,
+      this.httpProviderService,
     );
 
     // ===== ARCHIVED FOR POST-MVP: Waitlist Use Cases =====

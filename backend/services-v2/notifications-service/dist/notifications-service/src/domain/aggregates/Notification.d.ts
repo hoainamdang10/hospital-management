@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Scheduler Integration
  */
-import { HealthcareAggregateRoot } from "@shared/domain/base/aggregate-root";
-import { DomainEvent } from "@shared/domain/base/domain-event";
+import { HealthcareAggregateRoot } from "../../../../shared/domain/base/aggregate-root";
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
 import { NotificationId } from "../value-objects/NotificationId";
 import { RecipientInfo } from "../value-objects/RecipientInfo";
 import { NotificationContent } from "../value-objects/NotificationContent";

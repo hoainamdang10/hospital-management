@@ -21,7 +21,6 @@ export interface HealthStatus {
         externalServices: {
             patientService: HealthCheckResult;
             providerService: HealthCheckResult;
-            schedulerService: HealthCheckResult;
         };
     };
 }

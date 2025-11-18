@@ -197,7 +197,8 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
             durationMinutes,
             type,
             priority,
-            status: AppointmentStatus.SCHEDULED,
+            // ✅ FIX: Use PENDING_PAYMENT for prepaid flow (Flow 3)
+            status: AppointmentStatus.PENDING_PAYMENT,
             details,
             roomId,
             departmentId,
@@ -215,7 +216,9 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         };
         const appointment = new Appointment(props);
         // Domain event
-        appointment.addDomainEvent(new AppointmentScheduledEvent_1.AppointmentScheduledEvent(appointmentId.value, patientId, doctorId, timeSlot.appointmentDate, timeSlot.appointmentTime, durationMinutes, type, priority, 'scheduled', consultationFee, createdBy));
+        appointment.addDomainEvent(new AppointmentScheduledEvent_1.AppointmentScheduledEvent(appointmentId.value, patientId, doctorId, timeSlot.appointmentDate, timeSlot.appointmentTime, durationMinutes, type, priority, 
+        // ✅ FIX: Event status should match aggregate status
+        'pending_payment', consultationFee, createdBy));
         return appointment;
     }
     /**

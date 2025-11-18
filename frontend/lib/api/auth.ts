@@ -22,7 +22,7 @@ export const authApi = {
    * Login user
    */
   async login(credentials: LoginCredentials): Promise<{ user: User; tokens: AuthTokens }> {
-    const response = await apiClient.post('/api/v1/auth/login', credentials);
+    const response = await apiClient.post('/auth/login', credentials);
     return response.data.data;
   },
 
@@ -30,7 +30,7 @@ export const authApi = {
    * Register new patient
    */
   async register(data: RegisterData): Promise<{ user: User }> {
-    const response = await apiClient.post('/api/v1/auth/register', data);
+    const response = await apiClient.post('/auth/register', data);
     return response.data.data;
   },
 
@@ -39,7 +39,7 @@ export const authApi = {
    */
   async logout(): Promise<void> {
     try {
-      await apiClient.post('/api/v1/auth/logout');
+      await apiClient.post('/auth/logout');
     } finally {
       // Clear local storage regardless of API response
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -52,7 +52,7 @@ export const authApi = {
    * Refresh access token
    */
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
-    const response = await apiClient.post('/api/v1/auth/refresh', { refreshToken });
+    const response = await apiClient.post('/auth/refresh', { refreshToken });
     return response.data.data;
   },
 
@@ -60,35 +60,35 @@ export const authApi = {
    * Verify email
    */
   async verifyEmail(token: string): Promise<void> {
-    await apiClient.get(`/api/v1/auth/verify-email?token=${token}`);
+    await apiClient.get(`/auth/verify-email?token=${token}`);
   },
 
   /**
    * Resend verification email
    */
   async resendVerification(email: string): Promise<void> {
-    await apiClient.post('/api/v1/auth/resend-verification', { email });
+    await apiClient.post('/auth/resend-verification', { email });
   },
 
   /**
    * Request password reset
    */
   async forgotPassword(email: string): Promise<void> {
-    await apiClient.post('/api/v1/auth/forgot-password', { email });
+    await apiClient.post('/auth/forgot-password', { email });
   },
 
   /**
    * Reset password with token
    */
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    await apiClient.post('/api/v1/auth/reset-password', { token, newPassword });
+    await apiClient.post('/v1/auth/reset-password', { token, newPassword });
   },
 
   /**
    * Get current user profile
    */
   async getCurrentUser(): Promise<User> {
-    const response = await apiClient.get('/api/v1/auth/me');
+    const response = await apiClient.get('/auth/me');
     return response.data.data;
   },
 
@@ -96,7 +96,7 @@ export const authApi = {
    * Enable MFA
    */
   async enableMfa(): Promise<{ qrCode: string; secret: string }> {
-    const response = await apiClient.post('/api/v1/auth/mfa/enable');
+    const response = await apiClient.post('/auth/mfa/enable');
     return response.data.data;
   },
 
@@ -104,14 +104,14 @@ export const authApi = {
    * Disable MFA
    */
   async disableMfa(mfaCode: string): Promise<void> {
-    await apiClient.post('/api/v1/auth/mfa/disable', { mfaCode });
+    await apiClient.post('/auth/mfa/disable', { mfaCode });
   },
 
   /**
    * Verify MFA code
    */
   async verifyMfa(mfaCode: string): Promise<void> {
-    await apiClient.post('/api/v1/auth/mfa/verify', { mfaCode });
+    await apiClient.post('/auth/mfa/verify', { mfaCode });
   },
 };
 

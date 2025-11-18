@@ -48,8 +48,16 @@ export declare class RabbitMQEventBus implements IEventBus {
     private connection;
     private channel;
     private subscriptions;
+    private isReconnecting;
+    private reconnectAttempts;
+    private maxReconnectAttempts;
+    private reconnectDelay;
     constructor(config: EventBusConfig);
     connect(): Promise<void>;
+    private connectWithRetry;
+    private handleConnectionLost;
+    private restoreSubscriptions;
+    private sleep;
     disconnect(): Promise<void>;
     publish(event: DomainEvent): Promise<void>;
     subscribe<T extends DomainEvent>(eventType: string, handler: EventHandler<T>, queueName?: string): Promise<void>;

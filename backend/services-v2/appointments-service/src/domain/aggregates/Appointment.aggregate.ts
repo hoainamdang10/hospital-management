@@ -316,7 +316,8 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
       durationMinutes,
       type,
       priority,
-      status: AppointmentStatus.SCHEDULED,
+      // ✅ FIX: Use PENDING_PAYMENT for prepaid flow (Flow 3)
+      status: AppointmentStatus.PENDING_PAYMENT,
       details,
       roomId,
       departmentId,
@@ -346,7 +347,8 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
         durationMinutes,
         type,
         priority,
-        'scheduled',
+        // ✅ FIX: Event status should match aggregate status
+        'pending_payment',
         consultationFee,
         createdBy
       )

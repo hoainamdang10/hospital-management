@@ -22,6 +22,7 @@
  */
 import { IProviderScheduleRepository } from '../../domain/repositories/IProviderScheduleRepository';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { HttpProviderService } from '../../infrastructure/services/HttpProviderService';
 export interface FindAvailableTimeSlotsCommand {
     providerId: string;
     date: Date;
@@ -51,7 +52,8 @@ export interface AvailableTimeSlotDTO {
 export declare class FindAvailableTimeSlotsUseCase {
     private readonly providerScheduleRepository;
     private readonly appointmentRepository;
-    constructor(providerScheduleRepository: IProviderScheduleRepository, appointmentRepository: IAppointmentRepository);
+    private readonly httpProviderService;
+    constructor(providerScheduleRepository: IProviderScheduleRepository, appointmentRepository: IAppointmentRepository, httpProviderService: HttpProviderService);
     /**
      * Execute use case
      *

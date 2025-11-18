@@ -281,37 +281,39 @@ class ApiGatewayApplication {
         requiredPermissions: ["permission:read"],
       }),
 
-      // Patient Registry Service - Patient Management (internal port 3003, external 3023)
+      // Patient Registry Service - Patient Management (internal port 3002, external 3002)
       // Authorization handled by patient-registry-service (ownership-based)
       // Patients can access their own data, Admin/Doctor need patient:read permission
       ServiceRoute.create({
         serviceName: "patient-registry-service",
         baseUrl:
           process.env.PATIENT_REGISTRY_SERVICE_URL ||
-          "http://patient-registry-service:3003",
+          "http://localhost:3002",
         pathPrefix: "/api/v1/patients",
         requiresAuth: true,
         // No requiredPermissions - authorization handled by downstream service
       }),
 
-      // Provider/Staff Service - Doctor/Staff Management (internal port 3002, external 3022)
-      // Note: Removed permission check - patients need to search/view doctors for booking
+      // Provider/Staff Service - Doctor/Staff Management (internal port 3003, external 3003)
+      // Note: /search endpoint is PUBLIC (no auth required) for appointment booking
+      // Other staff endpoints require authentication
       ServiceRoute.create({
         serviceName: "provider-staff-service",
         baseUrl:
           process.env.PROVIDER_STAFF_SERVICE_URL ||
-          "http://localhost:3002",
+          "http://localhost:3003",
         pathPrefix: "/api/v1/staff",
-        requiresAuth: true,
+        requiresAuth: false,  // Allow public access to /search endpoint
       }),
 
-      // Department Service - Department Management (internal port 3025, external 3025)
+      // Department Management - Now integrated into Provider/Staff Service
+      // No longer a separate service - merged for better bounded context
       ServiceRoute.create({
-        serviceName: "department-service",
+        serviceName: "provider-staff-service",
         baseUrl:
-          process.env.DEPARTMENT_SERVICE_URL ||
-          "http://department-service:3025",
-        pathPrefix: "/api/departments",
+          process.env.PROVIDER_STAFF_SERVICE_URL ||
+          "http://localhost:3003",
+        pathPrefix: "/api/v1/departments",
         requiresAuth: false, // Public endpoint for department list
       }),
 
@@ -360,30 +362,9 @@ class ApiGatewayApplication {
         requiresAuth: true
       }),
 
-      // Clinical EMR Service - Electronic Medical Records (port 3027)
-      // Note: Uses /api/v2/clinical-emr for FHIR R4 compliance
-      ServiceRoute.create({
-        serviceName: "clinical-emr-service",
-        baseUrl:
-          process.env.CLINICAL_EMR_SERVICE_URL ||
-          "http://clinical-emr-service:3027",
-        pathPrefix: "/api/v2/clinical-emr",
-        requiresAuth: true,
-        requiredPermissions: ["clinical:read"],
-      }),
-
-      // Clinical EMR Service - Patient Medical Records (port 3027)
-      // Patients can view their own medical records
-      // Authorization handled by service (ownership-based)
-      ServiceRoute.create({
-        serviceName: "clinical-emr-service",
-        baseUrl:
-          process.env.CLINICAL_EMR_SERVICE_URL ||
-          "http://clinical-emr-service:3027",
-        pathPrefix: "/api/v2/clinical-emr/patients",
-        requiresAuth: true,
-        // No requiredPermissions - authorization handled by downstream service
-      }),
+      // Clinical EMR Service - DISABLED FOR MVP
+      // Focus on core features: Identity, Patient, Provider, Appointments, Billing
+      // Will be re-enabled post-MVP
 
       // Billing Service - Invoicing & Payments (port 3009)
       ServiceRoute.create({
@@ -418,16 +399,9 @@ class ApiGatewayApplication {
         requiresAuth: true,
       }),
 
-      // Scheduler Service - Job Scheduling & Cron Management (port 3030)
-      // Provides scheduled task execution, recurring jobs, and job monitoring
-      ServiceRoute.create({
-        serviceName: "scheduler-service",
-        baseUrl:
-          process.env.SCHEDULER_SERVICE_URL || "http://scheduler-service:3030",
-        pathPrefix: "/api/v1/schedules",
-        requiresAuth: true,
-        requiredPermissions: ["schedule:read"],
-      }),
+      // Scheduler Service - DISABLED FOR MVP
+      // Cron jobs moved to Notifications Service
+      // Dedicated scheduler service not needed for MVP scope
     ];
 
     routes.forEach((route) => this.serviceRegistry.registerRoute(route));

@@ -9,7 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentReminder = void 0;
-const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
 const ReminderStatus_1 = require("../value-objects/ReminderStatus");
 class AppointmentReminder extends aggregate_root_1.HealthcareAggregateRoot {
     constructor(props, id) {

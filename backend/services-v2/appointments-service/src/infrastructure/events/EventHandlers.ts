@@ -23,7 +23,7 @@ export class AppointmentScheduledEventHandler implements EventHandler<DomainEven
       appointmentId: (event as any).appointmentId,
       patientId: (event as any).patientId,
       doctorId: (event as any).doctorId,
-      appointmentDate: new Date((event as any).appointmentDate),
+      appointmentDate: (event as any).appointmentDate, // Keep as string (ISO format)
       appointmentTime: (event as any).appointmentTime,
       durationMinutes: (event as any).durationMinutes,
       type: (event as any).type,

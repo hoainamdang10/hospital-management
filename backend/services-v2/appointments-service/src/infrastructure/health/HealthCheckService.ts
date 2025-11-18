@@ -24,7 +24,7 @@ export interface HealthStatus {
     externalServices: {
       patientService: HealthCheckResult;
       providerService: HealthCheckResult;
-      schedulerService: HealthCheckResult;
+      // schedulerService removed - merged into notifications-service
     };
   };
 }
@@ -85,7 +85,7 @@ export class HealthCheckService {
           externalServices: {
             patientService: { status: "up", lastChecked: timestamp },
             providerService: { status: "up", lastChecked: timestamp },
-            schedulerService: { status: "up", lastChecked: timestamp },
+            // schedulerService removed - merged into notifications-service
           },
         },
       };
@@ -98,7 +98,6 @@ export class HealthCheckService {
       rabbitmqCheck,
       patientServiceCheck,
       providerServiceCheck,
-      schedulerServiceCheck,
     ] = await Promise.all([
       this.checkDatabase(),
       this.checkRedis(),
@@ -111,10 +110,7 @@ export class HealthCheckService {
         this.config.services.providerServiceUrl,
         "Provider Service",
       ),
-      this.checkExternalService(
-        this.config.services.schedulerServiceUrl,
-        "Scheduler Service",
-      ),
+      // Scheduler Service removed - functionality merged into notifications-service
     ]);
 
     // Determine overall status
@@ -124,7 +120,7 @@ export class HealthCheckService {
       rabbitmqCheck,
       patientServiceCheck,
       providerServiceCheck,
-      schedulerServiceCheck,
+      // schedulerServiceCheck removed
     ];
 
     const hasDown = allChecks.some((check) => check.status === "down");
@@ -152,7 +148,7 @@ export class HealthCheckService {
         externalServices: {
           patientService: patientServiceCheck,
           providerService: providerServiceCheck,
-          schedulerService: schedulerServiceCheck,
+          // schedulerService removed - merged into notifications-service
         },
       },
     };

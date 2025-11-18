@@ -22,7 +22,7 @@ class AppointmentScheduledEventHandler {
             appointmentId: event.appointmentId,
             patientId: event.patientId,
             doctorId: event.doctorId,
-            appointmentDate: new Date(event.appointmentDate),
+            appointmentDate: event.appointmentDate, // Keep as string (ISO format)
             appointmentTime: event.appointmentTime,
             durationMinutes: event.durationMinutes,
             type: event.type,

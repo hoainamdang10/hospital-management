@@ -20,7 +20,10 @@ export interface AvailableSlotsResponse {
   data: {
     providerId: string;
     date: string;
-    slots: TimeSlot[];
+    durationMinutes: number;
+    availableSlots: TimeSlot[];
+    totalSlots: number;
+    message: string;
   };
 }
 

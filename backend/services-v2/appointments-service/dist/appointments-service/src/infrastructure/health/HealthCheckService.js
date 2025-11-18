@@ -45,19 +45,19 @@ class HealthCheckService {
                     externalServices: {
                         patientService: { status: "up", lastChecked: timestamp },
                         providerService: { status: "up", lastChecked: timestamp },
-                        schedulerService: { status: "up", lastChecked: timestamp },
+                        // schedulerService removed - merged into notifications-service
                     },
                 },
             };
         }
         // Detailed health check - check all dependencies
-        const [databaseCheck, redisCheck, rabbitmqCheck, patientServiceCheck, providerServiceCheck, schedulerServiceCheck,] = await Promise.all([
+        const [databaseCheck, redisCheck, rabbitmqCheck, patientServiceCheck, providerServiceCheck,] = await Promise.all([
             this.checkDatabase(),
             this.checkRedis(),
             this.checkRabbitMQ(),
             this.checkExternalService(this.config.services.patientServiceUrl, "Patient Service"),
             this.checkExternalService(this.config.services.providerServiceUrl, "Provider Service"),
-            this.checkExternalService(this.config.services.schedulerServiceUrl, "Scheduler Service"),
+            // Scheduler Service removed - functionality merged into notifications-service
         ]);
         // Determine overall status
         const allChecks = [
@@ -66,7 +66,7 @@ class HealthCheckService {
             rabbitmqCheck,
             patientServiceCheck,
             providerServiceCheck,
-            schedulerServiceCheck,
+            // schedulerServiceCheck removed
         ];
         const hasDown = allChecks.some((check) => check.status === "down");
         const hasDegraded = allChecks.some((check) => check.status === "degraded");
@@ -93,7 +93,7 @@ class HealthCheckService {
                 externalServices: {
                     patientService: patientServiceCheck,
                     providerService: providerServiceCheck,
-                    schedulerService: schedulerServiceCheck,
+                    // schedulerService removed - merged into notifications-service
                 },
             },
         };

@@ -97,16 +97,49 @@ class AppointmentEventConsumer {
                 routingKey,
                 eventId: event.eventId,
             });
+            // FIX: After deserialization, event data is spread into root level of event object
+            // Access properties directly instead of using event.payload
+            const eventAny = event;
             // Route to appropriate handler
             switch (routingKey) {
                 case 'appointment.scheduled':
-                    await this.handleAppointmentScheduled(event.payload);
+                    await this.handleAppointmentScheduled({
+                        appointmentId: eventAny.appointmentId,
+                        patientId: eventAny.patientId,
+                        staffId: eventAny.staffId,
+                        departmentId: eventAny.departmentId,
+                        scheduledAt: eventAny.scheduledAt,
+                        duration: eventAny.duration,
+                        status: eventAny.status,
+                        serviceType: eventAny.serviceType,
+                        notes: eventAny.notes
+                    });
                     break;
                 case 'appointment.cancelled_late':
-                    await this.handleAppointmentCancelledLate(event.payload);
+                    await this.handleAppointmentCancelledLate({
+                        appointmentId: eventAny.appointmentId,
+                        patientId: eventAny.patientId,
+                        staffId: eventAny.staffId,
+                        departmentId: eventAny.departmentId,
+                        scheduledAt: eventAny.scheduledAt,
+                        cancelledAt: eventAny.cancelledAt,
+                        reason: eventAny.reason,
+                        cancellationType: eventAny.cancellationType,
+                        lateFeeApplied: eventAny.lateFeeApplied,
+                        lateFeeAmount: eventAny.lateFeeAmount
+                    });
                     break;
                 case 'appointment.no_show':
-                    await this.handleAppointmentNoShow(event.payload);
+                    await this.handleAppointmentNoShow({
+                        appointmentId: eventAny.appointmentId,
+                        patientId: eventAny.patientId,
+                        staffId: eventAny.staffId,
+                        departmentId: eventAny.departmentId,
+                        scheduledAt: eventAny.scheduledAt,
+                        noShowFeeApplied: eventAny.noShowFeeApplied,
+                        noShowFeeAmount: eventAny.noShowFeeAmount,
+                        noShowCount: eventAny.noShowCount
+                    });
                     break;
                 default:
                     this.loggerInstance.warn('Unhandled routing key', { routingKey });

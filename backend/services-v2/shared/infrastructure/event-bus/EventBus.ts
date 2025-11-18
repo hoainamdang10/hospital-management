@@ -61,13 +61,23 @@ export class RabbitMQEventBus implements IEventBus {
   private connection: any = null;
   private channel: any = null;
   private subscriptions: Map<string, EventSubscription[]> = new Map();
+  private isReconnecting: boolean = false;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 10;
+  private reconnectDelay: number = 3000; // 3 seconds
 
   constructor(private config: EventBusConfig) {}
 
   async connect(): Promise<void> {
+    return this.connectWithRetry();
+  }
+
+  private async connectWithRetry(attempt: number = 1): Promise<void> {
     try {
       // Dynamic import to avoid bundling issues
       const amqp = await import('amqplib');
+      
+      console.log(`[EventBus] Connecting to RabbitMQ (attempt ${attempt}/${this.maxReconnectAttempts})...`);
       
       this.connection = await amqp.connect(this.config.rabbitmqUrl);
       this.channel = await this.connection.createChannel();
@@ -79,11 +89,90 @@ export class RabbitMQEventBus implements IEventBus {
         { durable: true }
       );
 
+      // Setup connection error handlers for auto-reconnect
+      this.connection.on('error', (err: Error) => {
+        console.error('[EventBus] Connection error:', err.message);
+        if (!this.isReconnecting) {
+          this.handleConnectionLost();
+        }
+      });
+
+      this.connection.on('close', () => {
+        console.log('[EventBus] Connection closed');
+        if (!this.isReconnecting) {
+          this.handleConnectionLost();
+        }
+      });
+
+      this.reconnectAttempts = 0;
       console.log(`✅ Event Bus connected: ${this.config.serviceName}`);
     } catch (error) {
-      console.error('❌ Failed to connect to Event Bus:', error);
-      throw error;
+      console.error(`❌ Failed to connect to Event Bus (attempt ${attempt}):`, error);
+      
+      if (attempt < this.maxReconnectAttempts) {
+        const delay = this.reconnectDelay * Math.min(attempt, 5); // Max 15s delay
+        console.log(`[EventBus] Retrying in ${delay}ms...`);
+        await this.sleep(delay);
+        return this.connectWithRetry(attempt + 1);
+      } else {
+        throw new Error(`Failed to connect to RabbitMQ after ${this.maxReconnectAttempts} attempts`);
+      }
     }
+  }
+
+  private async handleConnectionLost(): Promise<void> {
+    if (this.isReconnecting) {
+      return;
+    }
+
+    this.isReconnecting = true;
+    console.log('[EventBus] Connection lost, attempting to reconnect...');
+
+    try {
+      // Clean up existing connection
+      this.connection = null;
+      this.channel = null;
+
+      // Wait before reconnecting
+      await this.sleep(this.reconnectDelay);
+
+      // Attempt to reconnect
+      await this.connectWithRetry();
+
+      // Restore subscriptions
+      await this.restoreSubscriptions();
+
+      console.log('[EventBus] ✅ Reconnected successfully');
+    } catch (error) {
+      console.error('[EventBus] ❌ Failed to reconnect:', error);
+    } finally {
+      this.isReconnecting = false;
+    }
+  }
+
+  private async restoreSubscriptions(): Promise<void> {
+    console.log('[EventBus] Restoring subscriptions...');
+    
+    // Store current subscriptions
+    const subsToRestore = new Map(this.subscriptions);
+    
+    // Clear subscription map to avoid duplicates
+    this.subscriptions.clear();
+    
+    for (const [eventType, subs] of subsToRestore.entries()) {
+      for (const sub of subs) {
+        try {
+          await this.subscribe(eventType, sub.handler, sub.queueName);
+          console.log(`[EventBus] ✅ Restored subscription: ${eventType}`);
+        } catch (error) {
+          console.error(`[EventBus] ❌ Failed to restore subscription for ${eventType}:`, error);
+        }
+      }
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   async disconnect(): Promise<void> {
@@ -234,32 +323,69 @@ export class RabbitMQEventBus implements IEventBus {
   }
 
   private serializeEvent(event: DomainEvent): string {
-    return JSON.stringify({
-      eventId: event.eventId,
-      eventType: event.eventType,
-      aggregateId: event.aggregateId,
-      occurredAt: event.occurredAt.toISOString(),
-      payload: event,
-    });
+    // FIX: Use toJSON() method which calls getEventData() internally
+    // This ensures we only serialize the event data, not the entire object
+    return JSON.stringify(event.toJSON());
   }
 
   private deserializeEvent(message: string): DomainEvent {
     const data = JSON.parse(message);
-    
+
     // Get event class from registry
     const EventClass = EVENT_TYPE_REGISTRY[data.eventType];
-    
+
     if (!EventClass) {
       throw new Error(`Unknown event type: ${data.eventType}`);
     }
 
-    // Reconstruct event
-    const event = Object.assign(
-      new EventClass(),
-      data.payload
-    );
+    const eventData = data.eventData || data.payload || {};
 
-    return event;
+    // FIX: Use constructor for AppointmentScheduledEvent to properly initialize readonly properties
+    // This ensures all properties are set correctly during deserialization
+    try {
+      if (data.eventType === 'AppointmentScheduled') {
+        return new EventClass(
+          eventData.appointmentId,
+          eventData.patientId,
+          eventData.doctorId,
+          eventData.appointmentDate,
+          eventData.appointmentTime,
+          eventData.durationMinutes,
+          eventData.type,
+          eventData.priority,
+          eventData.status,
+          eventData.consultationFee,
+          eventData.createdBy,
+          data.correlationId,
+          data.causationId,
+          data.userId
+        );
+      }
+
+      // FALLBACK: For other events, use Object.create approach
+      // This is safer than Object.assign with readonly properties
+      const event = Object.create(EventClass.prototype);
+
+      // Assign all properties from serialized data
+      Object.assign(event, {
+        eventId: data.eventId,
+        eventType: data.eventType,
+        aggregateId: data.aggregateId,
+        aggregateType: data.aggregateType,
+        eventVersion: data.eventVersion || 1,
+        occurredAt: new Date(data.occurredAt),
+        correlationId: data.correlationId,
+        causationId: data.causationId,
+        userId: data.userId,
+        metadata: data.metadata || { source: 'domain', priority: 'normal', retryable: true },
+        ...eventData
+      });
+
+      return event;
+    } catch (error) {
+      console.error(`[EventBus] Failed to deserialize event: ${data.eventType}`, error);
+      throw new Error(`Failed to deserialize event ${data.eventType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
 

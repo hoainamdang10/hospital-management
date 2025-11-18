@@ -31,15 +31,18 @@ export interface PatientReadModel {
  * Query-side repository for patient data (CQRS pattern)
  */
 export class PatientReadModelRepository {
-  private supabase: SupabaseClient<any, 'appointments_schema'>;
+  private supabase: SupabaseClient;
   private readonly table = 'patient_read_model';
+  private readonly schema = 'appointments_schema';
+  private readonly fallbackSchema = 'patient_schema';
+  private readonly fallbackTable = 'patients';
 
   constructor(supabaseUrl: string, supabaseKey: string) {
+    // Create client without schema restriction for fallback queries
     this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { autoRefreshToken: false, persistSession: false },
-      db: { schema: 'appointments_schema' },
       global: { headers: { 'X-Client-Info': 'appointments-patient-read' } }
-    }) as SupabaseClient<any, 'appointments_schema'>;
+    });
   }
 
   /**
@@ -73,24 +76,74 @@ export class PatientReadModelRepository {
 
   /**
    * Find patient by ID
+   * Falls back to patient_schema.patients if read model is empty
    */
   async findById(patientId: string): Promise<PatientReadModel | null> {
+    // Try read model first
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select('*')
       .eq('patient_id', patientId)
       .maybeSingle();
 
-    if (error) {
+    if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
       throw new Error(`Failed to fetch patient read model: ${error.message}`);
     }
 
-    if (!data) {
-      console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in read model`);
-      return null;
+    if (data) {
+      return this.mapToModel(data);
     }
 
-    return this.mapToModel(data);
+    // Fallback to patient_schema.patients
+    console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in read model, trying fallback`);
+    return await this.findByIdFallback(patientId);
+  }
+
+  /**
+   * Fallback: Query patient_schema.patients directly
+   */
+  private async findByIdFallback(patientId: string): Promise<PatientReadModel | null> {
+    try {
+      const { data, error } = await this.supabase
+        .schema(this.fallbackSchema)
+        .from(this.fallbackTable)
+        .select('patient_id, personal_info, contact_info, basic_medical_info')
+        .eq('patient_id', patientId)
+        .maybeSingle();
+
+      if (error) {
+        console.error(`[PatientReadModelRepo] Fallback query failed: ${error.message}`);
+        return null;
+      }
+
+      if (!data) {
+        console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in fallback`);
+        return null;
+      }
+
+      // Map JSONB fields to PatientReadModel
+      const personalInfo = data.personal_info || {};
+      const contactInfo = data.contact_info || {};
+      const medicalInfo = data.basic_medical_info || {};
+
+      return {
+        patientId: data.patient_id,
+        tenantId: 'hospital-1', // Default tenant
+        fullName: personalInfo.fullName || '',
+        phone: contactInfo.phone,
+        email: contactInfo.email,
+        dateOfBirth: personalInfo.dateOfBirth ? new Date(personalInfo.dateOfBirth) : undefined,
+        gender: personalInfo.gender,
+        nationalId: personalInfo.nationalId,
+        insuranceNumber: medicalInfo.insuranceNumber,
+        insuranceType: medicalInfo.insuranceType,
+        address: contactInfo.address
+      };
+    } catch (error) {
+      console.error(`[PatientReadModelRepo] Fallback error:`, error);
+      return null;
+    }
   }
 
   /**

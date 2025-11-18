@@ -104,21 +104,27 @@ export const searchStaff = async (params: SearchStaffParams): Promise<SearchStaf
 };
 
 /**
- * Get doctors by department
+ * Get doctors by department (PUBLIC - no auth required for appointment booking)
  */
 export async function getDoctorsByDepartment(
   departmentId: string,
   limit: number = 20
 ): Promise<Staff[]> {
-  const response = await searchStaff({
-    departmentId,
-    staffType: 'doctor',
-    status: 'active',
-    isActive: true,
-    limit,
-  });
-
-  return response.success ? response.data.items : [];
+  try {
+    const response = await apiClient.get('/v1/staff/search', { 
+      params: {
+        departmentId,
+        staffType: 'doctor',
+        status: 'active',
+        isActive: true,
+        limit,
+      }
+    });
+    return response.data?.data?.items ?? [];
+  } catch (error) {
+    console.error('Failed to fetch doctors:', error);
+    return [];
+  }
 }
 
 /**

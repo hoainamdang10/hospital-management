@@ -205,7 +205,22 @@ class AppointmentScheduledSchedulerHandler {
      */
     async handle(event) {
         try {
-            const eventData = event.eventData;
+            // FIX: After deserialization, event data is spread into root level of event object
+            // Access properties directly instead of using getEventData() which relies on readonly properties
+            const eventAny = event;
+            const eventData = {
+                appointmentId: eventAny.appointmentId,
+                patientId: eventAny.patientId,
+                doctorId: eventAny.doctorId,
+                appointmentDate: eventAny.appointmentDate,
+                appointmentTime: eventAny.appointmentTime,
+                durationMinutes: eventAny.durationMinutes,
+                type: eventAny.type,
+                priority: eventAny.priority,
+                status: eventAny.status,
+                consultationFee: eventAny.consultationFee,
+                createdBy: eventAny.createdBy
+            };
             console.log(`[SchedulerHandler] Processing AppointmentScheduled: ${eventData.appointmentId}`);
             // Determine urgency level from priority
             const urgencyLevel = this.mapPriorityToUrgency(eventData.priority);
@@ -299,22 +314,25 @@ class AppointmentCancelledSchedulerHandler {
      */
     async handle(event) {
         try {
-            const eventData = event.eventData;
-            console.log(`[SchedulerHandler] Processing AppointmentCancelled: ${eventData.appointmentId}`);
+            // FIX: After deserialization, event data is spread into root level of event object
+            // Access properties directly instead of using getEventData() which relies on readonly properties
+            const eventAny = event;
+            const appointmentId = eventAny.appointmentId;
+            console.log(`[SchedulerHandler] Processing AppointmentCancelled: ${appointmentId}`);
             // Enqueue cancellation to Outbox
             await this.outboxRepo.enqueue({
                 eventType: 'SchedulerReminderCancelByOwner',
                 aggregateType: 'Appointment',
-                aggregateId: eventData.appointmentId,
-                dedupKey: `${eventData.appointmentId}:cancel-all`,
+                aggregateId: appointmentId,
+                dedupKey: `${appointmentId}:cancel-all`,
                 payload: {
                     tenantId: this.tenantId,
                     ownerService: 'appointments',
                     ownerResourceType: 'APPOINTMENT',
-                    ownerResourceId: eventData.appointmentId
+                    ownerResourceId: appointmentId
                 }
             });
-            console.log(`[SchedulerHandler] ✅ Enqueued cancellation for ${eventData.appointmentId}`);
+            console.log(`[SchedulerHandler] ✅ Enqueued cancellation for ${appointmentId}`);
         }
         catch (error) {
             console.error('[SchedulerHandler] Error handling AppointmentCancelled event:', error);
@@ -337,19 +355,26 @@ class AppointmentRescheduledSchedulerHandler {
      */
     async handle(event) {
         try {
-            const eventData = event.eventData;
-            console.log(`[SchedulerHandler] Processing AppointmentRescheduled: ${eventData.appointmentId}`);
+            // FIX: After deserialization, event data is spread into root level of event object
+            // Access properties directly instead of using getEventData() which relies on readonly properties
+            const eventAny = event;
+            const appointmentId = eventAny.appointmentId;
+            const patientId = eventAny.patientId;
+            const doctorId = eventAny.doctorId;
+            const newStartTime = eventAny.newStartTime ? new Date(eventAny.newStartTime) : new Date();
+            const reason = eventAny.reason;
+            console.log(`[SchedulerHandler] Processing AppointmentRescheduled: ${appointmentId}`);
             // Step 1: Cancel old reminders
             await this.outboxRepo.enqueue({
                 eventType: 'SchedulerReminderCancelByOwner',
                 aggregateType: 'Appointment',
-                aggregateId: eventData.appointmentId,
-                dedupKey: `${eventData.appointmentId}:reschedule-cancel`,
+                aggregateId: appointmentId,
+                dedupKey: `${appointmentId}:reschedule-cancel`,
                 payload: {
                     tenantId: this.tenantId,
                     ownerService: 'appointments',
                     ownerResourceType: 'APPOINTMENT',
-                    ownerResourceId: eventData.appointmentId
+                    ownerResourceId: appointmentId
                 }
             });
             // Step 2: Create new reminders (reuse logic from AppointmentScheduled)
@@ -358,31 +383,31 @@ class AppointmentRescheduledSchedulerHandler {
             await this.outboxRepo.enqueue({
                 eventType: 'SchedulerReminderCreate',
                 aggregateType: 'Appointment',
-                aggregateId: eventData.appointmentId,
-                dedupKey: `${eventData.appointmentId}:reschedule-create`,
+                aggregateId: appointmentId,
+                dedupKey: `${appointmentId}:reschedule-create`,
                 payload: {
                     tenantId: this.tenantId,
-                    dedupKey: `${eventData.appointmentId}:reschedule-create`,
+                    dedupKey: `${appointmentId}:reschedule-create`,
                     ownerService: 'appointments',
                     ownerResourceType: 'APPOINTMENT',
-                    ownerResourceId: eventData.appointmentId,
+                    ownerResourceId: appointmentId,
                     topicOrCommand: `appointments.appointment.reminder.rescheduled`,
                     // Flat structure - matches Scheduler API
                     scheduleType: 'ONCE',
-                    startAtUtc: eventData.newStartTime.toISOString(),
+                    startAtUtc: newStartTime.toISOString(),
                     timezone: 'UTC',
                     payloadJson: {
-                        appointmentId: eventData.appointmentId,
-                        patientId: eventData.patientId,
-                        doctorId: eventData.doctorId,
-                        newStartTime: eventData.newStartTime.toISOString(),
-                        reason: eventData.reason || 'Appointment rescheduled'
+                        appointmentId,
+                        patientId,
+                        doctorId,
+                        newStartTime: newStartTime.toISOString(),
+                        reason: reason || 'Appointment rescheduled'
                     },
                     maxRuns: 1,
                     jitterMs: 0
                 }
             });
-            console.log(`[SchedulerHandler] ✅ Enqueued reschedule (cancel + create) for ${eventData.appointmentId}`);
+            console.log(`[SchedulerHandler] ✅ Enqueued reschedule (cancel + create) for ${appointmentId}`);
         }
         catch (error) {
             console.error('[SchedulerHandler] Error handling AppointmentRescheduled event:', error);

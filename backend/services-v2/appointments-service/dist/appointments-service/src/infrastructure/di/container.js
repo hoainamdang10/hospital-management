@@ -22,6 +22,7 @@ const EventBusAdapter_1 = require("../events/EventBusAdapter");
 // Services - PURE OUTBOX PATTERN (No HTTP)
 const LocalPatientReadModelService_1 = require("../services/LocalPatientReadModelService");
 const LocalProviderReadModelService_1 = require("../services/LocalProviderReadModelService");
+const HttpProviderService_1 = require("../services/HttpProviderService");
 const RemoteSchedulerAdapter_1 = require("../adapters/RemoteSchedulerAdapter");
 const SchedulerAdapterWrapper_1 = require("../adapters/SchedulerAdapterWrapper");
 const BillingServiceClient_1 = require("../clients/BillingServiceClient");
@@ -224,6 +225,8 @@ class DIContainer {
         // PURE OUTBOX PATTERN: Use local read models instead of HTTP
         this.patientService = new LocalPatientReadModelService_1.LocalPatientReadModelService(this.patientReadModelRepository);
         this.providerService = new LocalProviderReadModelService_1.LocalProviderReadModelService(this.providerReadModelRepository);
+        // HTTP Provider Service for work schedule (simple MVP approach)
+        this.httpProviderService = new HttpProviderService_1.HttpProviderService(this.config.services.providerServiceUrl);
         this.schedulerAdapter = new RemoteSchedulerAdapter_1.RemoteSchedulerAdapter({
             baseUrl: this.config.services.schedulerServiceUrl,
             apiKey: this.config.services.schedulerApiKey,
@@ -293,7 +296,7 @@ class DIContainer {
             new CreateEmergencyAppointment_use_case_1.CreateEmergencyAppointmentUseCase(this.appointmentRepository, this.queueRepository, this.authorizationService);
         this.transferAppointmentUseCase = new TransferAppointment_use_case_1.TransferAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         // Availability Use Case
-        this.findAvailableTimeSlotsUseCase = new FindAvailableTimeSlotsUseCase_1.FindAvailableTimeSlotsUseCase(this.providerScheduleRepository, this.appointmentRepository);
+        this.findAvailableTimeSlotsUseCase = new FindAvailableTimeSlotsUseCase_1.FindAvailableTimeSlotsUseCase(this.providerScheduleRepository, this.appointmentRepository, this.httpProviderService);
         // ===== ARCHIVED FOR POST-MVP: Waitlist Use Cases =====
         // this.addToWaitlistUseCase = new AddToWaitlistUseCase(
         //   this.waitlistRepository,

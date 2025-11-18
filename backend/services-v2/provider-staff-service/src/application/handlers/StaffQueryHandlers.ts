@@ -691,6 +691,7 @@ export class StaffQueryHandlers {
       "doctor",
       "nurse",
       "receptionist",
+      "patient",  // Allow patients to search doctors for appointment booking
     ].includes(normalizedRole);
   }
 
