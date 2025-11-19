@@ -25,6 +25,7 @@ export interface AppConfig {
   serviceName: string;
   version: string;
   logLevel: string;
+  trustProxy: boolean | string;
 
   // Supabase
   supabaseUrl: string;
@@ -39,6 +40,8 @@ export interface AppConfig {
   rabbitmqUrl: string;
   rabbitmqEnabled: boolean;
   rabbitmqExchange: string;
+  rabbitmqMaxConnectionAttempts: number;
+  rabbitmqRetryDelayMs: number;
 
   // Email (SendGrid)
   sendgridApiKey: string;
@@ -207,6 +210,7 @@ export function loadConfig(): AppConfig {
     serviceName: "identity-service",
     version: "2.0.0",
     logLevel: process.env.LOG_LEVEL || (isDevelopment ? "debug" : "info"),
+    trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
 
     // Supabase
     supabaseUrl: process.env.SUPABASE_URL!,
@@ -222,6 +226,14 @@ export function loadConfig(): AppConfig {
       process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
     rabbitmqEnabled: !!process.env.RABBITMQ_URL,
     rabbitmqExchange: process.env.RABBITMQ_EXCHANGE || "hospital.events",
+    rabbitmqMaxConnectionAttempts: parseInt(
+      process.env.RABBITMQ_MAX_RETRIES || "5",
+      10,
+    ),
+    rabbitmqRetryDelayMs: parseInt(
+      process.env.RABBITMQ_RETRY_DELAY_MS || "2000",
+      10,
+    ),
 
     // Email (SendGrid)
     sendgridApiKey: process.env.SENDGRID_API_KEY || "",
@@ -274,4 +286,20 @@ export function loadConfig(): AppConfig {
           .filter(Boolean)
       : [],
   };
+}
+
+function parseTrustProxy(value?: string): boolean | string {
+  if (!value || value.trim().length === 0) {
+    return true;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+
+  return value;
 }

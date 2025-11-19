@@ -38,21 +38,13 @@ apiClient.interceptors.response.use(
       });
       
       // Only redirect if NOT already on auth pages
-      // TEMPORARILY DISABLED FOR DEBUGGING
       if (typeof window !== 'undefined') {
         const currentPath = window.location.pathname;
         const isAuthPage = currentPath.startsWith('/auth/');
-        
-        console.warn('[axios] 401 received - Would redirect but DISABLED FOR DEBUG', {
-          currentPath,
-          isAuthPage,
-          url: error.config?.url
-        });
-        
-        // if (!isAuthPage) {
-        //   console.warn('[axios] Session expired, redirecting to login');
-        //   window.location.href = '/auth/login?session=expired';
-        // }
+        if (!isAuthPage) {
+          console.warn('[axios] Session expired, redirecting to login');
+          window.location.href = '/auth/login?session=expired';
+        }
       }
     }
 

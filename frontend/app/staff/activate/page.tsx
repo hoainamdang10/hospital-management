@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle2, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -9,10 +9,10 @@ import Link from 'next/link';
  * Staff Account Activation Page
  * Trang kích hoạt tài khoản cho nhân viên y tế
  */
-export default function StaffActivationPage() {
+function StaffActivationPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(true);
@@ -22,7 +22,7 @@ export default function StaffActivationPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: '',
@@ -38,7 +38,7 @@ export default function StaffActivationPage() {
   useEffect(() => {
     const tokenParam = searchParams.get('token');
     const emailParam = searchParams.get('email');
-    
+
     if (!tokenParam || !emailParam) {
       setIsValid(false);
       setError('Link kích hoạt không hợp lệ. Vui lòng kiểm tra lại email của bạn.');
@@ -48,7 +48,7 @@ export default function StaffActivationPage() {
 
     setToken(tokenParam);
     setEmail(emailParam);
-    
+
     // TODO: Validate token with backend
     setTimeout(() => {
       setIsValid(true);
@@ -108,17 +108,16 @@ export default function StaffActivationPage() {
     try {
       // TODO: Call API to activate account
       console.log('Activating account with:', { token, email, password: formData.password });
-      
+
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       setSuccess(true);
-      
+
       // Redirect to login after 3 seconds
       setTimeout(() => {
         router.push('/auth/login?activated=true');
       }, 3000);
-      
     } catch (err: any) {
       setError(err.message || 'Có lỗi xảy ra khi kích hoạt tài khoản');
     } finally {
@@ -129,10 +128,10 @@ export default function StaffActivationPage() {
   // Loading state
   if (isValidating) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Đang xác thực...</h2>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-xl">
+          <Loader2 className="text-primary-600 mx-auto mb-4 h-12 w-12 animate-spin" />
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">Đang xác thực...</h2>
           <p className="text-gray-600">Vui lòng đợi trong giây lát</p>
         </div>
       </div>
@@ -142,18 +141,18 @@ export default function StaffActivationPage() {
   // Invalid token
   if (!isValid) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-xl">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
             <AlertCircle className="h-8 w-8 text-red-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Link không hợp lệ</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="mb-2 text-2xl font-bold text-gray-900">Link không hợp lệ</h2>
+          <p className="mb-6 text-gray-600">
             {error || 'Link kích hoạt không hợp lệ hoặc đã hết hạn.'}
           </p>
           <Link
             href="/"
-            className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="bg-primary-600 hover:bg-primary-700 inline-block rounded-lg px-6 py-3 text-white transition-colors"
           >
             Về trang chủ
           </Link>
@@ -165,13 +164,13 @@ export default function StaffActivationPage() {
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-xl">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
             <CheckCircle2 className="h-8 w-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Kích hoạt thành công!</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="mb-2 text-2xl font-bold text-gray-900">Kích hoạt thành công!</h2>
+          <p className="mb-6 text-gray-600">
             Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập vào hệ thống ngay bây giờ.
           </p>
           <p className="text-sm text-gray-500">Đang chuyển hướng đến trang đăng nhập...</p>
@@ -182,21 +181,21 @@ export default function StaffActivationPage() {
 
   // Activation form
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="h-8 w-8 text-primary-600" />
+        <div className="mb-8 text-center">
+          <div className="bg-primary-100 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+            <CheckCircle2 className="text-primary-600 h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Kích hoạt tài khoản</h1>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">Kích hoạt tài khoản</h1>
           <p className="text-gray-600">
             Chào mừng bạn! Vui lòng đặt mật khẩu để kích hoạt tài khoản.
           </p>
         </div>
 
         {/* Email info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm text-blue-900">
             <span className="font-medium">Email:</span> {email}
           </p>
@@ -204,9 +203,9 @@ export default function StaffActivationPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
               <p className="text-sm text-red-800">{error}</p>
             </div>
           </div>
@@ -216,7 +215,7 @@ export default function StaffActivationPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Mật khẩu <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -225,23 +224,23 @@ export default function StaffActivationPage() {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 focus:border-transparent focus:ring-2"
                 placeholder="Nhập mật khẩu"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
-            
+
             {/* Password strength indicator */}
             {formData.password && (
               <div className="mt-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="mb-1 flex items-center gap-2">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
                     <div
                       className={`h-full transition-all duration-300 bg-${passwordStrength.color}-500`}
                       style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
@@ -252,7 +251,8 @@ export default function StaffActivationPage() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Mật khẩu nên có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
+                  Mật khẩu nên có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc
+                  biệt.
                 </p>
               </div>
             )}
@@ -260,7 +260,7 @@ export default function StaffActivationPage() {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Xác nhận mật khẩu <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -269,19 +269,19 @@ export default function StaffActivationPage() {
                 required
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 focus:border-transparent focus:ring-2"
                 placeholder="Nhập lại mật khẩu"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-              <p className="text-xs text-red-600 mt-1">Mật khẩu không khớp</p>
+              <p className="mt-1 text-xs text-red-600">Mật khẩu không khớp</p>
             )}
           </div>
 
@@ -289,11 +289,11 @@ export default function StaffActivationPage() {
           <button
             type="submit"
             disabled={isSubmitting || formData.password !== formData.confirmPassword}
-            className="w-full px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            className="bg-primary-600 hover:bg-primary-700 w-full rounded-lg px-4 py-3 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 Đang kích hoạt...
               </span>
             ) : (
@@ -306,12 +306,32 @@ export default function StaffActivationPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Đã có tài khoản?{' '}
-            <Link href="/auth/login" className="text-primary-600 hover:text-primary-700 font-medium">
+            <Link
+              href="/auth/login"
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
               Đăng nhập
             </Link>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StaffActivationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+          <div className="rounded-lg bg-white p-8 text-center shadow">
+            <Loader2 className="text-primary mx-auto h-10 w-10 animate-spin" />
+            <p className="mt-3 text-sm text-gray-600">Đang tải thông tin kích hoạt nhân viên...</p>
+          </div>
+        </div>
+      }
+    >
+      <StaffActivationPageContent />
+    </Suspense>
   );
 }

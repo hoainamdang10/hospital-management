@@ -1,9 +1,12 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { 
-  IInboxRepository, 
-  ProcessEventIdempotentResult 
-} from '../../domain/repositories/IInboxRepository';
-import { InboxEvent, InboxEventStatus } from '../../domain/aggregates/InboxEvent.aggregate';
+import { SupabaseClient } from "@supabase/supabase-js";
+import {
+  IInboxRepository,
+  ProcessEventIdempotentResult,
+} from "../../domain/repositories/IInboxRepository";
+import {
+  InboxEvent,
+  InboxEventStatus,
+} from "../../domain/aggregates/InboxEvent.aggregate";
 
 interface InboxRow {
   inbox_id: string;
@@ -26,12 +29,12 @@ export class SupabaseInboxRepository implements IInboxRepository {
 
   async exists(idempotencyKey: string): Promise<boolean> {
     const { data, error } = await this.supabase
-      .from('inbox_events')
-      .select('inbox_id')
-      .eq('idempotency_key', idempotencyKey)
+      .from("inbox")
+      .select("inbox_id")
+      .eq("idempotency_key", idempotencyKey)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error && error.code !== "PGRST116") {
       throw new Error(`Failed to check event existence: ${error.message}`);
     }
 
@@ -46,21 +49,21 @@ export class SupabaseInboxRepository implements IInboxRepository {
     eventId?: string;
   }): Promise<string> {
     const inboxId = crypto.randomUUID();
-    
+
     const { data, error } = await this.supabase
-      .from('inbox_events')
+      .from("inbox")
       .insert({
         inbox_id: inboxId,
         idempotency_key: event.idempotencyKey,
         event_type: event.eventType,
         payload_json: event.payload,
         headers_json: event.headers,
-        status: 'PENDING',
+        status: "PENDING",
         received_at_utc: new Date().toISOString(),
         created_at_utc: new Date().toISOString(),
         updated_at_utc: new Date().toISOString(),
       })
-      .select('inbox_id')
+      .select("inbox_id")
       .single();
 
     if (error) {
@@ -74,45 +77,52 @@ export class SupabaseInboxRepository implements IInboxRepository {
     idempotencyKey: string,
     eventType: string,
     payloadJson: any,
-    headersJson: any = {}
+    headersJson: any = {},
   ): Promise<ProcessEventIdempotentResult> {
     try {
-      const { data, error } = await this.supabase.rpc('process_event_idempotent', {
-        p_idempotency_key: idempotencyKey,
-        p_event_type: eventType,
-        p_payload_json: payloadJson,
-        p_headers_json: headersJson
-      });
+      const { data, error } = await this.supabase.rpc(
+        "process_event_idempotent",
+        {
+          p_idempotency_key: idempotencyKey,
+          p_event_type: eventType,
+          p_payload_json: payloadJson,
+          p_headers_json: headersJson,
+        },
+      );
 
       if (error) {
-        throw new Error(`Failed to process event idempotently: ${error.message}`);
+        throw new Error(
+          `Failed to process event idempotently: ${error.message}`,
+        );
       }
 
       if (!data || data.length === 0) {
-        throw new Error('No result returned from process_event_idempotent');
+        throw new Error("No result returned from process_event_idempotent");
       }
 
       const result = data[0];
       return {
         isNew: result.is_new,
         inboxId: result.inbox_id.toString(),
-        status: result.status as InboxEventStatus
+        status: result.status as InboxEventStatus,
       };
     } catch (error) {
-      console.error('Error processing event idempotently:', error);
+      console.error("Error processing event idempotently:", error);
       throw error;
     }
   }
 
-  async findByIdempotencyKey(idempotencyKey: string): Promise<InboxEvent | null> {
+  async findByIdempotencyKey(
+    idempotencyKey: string,
+  ): Promise<InboxEvent | null> {
     const { data, error } = await this.supabase
-      .from('inbox')
-      .select('*')
-      .eq('idempotency_key', idempotencyKey)
+      .from("inbox")
+      .select("*")
+      .eq("idempotency_key", idempotencyKey)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if (error.code === "PGRST116") {
         return null;
       }
       throw new Error(`Failed to find inbox event: ${error.message}`);
@@ -123,13 +133,13 @@ export class SupabaseInboxRepository implements IInboxRepository {
 
   async findById(inboxId: string): Promise<InboxEvent | null> {
     const { data, error } = await this.supabase
-      .from('inbox')
-      .select('*')
-      .eq('inbox_id', inboxId)
+      .from("inbox")
+      .select("*")
+      .eq("inbox_id", inboxId)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if (error.code === "PGRST116") {
         return null;
       }
       throw new Error(`Failed to find inbox event: ${error.message}`);
@@ -140,32 +150,32 @@ export class SupabaseInboxRepository implements IInboxRepository {
 
   async findPending(limit: number = 100): Promise<InboxEvent[]> {
     const { data, error } = await this.supabase
-      .from('inbox')
-      .select('*')
-      .eq('status', 'PENDING')
-      .order('received_at_utc', { ascending: true })
+      .from("inbox")
+      .select("*")
+      .eq("status", "PENDING")
+      .order("received_at_utc", { ascending: true })
       .limit(limit);
 
     if (error) {
       throw new Error(`Failed to find pending events: ${error.message}`);
     }
 
-    return data.map(row => this.toDomain(row));
+    return data.map((row) => this.toDomain(row));
   }
 
   async findFailed(limit: number = 100): Promise<InboxEvent[]> {
     const { data, error } = await this.supabase
-      .from('inbox')
-      .select('*')
-      .eq('status', 'FAILED')
-      .order('last_retry_at_utc', { ascending: true })
+      .from("inbox")
+      .select("*")
+      .eq("status", "FAILED")
+      .order("last_retry_at_utc", { ascending: true })
       .limit(limit);
 
     if (error) {
       throw new Error(`Failed to find failed events: ${error.message}`);
     }
 
-    return data.map(row => this.toDomain(row));
+    return data.map((row) => this.toDomain(row));
   }
 
   async update(event: InboxEvent): Promise<void> {
@@ -173,9 +183,9 @@ export class SupabaseInboxRepository implements IInboxRepository {
     const row = this.toRow(props);
 
     const { error } = await this.supabase
-      .from('inbox')
+      .from("inbox")
       .update(row)
-      .eq('inbox_id', props.inboxId);
+      .eq("inbox_id", props.inboxId);
 
     if (error) {
       throw new Error(`Failed to update inbox event: ${error.message}`);
@@ -187,14 +197,16 @@ export class SupabaseInboxRepository implements IInboxRepository {
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
     const { data, error } = await this.supabase
-      .from('inbox')
+      .from("inbox")
       .delete()
-      .eq('status', 'COMPLETED')
-      .lt('processed_at_utc', cutoffDate.toISOString())
-      .select('inbox_id');
+      .eq("status", "COMPLETED")
+      .lt("processed_at_utc", cutoffDate.toISOString())
+      .select("inbox_id");
 
     if (error) {
-      throw new Error(`Failed to delete old completed events: ${error.message}`);
+      throw new Error(
+        `Failed to delete old completed events: ${error.message}`,
+      );
     }
 
     return data?.length || 0;
@@ -209,12 +221,16 @@ export class SupabaseInboxRepository implements IInboxRepository {
       headersJson: row.headers_json,
       status: row.status as InboxEventStatus,
       receivedAtUtc: new Date(row.received_at_utc),
-      processedAtUtc: row.processed_at_utc ? new Date(row.processed_at_utc) : undefined,
+      processedAtUtc: row.processed_at_utc
+        ? new Date(row.processed_at_utc)
+        : undefined,
       errorMessage: row.error_message || undefined,
       retryCount: row.retry_count,
-      lastRetryAtUtc: row.last_retry_at_utc ? new Date(row.last_retry_at_utc) : undefined,
+      lastRetryAtUtc: row.last_retry_at_utc
+        ? new Date(row.last_retry_at_utc)
+        : undefined,
       createdAtUtc: new Date(row.created_at_utc),
-      updatedAtUtc: new Date(row.updated_at_utc)
+      updatedAtUtc: new Date(row.updated_at_utc),
     });
   }
 
@@ -228,7 +244,7 @@ export class SupabaseInboxRepository implements IInboxRepository {
       processed_at_utc: props.processedAtUtc?.toISOString() || null,
       error_message: props.errorMessage || null,
       retry_count: props.retryCount,
-      last_retry_at_utc: props.lastRetryAtUtc?.toISOString() || null
+      last_retry_at_utc: props.lastRetryAtUtc?.toISOString() || null,
     };
   }
 }

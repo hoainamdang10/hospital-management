@@ -8,6 +8,7 @@
     "clean": "rimraf dist .jest-cache coverage",
     "prebuild": "npm run clean",
     "build": "tsc && tsc-alias",
+    "postbuild": "node scripts/copy-config.js",
     "start": "node dist/main.js",
     "pretest": "jest --clearCache",
     "test": "jest",

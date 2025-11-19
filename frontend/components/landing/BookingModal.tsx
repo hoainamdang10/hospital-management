@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +8,7 @@ import { X, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { bookingSchema, type BookingFormData } from '@/lib/schemas/booking';
 import { useScheduleAppointment } from '@/lib/hooks/useAppointments';
-import timeslotsData from '@/data/timeslots.json';
+import { getAvailableSlots, type TimeSlot } from '@/lib/api/availability.service';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -23,18 +23,43 @@ interface BookingModalProps {
 export function BookingModal({ isOpen, onClose, selectedDoctor }: BookingModalProps) {
   const [isSuccess, setIsSuccess] = useState(false);
   const scheduleAppointment = useScheduleAppointment();
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
       doctorId: selectedDoctor?.id || '',
     },
   });
+
+  const watchedDate = watch('date');
+  const watchedDoctorId = watch('doctorId');
+
+  async function loadSlots() {
+    try {
+      const providerId = watchedDoctorId || selectedDoctor?.id;
+      if (!providerId || !watchedDate) {
+        setSlots([]);
+        return;
+      }
+      const resp = await getAvailableSlots(providerId, watchedDate, 30);
+      setSlots(resp?.data?.availableSlots || []);
+    } catch (error) {
+      console.error('Error loading slots', error);
+      setSlots([]);
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+    loadSlots();
+  }, [isOpen, watchedDoctorId, watchedDate, selectedDoctor?.id]);
 
   const onSubmit = async (data: BookingFormData) => {
     try {
@@ -209,9 +234,9 @@ export function BookingModal({ isOpen, onClose, selectedDoctor }: BookingModalPr
                       className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="">Chọn giờ</option>
-                      {timeslotsData.slots.map((slot) => (
-                        <option key={slot.id} value={slot.id}>
-                          {slot.label}
+                      {slots.map((slot) => (
+                        <option key={`${slot.startTime}-${slot.endTime}`} value={slot.startTime} disabled={!slot.isAvailable}>
+                          {slot.startTime} - {slot.endTime} {slot.isAvailable ? '' : '(Hết)'}
                         </option>
                       ))}
                     </select>

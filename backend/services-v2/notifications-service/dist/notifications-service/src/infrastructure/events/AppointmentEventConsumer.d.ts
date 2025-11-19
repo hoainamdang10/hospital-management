@@ -141,11 +141,15 @@ export declare class AppointmentEventConsumer {
     private connection?;
     private channel?;
     private isConnected;
+    private reconnecting;
     constructor(config: AppointmentEventConsumerConfig, sendNotificationUseCase: SendNotificationUseCase, getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase, createAppointmentRemindersUseCase: CreateAppointmentRemindersUseCase, appointmentReminderRepo: IAppointmentReminderRepository, inboxRepo: IInboxRepository);
     /**
      * Connect to RabbitMQ and start consuming
      */
     connect(): Promise<void>;
+    private setupConnectionListeners;
+    private triggerReconnect;
+    private closeConnectionSilently;
     /**
      * Handle incoming message
      */

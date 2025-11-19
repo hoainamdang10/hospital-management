@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout';
 import { ArrowLeft, Save, Mail, AlertCircle, CheckCircle2, Info, User, Briefcase } from 'lucide-react';
 import Link from 'next/link';
@@ -29,16 +29,7 @@ const STAFF_TYPES: { value: StaffType; label: string; icon: string; description:
   },
 ];
 
-const DEPARTMENTS = [
-  { value: 'cardiology', label: 'Tim mạch' },
-  { value: 'neurology', label: 'Thần kinh' },
-  { value: 'orthopedics', label: 'Chỉnh hình' },
-  { value: 'pediatrics', label: 'Nhi khoa' },
-  { value: 'dermatology', label: 'Da liễu' },
-  { value: 'emergency', label: 'Cấp cứu' },
-  { value: 'general', label: 'Đa khoa' },
-  { value: 'administration', label: 'Hành chính' },
-];
+const DEPARTMENTS: { value: string; label: string }[] = [];
 
 const DOCTOR_SPECIALIZATIONS = [
   { value: 'cardiology', label: 'Tim mạch' },
@@ -57,6 +48,7 @@ export default function AddStaffPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<Array<{ id: string; code: string; nameVi: string; nameEn: string }>>([]);
   
   const [formData, setFormData] = useState({
     // Staff Type
@@ -86,18 +78,47 @@ export default function AddStaffPage() {
     sendInvitationEmail: true,
   });
 
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const { getDepartments } = await import('@/lib/api/departments.service');
+        const list = await getDepartments();
+        const mapped = list.map(d => ({ id: d.id, code: d.code, nameVi: d.nameVi, nameEn: d.nameEn }));
+        setDepartments(mapped);
+      } catch (e) {
+        console.error('Error loading departments', e);
+      }
+    };
+    loadDepartments();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
-      // TODO: Implement API call to create staff and send invitation
-      console.log('Creating staff with data:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      const { authService } = await import('@/lib/api/auth.service');
+      const roleType = formData.staffType === 'admin' ? 'admin' : (formData.staffType === 'receptionist' ? 'receptionist' : 'doctor');
+      const payload = {
+        email: formData.email,
+        fullName: formData.fullName,
+        roleType: roleType as 'doctor' | 'receptionist' | 'admin',
+        phoneNumber: formData.phone,
+        invitationData: {
+          department_code: formData.department || 'INTE',
+          licenseNumber: formData.licenseNumber || `TEMP-${Date.now()}`,
+          employmentType: 'full_time',
+          yearsOfExperience: Number(formData.experience || 0),
+          education: formData.education ? [formData.education] : ['General Medicine'],
+          languages: formData.languages ? formData.languages.split(',').map(s => s.trim()) : ['vi'],
+          bio: formData.bio || '',
+        }
+      };
+      const res = await authService.inviteStaffAdmin(payload);
+      if (!res?.success) {
+        throw new Error(res?.message || 'Không thể tạo lời mời');
+      }
       setShowSuccess(true);
       
       // Redirect after 3 seconds
@@ -354,8 +375,10 @@ export default function AddStaffPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Chọn khoa/phòng ban</option>
-                    {DEPARTMENTS.map(dept => (
-                      <option key={dept.value} value={dept.value}>{dept.label}</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.code}>
+                        {d.nameVi} ({d.nameEn})
+                      </option>
                     ))}
                   </select>
                 </div>

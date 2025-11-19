@@ -22,6 +22,7 @@ const optimized_supabase_client_1 = require("../../shared/infrastructure/databas
 const EventBus_1 = require("../../shared/infrastructure/event-bus/EventBus");
 const SupabaseInvoiceRepository_1 = require("./infrastructure/repositories/SupabaseInvoiceRepository");
 const SupabasePatientRepository_1 = require("./infrastructure/repositories/SupabasePatientRepository");
+const SupabaseStaffRepository_1 = require("./infrastructure/repositories/SupabaseStaffRepository");
 // Application
 const CreateInvoiceUseCase_1 = require("./application/use-cases/CreateInvoiceUseCase");
 const GetInvoiceUseCase_1 = require("./application/use-cases/GetInvoiceUseCase");
@@ -33,10 +34,10 @@ const SearchInvoicesUseCase_1 = require("./application/use-cases/SearchInvoicesU
 const GetOverdueInvoicesUseCase_1 = require("./application/use-cases/GetOverdueInvoicesUseCase");
 const GetPatientBillingSummaryUseCase_1 = require("./application/use-cases/GetPatientBillingSummaryUseCase");
 const GetRevenueReportUseCase_1 = require("./application/use-cases/GetRevenueReportUseCase");
-const CreatePayOSPaymentLinkUseCase_1 = require("./application/use-cases/CreatePayOSPaymentLinkUseCase");
+const CreateVnpayPaymentLinkUseCase_1 = require("./application/use-cases/CreateVnpayPaymentLinkUseCase");
 const HandlePayOSWebhookUseCase_1 = require("./application/use-cases/HandlePayOSWebhookUseCase");
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
-const PayOSIntegrationService_1 = require("./infrastructure/services/PayOSIntegrationService");
+const VnpayIntegrationService_1 = require("./infrastructure/services/VnpayIntegrationService");
 const BillingService_1 = require("./application/services/BillingService");
 // Event Consumers
 const AppointmentEventConsumer_1 = require("./infrastructure/events/AppointmentEventConsumer");
@@ -60,9 +61,18 @@ const config = {
     version: "2.0.0",
     allowedOrigins: (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(","),
     identityServiceUrl: process.env.IDENTITY_SERVICE_URL || "http://localhost:3021",
-    payosClientId: process.env.PAYOS_CLIENT_ID || "",
-    payosApiKey: process.env.PAYOS_API_KEY || "",
-    payosChecksumKey: process.env.PAYOS_CHECKSUM_KEY || "",
+    vnpayTmnCode: process.env.VNPAY_TMN_CODE || process.env.PAYOS_CLIENT_ID || "",
+    vnpayHashSecret: process.env.VNPAY_HASH_SECRET || process.env.PAYOS_API_KEY || "",
+    vnpayChecksumKey: process.env.VNPAY_CHECKSUM_KEY || process.env.PAYOS_CHECKSUM_KEY || "",
+    vnpayBaseUrl: process.env.VNPAY_BASE_URL || process.env.PAYOS_BASE_URL,
+    vnpayReturnUrl: process.env.VNPAY_RETURN_URL || process.env.PAYOS_RETURN_URL,
+    vnpayCancelUrl: process.env.VNPAY_CANCEL_URL || process.env.PAYOS_CANCEL_URL,
+    vnpayWebhookUrl: process.env.VNPAY_WEBHOOK_URL || process.env.PAYOS_WEBHOOK_URL,
+    vnpayTimeZone: process.env.VNPAY_TIMEZONE ||
+        process.env.PAYOS_TIMEZONE ||
+        "Asia/Ho_Chi_Minh",
+    frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
+    databaseSchema: process.env.DATABASE_SCHEMA || "billing_schema",
     // Feature Flags
     enableClinicalEventConsumer: process.env.ENABLE_CLINICAL_CONSUMER === "true", // Phase 1: Disabled by default
 };
@@ -90,17 +100,21 @@ class BillingServiceApp {
             supabaseUrl: config.supabaseUrl,
             supabaseServiceKey: config.supabaseKey,
             serviceName: config.serviceName,
-            schemaName: "billing_schema",
+            schemaName: config.databaseSchema,
             enableOptimizations: config.nodeEnv !== "test",
         });
         // Initialize Repository
         this.invoiceRepository = new SupabaseInvoiceRepository_1.SupabaseInvoiceRepository(this.optimizedSupabase);
         this.patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(this.optimizedSupabase, logger_1.logger);
-        // Initialize PayOS Service
-        this.payosService = new PayOSIntegrationService_1.PayOSIntegrationService({
-            clientId: config.payosClientId,
-            apiKey: config.payosApiKey,
-            checksumKey: config.payosChecksumKey,
+        this.staffRepository = new SupabaseStaffRepository_1.SupabaseStaffRepository(this.optimizedSupabase, logger_1.logger);
+        // Initialize VNPAY Service
+        this.paymentGateway = new VnpayIntegrationService_1.VnpayIntegrationService({
+            tmnCode: config.vnpayTmnCode,
+            hashSecret: config.vnpayHashSecret,
+            baseUrl: config.vnpayBaseUrl ||
+                "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+            returnUrl: config.vnpayReturnUrl,
+            timeZone: config.vnpayTimeZone,
         }, logger_1.logger);
         // Initialize Use Cases
         this.createInvoiceUseCase = new CreateInvoiceUseCase_1.CreateInvoiceUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
@@ -113,25 +127,25 @@ class BillingServiceApp {
         this.getOverdueInvoicesUseCase = new GetOverdueInvoicesUseCase_1.GetOverdueInvoicesUseCase(this.invoiceRepository, logger_1.logger);
         this.getPatientBillingSummaryUseCase = new GetPatientBillingSummaryUseCase_1.GetPatientBillingSummaryUseCase(this.invoiceRepository, logger_1.logger);
         this.getRevenueReportUseCase = new GetRevenueReportUseCase_1.GetRevenueReportUseCase(this.invoiceRepository, logger_1.logger);
-        this.createPayOSPaymentLinkUseCase = new CreatePayOSPaymentLinkUseCase_1.CreatePayOSPaymentLinkUseCase(this.invoiceRepository, this.payosService, logger_1.logger);
-        this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase(this.invoiceRepository, this.eventBus, this.payosService, logger_1.logger);
+        this.createPaymentLinkUseCase = new CreateVnpayPaymentLinkUseCase_1.CreateVnpayPaymentLinkUseCase(this.invoiceRepository, this.paymentGateway, logger_1.logger, config.vnpayReturnUrl || `${config.frontendUrl}/patient/billing/success`, config.vnpayCancelUrl || `${config.frontendUrl}/patient/billing/cancel`);
+        this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase(this.invoiceRepository, this.eventBus, this.paymentGateway, logger_1.logger);
         // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase initialization - Out of scope for Phase 1
         // Initialize Billing Service
         this.billingService = new BillingService_1.BillingService(this.invoiceRepository, this.patientRepository, this.createInvoiceUseCase, this.processPaymentUseCase, logger_1.logger);
         // Initialize Event Consumers
         this.appointmentEventConsumer = new AppointmentEventConsumer_1.AppointmentEventConsumer({
             rabbitmqUrl: config.rabbitmqUrl,
-            queueName: 'billing.appointment.events',
-            exchangeName: 'hospital.events',
+            queueName: "billing.appointment.events",
+            exchangeName: "hospital.events",
             routingKeys: [
-                'appointment.scheduled', // Phase 1 (Prepaid): Create invoice when appointment is scheduled
-                'appointment.cancelled_late', // Cancel invoice if not paid yet
-                'appointment.no_show', // Future: Apply no-show fee
+                "appointment.scheduled", // Phase 1 (Prepaid): Create invoice when appointment is scheduled
+                "appointment.cancelled_late", // Cancel invoice if not paid yet
+                "appointment.no_show", // Future: Apply no-show fee
             ],
             prefetchCount: 10,
             retryAttempts: 3,
             retryDelayMs: 1000,
-        }, logger_1.logger, this.billingService, this.invoiceRepository, this.patientRepository, this.createPayOSPaymentLinkUseCase, // Inject PayOS use case for automatic payment link creation
+        }, logger_1.logger, this.billingService, this.invoiceRepository, this.patientRepository, this.staffRepository, this.createPaymentLinkUseCase, // Inject payment link use case for automatic payment link creation
         this.eventBus);
         // Initialize Clinical Event Consumer (Feature Flag)
         // Phase 1: Disabled by default - only prepaid appointment billing is in scope
@@ -139,27 +153,25 @@ class BillingServiceApp {
         if (config.enableClinicalEventConsumer) {
             this.clinicalEventConsumer = new ClinicalEventConsumer_1.ClinicalEventConsumer({
                 rabbitmqUrl: config.rabbitmqUrl,
-                queueName: 'billing.clinical.events',
-                exchangeName: 'hospital.events',
+                queueName: "billing.clinical.events",
+                exchangeName: "hospital.events",
                 routingKeys: [
-                    'clinical.prescription.created',
-                    'clinical.lab_result.created',
-                    'clinical.treatment_plan.created',
-                    'clinical.medical_record.created',
+                    "clinical.prescription.created",
+                    "clinical.lab_result.created",
+                    "clinical.treatment_plan.created",
+                    "clinical.medical_record.created",
                 ],
                 prefetchCount: 10,
                 retryAttempts: 3,
                 retryDelayMs: 1000,
             }, logger_1.logger, this.billingService, this.invoiceRepository, this.patientRepository);
-            logger_1.logger.info('Clinical event consumer initialized (feature flag enabled)');
+            logger_1.logger.info("Clinical event consumer initialized (feature flag enabled)");
         }
         else {
-            logger_1.logger.info('Clinical event consumer disabled (Phase 1 scope - prepaid only)');
+            logger_1.logger.info("Clinical event consumer disabled (Phase 1 scope - prepaid only)");
         }
         // Initialize Controllers - Phase 1 (Prepaid Model)
-        this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPayOSPaymentLinkUseCase, this.handlePayOSWebhookUseCase
-        // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
-        );
+        this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPaymentLinkUseCase, this.handlePayOSWebhookUseCase);
         // Initialize Middleware
         this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger_1.logger);
         this.authMiddleware = new AuthenticationMiddleware_1.AuthenticationMiddleware({
@@ -212,9 +224,18 @@ class BillingServiceApp {
         // Health routes
         const healthRoutes = (0, healthRoutes_1.createHealthRoutes)();
         this.app.use("/", healthRoutes);
+        // Public routes (no auth required)
+        const publicInvoiceRoutes = express_1.default.Router();
+        // VNPAY sends IPN via GET, PayOS via POST - support both
+        publicInvoiceRoutes.get("/payos/webhook", this.invoiceController.handlePayOSWebhook);
+        publicInvoiceRoutes.post("/payos/webhook", this.invoiceController.handlePayOSWebhook);
+        this.app.use("/api/v1/invoices", publicInvoiceRoutes);
+        // Alias for API Gateway routing (/api/v1/billing/invoices/*)
+        this.app.use("/api/v1/billing/invoices", publicInvoiceRoutes);
         // API routes with authentication
         const invoiceRoutes = (0, invoiceRoutes_1.createInvoiceRoutes)(this.invoiceController);
         this.app.use("/api/v1/invoices", this.authMiddleware.authenticate, invoiceRoutes);
+        this.app.use("/api/v1/billing/invoices", this.authMiddleware.authenticate, invoiceRoutes);
         // 404 handler
         this.app.use(this.errorHandlingMiddleware.notFound());
         // Error handling middleware (must be last)
@@ -232,9 +253,9 @@ class BillingServiceApp {
             // Only connect clinical consumer if feature flag is enabled
             if (config.enableClinicalEventConsumer && this.clinicalEventConsumer) {
                 await this.clinicalEventConsumer.connect();
-                logger_1.logger.info('Clinical event consumer connected');
+                logger_1.logger.info("Clinical event consumer connected");
             }
-            logger_1.logger.info('Event consumers connected');
+            logger_1.logger.info("Event consumers connected");
             this.app.listen(config.port, () => {
                 logger_1.logger.info(`${config.serviceName} is running`, {
                     port: config.port,

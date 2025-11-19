@@ -43,7 +43,7 @@ export function Sidebar() {
   const { user } = useAuth();
   const { isMobileOpen, setIsMobileOpen, isCollapsed, toggleCollapse } = useSidebar();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
-  
+
   // DEV_MODE: Bypass authentication check
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
@@ -148,9 +148,9 @@ export function Sidebar() {
               const Icon = item.icon;
               const hasSubmenu = item.submenu && item.submenu.length > 0;
               const isMenuOpen = openMenus.has(item.label);
-              
+
               // Check if current path matches this item or any submenu item
-              const isActive = pathname === item.href || 
+              const isActive = pathname === item.href ||
                 (item.submenu?.some(sub => pathname === sub.href || pathname?.startsWith(sub.href + '/')));
 
               if (hasSubmenu) {
@@ -169,8 +169,8 @@ export function Sidebar() {
                     >
                       <div className={cn(
                         'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-                        isActive 
-                          ? 'bg-primary-600 text-white shadow-md' 
+                        isActive
+                          ? 'bg-primary-600 text-white shadow-md'
                           : 'bg-gray-100 text-gray-600 group-hover:bg-primary-100 group-hover:text-primary-600'
                       )}>
                         <Icon className="h-5 w-5" />
@@ -229,14 +229,14 @@ export function Sidebar() {
                 >
                   <div className={cn(
                     'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-                    isActive 
-                      ? 'bg-primary-600 text-white shadow-md' 
+                    isActive
+                      ? 'bg-primary-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 group-hover:bg-primary-100 group-hover:text-primary-600'
                   )}>
                     <Icon className="h-5 w-5" />
                   </div>
                   {!isCollapsed && <span className="flex-1">{item.label}</span>}
-                  
+
                   {/* Tooltip for collapsed state */}
                   {isCollapsed && (
                     <div className="absolute left-full ml-2 hidden rounded-lg bg-gray-900 px-3 py-2 text-sm text-white shadow-lg group-hover:block">
@@ -312,24 +312,14 @@ function getMenuItemsByRole(role: string): MenuItem[] {
           icon: Calendar,
         },
         {
-          label: 'Hàng đợi',
-          href: ROUTES.DOCTOR_QUEUE,
-          icon: Users,
-        },
-        {
-          label: 'Khám bệnh',
-          href: ROUTES.DOCTOR_EXAMINATION,
-          icon: Stethoscope,
-        },
-        {
-          label: 'Hồ sơ bệnh án',
-          href: ROUTES.DOCTOR_MEDICAL_RECORDS,
-          icon: FileText,
-        },
-        {
-          label: 'Đơn thuốc',
-          href: ROUTES.DOCTOR_PRESCRIPTIONS,
+          label: 'Danh sách khám',
+          href: '/doctor/appointments',
           icon: ClipboardList,
+        },
+        {
+          label: 'Hồ sơ cá nhân',
+          href: '/doctor/profile',
+          icon: UserCog,
         },
       ];
 

@@ -1,7 +1,7 @@
 /**
  * Patient API Service
  * Handles all patient-related API calls
- * 
+ *
  * MIGRATED TO SESSION-BASED AUTH
  * Uses axios.ts with HTTP-only cookies for authentication
  */
@@ -63,6 +63,7 @@ export interface Patient {
 
 class PatientService {
   private readonly baseUrl = '/v1/patients';
+  private readonly patientIdCache = new Map<string, string>();
 
   /**
    * Make API request using axios (session-based auth with HTTP-only cookies)
@@ -81,16 +82,72 @@ class PatientService {
     return response.data.data;
   }
 
+  /**
+   * Resolve patient identifier coming from UI (could be PAT- code or user UUID)
+   * Always returns canonical patientId (PAT-YYYYMM-XXX)
+   */
+  private async resolvePatientId(identifier: string): Promise<string> {
+    const normalized = identifier?.trim();
+    if (!normalized) {
+      throw new Error('PATIENT_IDENTIFIER_REQUIRED');
+    }
+
+    const cachedValue = this.patientIdCache.get(normalized);
+    if (cachedValue) {
+      return cachedValue;
+    }
+
+    if (this.isPatientCode(normalized)) {
+      this.patientIdCache.set(normalized, normalized);
+      return normalized;
+    }
+
+    if (!this.isUuid(normalized)) {
+      this.patientIdCache.set(normalized, normalized);
+      return normalized;
+    }
+
+    const patient = await this.request<Patient>(`/user/${normalized}`);
+    if (!patient?.patientId) {
+      throw new Error('PATIENT_NOT_FOUND');
+    }
+
+    this.patientIdCache.set(normalized, patient.patientId);
+    this.patientIdCache.set(patient.patientId, patient.patientId);
+    return patient.patientId;
+  }
+
+  private isPatientCode(identifier: string): boolean {
+    return /^PAT-/i.test(identifier);
+  }
+
+  private isUuid(identifier: string): boolean {
+    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(
+      identifier
+    );
+  }
+
   // Emergency Contacts
   async getEmergencyContacts(patientId: string): Promise<{ contacts: EmergencyContact[] }> {
-    return await this.request(`/${patientId}/emergency-contacts`);
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}/emergency-contacts`);
   }
 
   async addEmergencyContact(
     patientId: string,
     contact: Omit<EmergencyContact, 'contactId'>
   ): Promise<{ contactId: string }> {
-    return await this.request(`/${patientId}/emergency-contacts`, 'POST', contact);
+    const resolvedId = await this.resolvePatientId(patientId);
+    const payload = {
+      name: contact.name,
+      relationship: contact.relationship,
+      primaryPhone: contact.phoneNumber ?? (contact as any).phone ?? '',
+      secondaryPhone: undefined,
+      email: contact.email,
+      address: contact.address,
+      isPrimary: !!contact.isPrimary,
+    };
+    return await this.request(`/${resolvedId}/emergency-contacts`, 'POST', payload);
   }
 
   async updateEmergencyContact(
@@ -98,39 +155,55 @@ class PatientService {
     contactId: string,
     contact: Partial<EmergencyContact>
   ): Promise<void> {
-    await this.request(`/${patientId}/emergency-contacts/${contactId}`, 'PUT', contact);
+    const resolvedId = await this.resolvePatientId(patientId);
+    const payload = {
+      name: contact.name,
+      relationship: contact.relationship,
+      primaryPhone: contact.phoneNumber ?? (contact as any).phone ?? '',
+      secondaryPhone: undefined,
+      email: contact.email,
+      address: contact.address,
+    };
+    await this.request(`/${resolvedId}/emergency-contacts/${contactId}`, 'PUT', payload);
   }
 
   async deleteEmergencyContact(patientId: string, contactId: string): Promise<void> {
-    await this.request(`/${patientId}/emergency-contacts/${contactId}`, 'DELETE');
+    const resolvedId = await this.resolvePatientId(patientId);
+    await this.request(`/${resolvedId}/emergency-contacts/${contactId}`, 'DELETE');
   }
 
   async setPrimaryContact(patientId: string, contactId: string): Promise<void> {
-    await this.request(`/${patientId}/emergency-contacts/${contactId}/set-primary`, 'PUT');
+    const resolvedId = await this.resolvePatientId(patientId);
+    await this.request(`/${resolvedId}/emergency-contacts/${contactId}/set-primary`, 'PUT');
   }
 
   // Insurance
   async getInsurance(patientId: string): Promise<{ insuranceInfo: Insurance }> {
-    return await this.request(`/${patientId}/insurance`);
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}/insurance`);
   }
 
   async updateInsurance(patientId: string, insurance: Insurance): Promise<void> {
-    await this.request(`/${patientId}/insurance`, 'PUT', insurance);
+    const resolvedId = await this.resolvePatientId(patientId);
+    await this.request(`/${resolvedId}/insurance`, 'PUT', insurance);
   }
 
   async verifyInsurance(
     patientId: string
   ): Promise<{ isValid: boolean; message: string; expiresAt?: string }> {
-    return await this.request(`/${patientId}/insurance/verify`, 'POST');
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}/insurance/verify`, 'POST');
   }
 
   // Consents
   async getConsents(patientId: string): Promise<{ consents: Consent[] }> {
-    return await this.request(`/${patientId}/consents`);
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}/consents`);
   }
 
   async getActiveConsents(patientId: string): Promise<{ consents: Consent[] }> {
-    return await this.request(`/${patientId}/consents/active`);
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}/consents/active`);
   }
 
   async grantConsent(
@@ -138,34 +211,55 @@ class PatientService {
     consentType: Consent['consentType'],
     expiresAt?: string
   ): Promise<{ consentId: string }> {
-    return await this.request(`/${patientId}/consents`, 'POST', { consentType, expiresAt });
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}/consents`, 'POST', { consentType, expiresAt });
   }
 
-  async revokeConsent(
-    patientId: string,
-    consentId: string,
-    reason: string
-  ): Promise<void> {
-    await this.request(`/${patientId}/consents/${consentId}/revoke`, 'POST', { reason });
+  async revokeConsent(patientId: string, consentId: string, reason: string): Promise<void> {
+    const resolvedId = await this.resolvePatientId(patientId);
+    await this.request(`/${resolvedId}/consents/${consentId}/revoke`, 'POST', { reason });
   }
 
   // Communication Preferences
   async getCommunicationPreferences(
     patientId: string
   ): Promise<{ preferences: CommunicationPreferences }> {
-    return await this.request(`/${patientId}/communication`);
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}/communication`);
   }
 
   async updateCommunicationPreferences(
     patientId: string,
     preferences: CommunicationPreferences
   ): Promise<void> {
-    await this.request(`/${patientId}/communication`, 'PUT', preferences);
+    const resolvedId = await this.resolvePatientId(patientId);
+    await this.request(`/${resolvedId}/communication`, 'PUT', preferences);
   }
 
   // Patient Profile
   async getPatientProfile(patientId: string): Promise<any> {
-    return await this.request(`/${patientId}`);
+    const resolvedId = await this.resolvePatientId(patientId);
+    return await this.request(`/${resolvedId}`);
+  }
+
+  async updatePatientProfile(patientId: string, data: any): Promise<void> {
+    const resolvedId = await this.resolvePatientId(patientId);
+    await this.request(`/${resolvedId}`, 'PUT', data);
+  }
+
+  /**
+   * Search patients (Admin)
+   */
+  async searchPatients(params: {
+    keyword?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ patients: Patient[]; total: number }> {
+    const response = await apiClient.get<{ success: boolean; data: { patients: Patient[]; total: number } }>(
+      `${this.baseUrl}/search`,
+      { params }
+    );
+    return response.data.data;
   }
 }
 

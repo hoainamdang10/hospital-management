@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ import { ROUTES } from '@/lib/constants';
  * Reset Password Page
  * Route: /reset-password?token=xxx
  */
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
   const searchParams = useSearchParams();
   const token = searchParams?.get('token');
 
@@ -51,9 +51,7 @@ export default function ResetPasswordPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
         <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow">
           <h2 className="mb-4 text-2xl font-bold text-gray-900">Link không hợp lệ</h2>
-          <p className="mb-6 text-gray-600">
-            Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.
-          </p>
+          <p className="mb-6 text-gray-600">Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.</p>
           <Link href={ROUTES.FORGOT_PASSWORD}>
             <Button className="w-full">Yêu cầu link mới</Button>
           </Link>
@@ -70,9 +68,7 @@ export default function ResetPasswordPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="mb-2 text-2xl font-bold text-gray-900">
-              Đặt lại mật khẩu thành công!
-            </h2>
+            <h2 className="mb-2 text-2xl font-bold text-gray-900">Đặt lại mật khẩu thành công!</h2>
             <p className="mb-6 text-gray-600">
               Mật khẩu của bạn đã được cập nhật. Bạn có thể đăng nhập với mật khẩu mới.
             </p>
@@ -95,31 +91,27 @@ export default function ResetPasswordPage() {
 
         <div className="rounded-lg bg-white p-8 shadow">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
+            {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Mật khẩu mới
               </label>
               <div className="relative mt-1">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Lock className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-10 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 py-2 pr-10 pl-10 focus:ring-1 focus:outline-none"
                   placeholder="Nhập mật khẩu mới"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -132,22 +124,26 @@ export default function ResetPasswordPage() {
                 Xác nhận mật khẩu
               </label>
               <div className="relative mt-1">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Lock className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-10 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 py-2 pr-10 pl-10 focus:ring-1 focus:outline-none"
                   placeholder="Nhập lại mật khẩu"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -159,5 +155,21 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+          <div className="rounded-lg bg-white p-8 text-center shadow">
+            <p className="text-sm text-gray-600">Đang tải form đặt lại mật khẩu...</p>
+          </div>
+        </div>
+      }
+    >
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }

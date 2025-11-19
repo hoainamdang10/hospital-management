@@ -11,12 +11,13 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
-import { logger } from '../logging/logger';
-import { BillingService } from '../../application/services/BillingService';
-import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
-import { IPatientRepository } from '../../domain/entities/Patient';
-import { CreatePayOSPaymentLinkUseCase } from '../../application/use-cases/CreatePayOSPaymentLinkUseCase';
-import { IEventBus } from '../../../../shared/application/services/event-bus.interface';
+import { logger } from "../logging/logger";
+import { BillingService } from "../../application/services/BillingService";
+import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { IPatientRepository } from "../../domain/entities/Patient";
+import { CreatePayOSPaymentLinkUseCase } from "../../application/use-cases/CreatePayOSPaymentLinkUseCase";
+import { IEventBus } from "../../../../shared/application/services/event-bus.interface";
+import { SupabaseStaffRepository } from "../repositories/SupabaseStaffRepository";
 export interface AppointmentEventConsumerConfig {
     rabbitmqUrl: string;
     queueName: string;
@@ -33,8 +34,8 @@ export interface AppointmentScheduledEventData {
     departmentId: string;
     scheduledAt: Date;
     duration: number;
-    status: 'pending_payment';
-    serviceType: 'consultation' | 'procedure' | 'follow_up';
+    status: "pending_payment";
+    serviceType: "consultation" | "procedure" | "follow_up";
     notes?: string;
 }
 export interface AppointmentCancelledLateEventData {
@@ -45,7 +46,7 @@ export interface AppointmentCancelledLateEventData {
     scheduledAt: Date;
     cancelledAt: Date;
     reason: string;
-    cancellationType: 'late' | 'no_show' | 'same_day';
+    cancellationType: "late" | "no_show" | "same_day";
     lateFeeApplied: boolean;
     lateFeeAmount: number;
 }
@@ -68,12 +69,13 @@ export declare class AppointmentEventConsumer {
     private billingService;
     private invoiceRepository;
     private patientRepository;
+    private staffRepository;
     private createPayOSPaymentLinkUseCase;
     private eventBus;
     private connection?;
     private channel?;
     private isConnected;
-    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus);
+    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, staffRepository: SupabaseStaffRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus);
     /**
      * Connect to RabbitMQ and start consuming
      */
@@ -82,6 +84,23 @@ export declare class AppointmentEventConsumer {
      * Handle incoming message
      */
     private handleMessage;
+    /**
+     * Parse raw RabbitMQ message and extract payload/event metadata
+     */
+    private parseEventMessage;
+    private buildAppointmentScheduledPayload;
+    private buildAppointmentCancelledPayload;
+    private buildAppointmentNoShowPayload;
+    private extractCommonAppointmentFields;
+    private resolveScheduledAt;
+    private normalizeServiceType;
+    private safeDate;
+    private toBoolean;
+    private toNumber;
+    /**
+     * Normalize staff identifier to UUID stored in provider_schema
+     */
+    private resolveStaffIdentifier;
     /**
      * Handle appointment scheduled event (Prepaid Model)
      * Creates invoice with PENDING status and generates PayOS payment link

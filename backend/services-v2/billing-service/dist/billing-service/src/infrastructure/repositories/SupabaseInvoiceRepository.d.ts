@@ -1,6 +1,6 @@
-import { IInvoiceRepository, SearchCriteria, RevenueSummary } from '../../domain/repositories/IInvoiceRepository';
-import { Invoice } from '../../domain/aggregates/Invoice';
-import type { OptimizedSupabaseClient } from '../../../../shared/infrastructure/database/optimized-supabase-client';
+import { IInvoiceRepository, SearchCriteria, RevenueSummary } from "../../domain/repositories/IInvoiceRepository";
+import { Invoice } from "../../domain/aggregates/Invoice";
+import type { OptimizedSupabaseClient } from "../../../../shared/infrastructure/database/optimized-supabase-client";
 export declare class SupabaseInvoiceRepository implements IInvoiceRepository {
     private readonly supabase;
     private readonly invoicesTable;
@@ -15,5 +15,9 @@ export declare class SupabaseInvoiceRepository implements IInvoiceRepository {
     search(criteria: SearchCriteria): Promise<Invoice[]>;
     getRevenueSummary(fromDate: Date, toDate: Date): Promise<RevenueSummary>;
     delete(id: string): Promise<void>;
+    private resolvePatientIdentifier;
+    private fetchPatientIdByColumn;
+    private isUUID;
+    private isPatientCode;
 }
 //# sourceMappingURL=SupabaseInvoiceRepository.d.ts.map

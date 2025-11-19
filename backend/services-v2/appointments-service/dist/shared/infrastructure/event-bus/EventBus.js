@@ -256,6 +256,10 @@ class RabbitMQEventBus {
             case 'AppointmentNoShow':
                 return 'appointment.no_show';
             default:
+                // If eventType already contains dots (e.g., 'billing.payment.completed'), return as-is
+                if (eventType.includes('.')) {
+                    return eventType;
+                }
                 // Convert PascalCase to dot.notation
                 // e.g., UserCreated -> user.created
                 return eventType

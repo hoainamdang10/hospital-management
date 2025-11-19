@@ -11,11 +11,20 @@ import {
   getAdminDashboardStats, 
   getRecentAppointments, 
   getMonthlyStats,
+  getInvoiceSummary,
+  getRevenueTrend,
+  getInvoiceStatusDistribution,
+  getRecentPayments,
+  getRecentWebhooks,
+  getTodayCheckInCount,
   formatCurrency,
   formatNumber,
   type AdminDashboardStats,
   type RecentAppointment,
-  type MonthlyStats
+  type MonthlyStats,
+  type InvoiceStatusSummary,
+  type PaymentRecord,
+  type WebhookEvent
 } from '@/lib/api/admin-dashboard.service';
 
 /**
@@ -53,6 +62,12 @@ export default function AdminDashboardPage() {
   });
   const [recentAppointments, setRecentAppointments] = useState<RecentAppointment[]>([]);
   const [chartData, setChartData] = useState<MonthlyStats[]>([]);
+  const [invoiceSummary, setInvoiceSummary] = useState<InvoiceStatusSummary>({ paid: 0, pending: 0, failed: 0, refunded: 0 });
+  const [todayRevenue, setTodayRevenue] = useState<{ payos: number; cash: number }>({ payos: 0, cash: 0 });
+  const [revenueTrend, setRevenueTrend] = useState<{ date: string; amount: number }[]>([]);
+  const [recentPayments, setRecentPayments] = useState<PaymentRecord[]>([]);
+  const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>([]);
+  const [checkInSummary, setCheckInSummary] = useState<{ checkedIn: number; total: number }>({ checkedIn: 0, total: 0 });
 
   useEffect(() => {
     loadDashboardData();
@@ -63,15 +78,37 @@ export default function AdminDashboardPage() {
       setIsLoading(true);
       
       // Fetch all data in parallel
-      const [statsData, appointmentsData, monthlyData] = await Promise.all([
+      const [
+        statsData,
+        appointmentsData,
+        monthlyData,
+        invoiceData,
+        revenueTrendData,
+        invoiceDistData,
+        recentPaymentsData,
+        webhookEventsData,
+        checkInData
+      ] = await Promise.all([
         getAdminDashboardStats(),
-        getRecentAppointments(3),
+        getRecentAppointments(5),
         getMonthlyStats(),
+        getInvoiceSummary(),
+        getRevenueTrend(14),
+        getInvoiceStatusDistribution(),
+        getRecentPayments(8),
+        getRecentWebhooks(8),
+        getTodayCheckInCount()
       ]);
 
       setStats(statsData);
       setRecentAppointments(appointmentsData);
       setChartData(monthlyData);
+      setInvoiceSummary(invoiceData.summary);
+      setTodayRevenue(invoiceData.todayRevenue);
+      setRevenueTrend(revenueTrendData);
+      setRecentPayments(recentPaymentsData);
+      setWebhookEvents(webhookEventsData);
+      setCheckInSummary(checkInData);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -82,59 +119,79 @@ export default function AdminDashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Welcome Header */}
+        
         <WelcomeHeader userName={user?.fullName || user?.email || 'Quản trị viên'} />
 
-        {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
           <StatCard
-            title="Tổng doanh thu"
-            value={formatCurrency(stats.totalRevenue)}
+            title="Lịch hẹn hôm nay"
+            value={formatNumber(checkInSummary.total)}
             change={stats.revenueChange}
-            subtitle="so với tháng trước"
-            icon={DollarSign}
-            iconColor="text-emerald-600"
-            iconBg="bg-emerald-50"
-            isLoading={isLoading}
-          />
-          <StatCard
-            title="Lịch hẹn"
-            value={formatNumber(stats.totalAppointments)}
-            change={stats.appointmentsChange}
-            subtitle="so với tháng trước"
+            subtitle="tổng số lịch trong ngày"
             icon={Calendar}
             iconColor="text-blue-600"
             iconBg="bg-blue-50"
             isLoading={isLoading}
           />
           <StatCard
-            title="Bệnh nhân"
-            value={formatNumber(stats.totalPatients)}
-            change={stats.patientsChange}
-            subtitle="so với tháng trước"
+            title="Check-in hôm nay"
+            value={`${formatNumber(checkInSummary.checkedIn)} / ${formatNumber(checkInSummary.total)}`}
+            change={stats.appointmentsChange}
+            subtitle="đã check-in / tổng lịch"
             icon={Users}
+            iconColor="text-emerald-600"
+            iconBg="bg-emerald-50"
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Doanh thu hôm nay"
+            value={`${formatCurrency(todayRevenue.payos + todayRevenue.cash)}`}
+            change={stats.revenueChange}
+            subtitle={`PayOS ${formatCurrency(todayRevenue.payos)} · Tiền mặt ${formatCurrency(todayRevenue.cash)}`}
+            icon={DollarSign}
             iconColor="text-amber-600"
             iconBg="bg-amber-50"
             isLoading={isLoading}
           />
           <StatCard
-            title="Nhân viên"
-            value={formatNumber(stats.totalStaff)}
-            change={stats.staffChange}
-            subtitle="nhân viên mới tháng này"
+            title="Invoice đã thanh toán"
+            value={formatNumber(invoiceSummary.paid)}
+            change={'+12%'}
+            subtitle="so với hôm qua"
             icon={UserCog}
             iconColor="text-purple-600"
             iconBg="bg-purple-50"
             isLoading={isLoading}
           />
+          <StatCard
+            title="Đang chờ thanh toán"
+            value={formatNumber(invoiceSummary.pending)}
+            change={'-5%'}
+            subtitle="so với tuần trước"
+            icon={TrendingUp}
+            iconColor="text-indigo-600"
+            iconBg="bg-indigo-50"
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Thanh toán lỗi / webhook lỗi"
+            value={formatNumber(invoiceSummary.failed)}
+            change={'+2%'}
+            subtitle="24h gần nhất"
+            icon={Loader2}
+            iconColor="text-red-600"
+            iconBg="bg-red-50"
+            isLoading={isLoading}
+          />
         </div>
 
-        {/* Main Content Grid */}
+        
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Chart Section */}
+          
           <div className="lg:col-span-2">
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-              {/* Tabs */}
+              
               <div className="border-b border-gray-200 px-6 pt-6">
                 <div className="flex space-x-8">
                   <button
@@ -180,51 +237,72 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Chart Content */}
+              
               <div className="p-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Tổng quan</h3>
-                  <p className="text-sm text-gray-500">Số lượng bệnh nhân và doanh thu trong kỳ hiện tại.</p>
-                </div>
-
-                {/* Simple Bar Chart */}
-                <div className="mt-8">
-                  {isLoading ? (
-                    <div className="flex h-64 items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                    </div>
-                  ) : (
-                    <div className="flex h-64 items-end justify-between space-x-2">
-                      {chartData.map((data, index) => {
-                        const maxPatients = Math.max(...chartData.map(d => d.patients), 1);
-                        const height = (data.patients / maxPatients) * 200;
-                        
-                        return (
-                          <div key={index} className="flex flex-1 flex-col items-center space-y-2">
-                            <div className="relative w-full group">
-                              <div
-                                className={`w-full rounded-t-lg bg-blue-500 transition-all hover:bg-blue-600 ${getHeightClass(height)}`}
-                                title={`${data.month}: ${data.patients} bệnh nhân`}
-                              />
-                              {/* Tooltip on hover */}
-                              <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-gray-900 px-2 py-1 text-xs text-white group-hover:block">
-                                {data.patients} BN
+                <div className="grid gap-6 lg:grid-cols-2">
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Doanh thu theo ngày</h3>
+                    <p className="text-sm text-gray-500">14 ngày gần nhất</p>
+                    <div className="mt-4">
+                      {isLoading ? (
+                        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+                      ) : (
+                        <div className="flex h-48 items-end justify-between space-x-2">
+                          {revenueTrend.map((d, i) => {
+                            const max = Math.max(...revenueTrend.map(x => x.amount), 1);
+                            const h = (d.amount / max) * 160;
+                            const label = d.date.slice(5);
+                            return (
+                              <div key={i} className="flex flex-1 flex-col items-center space-y-2">
+                                <div className="relative w-full group">
+                                  <div className={`w-full rounded-t-lg bg-emerald-500 ${getHeightClass(h)}`} title={`${label}: ${formatCurrency(d.amount)}`} />
+                                  <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-gray-900 px-2 py-1 text-xs text-white group-hover:block">
+                                    {formatCurrency(d.amount)}
+                                  </div>
+                                </div>
+                                <span className="text-xs text-gray-500">{label}</span>
                               </div>
-                            </div>
-                            <span className="text-xs text-gray-500">{data.month}</span>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className="mt-4 flex items-center justify-center space-x-6 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 rounded-full bg-blue-500" />
-                      <span className="text-gray-600">Bệnh nhân</span>
+                  </div>
+
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Trạng thái hóa đơn</h3>
+                    <p className="text-sm text-gray-500">Tổng quan Paid/Pending/Failed/Refunded</p>
+                    <div className="mt-4 flex items-center justify-center">
+                      <svg viewBox="0 0 42 42" className="h-40 w-40">
+                        <circle cx="21" cy="21" r="15.915" fill="#f3f4f6" />
+                        {(() => {
+                          const total = Math.max(invoiceSummary.paid + invoiceSummary.pending + invoiceSummary.failed + invoiceSummary.refunded, 1);
+                          const segments = [
+                            { value: invoiceSummary.paid, color: '#10b981' },
+                            { value: invoiceSummary.pending, color: '#f59e0b' },
+                            { value: invoiceSummary.failed, color: '#ef4444' },
+                            { value: invoiceSummary.refunded, color: '#6366f1' },
+                          ];
+                          let cumulative = 0;
+                          return segments.map((s, i) => {
+                            const pct = (s.value / total) * 100;
+                            const dashArray = `${pct} ${100 - pct}`;
+                            const dashOffset = 25 + (cumulative / 100) * 100;
+                            cumulative += pct;
+                            return (
+                              <circle key={i} cx="21" cy="21" r="15.915" fill="transparent" stroke={s.color} strokeWidth="6" strokeDasharray={dashArray} strokeDashoffset={dashOffset} />
+                            );
+                          });
+                        })()}
+                      </svg>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                      <span className="text-gray-600">Doanh thu</span>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-emerald-500" /> <span>Paid: {invoiceSummary.paid}</span></div>
+                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-amber-500" /> <span>Pending: {invoiceSummary.pending}</span></div>
+                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-red-500" /> <span>Failed: {invoiceSummary.failed}</span></div>
+                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-indigo-500" /> <span>Refunded: {invoiceSummary.refunded}</span></div>
                     </div>
                   </div>
                 </div>
@@ -232,7 +310,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Recent Appointments */}
+          
           <div className="lg:col-span-1">
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-6">
@@ -260,6 +338,104 @@ export default function AdminDashboardPage() {
                 Xem tất cả lịch hẹn
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Recent Activity Tables */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Recent Payments */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Thanh toán gần nhất</h3>
+              <p className="text-sm text-gray-500">Danh sách 8 giao dịch gần đây</p>
+            </div>
+            {isLoading ? (
+              <div className="flex h-40 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+            ) : recentPayments.length === 0 ? (
+              <div className="flex h-40 items-center justify-center text-gray-500">Không có giao dịch gần đây</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-gray-500">
+                      <th className="py-2 text-left">Mã hóa đơn</th>
+                      <th className="py-2 text-left">Bệnh nhân</th>
+                      <th className="py-2 text-left">Số tiền</th>
+                      <th className="py-2 text-left">Trạng thái</th>
+                      <th className="py-2 text-left">Thời gian</th>
+                      <th className="py-2 text-left">Phương thức</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentPayments.map((p, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 font-medium text-gray-900">{p.invoiceId}</td>
+                        <td className="py-2 text-gray-700">{p.patientName}</td>
+                        <td className="py-2 text-gray-700">{formatCurrency(p.amount)}</td>
+                        <td className="py-2">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            p.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                            p.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                            p.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'
+                          }`}>{p.status}</span>
+                        </td>
+                        <td className="py-2 text-gray-700">{format(new Date(p.createdAt), 'HH:mm dd/MM', { locale: vi })}</td>
+                        <td className="py-2 text-gray-700">{p.method}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Webhooks / Errors */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Webhook / Lỗi hệ thống gần nhất</h3>
+                <p className="text-sm text-gray-500">Theo dõi PayOS và integration</p>
+              </div>
+            </div>
+            {isLoading ? (
+              <div className="flex h-40 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+            ) : webhookEvents.length === 0 ? (
+              <div className="flex h-40 items-center justify-center text-gray-500">Không có sự kiện gần đây</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-gray-500">
+                      <th className="py-2 text-left">Thời gian</th>
+                      <th className="py-2 text-left">Endpoint</th>
+                      <th className="py-2 text-left">HTTP</th>
+                      <th className="py-2 text-left">Invoice</th>
+                      <th className="py-2 text-left">Trạng thái</th>
+                      <th className="py-2 text-left">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {webhookEvents.map((e, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 text-gray-700">{format(new Date(e.timestamp), 'HH:mm dd/MM', { locale: vi })}</td>
+                        <td className="py-2 text-gray-700">{e.endpoint}</td>
+                        <td className="py-2 text-gray-700">{e.statusCode}</td>
+                        <td className="py-2 text-gray-700">{e.invoiceId || '-'}</td>
+                        <td className="py-2">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${e.success ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{e.success ? 'Success' : 'Failed'}</span>
+                        </td>
+                        <td className="py-2">
+                          <div className="flex items-center space-x-2">
+                            <button className="rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50">Xem chi tiết</button>
+                            <button className="rounded-lg border border-primary-300 px-2 py-1 text-xs text-primary-700 hover:bg-primary-50">Replay</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>

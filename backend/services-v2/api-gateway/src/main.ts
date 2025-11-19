@@ -141,7 +141,7 @@ class ApiGatewayApplication {
     // Initialize GlobalProxyMiddleware for centralized routing
     this.globalProxyMiddleware = new GlobalProxyMiddleware(
       this.serviceRegistry,
-      logger
+      logger,
     );
 
     this.registerServiceRoutes();
@@ -165,75 +165,75 @@ class ApiGatewayApplication {
     //   await this.redisRateLimitClient.connect();
     //   logger.info("Redis rate limit client connected successfully");
 
-      // DISABLED FOR DEVELOPMENT - Advanced rate limiting
-      // const rateLimitConfig = {
-      //   global: {
-      //     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"),
-      //     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "1000"),
-      //   },
-      //   perUser: {
-      //     windowMs: parseInt(process.env.RATE_LIMIT_USER_WINDOW_MS || "900000"),
-      //     max: parseInt(process.env.RATE_LIMIT_USER_MAX_REQUESTS || "500"),
-      //   },
-      //   perEndpoint: {
-      //     "/api/v1/auth/login": {
-      //       windowMs: 15 * 60 * 1000,
-      //       max: 5,
-      //     },
-      //     "/api/v1/auth/register": {
-      //       windowMs: 60 * 60 * 1000,
-      //       max: 3,
-      //     },
-      //     "/api/v1/auth/password/reset": {
-      //       windowMs: 60 * 60 * 1000,
-      //       max: 3,
-      //     },
-      //     "/api/v1/patients": {
-      //       windowMs: 60 * 1000,
-      //       max: 100,
-      //     },
-      //     "/api/v1/patients/*/medical-history": {
-      //       windowMs: 60 * 1000,
-      //       max: 50,
-      //     },
-      //     "/api/v1/providers/*/schedule": {
-      //       windowMs: 60 * 1000,
-      //       max: 100,
-      //     },
-      //     "/api/v1/appointments": {
-      //       windowMs: 60 * 1000,
-      //       max: 50,
-      //     },
-      //     "/api/v1/clinical/records": {
-      //       windowMs: 60 * 1000,
-      //       max: 50,
-      //     },
-      //     "/api/v1/billing/payments": {
-      //       windowMs: 60 * 1000,
-      //       max: 10,
-      //     },
-      //     "/api/v1/billing/invoices": {
-      //       windowMs: 60 * 1000,
-      //       max: 50,
-      //     },
-      //     "/api/v1/schedules": {
-      //       windowMs: 60 * 1000,
-      //       max: 100, // Higher limit for schedule management operations
-      //     },
-      //   },
-      // };
+    // DISABLED FOR DEVELOPMENT - Advanced rate limiting
+    // const rateLimitConfig = {
+    //   global: {
+    //     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"),
+    //     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "1000"),
+    //   },
+    //   perUser: {
+    //     windowMs: parseInt(process.env.RATE_LIMIT_USER_WINDOW_MS || "900000"),
+    //     max: parseInt(process.env.RATE_LIMIT_USER_MAX_REQUESTS || "500"),
+    //   },
+    //   perEndpoint: {
+    //     "/api/v1/auth/login": {
+    //       windowMs: 15 * 60 * 1000,
+    //       max: 5,
+    //     },
+    //     "/api/v1/auth/register": {
+    //       windowMs: 60 * 60 * 1000,
+    //       max: 3,
+    //     },
+    //     "/api/v1/auth/password/reset": {
+    //       windowMs: 60 * 60 * 1000,
+    //       max: 3,
+    //     },
+    //     "/api/v1/patients": {
+    //       windowMs: 60 * 1000,
+    //       max: 100,
+    //     },
+    //     "/api/v1/patients/*/medical-history": {
+    //       windowMs: 60 * 1000,
+    //       max: 50,
+    //     },
+    //     "/api/v1/providers/*/schedule": {
+    //       windowMs: 60 * 1000,
+    //       max: 100,
+    //     },
+    //     "/api/v1/appointments": {
+    //       windowMs: 60 * 1000,
+    //       max: 50,
+    //     },
+    //     "/api/v1/clinical/records": {
+    //       windowMs: 60 * 1000,
+    //       max: 50,
+    //     },
+    //     "/api/v1/billing/payments": {
+    //       windowMs: 60 * 1000,
+    //       max: 10,
+    //     },
+    //     "/api/v1/billing/invoices": {
+    //       windowMs: 60 * 1000,
+    //       max: 50,
+    //     },
+    //     "/api/v1/schedules": {
+    //       windowMs: 60 * 1000,
+    //       max: 100, // Higher limit for schedule management operations
+    //     },
+    //   },
+    // };
 
-      // this.rateLimitMiddleware = new AdvancedRateLimitMiddleware(
-      //   this.redisRateLimitClient,
-      //   rateLimitConfig,
-      //   logger,
-      // );
+    // this.rateLimitMiddleware = new AdvancedRateLimitMiddleware(
+    //   this.redisRateLimitClient,
+    //   rateLimitConfig,
+    //   logger,
+    // );
 
-      // logger.info("Advanced rate limiting configured", {
-      //   globalMax: rateLimitConfig.global.max,
-      //   perUserMax: rateLimitConfig.perUser.max,
-      //   endpointCount: Object.keys(rateLimitConfig.perEndpoint).length,
-      // });
+    // logger.info("Advanced rate limiting configured", {
+    //   globalMax: rateLimitConfig.global.max,
+    //   perUserMax: rateLimitConfig.perUser.max,
+    //   endpointCount: Object.keys(rateLimitConfig.perEndpoint).length,
+    // });
     // } catch (error) {
     //   logger.error("Failed to initialize Redis rate limiting", {
     //     error: error instanceof Error ? error.message : "Unknown error",
@@ -281,14 +281,22 @@ class ApiGatewayApplication {
         requiredPermissions: ["permission:read"],
       }),
 
+      // Identity Service - Staff Admin (invitation/provision)
+      ServiceRoute.create({
+        serviceName: "identity-service",
+        baseUrl:
+          process.env.IDENTITY_SERVICE_URL || "http://identity-service:3001",
+        pathPrefix: "/api/admin/staff",
+        requiresAuth: true,
+      }),
+
       // Patient Registry Service - Patient Management (internal port 3002, external 3002)
       // Authorization handled by patient-registry-service (ownership-based)
       // Patients can access their own data, Admin/Doctor need patient:read permission
       ServiceRoute.create({
         serviceName: "patient-registry-service",
         baseUrl:
-          process.env.PATIENT_REGISTRY_SERVICE_URL ||
-          "http://localhost:3002",
+          process.env.PATIENT_REGISTRY_SERVICE_URL || "http://localhost:3002",
         pathPrefix: "/api/v1/patients",
         requiresAuth: true,
         // No requiredPermissions - authorization handled by downstream service
@@ -300,10 +308,9 @@ class ApiGatewayApplication {
       ServiceRoute.create({
         serviceName: "provider-staff-service",
         baseUrl:
-          process.env.PROVIDER_STAFF_SERVICE_URL ||
-          "http://localhost:3003",
+          process.env.PROVIDER_STAFF_SERVICE_URL || "http://localhost:3003",
         pathPrefix: "/api/v1/staff",
-        requiresAuth: false,  // Allow public access to /search endpoint
+        requiresAuth: false, // Allow public access to /search endpoint
       }),
 
       // Department Management - Now integrated into Provider/Staff Service
@@ -311,8 +318,7 @@ class ApiGatewayApplication {
       ServiceRoute.create({
         serviceName: "provider-staff-service",
         baseUrl:
-          process.env.PROVIDER_STAFF_SERVICE_URL ||
-          "http://localhost:3003",
+          process.env.PROVIDER_STAFF_SERVICE_URL || "http://localhost:3003",
         pathPrefix: "/api/v1/departments",
         requiresAuth: false, // Public endpoint for department list
       }),
@@ -325,7 +331,9 @@ class ApiGatewayApplication {
         serviceName: "appointments-service",
         baseUrl:
           process.env.APPOINTMENTS_SERVICE_URL ||
-          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
+          (process.env.NODE_ENV === "production"
+            ? "http://appointments-service:3004"
+            : "http://localhost:3004"),
         pathPrefix: "/api/v1/appointments",
         requiresAuth: true,
       }),
@@ -335,10 +343,12 @@ class ApiGatewayApplication {
         serviceName: "appointments-service",
         baseUrl:
           process.env.APPOINTMENTS_SERVICE_URL ||
-          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
+          (process.env.NODE_ENV === "production"
+            ? "http://appointments-service:3004"
+            : "http://localhost:3004"),
         pathPrefix: "/api/v2/appointments",
         requiresAuth: true,
-        requiredPermissions: ["appointment:read"]
+        requiredPermissions: ["appointment:read"],
       }),
 
       // Appointments Service V2 - Patient appointments endpoint (port 3004)
@@ -347,9 +357,11 @@ class ApiGatewayApplication {
         serviceName: "appointments-service",
         baseUrl:
           process.env.APPOINTMENTS_SERVICE_URL ||
-          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
+          (process.env.NODE_ENV === "production"
+            ? "http://appointments-service:3004"
+            : "http://localhost:3004"),
         pathPrefix: "/api/v2/patients",
-        requiresAuth: true
+        requiresAuth: true,
       }),
 
       // Appointments Service V2 - Doctor appointments endpoint (port 3004)
@@ -357,16 +369,28 @@ class ApiGatewayApplication {
         serviceName: "appointments-service",
         baseUrl:
           process.env.APPOINTMENTS_SERVICE_URL ||
-          (process.env.NODE_ENV === 'production' ? "http://appointments-service:3004" : "http://localhost:3004"),
+          (process.env.NODE_ENV === "production"
+            ? "http://appointments-service:3004"
+            : "http://localhost:3004"),
         pathPrefix: "/api/v2/doctors",
-        requiresAuth: true
+        requiresAuth: true,
       }),
 
       // Clinical EMR Service - DISABLED FOR MVP
       // Focus on core features: Identity, Patient, Provider, Appointments, Billing
       // Will be re-enabled post-MVP
 
-      // Billing Service - Invoicing & Payments (port 3009)
+      // Billing Service - Self-service invoice operations (patient/staff view)
+      ServiceRoute.create({
+        serviceName: "billing-service",
+        baseUrl:
+          process.env.BILLING_SERVICE_URL || "http://billing-service:3009",
+        pathPrefix: "/api/v1/billing/invoices",
+        requiresAuth: true,
+        // Ownership/authorization handled downstream (patient/staff specific checks)
+      }),
+
+      // Billing Service - Admin dashboards (requires billing permissions)
       ServiceRoute.create({
         serviceName: "billing-service",
         baseUrl:
@@ -376,15 +400,16 @@ class ApiGatewayApplication {
         requiredPermissions: ["billing:read"],
       }),
 
-      // Billing Service - Patient Invoices (port 3009)
+      // Billing Service - Patient Self-Service Invoices (port 3009)
       // Patients can view their own invoices and make payments
       // Authorization handled by service (ownership-based)
       ServiceRoute.create({
         serviceName: "billing-service",
         baseUrl:
           process.env.BILLING_SERVICE_URL || "http://billing-service:3009",
-        pathPrefix: "/api/v1/billing/patient",
+        pathPrefix: "/api/v1/billing/invoices/patient",
         requiresAuth: true,
+        requiredRoles: ["patient"],
         // No requiredPermissions - authorization handled by downstream service
       }),
 
@@ -393,8 +418,7 @@ class ApiGatewayApplication {
       ServiceRoute.create({
         serviceName: "notifications-service",
         baseUrl:
-          process.env.NOTIFICATIONS_SERVICE_URL ||
-          "http://localhost:3011",
+          process.env.NOTIFICATIONS_SERVICE_URL || "http://localhost:3011",
         pathPrefix: "/api/v1/notifications",
         requiresAuth: true,
       }),
@@ -443,7 +467,7 @@ class ApiGatewayApplication {
     );
 
     this.app.use(compression());
-    
+
     // Cookie parser for session authentication
     this.app.use(cookieParser());
 
@@ -512,7 +536,7 @@ class ApiGatewayApplication {
 
     logger.info("Size limits configured", {
       defaultLimit: "10MB",
-      note: "Using Express built-in body parser limits"
+      note: "Using Express built-in body parser limits",
     });
 
     // Apply rate limiting (Redis-based if available, fallback to in-memory)
@@ -583,7 +607,7 @@ class ApiGatewayApplication {
         success: true,
         totalRoutes: routingTable.length,
         routes: routingTable,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     });
 
@@ -607,28 +631,30 @@ class ApiGatewayApplication {
     // =========================================================================
 
     logger.info("Mounting global proxy middleware for /api/* requests");
-    
+
     // Apply authentication middleware first
     // Note: GlobalProxyMiddleware will check route.requiresAuth to determine
     // whether to enforce authentication, but we apply it globally for consistency
     this.app.use(
       "/api",
       this.authenticationMiddleware.optionalAuthenticate(),
-      this.globalProxyMiddleware.handle()
+      this.globalProxyMiddleware.handle(),
     );
 
     const routes = this.serviceRegistry.getAllRoutes();
     logger.info("Global proxy middleware configured", {
       totalRoutes: routes.length,
       routingStrategy: "centralized",
-      routingTable: this.serviceRegistry.getRoutingTable().map(r => ({
+      routingTable: this.serviceRegistry.getRoutingTable().map((r) => ({
         priority: r.priority,
         pathPrefix: r.pathPrefix,
-        serviceName: r.serviceName
-      }))
+        serviceName: r.serviceName,
+      })),
     });
 
-    logger.info("✅ Routes setup complete - Using centralized global proxy middleware");
+    logger.info(
+      "✅ Routes setup complete - Using centralized global proxy middleware",
+    );
   }
 
   private setupErrorHandling(): void {

@@ -13,6 +13,7 @@ export interface AuthenticatedUser {
   roles: string[];
   permissions: string[];
   sessionId?: string;
+  patientId?: string;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -42,7 +43,7 @@ export class AuthenticationMiddleware {
   public authenticate = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       // Skip authentication for certain paths
@@ -56,15 +57,24 @@ export class AuthenticationMiddleware {
           userId: "dev-user-id",
           email: "dev@example.com",
           roles: ["ADMIN"],
-          permissions: ["*"]
+          permissions: ["*"],
         };
+        return next();
+      }
+
+      // Trust API Gateway forwarded headers first (already authenticated)
+      const gatewayUser = this.extractGatewayUser(req);
+      if (gatewayUser) {
+        req.authenticatedUser = gatewayUser;
         return next();
       }
 
       // Extract token from Authorization header
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        res.status(401).json({ error: "Missing or invalid authorization header" });
+        res
+          .status(401)
+          .json({ error: "Missing or invalid authorization header" });
         return;
       }
 
@@ -76,8 +86,8 @@ export class AuthenticationMiddleware {
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 5000
-        }
+          timeout: 5000,
+        },
       );
 
       if (!response.data || !response.data.userId) {
@@ -91,7 +101,7 @@ export class AuthenticationMiddleware {
         email: response.data.email,
         roles: response.data.roles || [],
         permissions: response.data.permissions || [],
-        sessionId: response.data.sessionId
+        sessionId: response.data.sessionId,
       };
 
       next();
@@ -102,6 +112,56 @@ export class AuthenticationMiddleware {
   };
 
   private shouldSkipAuth(path: string): boolean {
-    return this.skipPaths.some(skipPath => path.startsWith(skipPath));
+    return this.skipPaths.some((skipPath) => path.startsWith(skipPath));
+  }
+
+  private extractGatewayUser(req: Request): AuthenticatedUser | null {
+    const gatewayUserId = this.getHeaderValue(req, "x-user-id");
+    if (!gatewayUserId) {
+      return null;
+    }
+
+    const gatewayEmail =
+      this.getHeaderValue(req, "x-user-email") || "unknown@patient.local";
+    const roles = this.parseHeaderArray(
+      this.getHeaderValue(req, "x-user-roles"),
+    );
+    const permissions = this.parseHeaderArray(
+      this.getHeaderValue(req, "x-user-permissions"),
+    );
+    const patientId = this.getHeaderValue(req, "x-patient-id");
+
+    return {
+      userId: gatewayUserId,
+      email: gatewayEmail,
+      roles,
+      permissions,
+      sessionId: this.getHeaderValue(req, "x-session-id") || undefined,
+      patientId: patientId || undefined,
+    };
+  }
+
+  private getHeaderValue(req: Request, headerName: string): string | undefined {
+    const value = req.headers[headerName] as string | string[] | undefined;
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+    return value;
+  }
+
+  private parseHeaderArray(raw?: string): string[] {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item));
+      }
+    } catch {
+      // Fallback to comma-separated values
+    }
+    return raw
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
   }
 }

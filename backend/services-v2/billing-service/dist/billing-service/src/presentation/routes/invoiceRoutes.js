@@ -19,8 +19,10 @@ function createInvoiceRoutes(controller) {
     router.post("/:id/payments", controller.processPayment.bind(controller));
     // REMOVED (Phase 1 Out-of-Scope): refund endpoint
     // router.post("/:id/payments/refund", controller.refundPayment.bind(controller));
-    // PayOS Integration
+    // PayOS/VNPAY Integration
     router.post("/:id/payos/payment-link", controller.createPayOSPaymentLink.bind(controller));
+    // VNPAY sends IPN via GET, PayOS via POST - support both
+    router.get("/payos/webhook", controller.handlePayOSWebhook.bind(controller));
     router.post("/payos/webhook", controller.handlePayOSWebhook.bind(controller));
     // REMOVED (Phase 1 Out-of-Scope): insurance-claim endpoint
     // router.post("/:id/insurance-claim", controller.processInsuranceClaim.bind(controller));

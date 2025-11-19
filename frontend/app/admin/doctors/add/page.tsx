@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout';
 import { ArrowLeft, Save, Mail, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -14,7 +14,8 @@ export default function AddDoctorPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [departments, setDepartments] = useState<Array<{ id: string; code: string; nameVi: string; nameEn: string }>>([]);
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -34,25 +35,55 @@ export default function AddDoctorPage() {
     sendInvitationEmail: true, // Mặc định gửi email
   });
 
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const { getDepartments } = await import('@/lib/api/departments.service');
+        const list = await getDepartments();
+        const mapped = list.map(d => ({ id: d.id, code: d.code, nameVi: d.nameVi, nameEn: d.nameEn }));
+        setDepartments(mapped);
+      } catch (e) {
+        console.error('Error loading departments', e);
+      }
+    };
+    loadDepartments();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
-      // TODO: Implement API call to create staff and send invitation
-      console.log('Creating staff with data:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      const { authService } = await import('@/lib/api/auth.service');
+      const payload = {
+        email: formData.email,
+        fullName: formData.fullName,
+        roleType: 'doctor' as const,
+        phoneNumber: formData.phone,
+        invitationData: {
+          department_code: formData.department || 'GENERAL',
+          specialization: formData.specialization,
+          title: 'Bác sĩ',
+          licenseNumber: formData.licenseNumber || `TEMP-${Date.now()}`,
+          employmentType: 'full_time',
+          yearsOfExperience: Number(formData.experience || 0),
+          education: formData.education ? [formData.education] : ['General Medicine'],
+          languages: formData.languages ? formData.languages.split(',').map(s => s.trim()) : ['vi'],
+          bio: formData.bio || '',
+        }
+      };
+      const res = await authService.inviteStaffAdmin(payload);
+      if (!res?.success) {
+        throw new Error(res?.message || 'Không thể tạo lời mời');
+      }
       setShowSuccess(true);
-      
+
       // Redirect after 3 seconds
       setTimeout(() => {
         router.push('/admin/doctors');
       }, 3000);
-      
+
     } catch (err: any) {
       setError(err.message || 'Có lỗi xảy ra khi tạo tài khoản bác sĩ');
     } finally {
@@ -71,7 +102,7 @@ export default function AddDoctorPage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Tạo tài khoản thành công!</h2>
             <p className="text-gray-600 mb-6">
-              {formData.sendInvitationEmail 
+              {formData.sendInvitationEmail
                 ? `Email kích hoạt đã được gửi đến ${formData.email}. Bác sĩ cần xác nhận email để kích hoạt tài khoản.`
                 : 'Tài khoản bác sĩ đã được tạo. Bạn có thể gửi thông tin đăng nhập cho họ sau.'
               }
@@ -177,20 +208,20 @@ export default function AddDoctorPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chuyên khoa <span className="text-red-500">*</span>
+                    Khoa <span className="text-red-500">*</span>
                   </label>
                   <select
                     required
-                    value={formData.specialization}
-                    onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <option value="">Chọn chuyên khoa</option>
-                    <option value="cardiology">Tim mạch</option>
-                    <option value="neurology">Thần kinh</option>
-                    <option value="orthopedics">Chỉnh hình</option>
-                    <option value="pediatrics">Nhi khoa</option>
-                    <option value="dermatology">Da liễu</option>
+                    <option value="">Chọn khoa</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.code}>
+                        {d.nameVi} ({d.nameEn})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -200,6 +231,24 @@ export default function AddDoctorPage() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin nghề nghiệp</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chuyên khoa <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={formData.specialization}
+                    onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Chọn chuyên khoa</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.code.toLowerCase()}>
+                        {d.nameVi}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Số chứng chỉ hành nghề
@@ -257,7 +306,7 @@ export default function AddDoctorPage() {
             {/* Email Invitation Section */}
             <div className="border-t pt-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Gửi email mời kích hoạt</h2>
-              
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <Mail className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />

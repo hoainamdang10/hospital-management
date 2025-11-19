@@ -55,6 +55,9 @@ export interface AppConfig {
         timeoutMs: number;
         enableDetailedCheck: boolean;
     };
+    features: {
+        enableScheduler: boolean;
+    };
 }
 /**
  * Validate and load configuration from environment variables

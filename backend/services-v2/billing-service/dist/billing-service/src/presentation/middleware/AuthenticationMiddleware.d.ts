@@ -10,6 +10,7 @@ export interface AuthenticatedUser {
     roles: string[];
     permissions: string[];
     sessionId?: string;
+    patientId?: string;
 }
 export interface AuthenticatedRequest extends Request {
     authenticatedUser?: AuthenticatedUser;
@@ -28,5 +29,8 @@ export declare class AuthenticationMiddleware {
     constructor(config: AuthenticationMiddlewareConfig);
     authenticate: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
     private shouldSkipAuth;
+    private extractGatewayUser;
+    private getHeaderValue;
+    private parseHeaderArray;
 }
 //# sourceMappingURL=AuthenticationMiddleware.d.ts.map

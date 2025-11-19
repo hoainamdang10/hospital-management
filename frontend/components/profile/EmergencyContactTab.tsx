@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Phone, Plus, Trash2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmergencyContact } from '@/lib/types/profile';
+import { toast } from 'sonner';
 
 interface EmergencyContactTabProps {
   contacts: EmergencyContact[];
@@ -14,6 +15,7 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
   const [isEditing, setIsEditing] = useState(false);
   const [contactList, setContactList] = useState<EmergencyContact[]>(contacts);
   const [saving, setSaving] = useState(false);
+  const [contactErrors, setContactErrors] = useState<{ name?: string; relationship?: string; phone?: string }[]>(contacts.map(() => ({ })));
 
   function addContact() {
     setContactList([
@@ -27,17 +29,28 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
         isPrimary: contactList.length === 0,
       },
     ]);
+    setContactErrors([...contactErrors, {}]);
   }
 
   function removeContact(index: number) {
     const newList = contactList.filter((_, i) => i !== index);
     setContactList(newList);
+    const newErrors = contactErrors.filter((_, i) => i !== index);
+    setContactErrors(newErrors);
   }
 
   function updateContact(index: number, field: keyof EmergencyContact, value: any) {
     const newList = [...contactList];
     newList[index] = { ...newList[index], [field]: value };
     setContactList(newList);
+    const errs = [...contactErrors];
+    if (field === 'name') errs[index] = { ...errs[index], name: value ? undefined : 'Họ và tên không được để trống' };
+    if (field === 'relationship') errs[index] = { ...errs[index], relationship: value ? undefined : 'Mối quan hệ không được để trống' };
+    if (field === 'phone') {
+      const ok = /^0[0-9]{9}$/.test(value);
+      errs[index] = { ...errs[index], phone: value && !ok ? 'Số điện thoại không đúng định dạng' : undefined };
+    }
+    setContactErrors(errs);
   }
 
   function setPrimary(index: number) {
@@ -51,6 +64,17 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
   async function handleSave() {
     setSaving(true);
     try {
+      const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
+      for (const c of contactList) {
+        if (!c.name || !c.relationship || !c.phone) {
+          toast.error('Vui lòng điền đầy đủ tên, mối quan hệ và số điện thoại');
+          return;
+        }
+        if (!/^0[0-9]{9}$/.test(c.phone)) {
+          toast.error('Số điện thoại liên hệ khẩn cấp không đúng định dạng');
+          return;
+        }
+      }
       await onUpdate(contactList);
       setIsEditing(false);
     } catch (error) {
@@ -141,6 +165,9 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
                 ) : (
                   <p className="text-gray-900 py-2">{contact.name}</p>
                 )}
+                {isEditing && contactErrors[index]?.name && (
+                  <p className="text-red-500 text-xs mt-1">{contactErrors[index]?.name}</p>
+                )}
               </div>
 
               <div>
@@ -165,6 +192,9 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
                 ) : (
                   <p className="text-gray-900 py-2">{contact.relationship}</p>
                 )}
+                {isEditing && contactErrors[index]?.relationship && (
+                  <p className="text-red-500 text-xs mt-1">{contactErrors[index]?.relationship}</p>
+                )}
               </div>
 
               <div>
@@ -181,6 +211,9 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
                   />
                 ) : (
                   <p className="text-gray-900 py-2">{contact.phone}</p>
+                )}
+                {isEditing && contactErrors[index]?.phone && (
+                  <p className="text-red-500 text-xs mt-1">{contactErrors[index]?.phone}</p>
                 )}
               </div>
 
@@ -246,7 +279,7 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
           >
             Hủy
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || contactErrors.some((e) => e.name || e.relationship || e.phone)}>
             {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
           </Button>
         </div>

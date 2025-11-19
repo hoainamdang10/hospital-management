@@ -16,6 +16,11 @@ import {
 } from "../../application/services/IEventPublisher";
 import { DomainEventMapper } from "./DomainEventMapper";
 
+interface RabbitMQEventPublisherOptions {
+  maxConnectionAttempts?: number;
+  connectionRetryDelayMs?: number;
+}
+
 export class RabbitMQEventPublisher implements IEventPublisher {
   private connection: Connection | null = null;
   private channel: Channel | null = null;
@@ -25,23 +30,35 @@ export class RabbitMQEventPublisher implements IEventPublisher {
   private flushingPending = false;
   private readonly maxPublishAttempts = 3;
   private readonly publishRetryDelayMs = 500;
+  private readonly maxConnectionAttempts: number;
+  private readonly connectionRetryDelayMs: number;
+  private reconnecting = false;
 
   constructor(
     private readonly rabbitMQUrl: string,
     private readonly logger: ILogger,
     exchangeName?: string,
+    options?: RabbitMQEventPublisherOptions,
   ) {
     this.exchangeName =
       exchangeName || process.env.RABBITMQ_EXCHANGE || "hospital.events";
+    this.maxConnectionAttempts = options?.maxConnectionAttempts ?? 5;
+    this.connectionRetryDelayMs = options?.connectionRetryDelayMs ?? 2000;
   }
 
   /**
    * Initialize RabbitMQ connection and channel
    */
   async initialize(): Promise<void> {
+    await this.connectWithRetry();
+  }
+
+  private async connectWithRetry(attempt = 1): Promise<void> {
     try {
       this.logger.info("Connecting to RabbitMQ", {
         url: this.rabbitMQUrl.replace(/\/\/.*@/, "//<credentials>@"),
+        attempt,
+        maxAttempts: this.maxConnectionAttempts,
       });
 
       // Create connection - explicit type assertion for amqplib compatibility
@@ -56,11 +73,13 @@ export class RabbitMQEventPublisher implements IEventPublisher {
             error: err.message,
           });
           this.isConnected = false;
+          this.scheduleReconnect();
         });
 
         this.connection.on("close", () => {
           this.logger.warn("RabbitMQ connection closed");
           this.isConnected = false;
+          this.scheduleReconnect();
         });
 
         // Create channel
@@ -83,8 +102,22 @@ export class RabbitMQEventPublisher implements IEventPublisher {
     } catch (error) {
       this.logger.error("Failed to initialize RabbitMQ", {
         error: error instanceof Error ? error.message : String(error),
+        attempt,
+        maxAttempts: this.maxConnectionAttempts,
       });
-      throw error;
+      await this.cleanupConnection();
+
+      if (attempt >= this.maxConnectionAttempts) {
+        throw error;
+      }
+
+      const delay = this.connectionRetryDelayMs * attempt;
+      this.logger.warn("Retrying RabbitMQ connection", {
+        attempt: attempt + 1,
+        delay,
+      });
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      await this.connectWithRetry(attempt + 1);
     }
   }
 
@@ -256,6 +289,52 @@ export class RabbitMQEventPublisher implements IEventPublisher {
     } finally {
       this.flushingPending = false;
     }
+  }
+
+  private async cleanupConnection(): Promise<void> {
+    if (this.channel) {
+      try {
+        await this.channel.close();
+      } catch {
+        // ignore cleanup errors
+      } finally {
+        this.channel = null;
+      }
+    }
+
+    if (this.connection) {
+      try {
+        const closable = this.connection as unknown as {
+          close?: () => Promise<void>;
+        };
+        if (typeof closable.close === "function") {
+          await closable.close();
+        }
+      } catch {
+        // ignore cleanup errors
+      } finally {
+        this.connection = null;
+      }
+    }
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnecting) {
+      return;
+    }
+
+    this.reconnecting = true;
+    setTimeout(() => {
+      this.connectWithRetry()
+        .catch((error) => {
+          this.logger.error("RabbitMQ reconnect attempt failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        })
+        .finally(() => {
+          this.reconnecting = false;
+        });
+    }, this.connectionRetryDelayMs);
   }
 }
 

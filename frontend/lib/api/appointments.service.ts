@@ -103,9 +103,23 @@ export const appointmentsService = {
     }
   ): Promise<ListAppointmentsResponse> {
     const response = await apiClient.get<ListAppointmentsResponse>(
-      `/v2/patients/${patientId}/appointments`,
-      { params }
+      `/v1/appointments`,
+      { params: { patientId, ...(params || {}) } }
     );
+    return response.data;
+  },
+  /**
+   * Get appointment statistics
+   * GET /api/appointments/statistics
+   */
+  async getStatistics(params: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: 'day' | 'week' | 'month';
+    doctorId?: string;
+    departmentId?: string;
+  }): Promise<any> {
+    const response = await apiClient.get('/appointments/statistics', { params });
     return response.data;
   },
 };

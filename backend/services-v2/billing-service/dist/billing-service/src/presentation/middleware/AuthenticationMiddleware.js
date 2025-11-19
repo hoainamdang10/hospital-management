@@ -23,21 +23,29 @@ class AuthenticationMiddleware {
                         userId: "dev-user-id",
                         email: "dev@example.com",
                         roles: ["ADMIN"],
-                        permissions: ["*"]
+                        permissions: ["*"],
                     };
+                    return next();
+                }
+                // Trust API Gateway forwarded headers first (already authenticated)
+                const gatewayUser = this.extractGatewayUser(req);
+                if (gatewayUser) {
+                    req.authenticatedUser = gatewayUser;
                     return next();
                 }
                 // Extract token from Authorization header
                 const authHeader = req.headers.authorization;
                 if (!authHeader || !authHeader.startsWith("Bearer ")) {
-                    res.status(401).json({ error: "Missing or invalid authorization header" });
+                    res
+                        .status(401)
+                        .json({ error: "Missing or invalid authorization header" });
                     return;
                 }
                 const token = authHeader.substring(7);
                 // Verify token with Identity Service
                 const response = await axios_1.default.post(`${this.identityServiceUrl}/api/auth/verify`, {}, {
                     headers: { Authorization: `Bearer ${token}` },
-                    timeout: 5000
+                    timeout: 5000,
                 });
                 if (!response.data || !response.data.userId) {
                     res.status(401).json({ error: "Invalid token" });
@@ -49,7 +57,7 @@ class AuthenticationMiddleware {
                     email: response.data.email,
                     roles: response.data.roles || [],
                     permissions: response.data.permissions || [],
-                    sessionId: response.data.sessionId
+                    sessionId: response.data.sessionId,
                 };
                 next();
             }
@@ -64,7 +72,49 @@ class AuthenticationMiddleware {
         this.bypassAuth = process.env.BYPASS_AUTH === "true";
     }
     shouldSkipAuth(path) {
-        return this.skipPaths.some(skipPath => path.startsWith(skipPath));
+        return this.skipPaths.some((skipPath) => path.startsWith(skipPath));
+    }
+    extractGatewayUser(req) {
+        const gatewayUserId = this.getHeaderValue(req, "x-user-id");
+        if (!gatewayUserId) {
+            return null;
+        }
+        const gatewayEmail = this.getHeaderValue(req, "x-user-email") || "unknown@patient.local";
+        const roles = this.parseHeaderArray(this.getHeaderValue(req, "x-user-roles"));
+        const permissions = this.parseHeaderArray(this.getHeaderValue(req, "x-user-permissions"));
+        const patientId = this.getHeaderValue(req, "x-patient-id");
+        return {
+            userId: gatewayUserId,
+            email: gatewayEmail,
+            roles,
+            permissions,
+            sessionId: this.getHeaderValue(req, "x-session-id") || undefined,
+            patientId: patientId || undefined,
+        };
+    }
+    getHeaderValue(req, headerName) {
+        const value = req.headers[headerName];
+        if (Array.isArray(value)) {
+            return value[0];
+        }
+        return value;
+    }
+    parseHeaderArray(raw) {
+        if (!raw)
+            return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.map((item) => String(item));
+            }
+        }
+        catch {
+            // Fallback to comma-separated values
+        }
+        return raw
+            .split(",")
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0);
     }
 }
 exports.AuthenticationMiddleware = AuthenticationMiddleware;

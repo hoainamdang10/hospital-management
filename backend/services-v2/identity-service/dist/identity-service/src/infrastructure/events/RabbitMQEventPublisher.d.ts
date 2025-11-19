@@ -8,6 +8,10 @@
 import { DomainEvent } from "../../../../shared/domain/base/domain-event";
 import { ILogger } from "../../application/services/ILogger";
 import { IEventPublisher, IntegrationEventPayload } from "../../application/services/IEventPublisher";
+interface RabbitMQEventPublisherOptions {
+    maxConnectionAttempts?: number;
+    connectionRetryDelayMs?: number;
+}
 export declare class RabbitMQEventPublisher implements IEventPublisher {
     private readonly rabbitMQUrl;
     private readonly logger;
@@ -19,11 +23,15 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
     private flushingPending;
     private readonly maxPublishAttempts;
     private readonly publishRetryDelayMs;
-    constructor(rabbitMQUrl: string, logger: ILogger, exchangeName?: string);
+    private readonly maxConnectionAttempts;
+    private readonly connectionRetryDelayMs;
+    private reconnecting;
+    constructor(rabbitMQUrl: string, logger: ILogger, exchangeName?: string, options?: RabbitMQEventPublisherOptions);
     /**
      * Initialize RabbitMQ connection and channel
      */
     initialize(): Promise<void>;
+    private connectWithRetry;
     /**
      * Publish a single domain event
      */
@@ -42,6 +50,8 @@ export declare class RabbitMQEventPublisher implements IEventPublisher {
     private getRoutingKey;
     private publishWithRetry;
     private flushPendingEvents;
+    private cleanupConnection;
+    private scheduleReconnect;
 }
 /**
  * Mock Event Publisher for testing
@@ -59,4 +69,5 @@ export declare class MockEventPublisher implements IEventPublisher {
     getDomainEvents(): DomainEvent[];
     clear(): void;
 }
+export {};
 //# sourceMappingURL=RabbitMQEventPublisher.d.ts.map

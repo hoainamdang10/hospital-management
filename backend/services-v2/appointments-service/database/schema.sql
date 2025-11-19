@@ -19,39 +19,39 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.appointments (
   -- Primary Keys
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   appointment_id TEXT UNIQUE NOT NULL,  -- YYYY-APT-MMDDSS-NNN
-  
+
   -- Soft References (Business IDs - NO FKs to other schemas)
   patient_id VARCHAR(20) NOT NULL,  -- PAT-YYYYMM-XXX (soft reference to patient_schema)
   doctor_id VARCHAR(30) NOT NULL,   -- DEPT-DOC-YYYYMM-XXX (soft reference to provider_schema)
-  
+
   -- Time Slot
   appointment_date DATE NOT NULL,
   appointment_time TIME NOT NULL,
   duration_minutes INTEGER DEFAULT 30,
-  
+
   -- Appointment Type & Priority
   type TEXT NOT NULL DEFAULT 'CONSULTATION',  -- CONSULTATION, FOLLOW_UP, EMERGENCY, SURGERY, CHECKUP
   priority TEXT NOT NULL DEFAULT 'NORMAL',    -- EMERGENCY, URGENT, NORMAL, LOW
   status TEXT NOT NULL DEFAULT 'SCHEDULED',   -- SCHEDULED, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
-  
+
   -- Appointment Details (PHI - Protected Health Information)
   reason TEXT,
   chief_complaint TEXT,
   symptoms JSONB DEFAULT '[]'::jsonb,
   notes TEXT,
   special_instructions TEXT,
-  
+
   -- Location
   room_id UUID,
   department_id UUID,
   required_equipment JSONB DEFAULT '[]'::jsonb,
-  
+
   -- Financial
   consultation_fee NUMERIC(10,2) NOT NULL DEFAULT 0,
   additional_fees NUMERIC(10,2) DEFAULT 0,
   payment_status TEXT DEFAULT 'PENDING',  -- PENDING, PAID, PARTIALLY_PAID, REFUNDED
   payment_method TEXT,
-  
+
   -- Workflow Timestamps
   checked_in_at TIMESTAMPTZ,
   started_at TIMESTAMPTZ,
@@ -59,25 +59,25 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.appointments (
   cancelled_at TIMESTAMPTZ,
   cancellation_reason TEXT,
   cancelled_by TEXT,
-  
+
   -- Follow-up & Series
   follow_up_appointment_id TEXT,
   parent_appointment_id TEXT,
   series_id TEXT,
-  
+
   -- Reminders & Confirmation
   reminder_sent BOOLEAN DEFAULT FALSE,
   reminder_sent_at TIMESTAMPTZ,
   confirmation_required BOOLEAN DEFAULT TRUE,
   confirmed_at TIMESTAMPTZ,
   confirmed_by TEXT,
-  
+
   -- Audit Fields
   created_by TEXT NOT NULL,
   last_modified_by TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Constraints
   CONSTRAINT chk_patient_id_format CHECK (patient_id ~ '^PAT-\d{6}-\d{3}$'),
   CONSTRAINT chk_doctor_id_format CHECK (doctor_id ~ '^[A-Z]{2,4}-DOC-\d{6}-\d{3}$'),
@@ -86,7 +86,20 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.appointments (
   CONSTRAINT chk_consultation_fee_non_negative CHECK (consultation_fee >= 0),
   CONSTRAINT chk_type CHECK (type IN ('CONSULTATION', 'FOLLOW_UP', 'EMERGENCY', 'SURGERY', 'CHECKUP', 'VACCINATION', 'THERAPY')),
   CONSTRAINT chk_priority CHECK (priority IN ('EMERGENCY', 'URGENT', 'NORMAL', 'LOW')),
-  CONSTRAINT chk_status CHECK (status IN ('SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW', 'RESCHEDULED')),
+  CONSTRAINT chk_status CHECK (
+    status IN (
+      'SCHEDULED',
+      'PENDING_PAYMENT',
+      'CONFIRMED',
+      'ARRIVED',
+      'CHECKED_IN',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED',
+      'NO_SHOW',
+      'RESCHEDULED'
+    )
+  ),
   CONSTRAINT chk_payment_status CHECK (payment_status IN ('PENDING', 'PAID', 'PARTIALLY_PAID', 'REFUNDED'))
 );
 
@@ -115,9 +128,9 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.appointment_audit_logs (
   ip_address INET,
   user_agent TEXT,
   timestamp TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Foreign Key within same schema
-  CONSTRAINT fk_audit_appointment FOREIGN KEY (appointment_id) 
+  CONSTRAINT fk_audit_appointment FOREIGN KEY (appointment_id)
     REFERENCES scheduling_schema.appointments(appointment_id) ON DELETE CASCADE
 );
 
@@ -138,9 +151,9 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.phi_access_logs (
   reason TEXT,
   ip_address INET,
   timestamp TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Foreign Key within same schema
-  CONSTRAINT fk_phi_access_appointment FOREIGN KEY (appointment_id) 
+  CONSTRAINT fk_phi_access_appointment FOREIGN KEY (appointment_id)
     REFERENCES scheduling_schema.appointments(appointment_id) ON DELETE CASCADE
 );
 
@@ -180,9 +193,9 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.appointment_templates (
   created_by TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Foreign Key within same schema
-  CONSTRAINT fk_template_appointment_type FOREIGN KEY (appointment_type_id) 
+  CONSTRAINT fk_template_appointment_type FOREIGN KEY (appointment_type_id)
     REFERENCES scheduling_schema.appointment_types(id) ON DELETE CASCADE
 );
 
@@ -203,7 +216,7 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.appointment_slots (
   room_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Constraints
   CONSTRAINT chk_slot_doctor_id_format CHECK (doctor_id ~ '^[A-Z]{2,4}-DOC-\d{6}-\d{3}$'),
   CONSTRAINT chk_slot_time_valid CHECK (end_time > start_time),
@@ -230,12 +243,12 @@ CREATE TABLE IF NOT EXISTS scheduling_schema.waiting_queue (
   completed_time TIMESTAMPTZ,
   estimated_wait_minutes INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Constraints
   CONSTRAINT chk_queue_patient_id_format CHECK (patient_id ~ '^PAT-\d{6}-\d{3}$'),
   CONSTRAINT chk_queue_doctor_id_format CHECK (doctor_id ~ '^[A-Z]{2,4}-DOC-\d{6}-\d{3}$'),
   CONSTRAINT chk_queue_status CHECK (status IN ('WAITING', 'CALLED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')),
-  CONSTRAINT fk_queue_appointment FOREIGN KEY (appointment_id) 
+  CONSTRAINT fk_queue_appointment FOREIGN KEY (appointment_id)
     REFERENCES scheduling_schema.appointments(appointment_id) ON DELETE SET NULL
 );
 
@@ -255,7 +268,7 @@ CREATE POLICY "patients_view_own_appointments"
   ON scheduling_schema.appointments FOR SELECT
   USING (
     patient_id IN (
-      SELECT patient_id FROM patient_schema.patients 
+      SELECT patient_id FROM patient_schema.patients
       WHERE user_id = auth.uid()
     )
   );
@@ -265,7 +278,7 @@ CREATE POLICY "doctors_view_own_appointments"
   ON scheduling_schema.appointments FOR SELECT
   USING (
     doctor_id IN (
-      SELECT staff_id FROM provider_schema.staff_profiles 
+      SELECT staff_id FROM provider_schema.staff_profiles
       WHERE user_id = auth.uid()
     )
   );
@@ -277,7 +290,7 @@ CREATE POLICY "admins_view_all_appointments"
     EXISTS (
       SELECT 1 FROM auth_schema.user_roles ur
       JOIN auth_schema.healthcare_roles hr ON ur.role_id = hr.id
-      WHERE ur.user_id = auth.uid() 
+      WHERE ur.user_id = auth.uid()
       AND hr.role_name IN ('SUPER_ADMIN', 'ADMIN')
     )
   );
@@ -292,4 +305,3 @@ COMMENT ON COLUMN scheduling_schema.appointments.patient_id IS 'Soft reference t
 COMMENT ON COLUMN scheduling_schema.appointments.doctor_id IS 'Soft reference to provider_schema.staff_profiles.staff_id (DEPT-DOC-YYYYMM-XXX)';
 COMMENT ON TABLE scheduling_schema.appointment_audit_logs IS 'HIPAA-compliant audit trail for all appointment operations';
 COMMENT ON TABLE scheduling_schema.phi_access_logs IS 'HIPAA-compliant PHI access logging';
-

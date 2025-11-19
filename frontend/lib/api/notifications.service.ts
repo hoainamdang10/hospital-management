@@ -63,10 +63,20 @@ export async function getPatientNotifications(
   patientId: string,
   limit: number = 10
 ): Promise<NotificationsResponse> {
-  const response = await apiClient.get(`/v1/notifications/patient/${patientId}`, {
-    params: { limit, sortBy: 'createdAt', sortOrder: 'DESC' }
-  });
-  return response.data;
+  try {
+    const response = await apiClient.get(`/v1/notifications/patient/${patientId}`, {
+      params: { limit, sortBy: 'createdAt', sortOrder: 'DESC' }
+    });
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: true,
+      data: {
+        notifications: [],
+        pagination: { total: 0, page: 1, limit, totalPages: 0 }
+      }
+    } as NotificationsResponse;
+  }
 }
 
 /**

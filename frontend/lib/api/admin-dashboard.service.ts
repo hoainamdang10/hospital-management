@@ -3,7 +3,7 @@
  * API calls for admin dashboard statistics and data
  */
 
-import { appointmentsClient, patientClient, staffClient } from './clients';
+import { appointmentsClient, patientClient, staffClient, billingClient } from './clients';
 
 export interface AdminDashboardStats {
   totalRevenue: number;
@@ -29,6 +29,31 @@ export interface MonthlyStats {
   patients: number;
   revenue: number;
   appointments: number;
+}
+
+export interface InvoiceStatusSummary {
+  paid: number;
+  pending: number;
+  failed: number;
+  refunded: number;
+}
+
+export interface PaymentRecord {
+  invoiceId: string;
+  patientName: string;
+  amount: number;
+  status: 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED';
+  method: 'PayOS' | 'Cash' | 'Card' | 'BankTransfer';
+  createdAt: string;
+}
+
+export interface WebhookEvent {
+  timestamp: string;
+  endpoint: string;
+  statusCode: number;
+  invoiceId?: string;
+  eventType?: string;
+  success: boolean;
 }
 
 /**
@@ -67,8 +92,9 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     const totalPatients = patientsData.data?.data?.total || 0;
     const totalStaff = staffData.data?.data?.total || 0;
 
-    // Calculate revenue (mock for now - will integrate with billing service)
-    const totalRevenue = totalAppointments * 500000; // Average 500k per appointment
+    // Calculate revenue from appointments if available (consultationFee)
+    const appointments = appointmentsData.data?.data?.appointments || [];
+    const totalRevenue = appointments.reduce((sum: number, apt: any) => sum + Number(apt.consultationFee || 0), 0);
 
     // Calculate changes (mock - compare with previous period)
     const revenueChange = '+20.1%';
@@ -164,7 +190,7 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
 
       monthlyData[monthKey].patients.add(apt.patientId);
       monthlyData[monthKey].appointments += 1;
-      monthlyData[monthKey].revenue += 500000; // Mock revenue per appointment
+      monthlyData[monthKey].revenue += Number(apt.consultationFee || 0);
     });
 
     // Convert to array and format
@@ -192,6 +218,159 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
       revenue: 0,
       appointments: 0,
     }));
+  }
+}
+
+/**
+ * Get invoice status summary and today's revenue breakdown
+ */
+export async function getInvoiceSummary(): Promise<{ summary: InvoiceStatusSummary; todayRevenue: { payos: number; cash: number } }> {
+  try {
+    const invoicesResp = await billingClient.get('/api/v1/invoices/search', {
+      params: { page: 1, pageSize: 1000 },
+    });
+    const invoices = invoicesResp.data?.data?.invoices || invoicesResp.data?.data || [];
+    const payments: any[] = [];
+
+    const summary: InvoiceStatusSummary = {
+      paid: invoices.filter((i: any) => i.status?.toUpperCase() === 'PAID').length,
+      pending: invoices.filter((i: any) => i.status?.toUpperCase() === 'PENDING').length,
+      failed: invoices.filter((i: any) => i.status?.toUpperCase() === 'FAILED').length,
+      refunded: invoices.filter((i: any) => i.status?.toUpperCase() === 'REFUNDED').length,
+    };
+
+    const todayRevenue = payments.reduce(
+      (acc: { payos: number; cash: number }, p: any) => {
+        const created = new Date(p.createdAt || p.paymentDate);
+        const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+        const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+        if (created >= todayStart && created <= todayEnd && String(p.status).toUpperCase() === 'PAID') {
+          const method = String(p.method || p.paymentMethod || '').toLowerCase();
+          const amount = Number(p.amount || p.totalAmount || 0);
+          if (method.includes('payos')) acc.payos += amount; else acc.cash += amount;
+        }
+        return acc;
+      },
+      { payos: 0, cash: 0 }
+    );
+
+    return { summary, todayRevenue };
+  } catch (error) {
+    console.error('[AdminDashboardService] Failed to fetch invoice summary:', error);
+    return { summary: { paid: 0, pending: 0, failed: 0, refunded: 0 }, todayRevenue: { payos: 0, cash: 0 } };
+  }
+}
+
+/**
+ * Get revenue trend by day for the last 14 days
+ */
+export async function getRevenueTrend(days: number = 14): Promise<{ date: string; amount: number }[]> {
+  try {
+    const resp = await billingClient.get('/api/v1/invoices/search', {
+      params: { page: 1, pageSize: 1000, status: 'PAID' },
+    });
+    const invoices = resp.data?.data?.invoices || resp.data?.data || [];
+    const end = new Date(); end.setHours(0,0,0,0);
+    const trend: Record<string, number> = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(end); d.setDate(end.getDate() - i);
+      const key = d.toISOString().slice(0,10);
+      trend[key] = 0;
+    }
+    invoices.forEach((inv: any) => {
+      const paidAt = new Date(inv.paidAt || inv.updatedAt || inv.createdAt);
+      const key = paidAt.toISOString().slice(0,10);
+      if (trend[key] !== undefined && String(inv.status).toUpperCase() === 'PAID') {
+        trend[key] += Number(inv.totalAmount || inv.amount || 0);
+      }
+    });
+    return Object.entries(trend)
+      .sort(([a],[b]) => a.localeCompare(b))
+      .map(([date, amount]) => ({ date, amount }));
+  } catch (error) {
+    console.error('[AdminDashboardService] Failed to fetch revenue trend:', error);
+    const end = new Date(); end.setHours(0,0,0,0);
+    return Array.from({ length: days }).map((_, i) => {
+      const d = new Date(end); d.setDate(end.getDate() - i);
+      return { date: d.toISOString().slice(0,10), amount: 0 };
+    }).reverse();
+  }
+}
+
+/**
+ * Get invoice status distribution (for pie/donut)
+ */
+export async function getInvoiceStatusDistribution(): Promise<InvoiceStatusSummary> {
+  try {
+    const resp = await billingClient.get('/api/v1/invoices/search', {
+      params: { page: 1, pageSize: 1000 },
+    });
+    const invoices = resp.data?.data?.invoices || resp.data?.data || [];
+    return {
+      paid: invoices.filter((i: any) => i.status?.toUpperCase() === 'PAID').length,
+      pending: invoices.filter((i: any) => i.status?.toUpperCase() === 'PENDING').length,
+      failed: invoices.filter((i: any) => i.status?.toUpperCase() === 'FAILED').length,
+      refunded: invoices.filter((i: any) => i.status?.toUpperCase() === 'REFUNDED').length,
+    };
+  } catch (error) {
+    console.error('[AdminDashboardService] Failed to fetch invoice status distribution:', error);
+    return { paid: 0, pending: 0, failed: 0, refunded: 0 };
+  }
+}
+
+/**
+ * Get recent payments for table
+ */
+export async function getRecentPayments(limit: number = 10): Promise<PaymentRecord[]> {
+  try {
+    const resp = await billingClient.get('/api/v1/invoices/search', {
+      params: { page: 1, pageSize: 1000, status: 'PAID', sortBy: 'updatedAt', sortOrder: 'DESC' },
+    });
+    const invoices = resp.data?.data?.invoices || resp.data?.data || [];
+    return invoices.slice(0, limit).map((inv: any) => ({
+      invoiceId: inv.invoiceId || inv.invoiceNumber || inv.id,
+      patientName: inv.patientName || 'Bệnh nhân',
+      amount: Number(inv.totalAmount || inv.amount || 0),
+      status: 'PAID',
+      method: (String(inv.paymentMethod || 'PayOS').toLowerCase().includes('cash') ? 'Cash' : 'PayOS'),
+      createdAt: inv.paidAt || inv.updatedAt || inv.createdAt,
+    }));
+  } catch (error) {
+    console.error('[AdminDashboardService] Failed to fetch recent payments:', error);
+    return [];
+  }
+}
+
+/**
+ * Get recent webhook events
+ */
+export async function getRecentWebhooks(limit: number = 10): Promise<WebhookEvent[]> {
+  try {
+    return [];
+  } catch (error) {
+    console.error('[AdminDashboardService] Failed to fetch webhook events:', error);
+    return [];
+  }
+}
+
+/**
+ * Estimate check-in count today (fallback based on confirmed appointments)
+ */
+export async function getTodayCheckInCount(): Promise<{ checkedIn: number; total: number }> {
+  try {
+    const resp = await appointmentsClient.get('/api/v1/appointments', { params: { page: 1, pageSize: 1000 } });
+    const apts = resp.data?.data?.appointments || [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const todayApts = apts.filter((apt: any) => {
+      const d = new Date(apt.appointmentDateTime);
+      return d >= today && d < tomorrow;
+    });
+    const checkedIn = todayApts.filter((apt: any) => String(apt.status).toUpperCase() === 'CONFIRMED' || String(apt.status).toUpperCase() === 'COMPLETED').length;
+    return { checkedIn, total: todayApts.length };
+  } catch (error) {
+    console.error('[AdminDashboardService] Failed to fetch check-in count:', error);
+    return { checkedIn: 0, total: 0 };
   }
 }
 

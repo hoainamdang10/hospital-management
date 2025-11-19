@@ -55,58 +55,105 @@ class AppointmentEventConsumer {
         this.appointmentReminderRepo = appointmentReminderRepo;
         this.inboxRepo = inboxRepo;
         this.isConnected = false;
+        this.reconnecting = false;
     }
     /**
      * Connect to RabbitMQ and start consuming
      */
     async connect() {
-        try {
-            console.log("Connecting to RabbitMQ for Appointment events", {
-                queueName: this.config.queueName,
-            });
-            const amqp = require("amqplib");
-            this.connection = await amqp.connect(this.config.rabbitmqUrl);
-            this.channel = await this.connection.createChannel();
-            if (!this.channel) {
-                throw new Error("Failed to create RabbitMQ channel");
-            }
-            // Assert exchange
-            await this.channel.assertExchange(this.config.exchangeName, "topic", {
-                durable: true,
-            });
-            // Assert queue
-            await this.channel.assertQueue(this.config.queueName, {
-                durable: true,
-            });
-            // Bind queue to routing keys
-            for (const routingKey of this.config.routingKeys) {
-                await this.channel.bindQueue(this.config.queueName, this.config.exchangeName, routingKey);
-                console.log("Queue bound to routing key", {
+        const maxAttempts = Math.max(1, this.config.retryAttempts || 3);
+        const retryDelay = this.config.retryDelayMs || 1000;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                console.log("Connecting to RabbitMQ for Appointment events", {
                     queueName: this.config.queueName,
-                    routingKey,
+                    attempt,
+                    maxAttempts,
                 });
+                const amqp = require("amqplib");
+                this.connection = await amqp.connect(this.config.rabbitmqUrl);
+                this.channel = await this.connection.createChannel();
+                if (!this.channel) {
+                    throw new Error("Failed to create RabbitMQ channel");
+                }
+                this.setupConnectionListeners();
+                // Assert exchange
+                await this.channel.assertExchange(this.config.exchangeName, "topic", {
+                    durable: true,
+                });
+                // Assert queue
+                await this.channel.assertQueue(this.config.queueName, {
+                    durable: true,
+                });
+                // Bind queue to routing keys
+                for (const routingKey of this.config.routingKeys) {
+                    await this.channel.bindQueue(this.config.queueName, this.config.exchangeName, routingKey);
+                    console.log("Queue bound to routing key", {
+                        queueName: this.config.queueName,
+                        routingKey,
+                    });
+                }
+                this.channel.prefetch(this.config.prefetchCount || 10);
+                // Start consuming
+                await this.channel.consume(this.config.queueName, this.handleMessage.bind(this), { noAck: false });
+                this.isConnected = true;
+                console.log("Appointment event consumer connected successfully");
+                return;
             }
-            // Start consuming
-            await this.channel.consume(this.config.queueName, this.handleMessage.bind(this), { noAck: false });
-            this.isConnected = true;
-            console.log("Appointment event consumer connected successfully");
-            // Handle connection errors
-            this.connection.on("error", (error) => {
-                console.error("RabbitMQ connection error", {
-                    error: error.message,
+            catch (error) {
+                console.error("Failed to connect to RabbitMQ", {
+                    attempt,
+                    maxAttempts,
+                    error: error instanceof Error ? error.message : "Unknown error",
                 });
-                this.isConnected = false;
-            });
-            this.connection.on("close", () => {
-                console.warn("RabbitMQ connection closed");
-                this.isConnected = false;
-            });
+                await this.closeConnectionSilently();
+                if (attempt === maxAttempts) {
+                    throw error;
+                }
+                const delay = retryDelay * attempt;
+                console.log(`Retrying appointment consumer connection in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`);
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
         }
-        catch (error) {
-            console.error("Failed to connect to RabbitMQ", {
-                error: error instanceof Error ? error.message : "Unknown error",
+    }
+    setupConnectionListeners() {
+        if (!this.connection) {
+            return;
+        }
+        this.connection.on("error", (error) => {
+            console.error("RabbitMQ connection error", {
+                error: error.message,
             });
-            throw error;
+            this.isConnected = false;
+        });
+        this.connection.on("close", () => {
+            console.warn("RabbitMQ connection closed");
+            this.isConnected = false;
+            this.triggerReconnect();
+        });
+    }
+    triggerReconnect() {
+        if (this.reconnecting) {
+            return;
+        }
+        this.reconnecting = true;
+        const delay = this.config.retryDelayMs || 1000;
+        setTimeout(() => {
+            this.connect()
+                .catch((error) => {
+                console.error("Appointment event consumer reconnect failed", error);
+            })
+                .finally(() => {
+                this.reconnecting = false;
+            });
+        }, delay);
+    }
+    async closeConnectionSilently() {
+        try {
+            await this.disconnect();
+        }
+        catch {
+            // ignore cleanup failures during retry
         }
     }
     /**
@@ -371,7 +418,7 @@ class AppointmentEventConsumer {
                         appointmentId: data.appointmentId,
                         error: result.message,
                     });
-                    throw new Error(result.message || 'Failed to create reminders');
+                    throw new Error(result.message || "Failed to create reminders");
                 }
             }
             catch (reminderError) {
@@ -838,15 +885,15 @@ class AppointmentEventConsumer {
     generateAppointmentConfirmationContent(data) {
         return `
       Kính gửi ${data.patientName},
-      
+
       Lịch hẹn của bạn đã được xác nhận:
       - Bác sĩ: ${data.doctorName}
       - Khoa: ${data.departmentName}
       - Thời gian: ${this.formatDate(data.appointmentDate)} lúc ${data.appointmentTime}
       - Phí khám: ${data.consultationFee.toLocaleString("vi-VN")} VNĐ
-      
+
       Vui lòng đến trước 15 phút để hoàn tất thủ tục.
-      
+
       Trân trọng,
       Bệnh viện
     `.trim();
@@ -857,13 +904,13 @@ class AppointmentEventConsumer {
     generateDoctorAppointmentContent(data) {
         return `
       Bác sĩ ${data.doctorName},
-      
+
       Bạn có lịch hẹn mới:
       - Bệnh nhân: ${data.patientName}
       - Khoa: ${data.departmentName}
       - Thời gian: ${this.formatDate(data.appointmentDate)} lúc ${data.appointmentTime}
       - Mức độ ưu tiên: ${data.priority}
-      
+
       Vui lòng kiểm tra thông tin chi tiết trong hệ thống.
     `.trim();
     }
@@ -878,11 +925,11 @@ class AppointmentEventConsumer {
         }[reminderType] || "sắp tới";
         return `
       Nhắc nhở: Bạn có lịch hẹn ${timeText}
-      
+
       - Bác sĩ: ${data.doctorName}
       - Khoa: ${data.departmentName}
       - Thời gian: ${this.formatDate(data.appointmentDate)} lúc ${data.appointmentTime}
-      
+
       Vui lòng đến đúng giờ.
     `.trim();
     }

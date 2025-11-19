@@ -17,20 +17,22 @@ class SupabasePatientRepository {
     constructor(supabase, loggerInstance) {
         this.supabase = supabase;
         this.loggerInstance = loggerInstance;
+        this.schemaName = "patient_schema";
+        this.tableName = "patients";
     }
     /**
      * Find patient by ID
      */
     async findById(id) {
         try {
-            this.loggerInstance.debug('Finding patient by ID', { patientId: id });
-            const { data, error } = await this.supabase.getRawClient()
-                .from('patients')
-                .select('*')
-                .eq('id', id)
+            this.loggerInstance.debug("Finding patient by ID", { patientId: id });
+            const { column, value } = this.resolvePatientIdentifier(id);
+            const { data, error } = await this.fromTable()
+                .select("*")
+                .eq(column, value)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     // No rows returned
                     return null;
                 }
@@ -42,9 +44,10 @@ class SupabasePatientRepository {
             return this.mapToPatient(data);
         }
         catch (error) {
-            this.loggerInstance.error('Failed to find patient by ID', {
+            this.loggerInstance.error("Failed to find patient by ID", {
                 patientId: id,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
+                rawError: error,
             });
             throw error;
         }
@@ -54,14 +57,13 @@ class SupabasePatientRepository {
      */
     async findByUserId(userId) {
         try {
-            this.loggerInstance.debug('Finding patient by user ID', { userId });
-            const { data, error } = await this.supabase.getRawClient()
-                .from('patients')
-                .select('*')
-                .eq('user_id', userId)
+            this.loggerInstance.debug("Finding patient by user ID", { userId });
+            const { data, error } = await this.fromTable()
+                .select("*")
+                .eq("user_id", userId)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     // No rows returned
                     return null;
                 }
@@ -73,9 +75,9 @@ class SupabasePatientRepository {
             return this.mapToPatient(data);
         }
         catch (error) {
-            this.loggerInstance.error('Failed to find patient by user ID', {
+            this.loggerInstance.error("Failed to find patient by user ID", {
                 userId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -85,14 +87,15 @@ class SupabasePatientRepository {
      */
     async findByNationalId(nationalId) {
         try {
-            this.loggerInstance.debug('Finding patient by national ID', { nationalId });
-            const { data, error } = await this.supabase.getRawClient()
-                .from('patients')
-                .select('*')
-                .eq('national_id', nationalId)
+            this.loggerInstance.debug("Finding patient by national ID", {
+                nationalId,
+            });
+            const { data, error } = await this.fromTable()
+                .select("*")
+                .eq("national_id", nationalId)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     // No rows returned
                     return null;
                 }
@@ -104,9 +107,9 @@ class SupabasePatientRepository {
             return this.mapToPatient(data);
         }
         catch (error) {
-            this.loggerInstance.error('Failed to find patient by national ID', {
+            this.loggerInstance.error("Failed to find patient by national ID", {
                 nationalId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -116,14 +119,16 @@ class SupabasePatientRepository {
      */
     async exists(id) {
         try {
-            this.loggerInstance.debug('Checking if patient exists', { patientId: id });
-            const { data, error } = await this.supabase.getRawClient()
-                .from('patients')
-                .select('id')
-                .eq('id', id)
+            this.loggerInstance.debug("Checking if patient exists", {
+                patientId: id,
+            });
+            const { column, value } = this.resolvePatientIdentifier(id);
+            const { data, error } = await this.fromTable()
+                .select("id")
+                .eq(column, value)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     return false;
                 }
                 throw error;
@@ -131,9 +136,9 @@ class SupabasePatientRepository {
             return data !== null;
         }
         catch (error) {
-            this.loggerInstance.error('Failed to check patient existence', {
+            this.loggerInstance.error("Failed to check patient existence", {
                 patientId: id,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -143,14 +148,16 @@ class SupabasePatientRepository {
      */
     async getInsuranceInfo(patientId) {
         try {
-            this.loggerInstance.debug('Getting patient insurance info', { patientId });
-            const { data, error } = await this.supabase.getRawClient()
-                .from('patients')
-                .select('insurance_info')
-                .eq('id', patientId)
+            this.loggerInstance.debug("Getting patient insurance info", {
+                patientId,
+            });
+            const { column, value } = this.resolvePatientIdentifier(patientId);
+            const { data, error } = await this.fromTable()
+                .select("insurance_info")
+                .eq(column, value)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     return null;
                 }
                 throw error;
@@ -158,9 +165,9 @@ class SupabasePatientRepository {
             return data?.insurance_info || null;
         }
         catch (error) {
-            this.loggerInstance.error('Failed to get patient insurance info', {
+            this.loggerInstance.error("Failed to get patient insurance info", {
                 patientId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -170,23 +177,25 @@ class SupabasePatientRepository {
      */
     async updateInsuranceInfo(patientId, insuranceInfo) {
         try {
-            this.loggerInstance.debug('Updating patient insurance info', { patientId });
-            const { error } = await this.supabase.getRawClient()
-                .from('patients')
+            this.loggerInstance.debug("Updating patient insurance info", {
+                patientId,
+            });
+            const { column, value } = this.resolvePatientIdentifier(patientId);
+            const { error } = await this.fromTable()
                 .update({
                 insurance_info: insuranceInfo,
                 updated_at: new Date().toISOString(),
             })
-                .eq('id', patientId);
+                .eq(column, value);
             if (error) {
                 throw error;
             }
-            this.loggerInstance.info('Patient insurance info updated', { patientId });
+            this.loggerInstance.info("Patient insurance info updated", { patientId });
         }
         catch (error) {
-            this.loggerInstance.error('Failed to update patient insurance info', {
+            this.loggerInstance.error("Failed to update patient insurance info", {
                 patientId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -210,6 +219,29 @@ class SupabasePatientRepository {
             updatedAt: new Date(data.updated_at),
             isActive: data.is_active,
         };
+    }
+    /**
+     * Determine whether provided identifier is UUID or patient_code (PAT-YYYYMM-XXX)
+     */
+    resolvePatientIdentifier(id) {
+        if (!id) {
+            return { column: "id", value: id };
+        }
+        if (this.isUUID(id)) {
+            return { column: "id", value: id };
+        }
+        // Fallback to patient_id (human readable code)
+        return { column: "patient_id", value: id };
+    }
+    isUUID(value) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(value);
+    }
+    fromTable() {
+        return this.supabase
+            .getRawClient()
+            .schema(this.schemaName)
+            .from(this.tableName);
     }
 }
 exports.SupabasePatientRepository = SupabasePatientRepository;

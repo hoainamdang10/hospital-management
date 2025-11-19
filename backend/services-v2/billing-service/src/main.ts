@@ -22,6 +22,7 @@ import { RabbitMQEventBus } from "@shared/infrastructure/event-bus/EventBus";
 import { IEventBus } from "@shared/application/services/event-bus.interface";
 import { SupabaseInvoiceRepository } from "./infrastructure/repositories/SupabaseInvoiceRepository";
 import { SupabasePatientRepository } from "./infrastructure/repositories/SupabasePatientRepository";
+import { SupabaseStaffRepository } from "./infrastructure/repositories/SupabaseStaffRepository";
 import { Patient } from "./domain/entities/Patient";
 
 // Application
@@ -35,10 +36,10 @@ import { SearchInvoicesUseCase } from "./application/use-cases/SearchInvoicesUse
 import { GetOverdueInvoicesUseCase } from "./application/use-cases/GetOverdueInvoicesUseCase";
 import { GetPatientBillingSummaryUseCase } from "./application/use-cases/GetPatientBillingSummaryUseCase";
 import { GetRevenueReportUseCase } from "./application/use-cases/GetRevenueReportUseCase";
-import { CreatePayOSPaymentLinkUseCase } from "./application/use-cases/CreatePayOSPaymentLinkUseCase";
+import { CreateVnpayPaymentLinkUseCase } from "./application/use-cases/CreateVnpayPaymentLinkUseCase";
 import { HandlePayOSWebhookUseCase } from "./application/use-cases/HandlePayOSWebhookUseCase";
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
-import { PayOSIntegrationService } from "./infrastructure/services/PayOSIntegrationService";
+import { VnpayIntegrationService } from "./infrastructure/services/VnpayIntegrationService";
 import { BillingService } from "./application/services/BillingService";
 
 // Event Consumers
@@ -68,9 +69,22 @@ const config = {
   ).split(","),
   identityServiceUrl:
     process.env.IDENTITY_SERVICE_URL || "http://localhost:3021",
-  payosClientId: process.env.PAYOS_CLIENT_ID || "",
-  payosApiKey: process.env.PAYOS_API_KEY || "",
-  payosChecksumKey: process.env.PAYOS_CHECKSUM_KEY || "",
+  vnpayTmnCode: process.env.VNPAY_TMN_CODE || process.env.PAYOS_CLIENT_ID || "",
+  vnpayHashSecret:
+    process.env.VNPAY_HASH_SECRET || process.env.PAYOS_API_KEY || "",
+  vnpayChecksumKey:
+    process.env.VNPAY_CHECKSUM_KEY || process.env.PAYOS_CHECKSUM_KEY || "",
+  vnpayBaseUrl: process.env.VNPAY_BASE_URL || process.env.PAYOS_BASE_URL,
+  vnpayReturnUrl: process.env.VNPAY_RETURN_URL || process.env.PAYOS_RETURN_URL,
+  vnpayCancelUrl: process.env.VNPAY_CANCEL_URL || process.env.PAYOS_CANCEL_URL,
+  vnpayWebhookUrl:
+    process.env.VNPAY_WEBHOOK_URL || process.env.PAYOS_WEBHOOK_URL,
+  vnpayTimeZone:
+    process.env.VNPAY_TIMEZONE ||
+    process.env.PAYOS_TIMEZONE ||
+    "Asia/Ho_Chi_Minh",
+  frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
+  databaseSchema: process.env.DATABASE_SCHEMA || "billing_schema",
   // Feature Flags
   enableClinicalEventConsumer: process.env.ENABLE_CLINICAL_CONSUMER === "true", // Phase 1: Disabled by default
 };
@@ -82,8 +96,9 @@ class BillingServiceApp {
   private eventBus!: IEventBus;
   private invoiceRepository!: SupabaseInvoiceRepository;
   private patientRepository!: SupabasePatientRepository;
+  private staffRepository!: SupabaseStaffRepository;
   private optimizedSupabase!: OptimizedSupabaseClient;
-  private payosService!: PayOSIntegrationService;
+  private paymentGateway!: VnpayIntegrationService;
   private billingService!: BillingService;
 
   // Event Consumers
@@ -100,7 +115,7 @@ class BillingServiceApp {
   private getOverdueInvoicesUseCase!: GetOverdueInvoicesUseCase;
   private getPatientBillingSummaryUseCase!: GetPatientBillingSummaryUseCase;
   private getRevenueReportUseCase!: GetRevenueReportUseCase;
-  private createPayOSPaymentLinkUseCase!: CreatePayOSPaymentLinkUseCase;
+  private createPaymentLinkUseCase!: CreateVnpayPaymentLinkUseCase;
   private handlePayOSWebhookUseCase!: HandlePayOSWebhookUseCase;
   // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase - Out of scope for Phase 1
 
@@ -137,25 +152,35 @@ class BillingServiceApp {
       supabaseUrl: config.supabaseUrl,
       supabaseServiceKey: config.supabaseKey,
       serviceName: config.serviceName,
-      schemaName: "billing_schema",
+      schemaName: config.databaseSchema,
       enableOptimizations: config.nodeEnv !== "test",
     });
 
     // Initialize Repository
-    this.invoiceRepository = new SupabaseInvoiceRepository(this.optimizedSupabase);
+    this.invoiceRepository = new SupabaseInvoiceRepository(
+      this.optimizedSupabase,
+    );
     this.patientRepository = new SupabasePatientRepository(
       this.optimizedSupabase,
-      loggerInstance
+      loggerInstance,
+    );
+    this.staffRepository = new SupabaseStaffRepository(
+      this.optimizedSupabase,
+      loggerInstance,
     );
 
-    // Initialize PayOS Service
-    this.payosService = new PayOSIntegrationService(
+    // Initialize VNPAY Service
+    this.paymentGateway = new VnpayIntegrationService(
       {
-        clientId: config.payosClientId,
-        apiKey: config.payosApiKey,
-        checksumKey: config.payosChecksumKey,
+        tmnCode: config.vnpayTmnCode,
+        hashSecret: config.vnpayHashSecret,
+        baseUrl:
+          config.vnpayBaseUrl ||
+          "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+        returnUrl: config.vnpayReturnUrl,
+        timeZone: config.vnpayTimeZone,
       },
-      loggerInstance
+      loggerInstance,
     );
 
     // Initialize Use Cases
@@ -205,16 +230,18 @@ class BillingServiceApp {
       loggerInstance,
     );
 
-    this.createPayOSPaymentLinkUseCase = new CreatePayOSPaymentLinkUseCase(
+    this.createPaymentLinkUseCase = new CreateVnpayPaymentLinkUseCase(
       this.invoiceRepository,
-      this.payosService,
+      this.paymentGateway,
       loggerInstance,
+      config.vnpayReturnUrl || `${config.frontendUrl}/patient/billing/success`,
+      config.vnpayCancelUrl || `${config.frontendUrl}/patient/billing/cancel`,
     );
 
     this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase(
       this.invoiceRepository,
       this.eventBus,
-      this.payosService,
+      this.paymentGateway,
       loggerInstance,
     );
 
@@ -233,12 +260,12 @@ class BillingServiceApp {
     this.appointmentEventConsumer = new AppointmentEventConsumer(
       {
         rabbitmqUrl: config.rabbitmqUrl,
-        queueName: 'billing.appointment.events',
-        exchangeName: 'hospital.events',
+        queueName: "billing.appointment.events",
+        exchangeName: "hospital.events",
         routingKeys: [
-          'appointment.scheduled',      // Phase 1 (Prepaid): Create invoice when appointment is scheduled
-          'appointment.cancelled_late', // Cancel invoice if not paid yet
-          'appointment.no_show',        // Future: Apply no-show fee
+          "appointment.scheduled", // Phase 1 (Prepaid): Create invoice when appointment is scheduled
+          "appointment.cancelled_late", // Cancel invoice if not paid yet
+          "appointment.no_show", // Future: Apply no-show fee
         ],
         prefetchCount: 10,
         retryAttempts: 3,
@@ -248,7 +275,8 @@ class BillingServiceApp {
       this.billingService,
       this.invoiceRepository,
       this.patientRepository,
-      this.createPayOSPaymentLinkUseCase, // Inject PayOS use case for automatic payment link creation
+      this.staffRepository,
+      this.createPaymentLinkUseCase, // Inject payment link use case for automatic payment link creation
       this.eventBus, // Inject EventBus for publishing PaymentLinkCreatedEvent
     );
 
@@ -259,13 +287,13 @@ class BillingServiceApp {
       this.clinicalEventConsumer = new ClinicalEventConsumer(
         {
           rabbitmqUrl: config.rabbitmqUrl,
-          queueName: 'billing.clinical.events',
-          exchangeName: 'hospital.events',
+          queueName: "billing.clinical.events",
+          exchangeName: "hospital.events",
           routingKeys: [
-            'clinical.prescription.created',
-            'clinical.lab_result.created',
-            'clinical.treatment_plan.created',
-            'clinical.medical_record.created',
+            "clinical.prescription.created",
+            "clinical.lab_result.created",
+            "clinical.treatment_plan.created",
+            "clinical.medical_record.created",
           ],
           prefetchCount: 10,
           retryAttempts: 3,
@@ -276,9 +304,13 @@ class BillingServiceApp {
         this.invoiceRepository,
         this.patientRepository,
       );
-      loggerInstance.info('Clinical event consumer initialized (feature flag enabled)');
+      loggerInstance.info(
+        "Clinical event consumer initialized (feature flag enabled)",
+      );
     } else {
-      loggerInstance.info('Clinical event consumer disabled (Phase 1 scope - prepaid only)');
+      loggerInstance.info(
+        "Clinical event consumer disabled (Phase 1 scope - prepaid only)",
+      );
     }
 
     // Initialize Controllers - Phase 1 (Prepaid Model)
@@ -291,8 +323,8 @@ class BillingServiceApp {
       this.getOverdueInvoicesUseCase,
       this.getPatientBillingSummaryUseCase,
       this.getRevenueReportUseCase,
-      this.createPayOSPaymentLinkUseCase,
-      this.handlePayOSWebhookUseCase
+      this.createPaymentLinkUseCase,
+      this.handlePayOSWebhookUseCase,
       // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
     );
 
@@ -362,12 +394,41 @@ class BillingServiceApp {
     const healthRoutes = createHealthRoutes();
     this.app.use("/", healthRoutes);
 
+    // Public routes (no auth required)
+    const publicInvoiceRoutes = express.Router();
+    // VNPAY sends IPN via GET, PayOS via POST - support both
+    publicInvoiceRoutes.get(
+      "/payos/webhook",
+      this.invoiceController.handlePayOSWebhook,
+    );
+    publicInvoiceRoutes.post(
+      "/payos/webhook",
+      this.invoiceController.handlePayOSWebhook,
+    );
+    // Test endpoint to log raw VNPAY webhook data (no auth required)
+    publicInvoiceRoutes.get(
+      "/payos/webhook-test",
+      this.invoiceController.logRawWebhookData,
+    );
+    publicInvoiceRoutes.post(
+      "/payos/webhook-test",
+      this.invoiceController.logRawWebhookData,
+    );
+    this.app.use("/api/v1/invoices", publicInvoiceRoutes);
+    // Alias for API Gateway routing (/api/v1/billing/invoices/*)
+    this.app.use("/api/v1/billing/invoices", publicInvoiceRoutes);
+
     // API routes with authentication
     const invoiceRoutes = createInvoiceRoutes(this.invoiceController);
     this.app.use(
       "/api/v1/invoices",
       this.authMiddleware.authenticate,
-      invoiceRoutes
+      invoiceRoutes,
+    );
+    this.app.use(
+      "/api/v1/billing/invoices",
+      this.authMiddleware.authenticate,
+      invoiceRoutes,
     );
 
     // 404 handler
@@ -381,7 +442,9 @@ class BillingServiceApp {
 
   async start(): Promise<void> {
     try {
-      loggerInstance.info(`Starting ${config.serviceName} v${config.version}...`);
+      loggerInstance.info(
+        `Starting ${config.serviceName} v${config.version}...`,
+      );
 
       await this.initializeDependencies();
       this.setupMiddleware();
@@ -389,14 +452,14 @@ class BillingServiceApp {
 
       // Connect Event Consumers
       await this.appointmentEventConsumer.connect();
-      
+
       // Only connect clinical consumer if feature flag is enabled
       if (config.enableClinicalEventConsumer && this.clinicalEventConsumer) {
         await this.clinicalEventConsumer.connect();
-        loggerInstance.info('Clinical event consumer connected');
+        loggerInstance.info("Clinical event consumer connected");
       }
-      
-      loggerInstance.info('Event consumers connected');
+
+      loggerInstance.info("Event consumers connected");
 
       this.app.listen(config.port, () => {
         loggerInstance.info(`${config.serviceName} is running`, {

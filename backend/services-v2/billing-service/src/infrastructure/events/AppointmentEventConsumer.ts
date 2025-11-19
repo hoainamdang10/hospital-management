@@ -1,7 +1,7 @@
 /**
  * AppointmentEventConsumer - Consumes appointment events from Appointments Service
  * Phase 1 (Prepaid Model): Handles invoice generation when appointment is scheduled
- * 
+ *
  * Flow:
  * 1. appointment.scheduled → Create invoice (PENDING) + PayOS payment link
  * 2. appointment.cancelled_late → Cancel invoice (if not paid yet)
@@ -12,14 +12,15 @@
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { ConsumeMessage } from 'amqplib';
-import { logger } from '@infrastructure/logging/logger';
-import { BillingService } from '@application/services/BillingService';
-import { IInvoiceRepository } from '@domain/repositories/IInvoiceRepository';
-import { IPatientRepository } from '@domain/entities/Patient';
-import { CreatePayOSPaymentLinkUseCase } from '@application/use-cases/CreatePayOSPaymentLinkUseCase';
-import { PaymentLinkCreatedEvent } from '@domain/events/PaymentLinkCreatedEvent';
-import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { ConsumeMessage } from "amqplib";
+import { logger } from "@infrastructure/logging/logger";
+import { BillingService } from "@application/services/BillingService";
+import { IInvoiceRepository } from "@domain/repositories/IInvoiceRepository";
+import { IPatientRepository } from "@domain/entities/Patient";
+import { CreatePayOSPaymentLinkUseCase } from "@application/use-cases/CreatePayOSPaymentLinkUseCase";
+import { PaymentLinkCreatedEvent } from "@domain/events/PaymentLinkCreatedEvent";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
+import { SupabaseStaffRepository } from "@infrastructure/repositories/SupabaseStaffRepository";
 
 export interface AppointmentEventConsumerConfig {
   rabbitmqUrl: string;
@@ -38,8 +39,8 @@ export interface AppointmentScheduledEventData {
   departmentId: string;
   scheduledAt: Date;
   duration: number;
-  status: 'pending_payment';
-  serviceType: 'consultation' | 'procedure' | 'follow_up';
+  status: "pending_payment";
+  serviceType: "consultation" | "procedure" | "follow_up";
   notes?: string;
 }
 
@@ -51,7 +52,7 @@ export interface AppointmentCancelledLateEventData {
   scheduledAt: Date;
   cancelledAt: Date;
   reason: string;
-  cancellationType: 'late' | 'no_show' | 'same_day';
+  cancellationType: "late" | "no_show" | "same_day";
   lateFeeApplied: boolean;
   lateFeeAmount: number;
 }
@@ -81,6 +82,7 @@ export class AppointmentEventConsumer {
     private billingService: BillingService,
     private invoiceRepository: IInvoiceRepository,
     private patientRepository: IPatientRepository,
+    private staffRepository: SupabaseStaffRepository,
     private createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase,
     private eventBus: IEventBus,
   ) {}
@@ -90,20 +92,23 @@ export class AppointmentEventConsumer {
    */
   async connect(): Promise<void> {
     try {
-      this.loggerInstance.info('Connecting to RabbitMQ for Appointment events', {
-        queueName: this.config.queueName,
-      });
+      this.loggerInstance.info(
+        "Connecting to RabbitMQ for Appointment events",
+        {
+          queueName: this.config.queueName,
+        },
+      );
 
-      const amqp = require('amqplib');
+      const amqp = require("amqplib");
       this.connection = await amqp.connect(this.config.rabbitmqUrl);
       this.channel = await this.connection.createChannel();
 
       if (!this.channel) {
-        throw new Error('Failed to create RabbitMQ channel');
+        throw new Error("Failed to create RabbitMQ channel");
       }
 
       // Assert exchange
-      await this.channel.assertExchange(this.config.exchangeName, 'topic', {
+      await this.channel.assertExchange(this.config.exchangeName, "topic", {
         durable: true,
       });
 
@@ -119,7 +124,7 @@ export class AppointmentEventConsumer {
           this.config.exchangeName,
           routingKey,
         );
-        this.loggerInstance.info('Queue bound to routing key', {
+        this.loggerInstance.info("Queue bound to routing key", {
           queueName: this.config.queueName,
           routingKey,
         });
@@ -133,24 +138,25 @@ export class AppointmentEventConsumer {
       );
 
       this.isConnected = true;
-      this.loggerInstance.info('Appointment event consumer connected successfully');
+      this.loggerInstance.info(
+        "Appointment event consumer connected successfully",
+      );
 
       // Handle connection errors
-      this.connection.on('error', (error: Error) => {
-        this.loggerInstance.error('RabbitMQ connection error', {
+      this.connection.on("error", (error: Error) => {
+        this.loggerInstance.error("RabbitMQ connection error", {
           error: error.message,
         });
         this.isConnected = false;
       });
 
-      this.connection.on('close', () => {
-        this.loggerInstance.warn('RabbitMQ connection closed');
+      this.connection.on("close", () => {
+        this.loggerInstance.warn("RabbitMQ connection closed");
         this.isConnected = false;
       });
-
     } catch (error) {
-      this.loggerInstance.error('Failed to connect to RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.loggerInstance.error("Failed to connect to RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -165,74 +171,49 @@ export class AppointmentEventConsumer {
     }
 
     try {
-      const content = msg.content.toString();
-      const event = JSON.parse(content);
+      const { rawEvent, payload } = this.parseEventMessage(
+        msg.content.toString(),
+      );
       const routingKey = msg.fields.routingKey;
 
-      this.loggerInstance.debug('Received appointment event', {
+      this.loggerInstance.debug("Received appointment event", {
         routingKey,
-        eventId: event.eventId,
+        eventId: rawEvent?.eventId,
       });
 
-      // FIX: After deserialization, event data is spread into root level of event object
-      // Access properties directly instead of using event.payload
-      const eventAny = event as any;
+      // Normalize payload (appointments service publishes payload inside eventData)
+      const normalizedPayload = payload || {};
 
       // Route to appropriate handler
       switch (routingKey) {
-        case 'appointment.scheduled':
-          await this.handleAppointmentScheduled({
-            appointmentId: eventAny.appointmentId,
-            patientId: eventAny.patientId,
-            staffId: eventAny.staffId,
-            departmentId: eventAny.departmentId,
-            scheduledAt: eventAny.scheduledAt,
-            duration: eventAny.duration,
-            status: eventAny.status,
-            serviceType: eventAny.serviceType,
-            notes: eventAny.notes
-          } as AppointmentScheduledEventData);
+        case "appointment.scheduled":
+          await this.handleAppointmentScheduled(
+            this.buildAppointmentScheduledPayload(normalizedPayload, rawEvent),
+          );
           break;
 
-        case 'appointment.cancelled_late':
-          await this.handleAppointmentCancelledLate({
-            appointmentId: eventAny.appointmentId,
-            patientId: eventAny.patientId,
-            staffId: eventAny.staffId,
-            departmentId: eventAny.departmentId,
-            scheduledAt: eventAny.scheduledAt,
-            cancelledAt: eventAny.cancelledAt,
-            reason: eventAny.reason,
-            cancellationType: eventAny.cancellationType,
-            lateFeeApplied: eventAny.lateFeeApplied,
-            lateFeeAmount: eventAny.lateFeeAmount
-          } as AppointmentCancelledLateEventData);
+        case "appointment.cancelled_late":
+          await this.handleAppointmentCancelledLate(
+            this.buildAppointmentCancelledPayload(normalizedPayload, rawEvent),
+          );
           break;
 
-        case 'appointment.no_show':
-          await this.handleAppointmentNoShow({
-            appointmentId: eventAny.appointmentId,
-            patientId: eventAny.patientId,
-            staffId: eventAny.staffId,
-            departmentId: eventAny.departmentId,
-            scheduledAt: eventAny.scheduledAt,
-            noShowFeeApplied: eventAny.noShowFeeApplied,
-            noShowFeeAmount: eventAny.noShowFeeAmount,
-            noShowCount: eventAny.noShowCount
-          } as AppointmentNoShowEventData);
+        case "appointment.no_show":
+          await this.handleAppointmentNoShow(
+            this.buildAppointmentNoShowPayload(normalizedPayload, rawEvent),
+          );
           break;
 
         default:
-          this.loggerInstance.warn('Unhandled routing key', { routingKey });
+          this.loggerInstance.warn("Unhandled routing key", { routingKey });
           break;
       }
 
       // Acknowledge message
       this.channel.ack(msg);
-
     } catch (error) {
-      this.loggerInstance.error('Error processing appointment event', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      this.loggerInstance.error("Error processing appointment event", {
+        error: error instanceof Error ? error.message : "Unknown error",
         routingKey: msg.fields.routingKey,
       });
 
@@ -244,34 +225,239 @@ export class AppointmentEventConsumer {
   }
 
   /**
+   * Parse raw RabbitMQ message and extract payload/event metadata
+   */
+  private parseEventMessage(content: string): { rawEvent: any; payload: any } {
+    try {
+      const rawEvent = JSON.parse(content);
+      const payload =
+        rawEvent?.eventData || rawEvent?.payload || rawEvent?.data || rawEvent;
+
+      return { rawEvent, payload };
+    } catch (error) {
+      this.loggerInstance.error("Failed to parse appointment event message", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return { rawEvent: null, payload: {} };
+    }
+  }
+
+  private buildAppointmentScheduledPayload(
+    payload: any,
+    rawEvent: any,
+  ): AppointmentScheduledEventData {
+    const common = this.extractCommonAppointmentFields(payload, rawEvent);
+
+    return {
+      appointmentId: common.appointmentId,
+      patientId: common.patientId,
+      staffId: common.staffId,
+      departmentId: common.departmentId,
+      scheduledAt: common.scheduledAt,
+      duration:
+        payload?.duration ??
+        payload?.durationMinutes ??
+        payload?.expectedDuration ??
+        30,
+      status: "pending_payment",
+      serviceType: this.normalizeServiceType(
+        payload?.serviceType || payload?.type,
+      ),
+      notes: payload?.notes || payload?.reason || undefined,
+    };
+  }
+
+  private buildAppointmentCancelledPayload(
+    payload: any,
+    rawEvent: any,
+  ): AppointmentCancelledLateEventData {
+    const common = this.extractCommonAppointmentFields(payload, rawEvent);
+
+    return {
+      appointmentId: common.appointmentId,
+      patientId: common.patientId,
+      staffId: common.staffId,
+      departmentId: common.departmentId,
+      scheduledAt: common.scheduledAt,
+      cancelledAt: this.safeDate(payload?.cancelledAt) ?? new Date(),
+      reason:
+        payload?.reason || payload?.cancellationReason || "Unknown reason",
+      cancellationType: (payload?.cancellationType || "late") as
+        | "late"
+        | "no_show"
+        | "same_day",
+      lateFeeApplied: this.toBoolean(payload?.lateFeeApplied),
+      lateFeeAmount: this.toNumber(payload?.lateFeeAmount),
+    };
+  }
+
+  private buildAppointmentNoShowPayload(
+    payload: any,
+    rawEvent: any,
+  ): AppointmentNoShowEventData {
+    const common = this.extractCommonAppointmentFields(payload, rawEvent);
+
+    return {
+      appointmentId: common.appointmentId,
+      patientId: common.patientId,
+      staffId: common.staffId,
+      departmentId: common.departmentId,
+      scheduledAt: common.scheduledAt,
+      noShowFeeApplied: this.toBoolean(payload?.noShowFeeApplied),
+      noShowFeeAmount: this.toNumber(payload?.noShowFeeAmount),
+      noShowCount: this.toNumber(payload?.noShowCount),
+    };
+  }
+
+  private extractCommonAppointmentFields(payload: any, rawEvent: any) {
+    const appointmentId = payload?.appointmentId || rawEvent?.aggregateId;
+    const scheduledAt = this.resolveScheduledAt(payload);
+    const patientId =
+      payload?.patientId || payload?.patient_id || payload?.patient?.id || null;
+    const staffId =
+      payload?.staffId ||
+      payload?.doctorId ||
+      payload?.providerId ||
+      payload?.staff_id ||
+      null;
+
+    return {
+      appointmentId,
+      patientId,
+      staffId,
+      departmentId:
+        payload?.departmentId ||
+        payload?.department_id ||
+        payload?.department?.id ||
+        null,
+      scheduledAt,
+    };
+  }
+
+  private resolveScheduledAt(payload: any): Date {
+    if (payload?.scheduledAt) {
+      return new Date(payload.scheduledAt);
+    }
+
+    if (payload?.appointmentDate && payload?.appointmentTime) {
+      return new Date(`${payload.appointmentDate}T${payload.appointmentTime}`);
+    }
+
+    if (payload?.appointmentDate) {
+      return new Date(payload.appointmentDate);
+    }
+
+    return new Date();
+  }
+
+  private normalizeServiceType(
+    value?: string,
+  ): "consultation" | "procedure" | "follow_up" {
+    const normalized = (value || "consultation").toLowerCase();
+
+    if (normalized.includes("procedure")) {
+      return "procedure";
+    }
+
+    if (normalized.includes("follow")) {
+      return "follow_up";
+    }
+
+    return "consultation";
+  }
+
+  private safeDate(value?: string | Date): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      return undefined;
+    }
+
+    return date;
+  }
+
+  private toBoolean(value: any): boolean {
+    if (typeof value === "boolean") {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      return value === "true" || value === "1";
+    }
+
+    return Boolean(value);
+  }
+
+  private toNumber(value: any, fallback = 0): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  /**
+   * Normalize staff identifier to UUID stored in provider_schema
+   */
+  private async resolveStaffIdentifier(
+    staffId: string,
+  ): Promise<string | null> {
+    try {
+      const resolved = await this.staffRepository.resolveStaffId(staffId);
+      return resolved;
+    } catch (error) {
+      this.loggerInstance.error("Failed to resolve staff identifier", {
+        staffId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
+  /**
    * Handle appointment scheduled event (Prepaid Model)
    * Creates invoice with PENDING status and generates PayOS payment link
    */
-  private async handleAppointmentScheduled(data: AppointmentScheduledEventData): Promise<void> {
-    this.loggerInstance.info('Processing appointment scheduled for billing (Prepaid Model)', {
-      appointmentId: data.appointmentId,
-      patientId: data.patientId,
-      staffId: data.staffId,
-      serviceType: data.serviceType,
-    });
+  private async handleAppointmentScheduled(
+    data: AppointmentScheduledEventData,
+  ): Promise<void> {
+    const staffUuid = await this.resolveStaffIdentifier(data.staffId);
+    if (!staffUuid) {
+      this.loggerInstance.error("Unable to resolve staff ID for appointment", {
+        appointmentId: data.appointmentId,
+        staffId: data.staffId,
+      });
+      return;
+    }
 
     try {
       // Get patient billing information
       const patient = await this.patientRepository.findById(data.patientId);
       if (!patient) {
-        this.loggerInstance.error('Patient not found for billing', {
+        this.loggerInstance.error("Patient not found for billing", {
           patientId: data.patientId,
           appointmentId: data.appointmentId,
         });
         return;
       }
+      const patientUuid = patient.id;
+
+      this.loggerInstance.info(
+        "Processing appointment scheduled for billing (Prepaid Model)",
+        {
+          appointmentId: data.appointmentId,
+          patientId: patientUuid,
+          staffId: staffUuid,
+          serviceType: data.serviceType,
+        },
+      );
 
       // Generate invoice based on service type
       // Invoice status will be PENDING (waiting for payment)
       const invoice = await this.billingService.generateAppointmentInvoice({
         appointmentId: data.appointmentId,
-        patientId: data.patientId,
-        staffId: data.staffId,
+        patientId: patientUuid,
+        staffId: staffUuid,
         departmentId: data.departmentId,
         serviceType: data.serviceType,
         scheduledAt: data.scheduledAt,
@@ -279,24 +465,28 @@ export class AppointmentEventConsumer {
         insuranceInfo: patient.insuranceInfo,
       });
 
-      this.loggerInstance.info('Invoice created for scheduled appointment (Prepaid)', {
-        appointmentId: data.appointmentId,
-        invoiceId: invoice.id,
-        amount: invoice.totalAmount,
-        status: invoice.status,
-      });
+      this.loggerInstance.info(
+        "Invoice created for scheduled appointment (Prepaid)",
+        {
+          appointmentId: data.appointmentId,
+          invoiceId: invoice.id,
+          amount: invoice.totalAmount,
+          status: invoice.status,
+        },
+      );
 
       // Automatically create PayOS payment link for prepaid flow
       try {
-        const paymentLinkResult = await this.createPayOSPaymentLinkUseCase.execute({
-          invoiceId: invoice.id,
-          buyerName: patient.fullName,
-          buyerEmail: patient.email,
-          buyerPhone: patient.phone,
-        });
+        const paymentLinkResult =
+          await this.createPayOSPaymentLinkUseCase.execute({
+            invoiceId: invoice.id,
+            buyerName: patient.fullName,
+            buyerEmail: patient.email,
+            buyerPhone: patient.phone,
+          });
 
         if (paymentLinkResult.success) {
-          this.loggerInstance.info('PayOS payment link created automatically', {
+          this.loggerInstance.info("PayOS payment link created automatically", {
             appointmentId: data.appointmentId,
             invoiceId: invoice.id,
             checkoutUrl: paymentLinkResult.checkoutUrl,
@@ -315,36 +505,39 @@ export class AppointmentEventConsumer {
             invoice.totalAmount.currency,
             `Payment for appointment ${data.appointmentId}`,
             data.appointmentId, // correlationId
-            data.appointmentId  // causationId
+            data.appointmentId, // causationId
           );
 
           await this.eventBus.publish(paymentLinkEvent);
 
-          this.loggerInstance.info('PaymentLinkCreatedEvent published', {
+          this.loggerInstance.info("PaymentLinkCreatedEvent published", {
             appointmentId: data.appointmentId,
             invoiceId: invoice.id,
-            eventType: 'billing.payment_link.created',
+            eventType: "billing.payment_link.created",
           });
         } else {
-          this.loggerInstance.error('Failed to create PayOS payment link', {
+          this.loggerInstance.error("Failed to create PayOS payment link", {
             appointmentId: data.appointmentId,
             invoiceId: invoice.id,
           });
         }
       } catch (payosError) {
         // Log error but don't fail the entire flow - invoice is already created
-        this.loggerInstance.error('Exception creating PayOS payment link', {
+        this.loggerInstance.error("Exception creating PayOS payment link", {
           appointmentId: data.appointmentId,
           invoiceId: invoice.id,
-          error: payosError instanceof Error ? payosError.message : 'Unknown error',
+          error:
+            payosError instanceof Error ? payosError.message : "Unknown error",
         });
       }
-
     } catch (error) {
-      this.loggerInstance.error('Failed to generate invoice for scheduled appointment', {
-        appointmentId: data.appointmentId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      this.loggerInstance.error(
+        "Failed to generate invoice for scheduled appointment",
+        {
+          appointmentId: data.appointmentId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
       throw error;
     }
   }
@@ -352,8 +545,10 @@ export class AppointmentEventConsumer {
   /**
    * Handle appointment cancelled late event
    */
-  private async handleAppointmentCancelledLate(data: AppointmentCancelledLateEventData): Promise<void> {
-    this.loggerInstance.info('Processing late cancellation fee', {
+  private async handleAppointmentCancelledLate(
+    data: AppointmentCancelledLateEventData,
+  ): Promise<void> {
+    this.loggerInstance.info("Processing late cancellation fee", {
       appointmentId: data.appointmentId,
       patientId: data.patientId,
       lateFeeAmount: data.lateFeeAmount,
@@ -362,25 +557,25 @@ export class AppointmentEventConsumer {
     try {
       if (data.lateFeeApplied && data.lateFeeAmount > 0) {
         // Generate late cancellation fee invoice
-        const feeInvoice = await this.billingService.generateLateCancellationFee({
-          appointmentId: data.appointmentId,
-          patientId: data.patientId,
-          cancelledAt: data.cancelledAt,
-          reason: data.reason,
-          feeAmount: data.lateFeeAmount,
-        });
+        const feeInvoice =
+          await this.billingService.generateLateCancellationFee({
+            appointmentId: data.appointmentId,
+            patientId: data.patientId,
+            cancelledAt: data.cancelledAt,
+            reason: data.reason,
+            feeAmount: data.lateFeeAmount,
+          });
 
-        this.loggerInstance.info('Late cancellation fee invoice generated', {
+        this.loggerInstance.info("Late cancellation fee invoice generated", {
           appointmentId: data.appointmentId,
           invoiceId: feeInvoice.id,
           feeAmount: data.lateFeeAmount,
         });
       }
-
     } catch (error) {
-      this.loggerInstance.error('Failed to generate late cancellation fee', {
+      this.loggerInstance.error("Failed to generate late cancellation fee", {
         appointmentId: data.appointmentId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -389,8 +584,10 @@ export class AppointmentEventConsumer {
   /**
    * Handle appointment no-show event
    */
-  private async handleAppointmentNoShow(data: AppointmentNoShowEventData): Promise<void> {
-    this.loggerInstance.info('Processing no-show fee', {
+  private async handleAppointmentNoShow(
+    data: AppointmentNoShowEventData,
+  ): Promise<void> {
+    this.loggerInstance.info("Processing no-show fee", {
       appointmentId: data.appointmentId,
       patientId: data.patientId,
       noShowCount: data.noShowCount,
@@ -408,17 +605,16 @@ export class AppointmentEventConsumer {
           feeAmount: data.noShowFeeAmount,
         });
 
-        this.loggerInstance.info('No-show fee invoice generated', {
+        this.loggerInstance.info("No-show fee invoice generated", {
           appointmentId: data.appointmentId,
           invoiceId: feeInvoice.id,
           feeAmount: data.noShowFeeAmount,
         });
       }
-
     } catch (error) {
-      this.loggerInstance.error('Failed to generate no-show fee', {
+      this.loggerInstance.error("Failed to generate no-show fee", {
         appointmentId: data.appointmentId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -440,12 +636,16 @@ export class AppointmentEventConsumer {
       }
 
       this.isConnected = false;
-      this.loggerInstance.info('Appointment event consumer disconnected successfully');
-
+      this.loggerInstance.info(
+        "Appointment event consumer disconnected successfully",
+      );
     } catch (error) {
-      this.loggerInstance.error('Error disconnecting appointment event consumer', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      this.loggerInstance.error(
+        "Error disconnecting appointment event consumer",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
     }
   }
 

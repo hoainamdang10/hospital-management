@@ -1,15 +1,15 @@
-import { Request, Response } from 'express';
-import { CreateInvoiceUseCase } from '../../application/use-cases/CreateInvoiceUseCase';
-import { GetInvoiceUseCase } from '../../application/use-cases/GetInvoiceUseCase';
-import { ProcessPaymentUseCase } from '../../application/use-cases/ProcessPaymentUseCase';
-import { GetPatientInvoicesUseCase } from '../../application/use-cases/GetPatientInvoicesUseCase';
-import { SearchInvoicesUseCase } from '../../application/use-cases/SearchInvoicesUseCase';
-import { GetOverdueInvoicesUseCase } from '../../application/use-cases/GetOverdueInvoicesUseCase';
-import { GetPatientBillingSummaryUseCase } from '../../application/use-cases/GetPatientBillingSummaryUseCase';
-import { GetRevenueReportUseCase } from '../../application/use-cases/GetRevenueReportUseCase';
-import { CreatePayOSPaymentLinkUseCase } from '../../application/use-cases/CreatePayOSPaymentLinkUseCase';
-import { HandlePayOSWebhookUseCase } from '../../application/use-cases/HandlePayOSWebhookUseCase';
-import { AuthenticatedRequest } from '../middleware/AuthenticationMiddleware';
+import { Request, Response } from "express";
+import { CreateInvoiceUseCase } from "../../application/use-cases/CreateInvoiceUseCase";
+import { GetInvoiceUseCase } from "../../application/use-cases/GetInvoiceUseCase";
+import { ProcessPaymentUseCase } from "../../application/use-cases/ProcessPaymentUseCase";
+import { GetPatientInvoicesUseCase } from "../../application/use-cases/GetPatientInvoicesUseCase";
+import { SearchInvoicesUseCase } from "../../application/use-cases/SearchInvoicesUseCase";
+import { GetOverdueInvoicesUseCase } from "../../application/use-cases/GetOverdueInvoicesUseCase";
+import { GetPatientBillingSummaryUseCase } from "../../application/use-cases/GetPatientBillingSummaryUseCase";
+import { GetRevenueReportUseCase } from "../../application/use-cases/GetRevenueReportUseCase";
+import { CreatePayOSPaymentLinkUseCase } from "../../application/use-cases/CreatePayOSPaymentLinkUseCase";
+import { HandlePayOSWebhookUseCase } from "../../application/use-cases/HandlePayOSWebhookUseCase";
+import { AuthenticatedRequest } from "../middleware/AuthenticationMiddleware";
 export declare class InvoiceController {
     private readonly createInvoiceUseCase;
     private readonly getInvoiceUseCase;
@@ -32,5 +32,6 @@ export declare class InvoiceController {
     getRevenueReport: (req: Request, res: Response) => Promise<void>;
     createPayOSPaymentLink: (req: AuthenticatedRequest, res: Response) => Promise<void>;
     handlePayOSWebhook: (req: Request, res: Response) => Promise<void>;
+    private normalizeWebhookPayload;
 }
 //# sourceMappingURL=InvoiceController.d.ts.map

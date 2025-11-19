@@ -77,6 +77,11 @@ export interface AppConfig {
     timeoutMs: number;
     enableDetailedCheck: boolean;
   };
+
+  // Feature Flags
+  features: {
+    enableScheduler: boolean;
+  };
 }
 
 /**
@@ -186,6 +191,16 @@ export function loadConfig(): AppConfig {
       timeoutMs: parseInt(process.env.HEALTH_CHECK_TIMEOUT_MS || "5000", 10),
       enableDetailedCheck: process.env.ENABLE_DETAILED_HEALTH_CHECK !== "false",
     },
+
+    // Feature Flags
+    features: {
+      enableScheduler:
+        process.env.ENABLE_SCHEDULER === undefined
+          ? false
+          : !["false", "0", "off", "no"].includes(
+              process.env.ENABLE_SCHEDULER.trim().toLowerCase(),
+            ),
+    },
   };
 
   // Validate config
@@ -222,10 +237,12 @@ function validateConfig(config: AppConfig): void {
     );
   }
 
-  if (!isValidUrl(config.services.schedulerServiceUrl)) {
-    throw new Error(
-      `Invalid Scheduler Service URL: ${config.services.schedulerServiceUrl}`,
-    );
+  if (config.features.enableScheduler) {
+    if (!isValidUrl(config.services.schedulerServiceUrl)) {
+      throw new Error(
+        `Invalid Scheduler Service URL: ${config.services.schedulerServiceUrl}`,
+      );
+    }
   }
 
   // Validate RabbitMQ URL
@@ -284,16 +301,22 @@ function validateConfig(config: AppConfig): void {
   }
 
   // Validate scheduler API key (must not be empty)
-  if (
-    !config.services.schedulerApiKey ||
-    config.services.schedulerApiKey.trim().length === 0
-  ) {
-    throw new Error(
-      "Scheduler API key is required but empty. Please set SCHEDULER_API_KEY environment variable.",
+  if (config.features.enableScheduler) {
+    if (
+      !config.services.schedulerApiKey ||
+      config.services.schedulerApiKey.trim().length === 0
+    ) {
+      throw new Error(
+        "Scheduler API key is required but empty. Please set SCHEDULER_API_KEY environment variable.",
+      );
+    }
+
+    console.log("[Config] ✅ Scheduler API key validated");
+  } else {
+    console.log(
+      "[Config] ⚠️ Scheduler integration disabled (ENABLE_SCHEDULER=false)",
     );
   }
-
-  console.log("[Config] ✅ Scheduler API key validated");
 }
 
 /**
@@ -325,6 +348,7 @@ External Services:
   - Patient Service: ${config.services.patientServiceUrl}
   - Provider Service: ${config.services.providerServiceUrl}
   - Scheduler Service: ${config.services.schedulerServiceUrl}
+  - Scheduler Enabled: ${config.features.enableScheduler ? "Yes" : "No"}
 
 Infrastructure:
   - RabbitMQ: ${maskUrl(config.rabbitmq.url)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
@@ -9,15 +9,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/lib/constants';
 
 /**
- * Email Verification Page
+ * Email Verification Page Content
  * Route: /verify-email
  */
-export default function VerifyEmailPage() {
+function VerifyEmailPageContent() {
   const searchParams = useSearchParams();
   const token = searchParams?.get('token');
   const emailParam = searchParams?.get('email');
   const { verifyEmail, resendVerification } = useAuth();
-  
+
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'pending'>('loading');
   const [email, setEmail] = useState(emailParam || '');
   const [resending, setResending] = useState(false);
@@ -41,13 +41,13 @@ export default function VerifyEmailPage() {
         setStatus('error');
       }
     };
-    
+
     verify();
   }, [token, emailParam, verifyEmail]);
 
   const handleResend = async () => {
     if (!email) return;
-    
+
     setResending(true);
     try {
       await resendVerification(email);
@@ -62,10 +62,8 @@ export default function VerifyEmailPage() {
         {/* Loading State */}
         {status === 'loading' && (
           <div className="rounded-lg bg-white p-8 text-center shadow">
-            <Loader2 className="mx-auto h-16 w-16 animate-spin text-primary" />
-            <h2 className="mt-4 text-2xl font-bold text-gray-900">
-              Đang xác thực email...
-            </h2>
+            <Loader2 className="text-primary mx-auto h-16 w-16 animate-spin" />
+            <h2 className="mt-4 text-2xl font-bold text-gray-900">Đang xác thực email...</h2>
             <p className="mt-2 text-gray-600">Vui lòng đợi trong giây lát</p>
           </div>
         )}
@@ -74,13 +72,9 @@ export default function VerifyEmailPage() {
         {status === 'pending' && (
           <div className="rounded-lg bg-white p-8 shadow">
             <div className="text-center">
-              <Mail className="mx-auto h-16 w-16 text-primary" />
-              <h2 className="mt-4 text-2xl font-bold text-gray-900">
-                Kiểm tra email của bạn
-              </h2>
-              <p className="mt-2 text-gray-600">
-                Chúng tôi đã gửi email xác thực đến
-              </p>
+              <Mail className="text-primary mx-auto h-16 w-16" />
+              <h2 className="mt-4 text-2xl font-bold text-gray-900">Kiểm tra email của bạn</h2>
+              <p className="mt-2 text-gray-600">Chúng tôi đã gửi email xác thực đến</p>
               <p className="mt-1 font-semibold text-gray-900">{email}</p>
             </div>
 
@@ -88,7 +82,7 @@ export default function VerifyEmailPage() {
               <p className="text-sm text-blue-800">
                 <strong>📧 Hướng dẫn:</strong>
               </p>
-              <ul className="mt-2 space-y-1 text-sm text-blue-700 list-disc list-inside">
+              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-blue-700">
                 <li>Mở email và nhấn vào link xác thực</li>
                 <li>Link có hiệu lực trong 24 giờ</li>
                 <li>Kiểm tra cả thư mục spam nếu không thấy email</li>
@@ -114,7 +108,10 @@ export default function VerifyEmailPage() {
 
               <p className="text-center text-sm text-gray-600">
                 Đã xác thực email?{' '}
-                <Link href={ROUTES.LOGIN} className="font-medium text-primary hover:text-primary/80">
+                <Link
+                  href={ROUTES.LOGIN}
+                  className="text-primary hover:text-primary/80 font-medium"
+                >
                   Đăng nhập ngay
                 </Link>
               </p>
@@ -126,9 +123,7 @@ export default function VerifyEmailPage() {
         {status === 'success' && (
           <div className="rounded-lg bg-white p-8 text-center shadow">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-            <h2 className="mt-4 text-2xl font-bold text-gray-900">
-              Xác thực email thành công!
-            </h2>
+            <h2 className="mt-4 text-2xl font-bold text-gray-900">Xác thực email thành công!</h2>
             <p className="mt-2 text-gray-600">
               Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ.
             </p>
@@ -147,22 +142,14 @@ export default function VerifyEmailPage() {
               {token ? (
                 <>
                   <XCircle className="mx-auto h-16 w-16 text-red-500" />
-                  <h2 className="mt-4 text-2xl font-bold text-gray-900">
-                    Xác thực thất bại
-                  </h2>
-                  <p className="mt-2 text-gray-600">
-                    Link xác thực không hợp lệ hoặc đã hết hạn.
-                  </p>
+                  <h2 className="mt-4 text-2xl font-bold text-gray-900">Xác thực thất bại</h2>
+                  <p className="mt-2 text-gray-600">Link xác thực không hợp lệ hoặc đã hết hạn.</p>
                 </>
               ) : (
                 <>
-                  <Mail className="mx-auto h-16 w-16 text-primary" />
-                  <h2 className="mt-4 text-2xl font-bold text-gray-900">
-                    Xác thực email
-                  </h2>
-                  <p className="mt-2 text-gray-600">
-                    Nhập email của bạn để nhận lại link xác thực
-                  </p>
+                  <Mail className="text-primary mx-auto h-16 w-16" />
+                  <h2 className="mt-4 text-2xl font-bold text-gray-900">Xác thực email</h2>
+                  <p className="mt-2 text-gray-600">Nhập email của bạn để nhận lại link xác thực</p>
                 </>
               )}
             </div>
@@ -178,16 +165,12 @@ export default function VerifyEmailPage() {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                   placeholder="example@email.com"
                 />
               </div>
 
-              <Button
-                onClick={handleResend}
-                disabled={!email || resending}
-                className="w-full"
-              >
+              <Button onClick={handleResend} disabled={!email || resending} className="w-full">
                 {resending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -200,7 +183,10 @@ export default function VerifyEmailPage() {
 
               <p className="text-center text-sm text-gray-600">
                 Đã có tài khoản?{' '}
-                <Link href={ROUTES.LOGIN} className="font-medium text-primary hover:text-primary/80">
+                <Link
+                  href={ROUTES.LOGIN}
+                  className="text-primary hover:text-primary/80 font-medium"
+                >
                   Đăng nhập
                 </Link>
               </p>
@@ -216,5 +202,22 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+          <div className="rounded-lg bg-white p-8 text-center shadow">
+            <Loader2 className="text-primary mx-auto h-12 w-12 animate-spin" />
+            <p className="mt-4 text-sm text-gray-600">Đang tải thông tin xác thực...</p>
+          </div>
+        </div>
+      }
+    >
+      <VerifyEmailPageContent />
+    </Suspense>
   );
 }

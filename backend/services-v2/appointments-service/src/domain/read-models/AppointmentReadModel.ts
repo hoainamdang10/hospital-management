@@ -11,7 +11,7 @@ export interface AppointmentReadModel {
   // Primary Keys
   id: string;
   appointmentId: string;
-  
+
   // Appointment Core Data
   patientId: string;
   doctorId: string;
@@ -21,10 +21,11 @@ export interface AppointmentReadModel {
   type: string;
   priority: string;
   status: string;
+  paymentStatus?: string;
   roomId?: string;
   departmentId?: string;
   consultationFee: number; // Billing reference only - billing-service owns payment lifecycle
-  
+
   // Denormalized Patient Data (from patient-service for display only)
   patientFullName?: string;
   patientPhone?: string;
@@ -35,7 +36,7 @@ export interface AppointmentReadModel {
   patientInsuranceNumber?: string; // Reference only - billing-service validates insurance
   patientInsuranceType?: string; // Reference only - billing-service validates insurance
   patientAddress?: string;
-  
+
   // Denormalized Doctor Data
   doctorFullName?: string;
   doctorSpecialization?: string;
@@ -43,7 +44,7 @@ export interface AppointmentReadModel {
   doctorLicenseNumber?: string;
   doctorPhone?: string;
   doctorEmail?: string;
-  
+
   // Appointment Details
   reason?: string;
   chiefComplaint?: string;
@@ -51,14 +52,14 @@ export interface AppointmentReadModel {
   notes?: string;
   specialInstructions?: string;
   requiredEquipment?: string[];
-  
+
   // Timestamps
   checkedInAt?: Date;
   startedAt?: Date;
   completedAt?: Date;
   cancelledAt?: Date;
   cancellationReason?: string;
-  
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;
@@ -96,16 +97,17 @@ export interface CreateAppointmentReadModelData {
   type: string;
   priority: string;
   status: string;
+  paymentStatus?: string;
   roomId?: string;
   departmentId?: string;
   consultationFee: number; // Billing reference only - billing-service owns payment lifecycle
-  
+
   // Patient data (fetched from Patient Service)
   patientData?: PatientData;
-  
+
   // Doctor data (fetched from Provider Service)
   doctorData?: DoctorData;
-  
+
   // Appointment details
   reason?: string;
   chiefComplaint?: string;

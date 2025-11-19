@@ -42,10 +42,11 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
       type: data.type,
       priority: data.priority,
       status: data.status,
+      payment_status: data.paymentStatus,
       room_id: data.roomId,
       department_id: data.departmentId,
       consultation_fee: data.consultationFee, // Billing reference only
-      
+
       // Patient data
       patient_full_name: data.patientData?.patientFullName,
       patient_phone: data.patientData?.patientPhone,
@@ -56,7 +57,7 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
       patient_insurance_number: data.patientData?.patientInsuranceNumber,
       patient_insurance_type: data.patientData?.patientInsuranceType,
       patient_address: data.patientData?.patientAddress,
-      
+
       // Doctor data
       doctor_full_name: data.doctorData?.doctorFullName,
       doctor_specialization: data.doctorData?.doctorSpecialization,
@@ -64,7 +65,7 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
       doctor_license_number: data.doctorData?.doctorLicenseNumber,
       doctor_phone: data.doctorData?.doctorPhone,
       doctor_email: data.doctorData?.doctorEmail,
-      
+
       // Appointment details
       reason: data.reason,
       chief_complaint: data.chiefComplaint,
@@ -363,10 +364,11 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
       type: record.type,
       priority: record.priority,
       status: record.status,
+      paymentStatus: record.payment_status,
       roomId: record.room_id,
       departmentId: record.department_id,
       consultationFee: parseFloat(record.consultation_fee), // Billing reference only
-      
+
       patientFullName: record.patient_full_name,
       patientPhone: record.patient_phone,
       patientEmail: record.patient_email,
@@ -376,27 +378,27 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
       patientInsuranceNumber: record.patient_insurance_number,
       patientInsuranceType: record.patient_insurance_type,
       patientAddress: record.patient_address,
-      
+
       doctorFullName: record.doctor_full_name,
       doctorSpecialization: record.doctor_specialization,
       doctorDepartment: record.doctor_department,
       doctorLicenseNumber: record.doctor_license_number,
       doctorPhone: record.doctor_phone,
       doctorEmail: record.doctor_email,
-      
+
       reason: record.reason,
       chiefComplaint: record.chief_complaint,
       symptoms: record.symptoms || [],
       notes: record.notes,
       specialInstructions: record.special_instructions,
       requiredEquipment: record.required_equipment || [],
-      
+
       checkedInAt: record.checked_in_at ? new Date(record.checked_in_at) : undefined,
       startedAt: record.started_at ? new Date(record.started_at) : undefined,
       completedAt: record.completed_at ? new Date(record.completed_at) : undefined,
       cancelledAt: record.cancelled_at ? new Date(record.cancelled_at) : undefined,
       cancellationReason: record.cancellation_reason,
-      
+
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at),
       syncedAt: new Date(record.synced_at)

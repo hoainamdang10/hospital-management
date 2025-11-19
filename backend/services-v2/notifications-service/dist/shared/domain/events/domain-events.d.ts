@@ -162,22 +162,28 @@ export declare class DoctorAvailabilityChangedEvent extends DomainEvent {
     getPatientId(): string | null;
 }
 /**
- * Published when appointment is scheduled
- * Subscribers: Patient Service, Doctor Service, Notification Service, Billing Service
+ * PLACEHOLDER: AppointmentScheduledEvent
+ *
+ * This is a placeholder class for EVENT_TYPE_REGISTRY.
+ * The actual implementation is in appointments-service/src/domain/events/AppointmentScheduledEvent.ts
+ *
+ * FIXED: Constructor now accepts all 11 parameters to properly initialize readonly properties
+ * during deserialization.
  */
 export declare class AppointmentScheduledEvent extends DomainEvent {
     readonly appointmentId: string;
-    readonly appointmentIdCode: string;
     readonly patientId: string;
     readonly doctorId: string;
-    readonly appointmentDate: Date;
-    readonly startTime: string;
-    readonly endTime: string;
-    readonly appointmentType: string;
-    readonly reason: string;
+    readonly appointmentDate: string;
+    readonly appointmentTime: string;
+    readonly durationMinutes: number;
+    readonly type: string;
     readonly priority: string;
-    constructor(appointmentId: string, appointmentIdCode: string, // TYPE-DEPT-YYYYMM-SEQ
-    patientId: string, doctorId: string, appointmentDate: Date, startTime: string, endTime: string, appointmentType: string, reason: string, priority: string);
+    readonly status: string;
+    readonly consultationFee: number;
+    readonly createdBy: string;
+    readonly scheduledAt: Date;
+    constructor(appointmentId: string, patientId: string, doctorId: string, appointmentDate: string, appointmentTime: string, durationMinutes: number, type: string, priority: string, status: string, consultationFee: number, createdBy: string, correlationId?: string, causationId?: string, userId?: string);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;

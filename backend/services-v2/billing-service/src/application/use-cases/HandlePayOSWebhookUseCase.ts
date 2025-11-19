@@ -1,14 +1,18 @@
-import { BaseHealthcareUseCase } from '@shared/application/base/base-healthcare-use-case';
-import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
-import { IEventBus } from '@shared/application/services/event-bus.interface';
-import { ILogger } from '@shared/application/services/logger.interface';
-import { PayOSIntegrationService, WebhookData } from '../../infrastructure/services/PayOSIntegrationService';
-import { Payment } from '../../domain/entities/Payment';
-import { Money } from '../../domain/value-objects/Money';
+import { BaseHealthcareUseCase } from "@shared/application/base/base-healthcare-use-case";
+import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
+import { ILogger } from "@shared/application/services/logger.interface";
+import {
+  VnpayIntegrationService,
+  WebhookData,
+} from "../../infrastructure/services/VnpayIntegrationService";
+import { Payment } from "../../domain/entities/Payment";
+import { Money } from "../../domain/value-objects/Money";
 
 export interface HandlePayOSWebhookRequest {
   webhookData: WebhookData;
-  signature: string;
+  signature?: string;
+  rawPayload?: any;
 }
 
 export interface HandlePayOSWebhookResponse {
@@ -18,47 +22,79 @@ export interface HandlePayOSWebhookResponse {
   paymentId?: string;
 }
 
-export class HandlePayOSWebhookUseCase extends BaseHealthcareUseCase<HandlePayOSWebhookRequest, HandlePayOSWebhookResponse> {
+export class HandlePayOSWebhookUseCase extends BaseHealthcareUseCase<
+  HandlePayOSWebhookRequest,
+  HandlePayOSWebhookResponse
+> {
   protected readonly logger: ILogger;
 
   constructor(
     private readonly invoiceRepository: IInvoiceRepository,
     private readonly eventBus: IEventBus,
-    private readonly payosService: PayOSIntegrationService,
-    logger: ILogger
+    private readonly payosService: VnpayIntegrationService,
+    logger: ILogger,
   ) {
     super();
     this.logger = logger;
   }
 
-  protected async executeImpl(request: HandlePayOSWebhookRequest): Promise<HandlePayOSWebhookResponse> {
-    this.logger.info('Handling PayOS webhook', { 
-      orderCode: request.webhookData.orderCode 
+  protected async executeImpl(
+    request: HandlePayOSWebhookRequest,
+  ): Promise<HandlePayOSWebhookResponse> {
+    this.logger.info("Handling PayOS webhook", {
+      orderCode: request.webhookData.orderCode,
     });
 
+    const isPing = this.isPingWebhook(request.rawPayload);
+
     // Verify webhook signature
-    const isValid = this.payosService.verifyWebhookSignature(
-      request.webhookData,
-      request.signature
+    if (!request.signature) {
+      if (isPing) {
+        this.logger.info(
+          "PayOS ping received without signature, acknowledging",
+        );
+        return {
+          success: true,
+          message: "Webhook acknowledged (ping)",
+        };
+      }
+      throw new Error("Missing webhook signature");
+    }
+
+    const isValid = this.payosService.verifyIpnSignature(
+      request.rawPayload || {},
+      request.signature,
     );
 
     if (!isValid) {
-      this.logger.error('Invalid webhook signature', { 
-        orderCode: request.webhookData.orderCode 
+      if (isPing) {
+        this.logger.warn(
+          "PayOS ping failed signature verification, acknowledging anyway",
+          {
+            orderCode: request.webhookData.orderCode,
+          },
+        );
+        return {
+          success: true,
+          message: "Webhook acknowledged (ping)",
+        };
+      }
+      this.logger.error("Invalid webhook signature", {
+        orderCode: request.webhookData.orderCode,
       });
-      throw new Error('Invalid webhook signature');
+      throw new Error("Invalid webhook signature");
     }
 
     // Check payment status
-    if (request.webhookData.code !== '00') {
-      this.logger.warn('Payment not successful', { 
+    if (request.webhookData.code !== "00") {
+      this.logger.warn("Payment not successful", {
         orderCode: request.webhookData.orderCode,
         code: request.webhookData.code,
-        desc: request.webhookData.desc
+        desc: request.webhookData.desc,
       });
       return {
         success: false,
-        message: `Payment failed: ${request.webhookData.desc}`
+        message: `Payment failed: ${request.webhookData.desc}`,
       };
     }
 
@@ -69,41 +105,50 @@ export class HandlePayOSWebhookUseCase extends BaseHealthcareUseCase<HandlePayOS
     // 3. Try direct UUID if description contains it
     const description = request.webhookData.description;
     let invoice = null;
-    
+
     // Strategy 1: Try invoice number pattern
     const invoiceNumberMatch = description.match(/INV-\d{6}-\d{4}/);
     if (invoiceNumberMatch) {
-      this.logger.debug('Attempting to find invoice by invoice number', {
-        invoiceNumber: invoiceNumberMatch[0]
+      this.logger.debug("Attempting to find invoice by invoice number", {
+        invoiceNumber: invoiceNumberMatch[0],
       });
-      invoice = await this.invoiceRepository.findByInvoiceNumber(invoiceNumberMatch[0]);
+      invoice = await this.invoiceRepository.findByInvoiceNumber(
+        invoiceNumberMatch[0],
+      );
     }
-    
+
     // Strategy 2: Fallback to UUID pattern if invoice number search failed
     if (!invoice) {
-      const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const uuidPattern =
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
       const uuidMatch = description.match(uuidPattern);
       if (uuidMatch) {
-        this.logger.debug('Invoice number search failed, attempting to find by UUID', {
-          invoiceId: uuidMatch[0]
-        });
+        this.logger.debug(
+          "Invoice number search failed, attempting to find by UUID",
+          {
+            invoiceId: uuidMatch[0],
+          },
+        );
         invoice = await this.invoiceRepository.findById(uuidMatch[0]);
       }
     }
 
     if (!invoice) {
-      this.logger.error('Invoice not found from webhook (tried invoice number and UUID)', {
-        description,
-        orderCode: request.webhookData.orderCode
-      });
-      throw new Error('Invoice not found');
+      this.logger.error(
+        "Invoice not found from webhook (tried invoice number and UUID)",
+        {
+          description,
+          orderCode: request.webhookData.orderCode,
+        },
+      );
+      throw new Error("Invoice not found");
     }
 
     // Create payment
     const payment = Payment.create(
       Money.create(request.webhookData.amount),
-      'payos',
-      request.webhookData.reference
+      "payos",
+      request.webhookData.reference,
     );
 
     // Process payment
@@ -117,17 +162,46 @@ export class HandlePayOSWebhookUseCase extends BaseHealthcareUseCase<HandlePayOS
     }
     invoice.markEventsAsCommitted();
 
-    this.logger.info('PayOS webhook processed successfully', { 
+    this.logger.info("PayOS webhook processed successfully", {
       invoiceId: invoice.id,
       paymentId: payment.id,
-      amount: request.webhookData.amount 
+      amount: request.webhookData.amount,
     });
 
     return {
       success: true,
-      message: 'Payment processed successfully',
+      message: "Payment processed successfully",
       invoiceId: invoice.id,
-      paymentId: payment.id
+      paymentId: payment.id,
     };
+  }
+
+  private isPingWebhook(payload: any): boolean {
+    if (!payload) {
+      return true;
+    }
+
+    const eventName = (payload.event ||
+      payload.type ||
+      payload?.data?.event) as string | undefined;
+    if (eventName && typeof eventName === "string") {
+      const normalized = eventName.toLowerCase();
+      if (normalized.includes("ping") || normalized.includes("test")) {
+        return true;
+      }
+    }
+
+    const desc = (payload.desc || payload?.data?.desc) as string | undefined;
+    if (desc && desc.toLowerCase().includes("ping")) {
+      return true;
+    }
+
+    const data = payload.data ?? payload;
+    const orderCode = data?.orderCode as number | undefined;
+    if (typeof orderCode === "number" && orderCode < 100000000) {
+      return true;
+    }
+
+    return false;
   }
 }

@@ -60,8 +60,8 @@ export class PaymentCompletedHandler {
         return;
       }
 
-      // Check if appointment is in SCHEDULED status
-      if (appointment.status === 'scheduled') {
+      // Check if appointment is in SCHEDULED or PENDING_PAYMENT status (Prepaid Model)
+      if (appointment.status === 'scheduled' || appointment.status === 'pending_payment') {
         // Auto-confirm appointment after successful payment
         appointment.confirm('system'); // System auto-confirmation
 
@@ -71,12 +71,12 @@ export class PaymentCompletedHandler {
         await this.appointmentRepository.save(appointment);
 
         logger.info(
-          `Appointment auto-confirmed and marked as paid. AppointmentId: ${data.appointmentId}, PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}, Status: scheduled → confirmed, PaymentStatus: pending → paid`
+          `Appointment auto-confirmed and marked as paid. AppointmentId: ${data.appointmentId}, PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}, Status: ${appointment.status} → confirmed, PaymentStatus: pending → paid`
         );
       } else {
         // Appointment already confirmed or in different status
         logger.info(
-          `Appointment not in SCHEDULED status - skipping auto-confirmation. AppointmentId: ${data.appointmentId}, CurrentStatus: ${appointment.status}, PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}`
+          `Appointment not in valid status for auto-confirmation - skipping. AppointmentId: ${data.appointmentId}, CurrentStatus: ${appointment.status}, PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}`
         );
       }
     } catch (error) {

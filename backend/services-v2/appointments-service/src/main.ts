@@ -45,9 +45,9 @@ import {
 import { prometheusMetrics } from "./infrastructure/monitoring/PrometheusMetrics";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
-import { initializeReschedulingQueueRoutes } from './presentation/routes/reschedulingQueue.routes';
-import cron from 'node-cron';
-import { ExpireUnpaidAppointmentsUseCase } from './application/use-cases/ExpireUnpaidAppointments.use-case';
+import { initializeReschedulingQueueRoutes } from "./presentation/routes/reschedulingQueue.routes";
+import cron from "node-cron";
+import { ExpireUnpaidAppointmentsUseCase } from "./application/use-cases/ExpireUnpaidAppointments.use-case";
 
 const app: Application = express();
 
@@ -300,7 +300,10 @@ app.use("/api/v1/queue", createQueueRoutes());
 
 // Rescheduling Queue routes
 const reschedulingQueueController = container.getReschedulingQueueController();
-app.use('/api/v1/rescheduling-queue', initializeReschedulingQueueRoutes(reschedulingQueueController));
+app.use(
+  "/api/v1/rescheduling-queue",
+  initializeReschedulingQueueRoutes(reschedulingQueueController),
+);
 
 // Reminder routes (Manual reminder management)
 const reminderController = container.getReminderController();
@@ -370,13 +373,14 @@ async function initializeEventConsumers(): Promise<void> {
     // Initialize Billing Event Consumer (ENABLED for Prepaid Billing Flow)
     const billingEventConsumer = container.getBillingEventConsumer();
     await billingEventConsumer.connect();
-    logger.info("Billing Event Consumer initialized successfully (Prepaid Flow)");
+    logger.info(
+      "Billing Event Consumer initialized successfully (Prepaid Flow)",
+    );
 
     // ===== ARCHIVED FOR POST-MVP: Event Consumers =====
     // Clinical EMR Event Consumer REMOVED FOR MVP - Focus on Appointments only
 
     logger.info("All Event Consumers initialized successfully (MVP scope)");
-
   } catch (error) {
     logger.error("Failed to initialize Event Consumers", error as Error);
     throw error;
@@ -403,7 +407,10 @@ async function shutdownEventConsumers(): Promise<void> {
       await departmentEventConsumer.disconnect();
       logger.info("Department Event Consumer disconnected");
     } catch (error) {
-      logger.error("Error disconnecting Department Event Consumer", error as Error);
+      logger.error(
+        "Error disconnecting Department Event Consumer",
+        error as Error,
+      );
     }
 
     // Disconnect Billing Event Consumer
@@ -412,14 +419,16 @@ async function shutdownEventConsumers(): Promise<void> {
       await billingEventConsumer.disconnect();
       logger.info("Billing Event Consumer disconnected");
     } catch (error) {
-      logger.error("Error disconnecting Billing Event Consumer", error as Error);
+      logger.error(
+        "Error disconnecting Billing Event Consumer",
+        error as Error,
+      );
     }
 
     // ===== ARCHIVED FOR POST-MVP: Event Consumers =====
     // Clinical EMR Event Consumer REMOVED FOR MVP - No need to disconnect
 
     logger.info("Event Consumers shut down successfully");
-
   } catch (error) {
     logger.error("Error shutting down Event Consumers", error as Error);
   }
@@ -461,7 +470,9 @@ const server = app.listen(PORT, async () => {
   console.log(
     `   GET    /api/v1/doctors/:doctorId/appointments - Doctor appointments`,
   );
-  console.log(`   GET    /api/v1/rescheduling-queue/* - Rescheduling management`);
+  console.log(
+    `   GET    /api/v1/rescheduling-queue/* - Rescheduling management`,
+  );
   console.log("=".repeat(60));
 
   // Connect event subscriptions
@@ -482,44 +493,50 @@ const server = app.listen(PORT, async () => {
     logger.warn("Service will continue without event subscriptions");
   }
 
-  // Start Outbox Publisher Worker
-  try {
-    const { OutboxRepository } = await import(
-      "./infrastructure/outbox/OutboxRepository"
-    );
-    const { OutboxPublisherWorker } = await import(
-      "./infrastructure/outbox/OutboxPublisherWorker"
-    );
-    const { RemoteSchedulerAdapter } = await import(
-      "./infrastructure/adapters/RemoteSchedulerAdapter"
-    );
+  // Start Outbox Publisher Worker (only when scheduler integration is enabled)
+  if (config.features.enableScheduler) {
+    try {
+      const { OutboxRepository } = await import(
+        "./infrastructure/outbox/OutboxRepository"
+      );
+      const { OutboxPublisherWorker } = await import(
+        "./infrastructure/outbox/OutboxPublisherWorker"
+      );
+      const { RemoteSchedulerAdapter } = await import(
+        "./infrastructure/adapters/RemoteSchedulerAdapter"
+      );
 
-    const outboxRepo = new OutboxRepository(
-      config.supabase.url,
-      config.supabase.serviceRoleKey,
-      config.outbox.reservedTimeoutMinutes,
+      const outboxRepo = new OutboxRepository(
+        config.supabase.url,
+        config.supabase.serviceRoleKey,
+        config.outbox.reservedTimeoutMinutes,
+      );
+
+      const scheduler = new RemoteSchedulerAdapter({
+        baseUrl: config.services.schedulerServiceUrl,
+        apiKey: config.services.schedulerApiKey,
+        timeout: 5000,
+      });
+
+      const worker = new OutboxPublisherWorker(outboxRepo, scheduler, {
+        intervalMs: config.outbox.pollIntervalMs,
+        batchSize: config.outbox.batchSize,
+        baseDelayMs: config.outbox.baseDelayMs,
+        maxDelayMs: config.outbox.maxDelayMs,
+      });
+      worker.start();
+      (app as any).outboxWorker = worker;
+      logger.info("Outbox publisher worker started", undefined, {
+        pollIntervalMs: config.outbox.pollIntervalMs,
+        batchSize: config.outbox.batchSize,
+      });
+    } catch (e) {
+      logger.error("Failed to start Outbox publisher worker", e as Error);
+    }
+  } else {
+    logger.info(
+      "Scheduler disabled (ENABLE_SCHEDULER=false) - skipping OutboxPublisherWorker",
     );
-
-    const scheduler = new RemoteSchedulerAdapter({
-      baseUrl: config.services.schedulerServiceUrl,
-      apiKey: config.services.schedulerApiKey,
-      timeout: 5000,
-    });
-
-    const worker = new OutboxPublisherWorker(outboxRepo, scheduler, {
-      intervalMs: config.outbox.pollIntervalMs,
-      batchSize: config.outbox.batchSize,
-      baseDelayMs: config.outbox.baseDelayMs,
-      maxDelayMs: config.outbox.maxDelayMs,
-    });
-    worker.start();
-    (app as any).outboxWorker = worker;
-    logger.info("Outbox publisher worker started", undefined, {
-      pollIntervalMs: config.outbox.pollIntervalMs,
-      batchSize: config.outbox.batchSize,
-    });
-  } catch (e) {
-    logger.error("Failed to start Outbox publisher worker", e as Error);
   }
 
   // ==================== FLOW 3 - PHASE 1B: PAYMENT TIMEOUT CRON JOB ====================
@@ -527,30 +544,44 @@ const server = app.listen(PORT, async () => {
   try {
     const container = getContainer();
     const appointmentRepository = container.getAppointmentRepository();
-    const expireUnpaidAppointmentsUseCase = new ExpireUnpaidAppointmentsUseCase(appointmentRepository);
+    const expireUnpaidAppointmentsUseCase = new ExpireUnpaidAppointmentsUseCase(
+      appointmentRepository,
+    );
 
     // Run every 5 minutes: */5 * * * *
-    cron.schedule('*/5 * * * *', async () => {
+    cron.schedule("*/5 * * * *", async () => {
       try {
-        logger.info('[PaymentTimeoutCron] Starting payment timeout check...');
+        logger.info("[PaymentTimeoutCron] Starting payment timeout check...");
         const result = await expireUnpaidAppointmentsUseCase.execute();
         logger.info(
-          `[PaymentTimeoutCron] Payment timeout check completed. Expired: ${result.expiredCount}, Errors: ${result.errors.length}`
+          `[PaymentTimeoutCron] Payment timeout check completed. Expired: ${result.expiredCount}, Errors: ${result.errors.length}`,
         );
 
         if (result.errors.length > 0) {
-          logger.warn('[PaymentTimeoutCron] Errors during payment timeout check', undefined, {
-            errors: result.errors
-          });
+          logger.warn(
+            "[PaymentTimeoutCron] Errors during payment timeout check",
+            undefined,
+            {
+              errors: result.errors,
+            },
+          );
         }
       } catch (error) {
-        logger.error('[PaymentTimeoutCron] Fatal error during payment timeout check', error as Error);
+        logger.error(
+          "[PaymentTimeoutCron] Fatal error during payment timeout check",
+          error as Error,
+        );
       }
     });
 
-    logger.info('[PaymentTimeoutCron] Payment timeout cron job scheduled (every 5 minutes)');
+    logger.info(
+      "[PaymentTimeoutCron] Payment timeout cron job scheduled (every 5 minutes)",
+    );
   } catch (error) {
-    logger.error('[PaymentTimeoutCron] Failed to setup payment timeout cron job', error as Error);
+    logger.error(
+      "[PaymentTimeoutCron] Failed to setup payment timeout cron job",
+      error as Error,
+    );
   }
   // ==================== END FLOW 3 - PHASE 1B ====================
 });

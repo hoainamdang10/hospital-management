@@ -7,9 +7,9 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { IInboxRepository } from '../../domain/repositories/IInboxRepository';
-import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
-import { GetNotificationPreferencesUseCase } from '../../application/use-cases/GetNotificationPreferencesUseCase';
+import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
+import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
+import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
 export interface BillingEventConsumerConfig {
     rabbitmqUrl: string;
     queueName: string;
@@ -25,7 +25,7 @@ export interface InsuranceCoverageVerifiedEventData {
     insuranceProvider: string;
     insuranceNumber: string;
     coverageType: string;
-    coverageStatus: 'verified' | 'partial' | 'rejected' | 'pending';
+    coverageStatus: "verified" | "partial" | "rejected" | "pending";
     coverageAmount: number;
     deductible: number;
     coPayment: number;
@@ -42,7 +42,7 @@ export interface PreAuthorizationRequestedEventData {
     physicianName: string;
     procedureType: string;
     estimatedCost: number;
-    urgencyLevel: 'routine' | 'urgent' | 'emergency';
+    urgencyLevel: "routine" | "urgent" | "emergency";
     requestedAt: Date;
     requestedBy: string;
     insuranceProvider: string;
@@ -99,7 +99,7 @@ export interface PaymentProcessedEventData {
     patientName: string;
     amount: number;
     paymentMethod: string;
-    paymentStatus: 'completed' | 'failed' | 'refunded' | 'partial_refund';
+    paymentStatus: "completed" | "failed" | "refunded" | "partial_refund";
     processedAt: Date;
     processedBy: string;
     invoiceId: string;
@@ -132,7 +132,7 @@ export interface PaymentReminderScheduledEventData {
     invoiceId: string;
     amount: number;
     dueDate: Date;
-    reminderType: 'first_notice' | 'second_notice' | 'final_notice' | 'overdue';
+    reminderType: "first_notice" | "second_notice" | "final_notice" | "overdue";
     scheduledFor: Date;
     message: string;
 }
@@ -143,7 +143,7 @@ export interface PaymentReminderDueEventData {
     invoiceNumber: string;
     totalAmount: number;
     dueDate: string;
-    reminderType: 'before-due' | 'on-due' | 'after-due';
+    reminderType: "before-due" | "on-due" | "after-due";
     daysBeforeDue: number;
     scheduledBy: string;
 }
@@ -170,11 +170,15 @@ export declare class BillingEventConsumer {
     private connection?;
     private channel?;
     private isConnected;
+    private reconnecting;
     constructor(config: BillingEventConsumerConfig, sendNotificationUseCase: SendNotificationUseCase, getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase, inboxRepo: IInboxRepository);
     /**
      * Connect to RabbitMQ and start consuming
      */
     connect(): Promise<void>;
+    private setupConnectionListeners;
+    private triggerReconnect;
+    private closeConnectionSilently;
     /**
      * Handle incoming message
      */

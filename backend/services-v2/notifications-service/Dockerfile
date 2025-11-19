@@ -6,6 +6,9 @@ WORKDIR /app/notifications-service
 # Copy package files
 COPY notifications-service/package*.json ./
 
+# Install healthcheck dependency
+RUN apk add --no-cache curl
+
 # Install dependencies
 RUN npm ci --only=production
 

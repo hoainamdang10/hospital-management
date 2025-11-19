@@ -2,9 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoiceController = void 0;
 class InvoiceController {
-    constructor(createInvoiceUseCase, getInvoiceUseCase, processPaymentUseCase, getPatientInvoicesUseCase, searchInvoicesUseCase, getOverdueInvoicesUseCase, getPatientBillingSummaryUseCase, getRevenueReportUseCase, createPayOSPaymentLinkUseCase, handlePayOSWebhookUseCase
-    // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
-    ) {
+    constructor(createInvoiceUseCase, getInvoiceUseCase, processPaymentUseCase, getPatientInvoicesUseCase, searchInvoicesUseCase, getOverdueInvoicesUseCase, getPatientBillingSummaryUseCase, getRevenueReportUseCase, createPayOSPaymentLinkUseCase, handlePayOSWebhookUseCase) {
         this.createInvoiceUseCase = createInvoiceUseCase;
         this.getInvoiceUseCase = getInvoiceUseCase;
         this.processPaymentUseCase = processPaymentUseCase;
@@ -26,7 +24,9 @@ class InvoiceController {
         };
         this.getInvoice = async (req, res) => {
             try {
-                const result = await this.getInvoiceUseCase.execute({ invoiceId: req.params.id });
+                const result = await this.getInvoiceUseCase.execute({
+                    invoiceId: req.params.id,
+                });
                 res.status(200).json(result);
             }
             catch (error) {
@@ -41,7 +41,7 @@ class InvoiceController {
                     invoiceId: req.params.id,
                     amount,
                     method,
-                    transactionId
+                    transactionId,
                 });
                 res.status(200).json(result);
             }
@@ -52,7 +52,7 @@ class InvoiceController {
         this.getPatientInvoices = async (req, res) => {
             try {
                 const result = await this.getPatientInvoicesUseCase.execute({
-                    patientId: req.params.patientId
+                    patientId: req.params.patientId,
                 });
                 res.status(200).json(result);
             }
@@ -82,7 +82,7 @@ class InvoiceController {
         this.getPatientBillingSummary = async (req, res) => {
             try {
                 const result = await this.getPatientBillingSummaryUseCase.execute({
-                    patientId: req.params.patientId
+                    patientId: req.params.patientId,
                 });
                 res.status(200).json(result);
             }
@@ -96,7 +96,7 @@ class InvoiceController {
                 const result = await this.getRevenueReportUseCase.execute({
                     fromDate: new Date(fromDate),
                     toDate: new Date(toDate),
-                    groupBy: groupBy
+                    groupBy: groupBy,
                 });
                 res.status(200).json(result);
             }
@@ -108,7 +108,7 @@ class InvoiceController {
             try {
                 const result = await this.createPayOSPaymentLinkUseCase.execute({
                     invoiceId: req.params.id,
-                    ...req.body
+                    ...req.body,
                 });
                 res.status(200).json(result);
             }
@@ -118,10 +118,18 @@ class InvoiceController {
         };
         this.handlePayOSWebhook = async (req, res) => {
             try {
-                const signature = req.headers['x-payos-signature'];
+                const payloadSource = Object.keys(req.body || {}).length > 0 ? req.body : req.query;
+                const rawPayload = { ...payloadSource };
+                const signatureHeader = (req.headers["x-payos-signature"] ||
+                    req.headers["x-vnpay-signature"]);
+                const payloadSignature = rawPayload["vnp_SecureHash"] ||
+                    signatureHeader ||
+                    rawPayload["signature"];
+                const normalizedPayload = this.normalizeWebhookPayload(rawPayload) || rawPayload;
                 const result = await this.handlePayOSWebhookUseCase.execute({
-                    webhookData: req.body,
-                    signature
+                    webhookData: normalizedPayload,
+                    signature: payloadSignature,
+                    rawPayload,
                 });
                 res.status(200).json(result);
             }
@@ -129,6 +137,24 @@ class InvoiceController {
                 res.status(400).json({ error: error.message });
             }
         };
+    }
+    normalizeWebhookPayload(payload) {
+        if (payload?.vnp_TxnRef) {
+            const amount = payload.vnp_Amount !== undefined ? Number(payload.vnp_Amount) / 100 : 0;
+            return {
+                orderCode: Number(payload.vnp_TxnRef),
+                amount,
+                description: payload.vnp_OrderInfo || "",
+                reference: payload.vnp_TransactionNo || "",
+                transactionDateTime: payload.vnp_PayDate || new Date().toISOString(),
+                currency: payload.vnp_CurrCode || "VND",
+                code: payload.vnp_ResponseCode || payload.vnp_TransactionStatus || "",
+                desc: payload.vnp_Message || "",
+                bankCode: payload.vnp_BankCode,
+                bankTranNo: payload.vnp_BankTranNo,
+            };
+        }
+        return payload;
     }
 }
 exports.InvoiceController = InvoiceController;

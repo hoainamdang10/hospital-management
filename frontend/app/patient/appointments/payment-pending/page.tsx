@@ -1,34 +1,35 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Clock, 
-  CreditCard, 
-  Loader2, 
-  AlertCircle, 
+import {
+  Clock,
+  CreditCard,
+  Loader2,
+  AlertCircle,
   CheckCircle,
   ArrowLeft,
   ExternalLink,
-  FileText
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { toast } from 'sonner';
 import { billingService } from '@/modules/billing/services/billing.service';
 import type { Invoice } from '@/modules/billing/services/billing.service';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Payment Pending Page
  * Route: /patient/appointments/payment-pending
- * 
+ *
  * Displayed after scheduling appointment with prepaid payment model
- * Query params: 
+ * Query params:
  * - appointmentId (required) - ID của appointment vừa tạo
  * - paymentLink (optional) - PayOS checkout URL từ backend response
  * - paymentDeadline (optional) - ISO string cho countdown timer
  * - invoiceId (optional) - Invoice ID để track payment status
- * 
+ *
  * Features:
  * - Countdown timer (30 minutes)
  * - Payment link button (redirect to PayOS)
@@ -36,9 +37,10 @@ import type { Invoice } from '@/modules/billing/services/billing.service';
  * - Auto-redirect when payment successful
  * - Graceful degradation if payment link not available
  */
-export default function PaymentPendingPage() {
+function PaymentPendingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   // URL params
   const appointmentId = searchParams.get('appointmentId');
@@ -53,7 +55,7 @@ export default function PaymentPendingPage() {
   const [isLoadingPaymentLink, setIsLoadingPaymentLink] = useState(!initialPaymentLink);
   const [isPolling, setIsPolling] = useState(true);
   const [pollingAttempts, setPollingAttempts] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState<number>(0); // seconds
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // seconds
   const [isExpired, setIsExpired] = useState(false);
 
   // Calculate initial time remaining
@@ -67,19 +69,27 @@ export default function PaymentPendingPage() {
     } else {
       // Default: 30 minutes
       setTimeRemaining(30 * 60);
+      setIsExpired(false);
     }
   }, [paymentDeadlineParam]);
 
   // Countdown timer
   useEffect(() => {
+    if (timeRemaining === null) {
+      return;
+    }
+
     if (timeRemaining <= 0) {
       setIsExpired(true);
       setIsPolling(false);
       return;
     }
 
+    setIsExpired(false);
+
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
+        if (prev === null) return null;
         const newTime = prev - 1;
         if (newTime <= 0) {
           setIsExpired(true);
@@ -94,7 +104,8 @@ export default function PaymentPendingPage() {
   }, [timeRemaining]);
 
   // Format time remaining
-  const formatTimeRemaining = (seconds: number): string => {
+  const formatTimeRemaining = (seconds: number | null): string => {
+    if (seconds === null) return '--:--';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -107,6 +118,7 @@ export default function PaymentPendingPage() {
 
   // Get time remaining color
   const getTimeRemainingColor = (): string => {
+    if (timeRemaining === null) return 'text-gray-900';
     if (timeRemaining <= 0) return 'text-red-600';
     if (timeRemaining < 5 * 60) return 'text-orange-600'; // < 5 minutes
     return 'text-gray-900';
@@ -122,50 +134,82 @@ export default function PaymentPendingPage() {
     try {
       setPollingAttempts((prev) => prev + 1);
 
-      // Try to get invoice by searching patient invoices
-      // Note: This is a workaround since we don't have findByAppointmentId endpoint
-      // We'll get the most recent invoice and hope it's the right one
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (!user.id) {
-        throw new Error('User not found');
+      const patientIdentifier = (() => {
+        if (user?.id) {
+          return user.id;
+        }
+        if (user?.userId) {
+          return user.userId;
+        }
+        try {
+          const cachedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          if (cachedUser?.id) {
+            return cachedUser.id;
+          }
+          if (cachedUser?.userId) {
+            return cachedUser.userId;
+          }
+          if (user?.patientId) {
+            return user.patientId;
+          }
+          return cachedUser?.patientId || null;
+        } catch {
+          return user?.patientId || null;
+        }
+      })();
+      if (!patientIdentifier) {
+        setIsLoadingPaymentLink(false);
+        setIsPolling(false);
+        toast.error('Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.');
+        return;
       }
 
-      const invoices = await billingService.getPatientInvoices(user.id);
-      
-      // Find invoice with matching appointment (if we have invoiceId from URL)
-      let targetInvoice = invoiceId 
-        ? invoices.find(inv => inv.id === invoiceId)
-        : invoices[0]; // Fallback: get most recent
+      const invoices = await billingService.getPatientInvoices(patientIdentifier);
 
-      if (targetInvoice) {
-        setInvoice(targetInvoice);
-        setInvoiceId(targetInvoice.id);
+      let targetInvoice: Invoice | undefined;
+      if (invoiceId) {
+        targetInvoice = invoices.find((inv) => inv.id === invoiceId);
+      }
+      if (!targetInvoice && appointmentId) {
+        targetInvoice = invoices.find((inv) => inv.appointmentId === appointmentId);
+      }
+      if (!targetInvoice) {
+        targetInvoice = invoices.find((inv) => inv.status === 'pending');
+      }
 
-        // Create payment link if not exists
-        if (!paymentLink) {
-          const paymentLinkResponse = await billingService.createPayOSPaymentLink(
-            targetInvoice.id,
-            {
-              buyerName: user.fullName,
-              buyerEmail: user.email,
-              buyerPhone: user.phone,
-            }
-          );
-
-          setPaymentLink(paymentLinkResponse.checkoutUrl);
+      if (!targetInvoice) {
+        if (pollingAttempts >= 5) {
           setIsLoadingPaymentLink(false);
-          toast.success('Đã tạo link thanh toán!');
+          toast.error(
+            'Không tìm thấy hóa đơn cho lịch hẹn này. Có thể lịch hẹn đã bị hủy hoặc chưa được tạo.'
+          );
         }
+        return;
+      }
+
+      setInvoice(targetInvoice);
+      setInvoiceId(targetInvoice.id);
+
+      if (!paymentLink) {
+        const paymentLinkResponse = await billingService.createPayOSPaymentLink(targetInvoice.id, {
+          buyerName: user?.fullName,
+          buyerEmail: user?.email,
+          buyerPhone: user?.phone,
+        });
+
+        setPaymentLink(paymentLinkResponse.checkoutUrl);
+        setIsLoadingPaymentLink(false);
+        toast.success('Đã tạo link thanh toán!');
       }
     } catch (error) {
       console.error('[PaymentPending] Failed to poll for payment link:', error);
-      
+
       if (pollingAttempts >= 5) {
         setIsLoadingPaymentLink(false);
         toast.error('Không thể tạo link thanh toán. Vui lòng thử lại sau.');
       }
     }
-  }, [appointmentId, paymentLink, invoiceId, pollingAttempts]);
+  }, [appointmentId, paymentLink, invoiceId, pollingAttempts, user]);
 
   // Poll for payment status
   const pollForPaymentStatus = useCallback(async () => {
@@ -179,10 +223,12 @@ export default function PaymentPendingPage() {
       if (updatedInvoice.status === 'paid') {
         setIsPolling(false);
         toast.success('Thanh toán thành công!');
-        
+
         // Redirect to success page
         setTimeout(() => {
-          router.push(`/patient/billing/payment/success?appointmentId=${appointmentId}&orderCode=${updatedInvoice.payments[0]?.transactionId || 'N/A'}`);
+          router.push(
+            `/patient/billing/payment/success?appointmentId=${appointmentId}&orderCode=${updatedInvoice.payments[0]?.transactionId || 'N/A'}`
+          );
         }, 1500);
       }
     } catch (error) {
@@ -219,7 +265,7 @@ export default function PaymentPendingPage() {
   useEffect(() => {
     if (isExpired) {
       toast.error('Hết thời gian thanh toán. Vui lòng đặt lịch lại.');
-      
+
       const timer = setTimeout(() => {
         router.push('/patient/appointments');
       }, 3000);
@@ -235,16 +281,9 @@ export default function PaymentPendingPage() {
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="w-full max-w-md rounded-lg border bg-white p-8 text-center shadow-sm">
             <AlertCircle className="mx-auto h-16 w-16 text-red-600" />
-            <h1 className="mt-6 text-2xl font-bold text-gray-900">
-              Thiếu thông tin
-            </h1>
-            <p className="mt-2 text-gray-600">
-              Không tìm thấy thông tin lịch hẹn
-            </p>
-            <Button
-              onClick={() => router.push('/patient/appointments')}
-              className="mt-6 w-full"
-            >
+            <h1 className="mt-6 text-2xl font-bold text-gray-900">Thiếu thông tin</h1>
+            <p className="mt-2 text-gray-600">Không tìm thấy thông tin lịch hẹn</p>
+            <Button onClick={() => router.push('/patient/appointments')} className="mt-6 w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Quay lại danh sách lịch hẹn
             </Button>
@@ -263,12 +302,8 @@ export default function PaymentPendingPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
-            <h1 className="mt-6 text-2xl font-bold text-gray-900">
-              Đặt lịch thành công!
-            </h1>
-            <p className="mt-2 text-gray-600">
-              Vui lòng thanh toán để xác nhận lịch hẹn
-            </p>
+            <h1 className="mt-6 text-2xl font-bold text-gray-900">Đặt lịch thành công!</h1>
+            <p className="mt-2 text-gray-600">Vui lòng thanh toán để xác nhận lịch hẹn</p>
           </div>
 
           {/* Countdown Timer */}
@@ -282,7 +317,7 @@ export default function PaymentPendingPage() {
                 </p>
               </div>
             </div>
-            {timeRemaining < 5 * 60 && timeRemaining > 0 && (
+            {timeRemaining !== null && timeRemaining < 5 * 60 && timeRemaining > 0 && (
               <p className="mt-3 text-center text-sm text-orange-600">
                 ⚠️ Còn ít hơn 5 phút! Vui lòng thanh toán ngay.
               </p>
@@ -299,9 +334,7 @@ export default function PaymentPendingPage() {
             {isLoadingPaymentLink ? (
               <div className="rounded-lg border bg-blue-50 p-6 text-center">
                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
-                <p className="mt-3 text-sm text-gray-700">
-                  Đang tạo link thanh toán...
-                </p>
+                <p className="mt-3 text-sm text-gray-700">Đang tạo link thanh toán...</p>
                 <p className="mt-1 text-xs text-gray-500">
                   Vui lòng đợi trong giây lát ({pollingAttempts}/5)
                 </p>
@@ -309,7 +342,7 @@ export default function PaymentPendingPage() {
             ) : paymentLink ? (
               <div className="space-y-4">
                 <Button
-                  onClick={() => window.location.href = paymentLink}
+                  onClick={() => (window.location.href = paymentLink)}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                   size="lg"
                   disabled={isExpired}
@@ -325,9 +358,7 @@ export default function PaymentPendingPage() {
             ) : (
               <div className="rounded-lg border border-orange-200 bg-orange-50 p-6 text-center">
                 <AlertCircle className="mx-auto h-8 w-8 text-orange-600" />
-                <p className="mt-3 text-sm text-gray-700">
-                  Không thể tạo link thanh toán tự động
-                </p>
+                <p className="mt-3 text-sm text-gray-700">Không thể tạo link thanh toán tự động</p>
                 <p className="mt-1 text-xs text-gray-500">
                   Vui lòng vào trang thanh toán để xem hóa đơn
                 </p>
@@ -362,14 +393,20 @@ export default function PaymentPendingPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Trạng thái:</span>
-                  <span className={`font-semibold ${
-                    invoice.status === 'paid' ? 'text-green-600' :
-                    invoice.status === 'pending' ? 'text-orange-600' :
-                    'text-gray-600'
-                  }`}>
-                    {invoice.status === 'paid' ? 'Đã thanh toán' :
-                     invoice.status === 'pending' ? 'Chờ thanh toán' :
-                     invoice.status}
+                  <span
+                    className={`font-semibold ${
+                      invoice.status === 'paid'
+                        ? 'text-green-600'
+                        : invoice.status === 'pending'
+                          ? 'text-orange-600'
+                          : 'text-gray-600'
+                    }`}
+                  >
+                    {invoice.status === 'paid'
+                      ? 'Đã thanh toán'
+                      : invoice.status === 'pending'
+                        ? 'Chờ thanh toán'
+                        : invoice.status}
                   </span>
                 </div>
               </div>
@@ -403,5 +440,24 @@ export default function PaymentPendingPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function PaymentPendingPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="flex h-[70vh] items-center justify-center">
+            <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow">
+              <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+              <p className="mt-3 text-sm text-gray-600">Đang tải thông tin thanh toán...</p>
+            </div>
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <PaymentPendingPageContent />
+    </Suspense>
   );
 }

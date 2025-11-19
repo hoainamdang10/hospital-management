@@ -107,13 +107,13 @@ RUN mkdir -p logs && chown -R patient:nodejs logs
 
 # Set environment variables
 ENV NODE_ENV=production \
-    PORT=3003 \
+    PORT=3002 \
     SERVICE_NAME=patient-registry-service \
     SERVICE_VERSION=2.0.0
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3003/health', (res) => { \
+  CMD node -e "require('http').get('http://localhost:3002/health', (res) => { \
   if (res.statusCode === 200) process.exit(0); else process.exit(1); \
   }).on('error', () => process.exit(1))"
 
@@ -121,7 +121,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 USER patient
 
 # Expose port
-EXPOSE 3003
+EXPOSE 3002
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, JWT, RBAC, Security Best Practices
  */
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 declare global {
     namespace Express {
         interface Request {
@@ -16,6 +16,7 @@ declare global {
                 role: UserRole;
                 tenantId?: string;
                 permissions?: string[];
+                patientId?: string;
             };
             token?: string;
         }

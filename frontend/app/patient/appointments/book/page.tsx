@@ -2,14 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Calendar, 
-  ChevronRight, 
-  ChevronLeft, 
-  Check,
-  Loader2,
-  AlertCircle
-} from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +16,7 @@ import { DateTimePicker } from '@/components/appointments/DateTimePicker';
 import { ConfirmationStep } from '@/components/appointments/ConfirmationStep';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 
 /**
  * Book Appointment Page - 5 Steps
@@ -32,36 +26,52 @@ import { toast } from 'sonner';
  * 4. Chọn giờ
  * 5. Xác nhận
  */
+type ConflictSuggestion = {
+  startTime: string;
+  endTime: string;
+  doctorId: string;
+  confidence?: number;
+  reason?: string;
+};
+
+type ConflictInfo = {
+  message?: string;
+  suggestions: ConflictSuggestion[];
+};
+
 export default function BookAppointmentPage() {
   const router = useRouter();
   const { user } = useAuth();
-  
+
   // Steps
   const [step, setStep] = useState(1);
-  
+
   // Step 1: Department
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
-  
+
   // Step 2: Doctor
   const [doctors, setDoctors] = useState<Staff[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Staff | null>(null);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
-  
+
   // Step 3 & 4: Date & Time
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<TimeSlot | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  
+
   // Step 5: Additional info
   const [reason, setReason] = useState('');
-  const [appointmentType, setAppointmentType] = useState<'CONSULTATION' | 'FOLLOW_UP'>('CONSULTATION');
-  
+  const [appointmentType, setAppointmentType] = useState<'CONSULTATION' | 'FOLLOW_UP'>(
+    'CONSULTATION'
+  );
+
   // Submission
   const [submitting, setSubmitting] = useState(false);
+  const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null);
 
   // Load departments on mount
   useEffect(() => {
@@ -87,7 +97,7 @@ export default function BookAppointmentPage() {
       setLoadingDepartments(true);
       const allDepartments = await getDepartments();
       // Show all active departments
-      const activeDepts = allDepartments.filter(d => d.isActive);
+      const activeDepts = allDepartments.filter((d) => d.isActive);
       setDepartments(activeDepts);
     } catch (error) {
       console.error('Error loading departments:', error);
@@ -102,7 +112,7 @@ export default function BookAppointmentPage() {
       setLoadingDoctors(true);
       const doctorsList = await getDoctorsByDepartment(departmentId, 20);
       setDoctors(doctorsList);
-      
+
       if (doctorsList.length === 0) {
         toast.info('Chưa có bác sĩ trong khoa này');
       }
@@ -120,7 +130,7 @@ export default function BookAppointmentPage() {
       setLoadingSlots(true);
       const dateStr = format(date, 'yyyy-MM-dd');
       const response = await getAvailableSlots(doctorId, dateStr, 30);
-      
+
       if (response.success) {
         setAvailableSlots(response.data.availableSlots);
       }
@@ -139,9 +149,9 @@ export default function BookAppointmentPage() {
       hasPatientId: !!user?.patientId,
       patientId: user?.patientId,
       userId: user?.userId,
-      role: user?.role
+      role: user?.role,
     });
-    
+
     if (!user?.patientId || !selectedDoctor || !selectedDate || !selectedTime) {
       if (!user?.patientId) {
         console.error('[BookAppointment] Missing patientId!', { user });
@@ -154,14 +164,16 @@ export default function BookAppointmentPage() {
 
     try {
       setSubmitting(true);
-      
+      setConflictInfo(null);
+
       // Ensure time format is HH:MM:SS
-      let appointmentTime = selectedTime.formattedTime || format(new Date(selectedTime.startTime), 'HH:mm:ss');
+      let appointmentTime =
+        selectedTime.formattedTime || format(new Date(selectedTime.startTime), 'HH:mm:ss');
       // Add seconds if missing (09:00 -> 09:00:00)
       if (appointmentTime.length === 5) {
         appointmentTime = `${appointmentTime}:00`;
       }
-      
+
       const response = await appointmentsService.schedule({
         patientId: user.patientId, // PAT-202511-XXX format
         doctorId: selectedDoctor.staffId,
@@ -172,30 +184,69 @@ export default function BookAppointmentPage() {
       });
 
       toast.success('Đặt lịch thành công!');
-      
+
       // Redirect to payment pending page with payment link info
       const params = new URLSearchParams({
         appointmentId: response.appointmentId,
       });
-      
+
       if (response.paymentLink) {
         params.append('paymentLink', response.paymentLink);
       }
-      
+
       if (response.invoiceId) {
         params.append('invoiceId', response.invoiceId);
       }
-      
+
       if (response.appointment?.paymentDeadline) {
         params.append('paymentDeadline', response.appointment.paymentDeadline);
       }
-      
+
       router.push(`/patient/appointments/payment-pending?${params.toString()}`);
     } catch (error) {
       console.error('Error booking appointment:', error);
-      toast.error('Đặt lịch thất bại. Vui lòng thử lại.');
+      const axiosError = error as AxiosError<any>;
+      const apiError = axiosError.response?.data;
+
+      if (apiError?.errors?.includes('DOUBLE_BOOKING_DETECTED')) {
+        setConflictInfo({
+          message: apiError?.conflictInfo?.message || apiError?.message,
+          suggestions: apiError?.conflictInfo?.suggestions || [],
+        });
+        setStep(4);
+        toast.error(apiError?.message || 'Bác sĩ đã có lịch vào thời gian này.');
+        return;
+      }
+
+      toast.error(apiError?.message || 'Đặt lịch thất bại. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function handleSuggestionSelect(suggestion: ConflictSuggestion) {
+    try {
+      const start = new Date(suggestion.startTime);
+      const end = new Date(suggestion.endTime);
+
+      if (suggestion.doctorId && selectedDoctor?.staffId !== suggestion.doctorId) {
+        const suggestedDoctor = doctors.find((doc) => doc.staffId === suggestion.doctorId);
+        if (suggestedDoctor) {
+          setSelectedDoctor(suggestedDoctor);
+        }
+      }
+
+      setSelectedDate(start);
+      setSelectedTime({
+        startTime: format(start, 'HH:mm:ss'),
+        endTime: format(end, 'HH:mm:ss'),
+        isAvailable: true,
+      });
+      setConflictInfo(null);
+      setStep(5);
+    } catch (error) {
+      console.error('Error applying suggestion:', error);
+      toast.error('Không thể áp dụng gợi ý. Vui lòng chọn thời gian khác.');
     }
   }
 
@@ -231,26 +282,24 @@ export default function BookAppointmentPage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Đặt lịch khám</h1>
-          <p className="mt-2 text-gray-600">
-            Chọn chuyên khoa, bác sĩ và thời gian phù hợp
-          </p>
+          <p className="mt-2 text-gray-600">Chọn chuyên khoa, bác sĩ và thời gian phù hợp</p>
         </div>
 
         {/* Progress Steps */}
         <div className="flex items-center justify-between">
           <StepIndicator number={1} title="Chuyên khoa" active={step === 1} completed={step > 1} />
-          <div className="h-0.5 flex-1 bg-gray-200 mx-2" />
+          <div className="mx-2 h-0.5 flex-1 bg-gray-200" />
           <StepIndicator number={2} title="Bác sĩ" active={step === 2} completed={step > 2} />
-          <div className="h-0.5 flex-1 bg-gray-200 mx-2" />
+          <div className="mx-2 h-0.5 flex-1 bg-gray-200" />
           <StepIndicator number={3} title="Ngày khám" active={step === 3} completed={step > 3} />
-          <div className="h-0.5 flex-1 bg-gray-200 mx-2" />
+          <div className="mx-2 h-0.5 flex-1 bg-gray-200" />
           <StepIndicator number={4} title="Giờ khám" active={step === 4} completed={step > 4} />
-          <div className="h-0.5 flex-1 bg-gray-200 mx-2" />
+          <div className="mx-2 h-0.5 flex-1 bg-gray-200" />
           <StepIndicator number={5} title="Xác nhận" active={step === 5} completed={false} />
         </div>
 
         {/* Content */}
-        <div className="rounded-2xl border bg-white p-8 shadow-sm min-h-[500px]">
+        <div className="min-h-[500px] rounded-2xl border bg-white p-8 shadow-sm">
           {/* Step 1: Choose Department */}
           {step === 1 && (
             <>
@@ -310,14 +359,52 @@ export default function BookAppointmentPage() {
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Quay lại
                 </Button>
-                <Button 
-                  onClick={handleNext} 
-                  disabled={step === 3 ? !selectedDate : !selectedTime}
-                >
+                <Button onClick={handleNext} disabled={step === 3 ? !selectedDate : !selectedTime}>
                   {step === 4 ? 'Xem xác nhận' : 'Tiếp tục'}
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
+              {conflictInfo && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="font-semibold text-red-700">
+                          {conflictInfo.message || 'Bác sĩ đã có lịch hẹn tại thời điểm này.'}
+                        </p>
+                        <p className="text-sm text-red-600">
+                          Vui lòng chọn khung giờ khác hoặc dùng một trong các gợi ý dưới đây.
+                        </p>
+                      </div>
+                      {conflictInfo.suggestions && conflictInfo.suggestions.length > 0 ? (
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {conflictInfo.suggestions.slice(0, 4).map((suggestion, index) => (
+                            <button
+                              key={`${suggestion.startTime}-${index}`}
+                              type="button"
+                              onClick={() => handleSuggestionSelect(suggestion)}
+                              className="flex flex-col rounded-md border border-red-100 bg-white/80 px-4 py-3 text-left shadow-sm transition hover:border-red-300"
+                            >
+                              <span className="font-semibold text-gray-900">
+                                {format(new Date(suggestion.startTime), 'HH:mm')} -{' '}
+                                {format(new Date(suggestion.endTime), 'HH:mm')}
+                              </span>
+                              {suggestion.reason && (
+                                <span className="text-xs text-gray-500">{suggestion.reason}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-600">
+                          Không có gợi ý tự động. Vui lòng chọn khung giờ khác.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -378,10 +465,10 @@ function StepIndicator({
       <div
         className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-all ${
           active
-            ? 'border-primary bg-primary text-white scale-110'
+            ? 'border-primary bg-primary scale-110 text-white'
             : completed
-            ? 'border-primary bg-primary text-white'
-            : 'border-gray-300 bg-white text-gray-500'
+              ? 'border-primary bg-primary text-white'
+              : 'border-gray-300 bg-white text-gray-500'
         }`}
       >
         {completed ? <Check className="h-5 w-5" /> : number}

@@ -22,6 +22,7 @@ export interface InvoiceProps {
   outstandingAmount: Money;
   status: InvoiceStatus;
   payments: Payment[];
+  paidAt?: Date; // Timestamp when invoice was fully paid
   createdAt: Date;
   updatedAt: Date;
   // REMOVED (Phase 1 Prepaid Model): finalizedAt, cancelledAt, cancellationReason, insurance, insuranceCoverage
@@ -70,6 +71,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       outstandingAmount,
       status: InvoiceStatus.pending(), // Phase 1: Start with PENDING (waiting for payment)
       payments: [],
+      paidAt: undefined, // Not paid yet
       createdAt: now,
       updatedAt: now
     });
@@ -111,6 +113,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
 
     if (this.props.outstandingAmount.amount <= 0) {
       this.props.status = InvoiceStatus.paid();
+      this.props.paidAt = new Date(); // Set paid timestamp
     }
 
     this.props.updatedAt = new Date();
@@ -195,6 +198,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       currency: this.props.totalAmount.currency,
       status: this.props.status.value,
       payments: this.props.payments.map(p => p.toPersistence()),
+      paidAt: this.props.paidAt,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt
       // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
@@ -248,5 +252,9 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  get paidAt(): Date | undefined {
+    return this.props.paidAt;
   }
 }

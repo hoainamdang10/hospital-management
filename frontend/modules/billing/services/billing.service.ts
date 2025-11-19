@@ -8,6 +8,7 @@ import apiClient from '@/lib/api/axios';
 export interface Invoice {
   id: string;
   patientId: string;
+  appointmentId?: string;
   invoiceNumber?: string;
   items: InvoiceItem[];
   subtotal: number;
@@ -65,14 +66,31 @@ export interface PayOSPaymentLink {
 }
 
 class BillingService {
-  private baseUrl = '/api/v1/billing';
+  private baseUrl = '/v1/billing/invoices';
 
   /**
    * Get patient invoices
    */
   async getPatientInvoices(patientId: string): Promise<Invoice[]> {
     const response = await apiClient.get(`${this.baseUrl}/patient/${patientId}`);
-    return response.data;
+    const data = response.data;
+
+    const rawInvoices = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.invoices)
+        ? data.invoices
+        : Array.isArray(data?.data?.invoices)
+          ? data.data.invoices
+          : [];
+
+    return rawInvoices.map((invoice: any) => ({
+      ...invoice,
+      id: invoice.id || invoice.invoiceId,
+      appointmentId: invoice.appointmentId ?? invoice.appointment_id,
+      totalAmount: invoice.totalAmount ?? invoice.total_amount,
+      outstandingAmount: invoice.outstandingAmount ?? invoice.outstanding_amount,
+      status: invoice.status ?? invoice.invoiceStatus,
+    }));
   }
 
   /**
@@ -120,10 +138,7 @@ class BillingService {
       transactionId?: string;
     }
   ): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post(
-      `${this.baseUrl}/${invoiceId}/payments`,
-      paymentData
-    );
+    const response = await apiClient.post(`${this.baseUrl}/${invoiceId}/payments`, paymentData);
     return response.data;
   }
 
@@ -132,7 +147,7 @@ class BillingService {
    */
   async downloadInvoice(invoiceId: string): Promise<Blob> {
     const response = await apiClient.get(`${this.baseUrl}/${invoiceId}/download`, {
-      responseType: 'blob'
+      responseType: 'blob',
     });
     return response.data;
   }
@@ -147,7 +162,7 @@ class BillingService {
     toDate?: string;
   }): Promise<Invoice[]> {
     const response = await apiClient.get(`${this.baseUrl}/search`, {
-      params: criteria
+      params: criteria,
     });
     return response.data;
   }

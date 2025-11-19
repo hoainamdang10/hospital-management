@@ -139,46 +139,51 @@ export class BillingEventConsumer {
       const content = msg.content.toString();
       const event = JSON.parse(content);
 
+      // FIX: EventBus serializes events using toJSON() which returns { eventType, eventData, ... }
+      // Not { type, data, ... }
+      const eventType = event.eventType || event.type;
+      const eventData = event.eventData || event.data;
+
       // Inbox pattern for idempotency
-      const eventId = event.eventId || event.id || `${event.type}-${Date.now()}`;
+      const eventId = event.eventId || event.id || `${eventType}-${Date.now()}`;
       const exists = await this.inboxRepository.exists(eventId);
       if (exists) {
-        console.log('Event already processed (idempotent)', { eventId, type: event.type });
+        console.log('Event already processed (idempotent)', { eventId, eventType });
         this.channel.ack(msg);
         return;
       }
 
       // Route to appropriate handler
-      switch (event.type) {
+      switch (eventType) {
         case 'PaymentCompleted':
         case 'billing.payment.completed':
-          await this.paymentCompletedHandler.handle(event.data as PaymentCompletedEventData);
+          await this.paymentCompletedHandler.handle(eventData as PaymentCompletedEventData);
           break;
         case 'PreAuthorizationRequested':
-          await this.handlePreAuthorizationRequested(event.data);
+          await this.handlePreAuthorizationRequested(eventData);
           break;
         case 'PreAuthorizationApproved':
-          await this.handlePreAuthorizationApproved(event.data);
+          await this.handlePreAuthorizationApproved(eventData);
           break;
         case 'PreAuthorizationDenied':
-          await this.handlePreAuthorizationDenied(event.data);
+          await this.handlePreAuthorizationDenied(eventData);
           break;
         case 'BillingRateUpdated':
-          await this.handleBillingRateUpdated(event.data);
+          await this.handleBillingRateUpdated(eventData);
           break;
         case 'InsuranceCoverageVerified':
-          await this.handleInsuranceCoverageVerified(event.data);
+          await this.handleInsuranceCoverageVerified(eventData);
           break;
         default:
-          console.warn(`Unknown event type: ${event.type}`);
+          console.warn(`Unknown event type: ${eventType}`);
       }
 
       // Save to inbox after successful processing
       await this.inboxRepository.save({
         eventId,
-        eventType: event.type,
+        eventType,
         sourceService: 'billing-service',
-        payloadJson: event.data,
+        payloadJson: eventData,
         processedAt: new Date()
       });
       this.channel.ack(msg);

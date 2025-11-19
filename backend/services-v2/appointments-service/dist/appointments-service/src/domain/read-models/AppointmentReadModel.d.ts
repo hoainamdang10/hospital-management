@@ -17,6 +17,7 @@ export interface AppointmentReadModel {
     type: string;
     priority: string;
     status: string;
+    paymentStatus?: string;
     roomId?: string;
     departmentId?: string;
     consultationFee: number;
@@ -79,6 +80,7 @@ export interface CreateAppointmentReadModelData {
     type: string;
     priority: string;
     status: string;
+    paymentStatus?: string;
     roomId?: string;
     departmentId?: string;
     consultationFee: number;

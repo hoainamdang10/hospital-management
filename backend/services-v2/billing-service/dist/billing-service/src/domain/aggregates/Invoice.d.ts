@@ -17,6 +17,7 @@ export interface InvoiceProps {
     outstandingAmount: Money;
     status: InvoiceStatus;
     payments: Payment[];
+    paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -47,5 +48,6 @@ export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     get payments(): Payment[];
     get createdAt(): Date;
     get updatedAt(): Date;
+    get paidAt(): Date | undefined;
 }
 //# sourceMappingURL=Invoice.d.ts.map

@@ -45,7 +45,7 @@ const amqp = __importStar(require("amqplib"));
 const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 const DomainEventMapper_1 = require("./DomainEventMapper");
 class RabbitMQEventPublisher {
-    constructor(rabbitMQUrl, logger, exchangeName) {
+    constructor(rabbitMQUrl, logger, exchangeName, options) {
         this.rabbitMQUrl = rabbitMQUrl;
         this.logger = logger;
         this.connection = null;
@@ -55,16 +55,24 @@ class RabbitMQEventPublisher {
         this.flushingPending = false;
         this.maxPublishAttempts = 3;
         this.publishRetryDelayMs = 500;
+        this.reconnecting = false;
         this.exchangeName =
             exchangeName || process.env.RABBITMQ_EXCHANGE || "hospital.events";
+        this.maxConnectionAttempts = options?.maxConnectionAttempts ?? 5;
+        this.connectionRetryDelayMs = options?.connectionRetryDelayMs ?? 2000;
     }
     /**
      * Initialize RabbitMQ connection and channel
      */
     async initialize() {
+        await this.connectWithRetry();
+    }
+    async connectWithRetry(attempt = 1) {
         try {
             this.logger.info("Connecting to RabbitMQ", {
                 url: this.rabbitMQUrl.replace(/\/\/.*@/, "//<credentials>@"),
+                attempt,
+                maxAttempts: this.maxConnectionAttempts,
             });
             // Create connection - explicit type assertion for amqplib compatibility
             // Note: amqplib types have issues, using unknown cast to fix
@@ -77,10 +85,12 @@ class RabbitMQEventPublisher {
                         error: err.message,
                     });
                     this.isConnected = false;
+                    this.scheduleReconnect();
                 });
                 this.connection.on("close", () => {
                     this.logger.warn("RabbitMQ connection closed");
                     this.isConnected = false;
+                    this.scheduleReconnect();
                 });
                 // Create channel
                 // @ts-expect-error - amqplib type definitions issue
@@ -101,8 +111,20 @@ class RabbitMQEventPublisher {
         catch (error) {
             this.logger.error("Failed to initialize RabbitMQ", {
                 error: error instanceof Error ? error.message : String(error),
+                attempt,
+                maxAttempts: this.maxConnectionAttempts,
             });
-            throw error;
+            await this.cleanupConnection();
+            if (attempt >= this.maxConnectionAttempts) {
+                throw error;
+            }
+            const delay = this.connectionRetryDelayMs * attempt;
+            this.logger.warn("Retrying RabbitMQ connection", {
+                attempt: attempt + 1,
+                delay,
+            });
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            await this.connectWithRetry(attempt + 1);
         }
     }
     /**
@@ -243,6 +265,50 @@ class RabbitMQEventPublisher {
         finally {
             this.flushingPending = false;
         }
+    }
+    async cleanupConnection() {
+        if (this.channel) {
+            try {
+                await this.channel.close();
+            }
+            catch {
+                // ignore cleanup errors
+            }
+            finally {
+                this.channel = null;
+            }
+        }
+        if (this.connection) {
+            try {
+                const closable = this.connection;
+                if (typeof closable.close === "function") {
+                    await closable.close();
+                }
+            }
+            catch {
+                // ignore cleanup errors
+            }
+            finally {
+                this.connection = null;
+            }
+        }
+    }
+    scheduleReconnect() {
+        if (this.reconnecting) {
+            return;
+        }
+        this.reconnecting = true;
+        setTimeout(() => {
+            this.connectWithRetry()
+                .catch((error) => {
+                this.logger.error("RabbitMQ reconnect attempt failed", {
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            })
+                .finally(() => {
+                this.reconnecting = false;
+            });
+        }, this.connectionRetryDelayMs);
     }
 }
 exports.RabbitMQEventPublisher = RabbitMQEventPublisher;

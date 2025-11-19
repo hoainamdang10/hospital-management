@@ -14,20 +14,20 @@ export function usePatient() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.userId) {
       loadPatient();
     } else {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.userId]);
 
   const loadPatient = async () => {
-    if (!user?.id) return;
+    if (!user?.userId) return;
 
     try {
       setIsLoading(true);
       setError(null);
-      const patientData = await getPatientByUserId(user.id);
+      const patientData = await getPatientByUserId(user.userId);
       setPatient(patientData);
     } catch (err: any) {
       console.error('[usePatient] Failed to load patient:', err);

@@ -931,18 +931,37 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       personalInfo: PersonalInfo.fromPersistence(data.personal_info),
       professionalInfo: ProfessionalInfo.fromPersistence(data.professional_info),
       workSchedule: WorkSchedule.fromPersistence(data.work_schedule),
-      specializations: (data.specializations || []).map((s: any) => {
-        // Handle both string format (legacy) and object format
-        if (typeof s === 'string') {
-          return Specialization.fromPersistenceData({
-            code: s.toUpperCase().replace(/\s+/g, '_'),
-            name: s,
-            description: '',
-            isActive: true
-          });
+      specializations: (() => {
+        const items = (data.specializations || []).map((s: any) => {
+          if (typeof s === 'string') {
+            return Specialization.fromPersistenceData({
+              code: s.toUpperCase().replace(/\s+/g, '_'),
+              name: s,
+              description: '',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
+          return Specialization.fromPersistenceData(s);
+        });
+        if (items.length === 0) {
+          const deptName = (data.professional_info?.department || (Array.isArray(data.department_assignments) && data.department_assignments[0]?.departmentNameEn) || (Array.isArray(data.department_assignments) && data.department_assignments[0]?.departmentNameVi)) || undefined;
+          if (typeof deptName === 'string' && deptName.trim().length > 0) {
+            items.push(
+              Specialization.fromPersistenceData({
+                code: deptName.toUpperCase().replace(/\s+/g, '_'),
+                name: deptName,
+                description: '',
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+            );
+          }
         }
-        return Specialization.fromPersistenceData(s);
-      }),
+        return items;
+      })(),
       credentials: (data.credentials || []).map((c: any) => StaffCredential.fromPersistenceData(c)),
       certifications: (data.certifications || []).map((c: any) => StaffCertification.fromPersistenceData(c)),
       // REMOVED: availability - Belongs to Scheduling/Appointment Service

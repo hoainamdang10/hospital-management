@@ -1,4 +1,4 @@
-import { Invoice } from '../../domain/aggregates/Invoice';
+import { Invoice } from "../../domain/aggregates/Invoice";
 export interface InvoiceRecord {
     id: string;
     invoice_id: string;

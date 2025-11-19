@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout';
 import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, User } from 'lucide-react';
+import { appointmentsClient } from '@/lib/api/clients';
+import { searchStaff } from '@/lib/api/staff.service';
 
 interface Appointment {
   id: string;
@@ -31,6 +33,46 @@ export default function DoctorSchedulePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'list'>('day');
   const [selectedDoctor, setSelectedDoctor] = useState('all');
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [doctorOptions, setDoctorOptions] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    const loadAppointments = async () => {
+      try {
+        const resp = await appointmentsClient.get('/api/v1/appointments', {
+          params: { page: 1, pageSize: 1000 },
+        });
+        const list = resp.data?.data?.appointments || [];
+        const mapped: Appointment[] = list.map((apt: any) => ({
+          id: apt.appointmentId || apt.id,
+          patientId: apt.patientId || 'unknown',
+          patientName: apt.patientName || 'Bệnh nhân',
+          doctorId: apt.providerId || apt.doctorId || 'unknown',
+          doctorName: apt.providerName || apt.doctorName || 'Bác sĩ',
+          doctorAvatar: '👨‍⚕️',
+          date: (apt.appointmentDate || apt.appointmentDateTime || '').toString().slice(0, 10),
+          startTime: (apt.appointmentTime || (apt.appointmentDateTime || '').toString().slice(11, 16)) || '09:00',
+          endTime: '00:00',
+          type: apt.appointmentType || 'Consultation',
+          status: String(apt.status || 'SCHEDULED').toLowerCase() as any,
+          color: 'blue',
+        }));
+        setAppointments(mapped);
+      } catch (e) {
+        console.error('Load appointments failed', e);
+        setAppointments([]);
+      }
+    };
+    const loadDoctors = async () => {
+      try {
+        const res = await searchStaff({ staffType: 'doctor', status: 'active', isActive: true, limit: 100 });
+        const opts = (res?.data?.items || []).map((s: any) => ({ id: s.staffId, name: s.personalInfo?.fullName || 'Bác sĩ' }));
+        setDoctorOptions(opts);
+      } catch {}
+    };
+    loadAppointments();
+    loadDoctors();
+  }, []);
 
   // Mock data - Replace with API call
   const mockAppointments: Appointment[] = [
@@ -184,7 +226,7 @@ export default function DoctorSchedulePage() {
 
   // Filter appointments based on selected date and doctor
   const getFilteredAppointments = () => {
-    return mockAppointments.filter(apt => {
+    return appointments.filter(apt => {
       const matchesDoctor = selectedDoctor === 'all' || apt.doctorId === selectedDoctor;
       return matchesDoctor;
     });
@@ -351,10 +393,10 @@ export default function DoctorSchedulePage() {
                   onChange={(e) => setSelectedDoctor(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">All Doctors</option>
-                  <option value="dr-patel">Dr. Lisa Patel</option>
-                  <option value="dr-smith">Dr. John Smith</option>
-                  <option value="dr-nguyen">Dr. Nguyen Van A</option>
+                  <option value="all">Tất cả bác sĩ</option>
+                  {doctorOptions.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
                 </select>
               </div>
 

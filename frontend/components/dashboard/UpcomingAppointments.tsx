@@ -88,21 +88,25 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
 
       try {
         const response = await appointmentsService.getPatientAppointments(patientId, {
-          pageSize: 10,
-          status: 'CONFIRMED,PENDING',
+          pageSize: 25,
         });
 
         if (response.success && response.appointments) {
           // Transform API data to component format
-          const transformedAppointments: Appointment[] = response.appointments.map((apt: any) => ({
-            id: apt.id,
-            patientName: apt.patientName || apt.patient?.fullName || 'Bệnh nhân',
-            date: apt.appointmentDate || apt.date,
-            time: apt.appointmentTime || apt.time,
-            doctor: apt.doctorName || apt.doctor?.fullName || 'Bác sĩ',
-            treatment: apt.appointmentType || apt.type || 'Khám bệnh',
-            status: apt.status?.toLowerCase() || 'pending',
-          }));
+          const transformedAppointments: Appointment[] = response.appointments
+            .filter(
+              (apt: any) =>
+                apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED' || apt.status === 'PENDING'
+            )
+            .map((apt: any) => ({
+              id: apt.id,
+              patientName: apt.patientName || apt.patient?.fullName || 'Bệnh nhân',
+              date: apt.appointmentDate || apt.date,
+              time: apt.appointmentTime || apt.time,
+              doctor: apt.doctorName || apt.doctor?.fullName || 'Bác sĩ',
+              treatment: apt.appointmentType || apt.type || 'Khám bệnh',
+              status: apt.status?.toLowerCase() || 'pending',
+            }));
           setAppointments(transformedAppointments);
         } else {
           setAppointments(getMockAppointments());
@@ -163,8 +167,8 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex gap-4 animate-pulse">
-              <div className="h-16 bg-gray-200 rounded flex-1" />
+            <div key={i} className="flex animate-pulse gap-4">
+              <div className="h-16 flex-1 rounded bg-gray-200" />
             </div>
           ))}
         </div>
@@ -177,23 +181,21 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">Patient Appointment</h2>
-        <button className="text-sm font-medium text-blue-600 hover:text-blue-700">
-          View All
-        </button>
+        <button className="text-sm font-medium text-blue-600 hover:text-blue-700">View All</button>
       </div>
 
       {/* Mini Calendar */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <button
             onClick={handlePrevWeek}
-            className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
           >
             <ChevronLeft className="h-5 w-5 text-gray-600" />
           </button>
           <button
             onClick={handleNextWeek}
-            className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
           >
             <ChevronRight className="h-5 w-5 text-gray-600" />
           </button>
@@ -212,11 +214,11 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
                   isSelected
                     ? 'bg-blue-900 text-white shadow-lg'
                     : isToday
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <span className="text-xs font-medium mb-1">
+                <span className="mb-1 text-xs font-medium">
                   {format(day, 'EEE', { locale: vi }).toUpperCase()}
                 </span>
                 <span className="text-lg font-bold">{format(day, 'd')}</span>
@@ -231,22 +233,22 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Name
               </th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Date
               </th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Time
               </th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Doctor
               </th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Treatment
               </th>
-              <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Status
               </th>
               <th className="pb-3"></th>
@@ -254,7 +256,7 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {appointments.map((appointment) => (
-              <tr key={appointment.id} className="group hover:bg-gray-50 transition-colors">
+              <tr key={appointment.id} className="group transition-colors hover:bg-gray-50">
                 <td className="py-4 text-sm font-medium text-gray-900">
                   {appointment.patientName}
                 </td>
@@ -272,7 +274,7 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
                   </span>
                 </td>
                 <td className="py-4">
-                  <button className="rounded-lg p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition-all">
+                  <button className="rounded-lg p-1 opacity-0 transition-all group-hover:opacity-100 hover:bg-gray-200">
                     <MoreVertical className="h-4 w-4 text-gray-600" />
                   </button>
                 </td>

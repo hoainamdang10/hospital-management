@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { XCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,11 +9,11 @@ import { DashboardLayout } from '@/components/layout';
 /**
  * Payment Cancel Page
  * Route: /patient/billing/payment/cancel
- * 
+ *
  * Displayed when user cancels PayOS payment
  * Query params: orderCode, status
  */
-export default function PaymentCancelPage() {
+function PaymentCancelPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -33,19 +34,13 @@ export default function PaymentCancelPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
             <XCircle className="h-10 w-10 text-orange-600" />
           </div>
-          <h1 className="mt-6 text-2xl font-bold text-gray-900">
-            Thanh toán đã bị hủy
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Bạn đã hủy giao dịch thanh toán
-          </p>
+          <h1 className="mt-6 text-2xl font-bold text-gray-900">Thanh toán đã bị hủy</h1>
+          <p className="mt-2 text-gray-600">Bạn đã hủy giao dịch thanh toán</p>
 
           {orderCode && (
             <div className="mt-6 rounded-lg bg-gray-50 p-4">
               <p className="text-sm text-gray-600">Mã giao dịch</p>
-              <p className="mt-1 font-mono text-lg font-semibold text-gray-900">
-                {orderCode}
-              </p>
+              <p className="mt-1 font-mono text-lg font-semibold text-gray-900">{orderCode}</p>
             </div>
           )}
 
@@ -54,11 +49,7 @@ export default function PaymentCancelPage() {
               <RefreshCw className="mr-2 h-4 w-4" />
               Thử lại thanh toán
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleBackToBilling}
-              className="w-full"
-            >
+            <Button variant="outline" onClick={handleBackToBilling} className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Quay lại trang thanh toán
             </Button>
@@ -73,3 +64,18 @@ export default function PaymentCancelPage() {
   );
 }
 
+export default function PaymentCancelPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <p className="text-sm text-gray-600">Đang tải trạng thái thanh toán...</p>
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <PaymentCancelPageContent />
+    </Suspense>
+  );
+}

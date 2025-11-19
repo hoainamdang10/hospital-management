@@ -294,7 +294,7 @@ export default function DoctorsListPage() {
                             {/* Dropdown menu */}
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                               <Link
-                                href={`/admin/doctors/${doctor.id}`}
+                                href={`/admin/doctors/${doctor.staffId}`}
                                 onClick={() => setOpenDropdown(null)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                               >

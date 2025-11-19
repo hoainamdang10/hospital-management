@@ -146,6 +146,7 @@ export class AppointmentEventConsumer {
   private connection?: any;
   private channel?: any;
   private isConnected = false;
+  private reconnecting = false;
 
   constructor(
     private config: AppointmentEventConsumerConfig,
@@ -153,76 +154,133 @@ export class AppointmentEventConsumer {
     private getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase,
     private createAppointmentRemindersUseCase: CreateAppointmentRemindersUseCase,
     private appointmentReminderRepo: IAppointmentReminderRepository,
-    private inboxRepo: IInboxRepository
+    private inboxRepo: IInboxRepository,
   ) {}
 
   /**
    * Connect to RabbitMQ and start consuming
    */
   async connect(): Promise<void> {
-    try {
-      console.log("Connecting to RabbitMQ for Appointment events", {
-        queueName: this.config.queueName,
-      });
+    const maxAttempts = Math.max(1, this.config.retryAttempts || 3);
+    const retryDelay = this.config.retryDelayMs || 1000;
 
-      const amqp = require("amqplib");
-      this.connection = await amqp.connect(this.config.rabbitmqUrl);
-      this.channel = await this.connection.createChannel();
-
-      if (!this.channel) {
-        throw new Error("Failed to create RabbitMQ channel");
-      }
-
-      // Assert exchange
-      await this.channel.assertExchange(this.config.exchangeName, "topic", {
-        durable: true,
-      });
-
-      // Assert queue
-      await this.channel.assertQueue(this.config.queueName, {
-        durable: true,
-      });
-
-      // Bind queue to routing keys
-      for (const routingKey of this.config.routingKeys) {
-        await this.channel.bindQueue(
-          this.config.queueName,
-          this.config.exchangeName,
-          routingKey
-        );
-        console.log("Queue bound to routing key", {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        console.log("Connecting to RabbitMQ for Appointment events", {
           queueName: this.config.queueName,
-          routingKey,
+          attempt,
+          maxAttempts,
         });
+
+        const amqp = require("amqplib");
+        this.connection = await amqp.connect(this.config.rabbitmqUrl);
+        this.channel = await this.connection.createChannel();
+
+        if (!this.channel) {
+          throw new Error("Failed to create RabbitMQ channel");
+        }
+
+        this.setupConnectionListeners();
+
+        // Assert exchange
+        await this.channel.assertExchange(this.config.exchangeName, "topic", {
+          durable: true,
+        });
+
+        // Assert queue
+        await this.channel.assertQueue(this.config.queueName, {
+          durable: true,
+        });
+
+        // Bind queue to routing keys
+        for (const routingKey of this.config.routingKeys) {
+          await this.channel.bindQueue(
+            this.config.queueName,
+            this.config.exchangeName,
+            routingKey,
+          );
+          console.log("Queue bound to routing key", {
+            queueName: this.config.queueName,
+            routingKey,
+          });
+        }
+
+        this.channel.prefetch(this.config.prefetchCount || 10);
+
+        // Start consuming
+        await this.channel.consume(
+          this.config.queueName,
+          this.handleMessage.bind(this),
+          { noAck: false },
+        );
+
+        this.isConnected = true;
+        console.log("Appointment event consumer connected successfully");
+        return;
+      } catch (error) {
+        console.error("Failed to connect to RabbitMQ", {
+          attempt,
+          maxAttempts,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        await this.closeConnectionSilently();
+
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+
+        const delay = retryDelay * attempt;
+        console.log(
+          `Retrying appointment consumer connection in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
+    }
+  }
 
-      // Start consuming
-      await this.channel.consume(
-        this.config.queueName,
-        this.handleMessage.bind(this),
-        { noAck: false }
-      );
+  private setupConnectionListeners(): void {
+    if (!this.connection) {
+      return;
+    }
 
-      this.isConnected = true;
-      console.log("Appointment event consumer connected successfully");
+    this.connection.on("error", (error: Error) => {
+      console.error("RabbitMQ connection error", {
+        error: error.message,
+      });
+      this.isConnected = false;
+    });
 
-      // Handle connection errors
-      this.connection.on("error", (error: Error) => {
-        console.error("RabbitMQ connection error", {
-          error: error.message,
+    this.connection.on("close", () => {
+      console.warn("RabbitMQ connection closed");
+      this.isConnected = false;
+      this.triggerReconnect();
+    });
+  }
+
+  private triggerReconnect(): void {
+    if (this.reconnecting) {
+      return;
+    }
+
+    this.reconnecting = true;
+    const delay = this.config.retryDelayMs || 1000;
+
+    setTimeout(() => {
+      this.connect()
+        .catch((error) => {
+          console.error("Appointment event consumer reconnect failed", error);
+        })
+        .finally(() => {
+          this.reconnecting = false;
         });
-        this.isConnected = false;
-      });
+    }, delay);
+  }
 
-      this.connection.on("close", () => {
-        console.warn("RabbitMQ connection closed");
-        this.isConnected = false;
-      });
-    } catch (error) {
-      console.error("Failed to connect to RabbitMQ", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
+  private async closeConnectionSilently(): Promise<void> {
+    try {
+      await this.disconnect();
+    } catch {
+      // ignore cleanup failures during retry
     }
   }
 
@@ -244,7 +302,7 @@ export class AppointmentEventConsumer {
       if (!eventId) {
         console.error(
           "[AppointmentEventConsumer] Missing eventId, cannot process:",
-          event
+          event,
         );
         this.channel?.ack(msg);
         return;
@@ -252,14 +310,14 @@ export class AppointmentEventConsumer {
 
       if (await this.inboxRepo.exists(eventId)) {
         console.debug(
-          `[AppointmentEventConsumer] Duplicate event ${eventId}, skipping`
+          `[AppointmentEventConsumer] Duplicate event ${eventId}, skipping`,
         );
         this.channel?.ack(msg);
         return;
       }
 
       console.log(
-        `[AppointmentEventConsumer] Processing event: ${routingKey} (${eventId})`
+        `[AppointmentEventConsumer] Processing event: ${routingKey} (${eventId})`,
       );
 
       // Route to appropriate handler
@@ -267,19 +325,19 @@ export class AppointmentEventConsumer {
       switch (routingKey) {
         case "appointment.scheduled":
           await this.handleAppointmentScheduled(
-            event.payload as AppointmentScheduledEventData
+            event.payload as AppointmentScheduledEventData,
           );
           break;
 
         case "appointment.confirmed":
           await this.handleAppointmentConfirmed(
-            event.payload as AppointmentConfirmedEventData
+            event.payload as AppointmentConfirmedEventData,
           );
           break;
 
         case "appointment.cancelled":
           await this.handleAppointmentCancelled(
-            event.payload as AppointmentCancelledEventData
+            event.payload as AppointmentCancelledEventData,
           );
           break;
 
@@ -303,7 +361,7 @@ export class AppointmentEventConsumer {
         default:
           console.warn(
             "[AppointmentEventConsumer] Unhandled routing key (may be out of MVP scope)",
-            { routingKey }
+            { routingKey },
           );
           break;
       }
@@ -339,7 +397,7 @@ export class AppointmentEventConsumer {
    * - Use new template: APPOINTMENT_SCHEDULED
    */
   private async handleAppointmentScheduled(
-    data: AppointmentScheduledEventData
+    data: AppointmentScheduledEventData,
   ): Promise<void> {
     console.log(
       "[AppointmentEventConsumer] Processing appointment scheduled (PENDING_PAYMENT)",
@@ -350,7 +408,7 @@ export class AppointmentEventConsumer {
         status: data.status,
         appointmentDate: data.appointmentDate,
         appointmentTime: data.appointmentTime,
-      }
+      },
     );
 
     try {
@@ -401,7 +459,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           templateUsed: "APPOINTMENT_SCHEDULED",
-        }
+        },
       );
 
       // ❌ DO NOT create reminders here!
@@ -429,7 +487,7 @@ export class AppointmentEventConsumer {
    * - Use new template: APPOINTMENT_CONFIRMED
    */
   private async handleAppointmentConfirmed(
-    data: AppointmentConfirmedEventData
+    data: AppointmentConfirmedEventData,
   ): Promise<void> {
     console.log(
       "[AppointmentEventConsumer] Processing appointment confirmed (AFTER PAYMENT)",
@@ -440,7 +498,7 @@ export class AppointmentEventConsumer {
         confirmedBy: data.confirmedBy,
         confirmedAt: data.confirmedAt,
         previousStatus: data.previousStatus,
-      }
+      },
     );
 
     try {
@@ -532,7 +590,7 @@ export class AppointmentEventConsumer {
         const remindersRequest =
           AppointmentEventAdapter.toCreateRemindersRequest(
             data,
-            patientPreferences?.preferences
+            patientPreferences?.preferences,
           );
 
         // ✅ Runtime validation (optional but recommended)
@@ -545,17 +603,17 @@ export class AppointmentEventConsumer {
             {
               appointmentId: data.appointmentId,
               errors: validation.errors,
-            }
+            },
           );
           throw new Error(
-            `Invalid reminders request: ${validation.errors.join(", ")}`
+            `Invalid reminders request: ${validation.errors.join(", ")}`,
           );
         }
 
         // ✅ Execute with type-safe request
         const result =
           await this.createAppointmentRemindersUseCase.execute(
-            remindersRequest
+            remindersRequest,
           );
 
         if (result.success) {
@@ -565,7 +623,7 @@ export class AppointmentEventConsumer {
               appointmentId: data.appointmentId,
               remindersCreated: result.created,
               reminderTypes: ["24H", "2H", "30M"],
-            }
+            },
           );
         } else {
           console.error(
@@ -573,9 +631,9 @@ export class AppointmentEventConsumer {
             {
               appointmentId: data.appointmentId,
               error: result.message,
-            }
+            },
           );
-          throw new Error(result.message || 'Failed to create reminders');
+          throw new Error(result.message || "Failed to create reminders");
         }
       } catch (reminderError) {
         console.error(
@@ -586,7 +644,7 @@ export class AppointmentEventConsumer {
               reminderError instanceof Error
                 ? reminderError.message
                 : "Unknown error",
-          }
+          },
         );
         // Don't throw - confirmation already sent, reminders are non-critical
       }
@@ -597,7 +655,7 @@ export class AppointmentEventConsumer {
           appointmentId: data.appointmentId,
           notificationsSent: 2, // patient + doctor
           remindersCreated: 3, // 24H, 2H, 30M
-        }
+        },
       );
     } catch (error) {
       console.error(
@@ -605,7 +663,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
       throw error;
     }
@@ -621,7 +679,7 @@ export class AppointmentEventConsumer {
    * - Use new template: APPOINTMENT_CANCELLED
    */
   private async handleAppointmentCancelled(
-    data: AppointmentCancelledEventData
+    data: AppointmentCancelledEventData,
   ): Promise<void> {
     console.log("[AppointmentEventConsumer] Processing appointment cancelled", {
       appointmentId: data.appointmentId,
@@ -636,7 +694,7 @@ export class AppointmentEventConsumer {
         await this.appointmentReminderRepo.cancelByAppointmentId(
           data.appointmentId,
           data.cancellationReason,
-          data.cancelledBy
+          data.cancelledBy,
         );
 
         console.log("[AppointmentEventConsumer] Reminders cancelled", {
@@ -650,7 +708,7 @@ export class AppointmentEventConsumer {
               reminderError instanceof Error
                 ? reminderError.message
                 : "Unknown",
-          }
+          },
         );
         // Don't throw - continue with notification
       }
@@ -701,7 +759,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           patientId: data.patientId,
-        }
+        },
       );
 
       // ===== 3. Send cancellation notification to DOCTOR =====
@@ -740,7 +798,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           doctorId: data.doctorId,
-        }
+        },
       );
 
       console.log(
@@ -749,7 +807,7 @@ export class AppointmentEventConsumer {
           appointmentId: data.appointmentId,
           notificationsSent: 2, // patient + doctor
           remindersCancelled: true,
-        }
+        },
       );
     } catch (error) {
       console.error(
@@ -757,7 +815,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
       throw error;
     }
@@ -767,7 +825,7 @@ export class AppointmentEventConsumer {
    * Handle appointment completed event
    */
   private async handleAppointmentCompleted(
-    data: AppointmentCompletedEventData
+    data: AppointmentCompletedEventData,
   ): Promise<void> {
     console.log("Processing appointment completed for notifications", {
       appointmentId: data.appointmentId,
@@ -814,7 +872,7 @@ export class AppointmentEventConsumer {
    * Handle appointment rescheduled event
    */
   private async handleAppointmentRescheduled(
-    data: AppointmentRescheduledEventData
+    data: AppointmentRescheduledEventData,
   ): Promise<void> {
     console.log("Processing appointment rescheduled for notifications", {
       appointmentId: data.appointmentId,
@@ -836,7 +894,7 @@ export class AppointmentEventConsumer {
 
       await this.sendAppointmentRescheduledNotification(
         data,
-        patientPreferences
+        patientPreferences,
       );
 
       // Send reschedule notification to doctor
@@ -848,7 +906,7 @@ export class AppointmentEventConsumer {
 
       await this.sendDoctorAppointmentRescheduledNotification(
         data,
-        doctorPreferences
+        doctorPreferences,
       );
 
       // Update reminder schedules for new time
@@ -866,7 +924,7 @@ export class AppointmentEventConsumer {
    * Handle appointment reminder event
    */
   private async handleAppointmentReminder(
-    data: AppointmentReminderEventData
+    data: AppointmentReminderEventData,
   ): Promise<void> {
     console.log("Processing appointment reminder for notifications", {
       appointmentId: data.appointmentId,
@@ -913,7 +971,7 @@ export class AppointmentEventConsumer {
    * Handle appointment no-show event
    */
   private async handleAppointmentNoShow(
-    data: AppointmentNoShowEventData
+    data: AppointmentNoShowEventData,
   ): Promise<void> {
     console.log("Processing appointment no-show for notifications", {
       appointmentId: data.appointmentId,
@@ -959,7 +1017,7 @@ export class AppointmentEventConsumer {
    */
   private async sendAppointmentConfirmationToPatient(
     data: AppointmentScheduledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1012,7 +1070,7 @@ export class AppointmentEventConsumer {
    */
   private async sendAppointmentNotificationToDoctor(
     data: AppointmentScheduledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1059,7 +1117,7 @@ export class AppointmentEventConsumer {
    * Send urgent appointment notification
    */
   private async sendUrgentAppointmentNotification(
-    data: AppointmentScheduledEventData
+    data: AppointmentScheduledEventData,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1097,7 +1155,7 @@ export class AppointmentEventConsumer {
    */
   private async scheduleAppointmentReminders(
     data: AppointmentScheduledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       // Extract patient contact info from preferences
@@ -1125,11 +1183,11 @@ export class AppointmentEventConsumer {
 
       if (result.success) {
         console.log(
-          `[AppointmentEventConsumer] Created ${result.created} reminder(s) for appointment ${data.appointmentId}`
+          `[AppointmentEventConsumer] Created ${result.created} reminder(s) for appointment ${data.appointmentId}`,
         );
       } else {
         console.error(
-          `[AppointmentEventConsumer] Failed to create reminders: ${result.message}`
+          `[AppointmentEventConsumer] Failed to create reminders: ${result.message}`,
         );
       }
     } catch (error) {
@@ -1144,19 +1202,19 @@ export class AppointmentEventConsumer {
    * Generate appointment confirmation content
    */
   private generateAppointmentConfirmationContent(
-    data: AppointmentScheduledEventData
+    data: AppointmentScheduledEventData,
   ): string {
     return `
       Kính gửi ${data.patientName},
-      
+
       Lịch hẹn của bạn đã được xác nhận:
       - Bác sĩ: ${data.doctorName}
       - Khoa: ${data.departmentName}
       - Thời gian: ${this.formatDate(data.appointmentDate)} lúc ${data.appointmentTime}
       - Phí khám: ${data.consultationFee.toLocaleString("vi-VN")} VNĐ
-      
+
       Vui lòng đến trước 15 phút để hoàn tất thủ tục.
-      
+
       Trân trọng,
       Bệnh viện
     `.trim();
@@ -1166,17 +1224,17 @@ export class AppointmentEventConsumer {
    * Generate doctor appointment content
    */
   private generateDoctorAppointmentContent(
-    data: AppointmentScheduledEventData
+    data: AppointmentScheduledEventData,
   ): string {
     return `
       Bác sĩ ${data.doctorName},
-      
+
       Bạn có lịch hẹn mới:
       - Bệnh nhân: ${data.patientName}
       - Khoa: ${data.departmentName}
       - Thời gian: ${this.formatDate(data.appointmentDate)} lúc ${data.appointmentTime}
       - Mức độ ưu tiên: ${data.priority}
-      
+
       Vui lòng kiểm tra thông tin chi tiết trong hệ thống.
     `.trim();
   }
@@ -1186,7 +1244,7 @@ export class AppointmentEventConsumer {
    */
   private generateReminderContent(
     data: AppointmentScheduledEventData,
-    reminderType: string
+    reminderType: string,
   ): string {
     const timeText =
       {
@@ -1197,11 +1255,11 @@ export class AppointmentEventConsumer {
 
     return `
       Nhắc nhở: Bạn có lịch hẹn ${timeText}
-      
+
       - Bác sĩ: ${data.doctorName}
       - Khoa: ${data.departmentName}
       - Thời gian: ${this.formatDate(data.appointmentDate)} lúc ${data.appointmentTime}
-      
+
       Vui lòng đến đúng giờ.
     `.trim();
   }
@@ -1211,14 +1269,14 @@ export class AppointmentEventConsumer {
    */
   private getEnabledChannels(
     preferences: any,
-    defaultChannels: string[]
+    defaultChannels: string[],
   ): string[] {
     if (!preferences || !preferences.channels) {
       return defaultChannels;
     }
 
     return defaultChannels.filter(
-      (channel) => preferences.channels[channel] !== false
+      (channel) => preferences.channels[channel] !== false,
     );
   }
 
@@ -1254,7 +1312,7 @@ export class AppointmentEventConsumer {
    */
   private async sendAppointmentConfirmedNotification(
     data: AppointmentConfirmedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1291,7 +1349,7 @@ export class AppointmentEventConsumer {
    */
   private async sendDoctorAppointmentConfirmedNotification(
     data: AppointmentConfirmedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1316,7 +1374,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
@@ -1326,7 +1384,7 @@ export class AppointmentEventConsumer {
    */
   private async sendAppointmentCancelledNotification(
     data: AppointmentCancelledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1363,7 +1421,7 @@ export class AppointmentEventConsumer {
    */
   private async sendDoctorAppointmentCancelledNotification(
     data: AppointmentCancelledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1388,7 +1446,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
@@ -1398,7 +1456,7 @@ export class AppointmentEventConsumer {
    */
   private async sendRefundNotification(
     data: AppointmentCancelledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1430,7 +1488,7 @@ export class AppointmentEventConsumer {
    */
   private async sendAppointmentCompletedNotification(
     data: AppointmentCompletedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1463,7 +1521,7 @@ export class AppointmentEventConsumer {
    */
   private async sendFollowUpNotification(
     data: AppointmentCompletedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1499,7 +1557,7 @@ export class AppointmentEventConsumer {
    */
   private async sendPrescriptionNotification(
     data: AppointmentCompletedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1531,7 +1589,7 @@ export class AppointmentEventConsumer {
    */
   private async sendLabTestNotification(
     data: AppointmentCompletedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1563,7 +1621,7 @@ export class AppointmentEventConsumer {
    */
   private async sendAppointmentRescheduledNotification(
     data: AppointmentRescheduledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1602,7 +1660,7 @@ export class AppointmentEventConsumer {
    */
   private async sendDoctorAppointmentRescheduledNotification(
     data: AppointmentRescheduledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1627,7 +1685,7 @@ export class AppointmentEventConsumer {
         {
           appointmentId: data.appointmentId,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
@@ -1637,18 +1695,18 @@ export class AppointmentEventConsumer {
    */
   private async updateReminderSchedules(
     data: AppointmentRescheduledEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       // Cancel old reminders
       await this.appointmentReminderRepo.cancelByAppointmentId(
         data.appointmentId,
         `Appointment rescheduled: ${data.reason}`,
-        data.rescheduledBy
+        data.rescheduledBy,
       );
 
       console.log(
-        `[AppointmentEventConsumer] Cancelled old reminder(s) for rescheduled appointment ${data.appointmentId}`
+        `[AppointmentEventConsumer] Cancelled old reminder(s) for rescheduled appointment ${data.appointmentId}`,
       );
 
       // Extract patient contact info from preferences
@@ -1673,16 +1731,16 @@ export class AppointmentEventConsumer {
           appointmentTime: data.newTime,
           appointmentType: undefined,
           reason: data.reason,
-        }
+        },
       );
 
       if (createResult.success) {
         console.log(
-          `[AppointmentEventConsumer] Created ${createResult.created} new reminder(s) for rescheduled appointment ${data.appointmentId}`
+          `[AppointmentEventConsumer] Created ${createResult.created} new reminder(s) for rescheduled appointment ${data.appointmentId}`,
         );
       } else {
         console.error(
-          `[AppointmentEventConsumer] Failed to create new reminders: ${createResult.message}`
+          `[AppointmentEventConsumer] Failed to create new reminders: ${createResult.message}`,
         );
       }
     } catch (error) {
@@ -1698,7 +1756,7 @@ export class AppointmentEventConsumer {
    */
   private async sendAppointmentReminderNotification(
     data: AppointmentReminderEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1734,7 +1792,7 @@ export class AppointmentEventConsumer {
    */
   private async sendDoctorReminderNotification(
     data: AppointmentReminderEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1766,7 +1824,7 @@ export class AppointmentEventConsumer {
    */
   private async sendNoShowNotification(
     data: AppointmentNoShowEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       let content = `Bạn đã không đến lịch hẹn vào ${this.formatDate(data.appointmentDate)} lúc ${data.appointmentTime}.`;
@@ -1808,7 +1866,7 @@ export class AppointmentEventConsumer {
    */
   private async sendDoctorNoShowNotification(
     data: AppointmentNoShowEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
@@ -1839,7 +1897,7 @@ export class AppointmentEventConsumer {
    */
   private async sendRescheduleOffer(
     data: AppointmentNoShowEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {

@@ -14,7 +14,7 @@ import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
-type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
+type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'PENDING_PAYMENT';
 
 /**
  * My Appointments Page
@@ -22,14 +22,14 @@ type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' |
  */
 export default function MyAppointmentsPage() {
   const { user } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [appointments, setAppointments] = useState<AppointmentReadModel[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<AppointmentReadModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Filters
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'all'>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
@@ -47,8 +47,13 @@ export default function MyAppointmentsPage() {
   async function loadAppointments() {
     try {
       setLoading(true);
-      const response = await appointmentsService.getPatientAppointments(user!.id);
-      setAppointments(response.appointments);
+      const response = await appointmentsService.getPatientAppointments(user!.patientId || user!.id);
+      // Normalize status to uppercase to match frontend constants
+      const normalizedAppointments = response.appointments.map(apt => ({
+        ...apt,
+        status: (apt.status?.toUpperCase() || 'SCHEDULED') as any // Cast to any to avoid type mismatch if backend returns unknown status
+      }));
+      setAppointments(normalizedAppointments);
     } catch (error) {
       console.error('Error loading appointments:', error);
       toast.error('Không thể tải danh sách lịch hẹn');
@@ -65,8 +70,8 @@ export default function MyAppointmentsPage() {
     if (activeTab === 'upcoming') {
       filtered = filtered.filter(apt => {
         const aptDate = parseISO(apt.appointmentDate);
-        return (apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED') && 
-               (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
+        return (apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED' || apt.status === 'PENDING_PAYMENT') &&
+          (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
       });
     } else if (activeTab === 'completed') {
       filtered = filtered.filter(apt => apt.status === 'COMPLETED');
@@ -87,7 +92,7 @@ export default function MyAppointmentsPage() {
     // Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(apt => 
+      filtered = filtered.filter(apt =>
         apt.doctorName.toLowerCase().includes(query) ||
         apt.doctorSpecialization.toLowerCase().includes(query)
       );
@@ -97,7 +102,7 @@ export default function MyAppointmentsPage() {
     filtered.sort((a, b) => {
       const dateA = parseISO(a.appointmentDate);
       const dateB = parseISO(b.appointmentDate);
-      return activeTab === 'upcoming' 
+      return activeTab === 'upcoming'
         ? dateA.getTime() - dateB.getTime()
         : dateB.getTime() - dateA.getTime();
     });
@@ -114,8 +119,8 @@ export default function MyAppointmentsPage() {
   const upcomingCount = appointments.filter(apt => {
     const aptDate = parseISO(apt.appointmentDate);
     const today = startOfDay(new Date());
-    return (apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED') && 
-           (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
+    return (apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED' || apt.status === 'PENDING_PAYMENT') &&
+      (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
   }).length;
 
   const completedCount = appointments.filter(apt => apt.status === 'COMPLETED').length;
@@ -192,6 +197,7 @@ export default function MyAppointmentsPage() {
                 >
                   <option value="all">Tất cả</option>
                   <option value="SCHEDULED">Đã đặt</option>
+                  <option value="PENDING_PAYMENT">Chờ thanh toán</option>
                   <option value="CONFIRMED">Đã xác nhận</option>
                   <option value="COMPLETED">Đã hoàn thành</option>
                   <option value="CANCELLED">Đã hủy</option>
@@ -206,11 +212,10 @@ export default function MyAppointmentsPage() {
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('upcoming')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'upcoming'
+              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'upcoming'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
+                }`}
             >
               Sắp tới
               {upcomingCount > 0 && (
@@ -221,11 +226,10 @@ export default function MyAppointmentsPage() {
             </button>
             <button
               onClick={() => setActiveTab('completed')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'completed'
+              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'completed'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
+                }`}
             >
               Đã hoàn thành
               {completedCount > 0 && (
@@ -236,11 +240,10 @@ export default function MyAppointmentsPage() {
             </button>
             <button
               onClick={() => setActiveTab('cancelled')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'cancelled'
+              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cancelled'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
+                }`}
             >
               Đã hủy
               {cancelledCount > 0 && (
@@ -265,10 +268,10 @@ export default function MyAppointmentsPage() {
               {searchQuery || selectedStatus !== 'all' || selectedDepartment !== 'all'
                 ? 'Không tìm thấy lịch hẹn'
                 : activeTab === 'upcoming'
-                ? 'Chưa có lịch hẹn sắp tới'
-                : activeTab === 'completed'
-                ? 'Chưa có lịch hẹn đã hoàn thành'
-                : 'Chưa có lịch hẹn đã hủy'}
+                  ? 'Chưa có lịch hẹn sắp tới'
+                  : activeTab === 'completed'
+                    ? 'Chưa có lịch hẹn đã hoàn thành'
+                    : 'Chưa có lịch hẹn đã hủy'}
             </h3>
             <p className="text-gray-500 mb-6">
               {searchQuery || selectedStatus !== 'all' || selectedDepartment !== 'all'
@@ -313,6 +316,7 @@ function AppointmentItem({
 
   const statusConfig = {
     SCHEDULED: { color: 'bg-blue-100 text-blue-800', label: 'Đã đặt' },
+    PENDING_PAYMENT: { color: 'bg-yellow-100 text-yellow-800', label: 'Chờ thanh toán' },
     CONFIRMED: { color: 'bg-green-100 text-green-800', label: 'Đã xác nhận' },
     CANCELLED: { color: 'bg-red-100 text-red-800', label: 'Đã hủy' },
     COMPLETED: { color: 'bg-gray-100 text-gray-800', label: 'Đã hoàn thành' },
@@ -323,7 +327,7 @@ function AppointmentItem({
 
   const appointmentDate = parseISO(appointment.appointmentDate);
   const formattedDate = format(appointmentDate, 'EEEE, dd/MM/yyyy', { locale: vi });
-  const canModify = appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED';
+  const canModify = appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED' || appointment.status === 'PENDING_PAYMENT';
 
   async function handleCancel() {
     if (!confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) return;

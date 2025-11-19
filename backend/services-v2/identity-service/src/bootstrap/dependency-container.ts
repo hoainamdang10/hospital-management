@@ -207,8 +207,8 @@ export class DependencyContainer {
           autoRefreshToken: false,
           persistSession: false,
         },
-        db: { schema: 'auth_schema' }
-      }
+        db: { schema: "auth_schema" },
+      },
     ) as unknown as SupabaseClient;
 
     // Health check
@@ -270,6 +270,10 @@ export class DependencyContainer {
       this.config.rabbitmqUrl,
       this.logger,
       this.config.rabbitmqExchange,
+      {
+        maxConnectionAttempts: this.config.rabbitmqMaxConnectionAttempts,
+        connectionRetryDelayMs: this.config.rabbitmqRetryDelayMs,
+      },
     );
     try {
       await this.eventPublisher.initialize?.();
@@ -280,10 +284,7 @@ export class DependencyContainer {
     }
 
     // Outbox Service (for guaranteed event publishing)
-    this.outboxService = new OutboxService(
-      this.supabaseClient,
-      this.logger
-    );
+    this.outboxService = new OutboxService(this.supabaseClient, this.logger);
     this.logger.info("Outbox service initialized successfully");
 
     // Outbox Publisher (background job for publishing events)
@@ -294,8 +295,8 @@ export class DependencyContainer {
       {
         pollingIntervalMs: 5000, // Poll every 5 seconds
         batchSize: 100,
-        enabled: true
-      }
+        enabled: true,
+      },
     );
     this.logger.info("Outbox publisher initialized successfully");
 
@@ -321,7 +322,7 @@ export class DependencyContainer {
       this.cacheService || undefined,
       this.permissionRepository,
       this.eventPublisher,
-      this.outboxService
+      this.outboxService,
     );
 
     // Session repository
@@ -504,7 +505,7 @@ export class DependencyContainer {
       this.config.jwtSecret,
       this.config.frontendUrl,
       this.eventPublisher,
-      this.outboxService
+      this.outboxService,
     );
 
     this.resendVerificationEmailUseCase = new ResendVerificationEmailUseCase(
@@ -787,7 +788,9 @@ export class DependencyContainer {
 
       // Close event publisher
       if (this.eventPublisher && "close" in this.eventPublisher) {
-        await (this.eventPublisher as IEventPublisher & { close(): Promise<void> }).close();
+        await (
+          this.eventPublisher as IEventPublisher & { close(): Promise<void> }
+        ).close();
         this.logger.info("Event publisher closed");
       }
 

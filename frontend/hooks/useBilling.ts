@@ -4,26 +4,31 @@
  */
 
 import { useState, useEffect } from 'react';
-import { usePatient } from './usePatient';
-import { billingService, type Invoice, type BillingSummary } from '@/modules/billing/services/billing.service';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  billingService,
+  type Invoice,
+  type BillingSummary,
+} from '@/modules/billing/services/billing.service';
 
 export function useBilling() {
-  const { patientId, isLoading: isPatientLoading } = usePatient();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const patientIdentifier = user?.id || user?.userId || null;
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (patientId) {
+    if (patientIdentifier) {
       loadBillingData();
-    } else if (!isPatientLoading) {
+    } else if (!isAuthLoading) {
       setIsLoading(false);
     }
-  }, [patientId, isPatientLoading]);
+  }, [patientIdentifier, isAuthLoading]);
 
   const loadBillingData = async () => {
-    if (!patientId) return;
+    if (!patientIdentifier) return;
 
     try {
       setIsLoading(true);
@@ -31,8 +36,8 @@ export function useBilling() {
 
       // Fetch summary and invoices in parallel
       const [summaryData, invoicesData] = await Promise.all([
-        billingService.getPatientBillingSummary(patientId),
-        billingService.getPatientInvoices(patientId),
+        billingService.getPatientBillingSummary(patientIdentifier),
+        billingService.getPatientInvoices(patientIdentifier),
       ]);
 
       setSummary(summaryData);
@@ -64,4 +69,3 @@ export function useBilling() {
     reload: loadBillingData,
   };
 }
-

@@ -25,6 +25,7 @@ const LocalProviderReadModelService_1 = require("../services/LocalProviderReadMo
 const HttpProviderService_1 = require("../services/HttpProviderService");
 const RemoteSchedulerAdapter_1 = require("../adapters/RemoteSchedulerAdapter");
 const SchedulerAdapterWrapper_1 = require("../adapters/SchedulerAdapterWrapper");
+const NoopSchedulerAdapter_1 = require("../adapters/NoopSchedulerAdapter");
 const BillingServiceClient_1 = require("../clients/BillingServiceClient");
 const ConflictResolutionService_1 = require("../services/ConflictResolutionService");
 const AuthorizationService_1 = require("../services/AuthorizationService");
@@ -227,18 +228,27 @@ class DIContainer {
         this.providerService = new LocalProviderReadModelService_1.LocalProviderReadModelService(this.providerReadModelRepository);
         // HTTP Provider Service for work schedule (simple MVP approach)
         this.httpProviderService = new HttpProviderService_1.HttpProviderService(this.config.services.providerServiceUrl);
-        this.schedulerAdapter = new RemoteSchedulerAdapter_1.RemoteSchedulerAdapter({
-            baseUrl: this.config.services.schedulerServiceUrl,
-            apiKey: this.config.services.schedulerApiKey,
-            timeout: 5000,
-            circuitBreaker: this.circuitBreaker,
-        });
+        if (this.config.features.enableScheduler) {
+            const remoteAdapter = new RemoteSchedulerAdapter_1.RemoteSchedulerAdapter({
+                baseUrl: this.config.services.schedulerServiceUrl,
+                apiKey: this.config.services.schedulerApiKey,
+                timeout: 5000,
+                circuitBreaker: this.circuitBreaker,
+            });
+            this.schedulerAdapter = new SchedulerAdapterWrapper_1.SchedulerAdapterWrapper(remoteAdapter, this.config.tenantId || "default");
+            console.log(`[DI]    - Scheduler Service: ${this.config.services.schedulerServiceUrl}`);
+            console.log("[DI]    - Reminder Service: Scheduler integration enabled 🔔");
+        }
+        else {
+            this.schedulerAdapter = new NoopSchedulerAdapter_1.NoopSchedulerAdapter();
+            console.log("[DI]    - Scheduler Service: DISABLED");
+            console.log("[DI]    - Reminder Service: Scheduler integration disabled (noop) ⚠️");
+        }
         // NEW: Authorization, Conflict Resolution & Reminder Services
         this.authorizationService = new AuthorizationService_1.AuthorizationService(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.conflictResolutionService = new ConflictResolutionService_1.ConflictResolutionService(this.appointmentRepository);
         // Create scheduler adapter wrapper for ReminderService
-        const schedulerWrapper = new SchedulerAdapterWrapper_1.SchedulerAdapterWrapper(this.schedulerAdapter, this.config.tenantId || "default");
-        this.reminderService = new ReminderService_1.ReminderService(schedulerWrapper);
+        this.reminderService = new ReminderService_1.ReminderService(this.schedulerAdapter);
         // Billing Service Client (for payment link creation)
         this.billingServiceClient = new BillingServiceClient_1.BillingServiceClient({
             baseUrl: this.config.services.billingServiceUrl,
@@ -251,10 +261,8 @@ class DIContainer {
         console.log("[DI] ✅ Services initialized (Pure Outbox Pattern)");
         console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ⚡");
         console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ⚡");
-        console.log(`[DI]    - Scheduler Service: ${this.config.services.schedulerServiceUrl}`);
         console.log(`[DI]    - Billing Service: ${this.config.services.billingServiceUrl} 💳`);
         console.log("[DI]    - Authorization Service: RBAC enabled 🔐");
-        console.log("[DI]    - Reminder Service: Scheduler integration enabled 🔔");
         console.log("[DI]    - Performance: <10ms queries vs 150ms HTTP (15x faster)");
         console.log("[DI]    - Availability: 100% (zero network dependencies)");
     }
@@ -268,7 +276,7 @@ class DIContainer {
         this.confirmAppointmentUseCase = new ConfirmAppointment_use_case_1.ConfirmAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         this.completeAppointmentUseCase = new CompleteAppointment_use_case_1.CompleteAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         this.getAppointmentUseCase = new GetAppointment_use_case_1.GetAppointmentUseCase(this.appointmentRepository);
-        this.listAppointmentsUseCase = new ListAppointments_use_case_1.ListAppointmentsUseCase(this.appointmentRepository);
+        this.listAppointmentsUseCase = new ListAppointments_use_case_1.ListAppointmentsUseCase(this.appointmentReadModelRepository, this.providerService);
         this.rescheduleAppointmentUseCase = new RescheduleAppointment_use_case_1.RescheduleAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.reminderService);
         this.checkInAppointmentUseCase = new CheckInAppointment_use_case_1.CheckInAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.queueRepository);
         this.markAsNoShowUseCase = new MarkAsNoShow_use_case_1.MarkAsNoShowUseCase(this.appointmentRepository, this.authorizationService);
@@ -315,10 +323,13 @@ class DIContainer {
         // this.convertWaitlistToAppointmentUseCase =
         //   new ConvertWaitlistToAppointmentUseCase(this.waitlistRepository);
         // Reminder Use Cases
-        this.createAppointmentReminderUseCase = new CreateAppointmentReminderUseCase_1.CreateAppointmentReminderUseCase(this.reminderRepository, this.appointmentRepository);
+        this.createAppointmentReminderUseCase =
+            new CreateAppointmentReminderUseCase_1.CreateAppointmentReminderUseCase(this.reminderRepository, this.appointmentRepository);
         this.getAppointmentRemindersUseCase = new GetAppointmentRemindersUseCase_1.GetAppointmentRemindersUseCase(this.reminderRepository);
-        this.updateAppointmentReminderUseCase = new UpdateAppointmentReminderUseCase_1.UpdateAppointmentReminderUseCase(this.reminderRepository);
-        this.deleteAppointmentReminderUseCase = new DeleteAppointmentReminderUseCase_1.DeleteAppointmentReminderUseCase(this.reminderRepository);
+        this.updateAppointmentReminderUseCase =
+            new UpdateAppointmentReminderUseCase_1.UpdateAppointmentReminderUseCase(this.reminderRepository);
+        this.deleteAppointmentReminderUseCase =
+            new DeleteAppointmentReminderUseCase_1.DeleteAppointmentReminderUseCase(this.reminderRepository);
         // Reminder Controller
         this.reminderController = new ReminderController_1.ReminderController(this.createAppointmentReminderUseCase, this.getAppointmentRemindersUseCase, this.updateAppointmentReminderUseCase, this.deleteAppointmentReminderUseCase);
         console.log("[DI] ✅ Use cases initialized (35 total)");
@@ -343,34 +354,34 @@ class DIContainer {
         // New Event Consumers for Appointment Service
         this.staffEventConsumer = new StaffEventConsumer_1.StaffEventConsumer({
             rabbitmqUrl: this.config.rabbitmq.url,
-            queueName: 'appointments-service.staff-events',
+            queueName: "appointments-service.staff-events",
             exchangeName: this.config.rabbitmq.exchange,
             routingKeys: [
-                'provider.schedule.updated', // StaffScheduleUpdatedEvent from Provider Staff
-                'provider.status.changed', // StaffStatusChangedEvent from Provider Staff  
-                'provider.department.assigned', // StaffDepartmentAssignedEvent from Provider Staff
-                'department.created', // DepartmentCreatedEvent from Department Service
-                'department.updated', // DepartmentUpdatedEvent from Department Service
-                'department.staff.count.changed' // DepartmentStaffCountChangedEvent from Department Service
+                "provider.schedule.updated", // StaffScheduleUpdatedEvent from Provider Staff
+                "provider.status.changed", // StaffStatusChangedEvent from Provider Staff
+                "provider.department.assigned", // StaffDepartmentAssignedEvent from Provider Staff
+                "department.created", // DepartmentCreatedEvent from Department Service
+                "department.updated", // DepartmentUpdatedEvent from Department Service
+                "department.staff.count.changed", // DepartmentStaffCountChangedEvent from Department Service
             ],
             prefetchCount: 10,
             retryAttempts: 3,
-            retryDelayMs: 1000
+            retryDelayMs: 1000,
         }, this.appointmentRepository, this.queueRepository, this.providerScheduleRepository, this.conflictResolutionService, this.reminderService, this.inboxRepository, this.reschedulingService);
         this.departmentEventConsumer = new DepartmentEventConsumer_1.DepartmentEventConsumer({
             rabbitmqUrl: this.config.rabbitmq.url,
-            queueName: 'appointments-service.department-events',
+            queueName: "appointments-service.department-events",
             exchangeName: this.config.rabbitmq.exchange,
             routingKeys: [
-                'department.created',
-                'department.staff.assigned',
-                'department.resource.updated',
-                'department.operational_hours.changed',
-                'department.capacity.updated'
+                "department.created",
+                "department.staff.assigned",
+                "department.resource.updated",
+                "department.operational_hours.changed",
+                "department.capacity.updated",
             ],
             prefetchCount: 10,
             retryAttempts: 3,
-            retryDelayMs: 1000
+            retryDelayMs: 1000,
         }, this.appointmentRepository, this.queueRepository, this.conflictResolutionService, this.reminderService, this.inboxRepository);
         // CLINICAL EMR EVENT CONSUMER REMOVED FOR MVP - Focus on Appointments only
         /*
@@ -388,15 +399,15 @@ class DIContainer {
         // Initialize BillingEventConsumer with payment event support
         this.billingEventConsumer = new BillingEventConsumer_1.BillingEventConsumer({
             rabbitmqUrl: this.config.rabbitmq.url,
-            queueName: 'appointments-service.billing-events',
+            queueName: "appointments-service.billing-events",
             exchangeName: this.config.rabbitmq.exchange,
-            routingKey: 'billing.*',
+            routingKey: "billing.*",
             routingKeys: [
-                'billing.payment.completed', // Prepaid flow: auto-confirm after payment
-                'billing.pre-authorization.*',
-                'billing.rate.updated',
-                'billing.insurance.verified'
-            ]
+                "billing.payment.completed", // Prepaid flow: auto-confirm after payment
+                "billing.pre-authorization.*",
+                "billing.rate.updated",
+                "billing.insurance.verified",
+            ],
         }, this.appointmentRepository, this.queueRepository, this.reminderService, this.conflictResolutionService, this.inboxRepository, this.paymentCompletedHandler);
         console.log("[DI] ✅ Event handlers initialized (5 total - Prepaid Billing Enabled)");
         console.log("[DI]    - AppointmentReadModelEventHandler");

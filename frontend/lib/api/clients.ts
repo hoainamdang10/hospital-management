@@ -43,8 +43,14 @@ export const patientClient = axios.create({
   ...baseConfig,
 });
 
+// Billing Service (Port 3009)
+export const billingClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_BILLING_API || '',
+  ...baseConfig,
+});
+
 // Add JWT token interceptor to all clients
-const clients = [departmentClient, staffClient, appointmentsClient, clinicalClient, patientClient];
+const clients = [departmentClient, staffClient, appointmentsClient, clinicalClient, patientClient, billingClient];
 
 clients.forEach((client) => {
   client.interceptors.request.use(
@@ -64,7 +70,7 @@ clients.forEach((client) => {
       // Handle 401 Unauthorized
       if (error.response?.status === 401) {
         // Skip redirect in development mode
-        const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true' || process.env.NODE_ENV === 'development';
+        const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
         
         if (!isDevMode && typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');

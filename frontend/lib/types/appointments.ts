@@ -10,13 +10,15 @@ export type AppointmentType = 'CONSULTATION' | 'FOLLOW_UP' | 'EMERGENCY' | 'SURG
 export type AppointmentPriority = 'LOW' | 'NORMAL' | 'URGENT' | 'EMERGENCY';
 
 export type AppointmentStatus =
-  | 'SCHEDULED'
-  | 'CONFIRMED'
-  | 'ARRIVED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'NO_SHOW';
+  | 'SCHEDULED' | 'scheduled'
+  | 'PENDING_PAYMENT' | 'pending_payment'
+  | 'CONFIRMED' | 'confirmed'
+  | 'ARRIVED' | 'arrived'
+  | 'IN_PROGRESS' | 'in_progress'
+  | 'COMPLETED' | 'completed'
+  | 'CANCELLED' | 'cancelled'
+  | 'NO_SHOW' | 'no_show'
+  | 'RESCHEDULED' | 'reschedule_required';
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED';
 

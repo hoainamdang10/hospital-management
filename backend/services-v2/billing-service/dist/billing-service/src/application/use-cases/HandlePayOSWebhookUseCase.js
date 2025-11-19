@@ -13,27 +13,47 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
         this.logger = logger;
     }
     async executeImpl(request) {
-        this.logger.info('Handling PayOS webhook', {
-            orderCode: request.webhookData.orderCode
+        this.logger.info("Handling PayOS webhook", {
+            orderCode: request.webhookData.orderCode,
         });
+        const isPing = this.isPingWebhook(request.rawPayload);
         // Verify webhook signature
-        const isValid = this.payosService.verifyWebhookSignature(request.webhookData, request.signature);
+        if (!request.signature) {
+            if (isPing) {
+                this.logger.info("PayOS ping received without signature, acknowledging");
+                return {
+                    success: true,
+                    message: "Webhook acknowledged (ping)",
+                };
+            }
+            throw new Error("Missing webhook signature");
+        }
+        const isValid = this.payosService.verifyIpnSignature(request.rawPayload || {}, request.signature);
         if (!isValid) {
-            this.logger.error('Invalid webhook signature', {
-                orderCode: request.webhookData.orderCode
+            if (isPing) {
+                this.logger.warn("PayOS ping failed signature verification, acknowledging anyway", {
+                    orderCode: request.webhookData.orderCode,
+                });
+                return {
+                    success: true,
+                    message: "Webhook acknowledged (ping)",
+                };
+            }
+            this.logger.error("Invalid webhook signature", {
+                orderCode: request.webhookData.orderCode,
             });
-            throw new Error('Invalid webhook signature');
+            throw new Error("Invalid webhook signature");
         }
         // Check payment status
-        if (request.webhookData.code !== '00') {
-            this.logger.warn('Payment not successful', {
+        if (request.webhookData.code !== "00") {
+            this.logger.warn("Payment not successful", {
                 orderCode: request.webhookData.orderCode,
                 code: request.webhookData.code,
-                desc: request.webhookData.desc
+                desc: request.webhookData.desc,
             });
             return {
                 success: false,
-                message: `Payment failed: ${request.webhookData.desc}`
+                message: `Payment failed: ${request.webhookData.desc}`,
             };
         }
         // Find invoice by description (contains invoice ID or invoice number)
@@ -46,8 +66,8 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
         // Strategy 1: Try invoice number pattern
         const invoiceNumberMatch = description.match(/INV-\d{6}-\d{4}/);
         if (invoiceNumberMatch) {
-            this.logger.debug('Attempting to find invoice by invoice number', {
-                invoiceNumber: invoiceNumberMatch[0]
+            this.logger.debug("Attempting to find invoice by invoice number", {
+                invoiceNumber: invoiceNumberMatch[0],
             });
             invoice = await this.invoiceRepository.findByInvoiceNumber(invoiceNumberMatch[0]);
         }
@@ -56,21 +76,21 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
             const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
             const uuidMatch = description.match(uuidPattern);
             if (uuidMatch) {
-                this.logger.debug('Invoice number search failed, attempting to find by UUID', {
-                    invoiceId: uuidMatch[0]
+                this.logger.debug("Invoice number search failed, attempting to find by UUID", {
+                    invoiceId: uuidMatch[0],
                 });
                 invoice = await this.invoiceRepository.findById(uuidMatch[0]);
             }
         }
         if (!invoice) {
-            this.logger.error('Invoice not found from webhook (tried invoice number and UUID)', {
+            this.logger.error("Invoice not found from webhook (tried invoice number and UUID)", {
                 description,
-                orderCode: request.webhookData.orderCode
+                orderCode: request.webhookData.orderCode,
             });
-            throw new Error('Invoice not found');
+            throw new Error("Invoice not found");
         }
         // Create payment
-        const payment = Payment_1.Payment.create(Money_1.Money.create(request.webhookData.amount), 'payos', request.webhookData.reference);
+        const payment = Payment_1.Payment.create(Money_1.Money.create(request.webhookData.amount), "payos", request.webhookData.reference);
         // Process payment
         invoice.processPayment(payment);
         await this.invoiceRepository.save(invoice);
@@ -80,17 +100,41 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
             await this.eventBus.publish(event);
         }
         invoice.markEventsAsCommitted();
-        this.logger.info('PayOS webhook processed successfully', {
+        this.logger.info("PayOS webhook processed successfully", {
             invoiceId: invoice.id,
             paymentId: payment.id,
-            amount: request.webhookData.amount
+            amount: request.webhookData.amount,
         });
         return {
             success: true,
-            message: 'Payment processed successfully',
+            message: "Payment processed successfully",
             invoiceId: invoice.id,
-            paymentId: payment.id
+            paymentId: payment.id,
         };
+    }
+    isPingWebhook(payload) {
+        if (!payload) {
+            return true;
+        }
+        const eventName = (payload.event ||
+            payload.type ||
+            payload?.data?.event);
+        if (eventName && typeof eventName === "string") {
+            const normalized = eventName.toLowerCase();
+            if (normalized.includes("ping") || normalized.includes("test")) {
+                return true;
+            }
+        }
+        const desc = (payload.desc || payload?.data?.desc);
+        if (desc && desc.toLowerCase().includes("ping")) {
+            return true;
+        }
+        const data = payload.data ?? payload;
+        const orderCode = data?.orderCode;
+        if (typeof orderCode === "number" && orderCode < 100000000) {
+            return true;
+        }
+        return false;
     }
 }
 exports.HandlePayOSWebhookUseCase = HandlePayOSWebhookUseCase;

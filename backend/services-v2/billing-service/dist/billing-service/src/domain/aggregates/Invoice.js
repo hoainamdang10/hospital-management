@@ -37,6 +37,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             outstandingAmount,
             status: InvoiceStatus_1.InvoiceStatus.pending(), // Phase 1: Start with PENDING (waiting for payment)
             payments: [],
+            paidAt: undefined, // Not paid yet
             createdAt: now,
             updatedAt: now
         });
@@ -59,6 +60,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.outstandingAmount = this.props.totalAmount.subtract(totalPaid);
         if (this.props.outstandingAmount.amount <= 0) {
             this.props.status = InvoiceStatus_1.InvoiceStatus.paid();
+            this.props.paidAt = new Date(); // Set paid timestamp
         }
         this.props.updatedAt = new Date();
         // Emit PaymentProcessedEvent with appointmentId for prepaid flow
@@ -122,6 +124,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             currency: this.props.totalAmount.currency,
             status: this.props.status.value,
             payments: this.props.payments.map(p => p.toPersistence()),
+            paidAt: this.props.paidAt,
             createdAt: this.props.createdAt,
             updatedAt: this.props.updatedAt
             // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
@@ -163,6 +166,9 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     }
     get updatedAt() {
         return this.props.updatedAt;
+    }
+    get paidAt() {
+        return this.props.paidAt;
     }
 }
 exports.Invoice = Invoice;

@@ -7,9 +7,9 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { IInboxRepository } from '../../domain/repositories/IInboxRepository';
-import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
-import { GetNotificationPreferencesUseCase } from '../../application/use-cases/GetNotificationPreferencesUseCase';
+import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
+import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
+import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
 export interface StaffEventConsumerConfig {
     rabbitmqUrl: string;
     queueName: string;
@@ -25,7 +25,7 @@ export interface StaffAvailabilityChangedEventData {
     staffType: string;
     departmentId: string;
     departmentName: string;
-    availabilityStatus: 'available' | 'unavailable' | 'on_leave' | 'sick' | 'emergency';
+    availabilityStatus: "available" | "unavailable" | "on_leave" | "sick" | "emergency";
     reason?: string;
     startTime?: Date;
     endTime?: Date;
@@ -45,7 +45,7 @@ export interface StaffShiftAssignedEventData {
     endTime: Date;
     isRecurring: boolean;
     recurringPattern?: {
-        frequency: 'daily' | 'weekly' | 'monthly';
+        frequency: "daily" | "weekly" | "monthly";
         daysOfWeek?: number[];
         endDate?: Date;
     };
@@ -74,7 +74,7 @@ export interface StaffScheduleUpdatedEventData {
     staffType: string;
     departmentId: string;
     departmentName: string;
-    updateType: 'vacation' | 'sick_leave' | 'emergency' | 'availability_change' | 'schedule_pattern';
+    updateType: "vacation" | "sick_leave" | "emergency" | "availability_change" | "schedule_pattern";
     oldSchedule?: {
         startDate: Date;
         endDate: Date;
@@ -110,7 +110,7 @@ export interface StaffOnCallAssignedEventData {
     staffType: string;
     departmentId: string;
     departmentName: string;
-    onCallType: 'primary' | 'secondary' | 'backup';
+    onCallType: "primary" | "secondary" | "backup";
     startTime: Date;
     endTime: Date;
     assignedBy: string;
@@ -124,7 +124,7 @@ export interface StaffPerformanceReviewEventData {
     staffType: string;
     departmentId: string;
     departmentName: string;
-    reviewType: 'monthly' | 'quarterly' | 'annual' | 'special';
+    reviewType: "monthly" | "quarterly" | "annual" | "special";
     reviewPeriod: {
         startDate: Date;
         endDate: Date;
@@ -153,11 +153,15 @@ export declare class StaffEventConsumer {
     private connection?;
     private channel?;
     private isConnected;
+    private reconnecting;
     constructor(config: StaffEventConsumerConfig, sendNotificationUseCase: SendNotificationUseCase, getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase, inboxRepo: IInboxRepository);
     /**
      * Connect to RabbitMQ and start consuming
      */
     connect(): Promise<void>;
+    private setupConnectionListeners;
+    private triggerReconnect;
+    private closeConnectionSilently;
     /**
      * Handle incoming message
      */

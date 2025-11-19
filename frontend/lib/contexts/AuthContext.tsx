@@ -22,7 +22,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // DEV MODE: Controlled by env var
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-        // const isDevMode = process.env.NODE_ENV === 'development';
 
         if (isDevMode) {
           console.log('[AuthContext] DEV MODE: Skipping auth verification');
@@ -33,13 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: 'dev@hospital.com',
             username: 'devuser',
             fullName: 'Development User',
-            role: 'ADMIN',
+            role: 'PATIENT',
             isActive: true,
             isEmailVerified: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
-          setUser(mockUser);
+          setUser({ ...mockUser, patientId: 'PAT-DEV-001' });
           setIsLoading(false);
           return;
         }
@@ -119,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Step 1: Authenticate user (sets session cookie)
         const loginResponse = await authService.login(credentials);
-        
+
         if (!loginResponse.success) {
           throw new Error('Login failed');
         }
@@ -127,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Step 2: Fetch full user data from /auth/me (uses session cookie)
         console.log('[AuthContext] Login successful, fetching user data...');
         const userResponse = await authService.getCurrentUser();
-        
+
         if (!userResponse.success || !userResponse.user) {
           throw new Error('Failed to fetch user data');
         }
@@ -140,16 +139,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           roleUpperCase: user.role?.toUpperCase(),
           isPatient: user.role?.toUpperCase() === 'PATIENT'
         });
-        
+
         if (user.role?.toUpperCase() === 'PATIENT') {
           try {
             console.log('[AuthContext] Fetching patientId for PATIENT role...', {
               userId: user.userId
             });
             const patientResponse = await patientsService.getByUserId(user.userId);
-            
+
             console.log('[AuthContext] Patient API response:', patientResponse);
-            
+
             if (patientResponse.success && patientResponse.data?.patientId) {
               user = {
                 ...user,
@@ -185,16 +184,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         // Redirect based on role
-        const redirectPath = getRedirectPath(user.role);
-        console.log('[AuthContext] Redirecting to dashboard...', {
-          role: user.role,
-          redirectPath
-        });
-        
-        // Small delay to ensure state is updated before navigation
-        setTimeout(() => {
-          router.push(redirectPath);
-        }, 100);
+        // Check if first time login (lastLogin is null or undefined)
+        // Note: Backend should return lastLogin in user object
+        const isFirstLogin = !user.lastLogin;
+
+        if (isFirstLogin) {
+          console.log('[AuthContext] First time login detected, redirecting to profile...');
+          toast.info('Vui lòng cập nhật thông tin cá nhân để hoàn tất hồ sơ', {
+            duration: 5000,
+          });
+
+          // Redirect to profile based on role
+          const profilePath = getProfilePath(user.role);
+          setTimeout(() => {
+            router.push(profilePath);
+          }, 100);
+        } else {
+          const redirectPath = getRedirectPath(user.role);
+          console.log('[AuthContext] Redirecting to dashboard...', {
+            role: user.role,
+            redirectPath
+          });
+
+          // Small delay to ensure state is updated before navigation
+          setTimeout(() => {
+            router.push(redirectPath);
+          }, 100);
+        }
       } catch (error: any) {
         const errorMessage =
           error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
@@ -220,9 +236,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ...data,
           role: normalizedRole as any,
         };
-        
+
         const response = await authService.register(registerData);
-        
+
         console.log('Register response:', response);
 
         // Verify-First approach: User NOT created yet, only pending registration
@@ -245,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Session cookie set by backend (legacy path)
           // Note: Session-based auth doesn't need local token storage
           localStorage.setItem('user', JSON.stringify(response.user));
-          
+
           // Save to cookies
           document.cookie = `accessToken=${response.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
           if (response.refreshToken) {
@@ -255,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           toast.success('Đăng ký thành công!');
           router.push('/patient/dashboard');
         }
-        
+
         // If we reach here without redirecting, something went wrong
         console.warn('Register completed but no redirect triggered. Response:', response);
       } catch (error: any) {
@@ -284,10 +300,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     setUser(null);
-    
+
     // Session cookie is cleared by backend on logout
     // No localStorage to clear (session-based auth)
-    
+
     toast.info('Đã đăng xuất');
     router.push('/auth/login');
   };
@@ -347,7 +363,7 @@ export function useAuth() {
 function getRedirectPath(role: string): string {
   // Normalize role to uppercase for comparison
   const normalizedRole = role.toUpperCase();
-  
+
   switch (normalizedRole) {
     case 'PATIENT':
       return '/patient/dashboard';
@@ -362,5 +378,24 @@ function getRedirectPath(role: string): string {
       return '/staff/dashboard';
     default:
       return '/';
+  }
+}
+
+// Helper function to determine profile path based on role
+function getProfilePath(role: string): string {
+  const normalizedRole = role.toUpperCase();
+
+  switch (normalizedRole) {
+    case 'PATIENT':
+      return '/patient/profile';
+    case 'DOCTOR':
+      return '/doctor/profile'; // Assuming this route exists, otherwise fallback to dashboard
+    case 'NURSE':
+      return '/nurse/profile';
+    case 'ADMIN':
+    case 'RECEPTIONIST':
+      return '/admin/settings'; // Admins usually update profile in settings
+    default:
+      return '/profile';
   }
 }

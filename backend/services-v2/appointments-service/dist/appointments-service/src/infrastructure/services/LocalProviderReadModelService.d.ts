@@ -6,8 +6,8 @@
  * @version 1.0.0
  * @compliance CQRS, Zero HTTP Dependencies, Pure Outbox Pattern
  */
-import { IProviderService, ProviderDTO } from '../../application/services/IProviderService';
-import { ProviderReadModelRepository } from '../repositories/ProviderReadModelRepository';
+import { IProviderService, ProviderDTO } from "../../application/services/IProviderService";
+import { ProviderReadModelRepository } from "../repositories/ProviderReadModelRepository";
 /**
  * Local Provider Service - Pure Outbox Pattern
  *

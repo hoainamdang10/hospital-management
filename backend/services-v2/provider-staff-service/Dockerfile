@@ -47,10 +47,10 @@ COPY shared ./shared
 # Install dependencies in shared module for build
 RUN cd /app/shared && \
     if [ -f package.json ]; then \
-      npm install; \
+    npm install; \
     else \
-      npm init -y && \
-      npm install uuid @types/uuid @supabase/supabase-js pino pino-pretty amqplib @types/amqplib redis --save; \
+    npm init -y && \
+    npm install uuid @types/uuid @supabase/supabase-js pino pino-pretty amqplib @types/amqplib redis --save; \
     fi
 
 # Change to service directory
@@ -74,12 +74,12 @@ ARG VCS_REF
 
 # Add image labels for better management
 LABEL org.opencontainers.image.title="Provider Staff Service" \
-      org.opencontainers.image.description="Hospital Management System - Provider/Staff Management Service" \
-      org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.created="${BUILD_DATE}" \
-      org.opencontainers.image.revision="${VCS_REF}" \
-      org.opencontainers.image.vendor="Hospital Management Team" \
-      maintainer="Hospital Management Team"
+    org.opencontainers.image.description="Hospital Management System - Provider/Staff Management Service" \
+    org.opencontainers.image.version="${VERSION}" \
+    org.opencontainers.image.created="${BUILD_DATE}" \
+    org.opencontainers.image.revision="${VCS_REF}" \
+    org.opencontainers.image.vendor="Hospital Management Team" \
+    maintainer="Hospital Management Team"
 
 # Install dumb-init for proper signal handling and curl for healthcheck
 RUN apk add --no-cache dumb-init curl
@@ -106,21 +106,21 @@ RUN mkdir -p logs && chown -R provider:nodejs logs
 
 # Set environment variables
 ENV NODE_ENV=production \
-    PORT=3002 \
+    PORT=3003 \
     SERVICE_NAME=provider-staff-service \
     SERVICE_VERSION=2.0.0
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3002/health', (res) => { \
-  if (res.statusCode === 200) process.exit(0); else process.exit(1); \
-  }).on('error', () => process.exit(1))"
+    CMD node -e "require('http').get('http://localhost:3003/health', (res) => { \
+    if (res.statusCode === 200) process.exit(0); else process.exit(1); \
+    }).on('error', () => process.exit(1))"
 
 # Switch to non-root user
 USER provider
 
 # Expose port
-EXPOSE 3002
+EXPOSE 3003
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

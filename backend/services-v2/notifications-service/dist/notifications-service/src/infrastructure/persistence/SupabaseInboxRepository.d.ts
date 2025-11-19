@@ -1,6 +1,6 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IInboxRepository, ProcessEventIdempotentResult } from '../../domain/repositories/IInboxRepository';
-import { InboxEvent } from '../../domain/aggregates/InboxEvent.aggregate';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IInboxRepository, ProcessEventIdempotentResult } from "../../domain/repositories/IInboxRepository";
+import { InboxEvent } from "../../domain/aggregates/InboxEvent.aggregate";
 export declare class SupabaseInboxRepository implements IInboxRepository {
     private readonly supabase;
     constructor(supabase: SupabaseClient);

@@ -99,4 +99,39 @@ export const authService = {
     const response = await apiClient.post('/auth/change-password', data);
     return response.data;
   },
+
+  async inviteStaffAdmin(data: { email: string; fullName: string; roleType: 'doctor' | 'receptionist' | 'admin'; phoneNumber?: string; invitationData?: any }): Promise<{ success: boolean; invitationUrl?: string; expiresAt?: string; message?: string }> {
+    const response = await apiClient.post('/admin/staff/register', data);
+    return response.data;
+  },
+
+  async validateInvitation(token: string): Promise<{ success: boolean; isValid: boolean; invitationData?: any }> {
+    const response = await apiClient.get(`/auth/validate-invitation?token=${encodeURIComponent(token)}`);
+    return response.data;
+  },
+
+  async activateStaff(data: { invitationToken: string; password: string; confirmPassword: string; fullName?: string; phoneNumber?: string }): Promise<{ success: boolean; user: { id: string; email: string; role: string }; accessToken?: string; refreshToken?: string }> {
+    const response = await apiClient.post('/auth/activate-staff', data);
+    return response.data;
+  },
+
+  async listStaffInvitations(params?: { page?: number; limit?: number; status?: string; role?: string; email?: string }): Promise<{ success: boolean; invitations: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const response = await apiClient.get('/admin/staff/invitations', { params });
+    return response.data;
+  },
+
+  async getStaffInvitation(id: string): Promise<{ success: boolean; invitation: any }> {
+    const response = await apiClient.get(`/admin/staff/invitations/${id}`);
+    return response.data;
+  },
+
+  async cancelStaffInvitation(id: string, reason?: string): Promise<{ success: boolean; message?: string }> {
+    const response = await apiClient.delete(`/admin/staff/invitations/${id}`, { data: { reason } });
+    return response.data;
+  },
+
+  async resendStaffInvitation(id: string): Promise<{ success: boolean; invitationUrl?: string; expiresAt?: string; message?: string }> {
+    const response = await apiClient.post(`/admin/staff/invitations/${id}/resend`);
+    return response.data;
+  },
 };

@@ -7,16 +7,16 @@
  * @compliance Clean Architecture, DDD
  */
 
-import { Patient, IPatientRepository } from '@domain/entities/Patient';
-import { logger } from '@infrastructure/logging/logger';
-import { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
+import { Patient, IPatientRepository } from "@domain/entities/Patient";
+import { logger } from "@infrastructure/logging/logger";
+import { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
 
 export interface PatientData {
   id: string;
   user_id: string;
   full_name: string;
   date_of_birth: string;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   national_id: string;
   phone?: string;
   email?: string;
@@ -31,6 +31,9 @@ export interface PatientData {
  * SupabasePatientRepository - Implementation for Supabase database
  */
 export class SupabasePatientRepository implements IPatientRepository {
+  private readonly schemaName = "patient_schema";
+  private readonly tableName = "patients";
+
   constructor(
     private supabase: OptimizedSupabaseClient,
     private loggerInstance: typeof logger,
@@ -41,16 +44,16 @@ export class SupabasePatientRepository implements IPatientRepository {
    */
   async findById(id: string): Promise<Patient | null> {
     try {
-      this.loggerInstance.debug('Finding patient by ID', { patientId: id });
+      this.loggerInstance.debug("Finding patient by ID", { patientId: id });
 
-      const { data, error } = await this.supabase.getRawClient()
-        .from('patients')
-        .select('*')
-        .eq('id', id)
+      const { column, value } = this.resolvePatientIdentifier(id);
+      const { data, error } = await this.fromTable()
+        .select("*")
+        .eq(column, value)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           // No rows returned
           return null;
         }
@@ -62,11 +65,11 @@ export class SupabasePatientRepository implements IPatientRepository {
       }
 
       return this.mapToPatient(data as PatientData);
-
     } catch (error) {
-      this.loggerInstance.error('Failed to find patient by ID', {
+      this.loggerInstance.error("Failed to find patient by ID", {
         patientId: id,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
+        rawError: error,
       });
       throw error;
     }
@@ -77,16 +80,15 @@ export class SupabasePatientRepository implements IPatientRepository {
    */
   async findByUserId(userId: string): Promise<Patient | null> {
     try {
-      this.loggerInstance.debug('Finding patient by user ID', { userId });
+      this.loggerInstance.debug("Finding patient by user ID", { userId });
 
-      const { data, error } = await this.supabase.getRawClient()
-        .from('patients')
-        .select('*')
-        .eq('user_id', userId)
+      const { data, error } = await this.fromTable()
+        .select("*")
+        .eq("user_id", userId)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           // No rows returned
           return null;
         }
@@ -98,11 +100,10 @@ export class SupabasePatientRepository implements IPatientRepository {
       }
 
       return this.mapToPatient(data as PatientData);
-
     } catch (error) {
-      this.loggerInstance.error('Failed to find patient by user ID', {
+      this.loggerInstance.error("Failed to find patient by user ID", {
         userId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -113,16 +114,17 @@ export class SupabasePatientRepository implements IPatientRepository {
    */
   async findByNationalId(nationalId: string): Promise<Patient | null> {
     try {
-      this.loggerInstance.debug('Finding patient by national ID', { nationalId });
+      this.loggerInstance.debug("Finding patient by national ID", {
+        nationalId,
+      });
 
-      const { data, error } = await this.supabase.getRawClient()
-        .from('patients')
-        .select('*')
-        .eq('national_id', nationalId)
+      const { data, error } = await this.fromTable()
+        .select("*")
+        .eq("national_id", nationalId)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           // No rows returned
           return null;
         }
@@ -134,11 +136,10 @@ export class SupabasePatientRepository implements IPatientRepository {
       }
 
       return this.mapToPatient(data as PatientData);
-
     } catch (error) {
-      this.loggerInstance.error('Failed to find patient by national ID', {
+      this.loggerInstance.error("Failed to find patient by national ID", {
         nationalId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -149,27 +150,28 @@ export class SupabasePatientRepository implements IPatientRepository {
    */
   async exists(id: string): Promise<boolean> {
     try {
-      this.loggerInstance.debug('Checking if patient exists', { patientId: id });
+      this.loggerInstance.debug("Checking if patient exists", {
+        patientId: id,
+      });
 
-      const { data, error } = await this.supabase.getRawClient()
-        .from('patients')
-        .select('id')
-        .eq('id', id)
+      const { column, value } = this.resolvePatientIdentifier(id);
+      const { data, error } = await this.fromTable()
+        .select("id")
+        .eq(column, value)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           return false;
         }
         throw error;
       }
 
       return data !== null;
-
     } catch (error) {
-      this.loggerInstance.error('Failed to check patient existence', {
+      this.loggerInstance.error("Failed to check patient existence", {
         patientId: id,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -180,27 +182,28 @@ export class SupabasePatientRepository implements IPatientRepository {
    */
   async getInsuranceInfo(patientId: string): Promise<any | null> {
     try {
-      this.loggerInstance.debug('Getting patient insurance info', { patientId });
+      this.loggerInstance.debug("Getting patient insurance info", {
+        patientId,
+      });
 
-      const { data, error } = await this.supabase.getRawClient()
-        .from('patients')
-        .select('insurance_info')
-        .eq('id', patientId)
+      const { column, value } = this.resolvePatientIdentifier(patientId);
+      const { data, error } = await this.fromTable()
+        .select("insurance_info")
+        .eq(column, value)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           return null;
         }
         throw error;
       }
 
       return data?.insurance_info || null;
-
     } catch (error) {
-      this.loggerInstance.error('Failed to get patient insurance info', {
+      this.loggerInstance.error("Failed to get patient insurance info", {
         patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -209,28 +212,32 @@ export class SupabasePatientRepository implements IPatientRepository {
   /**
    * Update patient insurance information
    */
-  async updateInsuranceInfo(patientId: string, insuranceInfo: any): Promise<void> {
+  async updateInsuranceInfo(
+    patientId: string,
+    insuranceInfo: any,
+  ): Promise<void> {
     try {
-      this.loggerInstance.debug('Updating patient insurance info', { patientId });
+      this.loggerInstance.debug("Updating patient insurance info", {
+        patientId,
+      });
 
-      const { error } = await this.supabase.getRawClient()
-        .from('patients')
+      const { column, value } = this.resolvePatientIdentifier(patientId);
+      const { error } = await this.fromTable()
         .update({
           insurance_info: insuranceInfo,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', patientId);
+        .eq(column, value);
 
       if (error) {
         throw error;
       }
 
-      this.loggerInstance.info('Patient insurance info updated', { patientId });
-
+      this.loggerInstance.info("Patient insurance info updated", { patientId });
     } catch (error) {
-      this.loggerInstance.error('Failed to update patient insurance info', {
+      this.loggerInstance.error("Failed to update patient insurance info", {
         patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -255,6 +262,38 @@ export class SupabasePatientRepository implements IPatientRepository {
       updatedAt: new Date(data.updated_at),
       isActive: data.is_active,
     };
+  }
+
+  /**
+   * Determine whether provided identifier is UUID or patient_code (PAT-YYYYMM-XXX)
+   */
+  private resolvePatientIdentifier(id: string): {
+    column: "id" | "patient_id";
+    value: string;
+  } {
+    if (!id) {
+      return { column: "id", value: id };
+    }
+
+    if (this.isUUID(id)) {
+      return { column: "id", value: id };
+    }
+
+    // Fallback to patient_id (human readable code)
+    return { column: "patient_id", value: id };
+  }
+
+  private isUUID(value: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(value);
+  }
+
+  private fromTable() {
+    return this.supabase
+      .getRawClient()
+      .schema(this.schemaName)
+      .from(this.tableName);
   }
 }
 

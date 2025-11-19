@@ -32,6 +32,7 @@ class SupabaseAppointmentReadModelRepository {
             type: data.type,
             priority: data.priority,
             status: data.status,
+            payment_status: data.paymentStatus,
             room_id: data.roomId,
             department_id: data.departmentId,
             consultation_fee: data.consultationFee, // Billing reference only
@@ -295,6 +296,7 @@ class SupabaseAppointmentReadModelRepository {
             type: record.type,
             priority: record.priority,
             status: record.status,
+            paymentStatus: record.payment_status,
             roomId: record.room_id,
             departmentId: record.department_id,
             consultationFee: parseFloat(record.consultation_fee), // Billing reference only

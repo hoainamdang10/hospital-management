@@ -1,15 +1,16 @@
 /**
  * Dashboard Service
- * API calls for patient dashboard statistics and data
+ * API calls for patient dashboard statistics and data (no Clinical EMR)
  */
 
-import { appointmentsClient } from './clients';
-import { clinicalClient } from './clients';
+import { appointmentsService } from './appointments.service';
+import { billingService } from '@/modules/billing/services/billing.service';
+import { patientService } from './patient.service';
 
 export interface DashboardStats {
-  upcomingAppointments: number;
-  totalMedicalRecords: number;
-  unpaidInvoices: number;
+  upcomingConfirmed7DaysCount: number;
+  pendingPaymentsCount: number;
+  recentCompletedOrCancelledCount: number;
   profileCompletion: number;
 }
 
@@ -26,57 +27,102 @@ export interface QuickStat {
 
 /**
  * Get dashboard statistics for patient
+ * Uses Appointments + Billing + Patient Registry
  */
-export async function getPatientDashboardStats(patientId: string): Promise<DashboardStats> {
+export async function getPatientDashboardStats(
+  patientId: string,
+  options?: { billingIdentifier?: string }
+): Promise<DashboardStats> {
   try {
-    // Fetch data from multiple services in parallel
-    const [appointmentsData, medicalRecordsData] = await Promise.all([
-      // Get upcoming appointments count
-      appointmentsClient.get(`/api/v2/appointments/patients/${patientId}/appointments`, {
-        params: {
+    const billingIdentifier = options?.billingIdentifier || patientId;
+    const [
+      confirmedApts,
+      scheduledApts,
+      completedApts,
+      cancelledApts,
+      billingSummary,
+      profile,
+      insurance,
+      contacts,
+    ] = await Promise.all([
+      appointmentsService
+        .getPatientAppointments(patientId, {
+          status: 'CONFIRMED',
+          page: 1,
+          pageSize: 100,
+        })
+        .catch(() => ({ success: true, appointments: [] })),
+      appointmentsService
+        .getPatientAppointments(patientId, {
           status: 'SCHEDULED',
           page: 1,
           pageSize: 100,
-        },
-      }).catch(() => ({ data: { data: { appointments: [] } } })),
-
-      // Get medical records count
-      clinicalClient.get(`/api/v2/clinical-emr/patients/${patientId}/medical-records`, {
-        params: {
+        })
+        .catch(() => ({ success: true, appointments: [] })),
+      appointmentsService
+        .getPatientAppointments(patientId, {
+          status: 'COMPLETED',
           page: 1,
-          pageSize: 1,
-        },
-      }).catch(() => ({ data: { data: { total: 0 } } })),
+          pageSize: 100,
+        })
+        .catch(() => ({ success: true, appointments: [] })),
+      appointmentsService
+        .getPatientAppointments(patientId, {
+          status: 'CANCELLED',
+          page: 1,
+          pageSize: 100,
+        })
+        .catch(() => ({ success: true, appointments: [] })),
+      billingService.getPatientBillingSummary(billingIdentifier).catch(() => ({
+        totalAmount: 0,
+        paidAmount: 0,
+        outstandingAmount: 0,
+        invoiceCount: 0,
+        paidInvoiceCount: 0,
+        pendingInvoiceCount: 0,
+      })),
+      patientService.getPatientProfile(patientId).catch(() => null),
+      patientService.getInsurance(patientId).catch(() => ({ insuranceInfo: null })),
+      patientService.getEmergencyContacts(patientId).catch(() => ({ contacts: [] })),
     ]);
 
-    // Count upcoming appointments (future dates only)
-    const now = new Date();
-    const upcomingAppointments = appointmentsData.data?.data?.appointments?.filter((apt: any) => {
-      const aptDate = new Date(apt.appointmentDateTime);
-      return aptDate > now;
-    }).length || 0;
+    const today = new Date();
+    const sevenDaysAhead = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const totalMedicalRecords = medicalRecordsData.data?.data?.total || 0;
+    const upcomingConfirmed7DaysCount = [
+      ...((confirmedApts as any).appointments || []),
+      ...((scheduledApts as any).appointments || []),
+    ].filter((apt: any) => {
+      const dateStr = apt.appointmentDate || apt.date;
+      const timeStr = apt.appointmentTime || apt.time || '00:00:00';
+      const dt = new Date(`${dateStr}T${timeStr}`);
+      return dt >= today && dt <= sevenDaysAhead;
+    }).length;
 
-    // Mock unpaid invoices and profile completion for now
-    // TODO: Replace with real API calls when billing service is ready
-    const unpaidInvoices = 0;
-    const profileCompletion = 85;
+    const completedCount = ((completedApts as any).appointments || []).length;
+    const cancelledCount = ((cancelledApts as any).appointments || []).length;
+    const recentCompletedOrCancelledCount = completedCount + cancelledCount;
+
+    const pendingPaymentsCount = (billingSummary as any).pendingInvoiceCount || 0;
+
+    const profileCompletion = computeProfileCompletion(
+      profile,
+      (insurance as any).insuranceInfo,
+      (contacts as any).contacts
+    );
 
     return {
-      upcomingAppointments,
-      totalMedicalRecords,
-      unpaidInvoices,
+      upcomingConfirmed7DaysCount,
+      pendingPaymentsCount,
+      recentCompletedOrCancelledCount,
       profileCompletion,
     };
   } catch (error) {
     console.error('[DashboardService] Failed to fetch stats:', error);
-    
-    // Return default values on error
     return {
-      upcomingAppointments: 0,
-      totalMedicalRecords: 0,
-      unpaidInvoices: 0,
+      upcomingConfirmed7DaysCount: 0,
+      pendingPaymentsCount: 0,
+      recentCompletedOrCancelledCount: 0,
       profileCompletion: 0,
     };
   }
@@ -86,7 +132,7 @@ export async function getPatientDashboardStats(patientId: string): Promise<Dashb
  * Calculate profile completion percentage
  * Based on filled fields in patient profile
  */
-export function calculateProfileCompletion(profile: any): number {
+export function computeProfileCompletion(profile: any, insurance: any, contacts: any[]): number {
   if (!profile) return 0;
 
   const fields = [
@@ -97,15 +143,20 @@ export function calculateProfileCompletion(profile: any): number {
     profile.phoneNumber,
     profile.email,
     profile.address,
-    profile.bloodType,
-    profile.emergencyContact?.name,
-    profile.emergencyContact?.phone,
   ];
 
-  const filledFields = fields.filter(field => field && field.toString().trim() !== '').length;
-  const totalFields = fields.length;
+  const baseFilled = fields.filter((f) => f && f.toString().trim() !== '').length;
+  const baseTotal = fields.length;
 
-  return Math.round((filledFields / totalFields) * 100);
+  const hasInsurance = !!insurance;
+  const hasEmergencyContact = Array.isArray(contacts) && contacts.length > 0;
+
+  // Weight: base info 70%, insurance 15%, emergency contact 15%
+  const baseScore = Math.round((baseFilled / baseTotal) * 70);
+  const insuranceScore = hasInsurance ? 15 : 0;
+  const contactScore = hasEmergencyContact ? 15 : 0;
+
+  return Math.min(100, baseScore + insuranceScore + contactScore);
 }
 
 /**
@@ -114,22 +165,22 @@ export function calculateProfileCompletion(profile: any): number {
 export function formatDashboardStats(stats: DashboardStats): QuickStat[] {
   return [
     {
-      title: 'Lịch hẹn sắp tới',
-      value: stats.upcomingAppointments.toString(),
+      title: 'Lịch hẹn sắp tới (7 ngày)',
+      value: stats.upcomingConfirmed7DaysCount.toString(),
       icon: 'Calendar',
       color: 'blue',
     },
     {
-      title: 'Hồ sơ bệnh án',
-      value: stats.totalMedicalRecords.toString(),
-      icon: 'FileText',
-      color: 'green',
-    },
-    {
-      title: 'Hóa đơn chưa thanh toán',
-      value: stats.unpaidInvoices.toString(),
+      title: 'Chờ thanh toán',
+      value: stats.pendingPaymentsCount.toString(),
       icon: 'CreditCard',
       color: 'orange',
+    },
+    {
+      title: 'Đã khám/Hủy gần đây',
+      value: stats.recentCompletedOrCancelledCount.toString(),
+      icon: 'FileText',
+      color: 'green',
     },
     {
       title: 'Hồ sơ hoàn chỉnh',
