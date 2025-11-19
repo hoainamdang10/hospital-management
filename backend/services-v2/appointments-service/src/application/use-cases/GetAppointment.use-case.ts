@@ -8,6 +8,7 @@
 
 import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
 import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';
 
 export interface GetAppointmentRequest {
   appointmentId: string;
@@ -27,12 +28,28 @@ export interface GetAppointmentResponse {
     type: string;
     priority: string;
     status: string;
+    paymentStatus?: string;
     reason?: string;
     chiefComplaint?: string;
     symptoms?: string[];
     notes?: string;
     specialInstructions?: string;
-    consultationFee: number; // Billing reference only
+    consultationFee: number;
+
+    // Enriched Data (from Read Model)
+    patientName?: string;
+    patientPhone?: string;
+    patientEmail?: string;
+    patientDateOfBirth?: Date;
+    patientGender?: string;
+    patientAddress?: string;
+
+    doctorName?: string;
+    doctorSpecialization?: string;
+    doctorDepartment?: string;
+    doctorLicenseNumber?: string;
+    doctorPhone?: string;
+    doctorEmail?: string;
   };
   errors?: string[];
 }
@@ -42,7 +59,8 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
   GetAppointmentResponse
 > {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: IAppointmentRepository,
+    private readonly appointmentReadModelRepository: IAppointmentReadModelRepository
   ) {
     super();
   }
@@ -51,7 +69,53 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
     request: GetAppointmentRequest
   ): Promise<GetAppointmentResponse> {
     try {
-      const appointment = await this.appointmentRepository.findByAppointmentId(
+      // 1. Try to get from Read Model first (Enriched Data)
+      const readModel = await this.appointmentReadModelRepository.findById(request.appointmentId);
+
+      if (readModel) {
+        return {
+          success: true,
+          message: 'Lấy thông tin lịch hẹn thành công',
+          appointment: {
+            id: readModel.id,
+            appointmentId: readModel.appointmentId,
+            patientId: readModel.patientId,
+            doctorId: readModel.doctorId,
+            appointmentDate: readModel.appointmentDate.toISOString().split('T')[0],
+            appointmentTime: readModel.appointmentTime,
+            durationMinutes: readModel.durationMinutes,
+            type: readModel.type,
+            priority: readModel.priority,
+            status: readModel.status,
+            paymentStatus: readModel.paymentStatus,
+            reason: readModel.reason,
+            chiefComplaint: readModel.chiefComplaint,
+            symptoms: readModel.symptoms,
+            notes: readModel.notes,
+            specialInstructions: readModel.specialInstructions,
+            consultationFee: readModel.consultationFee,
+
+            // Enriched Data
+            patientName: readModel.patientFullName,
+            patientPhone: readModel.patientPhone,
+            patientEmail: readModel.patientEmail,
+            patientDateOfBirth: readModel.patientDateOfBirth,
+            patientGender: readModel.patientGender,
+            patientAddress: readModel.patientAddress,
+
+            doctorName: readModel.doctorFullName,
+            doctorSpecialization: readModel.doctorSpecialization,
+            doctorDepartment: readModel.doctorDepartment,
+            doctorLicenseNumber: readModel.doctorLicenseNumber,
+            doctorPhone: readModel.doctorPhone,
+            doctorEmail: readModel.doctorEmail
+          }
+        };
+      }
+
+      // 2. Fallback to Write Model (Raw Data)
+      // Use findByIdString to support both UUID and Business ID
+      const appointment = await this.appointmentRepository.findByIdString(
         request.appointmentId
       );
 
@@ -65,7 +129,7 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
 
       return {
         success: true,
-        message: 'Lấy thông tin lịch hẹn thành công',
+        message: 'Lấy thông tin lịch hẹn thành công (Dữ liệu gốc)',
         appointment: {
           id: appointment.id,
           appointmentId: appointment.appointmentId.value,
@@ -77,12 +141,13 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
           type: appointment.type,
           priority: appointment.priority,
           status: appointment.status,
+          paymentStatus: appointment.paymentStatus,
           reason: appointment.details.reason,
           chiefComplaint: appointment.details.chiefComplaint,
           symptoms: appointment.details.symptoms,
           notes: appointment.details.notes,
           specialInstructions: appointment.details.specialInstructions,
-          consultationFee: appointment.consultationFee // Billing reference only
+          consultationFee: appointment.consultationFee
         }
       };
     } catch (error) {

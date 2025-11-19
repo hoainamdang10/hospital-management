@@ -163,11 +163,18 @@ export class SupabaseAppointmentReadModelRepository implements IAppointmentReadM
    * Find by appointment ID
    */
   async findById(appointmentId: string): Promise<AppointmentReadModel | null> {
-    const { data, error } = await this.client
-      .from(this.tableName)
-      .select('*')
-      .eq('appointment_id', appointmentId)
-      .single();
+    // Check if it's UUID format (database id) or business format (appointment_id)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(appointmentId);
+
+    let query = this.client.from(this.tableName).select('*');
+
+    if (isUUID) {
+      query = query.eq('id', appointmentId);
+    } else {
+      query = query.eq('appointment_id', appointmentId);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) {
       if (error.code === 'PGRST116') {

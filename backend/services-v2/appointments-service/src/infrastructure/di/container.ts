@@ -544,6 +544,7 @@ export class DIContainer {
 
     this.getAppointmentUseCase = new GetAppointmentUseCase(
       this.appointmentRepository,
+      this.appointmentReadModelRepository,
     );
 
     this.listAppointmentsUseCase = new ListAppointmentsUseCase(
