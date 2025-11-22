@@ -285,6 +285,7 @@ class BillingServiceApp {
           "appointment.cancelled", // Process refunds for cancelled appointments
           "appointment.cancelled_late", // Cancel invoice if not paid yet
           "appointment.no_show", // Future: Apply no-show fee
+          "appointment.rescheduled", // Apply reschedule fee if policy requires
         ],
         prefetchCount: 10,
         retryAttempts: 3,
@@ -340,7 +341,9 @@ class BillingServiceApp {
       this.paymentGateway, // VnpayIntegrationService for real refund API calls
       loggerInstance,
     );
-    loggerInstance.info("Refund gateway worker initialized (VNPAY integration)");
+    loggerInstance.info(
+      "Refund gateway worker initialized (VNPAY integration)",
+    );
 
     // Initialize Controllers - Phase 1 (Prepaid Model)
     this.invoiceController = new InvoiceController(
