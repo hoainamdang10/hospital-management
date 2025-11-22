@@ -195,6 +195,39 @@ export class SupabaseAppointmentReadModelRepository
   }
 
   /**
+   * Update appointment schedule (date/time/duration) after reschedule
+   */
+  async updateSchedule(
+    appointmentId: string,
+    appointmentDate: Date,
+    appointmentTime: string,
+    durationMinutes: number,
+    status?: string,
+  ): Promise<void> {
+    const updates: Record<string, any> = {
+      appointment_date: appointmentDate.toISOString().split("T")[0],
+      appointment_time: appointmentTime,
+      duration_minutes: durationMinutes,
+      synced_at: new Date().toISOString(),
+    };
+
+    if (status) {
+      updates.status = status;
+    }
+
+    const { error } = await this.client
+      .from(this.tableName)
+      .update(updates)
+      .eq("appointment_id", appointmentId);
+
+    if (error) {
+      throw new Error(
+        `Failed to update appointment schedule: ${error.message}`,
+      );
+    }
+  }
+
+  /**
    * Find by appointment ID
    */
   async findById(appointmentId: string): Promise<AppointmentReadModel | null> {

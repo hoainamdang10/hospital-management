@@ -18,7 +18,8 @@ const vietnameseHealthcareRules = {
   phoneNumber: Joi.string()
     .pattern(/^0\d{9}$/)
     .messages({
-      "string.pattern.base": "Số điện thoại phải có 10 chữ số và bắt đầu bằng 0",
+      "string.pattern.base":
+        "Số điện thoại phải có 10 chữ số và bắt đầu bằng 0",
     }),
 
   // Vietnamese national ID: 9 or 12 digits
@@ -43,7 +44,8 @@ const vietnameseHealthcareRules = {
       /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]+$/,
     )
     .messages({
-      "string.pattern.base": "Tên chỉ được chứa chữ cái tiếng Việt và khoảng trắng",
+      "string.pattern.base":
+        "Tên chỉ được chứa chữ cái tiếng Việt và khoảng trắng",
     }),
 
   // Business hours validation (8:00 - 17:00)
@@ -74,12 +76,9 @@ const vietnameseHealthcareRules = {
   }),
 
   // Date range validation (max 60 days in advance)
-  dateRange: Joi.date()
-    .min("now")
-    .max(Joi.ref("$maxDate"))
-    .messages({
-      "date.max": "Không thể đặt lịch hẹn quá 60 ngày trong tương lai",
-    }),
+  dateRange: Joi.date().min("now").max(Joi.ref("$maxDate")).messages({
+    "date.max": "Không thể đặt lịch hẹn quá 60 ngày trong tương lai",
+  }),
 };
 
 /**
@@ -91,26 +90,17 @@ export const scheduleAppointmentSchema = Joi.object({
       .pattern(/^PAT-\d{6}-\d{3}$/)
       .required(),
 
-    fullName: vietnameseHealthcareRules.vietnameseName
-      .required(),
+    fullName: vietnameseHealthcareRules.vietnameseName.required(),
 
-    phone: vietnameseHealthcareRules.phoneNumber
-      .required(),
+    phone: vietnameseHealthcareRules.phoneNumber.required(),
 
-    dateOfBirth: Joi.date()
-      .max("now")
-      .required(),
+    dateOfBirth: Joi.date().max("now").required(),
 
-    nationalId: vietnameseHealthcareRules.nationalId
-      .required(),
+    nationalId: vietnameseHealthcareRules.nationalId.required(),
 
-    email: Joi.string()
-      .email()
-      .optional(),
+    email: Joi.string().email().optional(),
 
-    address: Joi.string()
-      .max(200)
-      .optional(),
+    address: Joi.string().max(200).optional(),
 
     emergencyContact: vietnameseHealthcareRules.phoneNumber.optional(),
 
@@ -125,7 +115,7 @@ export const scheduleAppointmentSchema = Joi.object({
     providerId: Joi.alternatives()
       .try(
         Joi.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
-        Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/)    // e.g., DOC-GEN-202511-955
+        Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/), // e.g., DOC-GEN-202511-955
       )
       .required(),
 
@@ -154,21 +144,15 @@ export const scheduleAppointmentSchema = Joi.object({
       .valid("low", "normal", "urgent", "emergency")
       .required(),
 
-    startTime: vietnameseHealthcareRules.businessHours
-      .required(),
+    startTime: vietnameseHealthcareRules.businessHours.required(),
 
-    endTime: Joi.date()
-      .greater(Joi.ref("startTime"))
-      .required(),
+    endTime: Joi.date().greater(Joi.ref("startTime")).required(),
 
     roomId: Joi.string()
       .pattern(/^ROOM-\d{3}$/)
       .optional(),
 
-    reason: Joi.string()
-      .min(3)
-      .max(500)
-      .required(),
+    reason: Joi.string().min(3).max(500).required(),
 
     reasonCode: Joi.string()
       .valid(
@@ -185,37 +169,17 @@ export const scheduleAppointmentSchema = Joi.object({
       )
       .optional(),
 
-    symptoms: Joi.string()
-      .max(1000)
-      .optional()
-      ,
-
-    notes: Joi.string()
-      .max(1000)
-      .optional()
-      ,
-
-    preparationInstructions: Joi.string()
-      .max(500)
-      .optional()
-      ,
-
-    estimatedDuration: Joi.number()
-      .integer()
-      .min(15)
-      .max(480)
-      .required()
-      ,
-
+    symptoms: Joi.string().max(1000).optional(),
+    notes: Joi.string().max(1000).optional(),
+    preparationInstructions: Joi.string().max(500).optional(),
+    estimatedDuration: Joi.number().integer().min(15).max(480).required(),
     requiresPreparation: Joi.boolean().optional().default(false),
 
     isFollowUp: Joi.boolean().optional().default(false),
 
     previousAppointmentId: Joi.when("isFollowUp", {
       is: true,
-      then: Joi.string()
-        .required()
-        ,
+      then: Joi.string().required(),
       otherwise: Joi.string().optional(),
     }),
 
@@ -227,9 +191,7 @@ export const scheduleAppointmentSchema = Joi.object({
     specialRequirements: Joi.array()
       .items(Joi.string().max(100))
       .max(10)
-      .optional()
-      ,
-
+      .optional(),
     interpreterRequired: Joi.boolean().optional().default(false),
 
     wheelchairAccessible: Joi.boolean().optional().default(false),
@@ -239,15 +201,12 @@ export const scheduleAppointmentSchema = Joi.object({
     medicationRestrictions: Joi.array()
       .items(Joi.string().max(100))
       .max(20)
-      .optional()
-      ,
+      .optional(),
   }).required(),
 
   departmentCode: Joi.string()
     .pattern(/^[A-Z]{3,4}$/)
-    .required()
-    ,
-
+    .required(),
   createdBy: Joi.string().optional(), // Will be set from authentication context
 }).options({
   abortEarly: false, // Return all validation errors
@@ -257,40 +216,94 @@ export const scheduleAppointmentSchema = Joi.object({
 
 /**
  * Reschedule Appointment Request Validation Schema
+ * Accepts either (appointmentDate + appointmentTime) from frontend
+ * or legacy newStartTime/newEndTime payloads from admin portal.
  */
 export const rescheduleAppointmentSchema = Joi.object({
-  appointmentId: Joi.string().required(),
+  appointmentDate: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .messages({
+      "string.pattern.base": "Ngày phải đúng định dạng YYYY-MM-DD",
+    }),
 
-  newStartTime: vietnameseHealthcareRules.businessHours
-    .required()
-    ,
+  appointmentTime: Joi.string()
+    .pattern(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/)
+    .messages({
+      "string.pattern.base": "Giờ phải đúng định dạng HH:mm hoặc HH:mm:ss",
+    }),
 
-  newEndTime: Joi.date()
-    .greater(Joi.ref("newStartTime"))
-    .required()
-    ,
+  // Legacy payloads may send ISO datetime values
+  newStartTime: Joi.alternatives().try(Joi.string(), Joi.date()).optional(),
 
-  newRoomId: Joi.string()
-    .pattern(/^ROOM-\d{3}$/)
-    .optional()
-    ,
+  newEndTime: Joi.alternatives().try(Joi.string(), Joi.date()).optional(),
 
-  reason: Joi.string()
-    .min(3)
-    .max(500)
-    .required()
-    ,
-
+  reason: Joi.string().min(3).max(500).required(),
   notifyPatient: Joi.boolean().optional().default(true),
 
-  notifyProvider: Joi.boolean().optional().default(true),
+  notifyDoctor: Joi.boolean().optional().default(true),
 
   rescheduledBy: Joi.string().optional(), // Will be set from authentication context
-}).options({
-  abortEarly: false,
-  allowUnknown: false,
-  stripUnknown: true,
-});
+})
+  .custom((value, helpers) => {
+    const ensureTimeString = (time: string): string => {
+      if (!time) {
+        return time;
+      }
+
+      if (/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(time)) {
+        return time;
+      }
+
+      if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) {
+        return `${time}:00`;
+      }
+
+      const parsed = new Date(time);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toTimeString().split(" ")[0];
+      }
+
+      return time;
+    };
+
+    const normalizeFromDate = (input: string | Date): void => {
+      const parsed = new Date(input);
+      if (isNaN(parsed.getTime())) {
+        throw helpers.error("date.base", { label: "appointmentDate" });
+      }
+
+      value.appointmentDate = parsed.toISOString().split("T")[0];
+      value.appointmentTime = parsed.toTimeString().split(" ")[0];
+    };
+
+    if (!value.appointmentDate || !value.appointmentTime) {
+      if (!value.newStartTime) {
+        return helpers.error("any.required", { label: "appointmentDate" });
+      }
+
+      normalizeFromDate(value.newStartTime);
+    } else {
+      const normalizedTime = ensureTimeString(value.appointmentTime);
+      if (!/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(normalizedTime)) {
+        return helpers.error("string.pattern.base", {
+          label: "appointmentTime",
+          value: value.appointmentTime,
+        });
+      }
+      value.appointmentTime = normalizedTime;
+    }
+
+    // Cleanup legacy fields to avoid leaking to use case
+    delete value.newStartTime;
+    delete value.newEndTime;
+
+    return value;
+  })
+  .options({
+    abortEarly: false,
+    allowUnknown: false,
+    stripUnknown: true,
+  });
 
 /**
  * Check Availability Request Validation Schema
@@ -298,18 +311,11 @@ export const rescheduleAppointmentSchema = Joi.object({
 export const checkAvailabilitySchema = Joi.object({
   providerId: Joi.string()
     .pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/)
-    .optional()
-    ,
-
+    .optional(),
   departmentCode: Joi.string()
     .pattern(/^[A-Z]{3,4}$/)
-    .optional()
-    ,
-
-  date: vietnameseHealthcareRules.dateRange
-    .required()
-    ,
-
+    .optional(),
+  date: vietnameseHealthcareRules.dateRange.required(),
   startTime: Joi.date().optional(),
 
   endTime: Joi.when("startTime", {
@@ -333,17 +339,11 @@ export const checkAvailabilitySchema = Joi.object({
     )
     .optional(),
 
-  duration: Joi.number()
-    .integer()
-    .min(15)
-    .max(480)
-    .optional()
-    ,
-
+  duration: Joi.number().integer().min(15).max(480).optional(),
   includeUnavailable: Joi.boolean().optional().default(false),
 })
   .or("providerId", "departmentCode")
-  
+
   .options({
     abortEarly: false,
     allowUnknown: false,
@@ -365,14 +365,8 @@ export const confirmAppointmentSchema = Joi.object({
 
 // Cancel Appointment Schema
 export const cancelAppointmentSchema = Joi.object({
-  cancellationReason: Joi.string()
-    .min(3)
-    .max(500)
-    ,
-  reason: Joi.string()
-    .min(3)
-    .max(500)
-    ,
+  cancellationReason: Joi.string().min(3).max(500),
+  reason: Joi.string().min(3).max(500),
   cancelledBy: Joi.string().optional(), // Will be set from auth context
 })
   .custom((value, helpers) => {
@@ -413,8 +407,7 @@ export const listAppointmentsSchema = Joi.object({
       then: Joi.date().greater(Joi.ref("startDate")),
       otherwise: Joi.date(),
     })
-    .optional()
-    ,
+    .optional(),
   status: Joi.string()
     .valid(
       "SCHEDULED",

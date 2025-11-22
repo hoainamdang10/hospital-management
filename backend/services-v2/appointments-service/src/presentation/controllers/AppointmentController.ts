@@ -475,13 +475,11 @@ export class AppointmentController {
         .status(200)
         .json({ success: true, appointmentId: appt.appointmentId, previews });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: "Internal server error",
-          errors: [error instanceof Error ? error.message : "Unknown error"],
-        });
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        errors: [error instanceof Error ? error.message : "Unknown error"],
+      });
     }
   }
 
@@ -497,10 +495,24 @@ export class AppointmentController {
         return;
       }
 
+      const {
+        appointmentDate,
+        appointmentTime,
+        reason,
+        notifyPatient,
+        notifyDoctor,
+      } = req.body;
+
+      const normalizedTime = this.normalizeTimeInput(appointmentTime);
+
       const result = await this.rescheduleAppointmentUseCase.execute(
         {
           appointmentId: req.params.id,
-          ...req.body,
+          newAppointmentDate: appointmentDate,
+          newAppointmentTime: normalizedTime,
+          reason,
+          notifyPatient: notifyPatient ?? true,
+          notifyDoctor: notifyDoctor ?? true,
           rescheduledBy: userId,
         },
         { userId, timestamp: new Date() },
@@ -808,5 +820,29 @@ export class AppointmentController {
         errors: [error instanceof Error ? error.message : "Unknown error"],
       });
     }
+  }
+
+  /**
+   * Chuẩn hóa chuỗi thời gian về HH:mm:ss để tránh sai lệch định dạng.
+   */
+  private normalizeTimeInput(time: string): string {
+    if (!time) {
+      throw new Error("Giờ khám mới không hợp lệ");
+    }
+
+    if (/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(time)) {
+      return time;
+    }
+
+    if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) {
+      return `${time}:00`;
+    }
+
+    const parsed = new Date(time);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toTimeString().split(" ")[0];
+    }
+
+    throw new Error("Giờ khám mới không hợp lệ");
   }
 }

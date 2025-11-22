@@ -1,23 +1,26 @@
 /**
  * Appointment Read Model Event Handler - Infrastructure Layer
  * Handles events to sync appointment read model with patient/doctor data
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS, Event-Driven Architecture
  */
 
-import { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';
-import { IPatientService } from '../../application/services/IPatientService';
-import { IProviderService } from '../../application/services/IProviderService';
-import { PatientData, DoctorData } from '../../domain/read-models/AppointmentReadModel';
+import { IAppointmentReadModelRepository } from "../../domain/repositories/IAppointmentReadModelRepository";
+import { IPatientService } from "../../application/services/IPatientService";
+import { IProviderService } from "../../application/services/IProviderService";
+import {
+  PatientData,
+  DoctorData,
+} from "../../domain/read-models/AppointmentReadModel";
 
 /**
  * Event interfaces
  */
 export interface AppointmentScheduledEvent {
   eventId: string;
-  eventType: 'appointment.scheduled';
+  eventType: "appointment.scheduled";
   appointmentId: string;
   patientId: string;
   doctorId: string;
@@ -39,9 +42,22 @@ export interface AppointmentScheduledEvent {
   occurredAt: Date | string; // Can be Date object or ISO string after deserialization
 }
 
+export interface AppointmentRescheduledEventDTO {
+  eventId: string;
+  eventType: "appointment.rescheduled";
+  appointmentId: string;
+  patientId: string;
+  doctorId: string;
+  newStartTime: Date | string;
+  newEndTime: Date | string;
+  rescheduleReason?: string;
+  rescheduledBy?: string;
+  occurredAt: Date | string;
+}
+
 export interface PatientUpdatedEvent {
   eventId: string;
-  eventType: 'patient.updated';
+  eventType: "patient.updated";
   patientId: string;
   updatedFields: string[];
   newValues: {
@@ -60,7 +76,7 @@ export interface PatientUpdatedEvent {
 
 export interface DoctorUpdatedEvent {
   eventId: string;
-  eventType: 'staff.updated';
+  eventType: "staff.updated";
   staffId: string;
   staffType: string;
   updatedFields: string[];
@@ -79,14 +95,16 @@ export class AppointmentReadModelEventHandler {
   constructor(
     private readModelRepo: IAppointmentReadModelRepository,
     private patientService: IPatientService,
-    private providerService: IProviderService
+    private providerService: IProviderService,
   ) {}
 
   /**
    * Handle AppointmentScheduledEvent
    * Creates read model entry with denormalized patient/doctor data
    */
-  async handleAppointmentScheduled(event: AppointmentScheduledEvent): Promise<void> {
+  async handleAppointmentScheduled(
+    event: AppointmentScheduledEvent,
+  ): Promise<void> {
     try {
       // FIX: After deserialization, event data is spread into root level of event object
       // Access properties directly instead of relying on readonly properties
@@ -110,7 +128,9 @@ export class AppointmentReadModelEventHandler {
       const specialInstructions = eventAny.specialInstructions;
       const requiredEquipment = eventAny.requiredEquipment;
 
-      console.log(`[ReadModel] Processing AppointmentScheduledEvent: ${appointmentId}`);
+      console.log(
+        `[ReadModel] Processing AppointmentScheduledEvent: ${appointmentId}`,
+      );
 
       // 1. Fetch patient data from Patient Service
       let patientData: PatientData | undefined;
@@ -126,7 +146,7 @@ export class AppointmentReadModelEventHandler {
             patientNationalId: patient.nationalId,
             patientInsuranceNumber: patient.insuranceNumber,
             patientInsuranceType: patient.insuranceType,
-            patientAddress: patient.address
+            patientAddress: patient.address,
           };
         }
       } catch (error) {
@@ -145,7 +165,7 @@ export class AppointmentReadModelEventHandler {
             doctorDepartment: doctor.department,
             doctorLicenseNumber: doctor.licenseNumber,
             doctorPhone: doctor.phone,
-            doctorEmail: doctor.email
+            doctorEmail: doctor.email,
           };
         }
       } catch (error) {
@@ -155,9 +175,10 @@ export class AppointmentReadModelEventHandler {
 
       // 3. Create read model entry
       // Convert string date to Date object if needed
-      const appointmentDateObj = typeof appointmentDate === 'string'
-        ? new Date(appointmentDate)
-        : appointmentDate;
+      const appointmentDateObj =
+        typeof appointmentDate === "string"
+          ? new Date(appointmentDate)
+          : appointmentDate;
 
       await this.readModelRepo.create({
         appointmentId,
@@ -179,12 +200,56 @@ export class AppointmentReadModelEventHandler {
         symptoms,
         notes,
         specialInstructions,
-        requiredEquipment
+        requiredEquipment,
       });
 
-      console.log(`[ReadModel] Successfully created read model for appointment: ${appointmentId}`);
+      console.log(
+        `[ReadModel] Successfully created read model for appointment: ${appointmentId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle AppointmentScheduledEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle AppointmentScheduledEvent: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Handle AppointmentRescheduledEvent
+   * Sync new date/time into read model
+   */
+  async handleAppointmentRescheduled(
+    event: AppointmentRescheduledEventDTO,
+  ): Promise<void> {
+    try {
+      const newStart = new Date(event.newStartTime as any);
+      const newEnd = new Date(event.newEndTime as any);
+      const durationMinutes = Math.max(
+        0,
+        Math.round((newEnd.getTime() - newStart.getTime()) / 60000),
+      );
+
+      // Preserve existing status if present to avoid downgrading confirmed appointments
+      const existing = await this.readModelRepo.findById(event.appointmentId);
+      const status = existing?.status || "scheduled";
+
+      const formattedTime = this.formatTime(newStart);
+
+      await this.readModelRepo.updateSchedule(
+        event.appointmentId,
+        newStart,
+        formattedTime,
+        durationMinutes,
+        status,
+      );
+
+      console.log(
+        `[ReadModel] Updated schedule for appointment ${event.appointmentId} -> ${newStart.toISOString()} (${formattedTime})`,
+      );
+    } catch (error) {
+      console.error(
+        `[ReadModel] Failed to handle AppointmentRescheduledEvent: ${error}`,
+      );
       throw error;
     }
   }
@@ -195,11 +260,13 @@ export class AppointmentReadModelEventHandler {
    */
   async handlePatientUpdated(event: PatientUpdatedEvent): Promise<void> {
     try {
-      console.log(`[ReadModel] Processing PatientUpdatedEvent: ${event.patientId}`);
+      console.log(
+        `[ReadModel] Processing PatientUpdatedEvent: ${event.patientId}`,
+      );
 
       // Extract patient data from event
       const patientData: PatientData = {
-        patientFullName: event.newValues.fullName || '',
+        patientFullName: event.newValues.fullName || "",
         patientPhone: event.newValues.phone,
         patientEmail: event.newValues.email,
         patientDateOfBirth: event.newValues.dateOfBirth,
@@ -207,18 +274,22 @@ export class AppointmentReadModelEventHandler {
         patientNationalId: event.newValues.nationalId,
         patientInsuranceNumber: event.newValues.insuranceNumber,
         patientInsuranceType: event.newValues.insuranceType,
-        patientAddress: event.newValues.address
+        patientAddress: event.newValues.address,
       };
 
       // Update all appointments with this patient
       const updatedCount = await this.readModelRepo.updatePatientData(
         event.patientId,
-        patientData
+        patientData,
       );
 
-      console.log(`[ReadModel] Updated ${updatedCount} appointments for patient: ${event.patientId}`);
+      console.log(
+        `[ReadModel] Updated ${updatedCount} appointments for patient: ${event.patientId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle PatientUpdatedEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle PatientUpdatedEvent: ${error}`,
+      );
       throw error;
     }
   }
@@ -230,32 +301,40 @@ export class AppointmentReadModelEventHandler {
   async handleDoctorUpdated(event: DoctorUpdatedEvent): Promise<void> {
     try {
       // Only process if this is a doctor (not nurse or other staff)
-      if (event.staffType !== 'doctor') {
-        console.log(`[ReadModel] Skipping non-doctor staff update: ${event.staffId}`);
+      if (event.staffType !== "doctor") {
+        console.log(
+          `[ReadModel] Skipping non-doctor staff update: ${event.staffId}`,
+        );
         return;
       }
 
-      console.log(`[ReadModel] Processing DoctorUpdatedEvent: ${event.staffId}`);
+      console.log(
+        `[ReadModel] Processing DoctorUpdatedEvent: ${event.staffId}`,
+      );
 
       // Extract doctor data from event
       const doctorData: DoctorData = {
-        doctorFullName: event.newValues.fullName || '',
+        doctorFullName: event.newValues.fullName || "",
         doctorSpecialization: event.newValues.specialization,
         doctorDepartment: event.newValues.department,
         doctorLicenseNumber: event.newValues.licenseNumber,
         doctorPhone: event.newValues.phone,
-        doctorEmail: event.newValues.email
+        doctorEmail: event.newValues.email,
       };
 
       // Update all appointments with this doctor
       const updatedCount = await this.readModelRepo.updateDoctorData(
         event.staffId,
-        doctorData
+        doctorData,
       );
 
-      console.log(`[ReadModel] Updated ${updatedCount} appointments for doctor: ${event.staffId}`);
+      console.log(
+        `[ReadModel] Updated ${updatedCount} appointments for doctor: ${event.staffId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle DoctorUpdatedEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle DoctorUpdatedEvent: ${error}`,
+      );
       throw error;
     }
   }
@@ -269,13 +348,22 @@ export class AppointmentReadModelEventHandler {
     newStatus: string;
   }): Promise<void> {
     try {
-      console.log(`[ReadModel] Processing AppointmentStatusChangedEvent: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Processing AppointmentStatusChangedEvent: ${event.appointmentId}`,
+      );
 
-      await this.readModelRepo.updateStatus(event.appointmentId, event.newStatus);
+      await this.readModelRepo.updateStatus(
+        event.appointmentId,
+        event.newStatus,
+      );
 
-      console.log(`[ReadModel] Updated status for appointment: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Updated status for appointment: ${event.appointmentId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle AppointmentStatusChangedEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle AppointmentStatusChangedEvent: ${error}`,
+      );
       throw error;
     }
   }
@@ -288,13 +376,19 @@ export class AppointmentReadModelEventHandler {
     appointmentId: string;
   }): Promise<void> {
     try {
-      console.log(`[ReadModel] Processing AppointmentCancelledEvent: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Processing AppointmentCancelledEvent: ${event.appointmentId}`,
+      );
 
-      await this.readModelRepo.updateStatus(event.appointmentId, 'cancelled');
+      await this.readModelRepo.updateStatus(event.appointmentId, "cancelled");
 
-      console.log(`[ReadModel] Marked appointment as cancelled: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Marked appointment as cancelled: ${event.appointmentId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle AppointmentCancelledEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle AppointmentCancelledEvent: ${error}`,
+      );
       throw error;
     }
   }
@@ -307,13 +401,19 @@ export class AppointmentReadModelEventHandler {
     appointmentId: string;
   }): Promise<void> {
     try {
-      console.log(`[ReadModel] Processing AppointmentConfirmedEvent: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Processing AppointmentConfirmedEvent: ${event.appointmentId}`,
+      );
 
-      await this.readModelRepo.updateStatus(event.appointmentId, 'confirmed');
+      await this.readModelRepo.updateStatus(event.appointmentId, "confirmed");
 
-      console.log(`[ReadModel] Marked appointment as confirmed: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Marked appointment as confirmed: ${event.appointmentId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle AppointmentConfirmedEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle AppointmentConfirmedEvent: ${error}`,
+      );
       throw error;
     }
   }
@@ -326,13 +426,19 @@ export class AppointmentReadModelEventHandler {
     appointmentId: string;
   }): Promise<void> {
     try {
-      console.log(`[ReadModel] Processing AppointmentCompletedEvent: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Processing AppointmentCompletedEvent: ${event.appointmentId}`,
+      );
 
-      await this.readModelRepo.updateStatus(event.appointmentId, 'completed');
+      await this.readModelRepo.updateStatus(event.appointmentId, "completed");
 
-      console.log(`[ReadModel] Marked appointment as completed: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Marked appointment as completed: ${event.appointmentId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle AppointmentCompletedEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle AppointmentCompletedEvent: ${error}`,
+      );
       throw error;
     }
   }
@@ -345,15 +451,24 @@ export class AppointmentReadModelEventHandler {
     appointmentId: string;
   }): Promise<void> {
     try {
-      console.log(`[ReadModel] Processing AppointmentNoShowEvent: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Processing AppointmentNoShowEvent: ${event.appointmentId}`,
+      );
 
-      await this.readModelRepo.updateStatus(event.appointmentId, 'no_show');
+      await this.readModelRepo.updateStatus(event.appointmentId, "no_show");
 
-      console.log(`[ReadModel] Marked appointment as no-show: ${event.appointmentId}`);
+      console.log(
+        `[ReadModel] Marked appointment as no-show: ${event.appointmentId}`,
+      );
     } catch (error) {
-      console.error(`[ReadModel] Failed to handle AppointmentNoShowEvent: ${error}`);
+      console.error(
+        `[ReadModel] Failed to handle AppointmentNoShowEvent: ${error}`,
+      );
       throw error;
     }
   }
-}
 
+  private formatTime(date: Date): string {
+    return date.toISOString().substring(11, 19);
+  }
+}

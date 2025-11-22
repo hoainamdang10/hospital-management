@@ -1,25 +1,33 @@
 /**
  * Event Handlers Wrapper
  * Wraps AppointmentReadModelEventHandler to implement EventHandler interface
- * 
+ *
  * @author Hospital Management Team
  * @version 3.0.0
  */
 
-import { EventHandler } from '@shared/infrastructure/event-bus/EventBus';
-import { DomainEvent } from '@shared/domain/base/domain-event';
-import { AppointmentReadModelEventHandler, AppointmentScheduledEvent, PatientUpdatedEvent, DoctorUpdatedEvent } from './AppointmentReadModelEventHandler';
+import { EventHandler } from "@shared/infrastructure/event-bus/EventBus";
+import { DomainEvent } from "@shared/domain/base/domain-event";
+import {
+  AppointmentReadModelEventHandler,
+  AppointmentScheduledEvent,
+  PatientUpdatedEvent,
+  DoctorUpdatedEvent,
+  AppointmentRescheduledEventDTO,
+} from "./AppointmentReadModelEventHandler";
 
 /**
  * Appointment Scheduled Event Handler
  */
-export class AppointmentScheduledEventHandler implements EventHandler<DomainEvent> {
+export class AppointmentScheduledEventHandler
+  implements EventHandler<DomainEvent>
+{
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
     const appointmentEvent: AppointmentScheduledEvent = {
       eventId: event.eventId,
-      eventType: 'appointment.scheduled',
+      eventType: "appointment.scheduled",
       appointmentId: (event as any).appointmentId,
       patientId: (event as any).patientId,
       doctorId: (event as any).doctorId,
@@ -38,7 +46,7 @@ export class AppointmentScheduledEventHandler implements EventHandler<DomainEven
       notes: (event as any).notes,
       specialInstructions: (event as any).specialInstructions,
       requiredEquipment: (event as any).requiredEquipment,
-      occurredAt: event.occurredAt
+      occurredAt: event.occurredAt,
     };
 
     await this.readModelHandler.handleAppointmentScheduled(appointmentEvent);
@@ -54,21 +62,23 @@ export class PatientUpdatedEventHandler implements EventHandler<DomainEvent> {
   async handle(event: DomainEvent): Promise<void> {
     const patientEvent: PatientUpdatedEvent = {
       eventId: event.eventId,
-      eventType: 'patient.updated',
+      eventType: "patient.updated",
       patientId: (event as any).patientId,
       updatedFields: (event as any).updatedFields || [],
       newValues: {
         fullName: (event as any).fullName,
         phone: (event as any).phone,
         email: (event as any).email,
-        dateOfBirth: (event as any).dateOfBirth ? new Date((event as any).dateOfBirth) : undefined,
+        dateOfBirth: (event as any).dateOfBirth
+          ? new Date((event as any).dateOfBirth)
+          : undefined,
         gender: (event as any).gender,
         nationalId: (event as any).nationalId,
         insuranceNumber: (event as any).insuranceNumber,
         insuranceType: (event as any).insuranceType,
-        address: (event as any).address
+        address: (event as any).address,
       },
-      occurredAt: event.occurredAt
+      occurredAt: event.occurredAt,
     };
 
     await this.readModelHandler.handlePatientUpdated(patientEvent);
@@ -84,9 +94,9 @@ export class DoctorUpdatedEventHandler implements EventHandler<DomainEvent> {
   async handle(event: DomainEvent): Promise<void> {
     const doctorEvent: DoctorUpdatedEvent = {
       eventId: event.eventId,
-      eventType: 'staff.updated',
+      eventType: "staff.updated",
       staffId: (event as any).staffId || (event as any).providerId,
-      staffType: (event as any).staffType || 'doctor',
+      staffType: (event as any).staffType || "doctor",
       updatedFields: (event as any).updatedFields || [],
       newValues: {
         fullName: (event as any).fullName,
@@ -94,9 +104,9 @@ export class DoctorUpdatedEventHandler implements EventHandler<DomainEvent> {
         department: (event as any).department,
         licenseNumber: (event as any).licenseNumber,
         phone: (event as any).phone,
-        email: (event as any).email
+        email: (event as any).email,
       },
-      occurredAt: event.occurredAt
+      occurredAt: event.occurredAt,
     };
 
     await this.readModelHandler.handleDoctorUpdated(doctorEvent);
@@ -106,26 +116,62 @@ export class DoctorUpdatedEventHandler implements EventHandler<DomainEvent> {
 /**
  * Appointment Status Changed Event Handler
  */
-export class AppointmentStatusChangedEventHandler implements EventHandler<DomainEvent> {
+export class AppointmentStatusChangedEventHandler
+  implements EventHandler<DomainEvent>
+{
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
     await this.readModelHandler.handleAppointmentStatusChanged({
       appointmentId: (event as any).appointmentId,
-      newStatus: (event as any).newStatus || (event as any).status
+      newStatus: (event as any).newStatus || (event as any).status,
     });
+  }
+}
+
+/**
+ * Appointment Rescheduled Event Handler
+ */
+export class AppointmentRescheduledEventHandler
+  implements EventHandler<DomainEvent>
+{
+  constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
+
+  async handle(event: DomainEvent): Promise<void> {
+    const payload: AppointmentRescheduledEventDTO = {
+      eventId: event.eventId,
+      eventType: "appointment.rescheduled",
+      appointmentId: (event as any).appointmentId,
+      patientId: (event as any).patientId,
+      doctorId: (event as any).doctorId,
+      newStartTime:
+        (event as any).newStartTime ||
+        (event as any).newAppointmentTime ||
+        (event as any).newStart,
+      newEndTime:
+        (event as any).newEndTime ||
+        (event as any).newEnd ||
+        (event as any).newAppointmentEndTime,
+      rescheduleReason: (event as any).rescheduleReason,
+      rescheduledBy: (event as any).rescheduledBy,
+      occurredAt: event.occurredAt,
+    };
+
+    await this.readModelHandler.handleAppointmentRescheduled(payload);
   }
 }
 
 /**
  * Appointment Cancelled Event Handler
  */
-export class AppointmentCancelledEventHandler implements EventHandler<DomainEvent> {
+export class AppointmentCancelledEventHandler
+  implements EventHandler<DomainEvent>
+{
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
     await this.readModelHandler.handleAppointmentCancelled({
-      appointmentId: (event as any).appointmentId
+      appointmentId: (event as any).appointmentId,
     });
   }
 }
@@ -133,12 +179,14 @@ export class AppointmentCancelledEventHandler implements EventHandler<DomainEven
 /**
  * Appointment Confirmed Event Handler
  */
-export class AppointmentConfirmedEventHandler implements EventHandler<DomainEvent> {
+export class AppointmentConfirmedEventHandler
+  implements EventHandler<DomainEvent>
+{
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
     await this.readModelHandler.handleAppointmentConfirmed({
-      appointmentId: (event as any).appointmentId
+      appointmentId: (event as any).appointmentId,
     });
   }
 }
@@ -146,12 +194,14 @@ export class AppointmentConfirmedEventHandler implements EventHandler<DomainEven
 /**
  * Appointment Completed Event Handler
  */
-export class AppointmentCompletedEventHandler implements EventHandler<DomainEvent> {
+export class AppointmentCompletedEventHandler
+  implements EventHandler<DomainEvent>
+{
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
     await this.readModelHandler.handleAppointmentCompleted({
-      appointmentId: (event as any).appointmentId
+      appointmentId: (event as any).appointmentId,
     });
   }
 }
@@ -159,13 +209,14 @@ export class AppointmentCompletedEventHandler implements EventHandler<DomainEven
 /**
  * Appointment No-Show Event Handler
  */
-export class AppointmentNoShowEventHandler implements EventHandler<DomainEvent> {
+export class AppointmentNoShowEventHandler
+  implements EventHandler<DomainEvent>
+{
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
     await this.readModelHandler.handleAppointmentNoShow({
-      appointmentId: (event as any).appointmentId
+      appointmentId: (event as any).appointmentId,
     });
   }
 }
-

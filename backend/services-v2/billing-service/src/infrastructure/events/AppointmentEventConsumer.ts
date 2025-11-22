@@ -21,6 +21,7 @@ import { CreatePayOSPaymentLinkUseCase } from "@application/use-cases/CreatePayO
 import { PaymentLinkCreatedEvent } from "@domain/events/PaymentLinkCreatedEvent";
 import { IEventBus } from "@shared/application/services/event-bus.interface";
 import { SupabaseStaffRepository } from "@infrastructure/repositories/SupabaseStaffRepository";
+import { UseCaseContext } from "@shared/application/use-cases/base/use-case.interface";
 
 export interface AppointmentEventConsumerConfig {
   rabbitmqUrl: string;
@@ -84,6 +85,24 @@ export interface AppointmentCancelledRefundEventData {
     rescheduleAllowed: boolean;
     penaltyAmount?: number;
     refundPercentage?: number;
+  };
+}
+
+export interface AppointmentRescheduledEventData {
+  appointmentId: string;
+  patientId: string;
+  staffId: string | null;
+  departmentId: string | null;
+  originalStartTime?: Date;
+  newStartTime?: Date;
+  rescheduledBy?: string;
+  rescheduledAt?: Date;
+  reason?: string;
+  reschedulePolicy?: {
+    feeApplied: boolean;
+    freeRescheduleUsed: boolean;
+    remainingFreeReschedules: number;
+    rescheduleAmount?: number;
   };
 }
 
@@ -214,7 +233,10 @@ export class AppointmentEventConsumer {
 
         case "appointment.cancelled":
           await this.handleAppointmentCancelled(
-            this.buildAppointmentCancelledRefundPayload(normalizedPayload, rawEvent),
+            this.buildAppointmentCancelledRefundPayload(
+              normalizedPayload,
+              rawEvent,
+            ),
           );
           break;
 
@@ -227,6 +249,15 @@ export class AppointmentEventConsumer {
         case "appointment.no_show":
           await this.handleAppointmentNoShow(
             this.buildAppointmentNoShowPayload(normalizedPayload, rawEvent),
+          );
+          break;
+
+        case "appointment.rescheduled":
+          await this.handleAppointmentRescheduled(
+            this.buildAppointmentRescheduledPayload(
+              normalizedPayload,
+              rawEvent,
+            ),
           );
           break;
 
@@ -361,12 +392,56 @@ export class AppointmentEventConsumer {
         payload?.cancellationReason || payload?.reason || "Unknown reason",
       cancelledBy: payload?.cancelledBy || "system",
       cancellationPolicy: {
-        penaltyApplied: this.toBoolean(payload?.cancellationPolicy?.penaltyApplied),
-        refundEligible: this.toBoolean(payload?.cancellationPolicy?.refundEligible),
-        rescheduleAllowed: this.toBoolean(payload?.cancellationPolicy?.rescheduleAllowed),
-        penaltyAmount: this.toNumber(payload?.cancellationPolicy?.penaltyAmount),
-        refundPercentage: this.toNumber(payload?.cancellationPolicy?.refundPercentage),
+        penaltyApplied: this.toBoolean(
+          payload?.cancellationPolicy?.penaltyApplied,
+        ),
+        refundEligible: this.toBoolean(
+          payload?.cancellationPolicy?.refundEligible,
+        ),
+        rescheduleAllowed: this.toBoolean(
+          payload?.cancellationPolicy?.rescheduleAllowed,
+        ),
+        penaltyAmount: this.toNumber(
+          payload?.cancellationPolicy?.penaltyAmount,
+        ),
+        refundPercentage: this.toNumber(
+          payload?.cancellationPolicy?.refundPercentage,
+        ),
       },
+    };
+  }
+
+  private buildAppointmentRescheduledPayload(
+    payload: any,
+    rawEvent: any,
+  ): AppointmentRescheduledEventData {
+    const common = this.extractCommonAppointmentFields(payload, rawEvent);
+    const policy = payload?.reschedulePolicy || payload?.policy;
+
+    return {
+      appointmentId: common.appointmentId,
+      patientId: common.patientId,
+      staffId: common.staffId,
+      departmentId: common.departmentId,
+      originalStartTime:
+        this.safeDate(payload?.originalStartTime) ??
+        this.safeDate(payload?.oldStartTime),
+      newStartTime:
+        this.safeDate(payload?.newStartTime) ??
+        this.safeDate(payload?.appointmentDate),
+      rescheduledAt: this.safeDate(payload?.rescheduledAt) ?? new Date(),
+      rescheduledBy: payload?.rescheduledBy || rawEvent?.userId || "system",
+      reason: payload?.rescheduleReason || payload?.reason || "Đổi lịch hẹn",
+      reschedulePolicy: policy
+        ? {
+            feeApplied: this.toBoolean(policy?.feeApplied),
+            freeRescheduleUsed: this.toBoolean(policy?.freeRescheduleUsed),
+            remainingFreeReschedules: this.toNumber(
+              policy?.remainingFreeReschedules,
+            ),
+            rescheduleAmount: this.toNumber(policy?.rescheduleAmount),
+          }
+        : undefined,
     };
   }
 
@@ -683,6 +758,51 @@ export class AppointmentEventConsumer {
   }
 
   /**
+   * Handle appointment rescheduled event (apply reschedule fee if required)
+   */
+  private async handleAppointmentRescheduled(
+    data: AppointmentRescheduledEventData,
+  ): Promise<void> {
+    if (!data) {
+      this.loggerInstance.warn("Reschedule event missing payload");
+      return;
+    }
+
+    const feeApplied =
+      data.reschedulePolicy?.feeApplied &&
+      Number(data.reschedulePolicy?.rescheduleAmount) > 0;
+
+    if (!feeApplied) {
+      this.loggerInstance.info("Reschedule event - no fee applied", {
+        appointmentId: data.appointmentId,
+      });
+      return;
+    }
+
+    const amount = Number(data.reschedulePolicy?.rescheduleAmount || 0);
+
+    try {
+      await this.billingService.generateRescheduleFee({
+        appointmentId: data.appointmentId,
+        patientId: data.patientId,
+        rescheduleAmount: amount,
+        reason: data.reason || "Đổi lịch hẹn",
+      });
+
+      this.loggerInstance.info("Reschedule fee invoice created", {
+        appointmentId: data.appointmentId,
+        amount,
+      });
+    } catch (error) {
+      this.loggerInstance.error("Failed to process reschedule fee", {
+        appointmentId: data.appointmentId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Handle appointment cancelled event (refund case)
    * Simplified approach: Only handle billing refund logic
    */
@@ -698,7 +818,11 @@ export class AppointmentEventConsumer {
 
     try {
       // Only process if refund is eligible
-      if (data.cancellationPolicy.refundEligible && data.cancellationPolicy.refundPercentage && data.cancellationPolicy.refundPercentage > 0) {
+      if (
+        data.cancellationPolicy.refundEligible &&
+        data.cancellationPolicy.refundPercentage &&
+        data.cancellationPolicy.refundPercentage > 0
+      ) {
         this.loggerInstance.info("Refund eligible - processing refund", {
           appointmentId: data.appointmentId,
           patientId: data.patientId,
@@ -708,13 +832,16 @@ export class AppointmentEventConsumer {
 
         // Call RefundPaymentUseCase if available
         if (this.refundPaymentUseCase) {
-          const refundResult = await this.refundPaymentUseCase.execute({
-            appointmentId: data.appointmentId,
-            patientId: data.patientId,
-            refundPercentage: data.cancellationPolicy.refundPercentage,
-            reason: data.cancellationReason,
-            refundedBy: data.cancelledBy,
-          });
+          const refundResult = await this.refundPaymentUseCase.execute(
+            {
+              appointmentId: data.appointmentId,
+              patientId: data.patientId,
+              refundPercentage: data.cancellationPolicy.refundPercentage,
+              reason: data.cancellationReason,
+              refundedBy: data.cancelledBy,
+            },
+            this.getSystemContext(),
+          );
 
           if (refundResult.success) {
             this.loggerInstance.info("Refund processed successfully", {
@@ -728,28 +855,39 @@ export class AppointmentEventConsumer {
             });
           }
         } else {
-          this.loggerInstance.warn("RefundPaymentUseCase not available - skipping refund", {
-            appointmentId: data.appointmentId,
-          });
+          this.loggerInstance.warn(
+            "RefundPaymentUseCase not available - skipping refund",
+            {
+              appointmentId: data.appointmentId,
+            },
+          );
         }
       }
 
       // Handle penalty if applied
-      if (data.cancellationPolicy.penaltyApplied && data.cancellationPolicy.penaltyAmount && data.cancellationPolicy.penaltyAmount > 0) {
-        this.loggerInstance.info("Penalty applied - generating penalty invoice", {
-          appointmentId: data.appointmentId,
-          patientId: data.patientId,
-          penaltyAmount: data.cancellationPolicy.penaltyAmount,
-        });
+      if (
+        data.cancellationPolicy.penaltyApplied &&
+        data.cancellationPolicy.penaltyAmount &&
+        data.cancellationPolicy.penaltyAmount > 0
+      ) {
+        this.loggerInstance.info(
+          "Penalty applied - generating penalty invoice",
+          {
+            appointmentId: data.appointmentId,
+            patientId: data.patientId,
+            penaltyAmount: data.cancellationPolicy.penaltyAmount,
+          },
+        );
 
         // Generate penalty invoice
-        const penaltyInvoice = await this.billingService.generateLateCancellationFee({
-          appointmentId: data.appointmentId,
-          patientId: data.patientId,
-          cancelledAt: data.cancelledAt,
-          reason: data.cancellationReason,
-          feeAmount: data.cancellationPolicy.penaltyAmount,
-        });
+        const penaltyInvoice =
+          await this.billingService.generateLateCancellationFee({
+            appointmentId: data.appointmentId,
+            patientId: data.patientId,
+            cancelledAt: data.cancelledAt,
+            reason: data.cancellationReason,
+            feeAmount: data.cancellationPolicy.penaltyAmount,
+          });
 
         this.loggerInstance.info("Penalty invoice generated", {
           appointmentId: data.appointmentId,
@@ -764,6 +902,19 @@ export class AppointmentEventConsumer {
       });
       throw error;
     }
+  }
+
+  /**
+   * Build a minimal system context for healthcare use cases invoked from event consumers.
+   * Prevents "User context required" errors while keeping audit metadata consistent.
+   */
+  private getSystemContext(): UseCaseContext {
+    return {
+      userId: "system",
+      role: "system",
+      timestamp: new Date(),
+      correlationId: undefined,
+    };
   }
 
   /**

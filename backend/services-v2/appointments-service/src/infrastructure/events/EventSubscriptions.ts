@@ -21,6 +21,7 @@ import {
   AppointmentConfirmedEventHandler,
   AppointmentCompletedEventHandler,
   AppointmentNoShowEventHandler,
+  AppointmentRescheduledEventHandler,
 } from "./EventHandlers";
 import {
   AppointmentScheduledSchedulerHandler,
@@ -220,14 +221,18 @@ export class EventSubscriptions {
       new AppointmentStatusChangedEventHandler(this.readModelHandler),
       `${this.config.serviceName}.appointment.checked_in`,
     );
-    console.log("[EventSubscriptions] ✅ Subscribed to AppointmentCheckedIn (Read Model)");
+    console.log(
+      "[EventSubscriptions] ✅ Subscribed to AppointmentCheckedIn (Read Model)",
+    );
 
     await this.eventBus.subscribe(
       "AppointmentStarted",
       new AppointmentStatusChangedEventHandler(this.readModelHandler),
       `${this.config.serviceName}.appointment.started`,
     );
-    console.log("[EventSubscriptions] ✅ Subscribed to AppointmentStarted (Read Model)");
+    console.log(
+      "[EventSubscriptions] ✅ Subscribed to AppointmentStarted (Read Model)",
+    );
 
     // 7. Subscribe to AppointmentCancelled events (from Scheduling Service itself)
     // 7a. Read Model Handler
@@ -251,6 +256,15 @@ export class EventSubscriptions {
     );
 
     // 8. Subscribe to AppointmentRescheduled events (from Scheduling Service itself)
+    await this.eventBus.subscribe(
+      "AppointmentRescheduled",
+      new AppointmentRescheduledEventHandler(this.readModelHandler),
+      `${this.config.serviceName}.appointment.rescheduled`,
+    );
+    console.log(
+      "[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Read Model)",
+    );
+
     await this.eventBus.subscribe(
       "AppointmentRescheduled",
       this.schedulerHandlers.rescheduled,

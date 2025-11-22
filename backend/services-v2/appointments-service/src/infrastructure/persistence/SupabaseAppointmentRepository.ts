@@ -1384,10 +1384,14 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     // Calculate UTC timestamps from timeSlot
     const startAtUtc =
-      props.timeSlot.startAtUtc || props.timeSlot.getStartTime();
+      props.timeSlot.startAtUtc ||
+      this.toUtcFromLocal(
+        props.timeSlot.appointmentDate,
+        props.timeSlot.appointmentTime,
+      );
     const endAtUtc =
       props.timeSlot.endAtUtc ||
-      props.timeSlot.getEndTime(props.durationMinutes);
+      new Date(startAtUtc.getTime() + props.durationMinutes * 60 * 1000);
 
     return {
       id: appointment.id,
@@ -1434,6 +1438,23 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       created_at: props.createdAt.toISOString(),
       updated_at: props.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * Convert local (service timezone) date/time to UTC Date.
+   * Assumes input time is expressed in local clinic timezone (default Asia/Ho_Chi_Minh, UTC+7).
+   */
+  private toUtcFromLocal(dateStr: string, timeStr: string): Date {
+    const offsetMinutes = Number(
+      process.env.APPOINTMENT_TIMEZONE_OFFSET_MINUTES || "420",
+    ); // default +07:00
+    // Build ISO with explicit offset to avoid Node default timezone surprises
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const abs = Math.abs(offsetMinutes);
+    const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+    const mm = String(abs % 60).padStart(2, "0");
+    const isoWithOffset = `${dateStr}T${timeStr}${sign}${hh}:${mm}`;
+    return new Date(isoWithOffset);
   }
 
   /**

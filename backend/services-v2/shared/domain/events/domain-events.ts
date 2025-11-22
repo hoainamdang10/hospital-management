@@ -1,12 +1,12 @@
 /**
  * Domain Events for Inter-Service Communication
  * Hospital Management System V2
- * 
+ *
  * These events replace cross-schema foreign keys and enable
  * event-driven architecture between microservices.
  */
 
-import { DomainEvent } from '../base/domain-event';
+import { DomainEvent } from "../base/domain-event";
 
 // ============================================================================
 // IDENTITY SERVICE EVENTS
@@ -21,19 +21,24 @@ export class UserCreatedEvent extends DomainEvent {
     public override readonly userId: string,
     public readonly email: string,
     public readonly fullName: string,
-    public readonly roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist',
+    public readonly roleType:
+      | "admin"
+      | "doctor"
+      | "nurse"
+      | "patient"
+      | "receptionist",
     public readonly citizenId?: string,
-    public readonly phoneNumber?: string
+    public readonly phoneNumber?: string,
   ) {
     super(
-      'UserCreated',
+      "UserCreated",
       userId,
-      'User',
+      "User",
       { email, fullName, roleType, citizenId, phoneNumber },
       1,
       undefined,
       undefined,
-      userId
+      userId,
     );
   }
 
@@ -44,7 +49,7 @@ export class UserCreatedEvent extends DomainEvent {
       fullName: this.fullName,
       roleType: this.roleType,
       citizenId: this.citizenId,
-      phoneNumber: this.phoneNumber
+      phoneNumber: this.phoneNumber,
     };
   }
 
@@ -53,7 +58,7 @@ export class UserCreatedEvent extends DomainEvent {
   }
 
   getPatientId(): string | null {
-    return this.roleType === 'patient' ? this.userId : null;
+    return this.roleType === "patient" ? this.userId : null;
   }
 }
 
@@ -68,17 +73,17 @@ export class UserAuthenticatedEvent extends DomainEvent {
     public readonly sessionId: string,
     public readonly ipAddress: string,
     public readonly userAgent: string,
-    public readonly timestamp: Date
+    public readonly timestamp: Date,
   ) {
     super(
-      'UserAuthenticated',
+      "UserAuthenticated",
       userId,
-      'User',
+      "User",
       { email, sessionId, ipAddress, userAgent, timestamp },
       1,
       undefined,
       undefined,
-      userId
+      userId,
     );
   }
 
@@ -89,7 +94,7 @@ export class UserAuthenticatedEvent extends DomainEvent {
       sessionId: this.sessionId,
       ipAddress: this.ipAddress,
       userAgent: this.userAgent,
-      timestamp: this.timestamp.toISOString()
+      timestamp: this.timestamp.toISOString(),
     };
   }
 
@@ -112,17 +117,17 @@ export class UserRoleChangedEvent extends DomainEvent {
     public readonly oldRole: string,
     public readonly newRole: string,
     public readonly changedBy: string,
-    public readonly reason?: string
+    public readonly reason?: string,
   ) {
     super(
-      'UserRoleChanged',
+      "UserRoleChanged",
       userId,
-      'User',
+      "User",
       { oldRole, newRole, changedBy, reason },
       1,
       undefined,
       undefined,
-      changedBy
+      changedBy,
     );
   }
 
@@ -132,7 +137,7 @@ export class UserRoleChangedEvent extends DomainEvent {
       oldRole: this.oldRole,
       newRole: this.newRole,
       changedBy: this.changedBy,
-      reason: this.reason
+      reason: this.reason,
     };
   }
 
@@ -154,17 +159,17 @@ export class UserDeactivatedEvent extends DomainEvent {
     public override readonly userId: string,
     public readonly email: string,
     public readonly reason: string,
-    public readonly deactivatedBy: string
+    public readonly deactivatedBy: string,
   ) {
     super(
-      'UserDeactivated',
+      "UserDeactivated",
       userId,
-      'User',
+      "User",
       { email, reason, deactivatedBy },
       1,
       undefined,
       undefined,
-      deactivatedBy
+      deactivatedBy,
     );
   }
 
@@ -173,7 +178,7 @@ export class UserDeactivatedEvent extends DomainEvent {
       userId: this.userId,
       email: this.email,
       reason: this.reason,
-      deactivatedBy: this.deactivatedBy
+      deactivatedBy: this.deactivatedBy,
     };
   }
 
@@ -203,17 +208,25 @@ export class PatientRegisteredEvent extends DomainEvent {
     public readonly dateOfBirth: Date,
     public readonly phoneNumber: string,
     public readonly email?: string,
-    public readonly insuranceType?: string
+    public readonly insuranceType?: string,
   ) {
     super(
-      'PatientRegistered',
+      "PatientRegistered",
       patientId,
-      'Patient',
-      { userId, patientIdCode, fullName, dateOfBirth, phoneNumber, email, insuranceType },
+      "Patient",
+      {
+        userId,
+        patientIdCode,
+        fullName,
+        dateOfBirth,
+        phoneNumber,
+        email,
+        insuranceType,
+      },
       1,
       undefined,
       undefined,
-      userId
+      userId,
     );
   }
 
@@ -226,7 +239,7 @@ export class PatientRegisteredEvent extends DomainEvent {
       dateOfBirth: this.dateOfBirth.toISOString(),
       phoneNumber: this.phoneNumber,
       email: this.email,
-      insuranceType: this.insuranceType
+      insuranceType: this.insuranceType,
     };
   }
 
@@ -248,17 +261,17 @@ export class PatientUpdatedEvent extends DomainEvent {
     public readonly patientId: string,
     public override readonly userId: string,
     public readonly updatedFields: string[],
-    public readonly updatedBy: string
+    public readonly updatedBy: string,
   ) {
     super(
-      'PatientUpdated',
+      "PatientUpdated",
       patientId,
-      'Patient',
+      "Patient",
       { userId, updatedFields, updatedBy },
       1,
       undefined,
       undefined,
-      updatedBy
+      updatedBy,
     );
   }
 
@@ -267,7 +280,7 @@ export class PatientUpdatedEvent extends DomainEvent {
       patientId: this.patientId,
       userId: this.userId,
       updatedFields: this.updatedFields,
-      updatedBy: this.updatedBy
+      updatedBy: this.updatedBy,
     };
   }
 
@@ -289,14 +302,14 @@ export class PatientInsuranceUpdatedEvent extends DomainEvent {
     public readonly patientId: string,
     public readonly insuranceType: string,
     public readonly insuranceNumber: string,
-    public readonly expiryDate?: Date
+    public readonly expiryDate?: Date,
   ) {
     super(
-      'PatientInsuranceUpdated',
+      "PatientInsuranceUpdated",
       patientId,
-      'Patient',
+      "Patient",
       { insuranceType, insuranceNumber, expiryDate },
-      1
+      1,
     );
   }
 
@@ -305,7 +318,7 @@ export class PatientInsuranceUpdatedEvent extends DomainEvent {
       patientId: this.patientId,
       insuranceType: this.insuranceType,
       insuranceNumber: this.insuranceNumber,
-      expiryDate: this.expiryDate?.toISOString()
+      expiryDate: this.expiryDate?.toISOString(),
     };
   }
 
@@ -335,17 +348,25 @@ export class DoctorRegisteredEvent extends DomainEvent {
     public readonly specialty: string,
     public readonly departmentCode: string,
     public readonly licenseNumber: string,
-    public readonly isAcceptingPatients: boolean
+    public readonly isAcceptingPatients: boolean,
   ) {
     super(
-      'DoctorRegistered',
+      "DoctorRegistered",
       doctorId,
-      'Doctor',
-      { userId, doctorIdCode, fullName, specialty, departmentCode, licenseNumber, isAcceptingPatients },
+      "Doctor",
+      {
+        userId,
+        doctorIdCode,
+        fullName,
+        specialty,
+        departmentCode,
+        licenseNumber,
+        isAcceptingPatients,
+      },
       1,
       undefined,
       undefined,
-      userId
+      userId,
     );
   }
 
@@ -358,7 +379,7 @@ export class DoctorRegisteredEvent extends DomainEvent {
       specialty: this.specialty,
       departmentCode: this.departmentCode,
       licenseNumber: this.licenseNumber,
-      isAcceptingPatients: this.isAcceptingPatients
+      isAcceptingPatients: this.isAcceptingPatients,
     };
   }
 
@@ -380,17 +401,17 @@ export class DoctorScheduleUpdatedEvent extends DomainEvent {
     public readonly doctorId: string,
     public readonly scheduleId: string,
     public readonly effectiveDate: Date,
-    public readonly updatedBy: string
+    public readonly updatedBy: string,
   ) {
     super(
-      'DoctorScheduleUpdated',
+      "DoctorScheduleUpdated",
       doctorId,
-      'Doctor',
+      "Doctor",
       { scheduleId, effectiveDate, updatedBy },
       1,
       undefined,
       undefined,
-      updatedBy
+      updatedBy,
     );
   }
 
@@ -399,7 +420,7 @@ export class DoctorScheduleUpdatedEvent extends DomainEvent {
       doctorId: this.doctorId,
       scheduleId: this.scheduleId,
       effectiveDate: this.effectiveDate.toISOString(),
-      updatedBy: this.updatedBy
+      updatedBy: this.updatedBy,
     };
   }
 
@@ -421,14 +442,14 @@ export class DoctorAvailabilityChangedEvent extends DomainEvent {
     public readonly doctorId: string,
     public readonly date: Date,
     public readonly isAvailable: boolean,
-    public readonly reason?: string
+    public readonly reason?: string,
   ) {
     super(
-      'DoctorAvailabilityChanged',
+      "DoctorAvailabilityChanged",
       doctorId,
-      'Doctor',
+      "Doctor",
       { date, isAvailable, reason },
-      1
+      1,
     );
   }
 
@@ -437,7 +458,7 @@ export class DoctorAvailabilityChangedEvent extends DomainEvent {
       doctorId: this.doctorId,
       date: this.date.toISOString(),
       isAvailable: this.isAvailable,
-      reason: this.reason
+      reason: this.reason,
     };
   }
 
@@ -491,7 +512,7 @@ export class AppointmentScheduledEvent extends DomainEvent {
     createdBy: string,
     correlationId?: string,
     causationId?: string,
-    userId?: string
+    userId?: string,
   ) {
     const eventData = {
       appointmentId,
@@ -505,18 +526,18 @@ export class AppointmentScheduledEvent extends DomainEvent {
       status,
       consultationFee,
       createdBy,
-      scheduledAt: new Date()
+      scheduledAt: new Date(),
     };
 
     super(
-      'AppointmentScheduled',
+      "AppointmentScheduled",
       appointmentId,
-      'Appointment',
+      "Appointment",
       eventData,
       1,
       correlationId,
       causationId,
-      userId
+      userId,
     );
 
     // Assign readonly properties
@@ -547,7 +568,87 @@ export class AppointmentScheduledEvent extends DomainEvent {
       status: this.status,
       consultationFee: this.consultationFee,
       createdBy: this.createdBy,
-      scheduledAt: this.scheduledAt
+      scheduledAt: this.scheduledAt,
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId || null;
+  }
+}
+
+/**
+ * PLACEHOLDER: AppointmentRescheduledEvent
+ *
+ * Lightweight definition for deserialization in EVENT_TYPE_REGISTRY.
+ * Full domain logic lives inside appointments-service.
+ */
+export class AppointmentRescheduledEvent extends DomainEvent {
+  public readonly appointmentId: string;
+  public readonly patientId: string;
+  public readonly doctorId: string;
+  public readonly newStartTime: Date;
+  public readonly newEndTime: Date;
+  public readonly rescheduleReason?: string;
+  public readonly rescheduledBy?: string;
+
+  constructor(
+    appointmentId: string,
+    patientId: string,
+    doctorId: string,
+    newStartTime: Date | string,
+    newEndTime: Date | string,
+    rescheduleReason?: string,
+    rescheduledBy?: string,
+    correlationId?: string,
+    causationId?: string,
+    userId?: string,
+  ) {
+    const start = new Date(newStartTime);
+    const end = new Date(newEndTime);
+    const eventData = {
+      appointmentId,
+      patientId,
+      doctorId,
+      newStartTime: start,
+      newEndTime: end,
+      rescheduleReason,
+      rescheduledBy,
+    };
+
+    super(
+      "AppointmentRescheduled",
+      appointmentId,
+      "Appointment",
+      eventData,
+      1,
+      correlationId,
+      causationId,
+      userId,
+    );
+
+    this.appointmentId = appointmentId;
+    this.patientId = patientId;
+    this.doctorId = doctorId;
+    this.newStartTime = start;
+    this.newEndTime = end;
+    this.rescheduleReason = rescheduleReason;
+    this.rescheduledBy = rescheduledBy;
+  }
+
+  getEventData(): Record<string, unknown> {
+    return {
+      appointmentId: this.appointmentId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      newStartTime: this.newStartTime,
+      newEndTime: this.newEndTime,
+      rescheduleReason: this.rescheduleReason,
+      rescheduledBy: this.rescheduledBy,
     };
   }
 
@@ -570,22 +671,22 @@ export class AppointmentConfirmedEvent extends DomainEvent {
     public readonly patientId: string,
     public readonly doctorId: string,
     public readonly confirmedAt: Date,
-    public readonly confirmationMethod: string
+    public readonly confirmationMethod: string,
   ) {
     super(
-      'AppointmentConfirmed',
+      "AppointmentConfirmed",
       appointmentId,
-      'Appointment',
+      "Appointment",
       {
         patientId,
         doctorId,
         confirmedAt,
-        confirmationMethod
+        confirmationMethod,
       },
       1,
       undefined,
       undefined,
-      patientId
+      patientId,
     );
   }
 
@@ -594,7 +695,7 @@ export class AppointmentConfirmedEvent extends DomainEvent {
       patientId: this.patientId,
       doctorId: this.doctorId,
       confirmedAt: this.confirmedAt,
-      confirmationMethod: this.confirmationMethod
+      confirmationMethod: this.confirmationMethod,
     };
   }
 
@@ -617,26 +718,30 @@ export class AppointmentCancelledEvent extends DomainEvent {
     public readonly patientId: string,
     public readonly doctorId: string,
     public readonly cancelledBy: string,
-    public readonly cancellationType: 'patient' | 'doctor' | 'system' | 'emergency',
+    public readonly cancellationType:
+      | "patient"
+      | "doctor"
+      | "system"
+      | "emergency",
     public readonly reason: string,
-    public readonly cancelledAt: Date
+    public readonly cancelledAt: Date,
   ) {
     super(
-      'AppointmentCancelled',
+      "AppointmentCancelled",
       appointmentId,
-      'Appointment',
+      "Appointment",
       {
         patientId,
         doctorId,
         cancelledBy,
         cancellationType,
         reason,
-        cancelledAt
+        cancelledAt,
       },
       1,
       undefined,
       undefined,
-      cancelledBy
+      cancelledBy,
     );
   }
 
@@ -647,7 +752,7 @@ export class AppointmentCancelledEvent extends DomainEvent {
       cancelledBy: this.cancelledBy,
       cancellationType: this.cancellationType,
       reason: this.reason,
-      cancelledAt: this.cancelledAt
+      cancelledAt: this.cancelledAt,
     };
   }
 
@@ -673,24 +778,24 @@ export class AppointmentCompletedEvent extends DomainEvent {
     public readonly completedAt: Date,
     public readonly duration: number,
     public readonly notes?: string,
-    public readonly consultationFee?: number
+    public readonly consultationFee?: number,
   ) {
     super(
-      'AppointmentCompleted',
+      "AppointmentCompleted",
       appointmentId,
-      'Appointment',
+      "Appointment",
       {
         patientId,
         doctorId,
         completedAt,
         duration,
         notes,
-        consultationFee
+        consultationFee,
       },
       1,
       undefined,
       undefined,
-      doctorId
+      doctorId,
     );
   }
 
@@ -701,7 +806,7 @@ export class AppointmentCompletedEvent extends DomainEvent {
       completedAt: this.completedAt,
       duration: this.duration,
       notes: this.notes,
-      consultationFee: this.consultationFee
+      consultationFee: this.consultationFee,
     };
   }
 
@@ -731,12 +836,12 @@ export class MedicalRecordCreatedEvent extends DomainEvent {
     public readonly appointmentId: string | undefined,
     public readonly visitDate: Date,
     public readonly primaryDiagnosis?: string,
-    public readonly createdBy?: string
+    public readonly createdBy?: string,
   ) {
     super(
-      'MedicalRecordCreated',
+      "MedicalRecordCreated",
       recordId,
-      'MedicalRecord',
+      "MedicalRecord",
       {
         recordIdCode,
         patientId,
@@ -744,12 +849,12 @@ export class MedicalRecordCreatedEvent extends DomainEvent {
         appointmentId,
         visitDate,
         primaryDiagnosis,
-        createdBy
+        createdBy,
       },
       1,
       undefined,
       undefined,
-      createdBy
+      createdBy,
     );
   }
 
@@ -761,7 +866,7 @@ export class MedicalRecordCreatedEvent extends DomainEvent {
       appointmentId: this.appointmentId,
       visitDate: this.visitDate,
       primaryDiagnosis: this.primaryDiagnosis,
-      createdBy: this.createdBy
+      createdBy: this.createdBy,
     };
   }
 
@@ -787,12 +892,12 @@ export class PrescriptionCreatedEvent extends DomainEvent {
     public readonly medicationName: string,
     public readonly dosage: string,
     public readonly duration: number,
-    public readonly prescribedBy: string
+    public readonly prescribedBy: string,
   ) {
     super(
-      'PrescriptionCreated',
+      "PrescriptionCreated",
       prescriptionId,
-      'Prescription',
+      "Prescription",
       {
         prescriptionNumber,
         patientId,
@@ -800,12 +905,12 @@ export class PrescriptionCreatedEvent extends DomainEvent {
         medicationName,
         dosage,
         duration,
-        prescribedBy
+        prescribedBy,
       },
       1,
       undefined,
       undefined,
-      prescribedBy
+      prescribedBy,
     );
   }
 
@@ -817,7 +922,7 @@ export class PrescriptionCreatedEvent extends DomainEvent {
       medicationName: this.medicationName,
       dosage: this.dosage,
       duration: this.duration,
-      prescribedBy: this.prescribedBy
+      prescribedBy: this.prescribedBy,
     };
   }
 
@@ -841,23 +946,23 @@ export class LabResultsReadyEvent extends DomainEvent {
     public readonly doctorId: string,
     public readonly testName: string,
     public readonly hasAbnormalResults: boolean,
-    public readonly resultDate: Date
+    public readonly resultDate: Date,
   ) {
     super(
-      'LabResultsReady',
+      "LabResultsReady",
       labOrderId,
-      'LabOrder',
+      "LabOrder",
       {
         patientId,
         doctorId,
         testName,
         hasAbnormalResults,
-        resultDate
+        resultDate,
       },
       1,
       undefined,
       undefined,
-      doctorId
+      doctorId,
     );
   }
 
@@ -867,7 +972,7 @@ export class LabResultsReadyEvent extends DomainEvent {
       doctorId: this.doctorId,
       testName: this.testName,
       hasAbnormalResults: this.hasAbnormalResults,
-      resultDate: this.resultDate
+      resultDate: this.resultDate,
     };
   }
 
@@ -896,21 +1001,16 @@ export class InvoiceGeneratedEvent extends DomainEvent {
     public readonly appointmentId: string | undefined,
     public readonly totalAmount: number,
     public readonly dueDate: Date,
-    public readonly invoiceDate: Date
+    public readonly invoiceDate: Date,
   ) {
-    super(
-      'InvoiceGenerated',
-      invoiceId,
-      'Invoice',
-      {
-        invoiceNumber,
-        patientId,
-        appointmentId,
-        totalAmount,
-        dueDate,
-        invoiceDate
-      }
-    );
+    super("InvoiceGenerated", invoiceId, "Invoice", {
+      invoiceNumber,
+      patientId,
+      appointmentId,
+      totalAmount,
+      dueDate,
+      invoiceDate,
+    });
   }
 
   override getEventData(): any {
@@ -920,7 +1020,7 @@ export class InvoiceGeneratedEvent extends DomainEvent {
       appointmentId: this.appointmentId,
       totalAmount: this.totalAmount,
       dueDate: this.dueDate,
-      invoiceDate: this.invoiceDate
+      invoiceDate: this.invoiceDate,
     };
   }
 
@@ -945,21 +1045,16 @@ export class PaymentReceivedEvent extends DomainEvent {
     public readonly patientId: string,
     public readonly amount: number,
     public readonly paymentMethod: string,
-    public readonly paymentDate: Date
+    public readonly paymentDate: Date,
   ) {
-    super(
-      'PaymentReceived',
-      paymentId,
-      'Payment',
-      {
-        paymentNumber,
-        invoiceId,
-        patientId,
-        amount,
-        paymentMethod,
-        paymentDate
-      }
-    );
+    super("PaymentReceived", paymentId, "Payment", {
+      paymentNumber,
+      invoiceId,
+      patientId,
+      amount,
+      paymentMethod,
+      paymentDate,
+    });
   }
 
   override getEventData(): any {
@@ -969,7 +1064,7 @@ export class PaymentReceivedEvent extends DomainEvent {
       patientId: this.patientId,
       amount: this.amount,
       paymentMethod: this.paymentMethod,
-      paymentDate: this.paymentDate
+      paymentDate: this.paymentDate,
     };
   }
 
@@ -993,20 +1088,15 @@ export class InvoiceOverdueEvent extends DomainEvent {
     public readonly patientId: string,
     public readonly totalAmount: number,
     public readonly dueDate: Date,
-    public readonly daysOverdue: number
+    public readonly daysOverdue: number,
   ) {
-    super(
-      'InvoiceOverdue',
-      invoiceId,
-      'Invoice',
-      {
-        invoiceNumber,
-        patientId,
-        totalAmount,
-        dueDate,
-        daysOverdue
-      }
-    );
+    super("InvoiceOverdue", invoiceId, "Invoice", {
+      invoiceNumber,
+      patientId,
+      totalAmount,
+      dueDate,
+      daysOverdue,
+    });
   }
 
   override getEventData(): any {
@@ -1015,7 +1105,7 @@ export class InvoiceOverdueEvent extends DomainEvent {
       patientId: this.patientId,
       totalAmount: this.totalAmount,
       dueDate: this.dueDate,
-      daysOverdue: this.daysOverdue
+      daysOverdue: this.daysOverdue,
     };
   }
 
@@ -1040,21 +1130,16 @@ export class InsuranceClaimSubmittedEvent extends DomainEvent {
     public readonly invoiceId: string,
     public readonly claimedAmount: number,
     public readonly insuranceProvider: string,
-    public readonly submittedAt: Date
+    public readonly submittedAt: Date,
   ) {
-    super(
-      'InsuranceClaimSubmitted',
-      claimId,
-      'InsuranceClaim',
-      {
-        claimNumber,
-        patientId,
-        invoiceId,
-        claimedAmount,
-        insuranceProvider,
-        submittedAt
-      }
-    );
+    super("InsuranceClaimSubmitted", claimId, "InsuranceClaim", {
+      claimNumber,
+      patientId,
+      invoiceId,
+      claimedAmount,
+      insuranceProvider,
+      submittedAt,
+    });
   }
 
   override getEventData(): any {
@@ -1064,7 +1149,7 @@ export class InsuranceClaimSubmittedEvent extends DomainEvent {
       invoiceId: this.invoiceId,
       claimedAmount: this.claimedAmount,
       insuranceProvider: this.insuranceProvider,
-      submittedAt: this.submittedAt
+      submittedAt: this.submittedAt,
     };
   }
 
@@ -1086,24 +1171,19 @@ export class InsuranceClaimProcessedEvent extends DomainEvent {
     public readonly claimId: string,
     public readonly claimNumber: string,
     public readonly patientId: string,
-    public readonly status: 'approved' | 'rejected' | 'partially_approved',
+    public readonly status: "approved" | "rejected" | "partially_approved",
     public readonly approvedAmount: number,
     public readonly rejectedAmount: number,
-    public readonly reason?: string
+    public readonly reason?: string,
   ) {
-    super(
-      'InsuranceClaimProcessed',
-      claimId,
-      'InsuranceClaim',
-      {
-        claimNumber,
-        patientId,
-        status,
-        approvedAmount,
-        rejectedAmount,
-        reason
-      }
-    );
+    super("InsuranceClaimProcessed", claimId, "InsuranceClaim", {
+      claimNumber,
+      patientId,
+      status,
+      approvedAmount,
+      rejectedAmount,
+      reason,
+    });
   }
 
   override getEventData(): any {
@@ -1113,7 +1193,7 @@ export class InsuranceClaimProcessedEvent extends DomainEvent {
       status: this.status,
       approvedAmount: this.approvedAmount,
       rejectedAmount: this.rejectedAmount,
-      reason: this.reason
+      reason: this.reason,
     };
   }
 
@@ -1141,20 +1221,15 @@ export class NotificationSentEvent extends DomainEvent {
     public readonly notificationType: string,
     public readonly channel: string,
     public readonly sentAt: Date,
-    public readonly success: boolean
+    public readonly success: boolean,
   ) {
-    super(
-      'NotificationSent',
-      notificationId,
-      'Notification',
-      {
-        userId,
-        notificationType,
-        channel,
-        sentAt,
-        success
-      }
-    );
+    super("NotificationSent", notificationId, "Notification", {
+      userId,
+      notificationType,
+      channel,
+      sentAt,
+      success,
+    });
   }
 
   override getEventData(): any {
@@ -1163,7 +1238,7 @@ export class NotificationSentEvent extends DomainEvent {
       notificationType: this.notificationType,
       channel: this.channel,
       sentAt: this.sentAt,
-      success: this.success
+      success: this.success,
     };
   }
 
@@ -1187,20 +1262,15 @@ export class NotificationFailedEvent extends DomainEvent {
     public readonly channel: string,
     public readonly errorMessage: string,
     public readonly retryCount: number,
-    public readonly failedAt: Date
+    public readonly failedAt: Date,
   ) {
-    super(
-      'NotificationFailed',
-      notificationId,
-      'Notification',
-      {
-        userId,
-        channel,
-        errorMessage,
-        retryCount,
-        failedAt
-      }
-    );
+    super("NotificationFailed", notificationId, "Notification", {
+      userId,
+      channel,
+      errorMessage,
+      retryCount,
+      failedAt,
+    });
   }
 
   override getEventData(): any {
@@ -1209,7 +1279,7 @@ export class NotificationFailedEvent extends DomainEvent {
       channel: this.channel,
       errorMessage: this.errorMessage,
       retryCount: this.retryCount,
-      failedAt: this.failedAt
+      failedAt: this.failedAt,
     };
   }
 
@@ -1223,7 +1293,10 @@ export class NotificationFailedEvent extends DomainEvent {
 }
 
 // Event type registry for deserialization
-export const EVENT_TYPE_REGISTRY: Record<string, new (...args: any[]) => DomainEvent> = {
+export const EVENT_TYPE_REGISTRY: Record<
+  string,
+  new (...args: any[]) => DomainEvent
+> = {
   // Identity Service Events
   UserCreated: UserCreatedEvent,
   UserAuthenticated: UserAuthenticatedEvent,
@@ -1242,6 +1315,7 @@ export const EVENT_TYPE_REGISTRY: Record<string, new (...args: any[]) => DomainE
 
   // Scheduling Service Events
   AppointmentScheduled: AppointmentScheduledEvent,
+  AppointmentRescheduled: AppointmentRescheduledEvent,
   AppointmentConfirmed: AppointmentConfirmedEvent,
   AppointmentCancelled: AppointmentCancelledEvent,
   AppointmentCompleted: AppointmentCompletedEvent,
@@ -1262,4 +1336,3 @@ export const EVENT_TYPE_REGISTRY: Record<string, new (...args: any[]) => DomainE
   NotificationSent: NotificationSentEvent,
   NotificationFailed: NotificationFailedEvent,
 };
-

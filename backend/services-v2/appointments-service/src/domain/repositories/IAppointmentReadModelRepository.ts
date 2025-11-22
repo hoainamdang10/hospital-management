@@ -48,6 +48,17 @@ export interface IAppointmentReadModelRepository {
   ): Promise<void>;
 
   /**
+   * Update appointment core schedule fields when rescheduled
+   */
+  updateSchedule(
+    appointmentId: string,
+    appointmentDate: Date,
+    appointmentTime: string,
+    durationMinutes: number,
+    status?: string,
+  ): Promise<void>;
+
+  /**
    * Find by appointment ID
    */
   findById(appointmentId: string): Promise<AppointmentReadModel | null>;

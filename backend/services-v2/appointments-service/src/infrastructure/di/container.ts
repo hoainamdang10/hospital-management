@@ -878,6 +878,7 @@ export class DIContainer {
     this.availabilityController = new AvailabilityController(
       this.findAvailableTimeSlotsUseCase,
       this.providerScheduleRepository,
+      this.httpProviderService,
     );
 
     // ===== ARCHIVED FOR POST-MVP: Waitlist Controller =====

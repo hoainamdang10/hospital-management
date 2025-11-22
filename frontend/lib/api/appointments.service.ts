@@ -89,10 +89,25 @@ export const appointmentsService = {
       reason?: string;
     }
   ): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(
-      `/v1/appointments/${id}/reschedule`,
-      data
-    );
+    const normalizeTime = (time: string): string => {
+      // Already HH:mm:ss
+      if (/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(time)) return time;
+      // HH:mm -> HH:mm:00
+      if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) return `${time}:00`;
+      // ISO -> take HH:mm:ss
+      const parsed = new Date(time);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toTimeString().split(' ')[0];
+      }
+      // Fallback: return as-is (server validation sẽ chặn nếu sai)
+      return time;
+    };
+
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/reschedule`, {
+      ...data,
+      appointmentTime: normalizeTime(data.appointmentTime),
+      reason: data.reason || 'Đổi lịch hẹn',
+    });
     return response.data;
   },
 
