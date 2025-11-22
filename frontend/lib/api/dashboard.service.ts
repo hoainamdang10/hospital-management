@@ -86,9 +86,16 @@ export async function getPatientDashboardStats(
       patientService.getEmergencyContacts(patientId).catch(() => ({ contacts: [] })),
     ]);
 
-    const today = new Date();
-    const sevenDaysAhead = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Get current time for accurate filtering
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0); // Start of today
 
+    const sevenDaysAhead = new Date(today);
+    sevenDaysAhead.setDate(today.getDate() + 7);
+    sevenDaysAhead.setHours(23, 59, 59, 999); // End of the 7th day
+
+    // Count upcoming appointments (including today through next 7 days)
     const upcomingConfirmed7DaysCount = [
       ...((confirmedApts as any).appointments || []),
       ...((scheduledApts as any).appointments || []),
@@ -96,11 +103,28 @@ export async function getPatientDashboardStats(
       const dateStr = apt.appointmentDate || apt.date;
       const timeStr = apt.appointmentTime || apt.time || '00:00:00';
       const dt = new Date(`${dateStr}T${timeStr}`);
-      return dt >= today && dt <= sevenDaysAhead;
+      // Include from NOW to 7 days ahead
+      return dt >= now && dt <= sevenDaysAhead;
     }).length;
 
-    const completedCount = ((completedApts as any).appointments || []).length;
-    const cancelledCount = ((cancelledApts as any).appointments || []).length;
+    // Count RECENTLY completed/cancelled (last 30 days)
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    const completedCount = ((completedApts as any).appointments || []).filter((apt: any) => {
+      const dateStr = apt.appointmentDate || apt.date;
+      const timeStr = apt.appointmentTime || apt.time || '00:00:00';
+      const dt = new Date(`${dateStr}T${timeStr}`);
+      return dt >= thirtyDaysAgo && dt <= now;
+    }).length;
+
+    const cancelledCount = ((cancelledApts as any).appointments || []).filter((apt: any) => {
+      const dateStr = apt.appointmentDate || apt.date;
+      const timeStr = apt.appointmentTime || apt.time || '00:00:00';
+      const dt = new Date(`${dateStr}T${timeStr}`);
+      return dt >= thirtyDaysAgo && dt <= now;
+    }).length;
+
     const recentCompletedOrCancelledCount = completedCount + cancelledCount;
 
     const pendingPaymentsCount = (billingSummary as any).pendingInvoiceCount || 0;

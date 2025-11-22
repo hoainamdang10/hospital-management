@@ -25,6 +25,8 @@ export interface IInvoiceRepository {
   findById(id: string): Promise<Invoice | null>;
   findByPatientId(patientId: string): Promise<Invoice[]>;
   findByInvoiceNumber(invoiceNumber: string): Promise<Invoice | null>;
+  findByAppointmentId(appointmentId: string): Promise<Invoice | null>;
+  findAllByAppointmentId(appointmentId: string): Promise<Invoice[]>;
   findOverdueInvoices(daysOverdue?: number): Promise<Invoice[]>;
   search(criteria: SearchCriteria): Promise<Invoice[]>;
   getRevenueSummary(fromDate: Date, toDate: Date): Promise<RevenueSummary>;

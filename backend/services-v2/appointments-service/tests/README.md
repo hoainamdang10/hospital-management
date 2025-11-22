@@ -84,7 +84,7 @@ SUPABASE_JWT_SECRET=your-jwt-secret
 
 # Service
 NODE_ENV=test
-PORT=3024
+PORT=3004
 
 # Infrastructure
 REDIS_URL=redis://localhost:6380
@@ -114,7 +114,7 @@ npm run dev
 Verify health:
 
 ```bash
-curl http://localhost:3024/health
+curl http://localhost:3004/health
 ```
 
 ## Running Tests
@@ -279,7 +279,7 @@ jest.setTimeout(60000); // 60 seconds
 **Issue:** Read model empty after appointment creation
 
 **Checklist:**
-1. ✅ Service running? `curl http://localhost:3024/health`
+1. ✅ Service running? `curl http://localhost:3004/health`
 2. ✅ RabbitMQ running? `docker ps | grep rabbitmq`
 3. ✅ Event published? Check `outbox_events` table
 4. ✅ Wait time sufficient? Increase wait to 5 seconds
@@ -360,3 +360,4 @@ npm run test:coverage
 Contact: Backend Team
 
 Last Updated: 2025-01-15
+

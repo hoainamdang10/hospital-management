@@ -1,13 +1,13 @@
 /**
  * Event Bus for Inter-Service Communication
  * Hospital Management System V2
- * 
+ *
  * Implements publish-subscribe pattern using RabbitMQ
  * Replaces cross-schema foreign keys with event-driven architecture
  */
 
-import { DomainEvent } from '../../domain/base/domain-event';
-import { EVENT_TYPE_REGISTRY } from '../../domain/events/domain-events';
+import { DomainEvent } from "../../domain/base/domain-event";
+import { EVENT_TYPE_REGISTRY } from "../../domain/events/domain-events";
 
 export interface EventBusConfig {
   rabbitmqUrl: string;
@@ -40,7 +40,7 @@ export interface IEventBus {
   subscribe<T extends DomainEvent>(
     eventType: string,
     handler: EventHandler<T>,
-    queueName?: string
+    queueName?: string,
   ): Promise<void>;
 
   /**
@@ -75,30 +75,30 @@ export class RabbitMQEventBus implements IEventBus {
   private async connectWithRetry(attempt: number = 1): Promise<void> {
     try {
       // Dynamic import to avoid bundling issues
-      const amqp = await import('amqplib');
-      
-      console.log(`[EventBus] Connecting to RabbitMQ (attempt ${attempt}/${this.maxReconnectAttempts})...`);
-      
+      const amqp = await import("amqplib");
+
+      console.log(
+        `[EventBus] Connecting to RabbitMQ (attempt ${attempt}/${this.maxReconnectAttempts})...`,
+      );
+
       this.connection = await amqp.connect(this.config.rabbitmqUrl);
       this.channel = await this.connection.createChannel();
 
       // Declare exchange for domain events
-      await this.channel.assertExchange(
-        this.config.exchangeName,
-        'topic',
-        { durable: true }
-      );
+      await this.channel.assertExchange(this.config.exchangeName, "topic", {
+        durable: true,
+      });
 
       // Setup connection error handlers for auto-reconnect
-      this.connection.on('error', (err: Error) => {
-        console.error('[EventBus] Connection error:', err.message);
+      this.connection.on("error", (err: Error) => {
+        console.error("[EventBus] Connection error:", err.message);
         if (!this.isReconnecting) {
           this.handleConnectionLost();
         }
       });
 
-      this.connection.on('close', () => {
-        console.log('[EventBus] Connection closed');
+      this.connection.on("close", () => {
+        console.log("[EventBus] Connection closed");
         if (!this.isReconnecting) {
           this.handleConnectionLost();
         }
@@ -107,15 +107,20 @@ export class RabbitMQEventBus implements IEventBus {
       this.reconnectAttempts = 0;
       console.log(`✅ Event Bus connected: ${this.config.serviceName}`);
     } catch (error) {
-      console.error(`❌ Failed to connect to Event Bus (attempt ${attempt}):`, error);
-      
+      console.error(
+        `❌ Failed to connect to Event Bus (attempt ${attempt}):`,
+        error,
+      );
+
       if (attempt < this.maxReconnectAttempts) {
         const delay = this.reconnectDelay * Math.min(attempt, 5); // Max 15s delay
         console.log(`[EventBus] Retrying in ${delay}ms...`);
         await this.sleep(delay);
         return this.connectWithRetry(attempt + 1);
       } else {
-        throw new Error(`Failed to connect to RabbitMQ after ${this.maxReconnectAttempts} attempts`);
+        throw new Error(
+          `Failed to connect to RabbitMQ after ${this.maxReconnectAttempts} attempts`,
+        );
       }
     }
   }
@@ -126,7 +131,7 @@ export class RabbitMQEventBus implements IEventBus {
     }
 
     this.isReconnecting = true;
-    console.log('[EventBus] Connection lost, attempting to reconnect...');
+    console.log("[EventBus] Connection lost, attempting to reconnect...");
 
     try {
       // Clean up existing connection
@@ -142,37 +147,40 @@ export class RabbitMQEventBus implements IEventBus {
       // Restore subscriptions
       await this.restoreSubscriptions();
 
-      console.log('[EventBus] ✅ Reconnected successfully');
+      console.log("[EventBus] ✅ Reconnected successfully");
     } catch (error) {
-      console.error('[EventBus] ❌ Failed to reconnect:', error);
+      console.error("[EventBus] ❌ Failed to reconnect:", error);
     } finally {
       this.isReconnecting = false;
     }
   }
 
   private async restoreSubscriptions(): Promise<void> {
-    console.log('[EventBus] Restoring subscriptions...');
-    
+    console.log("[EventBus] Restoring subscriptions...");
+
     // Store current subscriptions
     const subsToRestore = new Map(this.subscriptions);
-    
+
     // Clear subscription map to avoid duplicates
     this.subscriptions.clear();
-    
+
     for (const [eventType, subs] of subsToRestore.entries()) {
       for (const sub of subs) {
         try {
           await this.subscribe(eventType, sub.handler, sub.queueName);
           console.log(`[EventBus] ✅ Restored subscription: ${eventType}`);
         } catch (error) {
-          console.error(`[EventBus] ❌ Failed to restore subscription for ${eventType}:`, error);
+          console.error(
+            `[EventBus] ❌ Failed to restore subscription for ${eventType}:`,
+            error,
+          );
         }
       }
     }
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async disconnect(): Promise<void> {
@@ -185,18 +193,22 @@ export class RabbitMQEventBus implements IEventBus {
       }
       console.log(`✅ Event Bus disconnected: ${this.config.serviceName}`);
     } catch (error) {
-      console.error('❌ Failed to disconnect from Event Bus:', error);
+      console.error("❌ Failed to disconnect from Event Bus:", error);
       throw error;
     }
   }
 
   async publish(event: DomainEvent): Promise<void> {
     if (!this.channel) {
-      throw new Error('Event Bus not connected. Call connect() first.');
+      throw new Error("Event Bus not connected. Call connect() first.");
     }
 
     try {
-      const routingKey = this.getRoutingKey(event.eventType);
+      // Check if event has custom getRoutingKey() method (e.g., AppointmentCancelledEvent)
+      const routingKey =
+        typeof (event as any).getRoutingKey === "function"
+          ? (event as any).getRoutingKey()
+          : this.getRoutingKey(event.eventType);
       const message = this.serializeEvent(event);
 
       const published = this.channel.publish(
@@ -205,7 +217,7 @@ export class RabbitMQEventBus implements IEventBus {
         Buffer.from(message),
         {
           persistent: true,
-          contentType: 'application/json',
+          contentType: "application/json",
           timestamp: Date.now(),
           messageId: event.eventId,
           headers: {
@@ -214,13 +226,17 @@ export class RabbitMQEventBus implements IEventBus {
             occurredAt: event.occurredAt.toISOString(),
             serviceName: this.config.serviceName,
           },
-        }
+        },
       );
 
       if (!published) {
-        console.warn(`⚠️ Event not published (buffer full): ${event.eventType}`);
+        console.warn(
+          `⚠️ Event not published (buffer full): ${event.eventType}`,
+        );
       } else {
-        console.log(`📤 Event published: ${event.eventType} (${event.eventId})`);
+        console.log(
+          `📤 Event published: ${event.eventType} (${event.eventId})`,
+        );
       }
     } catch (error) {
       console.error(`❌ Failed to publish event: ${event.eventType}`, error);
@@ -231,10 +247,10 @@ export class RabbitMQEventBus implements IEventBus {
   async subscribe<T extends DomainEvent>(
     eventType: string,
     handler: EventHandler<T>,
-    queueName?: string
+    queueName?: string,
   ): Promise<void> {
     if (!this.channel) {
-      throw new Error('Event Bus not connected. Call connect() first.');
+      throw new Error("Event Bus not connected. Call connect() first.");
     }
 
     try {
@@ -245,14 +261,26 @@ export class RabbitMQEventBus implements IEventBus {
       await this.channel.assertQueue(queue, {
         durable: true,
         arguments: {
-          'x-message-ttl': 86400000, // 24 hours
-          'x-max-length': 10000,
+          "x-message-ttl": 86400000, // 24 hours
+          "x-max-length": 10000,
         },
       });
 
       // Bind queue to exchange with routing key
-      const routingKey = this.getRoutingKey(eventType);
-      await this.channel.bindQueue(queue, this.config.exchangeName, routingKey);
+      // Some events (e.g., AppointmentCancelled) publish different routing keys based on policy.
+      // Bind to all relevant keys so we don't miss refund vs. penalty paths.
+      const routingKeys =
+        eventType === "AppointmentCancelled"
+          ? ["appointment.cancelled", "appointment.cancelled_late"]
+          : [this.getRoutingKey(eventType)];
+
+      for (const routingKey of routingKeys) {
+        await this.channel.bindQueue(
+          queue,
+          this.config.exchangeName,
+          routingKey,
+        );
+      }
 
       // Consume messages
       await this.channel.consume(
@@ -262,33 +290,40 @@ export class RabbitMQEventBus implements IEventBus {
 
           try {
             const event = this.deserializeEvent(msg.content.toString());
-            
-            console.log(`📥 Event received: ${event.eventType} (${event.eventId})`);
+
+            console.log(
+              `📥 Event received: ${event.eventType} (${event.eventId})`,
+            );
 
             // Handle event
             await handler.handle(event as T);
 
             // Acknowledge message
             this.channel.ack(msg);
-            
-            console.log(`✅ Event processed: ${event.eventType} (${event.eventId})`);
+
+            console.log(
+              `✅ Event processed: ${event.eventType} (${event.eventId})`,
+            );
           } catch (error) {
             console.error(`❌ Failed to process event:`, error);
-            
+
             // Reject and requeue (with limit)
-            const retryCount = (msg.properties.headers['x-retry-count'] || 0) + 1;
-            
+            const retryCount =
+              (msg.properties.headers["x-retry-count"] || 0) + 1;
+
             if (retryCount < 3) {
               // Requeue with retry count
               this.channel.nack(msg, false, true);
             } else {
               // Dead letter after 3 retries
-              console.error(`💀 Event moved to dead letter queue after ${retryCount} retries`);
+              console.error(
+                `💀 Event moved to dead letter queue after ${retryCount} retries`,
+              );
               this.channel.nack(msg, false, false);
             }
           }
         },
-        { noAck: false }
+        { noAck: false },
       );
 
       // Store subscription
@@ -306,21 +341,21 @@ export class RabbitMQEventBus implements IEventBus {
   private getRoutingKey(eventType: string): string {
     // Handle special cases for billing service compatibility
     switch (eventType) {
-      case 'AppointmentCancelled':
+      case "AppointmentCancelled":
         // Check if it's a late cancellation (would need to be determined from event data)
         // For now, use cancelled_late as it's more specific for billing
-        return 'appointment.cancelled_late';
-      case 'AppointmentNoShow':
-        return 'appointment.no_show';
+        return "appointment.cancelled_late";
+      case "AppointmentNoShow":
+        return "appointment.no_show";
       default:
         // If eventType already contains dots (e.g., 'billing.payment.completed'), return as-is
-        if (eventType.includes('.')) {
+        if (eventType.includes(".")) {
           return eventType;
         }
         // Convert PascalCase to dot.notation
         // e.g., UserCreated -> user.created
         return eventType
-          .replace(/([A-Z])/g, '.$1')
+          .replace(/([A-Z])/g, ".$1")
           .toLowerCase()
           .substring(1);
     }
@@ -347,7 +382,7 @@ export class RabbitMQEventBus implements IEventBus {
     // FIX: Use constructor for AppointmentScheduledEvent to properly initialize readonly properties
     // This ensures all properties are set correctly during deserialization
     try {
-      if (data.eventType === 'AppointmentScheduled') {
+      if (data.eventType === "AppointmentScheduled") {
         return new EventClass(
           eventData.appointmentId,
           eventData.patientId,
@@ -362,7 +397,7 @@ export class RabbitMQEventBus implements IEventBus {
           eventData.createdBy,
           data.correlationId,
           data.causationId,
-          data.userId
+          data.userId,
         );
       }
 
@@ -381,14 +416,23 @@ export class RabbitMQEventBus implements IEventBus {
         correlationId: data.correlationId,
         causationId: data.causationId,
         userId: data.userId,
-        metadata: data.metadata || { source: 'domain', priority: 'normal', retryable: true },
-        ...eventData
+        metadata: data.metadata || {
+          source: "domain",
+          priority: "normal",
+          retryable: true,
+        },
+        ...eventData,
       });
 
       return event;
     } catch (error) {
-      console.error(`[EventBus] Failed to deserialize event: ${data.eventType}`, error);
-      throw new Error(`Failed to deserialize event ${data.eventType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error(
+        `[EventBus] Failed to deserialize event: ${data.eventType}`,
+        error,
+      );
+      throw new Error(
+        `Failed to deserialize event ${data.eventType}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }
@@ -401,20 +445,20 @@ export class InMemoryEventBus implements IEventBus {
   private publishedEvents: DomainEvent[] = [];
 
   async connect(): Promise<void> {
-    console.log('✅ In-Memory Event Bus connected');
+    console.log("✅ In-Memory Event Bus connected");
   }
 
   async disconnect(): Promise<void> {
     this.handlers.clear();
     this.publishedEvents = [];
-    console.log('✅ In-Memory Event Bus disconnected');
+    console.log("✅ In-Memory Event Bus disconnected");
   }
 
   async publish(event: DomainEvent): Promise<void> {
     this.publishedEvents.push(event);
-    
+
     const handlers = this.handlers.get(event.eventType) || [];
-    
+
     for (const handler of handlers) {
       try {
         await handler.handle(event);
@@ -426,7 +470,7 @@ export class InMemoryEventBus implements IEventBus {
 
   async subscribe<T extends DomainEvent>(
     eventType: string,
-    handler: EventHandler<T>
+    handler: EventHandler<T>,
   ): Promise<void> {
     const handlers = this.handlers.get(eventType) || [];
     handlers.push(handler);
@@ -447,11 +491,13 @@ export class InMemoryEventBus implements IEventBus {
  * Event Bus Factory
  */
 export class EventBusFactory {
-  static create(config: EventBusConfig, useInMemory: boolean = false): IEventBus {
-    if (useInMemory || process.env.NODE_ENV === 'test') {
+  static create(
+    config: EventBusConfig,
+    useInMemory: boolean = false,
+  ): IEventBus {
+    if (useInMemory || process.env.NODE_ENV === "test") {
       return new InMemoryEventBus();
     }
     return new RabbitMQEventBus(config);
   }
 }
-

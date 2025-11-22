@@ -27,6 +27,9 @@ class InvoiceStatus extends value_object_1.ValueObject {
     static overdue() {
         return new InvoiceStatus({ value: 'overdue' });
     }
+    static refunded() {
+        return new InvoiceStatus({ value: 'refunded' });
+    }
     get value() {
         return this.props.value;
     }
@@ -48,8 +51,11 @@ class InvoiceStatus extends value_object_1.ValueObject {
     isOverdue() {
         return this.props.value === 'overdue';
     }
+    isRefunded() {
+        return this.props.value === 'refunded';
+    }
     validateFormat() {
-        const validStatuses = ['draft', 'pending', 'partially_paid', 'paid', 'cancelled', 'overdue'];
+        const validStatuses = ['draft', 'pending', 'partially_paid', 'paid', 'cancelled', 'overdue', 'refunded'];
         if (!validStatuses.includes(this.props.value)) {
             throw new Error(`Invalid invoice status: ${this.props.value}`);
         }

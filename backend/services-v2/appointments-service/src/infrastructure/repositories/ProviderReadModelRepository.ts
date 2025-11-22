@@ -1,13 +1,13 @@
 /**
  * Provider Read Model Repository
  * Maintains denormalized provider/staff data for appointments service
- * 
+ *
  * @author Hospital Management Team
  * @version 1.0.0
  * @compliance CQRS, Event-Driven Architecture, Eventual Consistency
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 export interface ProviderReadModel {
   providerId: string;
@@ -30,16 +30,16 @@ export interface ProviderReadModel {
  */
 export class ProviderReadModelRepository {
   private supabase: SupabaseClient;
-  private readonly table = 'provider_read_model';
-  private readonly schema = 'appointments_schema';
-  private readonly fallbackSchema = 'provider_schema';
-  private readonly fallbackTable = 'staff_profiles';
+  private readonly table = "provider_read_model";
+  private readonly schema = "appointments_schema";
+  private readonly fallbackSchema = "provider_schema";
+  private readonly fallbackTable = "staff_profiles";
 
   constructor(supabaseUrl: string, supabaseKey: string) {
     // Create client without schema restriction for fallback queries
     this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { autoRefreshToken: false, persistSession: false },
-      global: { headers: { 'X-Client-Info': 'appointments-provider-read' } }
+      global: { headers: { "X-Client-Info": "appointments-provider-read" } },
     });
   }
 
@@ -47,27 +47,32 @@ export class ProviderReadModelRepository {
    * Upsert provider read model (idempotent)
    */
   async upsert(provider: ProviderReadModel): Promise<void> {
-    const { error } = await this.supabase.from(this.table).upsert({
-      provider_id: provider.providerId,
-      tenant_id: provider.tenantId,
-      full_name: provider.fullName,
-      specialization: provider.specialization || null,
-      department: provider.department || null,
-      license_number: provider.licenseNumber || null,
-      phone: provider.phone || null,
-      email: provider.email || null,
-      is_active: provider.isActive,
-      synced_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'provider_id'
-    });
+    const { error } = await this.supabase.from(this.table).upsert(
+      {
+        provider_id: provider.providerId,
+        tenant_id: provider.tenantId,
+        full_name: provider.fullName,
+        specialization: provider.specialization || null,
+        department: provider.department || null,
+        license_number: provider.licenseNumber || null,
+        phone: provider.phone || null,
+        email: provider.email || null,
+        is_active: provider.isActive,
+        synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "provider_id",
+      },
+    );
 
     if (error) {
       throw new Error(`Failed to upsert provider read model: ${error.message}`);
     }
 
-    console.debug(`[ProviderReadModelRepo] ✓ Upserted provider ${provider.providerId}`);
+    console.debug(
+      `[ProviderReadModelRepo] ✓ Upserted provider ${provider.providerId}`,
+    );
   }
 
   /**
@@ -79,11 +84,11 @@ export class ProviderReadModelRepository {
     const { data, error } = await this.supabase
       .schema(this.schema)
       .from(this.table)
-      .select('*')
-      .eq('provider_id', providerId)
+      .select("*")
+      .eq("provider_id", providerId)
       .maybeSingle();
 
-    if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
+    if (error && error.code !== "PGRST116" && error.code !== "42P01") {
       throw new Error(`Failed to fetch provider read model: ${error.message}`);
     }
 
@@ -92,47 +97,55 @@ export class ProviderReadModelRepository {
     }
 
     // Fallback to provider_schema.staff_profiles
-    console.debug(`[ProviderReadModelRepo] Provider ${providerId} not found in read model, trying fallback`);
+    console.debug(
+      `[ProviderReadModelRepo] Provider ${providerId} not found in read model, trying fallback`,
+    );
     return await this.findByIdFallback(providerId);
   }
 
   /**
    * Fallback: Query provider_schema.staff_profiles directly
    */
-  private async findByIdFallback(providerId: string): Promise<ProviderReadModel | null> {
+  private async findByIdFallback(
+    providerId: string,
+  ): Promise<ProviderReadModel | null> {
     try {
       const { data, error } = await this.supabase
         .schema(this.fallbackSchema)
         .from(this.fallbackTable)
-        .select('staff_id, personal_info, professional_info, contact_info, status')
-        .eq('staff_id', providerId)
+        // Schema không còn contact_info, phone/email nằm trong personal_info
+        .select("staff_id, personal_info, professional_info, status")
+        .eq("staff_id", providerId)
         .maybeSingle();
 
       if (error) {
-        console.error(`[ProviderReadModelRepo] Fallback query failed: ${error.message}`);
+        console.error(
+          `[ProviderReadModelRepo] Fallback query failed: ${error.message}`,
+        );
         return null;
       }
 
       if (!data) {
-        console.debug(`[ProviderReadModelRepo] Provider ${providerId} not found in fallback`);
+        console.debug(
+          `[ProviderReadModelRepo] Provider ${providerId} not found in fallback`,
+        );
         return null;
       }
 
       // Map JSONB fields to ProviderReadModel
       const personalInfo = data.personal_info || {};
       const professionalInfo = data.professional_info || {};
-      const contactInfo = data.contact_info || {};
 
       return {
         providerId: data.staff_id,
-        tenantId: 'hospital-1', // Default tenant
-        fullName: personalInfo.fullName || '',
+        tenantId: "hospital-1", // Default tenant
+        fullName: personalInfo.fullName || "",
         specialization: professionalInfo.specialization,
         department: professionalInfo.department,
         licenseNumber: professionalInfo.licenseNumber,
-        phone: contactInfo.phone,
-        email: contactInfo.email,
-        isActive: data.status === 'ACTIVE'
+        phone: personalInfo.phoneNumber || personalInfo.phone,
+        email: personalInfo.email,
+        isActive: data.status === "ACTIVE",
       };
     } catch (error) {
       console.error(`[ProviderReadModelRepo] Fallback error:`, error);
@@ -148,8 +161,8 @@ export class ProviderReadModelRepository {
 
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('*')
-      .in('provider_id', providerIds);
+      .select("*")
+      .in("provider_id", providerIds);
 
     if (error) {
       throw new Error(`Failed to fetch providers read model: ${error.message}`);
@@ -161,12 +174,15 @@ export class ProviderReadModelRepository {
   /**
    * Find providers by tenant
    */
-  async findByTenant(tenantId: string, limit = 100): Promise<ProviderReadModel[]> {
+  async findByTenant(
+    tenantId: string,
+    limit = 100,
+  ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('full_name', { ascending: true })
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("full_name", { ascending: true })
       .limit(limit);
 
     if (error) {
@@ -182,19 +198,21 @@ export class ProviderReadModelRepository {
   async findBySpecialization(
     specialization: string,
     tenantId: string,
-    limit = 50
+    limit = 50,
   ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('specialization', specialization)
-      .eq('is_active', true)
-      .order('full_name', { ascending: true })
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("specialization", specialization)
+      .eq("is_active", true)
+      .order("full_name", { ascending: true })
       .limit(limit);
 
     if (error) {
-      throw new Error(`Failed to fetch providers by specialization: ${error.message}`);
+      throw new Error(
+        `Failed to fetch providers by specialization: ${error.message}`,
+      );
     }
 
     return (data || []).map(this.mapToModel);
@@ -206,19 +224,21 @@ export class ProviderReadModelRepository {
   async findByDepartment(
     department: string,
     tenantId: string,
-    limit = 50
+    limit = 50,
   ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('department', department)
-      .eq('is_active', true)
-      .order('full_name', { ascending: true })
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("department", department)
+      .eq("is_active", true)
+      .order("full_name", { ascending: true })
       .limit(limit);
 
     if (error) {
-      throw new Error(`Failed to fetch providers by department: ${error.message}`);
+      throw new Error(
+        `Failed to fetch providers by department: ${error.message}`,
+      );
     }
 
     return (data || []).map(this.mapToModel);
@@ -227,15 +247,21 @@ export class ProviderReadModelRepository {
   /**
    * Search providers by name/email/license
    */
-  async search(query: string, tenantId: string, limit = 20): Promise<ProviderReadModel[]> {
+  async search(
+    query: string,
+    tenantId: string,
+    limit = 20,
+  ): Promise<ProviderReadModel[]> {
     const searchPattern = `%${query}%`;
 
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .or(`full_name.ilike.${searchPattern},email.ilike.${searchPattern},license_number.ilike.${searchPattern}`)
-      .order('full_name', { ascending: true })
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .or(
+        `full_name.ilike.${searchPattern},email.ilike.${searchPattern},license_number.ilike.${searchPattern}`,
+      )
+      .order("full_name", { ascending: true })
       .limit(limit);
 
     if (error) {
@@ -248,13 +274,16 @@ export class ProviderReadModelRepository {
   /**
    * Find all active providers
    */
-  async findActive(tenantId: string, limit = 100): Promise<ProviderReadModel[]> {
+  async findActive(
+    tenantId: string,
+    limit = 100,
+  ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('is_active', true)
-      .order('full_name', { ascending: true })
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .order("full_name", { ascending: true })
       .limit(limit);
 
     if (error) {
@@ -271,7 +300,7 @@ export class ProviderReadModelRepository {
     const { error } = await this.supabase
       .from(this.table)
       .delete()
-      .eq('provider_id', providerId);
+      .eq("provider_id", providerId);
 
     if (error) {
       throw new Error(`Failed to delete provider read model: ${error.message}`);
@@ -292,7 +321,7 @@ export class ProviderReadModelRepository {
   }> {
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('is_active, synced_at');
+      .select("is_active, synced_at");
 
     if (error) {
       throw new Error(`Failed to get sync stats: ${error.message}`);
@@ -304,22 +333,22 @@ export class ProviderReadModelRepository {
         activeProviders: 0,
         lastSyncedAt: null,
         oldestSyncedAt: null,
-        syncLagSeconds: null
+        syncLagSeconds: null,
       };
     }
 
-    const syncTimes = data.map(row => new Date(row.synced_at).getTime());
+    const syncTimes = data.map((row) => new Date(row.synced_at).getTime());
     const lastSyncedAt = new Date(Math.max(...syncTimes));
     const oldestSyncedAt = new Date(Math.min(...syncTimes));
     const syncLagSeconds = (Date.now() - lastSyncedAt.getTime()) / 1000;
-    const activeProviders = data.filter(row => row.is_active).length;
+    const activeProviders = data.filter((row) => row.is_active).length;
 
     return {
       totalProviders: data.length,
       activeProviders,
       lastSyncedAt,
       oldestSyncedAt,
-      syncLagSeconds
+      syncLagSeconds,
     };
   }
 
@@ -329,11 +358,11 @@ export class ProviderReadModelRepository {
   async exists(providerId: string): Promise<boolean> {
     const { data, error } = await this.supabase
       .from(this.table)
-      .select('provider_id')
-      .eq('provider_id', providerId)
+      .select("provider_id")
+      .eq("provider_id", providerId)
       .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error && error.code !== "PGRST116") {
       throw new Error(`Failed to check provider existence: ${error.message}`);
     }
 
@@ -346,8 +375,8 @@ export class ProviderReadModelRepository {
   async countByTenant(tenantId: string): Promise<number> {
     const { count, error } = await this.supabase
       .from(this.table)
-      .select('provider_id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId);
+      .select("provider_id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId);
 
     if (error) {
       throw new Error(`Failed to count providers: ${error.message}`);
@@ -372,7 +401,7 @@ export class ProviderReadModelRepository {
       isActive: row.is_active,
       syncedAt: row.synced_at ? new Date(row.synced_at) : undefined,
       createdAt: row.created_at ? new Date(row.created_at) : undefined,
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
     };
   }
 }

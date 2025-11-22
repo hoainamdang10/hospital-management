@@ -36,7 +36,7 @@ Authorization: Bearer <your-jwt-token>
 \`\`\`
 
 ## Base URL
-- Development: http://localhost:3024
+- Development: http://localhost:3004
 - Production: https://api.hospital.vn
 
 ## Rate Limiting
@@ -55,7 +55,7 @@ Authorization: Bearer <your-jwt-token>
     },
     servers: [
       {
-        url: 'http://localhost:3024',
+        url: 'http://localhost:3004',
         description: 'Development server'
       },
       {
@@ -255,3 +255,4 @@ Authorization: Bearer <your-jwt-token>
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
+

@@ -107,7 +107,7 @@ export function loadConfig(): AppConfig {
   const config: AppConfig = {
     // Service
     nodeEnv: process.env.NODE_ENV || "development",
-    port: parseInt(process.env.PORT || "3024", 10),
+    port: parseInt(process.env.PORT || "3004", 10),
     serviceName: process.env.SERVICE_NAME || "appointments-service",
 
     // Supabase
@@ -386,3 +386,4 @@ function maskUrl(url: string): string {
     return url;
   }
 }
+

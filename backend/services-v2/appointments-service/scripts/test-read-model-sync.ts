@@ -15,7 +15,7 @@ dotenv.config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const APPOINTMENTS_API_URL = process.env.APPOINTMENTS_API_URL || 'http://localhost:3024';
+const APPOINTMENTS_API_URL = process.env.APPOINTMENTS_API_URL || 'http://localhost:3004';
 
 async function testReadModelSync() {
   console.log('='.repeat(70));
@@ -156,3 +156,4 @@ testReadModelSync()
     console.error('\n❌ Test script failed:', error);
     process.exit(1);
   });
+

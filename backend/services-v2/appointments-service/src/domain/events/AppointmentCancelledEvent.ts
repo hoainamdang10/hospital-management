@@ -558,4 +558,32 @@ export class AppointmentCancelledEvent extends DomainEvent {
       cancellationNote: `Cuộc hẹn bị hủy: ${this.cancellationReason}. Thời gian thông báo: ${Math.round(hoursNotice * 100) / 100} giờ.`,
     };
   }
+
+  /**
+   * Override getRoutingKey to determine routing key based on cancellation policy
+   * - Early cancellation (refund eligible) → 'appointment.cancelled'
+   * - Late cancellation (penalty applied) → 'appointment.cancelled_late'
+   */
+  public override getRoutingKey(): string {
+    const now = new Date();
+    const hoursNotice = Math.max(
+      0,
+      (this.originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60),
+    );
+    const cancellationPolicy =
+      AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
+
+    // If refund eligible (early cancellation), use 'appointment.cancelled' for refund processing
+    if (cancellationPolicy.refundEligible) {
+      return 'appointment.cancelled';
+    }
+
+    // If penalty applied (late cancellation), use 'appointment.cancelled_late' for fee processing
+    if (cancellationPolicy.penaltyApplied) {
+      return 'appointment.cancelled_late';
+    }
+
+    // Default: no refund, no penalty (edge case)
+    return 'appointment.cancelled';
+  }
 }

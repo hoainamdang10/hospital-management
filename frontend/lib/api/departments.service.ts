@@ -37,11 +37,11 @@ export interface DepartmentResponse {
 export async function getDepartments(): Promise<Department[]> {
   try {
     const response = await apiClient.get<DepartmentResponse>('/v1/departments');
-    
+
     if (response.data.success && Array.isArray(response.data.data)) {
       return response.data.data;
     }
-    
+
     return [];
   } catch (error: any) {
     console.error('Error fetching departments:', error);
@@ -52,17 +52,19 @@ export async function getDepartments(): Promise<Department[]> {
 /**
  * Get a single department by ID
  */
-export async function getDepartmentById(id: string): Promise<{ success: boolean; data: Department }> {
+export async function getDepartmentById(
+  id: string
+): Promise<{ success: boolean; data: Department }> {
   try {
     const response = await apiClient.get<DepartmentResponse>(`/v1/departments/${id}`);
-    
+
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
         success: true,
         data: response.data.data,
       };
     }
-    
+
     throw new Error('Department not found');
   } catch (error: any) {
     console.error('Error fetching department:', error);
@@ -73,17 +75,19 @@ export async function getDepartmentById(id: string): Promise<{ success: boolean;
 /**
  * Get department by code
  */
-export async function getDepartmentByCode(code: string): Promise<{ success: boolean; data: Department }> {
+export async function getDepartmentByCode(
+  code: string
+): Promise<{ success: boolean; data: Department }> {
   try {
     const response = await apiClient.get<DepartmentResponse>(`/v1/departments/code/${code}`);
-    
+
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
         success: true,
         data: response.data.data,
       };
     }
-    
+
     throw new Error('Department not found');
   } catch (error: any) {
     console.error('Error fetching department by code:', error);
@@ -123,7 +127,7 @@ export async function createDepartment(data: {
 }): Promise<{ success: boolean; data: Department; message?: string }> {
   try {
     const response = await apiClient.post<DepartmentResponse>('/v1/departments', data);
-    
+
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
         success: true,
@@ -131,7 +135,7 @@ export async function createDepartment(data: {
         message: response.data.message,
       };
     }
-    
+
     throw new Error('Failed to create department');
   } catch (error: any) {
     console.error('Error creating department:', error);
@@ -157,7 +161,7 @@ export async function updateDepartment(
 ): Promise<{ success: boolean; data: Department; message?: string }> {
   try {
     const response = await apiClient.put<DepartmentResponse>(`/v1/departments/${id}`, data);
-    
+
     if (response.data.success && !Array.isArray(response.data.data)) {
       return {
         success: true,
@@ -165,7 +169,7 @@ export async function updateDepartment(
         message: response.data.message,
       };
     }
-    
+
     throw new Error('Failed to update department');
   } catch (error: any) {
     console.error('Error updating department:', error);
@@ -176,10 +180,14 @@ export async function updateDepartment(
 /**
  * Delete a department (soft delete)
  */
-export async function deleteDepartment(id: string): Promise<{ success: boolean; message?: string }> {
+export async function deleteDepartment(
+  id: string
+): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await apiClient.delete<{ success: boolean; message: string }>(`/v1/departments/${id}`);
-    
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      `/v1/departments/${id}`
+    );
+
     return {
       success: response.data.success,
       message: response.data.message,
@@ -201,7 +209,7 @@ export async function getDepartmentStaff(departmentId: string): Promise<{
 }> {
   try {
     const response = await apiClient.get(`/v1/departments/${departmentId}/staff`);
-    
+
     return {
       success: response.data.success,
       data: response.data.data || [],
@@ -209,7 +217,10 @@ export async function getDepartmentStaff(departmentId: string): Promise<{
       department: response.data.department,
     };
   } catch (error: any) {
-    console.error(`Error fetching department staff for ${departmentId}:`, error.response?.data || error.message);
+    console.error(
+      `Error fetching department staff for ${departmentId}:`,
+      error.response?.data || error.message
+    );
     // Return empty result instead of failing
     return {
       success: true,
@@ -230,7 +241,7 @@ export async function addStaffToDepartment(
     const response = await apiClient.post(`/v1/departments/${departmentId}/staff`, {
       staffId,
     });
-    
+
     return {
       success: response.data.success,
       message: response.data.message,
@@ -250,7 +261,7 @@ export async function removeStaffFromDepartment(
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const response = await apiClient.delete(`/v1/departments/${departmentId}/staff/${staffId}`);
-    
+
     return {
       success: response.data.success,
       message: response.data.message,
@@ -271,14 +282,17 @@ export async function getDepartmentHead(departmentId: string): Promise<{
 }> {
   try {
     const response = await apiClient.get(`/v1/departments/${departmentId}/head`);
-    
+
     return {
       success: response.data.success,
       data: response.data.data,
       department: response.data.department,
     };
   } catch (error: any) {
-    console.error(`Error fetching department head for ${departmentId}:`, error.response?.data || error.message);
+    console.error(
+      `Error fetching department head for ${departmentId}:`,
+      error.response?.data || error.message
+    );
     // Return empty result instead of throwing
     return {
       success: true,
@@ -298,7 +312,7 @@ export async function setDepartmentHead(
     const response = await apiClient.put(`/v1/departments/${departmentId}/head`, {
       staffId,
     });
-    
+
     return {
       success: response.data.success,
       message: response.data.message,
@@ -308,3 +322,10 @@ export async function setDepartmentHead(
     throw error;
   }
 }
+
+// Convenience grouped export for legacy usage
+export const departmentsService = {
+  getDepartments,
+  getDepartmentById,
+  getDepartmentByCode,
+};

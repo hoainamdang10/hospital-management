@@ -4,7 +4,7 @@
  *
  * @author Hospital Management Team
  * @version 3.0.0
- * @port 3024
+ * @port 3004
  * @schema appointments_schema
  */
 
@@ -48,6 +48,7 @@ import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
 import { initializeReschedulingQueueRoutes } from "./presentation/routes/reschedulingQueue.routes";
 import cron from "node-cron";
 import { ExpireUnpaidAppointmentsUseCase } from "./application/use-cases/ExpireUnpaidAppointments.use-case";
+import { AutoCompleteAppointmentsUseCase } from "./application/use-cases/AutoCompleteAppointments.use-case";
 
 const app: Application = express();
 
@@ -253,7 +254,7 @@ app.get("/metrics", async (req: Request, res: Response) => {
 });
 
 // Swagger API Documentation
-// Accessible at: http://localhost:3024/api-docs
+// Accessible at: http://localhost:3004/api-docs
 app.use("/api-docs", swaggerUi.serve);
 app.get(
   "/api-docs",
@@ -584,6 +585,59 @@ const server = app.listen(PORT, async () => {
     );
   }
   // ==================== END FLOW 3 - PHASE 1B ====================
+
+  // ==================== AUTO-COMPLETE PAST APPOINTMENTS ====================
+  // Setup cron job to auto-complete past appointments
+  // ⚙️ OPTIMIZED FOR ACADEMIC PROJECT:
+  //    - Buffer: 30 minutes (realistic for demo/testing)
+  //    - Schedule: Every 5 minutes (quick feedback for testing)
+  // 🏭 PRODUCTION RECOMMENDATION:
+  //    - Buffer: 60-120 minutes (ensure appointment truly finished)
+  //    - Schedule: Every 15-30 minutes (reduce database load)
+  try {
+    const container = getContainer();
+    const appointmentRepository = container.getAppointmentRepository();
+    const autoCompleteAppointmentsUseCase = new AutoCompleteAppointmentsUseCase(
+      appointmentRepository,
+      30 // Buffer: 30 minutes after appointment time (optimized for academic project)
+    );
+
+    // Run every 5 minutes: */5 * * * * (optimized for academic project)
+    cron.schedule("*/5 * * * *", async () => {
+      try {
+        logger.info("[AutoCompleteCron] Starting auto-complete check...");
+        const result = await autoCompleteAppointmentsUseCase.execute();
+        logger.info(
+          `[AutoCompleteCron] Auto-complete check completed. Completed: ${result.completedCount}, Errors: ${result.errors.length}`,
+        );
+
+        if (result.errors.length > 0) {
+          logger.warn(
+            "[AutoCompleteCron] Errors during auto-complete check",
+            undefined,
+            {
+              errors: result.errors,
+            },
+          );
+        }
+      } catch (error) {
+        logger.error(
+          "[AutoCompleteCron] Fatal error during auto-complete check",
+          error as Error,
+        );
+      }
+    });
+
+    logger.info(
+      "[AutoCompleteCron] Auto-complete cron job scheduled (every 5 minutes, 30min buffer)",
+    );
+  } catch (error) {
+    logger.error(
+      "[AutoCompleteCron] Failed to setup auto-complete cron job",
+      error as Error,
+    );
+  }
+  // ==================== END AUTO-COMPLETE ====================
 });
 
 // Graceful shutdown
@@ -632,3 +686,4 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 export default app;
+

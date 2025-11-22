@@ -4,8 +4,18 @@ export interface MoneyProps {
     currency: string;
 }
 export declare class Money extends ValueObject<MoneyProps> {
+    private readonly allowNegative;
     private constructor();
+    /**
+     * Create Money with positive amount only
+     * Use this for regular payments, invoices, etc.
+     */
     static create(amount: number, currency?: string): Money;
+    /**
+     * Create Money with signed amount (positive or negative)
+     * Use this for refunds, adjustments, etc.
+     */
+    static createSigned(amount: number, currency?: string): Money;
     static zero(currency?: string): Money;
     get amount(): number;
     get currency(): string;

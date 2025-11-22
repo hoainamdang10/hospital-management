@@ -158,6 +158,14 @@ export interface IAppointmentRepository {
   findExpiredUnpaidAppointments(): Promise<Appointment[]>;
 
   /**
+   * Find past appointments that should be auto-completed
+   * Used by AutoCompleteAppointmentsUseCase for status management
+   * Query: status IN ('CONFIRMED', 'SCHEDULED') AND appointment_datetime < cutoffTime
+   * @param cutoffTime - Time before which appointments should be marked complete
+   */
+  findPastAppointments(cutoffTime: Date): Promise<Appointment[]>;
+
+  /**
    * Get appointment statistics
    */
   getStatistics(

@@ -1,7 +1,7 @@
 /**
  * Use Case Interfaces - Clean Architecture
  * Enhanced base interfaces for application layer use cases
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, SOLID Principles, Healthcare Compliance
@@ -17,21 +17,24 @@ export interface IUseCase<TRequest = any, TResponse = any> {
 /**
  * Use case with validation
  */
-export interface IValidatedUseCase<TRequest = any, TResponse = any> extends IUseCase<TRequest, TResponse> {
+export interface IValidatedUseCase<TRequest = any, TResponse = any>
+  extends IUseCase<TRequest, TResponse> {
   validate(request: TRequest): Promise<ValidationResult>;
 }
 
 /**
  * Use case with authorization
  */
-export interface IAuthorizedUseCase<TRequest = any, TResponse = any> extends IUseCase<TRequest, TResponse> {
+export interface IAuthorizedUseCase<TRequest = any, TResponse = any>
+  extends IUseCase<TRequest, TResponse> {
   authorize(request: TRequest, userId: string): Promise<boolean>;
 }
 
 /**
  * Healthcare-specific use case interface
  */
-export interface IHealthcareUseCase<TRequest = any, TResponse = any> extends IAuthorizedUseCase<TRequest, TResponse> {
+export interface IHealthcareUseCase<TRequest = any, TResponse = any>
+  extends IAuthorizedUseCase<TRequest, TResponse> {
   involvesPHI(request: TRequest): boolean;
   getPatientId(request: TRequest): string | null;
   getAuditInfo(request: TRequest): HIPAAAuditInfo;
@@ -75,6 +78,9 @@ export interface UseCaseContext {
   correlationId?: string;
   ipAddress?: string;
   userAgent?: string;
+  email?: string;
+  role?: string;
+  patientId?: string;
   timestamp: Date;
   permissions?: string[];
 }
@@ -103,13 +109,18 @@ export interface UseCaseError {
 /**
  * Base abstract use case with common functionality
  */
-export abstract class BaseUseCase<TRequest, TResponse> implements IValidatedUseCase<TRequest, TResponse> {
+export abstract class BaseUseCase<TRequest, TResponse>
+  implements IValidatedUseCase<TRequest, TResponse>
+{
   protected context?: UseCaseContext;
 
   /**
    * Execute the use case
    */
-  async execute(request: TRequest, context?: UseCaseContext): Promise<TResponse> {
+  async execute(
+    request: TRequest,
+    context?: UseCaseContext,
+  ): Promise<TResponse> {
     this.context = context;
 
     try {
@@ -117,8 +128,8 @@ export abstract class BaseUseCase<TRequest, TResponse> implements IValidatedUseC
       const validationResult = await this.validate(request);
       if (!validationResult.isValid) {
         throw new UseCaseValidationError(
-          'Use case validation failed',
-          validationResult.errors
+          "Use case validation failed",
+          validationResult.errors,
         );
       }
 
@@ -148,7 +159,7 @@ export abstract class BaseUseCase<TRequest, TResponse> implements IValidatedUseC
    */
   protected async handleError(error: any, _request: TRequest): Promise<void> {
     // Log error, send notifications, etc.
-    console.error('Use case execution error:', error);
+    console.error("Use case execution error:", error);
   }
 
   /**
@@ -156,7 +167,7 @@ export abstract class BaseUseCase<TRequest, TResponse> implements IValidatedUseC
    */
   protected getContext(): UseCaseContext {
     if (!this.context) {
-      throw new Error('Use case context not available');
+      throw new Error("Use case context not available");
     }
     return this.context;
   }
@@ -165,16 +176,21 @@ export abstract class BaseUseCase<TRequest, TResponse> implements IValidatedUseC
 /**
  * Base healthcare use case with HIPAA compliance
  */
-export abstract class BaseHealthcareUseCase<TRequest, TResponse> 
-  extends BaseUseCase<TRequest, TResponse> 
-  implements IHealthcareUseCase<TRequest, TResponse> {
-
+export abstract class BaseHealthcareUseCase<TRequest, TResponse>
+  extends BaseUseCase<TRequest, TResponse>
+  implements IHealthcareUseCase<TRequest, TResponse>
+{
   /**
    * Execute with HIPAA compliance
    */
-  override async execute(request: TRequest, context?: UseCaseContext): Promise<TResponse> {
+  override async execute(
+    request: TRequest,
+    context?: UseCaseContext,
+  ): Promise<TResponse> {
     if (!context?.userId) {
-      throw new UseCaseAuthorizationError('User context required for healthcare operations');
+      throw new UseCaseAuthorizationError(
+        "User context required for healthcare operations",
+      );
     }
 
     // Set context before any operations that need it
@@ -223,17 +239,20 @@ export abstract class BaseHealthcareUseCase<TRequest, TResponse>
       timestamp: context.timestamp,
       ipAddress: context.ipAddress,
       userAgent: context.userAgent,
-      details: { correlationId: context.correlationId }
+      details: { correlationId: context.correlationId },
     };
   }
 
   /**
    * Log HIPAA audit
    */
-  protected async logHIPAAAudit(request: TRequest, _context: UseCaseContext): Promise<void> {
+  protected async logHIPAAAudit(
+    request: TRequest,
+    _context: UseCaseContext,
+  ): Promise<void> {
     const auditInfo = this.getAuditInfo(request);
     // Implementation would log to HIPAA audit system
-    console.log('HIPAA Audit:', auditInfo);
+    console.log("HIPAA Audit:", auditInfo);
   }
 }
 
@@ -245,7 +264,7 @@ export class UseCaseValidationError extends Error {
 
   constructor(message: string, errors: ValidationError[]) {
     super(message);
-    this.name = 'UseCaseValidationError';
+    this.name = "UseCaseValidationError";
     this.errors = errors;
   }
 }
@@ -254,9 +273,9 @@ export class UseCaseValidationError extends Error {
  * Use case authorization error
  */
 export class UseCaseAuthorizationError extends Error {
-  constructor(message: string = 'Unauthorized to execute this use case') {
+  constructor(message: string = "Unauthorized to execute this use case") {
     super(message);
-    this.name = 'UseCaseAuthorizationError';
+    this.name = "UseCaseAuthorizationError";
   }
 }
 
@@ -268,7 +287,7 @@ export class UseCaseExecutionError extends Error {
 
   constructor(message: string, innerError?: Error) {
     super(message);
-    this.name = 'UseCaseExecutionError';
+    this.name = "UseCaseExecutionError";
     this.innerError = innerError;
   }
 }
@@ -277,7 +296,9 @@ export class UseCaseExecutionError extends Error {
  * Use case factory interface
  */
 export interface IUseCaseFactory {
-  create<TUseCase extends IUseCase>(useCaseType: new (...args: any[]) => TUseCase): TUseCase;
+  create<TUseCase extends IUseCase>(
+    useCaseType: new (...args: any[]) => TUseCase,
+  ): TUseCase;
 }
 
 /**
@@ -316,7 +337,11 @@ export class UseCaseRegistry implements IUseCaseRegistry {
  * Use case metrics interface
  */
 export interface IUseCaseMetrics {
-  recordExecution(useCaseName: string, duration: number, success: boolean): void;
+  recordExecution(
+    useCaseName: string,
+    duration: number,
+    success: boolean,
+  ): void;
   recordValidationFailure(useCaseName: string, errors: ValidationError[]): void;
   recordAuthorizationFailure(useCaseName: string, userId: string): void;
 }
@@ -329,7 +354,7 @@ export function WithMetrics(metrics: IUseCaseMetrics) {
   return function <T extends new (...args: any[]) => IUseCase>(target: T): T {
     const originalExecute = target.prototype.execute;
 
-    target.prototype.execute = async function(request: any): Promise<any> {
+    target.prototype.execute = async function (request: any): Promise<any> {
       const startTime = Date.now();
       const useCaseName = this.constructor.name;
 
@@ -345,7 +370,7 @@ export function WithMetrics(metrics: IUseCaseMetrics) {
         if (error instanceof UseCaseValidationError) {
           metrics.recordValidationFailure(useCaseName, error.errors);
         } else if (error instanceof UseCaseAuthorizationError) {
-          metrics.recordAuthorizationFailure(useCaseName, 'unknown');
+          metrics.recordAuthorizationFailure(useCaseName, "unknown");
         }
 
         throw error;

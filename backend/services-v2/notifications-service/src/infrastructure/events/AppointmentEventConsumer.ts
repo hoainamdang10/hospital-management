@@ -296,6 +296,7 @@ export class AppointmentEventConsumer {
       const content = msg.content.toString();
       const event = JSON.parse(content);
       const routingKey = msg.fields.routingKey;
+      const payload = event.payload ?? event.data ?? event.eventData ?? event;
 
       // Idempotency check
       const eventId = event.eventId || event.id || event.metadata?.eventId;
@@ -306,6 +307,21 @@ export class AppointmentEventConsumer {
         );
         this.channel?.ack(msg);
         return;
+      }
+
+      if (routingKey.startsWith("appointment.")) {
+        const appointmentId =
+          (payload as any)?.appointmentId || event.eventData?.appointmentId;
+        if (!appointmentId) {
+          console.error(
+            "[AppointmentEventConsumer] Missing appointmentId in payload",
+            { eventId, routingKey, event },
+          );
+          this.channel?.ack(msg);
+          return;
+        }
+        // Normalize payload with appointmentId ensured
+        (payload as any).appointmentId = appointmentId;
       }
 
       if (await this.inboxRepo.exists(eventId)) {
@@ -325,19 +341,19 @@ export class AppointmentEventConsumer {
       switch (routingKey) {
         case "appointment.scheduled":
           await this.handleAppointmentScheduled(
-            event.payload as AppointmentScheduledEventData,
+            payload as AppointmentScheduledEventData,
           );
           break;
 
         case "appointment.confirmed":
           await this.handleAppointmentConfirmed(
-            event.payload as AppointmentConfirmedEventData,
+            payload as AppointmentConfirmedEventData,
           );
           break;
 
         case "appointment.cancelled":
           await this.handleAppointmentCancelled(
-            event.payload as AppointmentCancelledEventData,
+            payload as AppointmentCancelledEventData,
           );
           break;
 

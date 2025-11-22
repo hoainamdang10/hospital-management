@@ -31,7 +31,9 @@ import { GetInvoiceUseCase } from "./application/use-cases/GetInvoiceUseCase";
 // REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase
 import { ProcessPaymentUseCase } from "./application/use-cases/ProcessPaymentUseCase";
 import { GetPatientInvoicesUseCase } from "./application/use-cases/GetPatientInvoicesUseCase";
-// REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase, RefundPaymentUseCase
+// REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase
+import { RefundPaymentUseCase } from "./application/use-cases/RefundPaymentUseCase";
+import { CompleteRefundUseCase } from "./application/use-cases/CompleteRefundUseCase";
 import { SearchInvoicesUseCase } from "./application/use-cases/SearchInvoicesUseCase";
 import { GetOverdueInvoicesUseCase } from "./application/use-cases/GetOverdueInvoicesUseCase";
 import { GetPatientBillingSummaryUseCase } from "./application/use-cases/GetPatientBillingSummaryUseCase";
@@ -42,9 +44,10 @@ import { HandlePayOSWebhookUseCase } from "./application/use-cases/HandlePayOSWe
 import { VnpayIntegrationService } from "./infrastructure/services/VnpayIntegrationService";
 import { BillingService } from "./application/services/BillingService";
 
-// Event Consumers
+// Event Consumers & Workers
 import { AppointmentEventConsumer } from "./infrastructure/events/AppointmentEventConsumer";
 import { ClinicalEventConsumer } from "./infrastructure/events/ClinicalEventConsumer";
+import { RefundGatewayWorker } from "./infrastructure/workers/RefundGatewayWorker";
 import { logger as loggerInstance } from "./infrastructure/logging/logger";
 
 // Presentation
@@ -101,16 +104,19 @@ class BillingServiceApp {
   private paymentGateway!: VnpayIntegrationService;
   private billingService!: BillingService;
 
-  // Event Consumers
+  // Event Consumers & Workers
   private appointmentEventConsumer!: AppointmentEventConsumer;
   private clinicalEventConsumer!: ClinicalEventConsumer;
+  private refundGatewayWorker!: RefundGatewayWorker;
 
   // Use Cases - Phase 1 (Prepaid Model)
   private createInvoiceUseCase!: CreateInvoiceUseCase;
   private getInvoiceUseCase!: GetInvoiceUseCase;
   private processPaymentUseCase!: ProcessPaymentUseCase;
   private getPatientInvoicesUseCase!: GetPatientInvoicesUseCase;
-  // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase
+  // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase
+  private refundPaymentUseCase!: RefundPaymentUseCase;
+  private completeRefundUseCase!: CompleteRefundUseCase;
   private searchInvoicesUseCase!: SearchInvoicesUseCase;
   private getOverdueInvoicesUseCase!: GetOverdueInvoicesUseCase;
   private getPatientBillingSummaryUseCase!: GetPatientBillingSummaryUseCase;
@@ -208,7 +214,19 @@ class BillingServiceApp {
       loggerInstance,
     );
 
-    // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase, refundPaymentUseCase initialization
+    // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase initialization
+
+    this.refundPaymentUseCase = new RefundPaymentUseCase(
+      this.invoiceRepository,
+      this.eventBus,
+      loggerInstance,
+    );
+
+    this.completeRefundUseCase = new CompleteRefundUseCase(
+      this.invoiceRepository,
+      this.eventBus,
+      loggerInstance,
+    );
 
     this.searchInvoicesUseCase = new SearchInvoicesUseCase(
       this.invoiceRepository,
@@ -264,6 +282,7 @@ class BillingServiceApp {
         exchangeName: "hospital.events",
         routingKeys: [
           "appointment.scheduled", // Phase 1 (Prepaid): Create invoice when appointment is scheduled
+          "appointment.cancelled", // Process refunds for cancelled appointments
           "appointment.cancelled_late", // Cancel invoice if not paid yet
           "appointment.no_show", // Future: Apply no-show fee
         ],
@@ -278,6 +297,7 @@ class BillingServiceApp {
       this.staffRepository,
       this.createPaymentLinkUseCase, // Inject payment link use case for automatic payment link creation
       this.eventBus, // Inject EventBus for publishing PaymentLinkCreatedEvent
+      this.refundPaymentUseCase, // Inject RefundPaymentUseCase for processing refunds
     );
 
     // Initialize Clinical Event Consumer (Feature Flag)
@@ -312,6 +332,15 @@ class BillingServiceApp {
         "Clinical event consumer disabled (Phase 1 scope - prepaid only)",
       );
     }
+
+    // Initialize Refund Gateway Worker (with VNPAY service for real refunds)
+    this.refundGatewayWorker = new RefundGatewayWorker(
+      this.eventBus,
+      this.completeRefundUseCase,
+      this.paymentGateway, // VnpayIntegrationService for real refund API calls
+      loggerInstance,
+    );
+    loggerInstance.info("Refund gateway worker initialized (VNPAY integration)");
 
     // Initialize Controllers - Phase 1 (Prepaid Model)
     this.invoiceController = new InvoiceController(
@@ -459,7 +488,11 @@ class BillingServiceApp {
         loggerInstance.info("Clinical event consumer connected");
       }
 
-      loggerInstance.info("Event consumers connected");
+      // Start Refund Gateway Worker
+      await this.refundGatewayWorker.start();
+      loggerInstance.info("Refund gateway worker started");
+
+      loggerInstance.info("Event consumers and workers connected");
 
       this.app.listen(config.port, () => {
         loggerInstance.info(`${config.serviceName} is running`, {

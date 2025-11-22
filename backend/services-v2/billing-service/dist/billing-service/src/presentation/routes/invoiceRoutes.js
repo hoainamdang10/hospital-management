@@ -24,6 +24,9 @@ function createInvoiceRoutes(controller) {
     // VNPAY sends IPN via GET, PayOS via POST - support both
     router.get("/payos/webhook", controller.handlePayOSWebhook.bind(controller));
     router.post("/payos/webhook", controller.handlePayOSWebhook.bind(controller));
+    // Test endpoint to log raw VNPAY webhook data
+    router.get("/payos/webhook-test", controller.logRawWebhookData.bind(controller));
+    router.post("/payos/webhook-test", controller.logRawWebhookData.bind(controller));
     // REMOVED (Phase 1 Out-of-Scope): insurance-claim endpoint
     // router.post("/:id/insurance-claim", controller.processInsuranceClaim.bind(controller));
     // REMOVED: Notifications & Reminders routes - Out of scope for Phase 1

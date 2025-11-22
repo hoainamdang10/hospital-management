@@ -181,6 +181,7 @@ export default function BookAppointmentPage() {
         appointmentTime,
         appointmentType,
         reason: reason || 'Khám bệnh',
+        consultationFee: selectedDoctor.consultationFee || 500000,
       });
 
       toast.success('Đặt lịch thành công!');
@@ -463,13 +464,12 @@ function StepIndicator({
   return (
     <div className="flex flex-col items-center">
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-all ${
-          active
+        className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-all ${active
             ? 'border-primary bg-primary scale-110 text-white'
             : completed
               ? 'border-primary bg-primary text-white'
               : 'border-gray-300 bg-white text-gray-500'
-        }`}
+          }`}
       >
         {completed ? <Check className="h-5 w-5" /> : number}
       </div>

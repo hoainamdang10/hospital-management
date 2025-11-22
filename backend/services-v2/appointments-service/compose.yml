@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   appointments-service:
@@ -7,7 +7,7 @@ services:
       dockerfile: appointments-service/Dockerfile
     container_name: hospital-appointments-service
     ports:
-      - "3024:3024"
+      - "3004:3004"
     env_file:
       - .env
     environment:
@@ -18,29 +18,29 @@ services:
       
       # Service Configuration
       - NODE_ENV=${NODE_ENV:-production}
-      - PORT=3024
+      - PORT=3004
       - SERVICE_NAME=appointments-service
       
       # Security
       - JWT_SECRET=${JWT_SECRET}
       
       # External Services
-      - PATIENT_SERVICE_URL=${PATIENT_SERVICE_URL:-http://patient-registry-service:3023}
-      - PROVIDER_SERVICE_URL=${PROVIDER_SERVICE_URL:-http://provider-staff-service:3022}
+      - PATIENT_SERVICE_URL=${PATIENT_SERVICE_URL:-http://patient-registry-service:3002}
+      - PROVIDER_SERVICE_URL=${PROVIDER_SERVICE_URL:-http://provider-staff-service:3003}
       - SCHEDULER_SERVICE_URL=${SCHEDULER_SERVICE_URL:-http://scheduler-service:3030}
       - SCHEDULER_API_KEY=${SCHEDULER_API_KEY}
-      - NOTIFICATIONS_SERVICE_URL=${NOTIFICATIONS_SERVICE_URL:-http://notifications-service:3031}
+      - NOTIFICATIONS_SERVICE_URL=${NOTIFICATIONS_SERVICE_URL:-http://notifications-service:3011}
       - NOTIFICATIONS_API_KEY=${NOTIFICATIONS_API_KEY}
       
       # CORS
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000,http://localhost:3101}
       
       # RabbitMQ (Event Bus)
-      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://admin:admin@rabbitmq:5672}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://admin:admin@rabbitmq-v2:5672}
       - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE:-hospital.events}
       
       # Redis (Cache & Idempotency)
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_URL=${REDIS_URL:-redis://redis-v2:6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
       - REDIS_KEY_PREFIX=${REDIS_KEY_PREFIX:-appointments:}
@@ -68,7 +68,7 @@ services:
       - ENABLE_DETAILED_HEALTH_CHECK=${ENABLE_DETAILED_HEALTH_CHECK:-true}
     
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3024/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -81,5 +81,5 @@ services:
 
 networks:
   hospital-network:
-    driver: bridge
-
+    external: true
+    name: services-v2_hospital-v2-network

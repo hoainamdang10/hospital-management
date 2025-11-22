@@ -7,7 +7,7 @@
  * @author Hospital Management Team
  * @version 1.0.0
  */
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 export interface AppointmentCompletedEventData {
     appointmentId: string;
     patientId: string;

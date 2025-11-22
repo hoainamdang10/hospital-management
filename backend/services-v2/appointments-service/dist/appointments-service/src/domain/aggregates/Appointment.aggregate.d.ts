@@ -7,8 +7,8 @@
  * @version 3.0.0
  * @compliance Clean Architecture, DDD, HIPAA, Vietnamese Healthcare Standards
  */
-import { HealthcareAggregateRoot } from '../../../../shared/domain/base/aggregate-root';
-import { DomainEvent } from '../../../../shared/domain/base/domain-event';
+import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
+import { DomainEvent } from '@shared/domain/base/domain-event';
 import { AppointmentId } from '../value-objects/AppointmentId.vo';
 import { TimeSlot } from '../value-objects/TimeSlot.vo';
 import { AppointmentDetails } from '../value-objects/AppointmentDetails.vo';

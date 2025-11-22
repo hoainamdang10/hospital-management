@@ -10,7 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Appointment = exports.AppointmentStatus = exports.AppointmentPriority = exports.AppointmentType = void 0;
-const aggregate_root_1 = require("../../../../shared/domain/base/aggregate-root");
+const aggregate_root_1 = require("@shared/domain/base/aggregate-root");
 const AppointmentScheduledEvent_1 = require("../events/AppointmentScheduledEvent");
 const AppointmentCancelledEvent_1 = require("../events/AppointmentCancelledEvent");
 const AppointmentRescheduledEvent_1 = require("../events/AppointmentRescheduledEvent");

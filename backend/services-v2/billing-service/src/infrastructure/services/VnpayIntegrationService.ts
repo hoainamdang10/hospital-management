@@ -41,11 +41,35 @@ export interface WebhookData {
   currency?: string;
 }
 
+export interface RefundRequest {
+  orderCode: string; // Original vnp_TxnRef
+  transactionNo: string; // VNPAY transaction number from original payment
+  transactionDate: string; // Original transaction date (yyyyMMddHHmmss)
+  amount: number; // Refund amount in VND
+  description: string; // Refund reason
+  refundedBy: string; // User who initiated refund
+}
+
+export interface RefundResponse {
+  success: boolean;
+  refundId: string; // vnp_TransactionNo from refund response
+  message: string;
+  responseCode?: string;
+  transactionNo?: string;
+}
+
 export class VnpayIntegrationService {
+  private readonly refundApiUrl: string;
+
   constructor(
     private readonly config: VnpayConfig,
     private readonly logger: ILogger,
-  ) {}
+  ) {
+    // VNPAY Refund API endpoint (different from payment URL)
+    this.refundApiUrl = this.config.baseUrl.includes('sandbox')
+      ? 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction'
+      : 'https://www.vnpayment.vn/merchant_webapi/api/transaction';
+  }
 
   async createPaymentLink(
     request: CreatePaymentLinkRequest,
@@ -121,6 +145,109 @@ export class VnpayIntegrationService {
 
   static generateOrderCode(): number {
     return Math.floor(Date.now() / 1000);
+  }
+
+  /**
+   * Process refund through VNPAY API
+   * VNPAY Refund API Documentation: https://sandbox.vnpayment.vn/apis/docs/huong-dan-tich-hop/#ho%E1%BA%A3n-ti%E1%BB%81n-refund
+   */
+  async processRefund(request: RefundRequest): Promise<RefundResponse> {
+    try {
+      this.logger.info('Processing VNPAY refund', {
+        orderCode: request.orderCode,
+        amount: request.amount,
+        transactionNo: request.transactionNo,
+      });
+
+      // Build refund request parameters
+      const requestId = `REFUND-${Date.now()}`; // Unique request ID
+      const createDate = this.formatDate(new Date());
+      const createBy = request.refundedBy || 'system';
+
+      const params: Record<string, string> = {
+        vnp_Version: '2.1.0',
+        vnp_Command: 'refund',
+        vnp_TmnCode: this.config.tmnCode,
+        vnp_TransactionType: '02', // 02: Full refund, 03: Partial refund
+        vnp_TxnRef: request.orderCode, // Original transaction reference
+        vnp_Amount: (Math.round(request.amount * 100)).toString(), // Amount in minor units (VND * 100)
+        vnp_OrderInfo: request.description || 'Refund payment',
+        vnp_TransactionNo: request.transactionNo, // VNPAY transaction number from original payment
+        vnp_TransactionDate: request.transactionDate, // Original transaction date (yyyyMMddHHmmss)
+        vnp_CreateBy: createBy,
+        vnp_CreateDate: createDate,
+        vnp_IpAddr: this.config.ipAddress || '127.0.0.1',
+        vnp_RequestId: requestId,
+      };
+
+      // Generate secure hash
+      const secureHash = this.generateSecureHash(params);
+
+      // Build request body (VNPAY expects form-urlencoded)
+      const requestBody = this.createSignedQuery(params) + `&vnp_SecureHash=${secureHash}`;
+
+      this.logger.info('VNPAY refund request prepared', {
+        url: this.refundApiUrl,
+        requestId,
+        params: {
+          ...params,
+          vnp_SecureHash: secureHash.substring(0, 20) + '...',
+        },
+      });
+
+      // Call VNPAY refund API
+      const response = await fetch(this.refundApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: requestBody,
+      });
+
+      if (!response.ok) {
+        throw new Error(`VNPAY API error: ${response.status} ${response.statusText}`);
+      }
+
+      const responseData = await response.json() as any;
+
+      this.logger.info('VNPAY refund response received', {
+        responseCode: responseData.vnp_ResponseCode,
+        message: responseData.vnp_Message,
+        transactionNo: responseData.vnp_TransactionNo,
+      });
+
+      // Check response code
+      // 00: Success
+      // Other codes: Error (see VNPAY documentation)
+      const success = responseData.vnp_ResponseCode === '00';
+
+      if (!success) {
+        this.logger.error('VNPAY refund failed', {
+          responseCode: responseData.vnp_ResponseCode,
+          message: responseData.vnp_Message,
+        });
+      }
+
+      return {
+        success,
+        refundId: responseData.vnp_TransactionNo || requestId,
+        message: responseData.vnp_Message || (success ? 'Refund successful' : 'Refund failed'),
+        responseCode: responseData.vnp_ResponseCode,
+        transactionNo: responseData.vnp_TransactionNo,
+      };
+    } catch (error) {
+      this.logger.error('VNPAY refund error', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        request,
+      });
+
+      return {
+        success: false,
+        refundId: `ERROR-${Date.now()}`,
+        message: error instanceof Error ? error.message : 'Refund processing failed',
+        responseCode: '99',
+      };
+    }
   }
 
   private formatDate(date: Date): string {

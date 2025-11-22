@@ -70,7 +70,7 @@ export class StaffController {
     private getStaffSpecializationsUseCase: GetStaffSpecializationsUseCase,
     private addStaffSpecializationUseCase: AddStaffSpecializationUseCase,
     private removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase,
-  ) {}
+  ) { }
 
   /**
    * Register new staff
@@ -139,7 +139,7 @@ export class StaffController {
         throw new NotFoundError("Nhân viên", staffId);
       }
 
-      ResponseHelper.success(res, result.data!.staff);
+      ResponseHelper.success(res, this.mapStaffToResponse(result.data!.staff));
     } catch (error) {
       this.logger.error("Error getting staff", {
         staffId: req.params.staffId,
@@ -172,7 +172,7 @@ export class StaffController {
         throw new NotFoundError("Nhân viên", userId);
       }
 
-      ResponseHelper.success(res, result.data!.staff);
+      ResponseHelper.success(res, this.mapStaffToResponse(result.data!.staff));
     } catch (error) {
       this.logger.error("Error getting staff by user ID", {
         userId: req.params.userId,
@@ -321,7 +321,7 @@ export class StaffController {
 
       ResponseHelper.paginated(
         res,
-        result.data.staff,
+        this.mapStaffListToResponse(result.data.staff),
         result.data.pagination.page,
         result.data.pagination.limit,
         result.data.pagination.total,
@@ -433,9 +433,9 @@ export class StaffController {
           },
           sorting: sortField
             ? {
-                field: sortField,
-                direction: resolvedSortDirection,
-              }
+              field: sortField,
+              direction: resolvedSortDirection,
+            }
             : undefined,
           requestedBy,
           requestedByRole,
@@ -450,7 +450,7 @@ export class StaffController {
 
       ResponseHelper.paginated(
         res,
-        result.data.staff,
+        this.mapStaffListToResponse(result.data.staff),
         result.data.pagination.page,
         result.data.pagination.limit,
         result.data.pagination.total,
@@ -1188,7 +1188,7 @@ export class StaffController {
     try {
       const { staffId } = req.params;
       const { departmentId } = req.body;
-      
+
       // Get user info from JWT or use defaults
       // TODO: In production, should validate JWT and reject if missing
       // const assignedBy = getUserId(req) || (process.env.NODE_ENV === 'development' ? 'dev-admin' : undefined);
@@ -1246,5 +1246,66 @@ export class StaffController {
       });
       throw error;
     }
+  }
+
+  /**
+   * Private helper: Map ProviderStaff domain object to API response
+   * Ensures proper serialization of Value Objects (e.g., StaffId)
+   */
+  private mapStaffToResponse(staff: any): any {
+    // Extract staffId - handle both domain object (with getter) and plain object
+    let staffId: string | undefined;
+
+    try {
+      // Try getter method first (domain object)
+      if (typeof staff.staffIdValue === 'string') {
+        staffId = staff.staffIdValue;
+      } else if (staff.staffId && typeof staff.staffId.toString === 'function') {
+        staffId = staff.staffId.toString();
+      } else if (staff.staffId && staff.staffId.value) {
+        staffId = staff.staffId.value;
+      } else if (staff.staff_id) {
+        staffId = staff.staff_id;
+      }
+    } catch (e) {
+      console.error('[StaffController] Failed to extract staffId:', e);
+    }
+
+    return {
+      id: staff.id || staff._id,
+      staffId: staffId,
+      userId: staff.userId,
+      staffType: staff.staffType,
+      personalInfo: staff.personalInfo,
+      professionalInfo: staff.professionalInfo,
+      workSchedule: staff.workSchedule,
+      specializations: staff.specializations,
+      credentials: staff.credentials,
+      certifications: staff.certifications,
+      departmentAssignments: staff.departmentAssignments,
+      licenseNumber: staff.licenseNumber,
+      employmentInfo: staff.employmentInfo, // ← Preserve nested object with status/isActive
+      employmentType: staff.employmentType,
+      hireDate: staff.hireDate,
+      contractEndDate: staff.contractEndDate,
+      consultationFee: staff.consultationFee,
+      yearsOfExperience: staff.yearsOfExperience,
+      status: staff.status, // ← Root level for backward compatibility
+      isActive: staff.isActive, // ← Root level for backward compatibility
+      registrationDate: staff.registrationDate,
+      lastActiveDate: staff.lastActiveDate,
+      vietnameseHealthcareLicense: staff.vietnameseHealthcareLicense,
+      mohRegistrationNumber: staff.mohRegistrationNumber,
+      createdAt: staff.createdAt,
+      updatedAt: staff.updatedAt,
+      updatedBy: staff.updatedBy,
+    };
+  }
+
+  /**
+   * Private helper: Map array of staff to API response
+   */
+  private mapStaffListToResponse(staffList: any[]): any[] {
+    return staffList.map(staff => this.mapStaffToResponse(staff));
   }
 }

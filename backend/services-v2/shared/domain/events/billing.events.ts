@@ -178,42 +178,126 @@ export class ConsultationFeeUpdatedEvent extends DomainEvent<{
 }
 
 /**
- * PaymentRefunded Event
- * Published when a payment is refunded
+ * PaymentRefundRequested Event
+ * Published when a refund is requested and needs gateway processing
  */
-export class PaymentRefundedEvent extends DomainEvent<{
+export class PaymentRefundRequestedEvent extends DomainEvent<{
   refundId: string;
-  paymentId: string;
+  originalPaymentId: string;
   invoiceId: string;
   staffId: string;
   patientId: string;
+  appointmentId?: string;
   refundAmount: number;
+  currency: string;
   reason: string;
   refundedBy: string;
-  refundedAt: Date;
+  originalPaymentMethod: string;
+  originalTransactionId?: string;
+  vnpayTxnRef?: string; // VNPAY transaction reference (required for refund)
+  vnpayTransactionNo?: string; // VNPAY transaction number (required for refund)
+  vnpayPayDate?: string; // VNPAY payment date (required for refund)
 }> {
   constructor(
     refundId: string,
-    paymentId: string,
+    originalPaymentId: string,
     invoiceId: string,
     staffId: string,
     patientId: string,
     refundAmount: number,
+    currency: string,
     reason: string,
     refundedBy: string,
+    originalPaymentMethod: string,
+    originalTransactionId?: string,
+    appointmentId?: string,
+    vnpayTxnRef?: string,
+    vnpayTransactionNo?: string,
+    vnpayPayDate?: string,
     timestamp: Date = new Date()
+  ) {
+    super(
+      'billing.payment.refund_requested',
+      {
+        refundId,
+        originalPaymentId,
+        invoiceId,
+        staffId,
+        patientId,
+        appointmentId,
+        refundAmount,
+        currency,
+        reason,
+        refundedBy,
+        originalPaymentMethod,
+        originalTransactionId,
+        vnpayTxnRef,
+        vnpayTransactionNo,
+        vnpayPayDate
+      },
+      timestamp
+    );
+  }
+
+  get refundId(): string {
+    return this.data.refundId;
+  }
+
+  get refundAmount(): number {
+    return this.data.refundAmount;
+  }
+
+  get currency(): string {
+    return this.data.currency;
+  }
+}
+
+/**
+ * PaymentRefunded Event
+ * Published when a payment refund is completed (gateway confirmed)
+ */
+export class PaymentRefundedEvent extends DomainEvent<{
+  refundId: string;
+  originalPaymentId: string;
+  invoiceId: string;
+  staffId: string;
+  patientId: string;
+  appointmentId?: string;
+  refundAmount: number;
+  currency: string;
+  reason: string;
+  refundedBy: string;
+  gatewayRefundId?: string;
+  refundedAt: Date;
+}> {
+  constructor(
+    refundId: string,
+    originalPaymentId: string,
+    invoiceId: string,
+    staffId: string,
+    patientId: string,
+    refundAmount: number,
+    currency: string,
+    reason: string,
+    refundedBy: string,
+    timestamp: Date = new Date(),
+    appointmentId?: string,
+    gatewayRefundId?: string
   ) {
     super(
       'billing.payment.refunded',
       {
         refundId,
-        paymentId,
+        originalPaymentId,
         invoiceId,
         staffId,
         patientId,
+        appointmentId,
         refundAmount,
+        currency,
         reason,
         refundedBy,
+        gatewayRefundId,
         refundedAt: timestamp
       },
       timestamp
@@ -230,5 +314,17 @@ export class PaymentRefundedEvent extends DomainEvent<{
 
   get refundAmount(): number {
     return this.data.refundAmount;
+  }
+
+  get currency(): string {
+    return this.data.currency;
+  }
+
+  get appointmentId(): string | undefined {
+    return this.data.appointmentId;
+  }
+
+  get gatewayRefundId(): string | undefined {
+    return this.data.gatewayRefundId;
   }
 }

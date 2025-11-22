@@ -7,7 +7,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, Vietnamese Healthcare Standards
  */
-import { DomainEvent } from "../../../../shared/domain/base/domain-event";
+import { DomainEvent } from "@shared/domain/base/domain-event";
 export interface AppointmentCancelledEventData {
     appointmentId: string;
     patientId: string;
@@ -140,5 +140,11 @@ export declare class AppointmentCancelledEvent extends DomainEvent {
     private getNotificationRequests;
     private getBillingUpdate;
     private getClinicalUpdate;
+    /**
+     * Override getRoutingKey to determine routing key based on cancellation policy
+     * - Early cancellation (refund eligible) → 'appointment.cancelled'
+     * - Late cancellation (penalty applied) → 'appointment.cancelled_late'
+     */
+    getRoutingKey(): string;
 }
 //# sourceMappingURL=AppointmentCancelledEvent.d.ts.map

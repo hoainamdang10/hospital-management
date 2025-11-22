@@ -5,7 +5,7 @@ Appointments microservice for Hospital Management System V2.
 ## 🏗️ Architecture
 
 - **Clean Architecture** with DDD patterns
-- **Port**: 3024
+- **Port**: 3004
 - **Schema**: `appointments_schema`
 - **Patterns**: CQRS, Event-Driven, Outbox Pattern, Clean Architecture
 - **Status**: 🔄 In Development (60% Complete)
@@ -101,22 +101,22 @@ The service provides multiple health check endpoints:
 
 ### Basic Health Check
 ```bash
-curl http://localhost:3024/health
+curl http://localhost:3004/health
 ```
 
 ### Detailed Health Check
 ```bash
-curl http://localhost:3024/health?detailed=true
+curl http://localhost:3004/health?detailed=true
 ```
 
 ### Liveness Probe (Kubernetes)
 ```bash
-curl http://localhost:3024/health/live
+curl http://localhost:3004/health/live
 ```
 
 ### Readiness Probe (Kubernetes)
 ```bash
-curl http://localhost:3024/health/ready
+curl http://localhost:3004/health/ready
 ```
 
 ## 📊 Metrics
@@ -125,12 +125,12 @@ The service exposes metrics for monitoring:
 
 ### JSON Format
 ```bash
-curl http://localhost:3024/metrics
+curl http://localhost:3004/metrics
 ```
 
 ### Prometheus Format
 ```bash
-curl http://localhost:3024/metrics?format=prometheus
+curl http://localhost:3004/metrics?format=prometheus
 ```
 
 ### Available Metrics
@@ -233,7 +233,7 @@ The service uses structured logging with:
 docker build -t appointments-service .
 
 # Run container
-docker run -p 3024:3024 --env-file .env appointments-service
+docker run -p 3004:3004 --env-file .env appointments-service
 ```
 
 ## 🔧 Troubleshooting
@@ -249,7 +249,7 @@ docker run -p 3024:3024 --env-file .env appointments-service
 
 ```bash
 # Check detailed health status
-curl http://localhost:3024/health?detailed=true
+curl http://localhost:3004/health?detailed=true
 ```
 
 ### Events not being published
@@ -275,3 +275,4 @@ curl http://localhost:3024/health?detailed=true
 ## 📄 License
 
 MIT
+

@@ -6,9 +6,9 @@
  * @version 3.0.0
  */
 
-import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';
+import { BaseHealthcareUseCase } from "@shared/application/use-cases/base/use-case.interface";
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
+import { IAppointmentReadModelRepository } from "../../domain/repositories/IAppointmentReadModelRepository";
 
 export interface GetAppointmentRequest {
   appointmentId: string;
@@ -60,28 +60,72 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
 > {
   constructor(
     private readonly appointmentRepository: IAppointmentRepository,
-    private readonly appointmentReadModelRepository: IAppointmentReadModelRepository
+    private readonly appointmentReadModelRepository: IAppointmentReadModelRepository,
   ) {
     super();
   }
 
   protected async executeInternal(
-    request: GetAppointmentRequest
+    request: GetAppointmentRequest,
   ): Promise<GetAppointmentResponse> {
     try {
       // 1. Try to get from Read Model first (Enriched Data)
-      const readModel = await this.appointmentReadModelRepository.findById(request.appointmentId);
+      const readModel = await this.appointmentReadModelRepository.findById(
+        request.appointmentId,
+      );
 
       if (readModel) {
+        // Ownership validation: Check if user has access to this appointment
+        const context = this.getContext();
+        const userId = context.userId;
+        const role = (context as any).role as string | undefined;
+        const contextPatientId = (context as any).patientId as
+          | string
+          | undefined;
+        const contextEmail = (context as any).email as string | undefined;
+
+        // Check if user is the patient or doctor associated with this appointment
+        // Note: For admin users, we would need to check roles from context.permissions
+        // For MVP, we check direct ownership (patient or doctor match)
+        const isPatientIdMatch =
+          readModel.patientId === userId || // legacy flow
+          (contextPatientId ? readModel.patientId === contextPatientId : false);
+        const isPatientEmailMatch =
+          contextEmail && readModel.patientEmail
+            ? readModel.patientEmail.toLowerCase() ===
+              contextEmail.toLowerCase()
+            : false;
+        const isPatient = isPatientIdMatch || isPatientEmailMatch;
+        const isDoctor = readModel.doctorId === userId;
+        const isAdmin =
+          role === "ADMIN" ||
+          role === "SUPER_ADMIN" ||
+          context.permissions?.includes("appointment:read");
+
+        // TODO: Add admin role check when roles are added to UseCaseContext
+        // const isAdmin = context.permissions?.includes('appointment:read');
+
+        if (!isPatient && !isDoctor && !isAdmin) {
+          return {
+            success: false,
+            message: "Bạn không có quyền xem lịch hẹn này",
+            errors: [
+              "Forbidden - You do not have permission to access this appointment",
+            ],
+          };
+        }
+
         return {
           success: true,
-          message: 'Lấy thông tin lịch hẹn thành công',
+          message: "Lấy thông tin lịch hẹn thành công",
           appointment: {
             id: readModel.id,
             appointmentId: readModel.appointmentId,
             patientId: readModel.patientId,
             doctorId: readModel.doctorId,
-            appointmentDate: readModel.appointmentDate.toISOString().split('T')[0],
+            appointmentDate: readModel.appointmentDate
+              .toISOString()
+              .split("T")[0],
             appointmentTime: readModel.appointmentTime,
             durationMinutes: readModel.durationMinutes,
             type: readModel.type,
@@ -108,28 +152,55 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
             doctorDepartment: readModel.doctorDepartment,
             doctorLicenseNumber: readModel.doctorLicenseNumber,
             doctorPhone: readModel.doctorPhone,
-            doctorEmail: readModel.doctorEmail
-          }
+            doctorEmail: readModel.doctorEmail,
+          },
         };
       }
 
       // 2. Fallback to Write Model (Raw Data)
       // Use findByIdString to support both UUID and Business ID
       const appointment = await this.appointmentRepository.findByIdString(
-        request.appointmentId
+        request.appointmentId,
       );
 
       if (!appointment) {
         return {
           success: false,
-          message: 'Không tìm thấy lịch hẹn',
-          errors: ['Appointment not found']
+          message: "Không tìm thấy lịch hẹn",
+          errors: ["Appointment not found"],
+        };
+      }
+
+      // Ownership validation for Write Model fallback
+      const context = this.getContext();
+      const userId = context.userId;
+      const role = (context as any).role as string | undefined;
+      const contextPatientId = (context as any).patientId as string | undefined;
+      const contextEmail = (context as any).email as string | undefined;
+
+      const isPatientIdMatch =
+        appointment.patientId === userId ||
+        (contextPatientId ? appointment.patientId === contextPatientId : false);
+      const isPatient = isPatientIdMatch;
+      const isDoctor = appointment.doctorId === userId;
+      const isAdmin =
+        role === "ADMIN" ||
+        role === "SUPER_ADMIN" ||
+        context.permissions?.includes("appointment:read");
+
+      if (!isPatient && !isDoctor && !isAdmin) {
+        return {
+          success: false,
+          message: "Bạn không có quyền xem lịch hẹn này",
+          errors: [
+            "Forbidden - You do not have permission to access this appointment",
+          ],
         };
       }
 
       return {
         success: true,
-        message: 'Lấy thông tin lịch hẹn thành công (Dữ liệu gốc)',
+        message: "Lấy thông tin lịch hẹn thành công (Dữ liệu gốc)",
         appointment: {
           id: appointment.id,
           appointmentId: appointment.appointmentId.value,
@@ -147,19 +218,22 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
           symptoms: appointment.details.symptoms,
           notes: appointment.details.notes,
           specialInstructions: appointment.details.specialInstructions,
-          consultationFee: appointment.consultationFee
-        }
+          consultationFee: appointment.consultationFee,
+        },
       };
     } catch (error) {
       return {
         success: false,
-        message: 'Lấy thông tin lịch hẹn thất bại',
-        errors: [error instanceof Error ? error.message : 'Unknown error']
+        message: "Lấy thông tin lịch hẹn thất bại",
+        errors: [error instanceof Error ? error.message : "Unknown error"],
       };
     }
   }
 
-  async authorize(request: GetAppointmentRequest, userId: string): Promise<boolean> {
+  async authorize(
+    request: GetAppointmentRequest,
+    userId: string,
+  ): Promise<boolean> {
     return !!userId;
   }
 
@@ -172,4 +246,3 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
     return null;
   }
 }
-

@@ -111,7 +111,7 @@ export async function getDoctorsByDepartment(
   limit: number = 20
 ): Promise<Staff[]> {
   try {
-    const response = await apiClient.get('/v1/staff/search', { 
+    const response = await apiClient.get('/v1/staff/search', {
       params: {
         departmentId,
         staffType: 'doctor',
@@ -131,10 +131,51 @@ export async function getDoctorsByDepartment(
  * Get staff by ID
  */
 export async function getStaffById(staffId: string): Promise<Staff> {
-  const response = await apiClient.get<{ success: boolean; data: Staff }>(
+  const response = await apiClient.get<{ success: boolean; data: any }>(
     `/v1/staff/${staffId}`
   );
-  return response.data.data;
+  const data = response.data.data;
+
+  // Map snake_case to camelCase if needed
+  const mapped: any = { ...data };
+
+  if (data.staff_id !== undefined && !mapped.staffId) {
+    mapped.staffId = data.staff_id;
+  }
+
+  if (data.years_of_experience !== undefined && !mapped.yearsOfExperience) {
+    mapped.yearsOfExperience = data.years_of_experience;
+  }
+
+  if (data.consultation_fee !== undefined && !mapped.consultationFee) {
+    mapped.consultationFee = data.consultation_fee;
+  }
+
+  if (data.user_id !== undefined && !mapped.userId) {
+    mapped.userId = data.user_id;
+  }
+
+  if (data.staff_type !== undefined && !mapped.staffType) {
+    mapped.staffType = data.staff_type;
+  }
+
+  if (data.personal_info !== undefined && !mapped.personalInfo) {
+    mapped.personalInfo = data.personal_info;
+  }
+
+  if (data.professional_info !== undefined && !mapped.professionalInfo) {
+    mapped.professionalInfo = data.professional_info;
+  }
+
+  if (data.work_schedule !== undefined && !mapped.workSchedule) {
+    mapped.workSchedule = data.work_schedule;
+  }
+
+  if (data.is_active !== undefined && !mapped.isActive) {
+    mapped.isActive = data.is_active;
+  }
+
+  return mapped as Staff;
 }
 
 export async function getStaffByUserId(userId: string): Promise<Staff | null> {

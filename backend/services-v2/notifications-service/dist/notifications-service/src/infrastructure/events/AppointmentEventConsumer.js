@@ -167,12 +167,23 @@ class AppointmentEventConsumer {
             const content = msg.content.toString();
             const event = JSON.parse(content);
             const routingKey = msg.fields.routingKey;
+            const payload = event.payload ?? event.data ?? event.eventData ?? event;
             // Idempotency check
             const eventId = event.eventId || event.id || event.metadata?.eventId;
             if (!eventId) {
                 console.error("[AppointmentEventConsumer] Missing eventId, cannot process:", event);
                 this.channel?.ack(msg);
                 return;
+            }
+            if (routingKey.startsWith("appointment.")) {
+                const appointmentId = payload?.appointmentId || event.eventData?.appointmentId;
+                if (!appointmentId) {
+                    console.error("[AppointmentEventConsumer] Missing appointmentId in payload", { eventId, routingKey, event });
+                    this.channel?.ack(msg);
+                    return;
+                }
+                // Normalize payload with appointmentId ensured
+                payload.appointmentId = appointmentId;
             }
             if (await this.inboxRepo.exists(eventId)) {
                 console.debug(`[AppointmentEventConsumer] Duplicate event ${eventId}, skipping`);
@@ -184,13 +195,13 @@ class AppointmentEventConsumer {
             // ✅ MVP SCOPE: Only handle core booking + payment flow
             switch (routingKey) {
                 case "appointment.scheduled":
-                    await this.handleAppointmentScheduled(event.payload);
+                    await this.handleAppointmentScheduled(payload);
                     break;
                 case "appointment.confirmed":
-                    await this.handleAppointmentConfirmed(event.payload);
+                    await this.handleAppointmentConfirmed(payload);
                     break;
                 case "appointment.cancelled":
-                    await this.handleAppointmentCancelled(event.payload);
+                    await this.handleAppointmentCancelled(payload);
                     break;
                 // ===== FUTURE WORK: Post-appointment notifications =====
                 // case 'appointment.completed':

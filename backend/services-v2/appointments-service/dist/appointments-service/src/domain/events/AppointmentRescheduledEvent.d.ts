@@ -7,7 +7,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, Vietnamese Healthcare Standards
  */
-import { DomainEvent } from "../../../../shared/domain/base/domain-event";
+import { DomainEvent } from "@shared/domain/base/domain-event";
 export interface AppointmentRescheduledEventData {
     appointmentId: string;
     patientId: string;

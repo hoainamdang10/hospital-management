@@ -10,7 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentRescheduledEvent = void 0;
-const domain_event_1 = require("../../../../shared/domain/base/domain-event");
+const domain_event_1 = require("@shared/domain/base/domain-event");
 /**
  * Appointment Rescheduled Domain Event
  * Triggered when an appointment is rescheduled to a new time

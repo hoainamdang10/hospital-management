@@ -89,8 +89,28 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
             });
             throw new Error("Invoice not found");
         }
-        // Create payment
-        const payment = Payment_1.Payment.create(Money_1.Money.create(request.webhookData.amount), "payos", request.webhookData.reference);
+        // Extract VNPAY transaction data from webhook payload
+        let vnpayData;
+        if (request.rawPayload) {
+            const vnpTxnRef = request.rawPayload.vnp_TxnRef;
+            const vnpTransactionNo = request.rawPayload.vnp_TransactionNo;
+            const vnpPayDate = request.rawPayload.vnp_PayDate;
+            if (vnpTxnRef && vnpTransactionNo && vnpPayDate) {
+                vnpayData = {
+                    vnpTxnRef,
+                    vnpTransactionNo,
+                    vnpPayDate,
+                };
+                this.logger.info("VNPAY transaction data extracted from webhook", {
+                    vnpTxnRef,
+                    vnpTransactionNo,
+                    vnpPayDate,
+                });
+            }
+        }
+        // Create payment with VNPAY data
+        const payment = Payment_1.Payment.create(Money_1.Money.create(request.webhookData.amount), "payos", request.webhookData.reference, undefined, // id
+        vnpayData);
         // Process payment
         invoice.processPayment(payment);
         await this.invoiceRepository.save(invoice);

@@ -32,7 +32,7 @@ export function createAppointmentRoutes(): Router {
   const controller = container.getAppointmentController();
 
   // Command Routes (Write Operations) - with auth, validation, and idempotency
-  
+
   // Simplified booking endpoint for patient self-service (MVP)
   // Minimal validation - patient enters own info
   router.post(
@@ -41,7 +41,7 @@ export function createAppointmentRoutes(): Router {
     idempotencyMiddleware,
     (req, res) => controller.scheduleAppointmentSimplified(req, res)
   );
-  
+
   router.post(
     '/appointments',
     authenticate,
@@ -165,6 +165,7 @@ export function createAppointmentRoutes(): Router {
 
   // Legacy Query Routes (for backward compatibility)
   // Note: These use write model, not read model
+  // RESTORED TO USE FALLBACK MECHANISM IN USE CASE
   router.get(
     '/appointments/:id',
     authenticate,

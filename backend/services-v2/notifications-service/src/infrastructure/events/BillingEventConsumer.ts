@@ -328,6 +328,7 @@ export class BillingEventConsumer {
       const content = msg.content.toString();
       const event = JSON.parse(content);
       const routingKey = msg.fields.routingKey;
+      const payload = event.payload ?? event.data ?? event.eventData ?? event;
 
       // Idempotency check
       const eventId = event.eventId || event.id || event.metadata?.eventId;
@@ -336,6 +337,19 @@ export class BillingEventConsumer {
           "[BillingEventConsumer] Missing eventId, cannot process:",
           event,
         );
+        this.channel?.ack(msg);
+        return;
+      }
+
+      if (
+        routingKey.startsWith("billing.payment.") &&
+        !((payload as any)?.paymentId || event.eventData?.paymentId)
+      ) {
+        console.error("[BillingEventConsumer] Missing paymentId in payload", {
+          eventId,
+          routingKey,
+          event,
+        });
         this.channel?.ack(msg);
         return;
       }
@@ -379,37 +393,36 @@ export class BillingEventConsumer {
           break;
 
         case "billing.rate.updated":
-          await this.handleRateUpdated(event.payload as RateUpdatedEventData);
+          await this.handleRateUpdated(payload as RateUpdatedEventData);
           break;
 
+        case "billing.payment.completed":
         case "billing.payment.processed":
           await this.handlePaymentProcessed(
-            event.payload as PaymentProcessedEventData,
+            payload as PaymentProcessedEventData,
           );
           break;
 
         case "billing.invoice.generated":
           await this.handleInvoiceGenerated(
-            event.payload as InvoiceGeneratedEventData,
+            payload as InvoiceGeneratedEventData,
           );
           break;
 
         case "billing.payment.reminder.scheduled":
           await this.handlePaymentReminderScheduled(
-            event.payload as PaymentReminderScheduledEventData,
+            payload as PaymentReminderScheduledEventData,
           );
           break;
 
         case "billing.payment.reminder.due":
           await this.handlePaymentReminderDue(
-            event.payload as PaymentReminderDueEventData,
+            payload as PaymentReminderDueEventData,
           );
           break;
 
         case "billing.refund.processed":
-          await this.handleRefundProcessed(
-            event.payload as RefundProcessedEventData,
-          );
+          await this.handleRefundProcessed(payload as RefundProcessedEventData);
           break;
 
         default:

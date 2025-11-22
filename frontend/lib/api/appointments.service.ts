@@ -1,6 +1,5 @@
 import apiClient from './axios';
 import type {
-  ScheduleAppointmentRequest,
   ScheduleAppointmentResponse,
   AppointmentReadModel,
   ListAppointmentsResponse,
@@ -31,19 +30,29 @@ export const appointmentsService = {
    * GET /api/v2/appointments
    */
   async list(params?: ListAppointmentsParams): Promise<ListAppointmentsResponse> {
-    const response = await apiClient.get<ListAppointmentsResponse>('/v2/appointments', {
+    const response = await apiClient.get<any>('/v1/appointments', {
       params,
     });
-    return response.data;
+
+    // Backend returns: { success, data: { appointments, total, page, pageSize, totalPages } }
+    const result = response.data.data || response.data; // Support both nested and flat structure
+
+    return {
+      success: response.data.success,
+      appointments: result.appointments || [],
+      totalCount: result.total || 0,
+      hasMore: result.total > (result.page * result.pageSize)
+    };
   },
 
   /**
    * Get appointment by ID with denormalized data
-   * GET /api/v2/appointments/:id
+   * GET /api/v1/appointments/:id
    */
   async getById(id: string): Promise<AppointmentReadModel> {
-    const response = await apiClient.get<AppointmentReadModel>(`/v2/appointments/${id}`);
-    return response.data;
+    const response = await apiClient.get<any>(`/v1/appointments/${id}`);
+    // Handle legacy response structure
+    return response.data.appointment;
   },
 
   /**
@@ -102,11 +111,16 @@ export const appointmentsService = {
       endDate?: string;
     }
   ): Promise<ListAppointmentsResponse> {
-    const response = await apiClient.get<ListAppointmentsResponse>(
+    const response = await apiClient.get<any>(
       `/v1/appointments`,
       { params: { patientId, ...(params || {}) } }
     );
-    return response.data;
+    return {
+      success: response.data.success,
+      appointments: response.data.appointments || [],
+      totalCount: response.data.total || 0,
+      hasMore: response.data.total > (response.data.page * response.data.pageSize)
+    };
   },
   /**
    * Get appointment statistics

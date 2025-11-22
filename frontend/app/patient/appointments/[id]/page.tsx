@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  MapPin, 
-  Phone, 
+import {
+  Calendar,
+  Clock,
+  User,
+  MapPin,
+  Phone,
   Mail,
   FileText,
   ArrowLeft,
@@ -120,13 +120,25 @@ export default function AppointmentDetailPage() {
     CANCELLED: { color: 'bg-red-100 text-red-800 border-red-200', icon: X, label: 'Đã hủy' },
     COMPLETED: { color: 'bg-gray-100 text-gray-800 border-gray-200', icon: CheckCircle, label: 'Đã hoàn thành' },
     NO_SHOW: { color: 'bg-orange-100 text-orange-800 border-orange-200', icon: AlertCircle, label: 'Không đến' },
+    PENDING_PAYMENT: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Clock, label: 'Chờ thanh toán' },
   };
 
-  const config = statusConfig[appointment.status as keyof typeof statusConfig] || statusConfig.SCHEDULED;
+  const normalizeStatus = (status: string): keyof typeof statusConfig => {
+    const s = status.toUpperCase();
+    if (s === 'SCHEDULED') return 'SCHEDULED';
+    if (s === 'CONFIRMED') return 'CONFIRMED';
+    if (s === 'CANCELLED') return 'CANCELLED';
+    if (s === 'COMPLETED') return 'COMPLETED';
+    if (s === 'NO_SHOW') return 'NO_SHOW';
+    if (s === 'PENDING_PAYMENT' || s === 'PENDING') return 'PENDING_PAYMENT';
+    return 'SCHEDULED';
+  };
+
+  const config = statusConfig[normalizeStatus(appointment.status)];
   const StatusIcon = config.icon;
   const appointmentDate = parseISO(appointment.appointmentDate);
   const formattedDate = format(appointmentDate, 'EEEE, dd MMMM yyyy', { locale: vi });
-  const canModify = appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED';
+  const canModify = normalizeStatus(appointment.status) === 'SCHEDULED' || normalizeStatus(appointment.status) === 'CONFIRMED';
 
   return (
     <DashboardLayout>
@@ -144,7 +156,7 @@ export default function AppointmentDetailPage() {
               <p className="text-gray-600 mt-1">Mã lịch hẹn: #{appointment.appointmentId}</p>
             </div>
           </div>
-          
+
           {/* Print/Download buttons */}
           <div className="flex gap-2 print:hidden">
             <Button variant="outline" size="sm" onClick={handlePrint}>
@@ -161,11 +173,12 @@ export default function AppointmentDetailPage() {
             <div>
               <h2 className="text-xl font-bold">{config.label}</h2>
               <p className="text-sm opacity-80">
-                {appointment.status === 'SCHEDULED' && 'Lịch hẹn đang chờ xác nhận từ phòng khám'}
-                {appointment.status === 'CONFIRMED' && 'Lịch hẹn đã được xác nhận. Vui lòng đến đúng giờ.'}
-                {appointment.status === 'CANCELLED' && 'Lịch hẹn đã bị hủy'}
-                {appointment.status === 'COMPLETED' && 'Buổi khám đã hoàn thành'}
-                {appointment.status === 'NO_SHOW' && 'Bạn đã không đến khám'}
+                {normalizeStatus(appointment.status) === 'SCHEDULED' && 'Lịch hẹn đang chờ xác nhận từ phòng khám'}
+                {normalizeStatus(appointment.status) === 'CONFIRMED' && 'Lịch hẹn đã được xác nhận. Vui lòng đến đúng giờ.'}
+                {normalizeStatus(appointment.status) === 'CANCELLED' && 'Lịch hẹn đã bị hủy'}
+                {normalizeStatus(appointment.status) === 'COMPLETED' && 'Buổi khám đã hoàn thành'}
+                {normalizeStatus(appointment.status) === 'NO_SHOW' && 'Bạn đã không đến khám'}
+                {normalizeStatus(appointment.status) === 'PENDING_PAYMENT' && 'Vui lòng thanh toán để xác nhận lịch hẹn'}
               </p>
             </div>
           </div>
@@ -203,7 +216,7 @@ export default function AppointmentDetailPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-500">Loại khám</label>
                   <p className="text-base font-semibold text-gray-900 mt-1">
-                    {appointment.type === 'CONSULTATION' ? 'Khám mới' : 'Tái khám'}
+                    {appointment.type.toUpperCase() === 'CONSULTATION' ? 'Khám mới' : 'Tái khám'}
                   </p>
                 </div>
               </div>
@@ -276,7 +289,7 @@ export default function AppointmentDetailPage() {
             {/* Payment Info */}
             <div className="bg-white rounded-xl border p-6 space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Thông tin thanh toán</h3>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Phí khám</span>
@@ -293,12 +306,11 @@ export default function AppointmentDetailPage() {
                   </div>
                 </div>
                 <div className="pt-2">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    appointment.paymentStatus === 'PAID' 
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${appointment.paymentStatus?.toUpperCase() === 'PAID'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {appointment.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                    }`}>
+                    {appointment.paymentStatus?.toUpperCase() === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}
                   </span>
                 </div>
               </div>
@@ -339,8 +351,8 @@ export default function AppointmentDetailPage() {
                     Đổi lịch hẹn
                   </Button>
                 </Link>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   className="w-full"
                   onClick={handleCancel}
                   disabled={cancelling}

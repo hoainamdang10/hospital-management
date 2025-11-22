@@ -36,6 +36,7 @@ export interface AppointmentScheduledEventData {
     duration: number;
     status: "pending_payment";
     serviceType: "consultation" | "procedure" | "follow_up";
+    consultationFee?: number;
     notes?: string;
 }
 export interface AppointmentCancelledLateEventData {
@@ -60,6 +61,23 @@ export interface AppointmentNoShowEventData {
     noShowFeeAmount: number;
     noShowCount: number;
 }
+export interface AppointmentCancelledRefundEventData {
+    appointmentId: string;
+    patientId: string;
+    staffId: string;
+    departmentId: string;
+    scheduledAt: Date;
+    cancelledAt: Date;
+    cancellationReason: string;
+    cancelledBy: string;
+    cancellationPolicy: {
+        penaltyApplied: boolean;
+        refundEligible: boolean;
+        rescheduleAllowed: boolean;
+        penaltyAmount?: number;
+        refundPercentage?: number;
+    };
+}
 /**
  * AppointmentEventConsumer - Handles appointment lifecycle events for billing
  */
@@ -72,10 +90,11 @@ export declare class AppointmentEventConsumer {
     private staffRepository;
     private createPayOSPaymentLinkUseCase;
     private eventBus;
+    private refundPaymentUseCase?;
     private connection?;
     private channel?;
     private isConnected;
-    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, staffRepository: SupabaseStaffRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus);
+    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, staffRepository: SupabaseStaffRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus, refundPaymentUseCase?: any | undefined);
     /**
      * Connect to RabbitMQ and start consuming
      */
@@ -91,6 +110,7 @@ export declare class AppointmentEventConsumer {
     private buildAppointmentScheduledPayload;
     private buildAppointmentCancelledPayload;
     private buildAppointmentNoShowPayload;
+    private buildAppointmentCancelledRefundPayload;
     private extractCommonAppointmentFields;
     private resolveScheduledAt;
     private normalizeServiceType;
@@ -114,6 +134,11 @@ export declare class AppointmentEventConsumer {
      * Handle appointment no-show event
      */
     private handleAppointmentNoShow;
+    /**
+     * Handle appointment cancelled event (refund case)
+     * Simplified approach: Only handle billing refund logic
+     */
+    private handleAppointmentCancelled;
     /**
      * Disconnect from RabbitMQ
      */

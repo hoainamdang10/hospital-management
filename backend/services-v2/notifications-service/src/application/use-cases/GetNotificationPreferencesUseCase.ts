@@ -1,17 +1,20 @@
 /**
  * GetNotificationPreferencesUseCase - Query Use Case
  * Get user notification preferences
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS Query
  */
 
-import { SupabasePreferencesRepository, NotificationPreferences } from '../../infrastructure/persistence/SupabasePreferencesRepository';
+import {
+  SupabasePreferencesRepository,
+  NotificationPreferences,
+} from "../../infrastructure/persistence/SupabasePreferencesRepository";
 
 export interface GetPreferencesQuery {
   userId: string;
-  userType?: 'patient' | 'staff';
+  userType?: "patient" | "staff";
 }
 
 export interface GetPreferencesResult {
@@ -20,22 +23,79 @@ export interface GetPreferencesResult {
 }
 
 export class GetNotificationPreferencesUseCase {
-  constructor(private readonly preferencesRepository: SupabasePreferencesRepository) {}
+  private readonly allowedChannels: ReadonlyArray<"EMAIL" | "SMS"> = [
+    "EMAIL",
+    "SMS",
+  ];
+
+  constructor(
+    private readonly preferencesRepository: SupabasePreferencesRepository,
+  ) {}
 
   async execute(query: GetPreferencesQuery): Promise<GetPreferencesResult> {
     try {
-      const preferences = await this.preferencesRepository.getOrCreate(
+      const rawPreferences = await this.preferencesRepository.getOrCreate(
         query.userId,
-        query.userType === 'staff' ? 'DOCTOR' : 'PATIENT'
+        query.userType === "staff" ? "DOCTOR" : "PATIENT",
       );
 
-      return { 
+      const preferences = this.sanitizeChannels(rawPreferences);
+
+      return {
         preferences,
-        calendarIntegration: query.userType === 'staff' ? true : undefined
+        calendarIntegration: query.userType === "staff" ? true : undefined,
       };
     } catch (error) {
-      throw new Error(`Failed to get preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get preferences: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
-}
 
+  private sanitizeChannels(
+    preferences: NotificationPreferences,
+  ): NotificationPreferences {
+    const normalizeChannels = (channels?: string[]): Array<"EMAIL" | "SMS"> => {
+      const unique: Array<"EMAIL" | "SMS"> = [];
+      (channels || []).forEach((channel) => {
+        const normalized = channel?.toUpperCase?.() as
+          | "EMAIL"
+          | "SMS"
+          | undefined;
+        if (
+          normalized &&
+          this.allowedChannels.includes(normalized) &&
+          !unique.includes(normalized)
+        ) {
+          unique.push(normalized);
+        }
+      });
+      return unique;
+    };
+
+    const preferred = normalizeChannels(preferences.preferredChannels);
+    const enabled = normalizeChannels(preferences.enabledChannels);
+
+    const sanitizedPreferred = preferred.length
+      ? preferred
+      : [...this.allowedChannels];
+    const sanitizedEnabled = enabled.length ? enabled : [...sanitizedPreferred];
+    const sanitizedDisabled = this.allowedChannels.filter(
+      (channel) => !sanitizedEnabled.includes(channel),
+    );
+
+    return {
+      ...preferences,
+      preferredChannels: sanitizedPreferred,
+      enabledChannels: sanitizedEnabled,
+      disabledChannels: sanitizedDisabled,
+      emailEnabled: sanitizedEnabled.includes("EMAIL"),
+      smsEnabled: sanitizedEnabled.includes("SMS"),
+      pushEnabled: false,
+      inAppEnabled: false,
+      voiceEnabled: false,
+      channelPriority: sanitizedPreferred,
+      pushToken: undefined,
+    };
+  }
+}

@@ -1,0 +1,102 @@
+import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
+import { IEventBus } from '@shared/infrastructure/event-bus/EventBus';
+import { ILogger } from '@shared/application/services/logger.interface';
+
+export interface CompleteRefundRequest {
+  invoiceId: string;
+  refundPaymentId: string;
+  gatewayRefundId?: string;
+}
+
+export interface CompleteRefundResponse {
+  success: boolean;
+  message: string;
+  invoiceId?: string;
+  refundPaymentId?: string;
+  errors?: string[];
+}
+
+/**
+ * CompleteRefundUseCase
+ * 
+ * Called by:
+ * - RefundGatewayWorker (after calling PayOS/VNPAY API)
+ * - RefundWebhookHandler (when gateway sends callback)
+ * 
+ * Responsibilities:
+ * - Find invoice by ID
+ * - Call invoice.completeRefund()
+ * - Save invoice (will emit PaymentRefundedEvent)
+ * - Publish domain events
+ */
+export class CompleteRefundUseCase {
+  constructor(
+    private readonly invoiceRepository: IInvoiceRepository,
+    private readonly eventBus: IEventBus,
+    private readonly logger: ILogger
+  ) {}
+
+  async execute(request: CompleteRefundRequest): Promise<CompleteRefundResponse> {
+    try {
+      this.logger.info('Completing refund', {
+        invoiceId: request.invoiceId,
+        refundPaymentId: request.refundPaymentId,
+        gatewayRefundId: request.gatewayRefundId
+      });
+
+      // 1. Find invoice
+      const invoice = await this.invoiceRepository.findById(request.invoiceId);
+
+      if (!invoice) {
+        this.logger.warn('Invoice not found', {
+          invoiceId: request.invoiceId
+        });
+        return {
+          success: false,
+          message: 'Không tìm thấy hóa đơn',
+          errors: ['Invoice not found']
+        };
+      }
+
+      // 2. Complete refund
+      invoice.completeRefund(request.refundPaymentId, request.gatewayRefundId);
+
+      // 3. Save invoice (will publish PaymentRefundedEvent)
+      await this.invoiceRepository.save(invoice);
+
+      // 4. Publish domain events
+      const events = invoice.getUncommittedEvents();
+      for (const event of events) {
+        await this.eventBus.publish(event);
+      }
+      invoice.markEventsAsCommitted();
+
+      this.logger.info('Refund completed successfully', {
+        invoiceId: invoice.id,
+        refundPaymentId: request.refundPaymentId,
+        gatewayRefundId: request.gatewayRefundId
+      });
+
+      return {
+        success: true,
+        message: 'Hoàn tiền thành công',
+        invoiceId: invoice.id,
+        refundPaymentId: request.refundPaymentId
+      };
+
+    } catch (error: any) {
+      this.logger.error('Failed to complete refund', {
+        error: error.message,
+        stack: error.stack,
+        request
+      });
+
+      return {
+        success: false,
+        message: 'Lỗi khi hoàn thành refund',
+        errors: [error.message]
+      };
+    }
+  }
+}
+

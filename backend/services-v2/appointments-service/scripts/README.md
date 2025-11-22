@@ -145,7 +145,7 @@ npm run dev
 [PatientEventConsumer] ✅ Started listening for patient events
 [ProviderEventConsumer] ✅ Started listening for provider events
 [AppointmentReadModelEventHandler] ✅ Ready to sync read model
-🚀 Appointments Service started on port 3024
+🚀 Appointments Service started on port 3004
 ```
 
 ---
@@ -327,7 +327,7 @@ After running all scripts, you should have:
 
 ```bash
 # Run all health checks
-curl http://localhost:3024/health
+curl http://localhost:3004/health
 
 # Check service logs
 npm run logs:appointments
@@ -382,3 +382,4 @@ If you encounter issues:
 
 **Created**: 2025-11-01  
 **Version**: 1.0.0
+

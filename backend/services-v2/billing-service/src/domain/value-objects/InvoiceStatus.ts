@@ -1,6 +1,6 @@
 import { ValueObject } from '@shared/domain/base/value-object';
 
-export type InvoiceStatusType = 'draft' | 'pending' | 'partially_paid' | 'paid' | 'cancelled' | 'overdue';
+export type InvoiceStatusType = 'draft' | 'pending' | 'partially_paid' | 'paid' | 'cancelled' | 'overdue' | 'refunded';
 
 export interface InvoiceStatusProps {
   value: InvoiceStatusType;
@@ -39,6 +39,10 @@ export class InvoiceStatus extends ValueObject<InvoiceStatusProps> {
     return new InvoiceStatus({ value: 'overdue' });
   }
 
+  public static refunded(): InvoiceStatus {
+    return new InvoiceStatus({ value: 'refunded' });
+  }
+
   get value(): InvoiceStatusType {
     return this.props.value;
   }
@@ -67,8 +71,12 @@ export class InvoiceStatus extends ValueObject<InvoiceStatusProps> {
     return this.props.value === 'overdue';
   }
 
+  public isRefunded(): boolean {
+    return this.props.value === 'refunded';
+  }
+
   protected validateFormat(): void {
-    const validStatuses: InvoiceStatusType[] = ['draft', 'pending', 'partially_paid', 'paid', 'cancelled', 'overdue'];
+    const validStatuses: InvoiceStatusType[] = ['draft', 'pending', 'partially_paid', 'paid', 'cancelled', 'overdue', 'refunded'];
     if (!validStatuses.includes(this.props.value)) {
       throw new Error(`Invalid invoice status: ${this.props.value}`);
     }

@@ -29,7 +29,9 @@ const GetInvoiceUseCase_1 = require("./application/use-cases/GetInvoiceUseCase")
 // REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase
 const ProcessPaymentUseCase_1 = require("./application/use-cases/ProcessPaymentUseCase");
 const GetPatientInvoicesUseCase_1 = require("./application/use-cases/GetPatientInvoicesUseCase");
-// REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase, RefundPaymentUseCase
+// REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase
+const RefundPaymentUseCase_1 = require("./application/use-cases/RefundPaymentUseCase");
+const CompleteRefundUseCase_1 = require("./application/use-cases/CompleteRefundUseCase");
 const SearchInvoicesUseCase_1 = require("./application/use-cases/SearchInvoicesUseCase");
 const GetOverdueInvoicesUseCase_1 = require("./application/use-cases/GetOverdueInvoicesUseCase");
 const GetPatientBillingSummaryUseCase_1 = require("./application/use-cases/GetPatientBillingSummaryUseCase");
@@ -39,9 +41,10 @@ const HandlePayOSWebhookUseCase_1 = require("./application/use-cases/HandlePayOS
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 const VnpayIntegrationService_1 = require("./infrastructure/services/VnpayIntegrationService");
 const BillingService_1 = require("./application/services/BillingService");
-// Event Consumers
+// Event Consumers & Workers
 const AppointmentEventConsumer_1 = require("./infrastructure/events/AppointmentEventConsumer");
 const ClinicalEventConsumer_1 = require("./infrastructure/events/ClinicalEventConsumer");
+const RefundGatewayWorker_1 = require("./infrastructure/workers/RefundGatewayWorker");
 const logger_1 = require("./infrastructure/logging/logger");
 // Presentation
 const InvoiceController_1 = require("./presentation/controllers/InvoiceController");
@@ -122,7 +125,9 @@ class BillingServiceApp {
         // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase initialization
         this.processPaymentUseCase = new ProcessPaymentUseCase_1.ProcessPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
         this.getPatientInvoicesUseCase = new GetPatientInvoicesUseCase_1.GetPatientInvoicesUseCase(this.invoiceRepository, logger_1.logger);
-        // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase, refundPaymentUseCase initialization
+        // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase initialization
+        this.refundPaymentUseCase = new RefundPaymentUseCase_1.RefundPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.completeRefundUseCase = new CompleteRefundUseCase_1.CompleteRefundUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
         this.searchInvoicesUseCase = new SearchInvoicesUseCase_1.SearchInvoicesUseCase(this.invoiceRepository, logger_1.logger);
         this.getOverdueInvoicesUseCase = new GetOverdueInvoicesUseCase_1.GetOverdueInvoicesUseCase(this.invoiceRepository, logger_1.logger);
         this.getPatientBillingSummaryUseCase = new GetPatientBillingSummaryUseCase_1.GetPatientBillingSummaryUseCase(this.invoiceRepository, logger_1.logger);
@@ -139,6 +144,7 @@ class BillingServiceApp {
             exchangeName: "hospital.events",
             routingKeys: [
                 "appointment.scheduled", // Phase 1 (Prepaid): Create invoice when appointment is scheduled
+                "appointment.cancelled", // Process refunds for cancelled appointments
                 "appointment.cancelled_late", // Cancel invoice if not paid yet
                 "appointment.no_show", // Future: Apply no-show fee
             ],
@@ -146,7 +152,8 @@ class BillingServiceApp {
             retryAttempts: 3,
             retryDelayMs: 1000,
         }, logger_1.logger, this.billingService, this.invoiceRepository, this.patientRepository, this.staffRepository, this.createPaymentLinkUseCase, // Inject payment link use case for automatic payment link creation
-        this.eventBus);
+        this.eventBus, // Inject EventBus for publishing PaymentLinkCreatedEvent
+        this.refundPaymentUseCase);
         // Initialize Clinical Event Consumer (Feature Flag)
         // Phase 1: Disabled by default - only prepaid appointment billing is in scope
         // Set ENABLE_CLINICAL_CONSUMER=true to enable post-service billing features
@@ -170,6 +177,10 @@ class BillingServiceApp {
         else {
             logger_1.logger.info("Clinical event consumer disabled (Phase 1 scope - prepaid only)");
         }
+        // Initialize Refund Gateway Worker (with VNPAY service for real refunds)
+        this.refundGatewayWorker = new RefundGatewayWorker_1.RefundGatewayWorker(this.eventBus, this.completeRefundUseCase, this.paymentGateway, // VnpayIntegrationService for real refund API calls
+        logger_1.logger);
+        logger_1.logger.info("Refund gateway worker initialized (VNPAY integration)");
         // Initialize Controllers - Phase 1 (Prepaid Model)
         this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPaymentLinkUseCase, this.handlePayOSWebhookUseCase);
         // Initialize Middleware
@@ -229,6 +240,9 @@ class BillingServiceApp {
         // VNPAY sends IPN via GET, PayOS via POST - support both
         publicInvoiceRoutes.get("/payos/webhook", this.invoiceController.handlePayOSWebhook);
         publicInvoiceRoutes.post("/payos/webhook", this.invoiceController.handlePayOSWebhook);
+        // Test endpoint to log raw VNPAY webhook data (no auth required)
+        publicInvoiceRoutes.get("/payos/webhook-test", this.invoiceController.logRawWebhookData);
+        publicInvoiceRoutes.post("/payos/webhook-test", this.invoiceController.logRawWebhookData);
         this.app.use("/api/v1/invoices", publicInvoiceRoutes);
         // Alias for API Gateway routing (/api/v1/billing/invoices/*)
         this.app.use("/api/v1/billing/invoices", publicInvoiceRoutes);
@@ -255,7 +269,10 @@ class BillingServiceApp {
                 await this.clinicalEventConsumer.connect();
                 logger_1.logger.info("Clinical event consumer connected");
             }
-            logger_1.logger.info("Event consumers connected");
+            // Start Refund Gateway Worker
+            await this.refundGatewayWorker.start();
+            logger_1.logger.info("Refund gateway worker started");
+            logger_1.logger.info("Event consumers and workers connected");
             this.app.listen(config.port, () => {
                 logger_1.logger.info(`${config.serviceName} is running`, {
                     port: config.port,

@@ -41,6 +41,7 @@ export interface AppointmentScheduledEventData {
   duration: number;
   status: "pending_payment";
   serviceType: "consultation" | "procedure" | "follow_up";
+  consultationFee?: number;
   notes?: string;
 }
 
@@ -68,6 +69,24 @@ export interface AppointmentNoShowEventData {
   noShowCount: number;
 }
 
+export interface AppointmentCancelledRefundEventData {
+  appointmentId: string;
+  patientId: string;
+  staffId: string;
+  departmentId: string;
+  scheduledAt: Date;
+  cancelledAt: Date;
+  cancellationReason: string;
+  cancelledBy: string;
+  cancellationPolicy: {
+    penaltyApplied: boolean;
+    refundEligible: boolean;
+    rescheduleAllowed: boolean;
+    penaltyAmount?: number;
+    refundPercentage?: number;
+  };
+}
+
 /**
  * AppointmentEventConsumer - Handles appointment lifecycle events for billing
  */
@@ -85,6 +104,7 @@ export class AppointmentEventConsumer {
     private staffRepository: SupabaseStaffRepository,
     private createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase,
     private eventBus: IEventBus,
+    private refundPaymentUseCase?: any, // Optional for now - will be typed properly later
   ) {}
 
   /**
@@ -192,6 +212,12 @@ export class AppointmentEventConsumer {
           );
           break;
 
+        case "appointment.cancelled":
+          await this.handleAppointmentCancelled(
+            this.buildAppointmentCancelledRefundPayload(normalizedPayload, rawEvent),
+          );
+          break;
+
         case "appointment.cancelled_late":
           await this.handleAppointmentCancelledLate(
             this.buildAppointmentCancelledPayload(normalizedPayload, rawEvent),
@@ -247,6 +273,11 @@ export class AppointmentEventConsumer {
     rawEvent: any,
   ): AppointmentScheduledEventData {
     const common = this.extractCommonAppointmentFields(payload, rawEvent);
+    const consultationFeeRaw =
+      payload?.consultationFee ||
+      payload?.appointment?.consultationFee ||
+      payload?.billing?.consultationFee;
+    const consultationFee = this.toNumber(consultationFeeRaw, NaN);
 
     return {
       appointmentId: common.appointmentId,
@@ -263,6 +294,10 @@ export class AppointmentEventConsumer {
       serviceType: this.normalizeServiceType(
         payload?.serviceType || payload?.type,
       ),
+      consultationFee:
+        Number.isFinite(consultationFee) && consultationFee > 0
+          ? consultationFee
+          : undefined,
       notes: payload?.notes || payload?.reason || undefined,
     };
   }
@@ -306,6 +341,32 @@ export class AppointmentEventConsumer {
       noShowFeeApplied: this.toBoolean(payload?.noShowFeeApplied),
       noShowFeeAmount: this.toNumber(payload?.noShowFeeAmount),
       noShowCount: this.toNumber(payload?.noShowCount),
+    };
+  }
+
+  private buildAppointmentCancelledRefundPayload(
+    payload: any,
+    rawEvent: any,
+  ): AppointmentCancelledRefundEventData {
+    const common = this.extractCommonAppointmentFields(payload, rawEvent);
+
+    return {
+      appointmentId: common.appointmentId,
+      patientId: common.patientId,
+      staffId: common.staffId,
+      departmentId: common.departmentId,
+      scheduledAt: common.scheduledAt,
+      cancelledAt: this.safeDate(payload?.cancelledAt) ?? new Date(),
+      cancellationReason:
+        payload?.cancellationReason || payload?.reason || "Unknown reason",
+      cancelledBy: payload?.cancelledBy || "system",
+      cancellationPolicy: {
+        penaltyApplied: this.toBoolean(payload?.cancellationPolicy?.penaltyApplied),
+        refundEligible: this.toBoolean(payload?.cancellationPolicy?.refundEligible),
+        rescheduleAllowed: this.toBoolean(payload?.cancellationPolicy?.rescheduleAllowed),
+        penaltyAmount: this.toNumber(payload?.cancellationPolicy?.penaltyAmount),
+        refundPercentage: this.toNumber(payload?.cancellationPolicy?.refundPercentage),
+      },
     };
   }
 
@@ -462,6 +523,7 @@ export class AppointmentEventConsumer {
         serviceType: data.serviceType,
         scheduledAt: data.scheduledAt,
         duration: data.duration,
+        consultationFee: data.consultationFee,
         insuranceInfo: patient.insuranceInfo,
       });
 
@@ -613,6 +675,90 @@ export class AppointmentEventConsumer {
       }
     } catch (error) {
       this.loggerInstance.error("Failed to generate no-show fee", {
+        appointmentId: data.appointmentId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Handle appointment cancelled event (refund case)
+   * Simplified approach: Only handle billing refund logic
+   */
+  private async handleAppointmentCancelled(
+    data: AppointmentCancelledRefundEventData,
+  ): Promise<void> {
+    this.loggerInstance.info("Processing appointment cancellation for refund", {
+      appointmentId: data.appointmentId,
+      patientId: data.patientId,
+      refundEligible: data.cancellationPolicy.refundEligible,
+      refundPercentage: data.cancellationPolicy.refundPercentage,
+    });
+
+    try {
+      // Only process if refund is eligible
+      if (data.cancellationPolicy.refundEligible && data.cancellationPolicy.refundPercentage && data.cancellationPolicy.refundPercentage > 0) {
+        this.loggerInstance.info("Refund eligible - processing refund", {
+          appointmentId: data.appointmentId,
+          patientId: data.patientId,
+          refundPercentage: data.cancellationPolicy.refundPercentage,
+          reason: data.cancellationReason,
+        });
+
+        // Call RefundPaymentUseCase if available
+        if (this.refundPaymentUseCase) {
+          const refundResult = await this.refundPaymentUseCase.execute({
+            appointmentId: data.appointmentId,
+            patientId: data.patientId,
+            refundPercentage: data.cancellationPolicy.refundPercentage,
+            reason: data.cancellationReason,
+            refundedBy: data.cancelledBy,
+          });
+
+          if (refundResult.success) {
+            this.loggerInstance.info("Refund processed successfully", {
+              appointmentId: data.appointmentId,
+              refundAmount: refundResult.refundAmount,
+            });
+          } else {
+            this.loggerInstance.error("Refund processing failed", {
+              appointmentId: data.appointmentId,
+              errors: refundResult.errors,
+            });
+          }
+        } else {
+          this.loggerInstance.warn("RefundPaymentUseCase not available - skipping refund", {
+            appointmentId: data.appointmentId,
+          });
+        }
+      }
+
+      // Handle penalty if applied
+      if (data.cancellationPolicy.penaltyApplied && data.cancellationPolicy.penaltyAmount && data.cancellationPolicy.penaltyAmount > 0) {
+        this.loggerInstance.info("Penalty applied - generating penalty invoice", {
+          appointmentId: data.appointmentId,
+          patientId: data.patientId,
+          penaltyAmount: data.cancellationPolicy.penaltyAmount,
+        });
+
+        // Generate penalty invoice
+        const penaltyInvoice = await this.billingService.generateLateCancellationFee({
+          appointmentId: data.appointmentId,
+          patientId: data.patientId,
+          cancelledAt: data.cancelledAt,
+          reason: data.cancellationReason,
+          feeAmount: data.cancellationPolicy.penaltyAmount,
+        });
+
+        this.loggerInstance.info("Penalty invoice generated", {
+          appointmentId: data.appointmentId,
+          invoiceId: penaltyInvoice.id,
+          penaltyAmount: data.cancellationPolicy.penaltyAmount,
+        });
+      }
+    } catch (error) {
+      this.loggerInstance.error("Failed to process appointment cancellation", {
         appointmentId: data.appointmentId,
         error: error instanceof Error ? error.message : "Unknown error",
       });

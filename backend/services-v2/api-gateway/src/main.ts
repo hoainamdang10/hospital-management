@@ -348,7 +348,7 @@ class ApiGatewayApplication {
             : "http://localhost:3004"),
         pathPrefix: "/api/v2/appointments",
         requiresAuth: true,
-        requiredPermissions: ["appointment:read"],
+        // requiredPermissions: ["appointment:read"], // Removed to allow patient access (ownership check in service)
       }),
 
       // Appointments Service V2 - Patient appointments endpoint (port 3004)

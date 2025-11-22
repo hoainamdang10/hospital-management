@@ -1,7 +1,7 @@
 /**
  * Appointment Read Model Repository Interface - Domain Layer
  * CQRS Read Model Repository for querying denormalized appointment data
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS, DDD
@@ -12,8 +12,8 @@ import {
   CreateAppointmentReadModelData,
   PatientData,
   DoctorData,
-  AppointmentReadModelFilters
-} from '../read-models/AppointmentReadModel';
+  AppointmentReadModelFilters,
+} from "../read-models/AppointmentReadModel";
 
 export interface IAppointmentReadModelRepository {
   /**
@@ -24,7 +24,10 @@ export interface IAppointmentReadModelRepository {
   /**
    * Update patient data for all appointments with this patientId
    */
-  updatePatientData(patientId: string, patientData: PatientData): Promise<number>;
+  updatePatientData(
+    patientId: string,
+    patientData: PatientData,
+  ): Promise<number>;
 
   /**
    * Update doctor data for all appointments with this doctorId
@@ -35,6 +38,14 @@ export interface IAppointmentReadModelRepository {
    * Update appointment status
    */
   updateStatus(appointmentId: string, status: string): Promise<void>;
+
+  /**
+   * Update payment status
+   */
+  updatePaymentStatus(
+    appointmentId: string,
+    paymentStatus: string,
+  ): Promise<void>;
 
   /**
    * Find by appointment ID
@@ -54,12 +65,17 @@ export interface IAppointmentReadModelRepository {
   /**
    * Find by date range
    */
-  findByDateRange(startDate: Date, endDate: Date): Promise<AppointmentReadModel[]>;
+  findByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<AppointmentReadModel[]>;
 
   /**
    * Find with filters
    */
-  findWithFilters(filters: AppointmentReadModelFilters): Promise<AppointmentReadModel[]>;
+  findWithFilters(
+    filters: AppointmentReadModelFilters,
+  ): Promise<AppointmentReadModel[]>;
 
   /**
    * Count appointments with filters
@@ -71,4 +87,3 @@ export interface IAppointmentReadModelRepository {
    */
   delete(appointmentId: string): Promise<void>;
 }
-

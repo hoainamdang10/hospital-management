@@ -3,17 +3,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Money = void 0;
 const value_object_1 = require("../../../../shared/domain/base/value-object");
 class Money extends value_object_1.ValueObject {
-    constructor(props) {
+    constructor(props, allowNegative = false) {
         super(props);
+        this.allowNegative = allowNegative;
     }
+    /**
+     * Create Money with positive amount only
+     * Use this for regular payments, invoices, etc.
+     */
     static create(amount, currency = 'VND') {
         if (amount < 0) {
             throw new Error('Amount cannot be negative');
         }
-        return new Money({ amount, currency });
+        return new Money({ amount, currency }, false);
+    }
+    /**
+     * Create Money with signed amount (positive or negative)
+     * Use this for refunds, adjustments, etc.
+     */
+    static createSigned(amount, currency = 'VND') {
+        return new Money({ amount, currency }, true);
     }
     static zero(currency = 'VND') {
-        return new Money({ amount: 0, currency });
+        return new Money({ amount: 0, currency }, false);
     }
     get amount() {
         return this.props.amount;
@@ -25,19 +37,35 @@ class Money extends value_object_1.ValueObject {
         if (this.currency !== other.currency) {
             throw new Error('Cannot add money with different currencies');
         }
-        return Money.create(this.amount + other.amount, this.currency);
+        const result = this.amount + other.amount;
+        // Use createSigned if either operand allows negative or result is negative
+        if (this.allowNegative || other.allowNegative || result < 0) {
+            return Money.createSigned(result, this.currency);
+        }
+        return Money.create(result, this.currency);
     }
     subtract(other) {
         if (this.currency !== other.currency) {
             throw new Error('Cannot subtract money with different currencies');
         }
-        return Money.create(this.amount - other.amount, this.currency);
+        const result = this.amount - other.amount;
+        // Use createSigned if either operand allows negative or result is negative
+        if (this.allowNegative || other.allowNegative || result < 0) {
+            return Money.createSigned(result, this.currency);
+        }
+        return Money.create(result, this.currency);
     }
     multiply(factor) {
-        return Money.create(this.amount * factor, this.currency);
+        const result = this.amount * factor;
+        // Use createSigned if original allows negative or result is negative
+        if (this.allowNegative || result < 0) {
+            return Money.createSigned(result, this.currency);
+        }
+        return Money.create(result, this.currency);
     }
     validateFormat() {
-        if (this.props.amount < 0) {
+        // Only validate negative amounts if not explicitly allowed
+        if (!this.allowNegative && this.props.amount < 0) {
             throw new Error('Amount cannot be negative');
         }
         if (!this.props.currency || this.props.currency.trim().length === 0) {

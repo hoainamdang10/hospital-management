@@ -1,10 +1,10 @@
 /**
  * BillingEventHandler - Handle Billing Service Events
  * Provider/Staff Service V2
- * 
+ *
  * Handles billing-related events from Billing Service
  * Stub implementation for forward compatibility
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
@@ -14,10 +14,10 @@ import {
   PaymentProcessedEvent,
   InvoiceGeneratedEvent,
   ConsultationFeeUpdatedEvent,
-  PaymentRefundedEvent
-} from '@shared/domain/events/billing.events';
-import { ILogger } from '../../application/interfaces/ILogger';
-import { IAuditService } from '../../application/interfaces/IAuditService';
+  PaymentRefundedEvent,
+} from "@shared/domain/events/billing.events";
+import { ILogger } from "../../application/interfaces/ILogger";
+import { IAuditService } from "../../application/interfaces/IAuditService";
 
 /**
  * Handler for Billing Service Events
@@ -30,7 +30,7 @@ export class BillingEventHandler {
 
   constructor(
     private logger: ILogger,
-    private auditService: IAuditService
+    private auditService: IAuditService,
   ) {}
 
   /**
@@ -41,20 +41,20 @@ export class BillingEventHandler {
     try {
       // Idempotency check
       if (this.isEventProcessed(event.eventId)) {
-        this.logger.info('PaymentProcessed event already processed, skipping', {
+        this.logger.info("PaymentProcessed event already processed, skipping", {
           eventId: event.eventId,
-          staffId: event.staffId
+          staffId: event.staffId,
         });
         return;
       }
 
-      this.logger.info('Handling PaymentProcessed event from Billing Service', {
+      this.logger.info("Handling PaymentProcessed event from Billing Service", {
         paymentId: event.data.paymentId,
         invoiceId: event.data.invoiceId,
         staffId: event.staffId,
         amount: event.amount,
         consultationFee: event.consultationFee,
-        eventId: event.eventId
+        eventId: event.eventId,
       });
 
       // TODO: Future implementation
@@ -67,32 +67,31 @@ export class BillingEventHandler {
 
       // Audit log
       await this.auditService.logDataModification({
-        action: 'PAYMENT_RECEIVED',
-        resourceType: 'STAFF_BILLING',
+        action: "PAYMENT_RECEIVED",
+        resourceType: "STAFF_BILLING",
         resourceId: event.staffId,
         userId: event.data.patientId,
         timestamp: new Date(),
         details: {
-          eventType: 'PAYMENT_PROCESSED',
+          eventType: "PAYMENT_PROCESSED",
           paymentId: event.data.paymentId,
           invoiceId: event.data.invoiceId,
           amount: event.amount,
           consultationFee: event.consultationFee,
-          paymentMethod: event.data.paymentMethod
-        }
+          paymentMethod: event.data.paymentMethod,
+        },
       });
 
-      this.logger.info('PaymentProcessed event logged successfully', {
+      this.logger.info("PaymentProcessed event logged successfully", {
         staffId: event.staffId,
         paymentId: event.data.paymentId,
-        eventId: event.eventId
+        eventId: event.eventId,
       });
-
     } catch (error) {
-      this.logger.error('Failed to handle PaymentProcessed event', {
+      this.logger.error("Failed to handle PaymentProcessed event", {
         eventId: event.eventId,
         staffId: event.staffId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       // Graceful degradation: log error but don't throw
       // Billing Service should continue working even if Provider Staff Service fails
@@ -107,19 +106,19 @@ export class BillingEventHandler {
     try {
       // Idempotency check
       if (this.isEventProcessed(event.eventId)) {
-        this.logger.info('InvoiceGenerated event already processed, skipping', {
+        this.logger.info("InvoiceGenerated event already processed, skipping", {
           eventId: event.eventId,
-          staffId: event.staffId
+          staffId: event.staffId,
         });
         return;
       }
 
-      this.logger.info('Handling InvoiceGenerated event from Billing Service', {
+      this.logger.info("Handling InvoiceGenerated event from Billing Service", {
         invoiceId: event.invoiceId,
         staffId: event.staffId,
         totalAmount: event.totalAmount,
         consultationFee: event.consultationFee,
-        eventId: event.eventId
+        eventId: event.eventId,
       });
 
       // TODO: Future implementation
@@ -132,32 +131,31 @@ export class BillingEventHandler {
 
       // Audit log
       await this.auditService.logDataModification({
-        action: 'INVOICE_CREATED',
-        resourceType: 'STAFF_BILLING',
+        action: "INVOICE_CREATED",
+        resourceType: "STAFF_BILLING",
         resourceId: event.staffId,
         userId: event.data.patientId,
         timestamp: new Date(),
         details: {
-          eventType: 'INVOICE_GENERATED',
+          eventType: "INVOICE_GENERATED",
           invoiceId: event.invoiceId,
           appointmentId: event.data.appointmentId,
           totalAmount: event.totalAmount,
           consultationFee: event.consultationFee,
-          additionalCharges: event.data.additionalCharges
-        }
+          additionalCharges: event.data.additionalCharges,
+        },
       });
 
-      this.logger.info('InvoiceGenerated event logged successfully', {
+      this.logger.info("InvoiceGenerated event logged successfully", {
         staffId: event.staffId,
         invoiceId: event.invoiceId,
-        eventId: event.eventId
+        eventId: event.eventId,
       });
-
     } catch (error) {
-      this.logger.error('Failed to handle InvoiceGenerated event', {
+      this.logger.error("Failed to handle InvoiceGenerated event", {
         eventId: event.eventId,
         staffId: event.staffId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       // Graceful degradation
     }
@@ -167,24 +165,32 @@ export class BillingEventHandler {
    * Handle ConsultationFeeUpdated event
    * TODO: Consider if this should update ProviderStaff aggregate or stay in Billing Service
    */
-  async handleConsultationFeeUpdated(event: ConsultationFeeUpdatedEvent): Promise<void> {
+  async handleConsultationFeeUpdated(
+    event: ConsultationFeeUpdatedEvent,
+  ): Promise<void> {
     try {
       // Idempotency check
       if (this.isEventProcessed(event.eventId)) {
-        this.logger.info('ConsultationFeeUpdated event already processed, skipping', {
-          eventId: event.eventId,
-          staffId: event.staffId
-        });
+        this.logger.info(
+          "ConsultationFeeUpdated event already processed, skipping",
+          {
+            eventId: event.eventId,
+            staffId: event.staffId,
+          },
+        );
         return;
       }
 
-      this.logger.info('Handling ConsultationFeeUpdated event from Billing Service', {
-        staffId: event.staffId,
-        oldFee: event.oldFee,
-        newFee: event.newFee,
-        effectiveDate: event.effectiveDate,
-        eventId: event.eventId
-      });
+      this.logger.info(
+        "Handling ConsultationFeeUpdated event from Billing Service",
+        {
+          staffId: event.staffId,
+          oldFee: event.oldFee,
+          newFee: event.newFee,
+          effectiveDate: event.effectiveDate,
+          eventId: event.eventId,
+        },
+      );
 
       // TODO: Decision needed
       // Option 1: Update ProviderStaff.consultationFee (if fee is staff attribute)
@@ -196,32 +202,31 @@ export class BillingEventHandler {
 
       // Audit log
       await this.auditService.logDataModification({
-        action: 'FEE_CHANGED',
-        resourceType: 'STAFF_BILLING',
+        action: "FEE_CHANGED",
+        resourceType: "STAFF_BILLING",
         resourceId: event.staffId,
         userId: event.data.updatedBy,
         timestamp: new Date(),
         details: {
-          eventType: 'CONSULTATION_FEE_UPDATED',
+          eventType: "CONSULTATION_FEE_UPDATED",
           oldFee: event.oldFee,
           newFee: event.newFee,
           effectiveDate: event.effectiveDate.toISOString(),
-          reason: event.data.reason
-        }
+          reason: event.data.reason,
+        },
       });
 
-      this.logger.info('ConsultationFeeUpdated event logged successfully', {
+      this.logger.info("ConsultationFeeUpdated event logged successfully", {
         staffId: event.staffId,
         oldFee: event.oldFee,
         newFee: event.newFee,
-        eventId: event.eventId
+        eventId: event.eventId,
       });
-
     } catch (error) {
-      this.logger.error('Failed to handle ConsultationFeeUpdated event', {
+      this.logger.error("Failed to handle ConsultationFeeUpdated event", {
         eventId: event.eventId,
         staffId: event.staffId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       // Graceful degradation
     }
@@ -235,20 +240,21 @@ export class BillingEventHandler {
     try {
       // Idempotency check
       if (this.isEventProcessed(event.eventId)) {
-        this.logger.info('PaymentRefunded event already processed, skipping', {
+        this.logger.info("PaymentRefunded event already processed, skipping", {
           eventId: event.eventId,
-          staffId: event.staffId
+          staffId: event.staffId,
         });
         return;
       }
 
-      this.logger.info('Handling PaymentRefunded event from Billing Service', {
+      this.logger.info("Handling PaymentRefunded event from Billing Service", {
         refundId: event.refundId,
-        paymentId: event.data.paymentId,
+        originalPaymentId: event.data.originalPaymentId,
         staffId: event.staffId,
         refundAmount: event.refundAmount,
         reason: event.data.reason,
-        eventId: event.eventId
+        eventId: event.eventId,
+        gatewayRefundId: event.data.gatewayRefundId,
       });
 
       // TODO: Future implementation
@@ -261,32 +267,33 @@ export class BillingEventHandler {
 
       // Audit log
       await this.auditService.logDataModification({
-        action: 'REFUND_PROCESSED',
-        resourceType: 'STAFF_BILLING',
+        action: "REFUND_PROCESSED",
+        resourceType: "STAFF_BILLING",
         resourceId: event.staffId,
         userId: event.data.refundedBy,
         timestamp: new Date(),
         details: {
-          eventType: 'PAYMENT_REFUNDED',
+          eventType: "PAYMENT_REFUNDED",
           refundId: event.refundId,
-          paymentId: event.data.paymentId,
+          originalPaymentId: event.data.originalPaymentId,
           invoiceId: event.data.invoiceId,
           refundAmount: event.refundAmount,
-          reason: event.data.reason
-        }
+          reason: event.data.reason,
+          gatewayRefundId: event.data.gatewayRefundId,
+        },
       });
 
-      this.logger.info('PaymentRefunded event logged successfully', {
+      this.logger.info("PaymentRefunded event logged successfully", {
         staffId: event.staffId,
         refundId: event.refundId,
-        eventId: event.eventId
+        originalPaymentId: event.data.originalPaymentId,
+        eventId: event.eventId,
       });
-
     } catch (error) {
-      this.logger.error('Failed to handle PaymentRefunded event', {
+      this.logger.error("Failed to handle PaymentRefunded event", {
         eventId: event.eventId,
         staffId: event.staffId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       // Graceful degradation
     }
@@ -319,6 +326,6 @@ export class BillingEventHandler {
    * Get handler name for logging
    */
   getHandlerName(): string {
-    return 'BillingEventHandler';
+    return "BillingEventHandler";
   }
 }

@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3024",
+      "url": "http://localhost:3004",
       "description": "Development server"
     },
     {
@@ -481,4 +481,5 @@
     }
   }
 }
+
 

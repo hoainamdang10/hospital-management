@@ -6,21 +6,22 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
-import { Invoice } from '../../domain/aggregates/Invoice';
-import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
-import { IPatientRepository } from '../../domain/entities/Patient';
-import { logger } from '../../infrastructure/logging/logger';
-import { CreateInvoiceUseCase } from '../use-cases/CreateInvoiceUseCase';
-import { ProcessPaymentUseCase } from '../use-cases/ProcessPaymentUseCase';
+import { Invoice } from "../../domain/aggregates/Invoice";
+import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { IPatientRepository } from "../../domain/entities/Patient";
+import { logger } from "../../infrastructure/logging/logger";
+import { CreateInvoiceUseCase } from "../use-cases/CreateInvoiceUseCase";
+import { ProcessPaymentUseCase } from "../use-cases/ProcessPaymentUseCase";
 export interface AppointmentInvoiceRequest {
     appointmentId: string;
     patientId: string;
     staffId: string;
     departmentId: string;
-    serviceType: 'consultation' | 'procedure' | 'follow_up';
+    serviceType: "consultation" | "procedure" | "follow_up";
     scheduledAt: Date;
     completedAt?: Date;
     duration: number;
+    consultationFee?: number;
     insuranceInfo?: any;
 }
 export interface LateCancellationFeeRequest {
@@ -86,7 +87,7 @@ export interface MedicalRecordInvoiceRequest {
     patientId: string;
     staffId: string;
     appointmentId?: string;
-    recordType: 'consultation' | 'procedure' | 'emergency';
+    recordType: "consultation" | "procedure" | "emergency";
     services: Array<{
         code: string;
         name: string;

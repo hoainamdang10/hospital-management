@@ -88,7 +88,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   constructor(
     supabaseUrl: string,
     supabaseKey: string,
-    private readonly eventPublisher?: IDomainEventPublisher
+    private readonly eventPublisher?: IDomainEventPublisher,
   ) {
     this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
@@ -114,7 +114,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     console.log(
       "[Repository] Saving appointment record:",
-      JSON.stringify(record, null, 2)
+      JSON.stringify(record, null, 2),
     );
 
     const { error } = await this.supabase
@@ -139,7 +139,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   private async publishDomainEvents(appointment: Appointment): Promise<void> {
     if (!this.eventPublisher) {
       console.debug(
-        "[SupabaseAppointmentRepository] Event publisher not configured, skipping event publishing"
+        "[SupabaseAppointmentRepository] Event publisher not configured, skipping event publishing",
       );
       return;
     }
@@ -157,7 +157,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         const { data, error } = await this.supabase
           .from("appointment_read_model")
           .select(
-            "patient_full_name, patient_email, patient_phone, doctor_full_name, doctor_specialization, doctor_department, doctor_email, duration_minutes, consultation_fee"
+            "patient_full_name, patient_email, patient_phone, doctor_full_name, doctor_specialization, doctor_department, doctor_email, duration_minutes, consultation_fee",
           )
           .eq("appointment_id", appointment.getAppointmentId().value)
           .single();
@@ -170,7 +170,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
               appointmentId: appointment.getAppointmentId().value,
               hasPatientName: !!data.patient_full_name,
               hasDoctorName: !!data.doctor_full_name,
-            }
+            },
           );
         }
       } catch (readModelError) {
@@ -182,7 +182,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
               readModelError instanceof Error
                 ? readModelError.message
                 : "Unknown",
-          }
+          },
         );
         // Continue without enrichment - events still published with IDs
       }
@@ -203,7 +203,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
               eventType: event.eventType,
               patientName: readModel.patient_full_name,
               doctorName: readModel.doctor_full_name,
-            }
+            },
           );
         }
 
@@ -238,7 +238,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
           appointmentId: appointment.getAppointmentId().value,
           error: error instanceof Error ? error.message : "Unknown error",
           eventCount: events.length,
-        }
+        },
       );
 
       // Don't throw - event publishing failure shouldn't fail the transaction
@@ -270,7 +270,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    * Find appointment by appointment_id
    */
   async findByAppointmentId(
-    appointmentId: string
+    appointmentId: string,
   ): Promise<Appointment | null> {
     const { data, error } = await this.supabase
       .from(this.tableName)
@@ -294,7 +294,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async findByPatientId(
     patientId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<Appointment[]> {
     let query = this.supabase
       .from(this.tableName)
@@ -321,7 +321,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async findByDoctorId(
     doctorId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<Appointment[]> {
     let query = this.supabase
       .from(this.tableName)
@@ -348,7 +348,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    */
   async findByDoctorAndDate(
     doctorId: string,
-    date: Date
+    date: Date,
   ): Promise<Appointment[]> {
     // Calculate start and end of day
     const startOfDay = new Date(date);
@@ -368,7 +368,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     startDate: Date,
     endDate: Date,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<Appointment[]> {
     const startDateStr = startDate.toISOString().split("T")[0];
     const endDateStr = endDate.toISOString().split("T")[0];
@@ -413,7 +413,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     // Check if it's UUID format (database id) or business format (appointment_id)
     const isUUID =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        id
+        id,
       );
 
     if (isUUID) {
@@ -441,13 +441,13 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async findByProviderId(
     providerId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<Appointment[]> {
     return this.findByDoctorId(providerId);
   }
 
   async search(
-    criteria: AppointmentSearchCriteria
+    criteria: AppointmentSearchCriteria,
   ): Promise<AppointmentSearchResult> {
     let query = this.supabase
       .from(this.tableName)
@@ -461,7 +461,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     if (criteria.status && criteria.status.length > 0) {
       query = query.in(
         "status",
-        criteria.status.map((s) => s.toUpperCase())
+        criteria.status.map((s) => s.toUpperCase()),
       );
     }
     if (criteria.dateFrom) {
@@ -519,7 +519,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     providerId: string,
     startTime: Date,
     endTime: Date,
-    excludeAppointmentId?: string
+    excludeAppointmentId?: string,
   ): Promise<AppointmentConflictCheck> {
     const startUtc = startTime.toISOString();
     const endUtc = endTime.toISOString();
@@ -557,7 +557,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
   async findUpcomingByPatientId(
     patientId: string,
-    limit?: number
+    limit?: number,
   ): Promise<Appointment[]> {
     const now = new Date().toISOString();
 
@@ -582,7 +582,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
   async findUpcomingByProviderId(
     providerId: string,
-    limit?: number
+    limit?: number,
   ): Promise<Appointment[]> {
     const now = new Date().toISOString();
 
@@ -608,7 +608,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async findByStatus(
     status: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<Appointment[]> {
     let query = this.supabase
       .from(this.tableName)
@@ -624,7 +624,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find appointments by status: ${error.message}`
+        `Failed to find appointments by status: ${error.message}`,
       );
     }
 
@@ -632,7 +632,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }
 
   async findRequiringReminders(
-    reminderType: "24h" | "2h" | "30min"
+    reminderType: "24h" | "2h" | "30min",
   ): Promise<Appointment[]> {
     const now = new Date();
     let targetTime: Date;
@@ -663,7 +663,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find appointments requiring reminders: ${error.message}`
+        `Failed to find appointments requiring reminders: ${error.message}`,
       );
     }
 
@@ -705,8 +705,33 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find expired unpaid appointments: ${error.message}`
+        `Failed to find expired unpaid appointments: ${error.message}`,
       );
+    }
+
+    return (data || []).map((record) => this.toDomain(record));
+  }
+
+  /**
+   * Find past appointments that should be auto-completed
+   * Query: status IN ('CONFIRMED', 'SCHEDULED') AND appointment_datetime < cutoffTime
+   */
+  async findPastAppointments(cutoffTime: Date): Promise<Appointment[]> {
+    const cutoffDateStr = cutoffTime.toISOString().split("T")[0];
+    const cutoffTimeStr = cutoffTime.toTimeString().split(" ")[0];
+
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select("*")
+      .in("status", ["CONFIRMED", "SCHEDULED", "ARRIVED", "IN_PROGRESS"])
+      .or(
+        `appointment_date.lt.${cutoffDateStr},and(appointment_date.eq.${cutoffDateStr},appointment_time.lt.${cutoffTimeStr})`,
+      )
+      .order("appointment_date", { ascending: true })
+      .order("appointment_time", { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to find past appointments: ${error.message}`);
     }
 
     return (data || []).map((record) => this.toDomain(record));
@@ -716,7 +741,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     dateFrom?: Date,
     dateTo?: Date,
     providerId?: string,
-    department?: string
+    department?: string,
   ): Promise<AppointmentStatistics> {
     let query = this.supabase.from(this.tableName).select("*");
 
@@ -740,24 +765,24 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     const appointments = data || [];
     const totalAppointments = appointments.length;
     const scheduledAppointments = appointments.filter(
-      (a) => a.status === "SCHEDULED"
+      (a) => a.status === "SCHEDULED",
     ).length;
     const confirmedAppointments = appointments.filter(
-      (a) => a.confirmed_at !== null
+      (a) => a.confirmed_at !== null,
     ).length;
     const completedAppointments = appointments.filter(
-      (a) => a.status === "COMPLETED"
+      (a) => a.status === "COMPLETED",
     ).length;
     const cancelledAppointments = appointments.filter(
-      (a) => a.status === "CANCELLED"
+      (a) => a.status === "CANCELLED",
     ).length;
     const noShowAppointments = appointments.filter(
-      (a) => a.status === "NO_SHOW"
+      (a) => a.status === "NO_SHOW",
     ).length;
 
     const totalDuration = appointments.reduce(
       (sum, a) => sum + (a.duration_minutes || 0),
-      0
+      0,
     );
     const averageDuration =
       totalAppointments > 0 ? totalDuration / totalAppointments : 0;
@@ -791,7 +816,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     if (criteria.status && criteria.status.length > 0) {
       query = query.in(
         "status",
-        criteria.status.map((s) => s.toUpperCase())
+        criteria.status.map((s) => s.toUpperCase()),
       );
     }
     if (criteria.dateFrom) {
@@ -836,7 +861,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async findByTimeSlot(
     providerId: string,
     startTime: Date,
-    endTime: Date
+    endTime: Date,
   ): Promise<Appointment[]> {
     const startUtc = startTime.toISOString();
     const endUtc = endTime.toISOString();
@@ -851,7 +876,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find appointments by time slot: ${error.message}`
+        `Failed to find appointments by time slot: ${error.message}`,
       );
     }
 
@@ -859,7 +884,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }
 
   async findFollowUpAppointments(
-    originalAppointmentId: string
+    originalAppointmentId: string,
   ): Promise<Appointment[]> {
     const { data, error } = await this.supabase
       .from(this.tableName)
@@ -870,7 +895,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find follow-up appointments: ${error.message}`
+        `Failed to find follow-up appointments: ${error.message}`,
       );
     }
 
@@ -880,7 +905,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async getPatientHistory(
     patientId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<{
     appointments: Appointment[];
     totalCount: number;
@@ -944,7 +969,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async getProviderSchedule(
     providerId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<Appointment[]> {
     const startDateStr = startDate.toISOString().split("T")[0];
     const endDateStr = endDate.toISOString().split("T")[0];
@@ -971,7 +996,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     dateFrom?: Date,
     dateTo?: Date,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<Appointment[]> {
     let query = this.supabase
       .from(this.tableName)
@@ -998,7 +1023,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find appointments by department: ${error.message}`
+        `Failed to find appointments by department: ${error.message}`,
       );
     }
 
@@ -1019,7 +1044,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find emergency appointments: ${error.message}`
+        `Failed to find emergency appointments: ${error.message}`,
       );
     }
 
@@ -1028,7 +1053,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
   async findRequiringPreparation(
     dateFrom?: Date,
-    dateTo?: Date
+    dateTo?: Date,
   ): Promise<Appointment[]> {
     let query = this.supabase
       .from(this.tableName)
@@ -1053,7 +1078,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) {
       throw new Error(
-        `Failed to find appointments requiring preparation: ${error.message}`
+        `Failed to find appointments requiring preparation: ${error.message}`,
       );
     }
 
@@ -1074,7 +1099,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
   async getDailySummary(
     date: Date,
-    providerId?: string
+    providerId?: string,
   ): Promise<{
     totalAppointments: number;
     scheduledAppointments: number;
@@ -1101,18 +1126,18 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     const appointments = data || [];
     const totalAppointments = appointments.length;
     const scheduledAppointments = appointments.filter(
-      (a) => a.status === "SCHEDULED"
+      (a) => a.status === "SCHEDULED",
     ).length;
     const completedAppointments = appointments.filter(
-      (a) => a.status === "COMPLETED"
+      (a) => a.status === "COMPLETED",
     ).length;
     const cancelledAppointments = appointments.filter(
-      (a) => a.status === "CANCELLED"
+      (a) => a.status === "CANCELLED",
     ).length;
 
     const totalDuration = appointments.reduce(
       (sum, a) => sum + (a.duration_minutes || 0),
-      0
+      0,
     );
     const averageDuration =
       totalAppointments > 0 ? totalDuration / totalAppointments : 0;
@@ -1137,7 +1162,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async findAvailableTimeSlots(
     providerId: string,
     date: Date,
-    duration: number
+    duration: number,
   ): Promise<{ startTime: Date; endTime: Date }[]> {
     // Step 1: Get provider's schedule from provider_schedules table
     const { data: scheduleData, error: scheduleError } = await this.supabase
@@ -1149,7 +1174,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     if (scheduleError || !scheduleData) {
       console.warn(
         `[FindSlots] No schedule found for provider ${providerId}:`,
-        scheduleError?.message
+        scheduleError?.message,
       );
       return []; // No schedule = no available slots
     }
@@ -1168,7 +1193,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (!workingDays.includes(dayOfWeek)) {
       console.log(
-        `[FindSlots] ${dayOfWeek} is not a working day for provider ${providerId}`
+        `[FindSlots] ${dayOfWeek} is not a working day for provider ${providerId}`,
       );
       return []; // Not a working day
     }
@@ -1193,7 +1218,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (apptError) {
       throw new Error(
-        `Failed to find booked appointments: ${apptError.message}`
+        `Failed to find booked appointments: ${apptError.message}`,
       );
     }
 
@@ -1257,7 +1282,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
 
     console.log(
-      `[FindSlots] Found ${availableSlots.length} available slots for provider ${providerId} on ${dateStr}`
+      `[FindSlots] Found ${availableSlots.length} available slots for provider ${providerId} on ${dateStr}`,
     );
     return availableSlots;
   }
@@ -1276,13 +1301,13 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    * Merge overlapping time intervals
    */
   private mergeIntervals(
-    intervals: { start: Date; end: Date }[]
+    intervals: { start: Date; end: Date }[],
   ): { start: Date; end: Date }[] {
     if (intervals.length === 0) return [];
 
     // Sort by start time
     const sorted = intervals.sort(
-      (a, b) => a.start.getTime() - b.start.getTime()
+      (a, b) => a.start.getTime() - b.start.getTime(),
     );
     const merged: { start: Date; end: Date }[] = [sorted[0]];
 
@@ -1293,7 +1318,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       // If current overlaps with last, merge them
       if (current.start.getTime() <= last.end.getTime()) {
         last.end = new Date(
-          Math.max(last.end.getTime(), current.end.getTime())
+          Math.max(last.end.getTime(), current.end.getTime()),
         );
       } else {
         // No overlap, add as new interval
@@ -1308,7 +1333,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     providerId?: string,
     department?: string,
     dateFrom?: Date,
-    dateTo?: Date
+    dateTo?: Date,
   ): Promise<number> {
     let query = this.supabase.from(this.tableName).select("*");
 
@@ -1332,13 +1357,13 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     const appointments = data || [];
     const totalSlots = appointments.length;
     const bookedSlots = appointments.filter(
-      (a) => a.status !== "CANCELLED"
+      (a) => a.status !== "CANCELLED",
     ).length;
     const noShowCount = appointments.filter(
-      (a) => a.status === "NO_SHOW"
+      (a) => a.status === "NO_SHOW",
     ).length;
     const cancelledCount = appointments.filter(
-      (a) => a.status === "CANCELLED"
+      (a) => a.status === "CANCELLED",
     ).length;
 
     const utilizationRate =
@@ -1423,7 +1448,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       record.appointment_date,
       record.appointment_time,
       new Date(record.start_at_utc),
-      new Date(record.end_at_utc)
+      new Date(record.end_at_utc),
     );
 
     const details = AppointmentDetails.create(
@@ -1431,7 +1456,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       record.chief_complaint,
       record.symptoms,
       record.notes,
-      record.special_instructions
+      record.special_instructions,
     );
 
     // Build complete props object for reconstitution
@@ -1525,7 +1550,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
       if (error) {
         throw new Error(
-          `Failed to find appointments by department ID: ${error.message}`
+          `Failed to find appointments by department ID: ${error.message}`,
         );
       }
 
@@ -1542,7 +1567,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    */
   async findByDepartmentAndDate(
     departmentId: string,
-    date: Date
+    date: Date,
   ): Promise<Appointment[]> {
     try {
       const dateStr = date.toISOString().split("T")[0];
@@ -1555,7 +1580,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
       if (error) {
         throw new Error(
-          `Failed to find appointments by department and date: ${error.message}`
+          `Failed to find appointments by department and date: ${error.message}`,
         );
       }
 
@@ -1563,7 +1588,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     } catch (error) {
       console.error(
         "Failed to find appointments by department and date:",
-        error
+        error,
       );
       throw error;
     }
@@ -1576,7 +1601,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   async checkStaffAvailability(
     staffId: string,
     startTime: Date,
-    endTime: Date
+    endTime: Date,
   ): Promise<boolean> {
     try {
       const startStr = startTime.toISOString();
@@ -1618,7 +1643,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }): Promise<void> {
     try {
       console.log(
-        `Updating patient history for patient: ${data.patientId}, appointment: ${data.appointmentId}`
+        `Updating patient history for patient: ${data.patientId}, appointment: ${data.appointmentId}`,
       );
 
       // Store patient history in appointments_schema.patient_history table
@@ -1635,7 +1660,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         },
         {
           onConflict: "appointment_id",
-        }
+        },
       );
 
       if (error) {
@@ -1643,7 +1668,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       }
 
       console.log(
-        `Successfully updated patient history for appointment: ${data.appointmentId}`
+        `Successfully updated patient history for appointment: ${data.appointmentId}`,
       );
     } catch (error) {
       console.error("Failed to update patient history:", error);
@@ -1670,7 +1695,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }): Promise<void> {
     try {
       console.log(
-        `Updating vital signs for patient: ${data.patientId}, appointment: ${data.appointmentId}`
+        `Updating vital signs for patient: ${data.patientId}, appointment: ${data.appointmentId}`,
       );
 
       // Store vital signs in appointments_schema.vital_signs table
@@ -1689,7 +1714,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         },
         {
           onConflict: "appointment_id",
-        }
+        },
       );
 
       if (error) {
@@ -1697,7 +1722,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       }
 
       console.log(
-        `Successfully updated vital signs for appointment: ${data.appointmentId}`
+        `Successfully updated vital signs for appointment: ${data.appointmentId}`,
       );
     } catch (error) {
       console.error("Failed to update vital signs:", error);
@@ -1711,11 +1736,11 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    */
   async addToUrgentCareList(
     appointmentId: string,
-    priority: "urgent" | "emergency"
+    priority: "urgent" | "emergency",
   ): Promise<void> {
     try {
       console.log(
-        `Adding appointment ${appointmentId} to urgent care list with priority: ${priority}`
+        `Adding appointment ${appointmentId} to urgent care list with priority: ${priority}`,
       );
 
       // Add to urgent care queue in appointments_schema.urgent_care_queue table
@@ -1732,7 +1757,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       }
 
       console.log(
-        `Successfully added appointment ${appointmentId} to urgent care list`
+        `Successfully added appointment ${appointmentId} to urgent care list`,
       );
     } catch (error) {
       console.error("Failed to add to urgent care list:", error);
@@ -1748,7 +1773,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    */
   async updateStatus(
     appointmentId: AppointmentId,
-    status: string
+    status: string,
   ): Promise<void> {
     try {
       const appointment = await this.findById(appointmentId);
@@ -1768,12 +1793,12 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
       if (error) {
         throw new Error(
-          `Failed to update appointment status: ${error.message}`
+          `Failed to update appointment status: ${error.message}`,
         );
       }
 
       console.log(
-        `Successfully updated appointment ${appointmentId.value} status to ${status}`
+        `Successfully updated appointment ${appointmentId.value} status to ${status}`,
       );
     } catch (error) {
       console.error("Failed to update appointment status:", error);
@@ -1800,7 +1825,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         .eq("type", data.serviceType)
         .gte(
           "appointment_date",
-          data.effectiveDate.toISOString().split("T")[0]
+          data.effectiveDate.toISOString().split("T")[0],
         );
 
       if (error) {
@@ -1808,7 +1833,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       }
 
       console.log(
-        `Successfully updated billing rates for ${data.serviceType} to ${data.newRate}`
+        `Successfully updated billing rates for ${data.serviceType} to ${data.newRate}`,
       );
     } catch (error) {
       console.error("Failed to update billing rates:", error);
@@ -1821,7 +1846,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    */
   async findByServiceTypeAndDate(
     serviceType: string,
-    date: Date
+    date: Date,
   ): Promise<Appointment[]> {
     try {
       const dateStr = date.toISOString().split("T")[0];
@@ -1833,7 +1858,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
       if (error) {
         throw new Error(
-          `Failed to find appointments by service type and date: ${error.message}`
+          `Failed to find appointments by service type and date: ${error.message}`,
         );
       }
 
@@ -1846,7 +1871,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     } catch (error) {
       console.error(
         "Failed to find appointments by service type and date:",
-        error
+        error,
       );
       throw error;
     }
@@ -1865,7 +1890,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
       if (error) {
         throw new Error(
-          `Failed to find pending appointments by service type: ${error.message}`
+          `Failed to find pending appointments by service type: ${error.message}`,
         );
       }
 
@@ -1878,7 +1903,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     } catch (error) {
       console.error(
         "Failed to find pending appointments by service type:",
-        error
+        error,
       );
       throw error;
     }
@@ -1912,12 +1937,12 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
       if (error) {
         throw new Error(
-          `Failed to update patient insurance coverage: ${error.message}`
+          `Failed to update patient insurance coverage: ${error.message}`,
         );
       }
 
       console.log(
-        `Successfully updated insurance coverage for patient ${data.patientId}`
+        `Successfully updated insurance coverage for patient ${data.patientId}`,
       );
     } catch (error) {
       console.error("Failed to update patient insurance coverage:", error);
@@ -1941,12 +1966,12 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       // In a real implementation, this would update a patient_preferences table
       console.log(
         `Updating scheduling preferences for patient ${data.patientId}:`,
-        data
+        data,
       );
 
       // TODO: Implement patient preferences table update
       console.log(
-        "Patient scheduling preferences updated (placeholder implementation)"
+        "Patient scheduling preferences updated (placeholder implementation)",
       );
     } catch (error) {
       console.error("Failed to update patient scheduling preferences:", error);

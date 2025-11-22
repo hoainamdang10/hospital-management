@@ -68,6 +68,9 @@ export interface PaymentRecordData {
     payos_data?: any;
     payos_order_code?: number;
     payos_transaction_id?: string;
+    vnpay_txn_ref?: string;
+    vnpay_transaction_no?: string;
+    vnpay_pay_date?: string;
     notes?: string;
     metadata?: any;
     created_at: string;

@@ -324,6 +324,7 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
   ): any {
     const baseData = {
       id: staff.id,
+      staffId: staff.staffIdValue, // Business identifier (e.g., 'LABO-DOC-202502-009')
       userId: staff.userId,
       staffType: staff.staffType,
       personalInfo: {
@@ -350,13 +351,16 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
         hireDate: staff.hireDate.toISOString(),
         contractEndDate: staff.contractEndDate?.toISOString(),
         yearsOfExperience: staff.getTotalExperience(),
-        status: staff.status,
-        isActive: staff.isActive,
+        status: staff.status, // ← Moved into employmentInfo
+        isActive: staff.isActive, // ← Moved into employmentInfo
       },
       registrationInfo: {
         registrationDate: staff.registrationDate.toISOString(),
         lastActiveDate: staff.lastActiveDate?.toISOString(),
       },
+      // Also expose at root level for backward compatibility with frontend
+      status: staff.status,
+      isActive: staff.isActive,
     };
 
     // Add sensitive data based on access level
@@ -374,20 +378,20 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
         },
         workSchedule: request.includeFullSchedule
           ? {
-              workingDays: staff.workSchedule.workingDays,
-              workingHours: staff.workSchedule.workingHours,
-              timeZone: staff.workSchedule.timeZone,
-              isFlexible: staff.workSchedule.isFlexible,
-            }
+            workingDays: staff.workSchedule.workingDays,
+            workingHours: staff.workSchedule.workingHours,
+            timeZone: staff.workSchedule.timeZone,
+            isFlexible: staff.workSchedule.isFlexible,
+          }
           : undefined,
         credentials: request.includeSensitiveInfo
           ? staff.getValidCredentials().map((cred) => ({
-              credentialNumber: this.maskString(cred.credentialNumber),
-              credentialType: cred.credentialType,
-              issuingAuthority: cred.issuingAuthority,
-              isValid: cred.isValid,
-              expiryDate: cred.expiryDate?.toISOString().split("T")[0],
-            }))
+            credentialNumber: this.maskString(cred.credentialNumber),
+            credentialType: cred.credentialType,
+            issuingAuthority: cred.issuingAuthority,
+            isValid: cred.isValid,
+            expiryDate: cred.expiryDate?.toISOString().split("T")[0],
+          }))
           : undefined,
         performanceInfo: {
           // REMOVED: rating, totalPatients, isAcceptingNewPatients - Belong to other services

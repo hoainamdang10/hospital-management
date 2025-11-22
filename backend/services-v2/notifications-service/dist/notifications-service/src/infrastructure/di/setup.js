@@ -132,11 +132,11 @@ function setupDependencies(container) {
     }, container_1.ServiceLifetime.SINGLETON);
     // Register RabbitMQ Event Bus for publishing domain events
     container.registerFactory(exports.ServiceTokens.EVENT_BUS, () => {
-        const { RabbitMQEventBus } = require('../../../../shared/infrastructure/event-bus/EventBus');
+        const { RabbitMQEventBus, } = require("../../../../shared/infrastructure/event-bus/EventBus");
         return new RabbitMQEventBus({
-            rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@rabbitmq-v2:5672',
-            exchangeName: 'hospital.events',
-            serviceName: 'notifications-service'
+            rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@rabbitmq-v2:5672",
+            exchangeName: "hospital.events",
+            serviceName: "notifications-service",
         });
     }, container_1.ServiceLifetime.SINGLETON);
     // Register repositories
@@ -144,28 +144,23 @@ function setupDependencies(container) {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
         const eventBus = container.resolve(exports.ServiceTokens.EVENT_BUS);
         return new SupabaseNotificationRepository_1.SupabaseNotificationRepository(supabaseClient, eventBus);
-    }, container_1.ServiceLifetime.SINGLETON // FIX: Changed from SCOPED to SINGLETON - repository doesn't need request scope
-    );
+    }, container_1.ServiceLifetime.SINGLETON);
     container.registerFactory(exports.ServiceTokens.INBOX_REPOSITORY, (container) => {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
         return new SupabaseInboxRepository_1.SupabaseInboxRepository(supabaseClient);
-    }, container_1.ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by event consumers
-    );
+    }, container_1.ServiceLifetime.SINGLETON);
     container.registerFactory(exports.ServiceTokens.TEMPLATE_REPOSITORY, (container) => {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
         return new SupabaseTemplateRepository_1.SupabaseTemplateRepository(supabaseClient);
-    }, container_1.ServiceLifetime.SINGLETON // FIX: Changed from SCOPED to SINGLETON - repository doesn't need request scope
-    );
+    }, container_1.ServiceLifetime.SINGLETON);
     container.registerFactory(exports.ServiceTokens.PREFERENCES_REPOSITORY, (container) => {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
         return new SupabasePreferencesRepository_1.SupabasePreferencesRepository(supabaseClient);
-    }, container_1.ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by GetNotificationPreferencesUseCase
-    );
+    }, container_1.ServiceLifetime.SINGLETON);
     container.registerFactory(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY, (container) => {
         const supabaseClient = container.resolve(exports.ServiceTokens.SUPABASE_CLIENT);
         return new SupabaseAppointmentReminderRepository_1.SupabaseAppointmentReminderRepository(supabaseClient);
-    }, container_1.ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by AppointmentEventConsumer & cron job
-    );
+    }, container_1.ServiceLifetime.SINGLETON);
     // Register external services
     container.registerFactory(exports.ServiceTokens.DELIVERY_SERVICE, () => {
         return new MultiChannelDeliveryService_1.MultiChannelDeliveryService();
@@ -220,8 +215,8 @@ function setupDependencies(container) {
     }, container_1.ServiceLifetime.TRANSIENT);
     // Register GetNotificationPreferencesUseCase
     container.registerFactory(exports.ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE, (container) => {
-        const notificationRepository = container.resolve(exports.ServiceTokens.NOTIFICATION_REPOSITORY);
-        return new GetNotificationPreferencesUseCase_1.GetNotificationPreferencesUseCase(notificationRepository);
+        const preferencesRepository = container.resolve(exports.ServiceTokens.PREFERENCES_REPOSITORY);
+        return new GetNotificationPreferencesUseCase_1.GetNotificationPreferencesUseCase(preferencesRepository);
     }, container_1.ServiceLifetime.TRANSIENT);
     // Comment out ProcessNotificationQueueUseCase - not needed
     // container.registerFactory(
@@ -311,16 +306,14 @@ function setupDependencies(container) {
         const getUseCase = container.resolve(exports.ServiceTokens.GET_NOTIFICATION_USE_CASE);
         const getPreferencesUseCase = container.resolve(exports.ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
         return new NotificationApplicationService_1.NotificationApplicationService(sendUseCase, getUseCase, getPreferencesUseCase);
-    }, container_1.ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - used by NotificationEventHandlers
-    );
+    }, container_1.ServiceLifetime.SINGLETON);
     // Register event handlers (after application service to avoid circular dependency)
     container.registerFactory(exports.ServiceTokens.NOTIFICATION_EVENT_HANDLERS, (container) => {
         const notificationService = container.resolve(exports.ServiceTokens.NOTIFICATION_APPLICATION_SERVICE);
         const inboxRepo = container.resolve(exports.ServiceTokens.INBOX_REPOSITORY);
         const sendUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
         return new NotificationEventHandlers_1.NotificationEventHandlers(notificationService, inboxRepo, sendUseCase);
-    }, container_1.ServiceLifetime.SINGLETON // FIX: Changed from SCOPED - event handlers should be singleton
-    );
+    }, container_1.ServiceLifetime.SINGLETON);
     // Register Event Consumers
     container.registerFactory(exports.ServiceTokens.APPOINTMENT_EVENT_CONSUMER, (container) => {
         const sendNotificationUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
@@ -329,18 +322,19 @@ function setupDependencies(container) {
         const appointmentReminderRepo = container.resolve(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
         const inboxRepo = container.resolve(exports.ServiceTokens.INBOX_REPOSITORY);
         const config = {
-            rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
-            queueName: process.env.APPOINTMENT_EVENT_QUEUE || 'notifications.appointment.events',
-            exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events', // ✅ FIX: Use hospital.events to match all services
+            rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://localhost:5672",
+            queueName: process.env.APPOINTMENT_EVENT_QUEUE ||
+                "notifications.appointment.events",
+            exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", // ✅ FIX: Use hospital.events to match all services
             routingKeys: [
-                'appointment.scheduled', // ✅ THESIS SCOPE
-                'appointment.confirmed', // ✅ THESIS SCOPE
-                'appointment.cancelled', // ✅ THESIS SCOPE
+                "appointment.scheduled", // ✅ THESIS SCOPE
+                "appointment.confirmed", // ✅ THESIS SCOPE
+                "appointment.cancelled", // ✅ THESIS SCOPE
                 // FUTURE: appointment.completed, appointment.rescheduled, appointment.reminder, appointment.no_show
             ],
-            prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
-            retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
-            retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+            prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10"),
+            retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || "3"),
+            retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || "1000"),
         };
         return new AppointmentEventConsumer_1.AppointmentEventConsumer(config, sendNotificationUseCase, getNotificationPreferencesUseCase, createAppointmentRemindersUseCase, appointmentReminderRepo, inboxRepo);
     }, container_1.ServiceLifetime.SINGLETON);
@@ -349,21 +343,21 @@ function setupDependencies(container) {
         const getNotificationPreferencesUseCase = container.resolve(exports.ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
         const inboxRepo = container.resolve(exports.ServiceTokens.INBOX_REPOSITORY);
         const config = {
-            rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
-            queueName: process.env.STAFF_EVENT_QUEUE || 'notifications.staff.events',
-            exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events', // ✅ FIX: Use hospital.events to match all services
+            rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://localhost:5672",
+            queueName: process.env.STAFF_EVENT_QUEUE || "notifications.staff.events",
+            exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", // ✅ FIX: Use hospital.events to match all services
             routingKeys: [
-                'availability.staff.changed',
-                'shift.staff.assigned',
-                'shift.staff.cancelled',
-                'schedule.staff.updated',
-                'department.staff.assigned',
-                'oncall.staff.assigned',
-                'performance.staff.reviewed'
+                "availability.staff.changed",
+                "shift.staff.assigned",
+                "shift.staff.cancelled",
+                "schedule.staff.updated",
+                "department.staff.assigned",
+                "oncall.staff.assigned",
+                "performance.staff.reviewed",
             ],
-            prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
-            retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
-            retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+            prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10"),
+            retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || "3"),
+            retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || "1000"),
         };
         return new StaffEventConsumer_1.StaffEventConsumer(config, sendNotificationUseCase, getNotificationPreferencesUseCase, inboxRepo);
     }, container_1.ServiceLifetime.SINGLETON);
@@ -372,16 +366,16 @@ function setupDependencies(container) {
         const getNotificationPreferencesUseCase = container.resolve(exports.ServiceTokens.GET_NOTIFICATION_PREFERENCES_USE_CASE);
         const inboxRepo = container.resolve(exports.ServiceTokens.INBOX_REPOSITORY);
         const config = {
-            rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
-            queueName: process.env.BILLING_EVENT_QUEUE || 'notifications.billing.events',
-            exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events', // ✅ Unified exchange
+            rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://localhost:5672",
+            queueName: process.env.BILLING_EVENT_QUEUE || "notifications.billing.events",
+            exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", // ✅ Unified exchange
             routingKeys: [
-                'billing.payment.completed', // ✅ THESIS SCOPE - Payment receipt
+                "billing.payment.completed", // ✅ THESIS SCOPE - Payment receipt
                 // FUTURE: billing.invoice.generated, billing.payment.reminder, billing.insurance
             ],
-            prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || '10'),
-            retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || '3'),
-            retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || '1000')
+            prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10"),
+            retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || "3"),
+            retryDelayMs: parseInt(process.env.EVENT_CONSUMER_RETRY_DELAY_MS || "1000"),
         };
         return new BillingEventConsumer_1.BillingEventConsumer(config, sendNotificationUseCase, getNotificationPreferencesUseCase, inboxRepo);
     }, container_1.ServiceLifetime.SINGLETON);
@@ -452,9 +446,9 @@ function setupDependencies(container) {
         const reminderRepo = container.resolve(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
         const sendNotificationUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
         const config = {
-            cronExpression: process.env.REMINDER_CRON_EXPRESSION || '*/5 * * * *', // Every 5 minutes
-            batchSize: parseInt(process.env.REMINDER_BATCH_SIZE || '50'),
-            enabled: process.env.REMINDER_CRON_ENABLED !== 'false' // Enabled by default
+            cronExpression: process.env.REMINDER_CRON_EXPRESSION || "*/5 * * * *", // Every 5 minutes
+            batchSize: parseInt(process.env.REMINDER_BATCH_SIZE || "50"),
+            enabled: process.env.REMINDER_CRON_ENABLED !== "false", // Enabled by default
         };
         return new ReminderCronJob_1.ReminderCronJob(config, reminderRepo, sendNotificationUseCase);
     }, container_1.ServiceLifetime.SINGLETON);

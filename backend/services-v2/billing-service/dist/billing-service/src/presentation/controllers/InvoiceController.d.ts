@@ -32,6 +32,11 @@ export declare class InvoiceController {
     getRevenueReport: (req: Request, res: Response) => Promise<void>;
     createPayOSPaymentLink: (req: AuthenticatedRequest, res: Response) => Promise<void>;
     handlePayOSWebhook: (req: Request, res: Response) => Promise<void>;
+    /**
+     * Test endpoint to log raw VNPAY webhook data
+     * This helps debug signature verification issues
+     */
+    logRawWebhookData: (req: Request, res: Response) => Promise<void>;
     private normalizeWebhookPayload;
 }
 //# sourceMappingURL=InvoiceController.d.ts.map

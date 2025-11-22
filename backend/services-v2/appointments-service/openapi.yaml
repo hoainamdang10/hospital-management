@@ -19,7 +19,7 @@ info:
     - Clean Architecture with DDD patterns
     - CQRS (Command Query Responsibility Segregation)
     - Event-Driven Architecture
-    - Port: 3024 (External), 3004 (Internal)
+    - Port: 3004 (External), 3004 (Internal)
     - Command Pattern for business operations
     
     ## Design Philosophy
@@ -36,7 +36,7 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: http://localhost:3024
+  - url: http://localhost:3004
     description: Development server
   - url: https://api.hospital-management.com/appointments
     description: Production server
@@ -2951,3 +2951,4 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+

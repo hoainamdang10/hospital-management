@@ -12,6 +12,7 @@ import { AppointmentReadModel } from '@/lib/types/appointments';
 import { format, parseISO, isAfter, startOfDay } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { CancelAppointmentDialog } from '@/components/appointments/CancelAppointmentDialog';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'PENDING_PAYMENT';
@@ -312,7 +313,7 @@ function AppointmentItem({
   onUpdate: () => void;
 }) {
   const router = useRouter();
-  const [cancelling, setCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const statusConfig = {
     SCHEDULED: { color: 'bg-blue-100 text-blue-800', label: 'Đã đặt' },
@@ -329,21 +330,19 @@ function AppointmentItem({
   const formattedDate = format(appointmentDate, 'EEEE, dd/MM/yyyy', { locale: vi });
   const canModify = appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED' || appointment.status === 'PENDING_PAYMENT';
 
-  async function handleCancel() {
-    if (!confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) return;
-
+  async function handleCancelConfirm(reason: string) {
     try {
-      setCancelling(true);
-      await appointmentsService.cancel(appointment.id, {
-        cancellationReason: 'Bệnh nhân hủy lịch hẹn',
+      // Use appointmentId (camelCase) as backend returns it in camelCase
+      const appointmentId = (appointment as any).appointmentId || appointment.id;
+      await appointmentsService.cancel(appointmentId, {
+        cancellationReason: reason,
       });
       toast.success('Đã hủy lịch hẹn thành công');
       onUpdate();
     } catch (error) {
       console.error('Error cancelling appointment:', error);
       toast.error('Không thể hủy lịch hẹn. Vui lòng thử lại.');
-    } finally {
-      setCancelling(false);
+      throw error; // Re-throw to let dialog handle loading state
     }
   }
 
@@ -356,77 +355,90 @@ function AppointmentItem({
   }
 
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-4">
-        {/* Left Section */}
-        <div className="flex gap-4 flex-1">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-100">
-            <User className="h-8 w-8 text-primary-600" />
-          </div>
-          <div className="space-y-3 flex-1">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                BS. {appointment.doctorName || 'Đang cập nhật'}
-              </h3>
-              <p className="text-sm text-gray-600">
-                {appointment.doctorSpecialization || 'Chuyên khoa'}
-              </p>
+    <>
+      <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between gap-4">
+          {/* Left Section */}
+          <div className="flex gap-4 flex-1">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-100">
+              <User className="h-8 w-8 text-primary-600" />
             </div>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-              <div className="flex items-center">
-                <Calendar className="mr-2 h-4 w-4 shrink-0" />
-                <span className="capitalize">{formattedDate}</span>
+            <div className="space-y-3 flex-1">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  BS. {appointment.doctorName || 'Đang cập nhật'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {appointment.doctorSpecialization || 'Chuyên khoa'}
+                </p>
               </div>
-              <div className="flex items-center">
-                <Clock className="mr-2 h-4 w-4 shrink-0" />
-                {appointment.appointmentTime}
-              </div>
-              {appointment.reason && (
-                <div className="flex items-center text-gray-500">
-                  <span className="text-xs">Lý do: {appointment.reason}</span>
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                <div className="flex items-center">
+                  <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="capitalize">{formattedDate}</span>
                 </div>
+                <div className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4 shrink-0" />
+                  {appointment.appointmentTime}
+                </div>
+                {appointment.reason && (
+                  <div className="flex items-center text-gray-500">
+                    <span className="text-xs">Lý do: {appointment.reason}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Section */}
+          <div className="flex flex-col items-end gap-3 shrink-0">
+            <span className={`rounded-full px-3 py-1 text-xs font-medium ${config.color}`}>
+              {config.label}
+            </span>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleViewDetails}
+                className="justify-start"
+              >
+                Xem chi tiết
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+              {canModify && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReschedule}
+                  >
+                    Đổi lịch
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowCancelDialog(true)}
+                  >
+                    Hủy lịch
+                  </Button>
+                </>
               )}
             </div>
           </div>
         </div>
-
-        {/* Right Section */}
-        <div className="flex flex-col items-end gap-3 shrink-0">
-          <span className={`rounded-full px-3 py-1 text-xs font-medium ${config.color}`}>
-            {config.label}
-          </span>
-          <div className="flex flex-col gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleViewDetails}
-              className="justify-start"
-            >
-              Xem chi tiết
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-            {canModify && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReschedule}
-                >
-                  Đổi lịch
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleCancel}
-                  disabled={cancelling}
-                >
-                  {cancelling ? 'Đang hủy...' : 'Hủy lịch'}
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
       </div>
-    </div>
+
+      {/* Cancel Dialog */}
+      <CancelAppointmentDialog
+        isOpen={showCancelDialog}
+        onClose={() => setShowCancelDialog(false)}
+        onConfirm={handleCancelConfirm}
+        appointmentInfo={{
+          doctorName: appointment.doctorName || 'Đang cập nhật',
+          date: formattedDate,
+          time: appointment.appointmentTime,
+        }}
+      />
+    </>
   );
 }

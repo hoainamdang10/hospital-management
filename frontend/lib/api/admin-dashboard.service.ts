@@ -64,7 +64,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     // Fetch data from multiple services in parallel
     const [appointmentsData, patientsData, staffData] = await Promise.all([
       // Get total appointments
-      appointmentsClient.get('/api/v1/appointments', {
+      appointmentsClient.get('/v1/appointments', {
         params: {
           page: 1,
           pageSize: 1000,
@@ -72,7 +72,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       }).catch(() => ({ data: { data: { appointments: [], total: 0 } } })),
 
       // Get total patients (using patient registry service)
-      patientClient.get('/api/v1/patients', {
+      patientClient.get('/v1/patients', {
         params: {
           page: 1,
           pageSize: 1,
@@ -80,7 +80,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       }).catch(() => ({ data: { data: { total: 0 } } })),
 
       // Get total staff (using provider staff service)
-      staffClient.get('/api/v1/staff/search', {
+      staffClient.get('/v1/staff/search', {
         params: {
           page: 1,
           pageSize: 1,
@@ -114,7 +114,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     };
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch stats:', error);
-    
+
     // Return default values on error
     return {
       totalRevenue: 0,
@@ -134,7 +134,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
  */
 export async function getRecentAppointments(limit: number = 10): Promise<RecentAppointment[]> {
   try {
-    const response = await appointmentsClient.get('/api/v1/appointments', {
+    const response = await appointmentsClient.get('/v1/appointments', {
       params: {
         page: 1,
         pageSize: limit,
@@ -164,7 +164,7 @@ export async function getRecentAppointments(limit: number = 10): Promise<RecentA
 export async function getMonthlyStats(): Promise<MonthlyStats[]> {
   try {
     // Fetch all appointments
-    const response = await appointmentsClient.get('/api/v1/appointments', {
+    const response = await appointmentsClient.get('/v1/appointments', {
       params: {
         page: 1,
         pageSize: 1000,
@@ -179,7 +179,7 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
     appointments.forEach((apt: any) => {
       const date = new Date(apt.appointmentDateTime);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
+
       if (!monthlyData[monthKey]) {
         monthlyData[monthKey] = {
           patients: new Set(),
@@ -210,7 +210,7 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
     });
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch monthly stats:', error);
-    
+
     // Return empty data
     return ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'].map(month => ({
       month,
@@ -226,7 +226,7 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
  */
 export async function getInvoiceSummary(): Promise<{ summary: InvoiceStatusSummary; todayRevenue: { payos: number; cash: number } }> {
   try {
-    const invoicesResp = await billingClient.get('/api/v1/invoices/search', {
+    const invoicesResp = await billingClient.get('/v1/billing/invoices/search', {
       params: { page: 1, pageSize: 1000 },
     });
     const invoices = invoicesResp.data?.data?.invoices || invoicesResp.data?.data || [];
@@ -242,8 +242,8 @@ export async function getInvoiceSummary(): Promise<{ summary: InvoiceStatusSumma
     const todayRevenue = payments.reduce(
       (acc: { payos: number; cash: number }, p: any) => {
         const created = new Date(p.createdAt || p.paymentDate);
-        const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-        const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
         if (created >= todayStart && created <= todayEnd && String(p.status).toUpperCase() === 'PAID') {
           const method = String(p.method || p.paymentMethod || '').toLowerCase();
           const amount = Number(p.amount || p.totalAmount || 0);
@@ -266,33 +266,33 @@ export async function getInvoiceSummary(): Promise<{ summary: InvoiceStatusSumma
  */
 export async function getRevenueTrend(days: number = 14): Promise<{ date: string; amount: number }[]> {
   try {
-    const resp = await billingClient.get('/api/v1/invoices/search', {
+    const resp = await billingClient.get('/v1/billing/invoices/search', {
       params: { page: 1, pageSize: 1000, status: 'PAID' },
     });
     const invoices = resp.data?.data?.invoices || resp.data?.data || [];
-    const end = new Date(); end.setHours(0,0,0,0);
+    const end = new Date(); end.setHours(0, 0, 0, 0);
     const trend: Record<string, number> = {};
     for (let i = 0; i < days; i++) {
       const d = new Date(end); d.setDate(end.getDate() - i);
-      const key = d.toISOString().slice(0,10);
+      const key = d.toISOString().slice(0, 10);
       trend[key] = 0;
     }
     invoices.forEach((inv: any) => {
       const paidAt = new Date(inv.paidAt || inv.updatedAt || inv.createdAt);
-      const key = paidAt.toISOString().slice(0,10);
+      const key = paidAt.toISOString().slice(0, 10);
       if (trend[key] !== undefined && String(inv.status).toUpperCase() === 'PAID') {
         trend[key] += Number(inv.totalAmount || inv.amount || 0);
       }
     });
     return Object.entries(trend)
-      .sort(([a],[b]) => a.localeCompare(b))
+      .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, amount]) => ({ date, amount }));
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch revenue trend:', error);
-    const end = new Date(); end.setHours(0,0,0,0);
+    const end = new Date(); end.setHours(0, 0, 0, 0);
     return Array.from({ length: days }).map((_, i) => {
       const d = new Date(end); d.setDate(end.getDate() - i);
-      return { date: d.toISOString().slice(0,10), amount: 0 };
+      return { date: d.toISOString().slice(0, 10), amount: 0 };
     }).reverse();
   }
 }
@@ -302,7 +302,7 @@ export async function getRevenueTrend(days: number = 14): Promise<{ date: string
  */
 export async function getInvoiceStatusDistribution(): Promise<InvoiceStatusSummary> {
   try {
-    const resp = await billingClient.get('/api/v1/invoices/search', {
+    const resp = await billingClient.get('/v1/billing/invoices/search', {
       params: { page: 1, pageSize: 1000 },
     });
     const invoices = resp.data?.data?.invoices || resp.data?.data || [];
@@ -323,7 +323,7 @@ export async function getInvoiceStatusDistribution(): Promise<InvoiceStatusSumma
  */
 export async function getRecentPayments(limit: number = 10): Promise<PaymentRecord[]> {
   try {
-    const resp = await billingClient.get('/api/v1/invoices/search', {
+    const resp = await billingClient.get('/v1/billing/invoices/search', {
       params: { page: 1, pageSize: 1000, status: 'PAID', sortBy: 'updatedAt', sortOrder: 'DESC' },
     });
     const invoices = resp.data?.data?.invoices || resp.data?.data || [];
@@ -358,9 +358,9 @@ export async function getRecentWebhooks(limit: number = 10): Promise<WebhookEven
  */
 export async function getTodayCheckInCount(): Promise<{ checkedIn: number; total: number }> {
   try {
-    const resp = await appointmentsClient.get('/api/v1/appointments', { params: { page: 1, pageSize: 1000 } });
+    const resp = await appointmentsClient.get('/v1/appointments', { params: { page: 1, pageSize: 1000 } });
     const apts = resp.data?.data?.appointments || [];
-    const today = new Date(); today.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
     const todayApts = apts.filter((apt: any) => {
       const d = new Date(apt.appointmentDateTime);
@@ -384,7 +384,7 @@ export async function getTodayAppointmentsCount(): Promise<number> {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const response = await appointmentsClient.get('/api/v1/appointments', {
+    const response = await appointmentsClient.get('/v1/appointments', {
       params: {
         page: 1,
         pageSize: 1000,
@@ -392,7 +392,7 @@ export async function getTodayAppointmentsCount(): Promise<number> {
     });
 
     const appointments = response.data?.data?.appointments || [];
-    
+
     const todayAppointments = appointments.filter((apt: any) => {
       const aptDate = new Date(apt.appointmentDateTime);
       return aptDate >= today && aptDate < tomorrow;

@@ -23,7 +23,7 @@ class BaseUseCase {
             // Validate request
             const validationResult = await this.validate(request);
             if (!validationResult.isValid) {
-                throw new UseCaseValidationError('Use case validation failed', validationResult.errors);
+                throw new UseCaseValidationError("Use case validation failed", validationResult.errors);
             }
             // Execute business logic
             return await this.executeInternal(request);
@@ -45,14 +45,14 @@ class BaseUseCase {
      */
     async handleError(error, _request) {
         // Log error, send notifications, etc.
-        console.error('Use case execution error:', error);
+        console.error("Use case execution error:", error);
     }
     /**
      * Get current execution context
      */
     getContext() {
         if (!this.context) {
-            throw new Error('Use case context not available');
+            throw new Error("Use case context not available");
         }
         return this.context;
     }
@@ -67,7 +67,7 @@ class BaseHealthcareUseCase extends BaseUseCase {
      */
     async execute(request, context) {
         if (!context?.userId) {
-            throw new UseCaseAuthorizationError('User context required for healthcare operations');
+            throw new UseCaseAuthorizationError("User context required for healthcare operations");
         }
         // Set context before any operations that need it
         this.context = context;
@@ -96,7 +96,7 @@ class BaseHealthcareUseCase extends BaseUseCase {
             timestamp: context.timestamp,
             ipAddress: context.ipAddress,
             userAgent: context.userAgent,
-            details: { correlationId: context.correlationId }
+            details: { correlationId: context.correlationId },
         };
     }
     /**
@@ -105,7 +105,7 @@ class BaseHealthcareUseCase extends BaseUseCase {
     async logHIPAAAudit(request, _context) {
         const auditInfo = this.getAuditInfo(request);
         // Implementation would log to HIPAA audit system
-        console.log('HIPAA Audit:', auditInfo);
+        console.log("HIPAA Audit:", auditInfo);
     }
 }
 exports.BaseHealthcareUseCase = BaseHealthcareUseCase;
@@ -115,7 +115,7 @@ exports.BaseHealthcareUseCase = BaseHealthcareUseCase;
 class UseCaseValidationError extends Error {
     constructor(message, errors) {
         super(message);
-        this.name = 'UseCaseValidationError';
+        this.name = "UseCaseValidationError";
         this.errors = errors;
     }
 }
@@ -124,9 +124,9 @@ exports.UseCaseValidationError = UseCaseValidationError;
  * Use case authorization error
  */
 class UseCaseAuthorizationError extends Error {
-    constructor(message = 'Unauthorized to execute this use case') {
+    constructor(message = "Unauthorized to execute this use case") {
         super(message);
-        this.name = 'UseCaseAuthorizationError';
+        this.name = "UseCaseAuthorizationError";
     }
 }
 exports.UseCaseAuthorizationError = UseCaseAuthorizationError;
@@ -136,7 +136,7 @@ exports.UseCaseAuthorizationError = UseCaseAuthorizationError;
 class UseCaseExecutionError extends Error {
     constructor(message, innerError) {
         super(message);
-        this.name = 'UseCaseExecutionError';
+        this.name = "UseCaseExecutionError";
         this.innerError = innerError;
     }
 }
@@ -186,7 +186,7 @@ function WithMetrics(metrics) {
                     metrics.recordValidationFailure(useCaseName, error.errors);
                 }
                 else if (error instanceof UseCaseAuthorizationError) {
-                    metrics.recordAuthorizationFailure(useCaseName, 'unknown');
+                    metrics.recordAuthorizationFailure(useCaseName, "unknown");
                 }
                 throw error;
             }

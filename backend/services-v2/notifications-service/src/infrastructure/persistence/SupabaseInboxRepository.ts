@@ -48,12 +48,9 @@ export class SupabaseInboxRepository implements IInboxRepository {
     headers?: any;
     eventId?: string;
   }): Promise<string> {
-    const inboxId = crypto.randomUUID();
-
     const { data, error } = await this.supabase
       .from("inbox")
       .insert({
-        inbox_id: inboxId,
         idempotency_key: event.idempotencyKey,
         event_type: event.eventType,
         payload_json: event.payload,
@@ -70,7 +67,7 @@ export class SupabaseInboxRepository implements IInboxRepository {
       throw new Error(`Failed to store event: ${error.message}`);
     }
 
-    return data.inbox_id;
+    return data.inbox_id?.toString();
   }
 
   async processEventIdempotent(

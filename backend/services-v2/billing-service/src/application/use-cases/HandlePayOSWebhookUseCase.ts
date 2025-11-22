@@ -6,7 +6,7 @@ import {
   VnpayIntegrationService,
   WebhookData,
 } from "../../infrastructure/services/VnpayIntegrationService";
-import { Payment } from "../../domain/entities/Payment";
+import { Payment, VnpayTransactionData } from "../../domain/entities/Payment";
 import { Money } from "../../domain/value-objects/Money";
 
 export interface HandlePayOSWebhookRequest {
@@ -144,11 +144,34 @@ export class HandlePayOSWebhookUseCase extends BaseHealthcareUseCase<
       throw new Error("Invoice not found");
     }
 
-    // Create payment
+    // Extract VNPAY transaction data from webhook payload
+    let vnpayData: VnpayTransactionData | undefined;
+    if (request.rawPayload) {
+      const vnpTxnRef = request.rawPayload.vnp_TxnRef;
+      const vnpTransactionNo = request.rawPayload.vnp_TransactionNo;
+      const vnpPayDate = request.rawPayload.vnp_PayDate;
+
+      if (vnpTxnRef && vnpTransactionNo && vnpPayDate) {
+        vnpayData = {
+          vnpTxnRef,
+          vnpTransactionNo,
+          vnpPayDate,
+        };
+        this.logger.info("VNPAY transaction data extracted from webhook", {
+          vnpTxnRef,
+          vnpTransactionNo,
+          vnpPayDate,
+        });
+      }
+    }
+
+    // Create payment with VNPAY data
     const payment = Payment.create(
       Money.create(request.webhookData.amount),
       "payos",
       request.webhookData.reference,
+      undefined, // id
+      vnpayData, // VNPAY transaction data for refund support
     );
 
     // Process payment

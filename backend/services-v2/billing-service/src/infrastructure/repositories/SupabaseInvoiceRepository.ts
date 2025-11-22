@@ -47,29 +47,70 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
       }
     }
 
-    // 3. Insert new payments (append only, don't delete)
-    // Only insert payments that don't already exist in database
+    // 3. Upsert payments (insert new, update existing)
+    // This is critical for refund flow - we need to update payment status
     if (payments.length > 0) {
       // Fetch existing payment_ids (Payment entity IDs) for this invoice
       const { data: existingPayments } = await this.supabase
         .from(this.paymentsTable)
-        .select("payment_id")
+        .select("payment_id, id")
         .eq("invoice_id", invoiceRecord.id);
 
-      const existingPaymentIds = new Set(
-        (existingPayments || []).map((p) => p.payment_id)
+      const existingPaymentMap = new Map(
+        (existingPayments || []).map((p) => [p.payment_id, p.id])
       );
 
-      // Filter out payments that already exist (by payment_id, not database id)
-      const newPayments = payments.filter((p) => !existingPaymentIds.has(p.payment_id));
+      // Separate new payments and existing payments
+      const newPayments: any[] = [];
+      const updatedPayments: any[] = [];
 
+      for (const payment of payments) {
+        const existingDbId = existingPaymentMap.get(payment.payment_id);
+        if (existingDbId) {
+          // Payment exists - update it (for refund status changes)
+          updatedPayments.push({
+            ...payment,
+            id: existingDbId, // Use existing database ID
+          });
+        } else {
+          // New payment - insert it
+          newPayments.push(payment);
+        }
+      }
+
+      // Insert new payments
       if (newPayments.length > 0) {
-        const { error: paymentsError } = await this.supabase
+        const { error: insertError } = await this.supabase
           .from(this.paymentsTable)
           .insert(newPayments);
 
-        if (paymentsError) {
-          throw new Error(`Failed to save payments: ${paymentsError.message}`);
+        if (insertError) {
+          throw new Error(`Failed to insert new payments: ${insertError.message}`);
+        }
+      }
+
+      // Update existing payments (critical for refund flow)
+      if (updatedPayments.length > 0) {
+        // Supabase doesn't support batch update, so we update one by one
+        for (const payment of updatedPayments) {
+          const { error: updateError } = await this.supabase
+            .from(this.paymentsTable)
+            .update({
+              amount: payment.amount,
+              currency: payment.currency,
+              method: payment.method,
+              transaction_id: payment.transaction_id,
+              processed_at: payment.processed_at,
+              processed_by: payment.processed_by,
+              vnpay_txn_ref: payment.vnpay_txn_ref,
+              vnpay_transaction_no: payment.vnpay_transaction_no,
+              vnpay_pay_date: payment.vnpay_pay_date,
+            })
+            .eq('id', payment.id);
+
+          if (updateError) {
+            throw new Error(`Failed to update payment ${payment.payment_id}: ${updateError.message}`);
+          }
         }
       }
     }
@@ -197,6 +238,93 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
       itemsData || [],
       paymentsData || [],
     );
+  }
+
+  async findByAppointmentId(appointmentId: string): Promise<Invoice | null> {
+    // Fetch invoice by appointment_id
+    const { data: invoiceData, error: invoiceError } = await this.supabase
+      .from(this.invoicesTable)
+      .select("*")
+      .eq("appointment_id", appointmentId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (invoiceError) {
+      if (invoiceError.code === "PGRST116") return null;
+      throw new Error(
+        `Failed to find invoice by appointment ID: ${invoiceError.message}`,
+      );
+    }
+
+    if (!invoiceData) return null;
+
+    // Fetch related items
+    const { data: itemsData, error: itemsError } = await this.supabase
+      .from(this.itemsTable)
+      .select("*")
+      .eq("invoice_id", invoiceData.id);
+
+    if (itemsError) {
+      throw new Error(`Failed to fetch invoice items: ${itemsError.message}`);
+    }
+
+    // Fetch related payments
+    const { data: paymentsData, error: paymentsError } = await this.supabase
+      .from(this.paymentsTable)
+      .select("*")
+      .eq("invoice_id", invoiceData.id);
+
+    if (paymentsError) {
+      throw new Error(`Failed to fetch payments: ${paymentsError.message}`);
+    }
+
+    return InvoiceMapper.toDomain(
+      invoiceData,
+      itemsData || [],
+      paymentsData || [],
+    );
+  }
+
+  async findAllByAppointmentId(appointmentId: string): Promise<Invoice[]> {
+    // Fetch all invoices for an appointment (in case of multiple invoices)
+    const { data: invoicesData, error: invoicesError } = await this.supabase
+      .from(this.invoicesTable)
+      .select("*")
+      .eq("appointment_id", appointmentId)
+      .order("created_at", { ascending: false });
+
+    if (invoicesError) {
+      throw new Error(
+        `Failed to find invoices by appointment ID: ${invoicesError.message}`,
+      );
+    }
+
+    if (!invoicesData || invoicesData.length === 0) return [];
+
+    // Fetch items and payments for all invoices
+    const invoiceIds = invoicesData.map((inv) => inv.id);
+
+    const { data: itemsData } = await this.supabase
+      .from(this.itemsTable)
+      .select("*")
+      .in("invoice_id", invoiceIds);
+
+    const { data: paymentsData } = await this.supabase
+      .from(this.paymentsTable)
+      .select("*")
+      .in("invoice_id", invoiceIds);
+
+    // Map each invoice with its items and payments
+    return invoicesData.map((invoiceData) => {
+      const invoiceItems =
+        itemsData?.filter((item) => item.invoice_id === invoiceData.id) || [];
+      const invoicePayments =
+        paymentsData?.filter((payment) => payment.invoice_id === invoiceData.id) ||
+        [];
+
+      return InvoiceMapper.toDomain(invoiceData, invoiceItems, invoicePayments);
+    });
   }
 
   async findOverdueInvoices(daysOverdue?: number): Promise<Invoice[]> {

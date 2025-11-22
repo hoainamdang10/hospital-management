@@ -4,7 +4,7 @@ import { Money } from "../../domain/value-objects/Money";
 import { InvoiceStatus } from "../../domain/value-objects/InvoiceStatus";
 import { Insurance } from "../../domain/value-objects/Insurance";
 import { InvoiceItem } from "../../domain/entities/InvoiceItem";
-import { Payment } from "../../domain/entities/Payment";
+import { Payment, VnpayTransactionData } from "../../domain/entities/Payment";
 
 export interface InvoiceRecord {
   id: string;
@@ -77,6 +77,9 @@ export interface PaymentRecordData {
   payos_data?: any;
   payos_order_code?: number;
   payos_transaction_id?: string;
+  vnpay_txn_ref?: string;
+  vnpay_transaction_no?: string;
+  vnpay_pay_date?: string;
   notes?: string;
   metadata?: any;
   created_at: string;
@@ -111,14 +114,40 @@ export class InvoiceMapper {
       : undefined;
 
     // Map payment records from separate table
-    const payments = paymentRecords.map((p) =>
-      Payment.create(
-        Money.create(p.amount, p.currency),
+    const payments = paymentRecords.map((p) => {
+      // Reconstruct VNPAY transaction data if available
+      let vnpayData: VnpayTransactionData | undefined;
+      if (p.vnpay_txn_ref && p.vnpay_transaction_no && p.vnpay_pay_date) {
+        // Convert ISO timestamp back to VNPAY format (yyyyMMddHHmmss)
+        const payDate = new Date(p.vnpay_pay_date);
+        const vnpayPayDate =
+          payDate.getFullYear().toString() +
+          (payDate.getMonth() + 1).toString().padStart(2, '0') +
+          payDate.getDate().toString().padStart(2, '0') +
+          payDate.getHours().toString().padStart(2, '0') +
+          payDate.getMinutes().toString().padStart(2, '0') +
+          payDate.getSeconds().toString().padStart(2, '0');
+
+        vnpayData = {
+          vnpTxnRef: p.vnpay_txn_ref,
+          vnpTransactionNo: p.vnpay_transaction_no,
+          vnpPayDate: vnpayPayDate,
+        };
+      }
+
+      // Use createSigned() for negative amounts (refunds), create() for positive amounts
+      const money = p.amount < 0
+        ? Money.createSigned(p.amount, p.currency)
+        : Money.create(p.amount, p.currency);
+
+      return Payment.create(
+        money,
         p.method as any, // Database stores string, cast to PaymentMethod
         p.transaction_id,
         p.payment_id,
-      ),
-    );
+        vnpayData, // Pass VNPAY data to Payment entity
+      );
+    });
 
     const props = {
       id: InvoiceId.create(record.id),
@@ -231,6 +260,16 @@ export class InvoiceMapper {
         processed_at: p.paidAt ? new Date(p.paidAt).toISOString() : new Date().toISOString(),
         processed_by: persistence.patientId, // Patient processes their own payment (prepaid model)
         created_at: new Date().toISOString(),
+        // VNPAY-specific fields for refund support
+        vnpay_txn_ref: p.vnpayData?.vnpTxnRef,
+        vnpay_transaction_no: p.vnpayData?.vnpTransactionNo,
+        vnpay_pay_date: p.vnpayData?.vnpPayDate ? new Date(
+          // Parse VNPAY date format: yyyyMMddHHmmss
+          p.vnpayData.vnpPayDate.replace(
+            /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
+            '$1-$2-$3T$4:$5:$6Z'
+          )
+        ).toISOString() : undefined,
       }));
 
     return {

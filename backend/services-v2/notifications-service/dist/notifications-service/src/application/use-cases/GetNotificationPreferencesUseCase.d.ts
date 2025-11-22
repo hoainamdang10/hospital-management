@@ -6,10 +6,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS Query
  */
-import { SupabasePreferencesRepository, NotificationPreferences } from '../../infrastructure/persistence/SupabasePreferencesRepository';
+import { SupabasePreferencesRepository, NotificationPreferences } from "../../infrastructure/persistence/SupabasePreferencesRepository";
 export interface GetPreferencesQuery {
     userId: string;
-    userType?: 'patient' | 'staff';
+    userType?: "patient" | "staff";
 }
 export interface GetPreferencesResult {
     preferences: NotificationPreferences;
@@ -17,7 +17,9 @@ export interface GetPreferencesResult {
 }
 export declare class GetNotificationPreferencesUseCase {
     private readonly preferencesRepository;
+    private readonly allowedChannels;
     constructor(preferencesRepository: SupabasePreferencesRepository);
     execute(query: GetPreferencesQuery): Promise<GetPreferencesResult>;
+    private sanitizeChannels;
 }
 //# sourceMappingURL=GetNotificationPreferencesUseCase.d.ts.map

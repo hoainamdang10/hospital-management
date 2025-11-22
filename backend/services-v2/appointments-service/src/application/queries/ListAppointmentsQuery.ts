@@ -27,7 +27,7 @@ export interface ListAppointmentsQueryParams {
 export class ListAppointmentsQuery {
   constructor(
     private readModelRepo: IAppointmentReadModelRepository
-  ) {}
+  ) { }
 
   /**
    * Execute query to list appointments
@@ -58,27 +58,27 @@ export class ListAppointmentsQuery {
       this.readModelRepo.countWithFilters(filters)
     ]);
 
-    // Map to DTOs
+    // Map to DTOs with snake_case field names (REST API convention)
     const appointmentDTOs: AppointmentListItemDTO[] = appointments.map(readModel => ({
-      appointmentId: readModel.appointmentId,
-      appointmentDate: readModel.appointmentDate.toISOString().split('T')[0],
-      appointmentTime: readModel.appointmentTime,
-      durationMinutes: readModel.durationMinutes,
+      appointment_id: readModel.appointmentId,
+      appointment_date: readModel.appointmentDate.toISOString().split('T')[0],
+      appointment_time: readModel.appointmentTime,
+      duration_minutes: readModel.durationMinutes,
       type: readModel.type,
       priority: readModel.priority,
       status: readModel.status,
 
-      patientId: readModel.patientId,
-      patientFullName: readModel.patientFullName,
-      patientPhone: readModel.patientPhone,
+      patient_id: readModel.patientId,
+      patient_full_name: readModel.patientFullName,
+      patient_phone: readModel.patientPhone,
 
-      doctorId: readModel.doctorId,
-      doctorFullName: readModel.doctorFullName,
-      doctorSpecialization: readModel.doctorSpecialization,
+      doctor_id: readModel.doctorId,
+      doctor_full_name: readModel.doctorFullName,
+      doctor_specialization: readModel.doctorSpecialization,
 
-      consultationFee: readModel.consultationFee, // Billing reference only
+      consultation_fee: readModel.consultationFee, // Billing reference only
 
-      createdAt: readModel.createdAt.toISOString()
+      created_at: readModel.createdAt.toISOString()
     }));
 
     // Calculate total pages

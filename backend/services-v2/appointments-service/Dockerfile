@@ -1,75 +1,104 @@
-# Appointments Service - Hospital Management System
+# Appointments Service - Production Dockerfile
 # Multi-stage build for optimized production image
-#
-# @author Hospital Management Team
-# @version 2.0.0
-# @compliance Production-Ready, Security Hardened
 #
 # Build context should be: backend/services-v2
 # Build command: docker build -f appointments-service/Dockerfile -t appointments-service:latest .
 
 # ============================================
-# Stage 1: Builder
+# Stage 1: Dependencies
+# ============================================
+FROM node:20-alpine AS dependencies
+
+ARG BUILD_DATE
+ARG VERSION=2.0.0
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app/appointments-service
+
+# Copy package manifests
+COPY appointments-service/package*.json ./
+
+# Install full dependencies for build (devDependencies included)
+RUN npm ci --prefer-offline --no-audit --legacy-peer-deps && \
+    npm cache clean --force
+
+# ============================================
+# Stage 2: Builder
 # ============================================
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy entire appointments-service and shared folders to maintain structure
-COPY appointments-service/ ./appointments-service/
-COPY shared/ ./shared/
+# Reuse node_modules from dependencies stage
+COPY --from=dependencies /app/appointments-service/node_modules ./appointments-service/node_modules
 
-# Change to appointments-service directory
+# Copy source and shared modules
+COPY appointments-service ./appointments-service
+COPY shared ./shared
+
+# Ensure shared module has its dependencies for build
+RUN cd /app/shared && \
+    if [ -f package.json ]; then \
+      npm install; \
+    else \
+      npm init -y && \
+      npm install uuid @types/uuid @supabase/supabase-js pino pino-pretty amqplib @types/amqplib redis --save; \
+    fi
+
+# Build service
 WORKDIR /app/appointments-service
-
-# Install ALL dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
-
-# Create symlink for node_modules at parent level so shared can access it
-RUN ln -s /app/appointments-service/node_modules /app/node_modules
-
-# Build the application (tsconfig will find ../shared and ../node_modules)
 RUN npm run build
 
 # ============================================
-# Stage 2: Production
+# Stage 3: Production
 # ============================================
 FROM node:20-alpine AS production
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S appointments -u 1001
+ARG BUILD_DATE
+ARG VERSION=2.0.0
+ARG VCS_REF
 
-# Set working directory to match build structure
+LABEL org.opencontainers.image.title="Appointments Service" \
+      org.opencontainers.image.description="Hospital Management System - Appointments Service" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.vendor="Hospital Management Team"
+
+# Install runtime utilities
+RUN apk add --no-cache dumb-init curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S appointments -u 1001 -G nodejs
+
 WORKDIR /app/appointments-service
 
-# Copy entire structure from builder maintaining relative paths
-COPY --from=builder --chown=appointments:nodejs /app/appointments-service/package*.json ./
+# Copy package manifests and install production deps only
+COPY --chown=appointments:nodejs appointments-service/package*.json ./
+RUN npm ci --only=production --prefer-offline --no-audit --legacy-peer-deps && \
+    npm cache clean --force
+
+# Copy built artifacts
 COPY --from=builder --chown=appointments:nodejs /app/appointments-service/dist ./dist
-COPY --from=builder --chown=appointments:nodejs /app/appointments-service/node_modules ./node_modules
 COPY --from=builder --chown=appointments:nodejs /app/shared ../shared
 
-# Install production dependencies only (if needed)
-RUN npm prune --production && npm cache clean --force
+# Prepare directories
+RUN mkdir -p logs && chown -R appointments:nodejs logs
 
-# Create necessary directories
-RUN mkdir -p /app/appointments-service/logs && chown appointments:nodejs /app/appointments-service/logs
+ENV NODE_ENV=production \
+    PORT=3004 \
+    SERVICE_NAME=appointments-service \
+    SERVICE_VERSION=2.0.0
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3024
-ENV SERVICE_NAME=appointments-service
-ENV SERVICE_VERSION=2.0.0
-
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e 'const port = process.env.PORT || 3024; require("http").get(`http://localhost:${port}/health`, (res) => { if (res.statusCode === 200) process.exit(0); else process.exit(1); }).on("error", () => process.exit(1));'
+  CMD node -e "const port = process.env.PORT || 3004; const url = 'http://localhost:' + port + '/health'; require('http').get(url, (res) => { if (res.statusCode === 200) process.exit(0); else process.exit(1); }).on('error', () => process.exit(1));"
 
-# Switch to non-root user
 USER appointments
 
-# Expose port
-EXPOSE 3024
+EXPOSE 3004
 
-# Start the application
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/appointments-service/src/main.js"]

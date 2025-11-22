@@ -63,7 +63,7 @@ npm install
 npm run dev
 ```
 
-Service sẽ start trên port 3024.
+Service sẽ start trên port 3004.
 
 ---
 
@@ -331,7 +331,7 @@ npm run test:coverage
 ### Health Check
 
 ```bash
-curl http://localhost:3024/health
+curl http://localhost:3004/health
 ```
 
 ### Check Read Model Sync Status
@@ -382,4 +382,5 @@ ORDER BY sync_lag_seconds DESC;
 **Author**: Hospital Management Team  
 **Date**: 2025-01-12  
 **Version**: 3.0.0
+
 

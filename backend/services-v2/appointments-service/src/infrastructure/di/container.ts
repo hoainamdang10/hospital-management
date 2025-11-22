@@ -792,6 +792,7 @@ export class DIContainer {
     // Initialize PaymentCompletedHandler
     this.paymentCompletedHandler = new PaymentCompletedHandler(
       this.appointmentRepository,
+      this.appointmentReadModelRepository,
     );
 
     // Initialize BillingEventConsumer with payment event support

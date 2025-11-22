@@ -5,7 +5,14 @@
 // ENUMS
 // ============================================================================
 
-export type AppointmentType = 'CONSULTATION' | 'FOLLOW_UP' | 'EMERGENCY' | 'SURGERY' | 'PROCEDURE';
+export type AppointmentType =
+  | 'CONSULTATION' | 'consultation'
+  | 'FOLLOW_UP' | 'follow_up'
+  | 'EMERGENCY' | 'emergency'
+  | 'SURGERY' | 'surgery'
+  | 'PROCEDURE' | 'procedure'
+  | 'URGENT_CONSULTATION' | 'urgent_consultation'
+  | 'MEDICAL_TEST' | 'medical_test';
 
 export type AppointmentPriority = 'LOW' | 'NORMAL' | 'URGENT' | 'EMERGENCY';
 
@@ -20,7 +27,7 @@ export type AppointmentStatus =
   | 'NO_SHOW' | 'no_show'
   | 'RESCHEDULED' | 'reschedule_required';
 
-export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED';
+export type PaymentStatus = 'PENDING' | 'pending' | 'PAID' | 'paid' | 'REFUNDED' | 'refunded' | 'FAILED' | 'failed';
 
 // ============================================================================
 // REQUEST TYPES
@@ -78,25 +85,49 @@ export interface Appointment {
 
 export interface AppointmentReadModel {
   id: string;
-  appointmentId: string;
-  patientId: string;
-  patientName: string;
-  patientPhone: string;
-  patientEmail: string;
-  doctorId: string;
-  doctorName: string;
-  doctorSpecialization: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  durationMinutes: number;
+  appointment_id: string;
+  patient_id: string;
+  patient_full_name: string;
+  patient_phone: string | null;
+  patient_email: string;
+  patient_date_of_birth?: string;
+  patient_gender?: string;
+  patient_national_id?: string;
+  patient_insurance_number?: string | null;
+  patient_insurance_type?: string | null;
+  patient_address?: string;
+  doctor_id: string;
+  doctor_full_name: string;
+  doctor_specialization: string;
+  doctor_department?: string | null;
+  doctor_license_number?: string | null;
+  doctor_phone?: string | null;
+  doctor_email?: string | null;
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes: number;
   type: AppointmentType;
   priority: AppointmentPriority;
   status: AppointmentStatus;
-  reason?: string;
-  consultationFee: number;
-  paymentStatus: PaymentStatus;
-  createdAt?: string;
-  updatedAt?: string;
+  reason?: string | null;
+  chief_complaint?: string | null;
+  symptoms?: string[];
+  notes?: string | null;
+  special_instructions?: string | null;
+  required_equipment?: string[];
+  room_id?: string | null;
+  department_id?: string | null;
+  consultation_fee: string;
+  additional_fees?: string;
+  payment_status: PaymentStatus;
+  checked_in_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  synced_at?: string;
 }
 
 export interface ScheduleAppointmentResponse {

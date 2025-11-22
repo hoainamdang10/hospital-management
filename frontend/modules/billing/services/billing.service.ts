@@ -10,14 +10,16 @@ export interface Invoice {
   patientId: string;
   appointmentId?: string;
   invoiceNumber?: string;
+  invoiceCode?: string;
   items: InvoiceItem[];
   subtotal: number;
   tax: number;
   insuranceCoverage: number;
   totalAmount: number;
   outstandingAmount: number;
+  paidAmount?: number;
   currency: string;
-  status: 'draft' | 'pending' | 'partially_paid' | 'paid' | 'cancelled' | 'refunded';
+  status: 'draft' | 'pending' | 'partially_paid' | 'paid' | 'cancelled' | 'refunded' | 'overdue';
   insurance?: {
     provider: string;
     policyNumber: string;
@@ -26,6 +28,9 @@ export interface Invoice {
   payments: Payment[];
   createdAt: string;
   updatedAt: string;
+  issuedAt?: string;
+  dueDate?: string;
+  issueDate?: string;
   finalizedAt?: string;
   cancelledAt?: string;
   cancellationReason?: string;
@@ -46,12 +51,19 @@ export interface Payment {
   transactionId?: string;
   status: string;
   processedAt: string;
+  paidAt?: string;
+  refundedAt?: string;
+  refundReason?: string;
+  refundedBy?: string;
+  gatewayRefundId?: string;
 }
 
 export interface BillingSummary {
   totalAmount: number;
   paidAmount: number;
   outstandingAmount: number;
+  totalPaid?: number;
+  totalOutstanding?: number;
   invoiceCount: number;
   paidInvoiceCount: number;
   pendingInvoiceCount: number;
@@ -83,14 +95,7 @@ class BillingService {
           ? data.data.invoices
           : [];
 
-    return rawInvoices.map((invoice: any) => ({
-      ...invoice,
-      id: invoice.id || invoice.invoiceId,
-      appointmentId: invoice.appointmentId ?? invoice.appointment_id,
-      totalAmount: invoice.totalAmount ?? invoice.total_amount,
-      outstandingAmount: invoice.outstandingAmount ?? invoice.outstanding_amount,
-      status: invoice.status ?? invoice.invoiceStatus,
-    }));
+    return rawInvoices.map((invoice: any) => this.normalizeInvoice(invoice));
   }
 
   /**
@@ -165,6 +170,94 @@ class BillingService {
       params: criteria,
     });
     return response.data;
+  }
+
+  private normalizeInvoice(invoice: any): Invoice {
+    const toNumber = (value: any, fallback = 0): number => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
+    const rawStatus =
+      invoice?.status || invoice?.invoiceStatus || invoice?.paymentStatus || 'pending';
+    const normalizedStatus = (() => {
+      const statusValue = (rawStatus as string).toString().toLowerCase();
+      if (
+        statusValue === 'paid' ||
+        statusValue === 'pending' ||
+        statusValue === 'partially_paid' ||
+        statusValue === 'cancelled' ||
+        statusValue === 'refunded' ||
+        statusValue === 'draft' ||
+        statusValue === 'overdue'
+      ) {
+        return statusValue;
+      }
+      return 'pending';
+    })() as Invoice['status'];
+
+    const normalizedId =
+      invoice?.id ||
+      invoice?.invoiceId ||
+      invoice?.invoice_id ||
+      invoice?.invoiceNumber ||
+      invoice?.invoice_number ||
+      `invoice-${Date.now()}`;
+
+    const totalAmount = toNumber(invoice?.totalAmount ?? invoice?.total_amount);
+    const paidAmount = toNumber(
+      invoice?.paidAmount ?? invoice?.paid_amount ?? invoice?.patient_payment_amount
+    );
+    const outstandingAmount = toNumber(
+      invoice?.outstandingAmount ??
+        invoice?.outstanding_amount ??
+        Math.max(0, totalAmount - paidAmount)
+    );
+
+    return {
+      ...invoice,
+      id: normalizedId.toString(),
+      invoiceNumber:
+        invoice?.invoiceNumber ||
+        invoice?.invoice_number ||
+        invoice?.invoiceId ||
+        invoice?.invoice_id,
+      invoiceCode: invoice?.vietnamese_invoice_number,
+      appointmentId: invoice?.appointmentId ?? invoice?.appointment_id,
+      subtotal: toNumber(invoice?.subtotal ?? invoice?.subtotalAmount ?? invoice?.subtotal_amount),
+      tax: toNumber(invoice?.tax ?? invoice?.taxAmount ?? invoice?.tax_amount),
+      insuranceCoverage: toNumber(
+        invoice?.insuranceCoverage ??
+          invoice?.insurance_coverage_amount ??
+          invoice?.insuranceCoverageAmount
+      ),
+      totalAmount,
+      outstandingAmount,
+      paidAmount,
+      currency: invoice?.currency || invoice?.total_currency || 'VND',
+      status: normalizedStatus,
+      payments: invoice?.payments || invoice?.paymentHistory || [],
+      createdAt: invoice?.createdAt ?? invoice?.created_at ?? new Date().toISOString(),
+      updatedAt: invoice?.updatedAt ?? invoice?.updated_at ?? new Date().toISOString(),
+      issuedAt:
+        invoice?.issueDate ??
+        invoice?.issue_date ??
+        invoice?.issuedAt ??
+        invoice?.issued_at ??
+        invoice?.createdAt ??
+        invoice?.created_at,
+      issueDate:
+        invoice?.issueDate ??
+        invoice?.issue_date ??
+        invoice?.issuedAt ??
+        invoice?.issued_at ??
+        invoice?.createdAt ??
+        invoice?.created_at,
+      dueDate: invoice?.dueDate ?? invoice?.due_date ?? invoice?.final_due_date,
+      finalizedAt: invoice?.finalizedAt ?? invoice?.finalized_at,
+      cancelledAt: invoice?.cancelledAt ?? invoice?.cancelled_at,
+      cancellationReason: invoice?.cancellationReason ?? invoice?.cancellation_reason,
+    };
   }
 }
 

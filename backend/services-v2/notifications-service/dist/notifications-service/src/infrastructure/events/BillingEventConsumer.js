@@ -132,10 +132,21 @@ class BillingEventConsumer {
             const content = msg.content.toString();
             const event = JSON.parse(content);
             const routingKey = msg.fields.routingKey;
+            const payload = event.payload ?? event.data ?? event.eventData ?? event;
             // Idempotency check
             const eventId = event.eventId || event.id || event.metadata?.eventId;
             if (!eventId) {
                 console.error("[BillingEventConsumer] Missing eventId, cannot process:", event);
+                this.channel?.ack(msg);
+                return;
+            }
+            if (routingKey.startsWith("billing.payment.") &&
+                !(payload?.paymentId || event.eventData?.paymentId)) {
+                console.error("[BillingEventConsumer] Missing paymentId in payload", {
+                    eventId,
+                    routingKey,
+                    event,
+                });
                 this.channel?.ack(msg);
                 return;
             }
@@ -160,22 +171,23 @@ class BillingEventConsumer {
                     await this.handlePreAuthorizationDenied(event.payload);
                     break;
                 case "billing.rate.updated":
-                    await this.handleRateUpdated(event.payload);
+                    await this.handleRateUpdated(payload);
                     break;
+                case "billing.payment.completed":
                 case "billing.payment.processed":
-                    await this.handlePaymentProcessed(event.payload);
+                    await this.handlePaymentProcessed(payload);
                     break;
                 case "billing.invoice.generated":
-                    await this.handleInvoiceGenerated(event.payload);
+                    await this.handleInvoiceGenerated(payload);
                     break;
                 case "billing.payment.reminder.scheduled":
-                    await this.handlePaymentReminderScheduled(event.payload);
+                    await this.handlePaymentReminderScheduled(payload);
                     break;
                 case "billing.payment.reminder.due":
-                    await this.handlePaymentReminderDue(event.payload);
+                    await this.handlePaymentReminderDue(payload);
                     break;
                 case "billing.refund.processed":
-                    await this.handleRefundProcessed(event.payload);
+                    await this.handleRefundProcessed(payload);
                     break;
                 default:
                     console.warn("Unhandled routing key", { routingKey });

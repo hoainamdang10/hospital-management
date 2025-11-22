@@ -24,6 +24,21 @@ export interface InvoiceProps {
 export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     private constructor();
     static create(patientId: string, items: InvoiceItem[]): Invoice;
+    /**
+     * Process refund for cancelled appointment
+     * @param refundPercentage Percentage of total amount to refund (0-100)
+     * @param reason Refund reason
+     * @param refundedBy User who initiated the refund
+     * @returns Refund amount
+     */
+    processRefund(refundPercentage: number, reason: string, refundedBy: string): number;
+    /**
+     * Complete refund after gateway confirmation
+     * Called by worker/webhook when PayOS/VNPAY confirms refund
+     * @param refundPaymentId ID of the refund payment to complete
+     * @param gatewayRefundId Refund ID from payment gateway
+     */
+    completeRefund(refundPaymentId: string, gatewayRefundId?: string): void;
     processPayment(payment: Payment): void;
     private static generateInvoiceNumber;
     get id(): string;
