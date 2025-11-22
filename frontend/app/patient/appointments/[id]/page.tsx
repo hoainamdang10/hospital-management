@@ -66,10 +66,20 @@ export default function AppointmentDetailPage() {
 
     try {
       setCancelling(true);
-      await appointmentsService.cancel(appointment.id, {
+      const resp = await appointmentsService.cancel(appointment.id, {
         cancellationReason: 'Bệnh nhân hủy lịch hẹn',
       });
-      toast.success('Đã hủy lịch hẹn thành công');
+      const policy = (resp as any).cancellationPolicy;
+      if (policy?.refundEligible) {
+        const amt = policy.estimatedRefundAmount ?? (policy.refundPercentage && appointment.consultationFee
+          ? (appointment.consultationFee * policy.refundPercentage) / 100
+          : undefined);
+        toast.success(`Đã hủy lịch hẹn. Hoàn ${policy.refundPercentage || 0}%${amt ? ` (~${amt.toLocaleString('vi-VN')} đ)` : ''}`);
+      } else if (policy?.penaltyApplied) {
+        toast.success(`Đã hủy lịch hẹn. Phí hủy: ${policy.penaltyAmount ? `${policy.penaltyAmount.toLocaleString('vi-VN')} đ` : ''}`);
+      } else {
+        toast.success('Đã hủy lịch hẹn thành công');
+      }
       router.push('/patient/appointments');
     } catch (error) {
       console.error('Error cancelling appointment:', error);

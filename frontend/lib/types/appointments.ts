@@ -6,28 +6,52 @@
 // ============================================================================
 
 export type AppointmentType =
-  | 'CONSULTATION' | 'consultation'
-  | 'FOLLOW_UP' | 'follow_up'
-  | 'EMERGENCY' | 'emergency'
-  | 'SURGERY' | 'surgery'
-  | 'PROCEDURE' | 'procedure'
-  | 'URGENT_CONSULTATION' | 'urgent_consultation'
-  | 'MEDICAL_TEST' | 'medical_test';
+  | 'CONSULTATION'
+  | 'consultation'
+  | 'FOLLOW_UP'
+  | 'follow_up'
+  | 'EMERGENCY'
+  | 'emergency'
+  | 'SURGERY'
+  | 'surgery'
+  | 'PROCEDURE'
+  | 'procedure'
+  | 'URGENT_CONSULTATION'
+  | 'urgent_consultation'
+  | 'MEDICAL_TEST'
+  | 'medical_test';
 
 export type AppointmentPriority = 'LOW' | 'NORMAL' | 'URGENT' | 'EMERGENCY';
 
 export type AppointmentStatus =
-  | 'SCHEDULED' | 'scheduled'
-  | 'PENDING_PAYMENT' | 'pending_payment'
-  | 'CONFIRMED' | 'confirmed'
-  | 'ARRIVED' | 'arrived'
-  | 'IN_PROGRESS' | 'in_progress'
-  | 'COMPLETED' | 'completed'
-  | 'CANCELLED' | 'cancelled'
-  | 'NO_SHOW' | 'no_show'
-  | 'RESCHEDULED' | 'reschedule_required';
+  | 'SCHEDULED'
+  | 'scheduled'
+  | 'PENDING_PAYMENT'
+  | 'pending_payment'
+  | 'CONFIRMED'
+  | 'confirmed'
+  | 'ARRIVED'
+  | 'arrived'
+  | 'IN_PROGRESS'
+  | 'in_progress'
+  | 'COMPLETED'
+  | 'completed'
+  | 'CANCELLED'
+  | 'cancelled'
+  | 'NO_SHOW'
+  | 'no_show'
+  | 'RESCHEDULED'
+  | 'reschedule_required';
 
-export type PaymentStatus = 'PENDING' | 'pending' | 'PAID' | 'paid' | 'REFUNDED' | 'refunded' | 'FAILED' | 'failed';
+export type PaymentStatus =
+  | 'PENDING'
+  | 'pending'
+  | 'PAID'
+  | 'paid'
+  | 'REFUNDED'
+  | 'refunded'
+  | 'FAILED'
+  | 'failed';
 
 // ============================================================================
 // REQUEST TYPES
@@ -48,6 +72,17 @@ export interface ScheduleAppointmentRequest {
 
 export interface CancelAppointmentRequest {
   cancellationReason: string; // 3-500 chars
+}
+
+export interface CancellationPolicy {
+  penaltyApplied: boolean;
+  refundEligible: boolean;
+  rescheduleAllowed: boolean;
+  penaltyAmount?: number;
+  refundPercentage?: number;
+  hoursNotice?: number;
+  estimatedRefundAmount?: number;
+  consultationFee?: number;
 }
 
 export interface ListAppointmentsParams {
@@ -151,6 +186,10 @@ export interface ListAppointmentsResponse {
 export interface SuccessResponse {
   success: boolean;
   message: string;
+}
+
+export interface CancelAppointmentResponse extends SuccessResponse {
+  cancellationPolicy?: CancellationPolicy;
 }
 
 export interface ErrorResponse {

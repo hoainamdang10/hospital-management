@@ -8,14 +8,20 @@ import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { useAuth } from '@/hooks/useAuth';
 import { appointmentsService } from '@/lib/api/appointments.service';
-import { AppointmentReadModel } from '@/lib/types/appointments';
+import { AppointmentReadModel, CancelAppointmentResponse } from '@/lib/types/appointments';
 import { format, parseISO, isAfter, startOfDay } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { CancelAppointmentDialog } from '@/components/appointments/CancelAppointmentDialog';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
-type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW' | 'PENDING_PAYMENT';
+type AppointmentStatus =
+  | 'SCHEDULED'
+  | 'CONFIRMED'
+  | 'CANCELLED'
+  | 'COMPLETED'
+  | 'NO_SHOW'
+  | 'PENDING_PAYMENT';
 
 /**
  * My Appointments Page
@@ -48,11 +54,13 @@ export default function MyAppointmentsPage() {
   async function loadAppointments() {
     try {
       setLoading(true);
-      const response = await appointmentsService.getPatientAppointments(user!.patientId || user!.id);
+      const response = await appointmentsService.getPatientAppointments(
+        user!.patientId || user!.id
+      );
       // Normalize status to uppercase to match frontend constants
-      const normalizedAppointments = response.appointments.map(apt => ({
+      const normalizedAppointments = response.appointments.map((apt) => ({
         ...apt,
-        status: (apt.status?.toUpperCase() || 'SCHEDULED') as any // Cast to any to avoid type mismatch if backend returns unknown status
+        status: (apt.status?.toUpperCase() || 'SCHEDULED') as any, // Cast to any to avoid type mismatch if backend returns unknown status
       }));
       setAppointments(normalizedAppointments);
     } catch (error) {
@@ -69,33 +77,38 @@ export default function MyAppointmentsPage() {
 
     // Filter by tab
     if (activeTab === 'upcoming') {
-      filtered = filtered.filter(apt => {
+      filtered = filtered.filter((apt) => {
         const aptDate = parseISO(apt.appointmentDate);
-        return (apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED' || apt.status === 'PENDING_PAYMENT') &&
-          (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
+        return (
+          (apt.status === 'SCHEDULED' ||
+            apt.status === 'CONFIRMED' ||
+            apt.status === 'PENDING_PAYMENT') &&
+          (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'))
+        );
       });
     } else if (activeTab === 'completed') {
-      filtered = filtered.filter(apt => apt.status === 'COMPLETED');
+      filtered = filtered.filter((apt) => apt.status === 'COMPLETED');
     } else if (activeTab === 'cancelled') {
-      filtered = filtered.filter(apt => apt.status === 'CANCELLED');
+      filtered = filtered.filter((apt) => apt.status === 'CANCELLED');
     }
 
     // Filter by status
     if (selectedStatus !== 'all') {
-      filtered = filtered.filter(apt => apt.status === selectedStatus);
+      filtered = filtered.filter((apt) => apt.status === selectedStatus);
     }
 
     // Filter by department
     if (selectedDepartment !== 'all') {
-      filtered = filtered.filter(apt => apt.doctorId === selectedDepartment);
+      filtered = filtered.filter((apt) => apt.doctorId === selectedDepartment);
     }
 
     // Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(apt =>
-        apt.doctorName.toLowerCase().includes(query) ||
-        apt.doctorSpecialization.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (apt) =>
+          apt.doctorName.toLowerCase().includes(query) ||
+          apt.doctorSpecialization.toLowerCase().includes(query)
       );
     }
 
@@ -117,15 +130,19 @@ export default function MyAppointmentsPage() {
     setSelectedDepartment('all');
   }
 
-  const upcomingCount = appointments.filter(apt => {
+  const upcomingCount = appointments.filter((apt) => {
     const aptDate = parseISO(apt.appointmentDate);
     const today = startOfDay(new Date());
-    return (apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED' || apt.status === 'PENDING_PAYMENT') &&
-      (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
+    return (
+      (apt.status === 'SCHEDULED' ||
+        apt.status === 'CONFIRMED' ||
+        apt.status === 'PENDING_PAYMENT') &&
+      (isAfter(aptDate, today) || format(aptDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'))
+    );
   }).length;
 
-  const completedCount = appointments.filter(apt => apt.status === 'COMPLETED').length;
-  const cancelledCount = appointments.filter(apt => apt.status === 'CANCELLED').length;
+  const completedCount = appointments.filter((apt) => apt.status === 'COMPLETED').length;
+  const cancelledCount = appointments.filter((apt) => apt.status === 'CANCELLED').length;
 
   return (
     <DashboardLayout>
@@ -146,19 +163,19 @@ export default function MyAppointmentsPage() {
 
         {/* Search & Filter */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Tìm theo tên bác sĩ hoặc chuyên khoa..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-100"
+              className="focus:border-primary focus:ring-primary-100 w-full rounded-lg border border-gray-300 py-2 pr-4 pl-10 focus:ring-2 focus:outline-none"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -177,24 +194,22 @@ export default function MyAppointmentsPage() {
         {/* Filter Panel */}
         {showFilters && (
           <div className="rounded-lg border bg-gray-50 p-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Bộ lọc</h3>
               <button
                 onClick={clearFilters}
-                className="text-sm text-primary hover:text-primary-700"
+                className="text-primary hover:text-primary-700 text-sm"
               >
                 Xóa tất cả
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trạng thái
-                </label>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Trạng thái</label>
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value as AppointmentStatus | 'all')}
-                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-100"
+                  className="focus:border-primary focus:ring-primary-100 w-full rounded-lg border border-gray-300 p-2 focus:ring-2 focus:outline-none"
                 >
                   <option value="all">Tất cả</option>
                   <option value="SCHEDULED">Đã đặt</option>
@@ -213,24 +228,26 @@ export default function MyAppointmentsPage() {
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('upcoming')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'upcoming'
+              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'upcoming'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                }`}
+              }`}
             >
               Sắp tới
               {upcomingCount > 0 && (
-                <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-white">
+                <span className="bg-primary ml-2 rounded-full px-2 py-0.5 text-xs text-white">
                   {upcomingCount}
                 </span>
               )}
             </button>
             <button
               onClick={() => setActiveTab('completed')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'completed'
+              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'completed'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                }`}
+              }`}
             >
               Đã hoàn thành
               {completedCount > 0 && (
@@ -241,10 +258,11 @@ export default function MyAppointmentsPage() {
             </button>
             <button
               onClick={() => setActiveTab('cancelled')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cancelled'
+              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'cancelled'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                }`}
+              }`}
             >
               Đã hủy
               {cancelledCount > 0 && (
@@ -259,13 +277,13 @@ export default function MyAppointmentsPage() {
         {/* Appointments List */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="text-primary h-8 w-8 animate-spin" />
             <span className="ml-3 text-gray-600">Đang tải...</span>
           </div>
         ) : filteredAppointments.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-xl">
-            <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="rounded-xl bg-gray-50 py-12 text-center">
+            <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">
               {searchQuery || selectedStatus !== 'all' || selectedDepartment !== 'all'
                 ? 'Không tìm thấy lịch hẹn'
                 : activeTab === 'upcoming'
@@ -274,7 +292,7 @@ export default function MyAppointmentsPage() {
                     ? 'Chưa có lịch hẹn đã hoàn thành'
                     : 'Chưa có lịch hẹn đã hủy'}
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="mb-6 text-gray-500">
               {searchQuery || selectedStatus !== 'all' || selectedDepartment !== 'all'
                 ? 'Thử thay đổi bộ lọc hoặc tìm kiếm'
                 : 'Đặt lịch khám ngay để được chăm sóc sức khỏe tốt nhất'}
@@ -324,20 +342,40 @@ function AppointmentItem({
     NO_SHOW: { color: 'bg-orange-100 text-orange-800', label: 'Không đến' },
   };
 
-  const config = statusConfig[appointment.status as keyof typeof statusConfig] || statusConfig.SCHEDULED;
+  const config =
+    statusConfig[appointment.status as keyof typeof statusConfig] || statusConfig.SCHEDULED;
 
   const appointmentDate = parseISO(appointment.appointmentDate);
   const formattedDate = format(appointmentDate, 'EEEE, dd/MM/yyyy', { locale: vi });
-  const canModify = appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED' || appointment.status === 'PENDING_PAYMENT';
+  const canModify =
+    appointment.status === 'SCHEDULED' ||
+    appointment.status === 'CONFIRMED' ||
+    appointment.status === 'PENDING_PAYMENT';
 
   async function handleCancelConfirm(reason: string) {
     try {
       // Use appointmentId (camelCase) as backend returns it in camelCase
       const appointmentId = (appointment as any).appointmentId || appointment.id;
-      await appointmentsService.cancel(appointmentId, {
+      const resp = await appointmentsService.cancel(appointmentId, {
         cancellationReason: reason,
       });
-      toast.success('Đã hủy lịch hẹn thành công');
+      const policy = (resp as CancelAppointmentResponse).cancellationPolicy;
+      if (policy?.refundEligible) {
+        const amt =
+          policy.estimatedRefundAmount ??
+          (policy.refundPercentage && (appointment as any).consultationFee
+            ? ((appointment as any).consultationFee * policy.refundPercentage) / 100
+            : undefined);
+        toast.success(
+          `Đã hủy lịch. Hoàn ${policy.refundPercentage || 0}%${amt ? ` (~${amt.toLocaleString('vi-VN')} đ)` : ''}`
+        );
+      } else if (policy?.penaltyApplied) {
+        toast.success(
+          `Đã hủy lịch. Phí hủy ${policy.penaltyAmount ? `${policy.penaltyAmount.toLocaleString('vi-VN')} đ` : ''}`
+        );
+      } else {
+        toast.success('Đã hủy lịch hẹn thành công');
+      }
       onUpdate();
     } catch (error) {
       console.error('Error cancelling appointment:', error);
@@ -356,14 +394,14 @@ function AppointmentItem({
 
   return (
     <>
-      <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div className="rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
         <div className="flex items-start justify-between gap-4">
           {/* Left Section */}
-          <div className="flex gap-4 flex-1">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-100">
-              <User className="h-8 w-8 text-primary-600" />
+          <div className="flex flex-1 gap-4">
+            <div className="bg-primary-100 flex h-16 w-16 shrink-0 items-center justify-center rounded-full">
+              <User className="text-primary-600 h-8 w-8" />
             </div>
-            <div className="space-y-3 flex-1">
+            <div className="flex-1 space-y-3">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
                   BS. {appointment.doctorName || 'Đang cập nhật'}
@@ -391,7 +429,7 @@ function AppointmentItem({
           </div>
 
           {/* Right Section */}
-          <div className="flex flex-col items-end gap-3 shrink-0">
+          <div className="flex shrink-0 flex-col items-end gap-3">
             <span className={`rounded-full px-3 py-1 text-xs font-medium ${config.color}`}>
               {config.label}
             </span>
@@ -407,18 +445,10 @@ function AppointmentItem({
               </Button>
               {canModify && (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReschedule}
-                  >
+                  <Button variant="outline" size="sm" onClick={handleReschedule}>
                     Đổi lịch
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setShowCancelDialog(true)}
-                  >
+                  <Button variant="destructive" size="sm" onClick={() => setShowCancelDialog(true)}>
                     Hủy lịch
                   </Button>
                 </>

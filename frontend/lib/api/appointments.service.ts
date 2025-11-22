@@ -6,6 +6,7 @@ import type {
   ListAppointmentsParams,
   SuccessResponse,
   CancelAppointmentRequest,
+  CancelAppointmentResponse,
 } from '@/lib/types/appointments';
 
 /**
@@ -41,7 +42,7 @@ export const appointmentsService = {
       success: response.data.success,
       appointments: result.appointments || [],
       totalCount: result.total || 0,
-      hasMore: result.total > (result.page * result.pageSize)
+      hasMore: result.total > result.page * result.pageSize,
     };
   },
 
@@ -60,9 +61,7 @@ export const appointmentsService = {
    * POST /api/v1/appointments/:id/confirm
    */
   async confirm(id: string): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(
-      `/v1/appointments/${id}/confirm`
-    );
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/confirm`);
     return response.data;
   },
 
@@ -70,8 +69,8 @@ export const appointmentsService = {
    * Cancel appointment
    * POST /api/v1/appointments/:id/cancel
    */
-  async cancel(id: string, data: CancelAppointmentRequest): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(
+  async cancel(id: string, data: CancelAppointmentRequest): Promise<CancelAppointmentResponse> {
+    const response = await apiClient.post<CancelAppointmentResponse>(
       `/v1/appointments/${id}/cancel`,
       data
     );
@@ -111,15 +110,14 @@ export const appointmentsService = {
       endDate?: string;
     }
   ): Promise<ListAppointmentsResponse> {
-    const response = await apiClient.get<any>(
-      `/v1/appointments`,
-      { params: { patientId, ...(params || {}) } }
-    );
+    const response = await apiClient.get<any>(`/v1/appointments`, {
+      params: { patientId, ...(params || {}) },
+    });
     return {
       success: response.data.success,
       appointments: response.data.appointments || [],
       totalCount: response.data.total || 0,
-      hasMore: response.data.total > (response.data.page * response.data.pageSize)
+      hasMore: response.data.total > response.data.page * response.data.pageSize,
     };
   },
   /**
