@@ -60,16 +60,18 @@ export default function PatientBillingPage() {
       (acc, inv) => {
         const totalAmt = inv.totalAmount ?? 0;
         const paidAmt = inv.status === 'paid' ? ((totalAmt || inv.paidAmount) ?? 0) : 0;
+        const refundedAmt = getRefundAmount(inv);
         const outstandingAmt =
           inv.outstandingAmount ?? Math.max(0, (inv.totalAmount ?? 0) - (inv.paidAmount ?? 0));
 
         acc.totalAmount += totalAmt;
         if (inv.status === 'paid') acc.totalPaid += totalAmt || paidAmt;
+        if (refundedAmt > 0) acc.totalRefunded += refundedAmt;
         if (isPendingStatus(inv.status) || inv.status === 'draft')
           acc.totalOutstanding += outstandingAmt;
         return acc;
       },
-      { totalAmount: 0, totalPaid: 0, totalOutstanding: 0 }
+      { totalAmount: 0, totalPaid: 0, totalOutstanding: 0, totalRefunded: 0 }
     );
 
     const totalAmount =
@@ -100,7 +102,14 @@ export default function PatientBillingPage() {
         ? invoices.filter((inv) => inv.status === 'paid').length
         : (summary?.paidInvoiceCount ?? 0);
 
-    return { totalAmount, totalPaid, totalOutstanding, pendingCount, paidCount };
+    return {
+      totalAmount,
+      totalPaid,
+      totalOutstanding,
+      pendingCount,
+      paidCount,
+      totalRefunded: totalsFromInvoices.totalRefunded,
+    };
   }, [summary, invoices]);
 
   const filteredInvoices = useMemo(() => {
@@ -241,6 +250,13 @@ export default function PatientBillingPage() {
                 tone="success"
                 desc={`${resolvedSummary.paidCount} hóa đơn hoàn tất`}
               />
+              <SummaryCard
+                title="Hoàn tiền"
+                value={resolvedSummary.totalRefunded}
+                icon={Download}
+                tone="primary"
+                desc="Tổng tiền đã/đang hoàn"
+              />
             </div>
 
             <Card>
@@ -367,6 +383,7 @@ function InvoiceCard({
 }) {
   const isPaid = invoice.status === 'paid';
   const isPending = isPendingStatus(invoice.status);
+  const refundAmount = getRefundAmount(invoice);
   const badge = getStatusBadge(invoice.status);
   const patientShare = Math.max(0, (invoice.totalAmount ?? 0) - (invoice.insuranceCoverage ?? 0));
   const outstanding = invoice.outstandingAmount ?? patientShare;
@@ -407,6 +424,7 @@ function InvoiceCard({
             <span>• Bảo hiểm: {formatCurrency(invoice.insuranceCoverage ?? 0)}</span>
             <span>• Bệnh nhân trả: {formatCurrency(patientShare)}</span>
             {outstanding > 0 && <span>• Còn lại: {formatCurrency(outstanding)}</span>}
+            {refundAmount > 0 && <span>• Đã hoàn: {formatCurrency(refundAmount)}</span>}
           </div>
         </div>
       </div>
@@ -463,6 +481,7 @@ function InvoiceDetailsDialog({
   const patientShare = invoice
     ? Math.max(0, (invoice.totalAmount ?? 0) - (invoice.insuranceCoverage ?? 0))
     : 0;
+  const refundAmount = invoice ? getRefundAmount(invoice) : 0;
 
   if (!invoice) return null;
 
@@ -490,6 +509,7 @@ function InvoiceDetailsDialog({
             <InfoRow label="Hạn thanh toán" value={formatDate(invoice.dueDate)} />
             <InfoRow label="Trạng thái" value={getStatusBadge(invoice.status).label} />
             <InfoRow label="Cập nhật" value={formatDate(invoice.updatedAt)} />
+            {refundAmount > 0 && <InfoRow label="Đã hoàn" value={formatCurrency(refundAmount)} />}
           </div>
 
           <div className="rounded-lg border p-4">
@@ -557,39 +577,46 @@ function InvoiceDetailsDialog({
                     <div
                       key={payment.id}
                       className={cn(
-                        "rounded-lg border p-3",
-                        isRefund ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"
+                        'rounded-lg border p-3',
+                        isRefund ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50'
                       )}
                     >
                       <div className="flex items-start justify-between">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className={cn(
-                              "text-sm font-semibold",
-                              isRefund ? "text-blue-700" : "text-gray-900"
-                            )}>
+                            <span
+                              className={cn(
+                                'text-sm font-semibold',
+                                isRefund ? 'text-blue-700' : 'text-gray-900'
+                              )}
+                            >
                               {isRefund ? '🔄 Hoàn tiền' : '💳 Thanh toán'}
                             </span>
-                            <Badge variant={isRefund ? "default" : "secondary"} className="text-xs">
-                              {payment.status === 'refund_pending' ? 'Đang xử lý' :
-                               payment.status === 'refund_completed' ? 'Hoàn tất' :
-                               payment.status === 'completed' ? 'Thành công' : payment.status}
+                            <Badge variant={isRefund ? 'default' : 'secondary'} className="text-xs">
+                              {payment.status === 'refund_pending'
+                                ? 'Đang xử lý'
+                                : payment.status === 'refund_completed'
+                                  ? 'Hoàn tất'
+                                  : payment.status === 'completed'
+                                    ? 'Thành công'
+                                    : payment.status}
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-600">
-                            Phương thức: {payment.method === 'refund' ? 'Hoàn tiền' :
-                                         payment.method === 'vnpay' ? 'VNPAY' :
-                                         payment.method === 'payos' ? 'PayOS' : payment.method}
+                            Phương thức:{' '}
+                            {payment.method === 'refund'
+                              ? 'Hoàn tiền'
+                              : payment.method === 'vnpay'
+                                ? 'VNPAY'
+                                : payment.method === 'payos'
+                                  ? 'PayOS'
+                                  : payment.method}
                           </p>
                           {payment.transactionId && (
-                            <p className="text-xs text-gray-500">
-                              Mã GD: {payment.transactionId}
-                            </p>
+                            <p className="text-xs text-gray-500">Mã GD: {payment.transactionId}</p>
                           )}
                           {isRefund && payment.refundReason && (
-                            <p className="text-xs text-gray-600">
-                              Lý do: {payment.refundReason}
-                            </p>
+                            <p className="text-xs text-gray-600">Lý do: {payment.refundReason}</p>
                           )}
                           {isRefund && payment.refundedBy && (
                             <p className="text-xs text-gray-500">
@@ -600,16 +627,19 @@ function InvoiceDetailsDialog({
                             {isRefund && payment.refundedAt
                               ? `Hoàn tiền: ${formatDate(payment.refundedAt)}`
                               : payment.paidAt
-                              ? `Thanh toán: ${formatDate(payment.paidAt)}`
-                              : `Tạo: ${formatDate(payment.processedAt)}`}
+                                ? `Thanh toán: ${formatDate(payment.paidAt)}`
+                                : `Tạo: ${formatDate(payment.processedAt)}`}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className={cn(
-                            "text-lg font-semibold",
-                            isRefund ? "text-blue-700" : "text-emerald-700"
-                          )}>
-                            {isRefund ? '-' : '+'}{formatCurrency(displayAmount)}
+                          <p
+                            className={cn(
+                              'text-lg font-semibold',
+                              isRefund ? 'text-blue-700' : 'text-emerald-700'
+                            )}
+                          >
+                            {isRefund ? '-' : '+'}
+                            {formatCurrency(displayAmount)}
                           </p>
                         </div>
                       </div>
@@ -677,4 +707,11 @@ function getSortDate(invoice: Invoice) {
   const dateValue =
     invoice.issueDate || invoice.issuedAt || invoice.createdAt || invoice.updatedAt || '';
   return dateValue ? new Date(dateValue).getTime() : 0;
+}
+
+function getRefundAmount(invoice: Invoice): number {
+  if (!invoice?.payments?.length) return 0;
+  return invoice.payments
+    .filter((p) => p.method === 'refund' || p.amount < 0)
+    .reduce((sum, p) => sum + Math.abs(p.amount), 0);
 }
