@@ -307,7 +307,7 @@ export class AppointmentCancelledEvent extends DomainEvent {
   /**
    * Calculate Vietnamese healthcare cancellation policy
    */
-  private static calculateCancellationPolicy(hoursNotice: number): {
+  public static calculateCancellationPolicy(hoursNotice: number): {
     penaltyApplied: boolean;
     refundEligible: boolean;
     rescheduleAllowed: boolean;
@@ -575,15 +575,15 @@ export class AppointmentCancelledEvent extends DomainEvent {
 
     // If refund eligible (early cancellation), use 'appointment.cancelled' for refund processing
     if (cancellationPolicy.refundEligible) {
-      return 'appointment.cancelled';
+      return "appointment.cancelled";
     }
 
     // If penalty applied (late cancellation), use 'appointment.cancelled_late' for fee processing
     if (cancellationPolicy.penaltyApplied) {
-      return 'appointment.cancelled_late';
+      return "appointment.cancelled_late";
     }
 
     // Default: no refund, no penalty (edge case)
-    return 'appointment.cancelled';
+    return "appointment.cancelled";
   }
 }
