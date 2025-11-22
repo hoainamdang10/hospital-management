@@ -321,7 +321,7 @@ export class AppointmentCancelledEvent extends DomainEvent {
         penaltyApplied: false,
         refundEligible: true,
         rescheduleAllowed: true,
-        refundPercentage: 1.0,
+        refundPercentage: 100,
       };
     } else if (hoursNotice >= 4) {
       // 4-24 hours notice: 80% refund, free reschedule
@@ -329,7 +329,7 @@ export class AppointmentCancelledEvent extends DomainEvent {
         penaltyApplied: false,
         refundEligible: true,
         rescheduleAllowed: true,
-        refundPercentage: 0.8,
+        refundPercentage: 80,
       };
     } else if (hoursNotice >= 2) {
       // 2-4 hours notice: 50% refund, reschedule with fee
@@ -338,7 +338,7 @@ export class AppointmentCancelledEvent extends DomainEvent {
         refundEligible: true,
         rescheduleAllowed: true,
         penaltyAmount: 50000, // 50,000 VNĐ
-        refundPercentage: 0.5,
+        refundPercentage: 50,
       };
     } else {
       // Less than 2 hours notice: No refund, penalty applies
