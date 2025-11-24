@@ -85,10 +85,16 @@ export class OutboxPublisherWorker {
           "[OutboxWorker] Skip SchedulerReminderCancelByOwner (scheduler disabled)",
           { id: evt.id },
         );
-      } else if (eventType.startsWith("appointment")) {
+      } else if (
+        eventType.startsWith("appointment") ||
+        eventType.startsWith("appointments.")
+      ) {
         // Generic relay to RabbitMQ for appointment.* events (billing/notifications)
         const channel = await this.ensureChannel();
-        const routingKey = eventType;
+        // Normalize routing key to singular prefix for compatibility with consumers
+        const routingKey = eventType.startsWith("appointments.")
+          ? eventType.replace(/^appointments\./, "appointment.")
+          : eventType;
         channel.publish(
           this.options.exchange || "hospital.events",
           routingKey,
