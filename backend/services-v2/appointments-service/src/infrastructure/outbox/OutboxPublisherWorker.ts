@@ -95,6 +95,10 @@ export class OutboxPublisherWorker {
           Buffer.from(JSON.stringify(payload)),
           { persistent: true },
         );
+        console.log("[OutboxWorker] published", {
+          id: evt.id,
+          routingKey,
+        });
       } else {
         // Unknown event: mark sent to avoid poison
         console.warn(

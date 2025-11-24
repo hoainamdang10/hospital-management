@@ -229,11 +229,6 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         ),
       );
 
-      // Optional: also publish directly if configured (backward compatibility)
-      if (this.eventPublisher) {
-        await this.eventPublisher.publishBatch(events);
-      }
-
       // Mark events as committed after successful publishing
       appointment.markEventsAsCommitted();
 

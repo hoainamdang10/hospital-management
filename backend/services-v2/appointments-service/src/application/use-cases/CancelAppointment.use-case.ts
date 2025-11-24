@@ -142,39 +142,6 @@ export class CancelAppointmentUseCase extends BaseHealthcareUseCase<
           ? (consultationFee * policy.refundPercentage) / 100
           : 0;
 
-      // Publish cancellation event directly (RabbitMQ) for downstream services (billing)
-      if (this.eventPublisher) {
-        await this.eventPublisher.publish({
-          eventType: "appointments.appointment.cancelled",
-          aggregateId: appointment.appointmentId.value,
-          aggregateType: "appointment",
-          eventData: {
-            appointmentId: appointment.appointmentId.value,
-            patientId: appointment.patientId,
-            staffId: appointment.doctorId,
-            departmentId:
-              appointment.getDepartmentId?.() ??
-              (appointment as any).departmentId ??
-              null,
-            scheduledAt: `${appointment.timeSlot.appointmentDate}T${appointment.timeSlot.appointmentTime}`,
-            cancelledAt: new Date().toISOString(),
-            cancellationReason: request.cancellationReason,
-            cancelledBy: request.cancelledBy,
-            cancellationPolicy: {
-              refundEligible: policy.refundEligible,
-              refundPercentage: policy.refundPercentage ?? 0,
-              penaltyApplied: policy.penaltyApplied,
-              penaltyAmount: policy.penaltyAmount ?? 0,
-              rescheduleAllowed: policy.rescheduleAllowed,
-            },
-          },
-          metadata: {
-            timestamp: new Date(),
-            correlationId: request.appointmentId,
-          },
-        });
-      }
-
       return {
         success: true,
         message: "Hủy lịch hẹn thành công",
