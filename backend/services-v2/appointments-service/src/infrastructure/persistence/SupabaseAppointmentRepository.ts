@@ -130,6 +130,42 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       throw new Error(`Failed to save appointment: ${error.message}`);
     }
 
+    // Upsert read model entry (minimal fields to ensure FE listing)
+    try {
+      const readModelRecord = {
+        appointment_id: record.appointment_id,
+        patient_id: record.patient_id,
+        doctor_id: record.doctor_id,
+        appointment_date: record.appointment_date,
+        appointment_time: record.appointment_time,
+        duration_minutes: record.duration_minutes,
+        type: record.type,
+        priority: record.priority,
+        status: record.status,
+        payment_status: record.payment_status,
+        department_id: record.department_id,
+        consultation_fee: record.consultation_fee,
+      };
+
+      const { error: rmError } = await this.supabase
+        .from("appointment_read_model")
+        .upsert(readModelRecord, { onConflict: "appointment_id" });
+
+      if (rmError) {
+        console.warn(
+          "[Repository] Failed to upsert appointment_read_model (non-critical)",
+          rmError.message,
+        );
+      }
+    } catch (rmUpsertError) {
+      console.warn(
+        "[Repository] Error upserting appointment_read_model (non-critical)",
+        rmUpsertError instanceof Error
+          ? rmUpsertError.message
+          : "Unknown error",
+      );
+    }
+
     // Publish domain events after successful persistence
     await this.publishDomainEvents(appointment);
   }
