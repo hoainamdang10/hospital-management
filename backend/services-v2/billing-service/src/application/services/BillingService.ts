@@ -43,6 +43,13 @@ export interface NoShowFeeRequest {
   feeAmount: number;
 }
 
+export interface RescheduleFeeRequest {
+  appointmentId: string;
+  patientId: string;
+  rescheduleAmount: number;
+  reason: string;
+}
+
 export interface PrescriptionInvoiceRequest {
   prescriptionId: string;
   patientId: string;
@@ -241,6 +248,56 @@ export class BillingService {
       return invoice;
     } catch (error) {
       this.loggerInstance.error("Failed to generate late cancellation fee", {
+        appointmentId: request.appointmentId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Generate reschedule fee invoice when policy applies
+   */
+  async generateRescheduleFee(request: RescheduleFeeRequest): Promise<Invoice> {
+    try {
+      this.loggerInstance.info("Generating reschedule fee", {
+        appointmentId: request.appointmentId,
+        patientId: request.patientId,
+        feeAmount: request.rescheduleAmount,
+      });
+
+      // Create invoice using CreateInvoiceUseCase (Phase 1 model)
+      const invoiceResponse = await this.createInvoiceUseCase.execute({
+        patientId: request.patientId,
+        appointmentId: request.appointmentId,
+        items: [
+          {
+            description: `Phí đổi lịch hẹn - ${request.reason || "Đổi lịch"}`,
+            quantity: 1,
+            unitPrice: request.rescheduleAmount,
+          },
+        ],
+      });
+
+      const invoice = await this.invoiceRepository.findById(
+        invoiceResponse.invoiceId,
+      );
+
+      if (!invoice) {
+        throw new Error(
+          `Reschedule fee invoice ${invoiceResponse.invoiceId} not found after creation`,
+        );
+      }
+
+      this.loggerInstance.info("Reschedule fee invoice generated", {
+        appointmentId: request.appointmentId,
+        invoiceId: invoiceResponse.invoiceId,
+        feeAmount: request.rescheduleAmount,
+      });
+
+      return invoice;
+    } catch (error) {
+      this.loggerInstance.error("Failed to generate reschedule fee", {
         appointmentId: request.appointmentId,
         error: error instanceof Error ? error.message : "Unknown error",
       });

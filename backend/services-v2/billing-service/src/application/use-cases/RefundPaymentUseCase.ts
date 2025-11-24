@@ -44,6 +44,7 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
     private readonly invoiceRepository: IInvoiceRepository,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
+    private readonly config: { useGatewayRefund: boolean },
   ) {
     super();
   }
@@ -117,30 +118,37 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
         };
       }
 
+      // 4. Prevent duplicate refunds (pending or completed)
+      const existingRefund = invoice.payments.find(
+        (p) =>
+          p.method === "refund" &&
+          (p.status === "refund_pending" || p.status === "completed"),
+      );
+      if (existingRefund) {
+        this.logger.warn("Refund already in progress or completed", {
+          invoiceId: invoice.id,
+          refundPaymentId: existingRefund.id,
+          status: existingRefund.status,
+        });
+        return {
+          success: false,
+          message: "Hoàn tiền đã được yêu cầu hoặc hoàn tất trước đó",
+          errors: ["Refund already requested or completed"],
+          refundId: existingRefund.id,
+        };
+      }
+
       // 5. Process refund
       const refundAmount = invoice.processRefund(
         request.refundPercentage,
         request.reason,
         request.refundedBy,
       );
+      const refundPayment = invoice.payments.find(
+        (p) => p.method === "refund" && p.status === "refund_pending",
+      );
 
-      // Nếu không tích hợp gateway, coi như refund đã hoàn tất ngay
-      // Đánh dấu refund complete để invoice về trạng thái refunded (net 0 outstanding)
-      try {
-        const refundPayment = invoice.payments.find(
-          (p) => p.method === "refund",
-        );
-        if (refundPayment) {
-          invoice.completeRefund(refundPayment.id, "gateway-mock");
-        }
-      } catch (e) {
-        this.logger.warn("Refund completion skipped (no payment found)", {
-          appointmentId: request.appointmentId,
-          error: e instanceof Error ? e.message : "Unknown",
-        });
-      }
-
-      // 6. Save invoice (will publish PaymentRefundedEvent)
+      // 6. Save invoice (will publish PaymentRefundRequestedEvent)
       await this.invoiceRepository.save(invoice);
 
       // 7. Publish domain events
@@ -150,7 +158,37 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
       }
       invoice.markEventsAsCommitted();
 
-      this.logger.info("Refund processed successfully", {
+      // Nếu không dùng gateway refund, complete ngay để tránh pending
+      if (!this.config.useGatewayRefund) {
+        const refundPayment = invoice.payments.find(
+          (p) => p.method === "refund",
+        );
+        if (refundPayment) {
+          try {
+            invoice.completeRefund(
+              refundPayment.id,
+              `REFUND-SYSTEM-${Date.now()}`,
+            );
+            await this.invoiceRepository.save(invoice);
+            const completeEvents = invoice.getUncommittedEvents();
+            for (const event of completeEvents) {
+              await this.eventBus.publish(event);
+            }
+            invoice.markEventsAsCommitted();
+            this.logger.info("Refund auto-completed (gateway disabled)", {
+              invoiceId: invoice.id,
+              refundPaymentId: refundPayment.id,
+            });
+          } catch (e) {
+            this.logger.error("Auto-complete refund failed", {
+              invoiceId: invoice.id,
+              error: e instanceof Error ? e.message : "Unknown error",
+            });
+          }
+        }
+      }
+
+      this.logger.info("Refund request recorded", {
         invoiceId: invoice.id,
         refundAmount,
         refundPercentage: request.refundPercentage,
@@ -158,8 +196,8 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
 
       return {
         success: true,
-        message: "Hoàn tiền thành công",
-        refundId: invoice.id, // Using invoice ID as refund ID for now
+        message: "Yêu cầu hoàn tiền đã được ghi nhận",
+        refundId: refundPayment?.id || invoice.id,
         refundAmount,
       };
     } catch (error) {

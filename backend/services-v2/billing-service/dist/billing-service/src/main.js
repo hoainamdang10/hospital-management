@@ -126,7 +126,9 @@ class BillingServiceApp {
         this.processPaymentUseCase = new ProcessPaymentUseCase_1.ProcessPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
         this.getPatientInvoicesUseCase = new GetPatientInvoicesUseCase_1.GetPatientInvoicesUseCase(this.invoiceRepository, logger_1.logger);
         // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase initialization
-        this.refundPaymentUseCase = new RefundPaymentUseCase_1.RefundPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
+        this.refundPaymentUseCase = new RefundPaymentUseCase_1.RefundPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger, {
+            useGatewayRefund: (process.env.USE_GATEWAY_REFUND || "").toLowerCase() === "true",
+        });
         this.completeRefundUseCase = new CompleteRefundUseCase_1.CompleteRefundUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
         this.searchInvoicesUseCase = new SearchInvoicesUseCase_1.SearchInvoicesUseCase(this.invoiceRepository, logger_1.logger);
         this.getOverdueInvoicesUseCase = new GetOverdueInvoicesUseCase_1.GetOverdueInvoicesUseCase(this.invoiceRepository, logger_1.logger);
@@ -147,6 +149,7 @@ class BillingServiceApp {
                 "appointment.cancelled", // Process refunds for cancelled appointments
                 "appointment.cancelled_late", // Cancel invoice if not paid yet
                 "appointment.no_show", // Future: Apply no-show fee
+                "appointment.rescheduled", // Apply reschedule fee if policy requires
             ],
             prefetchCount: 10,
             retryAttempts: 3,
@@ -179,7 +182,9 @@ class BillingServiceApp {
         }
         // Initialize Refund Gateway Worker (with VNPAY service for real refunds)
         this.refundGatewayWorker = new RefundGatewayWorker_1.RefundGatewayWorker(this.eventBus, this.completeRefundUseCase, this.paymentGateway, // VnpayIntegrationService for real refund API calls
-        logger_1.logger);
+        logger_1.logger, {
+            useGatewayRefund: (process.env.USE_GATEWAY_REFUND || "").toLowerCase() === "true",
+        });
         logger_1.logger.info("Refund gateway worker initialized (VNPAY integration)");
         // Initialize Controllers - Phase 1 (Prepaid Model)
         this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPaymentLinkUseCase, this.handlePayOSWebhookUseCase);

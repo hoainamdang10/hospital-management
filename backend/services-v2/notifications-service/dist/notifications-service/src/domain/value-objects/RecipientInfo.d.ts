@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-export type RecipientType = 'PATIENT' | 'DOCTOR' | 'NURSE' | 'ADMIN' | 'FAMILY' | 'EXTERNAL';
+export type RecipientType = "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | "FAMILY" | "EXTERNAL";
 export interface ContactInfo {
     email?: string;
     phoneNumber?: string;
@@ -16,7 +16,7 @@ export interface ContactInfo {
 export interface PreferenceSettings {
     preferredChannels: string[];
     timezone: string;
-    language: 'vi' | 'en';
+    language: "vi" | "en";
     quietHours?: {
         start: string;
         end: string;
@@ -31,7 +31,7 @@ export interface HealthcareContext {
     patientId?: string;
     doctorId?: string;
     departmentId?: string;
-    relationshipToPatient?: 'SELF' | 'SPOUSE' | 'CHILD' | 'PARENT' | 'GUARDIAN' | 'OTHER';
+    relationshipToPatient?: "SELF" | "SPOUSE" | "CHILD" | "PARENT" | "GUARDIAN" | "OTHER";
     emergencyContact: boolean;
     hipaaAuthorized: boolean;
 }
@@ -60,6 +60,10 @@ export declare class RecipientInfo {
      * Validate Vietnamese name format
      */
     private static isValidVietnameseName;
+    /**
+     * Normalize full name (trim + collapse spaces)
+     */
+    private static normalizeFullName;
     /**
      * Validate contact information
      */
@@ -111,7 +115,7 @@ export declare class RecipientInfo {
     /**
      * Get preferred language
      */
-    getPreferredLanguage(): 'vi' | 'en';
+    getPreferredLanguage(): "vi" | "en";
     /**
      * Get preferred channels in order
      */
@@ -119,7 +123,7 @@ export declare class RecipientInfo {
     /**
      * Check if recipient has opted out of specific notification type
      */
-    hasOptedOut(notificationType: 'marketing' | 'reminders' | 'emergency'): boolean;
+    hasOptedOut(notificationType: "marketing" | "reminders" | "emergency"): boolean;
     /**
      * Check if current time is within quiet hours
      */

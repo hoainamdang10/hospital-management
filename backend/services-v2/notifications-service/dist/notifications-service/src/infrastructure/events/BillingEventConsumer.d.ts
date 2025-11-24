@@ -213,6 +213,10 @@ export declare class BillingEventConsumer {
      */
     private handlePaymentProcessed;
     /**
+     * Handle payment refunded event
+     */
+    private handlePaymentRefunded;
+    /**
      * Handle invoice generated event
      */
     private handleInvoiceGenerated;

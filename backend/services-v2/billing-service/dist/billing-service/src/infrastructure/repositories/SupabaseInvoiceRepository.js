@@ -80,11 +80,16 @@ class SupabaseInvoiceRepository {
                         transaction_id: payment.transaction_id,
                         processed_at: payment.processed_at,
                         processed_by: payment.processed_by,
+                        status: payment.status,
+                        refunded_at: payment.refunded_at,
+                        refund_reason: payment.refund_reason,
+                        refunded_by: payment.refunded_by,
+                        gateway_refund_id: payment.gateway_refund_id,
                         vnpay_txn_ref: payment.vnpay_txn_ref,
                         vnpay_transaction_no: payment.vnpay_transaction_no,
                         vnpay_pay_date: payment.vnpay_pay_date,
                     })
-                        .eq('id', payment.id);
+                        .eq("id", payment.id);
                     if (updateError) {
                         throw new Error(`Failed to update payment ${payment.payment_id}: ${updateError.message}`);
                     }
@@ -241,8 +246,7 @@ class SupabaseInvoiceRepository {
         // Map each invoice with its items and payments
         return invoicesData.map((invoiceData) => {
             const invoiceItems = itemsData?.filter((item) => item.invoice_id === invoiceData.id) || [];
-            const invoicePayments = paymentsData?.filter((payment) => payment.invoice_id === invoiceData.id) ||
-                [];
+            const invoicePayments = paymentsData?.filter((payment) => payment.invoice_id === invoiceData.id) || [];
             return InvoiceMapper_1.InvoiceMapper.toDomain(invoiceData, invoiceItems, invoicePayments);
         });
     }

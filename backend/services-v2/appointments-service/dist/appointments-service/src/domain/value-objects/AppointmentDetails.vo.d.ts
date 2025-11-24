@@ -7,7 +7,7 @@
  * @version 3.0.0
  * @compliance Clean Architecture, DDD, HIPAA, Vietnamese Healthcare Standards
  */
-import { HealthcareValueObject } from '@shared/domain/base/value-object';
+import { HealthcareValueObject } from '../../../../shared/domain/base/value-object';
 export interface AppointmentDetailsProps {
     reason?: string;
     chiefComplaint?: string;

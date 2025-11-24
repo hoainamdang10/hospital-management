@@ -357,14 +357,11 @@ export class AppointmentEventConsumer {
           );
           break;
 
-        // ===== FUTURE WORK: Post-appointment notifications =====
-        // case 'appointment.completed':
-        //   await this.handleAppointmentCompleted(event.payload as AppointmentCompletedEventData);
-        //   break;
-
-        // case 'appointment.rescheduled':
-        //   await this.handleAppointmentRescheduled(event.payload as AppointmentRescheduledEventData);
-        //   break;
+        case "appointment.rescheduled":
+          await this.handleAppointmentRescheduled(
+            payload as AppointmentRescheduledEventData,
+          );
+          break;
 
         // case 'appointment.reminder':
         //   await this.handleAppointmentReminder(event.payload as AppointmentReminderEventData);
@@ -385,7 +382,7 @@ export class AppointmentEventConsumer {
       // Store in inbox after successful processing
       await this.inboxRepo.store({
         idempotencyKey: eventId,
-        eventType: "appointment.scheduled",
+        eventType: routingKey,
         payload: event,
       });
 
@@ -397,9 +394,30 @@ export class AppointmentEventConsumer {
         routingKey: msg.fields.routingKey,
       });
 
-      // Negative acknowledge (requeue)
+      // Check for non-retryable errors (e.g., validation errors, bad data)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const isNonRetryable =
+        errorMessage.includes("định dạng") ||
+        errorMessage.includes("Validation") ||
+        errorMessage.includes("Invalid") ||
+        errorMessage.includes("format");
+
       if (this.channel) {
-        this.channel.nack(msg, false, true);
+        if (isNonRetryable) {
+          console.warn(
+            "[AppointmentEventConsumer] Non-retryable error detected, discarding message to prevent loop",
+            {
+              routingKey: msg.fields.routingKey,
+              error: errorMessage,
+            },
+          );
+          // Do not requeue (false)
+          this.channel.nack(msg, false, false);
+        } else {
+          // Requeue for transient errors
+          this.channel.nack(msg, false, true);
+        }
       }
     }
   }
@@ -602,6 +620,17 @@ export class AppointmentEventConsumer {
         const { AppointmentEventAdapter } = await import(
           "./adapters/AppointmentEventAdapter"
         );
+
+        const patientPhone = patientPreferences?.preferences?.phoneNumber;
+        const patientEmail = patientPreferences?.preferences?.email;
+
+        if (!patientPhone && !patientEmail) {
+          console.warn(
+            "[AppointmentEventConsumer] Skip creating reminders (no contact info)",
+            { appointmentId: data.appointmentId },
+          );
+          throw new Error("No contact info for reminders");
+        }
 
         const remindersRequest =
           AppointmentEventAdapter.toCreateRemindersRequest(
@@ -890,14 +919,46 @@ export class AppointmentEventConsumer {
   private async handleAppointmentRescheduled(
     data: AppointmentRescheduledEventData,
   ): Promise<void> {
+    // Normalize fields from appointments-service payload (originalStartTime/newStartTime)
+    const originalDateTime =
+      data.oldDate ||
+      (data as any).originalStartTime ||
+      (data as any).oldStartTime
+        ? new Date(
+            (data.oldDate as any) ||
+              (data as any).originalStartTime ||
+              (data as any).oldStartTime,
+          )
+        : undefined;
+
+    const newDateTime =
+      data.newDate || (data as any).newStartTime
+        ? new Date((data.newDate as any) || (data as any).newStartTime)
+        : undefined;
+
+    const normalized: AppointmentRescheduledEventData = {
+      ...data,
+      oldDate: originalDateTime || data.oldDate || new Date(),
+      oldTime:
+        data.oldTime ||
+        (originalDateTime
+          ? this.formatTime(originalDateTime)
+          : "Không xác định"),
+      newDate: newDateTime || data.newDate || new Date(),
+      newTime:
+        data.newTime ||
+        (newDateTime ? this.formatTime(newDateTime) : "Không xác định"),
+      reason: data.reason || (data as any).rescheduleReason || "Đổi lịch hẹn",
+    };
+
     console.log("Processing appointment rescheduled for notifications", {
-      appointmentId: data.appointmentId,
-      patientId: data.patientId,
-      oldDate: data.oldDate,
-      oldTime: data.oldTime,
-      newDate: data.newDate,
-      newTime: data.newTime,
-      rescheduledBy: data.rescheduledBy,
+      appointmentId: normalized.appointmentId,
+      patientId: normalized.patientId,
+      oldDate: normalized.oldDate,
+      oldTime: normalized.oldTime,
+      newDate: normalized.newDate,
+      newTime: normalized.newTime,
+      rescheduledBy: normalized.rescheduledBy,
     });
 
     try {
@@ -909,7 +970,7 @@ export class AppointmentEventConsumer {
         });
 
       await this.sendAppointmentRescheduledNotification(
-        data,
+        normalized,
         patientPreferences,
       );
 
@@ -921,12 +982,12 @@ export class AppointmentEventConsumer {
         });
 
       await this.sendDoctorAppointmentRescheduledNotification(
-        data,
+        normalized,
         doctorPreferences,
       );
 
       // Update reminder schedules for new time
-      await this.updateReminderSchedules(data, patientPreferences);
+      await this.updateReminderSchedules(normalized, patientPreferences);
     } catch (error) {
       console.error("Failed to process appointment rescheduled", {
         appointmentId: data.appointmentId,
@@ -1175,7 +1236,7 @@ export class AppointmentEventConsumer {
   ): Promise<void> {
     try {
       // Extract patient contact info from preferences
-      const patientPhone = preferences?.phoneNumber || preferences?.phone;
+      const patientPhone = preferences?.phoneNumber;
       const patientEmail = preferences?.email;
       const patientLanguage = preferences?.language || "vi";
 
@@ -1320,6 +1381,14 @@ export class AppointmentEventConsumer {
       year: "numeric",
       month: "long",
       day: "numeric",
+    });
+  }
+
+  private formatTime(date: Date): string {
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     });
   }
 
@@ -1726,9 +1795,17 @@ export class AppointmentEventConsumer {
       );
 
       // Extract patient contact info from preferences
-      const patientPhone = preferences?.phoneNumber || preferences?.phone;
+      const patientPhone = preferences?.phoneNumber;
       const patientEmail = preferences?.email;
       const patientLanguage = preferences?.language || "vi";
+
+      if (!patientPhone && !patientEmail) {
+        console.warn(
+          "[AppointmentEventConsumer] Skip reschedule reminders (no contact info)",
+          { appointmentId: data.appointmentId },
+        );
+        return;
+      }
 
       // Create new reminder records for the new appointment time
       const createResult = await this.createAppointmentRemindersUseCase.execute(

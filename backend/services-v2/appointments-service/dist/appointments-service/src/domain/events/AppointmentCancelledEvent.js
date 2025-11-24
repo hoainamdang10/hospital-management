@@ -10,7 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentCancelledEvent = void 0;
-const domain_event_1 = require("@shared/domain/base/domain-event");
+const domain_event_1 = require("../../../../shared/domain/base/domain-event");
 /**
  * Appointment Cancelled Domain Event
  * Triggered when an appointment is cancelled
@@ -179,7 +179,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 penaltyApplied: false,
                 refundEligible: true,
                 rescheduleAllowed: true,
-                refundPercentage: 1.0,
+                refundPercentage: 100,
             };
         }
         else if (hoursNotice >= 4) {
@@ -188,7 +188,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 penaltyApplied: false,
                 refundEligible: true,
                 rescheduleAllowed: true,
-                refundPercentage: 0.8,
+                refundPercentage: 80,
             };
         }
         else if (hoursNotice >= 2) {
@@ -198,7 +198,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
                 refundEligible: true,
                 rescheduleAllowed: true,
                 penaltyAmount: 50000, // 50,000 VNĐ
-                refundPercentage: 0.5,
+                refundPercentage: 50,
             };
         }
         else {
@@ -386,14 +386,14 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
         const cancellationPolicy = AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
         // If refund eligible (early cancellation), use 'appointment.cancelled' for refund processing
         if (cancellationPolicy.refundEligible) {
-            return 'appointment.cancelled';
+            return "appointment.cancelled";
         }
         // If penalty applied (late cancellation), use 'appointment.cancelled_late' for fee processing
         if (cancellationPolicy.penaltyApplied) {
-            return 'appointment.cancelled_late';
+            return "appointment.cancelled_late";
         }
         // Default: no refund, no penalty (edge case)
-        return 'appointment.cancelled';
+        return "appointment.cancelled";
     }
 }
 exports.AppointmentCancelledEvent = AppointmentCancelledEvent;

@@ -1,7 +1,7 @@
-import { IEventBus } from '../../../../shared/infrastructure/event-bus/EventBus';
-import { CompleteRefundUseCase } from '../../application/use-cases/CompleteRefundUseCase';
-import { VnpayIntegrationService } from '../services/VnpayIntegrationService';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { IEventBus } from "../../../../shared/infrastructure/event-bus/EventBus";
+import { CompleteRefundUseCase } from "../../application/use-cases/CompleteRefundUseCase";
+import { VnpayIntegrationService } from "../services/VnpayIntegrationService";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 /**
  * RefundGatewayWorker
  *
@@ -20,7 +20,10 @@ export declare class RefundGatewayWorker {
     private readonly completeRefundUseCase;
     private readonly vnpayService;
     private readonly logger;
-    constructor(eventBus: IEventBus, completeRefundUseCase: CompleteRefundUseCase, vnpayService: VnpayIntegrationService, logger: ILogger);
+    private readonly config;
+    constructor(eventBus: IEventBus, completeRefundUseCase: CompleteRefundUseCase, vnpayService: VnpayIntegrationService, logger: ILogger, config: {
+        useGatewayRefund: boolean;
+    });
     start(): Promise<void>;
     private handleRefundRequested;
     /**

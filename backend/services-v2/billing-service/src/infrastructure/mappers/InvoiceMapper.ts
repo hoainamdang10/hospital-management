@@ -71,6 +71,7 @@ export interface PaymentRecordData {
   amount: number;
   currency: string;
   method: string;
+  status?: string;
   transaction_id?: string;
   processed_at: string;
   processed_by?: string;
@@ -80,6 +81,10 @@ export interface PaymentRecordData {
   vnpay_txn_ref?: string;
   vnpay_transaction_no?: string;
   vnpay_pay_date?: string;
+  refunded_at?: string;
+  refund_reason?: string;
+  refunded_by?: string;
+  gateway_refund_id?: string;
   notes?: string;
   metadata?: any;
   created_at: string;
@@ -122,11 +127,11 @@ export class InvoiceMapper {
         const payDate = new Date(p.vnpay_pay_date);
         const vnpayPayDate =
           payDate.getFullYear().toString() +
-          (payDate.getMonth() + 1).toString().padStart(2, '0') +
-          payDate.getDate().toString().padStart(2, '0') +
-          payDate.getHours().toString().padStart(2, '0') +
-          payDate.getMinutes().toString().padStart(2, '0') +
-          payDate.getSeconds().toString().padStart(2, '0');
+          (payDate.getMonth() + 1).toString().padStart(2, "0") +
+          payDate.getDate().toString().padStart(2, "0") +
+          payDate.getHours().toString().padStart(2, "0") +
+          payDate.getMinutes().toString().padStart(2, "0") +
+          payDate.getSeconds().toString().padStart(2, "0");
 
         vnpayData = {
           vnpTxnRef: p.vnpay_txn_ref,
@@ -136,9 +141,10 @@ export class InvoiceMapper {
       }
 
       // Use createSigned() for negative amounts (refunds), create() for positive amounts
-      const money = p.amount < 0
-        ? Money.createSigned(p.amount, p.currency)
-        : Money.create(p.amount, p.currency);
+      const money =
+        p.amount < 0
+          ? Money.createSigned(p.amount, p.currency)
+          : Money.create(p.amount, p.currency);
 
       return Payment.create(
         money,
@@ -146,6 +152,12 @@ export class InvoiceMapper {
         p.transaction_id,
         p.payment_id,
         vnpayData, // Pass VNPAY data to Payment entity
+        (p.status as any) || undefined,
+        p.processed_at ? new Date(p.processed_at) : undefined,
+        p.refunded_at ? new Date(p.refunded_at) : undefined,
+        p.refund_reason,
+        p.refunded_by,
+        p.gateway_refund_id,
       );
     });
 
@@ -256,20 +268,33 @@ export class InvoiceMapper {
         amount: p.amount,
         currency: p.currency || persistence.currency,
         method: p.method,
+        status: p.status,
         transaction_id: p.transactionId,
-        processed_at: p.paidAt ? new Date(p.paidAt).toISOString() : new Date().toISOString(),
+        processed_at: p.paidAt
+          ? new Date(p.paidAt).toISOString()
+          : p.refundedAt
+            ? new Date(p.refundedAt).toISOString()
+            : new Date().toISOString(),
         processed_by: persistence.patientId, // Patient processes their own payment (prepaid model)
+        refunded_at: p.refundedAt
+          ? new Date(p.refundedAt).toISOString()
+          : undefined,
+        refund_reason: p.refundReason,
+        refunded_by: p.refundedBy,
+        gateway_refund_id: p.gatewayRefundId,
         created_at: new Date().toISOString(),
         // VNPAY-specific fields for refund support
         vnpay_txn_ref: p.vnpayData?.vnpTxnRef,
         vnpay_transaction_no: p.vnpayData?.vnpTransactionNo,
-        vnpay_pay_date: p.vnpayData?.vnpPayDate ? new Date(
-          // Parse VNPAY date format: yyyyMMddHHmmss
-          p.vnpayData.vnpPayDate.replace(
-            /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
-            '$1-$2-$3T$4:$5:$6Z'
-          )
-        ).toISOString() : undefined,
+        vnpay_pay_date: p.vnpayData?.vnpPayDate
+          ? new Date(
+              // Parse VNPAY date format: yyyyMMddHHmmss
+              p.vnpayData.vnpPayDate.replace(
+                /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
+                "$1-$2-$3T$4:$5:$6Z",
+              ),
+            ).toISOString()
+          : undefined,
       }));
 
     return {

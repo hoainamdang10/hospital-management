@@ -1,7 +1,7 @@
-import { Entity } from '../../../../shared/domain/base/entity';
-import { Money } from '../value-objects/Money';
-export type PaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'payos' | 'insurance' | 'refund';
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'refund_pending';
+import { Entity } from "../../../../shared/domain/base/entity";
+import { Money } from "../value-objects/Money";
+export type PaymentMethod = "cash" | "card" | "bank_transfer" | "payos" | "insurance" | "refund";
+export type PaymentStatus = "pending" | "completed" | "failed" | "refunded" | "refund_pending";
 export interface VnpayTransactionData {
     vnpTxnRef: string;
     vnpTransactionNo: string;
@@ -22,13 +22,13 @@ export interface PaymentProps {
 }
 export declare class Payment extends Entity<PaymentProps> {
     private constructor();
-    static create(amount: Money, method: PaymentMethod, transactionId?: string, id?: string, vnpayData?: VnpayTransactionData): Payment;
+    static create(amount: Money, method: PaymentMethod, transactionId?: string, id?: string, vnpayData?: VnpayTransactionData, status?: PaymentStatus, paidAt?: Date, refundedAt?: Date, refundReason?: string, refundedBy?: string, gatewayRefundId?: string): Payment;
     /**
      * Create a refund payment record
      * This represents money being returned to the patient
      * Amount will be stored as negative value to represent outflow
      */
-    static createRefund(amount: Money, originalPaymentMethod: PaymentMethod, transactionId: string, reason: string, refundedBy: string, id?: string): Payment;
+    static createRefund(amount: Money, originalPaymentMethod: PaymentMethod, transactionId: string, reason: string, refundedBy: string, id?: string, status?: PaymentStatus, refundedAt?: Date, gatewayRefundId?: string): Payment;
     get amount(): Money;
     get method(): PaymentMethod;
     get status(): PaymentStatus;

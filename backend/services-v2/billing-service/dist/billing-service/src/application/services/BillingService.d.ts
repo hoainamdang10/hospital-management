@@ -38,6 +38,12 @@ export interface NoShowFeeRequest {
     noShowCount: number;
     feeAmount: number;
 }
+export interface RescheduleFeeRequest {
+    appointmentId: string;
+    patientId: string;
+    rescheduleAmount: number;
+    reason: string;
+}
 export interface PrescriptionInvoiceRequest {
     prescriptionId: string;
     patientId: string;
@@ -116,6 +122,10 @@ export declare class BillingService {
      * Generate late cancellation fee invoice
      */
     generateLateCancellationFee(request: LateCancellationFeeRequest): Promise<Invoice>;
+    /**
+     * Generate reschedule fee invoice when policy applies
+     */
+    generateRescheduleFee(request: RescheduleFeeRequest): Promise<Invoice>;
     /**
      * Generate no-show fee invoice
      */

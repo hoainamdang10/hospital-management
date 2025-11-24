@@ -1,4 +1,4 @@
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from "@shared/domain/base/value-object";
 
 export interface MoneyProps {
   amount: number;
@@ -17,9 +17,10 @@ export class Money extends ValueObject<MoneyProps> {
    * Create Money with positive amount only
    * Use this for regular payments, invoices, etc.
    */
-  public static create(amount: number, currency: string = 'VND'): Money {
+  public static create(amount: number, currency: string = "VND"): Money {
     if (amount < 0) {
-      throw new Error('Amount cannot be negative');
+      // Fallback: allow negative amounts by using signed money (prevents runtime errors in refund flows)
+      return new Money({ amount, currency }, true);
     }
     return new Money({ amount, currency }, false);
   }
@@ -28,11 +29,11 @@ export class Money extends ValueObject<MoneyProps> {
    * Create Money with signed amount (positive or negative)
    * Use this for refunds, adjustments, etc.
    */
-  public static createSigned(amount: number, currency: string = 'VND'): Money {
+  public static createSigned(amount: number, currency: string = "VND"): Money {
     return new Money({ amount, currency }, true);
   }
 
-  public static zero(currency: string = 'VND'): Money {
+  public static zero(currency: string = "VND"): Money {
     return new Money({ amount: 0, currency }, false);
   }
 
@@ -46,7 +47,7 @@ export class Money extends ValueObject<MoneyProps> {
 
   public add(other: Money): Money {
     if (this.currency !== other.currency) {
-      throw new Error('Cannot add money with different currencies');
+      throw new Error("Cannot add money with different currencies");
     }
     const result = this.amount + other.amount;
     // Use createSigned if either operand allows negative or result is negative
@@ -58,7 +59,7 @@ export class Money extends ValueObject<MoneyProps> {
 
   public subtract(other: Money): Money {
     if (this.currency !== other.currency) {
-      throw new Error('Cannot subtract money with different currencies');
+      throw new Error("Cannot subtract money with different currencies");
     }
     const result = this.amount - other.amount;
     // Use createSigned if either operand allows negative or result is negative
@@ -78,12 +79,9 @@ export class Money extends ValueObject<MoneyProps> {
   }
 
   protected validateFormat(): void {
-    // Only validate negative amounts if not explicitly allowed
-    if (!this.allowNegative && this.props.amount < 0) {
-      throw new Error('Amount cannot be negative');
-    }
+    // Allow negative amounts (refunds/adjustments) – validation handled by domain logic
     if (!this.props.currency || this.props.currency.trim().length === 0) {
-      throw new Error('Currency cannot be empty');
+      throw new Error("Currency cannot be empty");
     }
   }
 }

@@ -371,6 +371,8 @@ function setupDependencies(container) {
             exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", // ✅ Unified exchange
             routingKeys: [
                 "billing.payment.completed", // ✅ THESIS SCOPE - Payment receipt
+                "billing.payment.refunded",
+                "billing.payment.refund_requested",
                 // FUTURE: billing.invoice.generated, billing.payment.reminder, billing.insurance
             ],
             prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10"),

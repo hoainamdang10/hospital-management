@@ -7,7 +7,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture, Vietnamese Healthcare Standards
  */
-import { DomainEvent } from "@shared/domain/base/domain-event";
+import { DomainEvent } from "../../../../shared/domain/base/domain-event";
 export interface AppointmentCancelledEventData {
     appointmentId: string;
     patientId: string;
@@ -119,7 +119,13 @@ export declare class AppointmentCancelledEvent extends DomainEvent {
     /**
      * Calculate Vietnamese healthcare cancellation policy
      */
-    private static calculateCancellationPolicy;
+    static calculateCancellationPolicy(hoursNotice: number): {
+        penaltyApplied: boolean;
+        refundEligible: boolean;
+        rescheduleAllowed: boolean;
+        penaltyAmount?: number;
+        refundPercentage?: number;
+    };
     /**
      * Get patient notification channels based on notice time
      */

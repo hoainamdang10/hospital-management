@@ -338,6 +338,7 @@ services:
       - IDENTITY_SERVICE_URL=http://identity-service:3001
       - PATIENT_SERVICE_URL=http://patient-registry-service:3002
       - PROVIDER_SERVICE_URL=http://provider-staff-service:3003
+      - ENABLE_SCHEDULER=true
       # Scheduler Service - REMOVED (functionality moved to cron jobs in Notifications Service)
       # - SCHEDULER_SERVICE_URL=http://scheduler-service:3030
       # - SCHEDULER_API_KEY=${SCHEDULER_API_KEY}

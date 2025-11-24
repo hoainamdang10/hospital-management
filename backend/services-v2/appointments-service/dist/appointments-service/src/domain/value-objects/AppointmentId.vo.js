@@ -10,7 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentId = void 0;
-const value_object_1 = require("@shared/domain/base/value-object");
+const value_object_1 = require("../../../../shared/domain/base/value-object");
 /**
  * AppointmentId Value Object
  * Unique identifier for appointments

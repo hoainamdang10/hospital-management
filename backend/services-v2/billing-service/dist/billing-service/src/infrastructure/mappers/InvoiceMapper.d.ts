@@ -62,6 +62,7 @@ export interface PaymentRecordData {
     amount: number;
     currency: string;
     method: string;
+    status?: string;
     transaction_id?: string;
     processed_at: string;
     processed_by?: string;
@@ -71,6 +72,10 @@ export interface PaymentRecordData {
     vnpay_txn_ref?: string;
     vnpay_transaction_no?: string;
     vnpay_pay_date?: string;
+    refunded_at?: string;
+    refund_reason?: string;
+    refunded_by?: string;
+    gateway_refund_id?: string;
     notes?: string;
     metadata?: any;
     created_at: string;

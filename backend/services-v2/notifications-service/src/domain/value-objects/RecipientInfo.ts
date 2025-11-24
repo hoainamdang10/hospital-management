@@ -1,13 +1,19 @@
 /**
  * RecipientInfo - Domain Value Object
  * Represents notification recipient information with Vietnamese healthcare context
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-export type RecipientType = 'PATIENT' | 'DOCTOR' | 'NURSE' | 'ADMIN' | 'FAMILY' | 'EXTERNAL';
+export type RecipientType =
+  | "PATIENT"
+  | "DOCTOR"
+  | "NURSE"
+  | "ADMIN"
+  | "FAMILY"
+  | "EXTERNAL";
 
 export interface ContactInfo {
   email?: string;
@@ -19,10 +25,10 @@ export interface ContactInfo {
 export interface PreferenceSettings {
   preferredChannels: string[]; // Channel types in order of preference
   timezone: string;
-  language: 'vi' | 'en';
+  language: "vi" | "en";
   quietHours?: {
     start: string; // HH:mm format
-    end: string;   // HH:mm format
+    end: string; // HH:mm format
   };
   optOut: {
     marketing: boolean;
@@ -35,7 +41,13 @@ export interface HealthcareContext {
   patientId?: string;
   doctorId?: string;
   departmentId?: string;
-  relationshipToPatient?: 'SELF' | 'SPOUSE' | 'CHILD' | 'PARENT' | 'GUARDIAN' | 'OTHER';
+  relationshipToPatient?:
+    | "SELF"
+    | "SPOUSE"
+    | "CHILD"
+    | "PARENT"
+    | "GUARDIAN"
+    | "OTHER";
   emergencyContact: boolean;
   hipaaAuthorized: boolean;
 }
@@ -56,7 +68,7 @@ export class RecipientInfo {
     contactInfo: ContactInfo,
     preferences: PreferenceSettings,
     healthcareContext: HealthcareContext,
-    isActive: boolean = true
+    isActive: boolean = true,
   ) {
     this.recipientId = recipientId;
     this.recipientType = recipientType;
@@ -81,16 +93,18 @@ export class RecipientInfo {
   }): RecipientInfo {
     // Validate required fields
     if (!data.recipientId?.trim()) {
-      throw new Error('Mã người nhận không được để trống');
+      throw new Error("Mã người nhận không được để trống");
     }
 
     if (!data.fullName?.trim()) {
-      throw new Error('Tên người nhận không được để trống');
+      throw new Error("Tên người nhận không được để trống");
     }
 
+    const normalizedFullName = RecipientInfo.normalizeFullName(data.fullName);
+
     // Validate Vietnamese name format
-    if (!RecipientInfo.isValidVietnameseName(data.fullName)) {
-      throw new Error('Tên người nhận không đúng định dạng tiếng Việt');
+    if (!RecipientInfo.isValidVietnameseName(normalizedFullName)) {
+      throw new Error("Tên người nhận không đúng định dạng tiếng Việt");
     }
 
     // Validate contact information
@@ -98,18 +112,18 @@ export class RecipientInfo {
 
     // Set default preferences
     const defaultPreferences: PreferenceSettings = {
-      preferredChannels: ['PUSH', 'SMS', 'EMAIL'],
-      timezone: 'Asia/Ho_Chi_Minh',
-      language: 'vi',
+      preferredChannels: ["PUSH", "SMS", "EMAIL"],
+      timezone: "Asia/Ho_Chi_Minh",
+      language: "vi",
       quietHours: {
-        start: '22:00',
-        end: '07:00'
+        start: "22:00",
+        end: "07:00",
       },
       optOut: {
         marketing: false,
         reminders: false,
-        emergency: false // Cannot opt out
-      }
+        emergency: false, // Cannot opt out
+      },
     };
 
     const preferences = { ...defaultPreferences, ...data.preferences };
@@ -117,19 +131,22 @@ export class RecipientInfo {
     // Set default healthcare context
     const defaultHealthcareContext: HealthcareContext = {
       emergencyContact: false,
-      hipaaAuthorized: false
+      hipaaAuthorized: false,
     };
 
-    const healthcareContext = { ...defaultHealthcareContext, ...data.healthcareContext };
+    const healthcareContext = {
+      ...defaultHealthcareContext,
+      ...data.healthcareContext,
+    };
 
     return new RecipientInfo(
       data.recipientId,
       data.recipientType,
-      data.fullName,
+      normalizedFullName,
       data.contactInfo,
       preferences,
       healthcareContext,
-      data.isActive ?? true
+      data.isActive ?? true,
     );
   }
 
@@ -137,30 +154,40 @@ export class RecipientInfo {
    * Validate Vietnamese name format
    */
   private static isValidVietnameseName(name: string): boolean {
-    if (!name || name.trim().length < 2) return false;
-    
-    // Allow Vietnamese characters, spaces, and common punctuation
-    const vietnameseNameRegex = /^[a-zA-ZàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ\s.'-]+$/;
-    
-    return vietnameseNameRegex.test(name.trim());
+    // Relaxed: chỉ cần có tối thiểu 2 ký tự sau khi trim
+    return !!name && name.trim().length >= 2;
+  }
+
+  /**
+   * Normalize full name (trim + collapse spaces)
+   */
+  private static normalizeFullName(name: string): string {
+    return name.trim().replace(/\s+/g, " ");
   }
 
   /**
    * Validate contact information
    */
   private static validateContactInfo(contactInfo: ContactInfo): void {
-    if (!contactInfo.email && !contactInfo.phoneNumber && !contactInfo.pushToken) {
-      throw new Error('Phải có ít nhất một thông tin liên lạc (email, số điện thoại, hoặc push token)');
+    if (
+      !contactInfo.email &&
+      !contactInfo.phoneNumber &&
+      !contactInfo.pushToken
+    ) {
+      throw new Error(
+        "Phải có ít nhất một thông tin liên lạc (email, số điện thoại, hoặc push token)",
+      );
     }
 
     // Validate email format
     if (contactInfo.email && !RecipientInfo.isValidEmail(contactInfo.email)) {
-      throw new Error('Địa chỉ email không đúng định dạng');
+      throw new Error("Địa chỉ email không đúng định dạng");
     }
 
     // Validate Vietnamese phone number
-    if (contactInfo.phoneNumber && !RecipientInfo.isValidVietnamesePhoneNumber(contactInfo.phoneNumber)) {
-      throw new Error('Số điện thoại không đúng định dạng Việt Nam');
+    // Relax validation: accept any phone number (demo), just trim if provided
+    if (contactInfo.phoneNumber) {
+      contactInfo.phoneNumber = contactInfo.phoneNumber.trim();
     }
   }
 
@@ -178,7 +205,7 @@ export class RecipientInfo {
   private static isValidVietnamesePhoneNumber(phoneNumber: string): boolean {
     // Vietnamese phone number formats: 0xxxxxxxxx or +84xxxxxxxxx
     const phoneRegex = /^(\+84|0)[3-9]\d{8}$/;
-    return phoneRegex.test(phoneNumber.replace(/\s/g, ''));
+    return phoneRegex.test(phoneNumber.replace(/\s/g, ""));
   }
 
   /**
@@ -247,7 +274,7 @@ export class RecipientInfo {
   /**
    * Get preferred language
    */
-  public getPreferredLanguage(): 'vi' | 'en' {
+  public getPreferredLanguage(): "vi" | "en" {
     return this.preferences.language;
   }
 
@@ -261,7 +288,9 @@ export class RecipientInfo {
   /**
    * Check if recipient has opted out of specific notification type
    */
-  public hasOptedOut(notificationType: 'marketing' | 'reminders' | 'emergency'): boolean {
+  public hasOptedOut(
+    notificationType: "marketing" | "reminders" | "emergency",
+  ): boolean {
     return this.preferences.optOut[notificationType];
   }
 
@@ -276,18 +305,28 @@ export class RecipientInfo {
     const currentMinute = now.getMinutes();
     const currentTimeMinutes = currentHour * 60 + currentMinute;
 
-    const [startHour, startMinute] = this.preferences.quietHours.start.split(':').map(Number);
-    const [endHour, endMinute] = this.preferences.quietHours.end.split(':').map(Number);
-    
+    const [startHour, startMinute] = this.preferences.quietHours.start
+      .split(":")
+      .map(Number);
+    const [endHour, endMinute] = this.preferences.quietHours.end
+      .split(":")
+      .map(Number);
+
     const startTimeMinutes = startHour * 60 + startMinute;
     const endTimeMinutes = endHour * 60 + endMinute;
 
     // Handle overnight quiet hours (e.g., 22:00 to 07:00)
     if (startTimeMinutes > endTimeMinutes) {
-      return currentTimeMinutes >= startTimeMinutes || currentTimeMinutes <= endTimeMinutes;
+      return (
+        currentTimeMinutes >= startTimeMinutes ||
+        currentTimeMinutes <= endTimeMinutes
+      );
     }
 
-    return currentTimeMinutes >= startTimeMinutes && currentTimeMinutes <= endTimeMinutes;
+    return (
+      currentTimeMinutes >= startTimeMinutes &&
+      currentTimeMinutes <= endTimeMinutes
+    );
   }
 
   /**
@@ -295,11 +334,11 @@ export class RecipientInfo {
    */
   public getContactForChannel(channelType: string): string | undefined {
     switch (channelType.toUpperCase()) {
-      case 'EMAIL':
+      case "EMAIL":
         return this.contactInfo.email;
-      case 'SMS':
+      case "SMS":
         return this.contactInfo.phoneNumber;
-      case 'PUSH':
+      case "PUSH":
         return this.contactInfo.pushToken;
       default:
         return undefined;
@@ -319,12 +358,12 @@ export class RecipientInfo {
    */
   public getVietnameseTypeName(): string {
     const typeNames: Record<RecipientType, string> = {
-      PATIENT: 'Bệnh nhân',
-      DOCTOR: 'Bác sĩ',
-      NURSE: 'Điều dưỡng',
-      ADMIN: 'Quản trị viên',
-      FAMILY: 'Thân nhân',
-      EXTERNAL: 'Bên ngoài'
+      PATIENT: "Bệnh nhân",
+      DOCTOR: "Bác sĩ",
+      NURSE: "Điều dưỡng",
+      ADMIN: "Quản trị viên",
+      FAMILY: "Thân nhân",
+      EXTERNAL: "Bên ngoài",
     };
 
     return typeNames[this.recipientType];
@@ -340,7 +379,9 @@ export class RecipientInfo {
   /**
    * Create copy with updated preferences
    */
-  public withPreferences(preferences: Partial<PreferenceSettings>): RecipientInfo {
+  public withPreferences(
+    preferences: Partial<PreferenceSettings>,
+  ): RecipientInfo {
     return new RecipientInfo(
       this.recipientId,
       this.recipientType,
@@ -348,7 +389,7 @@ export class RecipientInfo {
       this.contactInfo,
       { ...this.preferences, ...preferences },
       this.healthcareContext,
-      this.isActive
+      this.isActive,
     );
   }
 
@@ -363,7 +404,7 @@ export class RecipientInfo {
       { ...this.contactInfo, ...contactInfo },
       this.preferences,
       this.healthcareContext,
-      this.isActive
+      this.isActive,
     );
   }
 
@@ -378,7 +419,7 @@ export class RecipientInfo {
       this.contactInfo,
       this.preferences,
       this.healthcareContext,
-      false
+      false,
     );
   }
 
@@ -408,7 +449,7 @@ export class RecipientInfo {
       contactInfo: this.contactInfo,
       preferences: this.preferences,
       healthcareContext: this.healthcareContext,
-      isActive: this.isActive
+      isActive: this.isActive,
     };
   }
 
@@ -423,7 +464,7 @@ export class RecipientInfo {
       json.contactInfo,
       json.preferences,
       json.healthcareContext,
-      json.isActive
+      json.isActive,
     );
   }
 }

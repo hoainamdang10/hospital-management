@@ -78,6 +78,23 @@ export interface AppointmentCancelledRefundEventData {
         refundPercentage?: number;
     };
 }
+export interface AppointmentRescheduledEventData {
+    appointmentId: string;
+    patientId: string;
+    staffId: string | null;
+    departmentId: string | null;
+    originalStartTime?: Date;
+    newStartTime?: Date;
+    rescheduledBy?: string;
+    rescheduledAt?: Date;
+    reason?: string;
+    reschedulePolicy?: {
+        feeApplied: boolean;
+        freeRescheduleUsed: boolean;
+        remainingFreeReschedules: number;
+        rescheduleAmount?: number;
+    };
+}
 /**
  * AppointmentEventConsumer - Handles appointment lifecycle events for billing
  */
@@ -111,6 +128,7 @@ export declare class AppointmentEventConsumer {
     private buildAppointmentCancelledPayload;
     private buildAppointmentNoShowPayload;
     private buildAppointmentCancelledRefundPayload;
+    private buildAppointmentRescheduledPayload;
     private extractCommonAppointmentFields;
     private resolveScheduledAt;
     private normalizeServiceType;
@@ -135,10 +153,19 @@ export declare class AppointmentEventConsumer {
      */
     private handleAppointmentNoShow;
     /**
+     * Handle appointment rescheduled event (apply reschedule fee if required)
+     */
+    private handleAppointmentRescheduled;
+    /**
      * Handle appointment cancelled event (refund case)
      * Simplified approach: Only handle billing refund logic
      */
     private handleAppointmentCancelled;
+    /**
+     * Build a minimal system context for healthcare use cases invoked from event consumers.
+     * Prevents "User context required" errors while keeping audit metadata consistent.
+     */
+    private getSystemContext;
     /**
      * Disconnect from RabbitMQ
      */

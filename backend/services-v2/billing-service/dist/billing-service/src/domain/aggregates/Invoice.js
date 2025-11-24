@@ -16,7 +16,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     }
     static create(patientId, items) {
         if (items.length === 0) {
-            throw new Error('Invoice must have at least one item');
+            throw new Error("Invoice must have at least one item");
         }
         const invoiceId = InvoiceId_1.InvoiceId.generate();
         const now = new Date();
@@ -42,9 +42,9 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             payments: [],
             paidAt: undefined, // Not paid yet
             createdAt: now,
-            updatedAt: now
+            updatedAt: now,
         });
-        invoice.addDomainEvent(new InvoiceCreatedEvent_1.InvoiceCreatedEvent(invoiceId.value, patientId, totalAmount.amount, totalAmount.currency, 'draft'));
+        invoice.addDomainEvent(new InvoiceCreatedEvent_1.InvoiceCreatedEvent(invoiceId.value, patientId, totalAmount.amount, totalAmount.currency, "draft"));
         return invoice;
     }
     // REMOVED (Phase 1 Prepaid Model): finalize(), cancel(), processInsuranceClaim()
@@ -59,23 +59,23 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     processRefund(refundPercentage, reason, refundedBy) {
         // Validate refund percentage
         if (refundPercentage < 0 || refundPercentage > 100) {
-            throw new Error('Refund percentage must be between 0 and 100');
+            throw new Error("Refund percentage must be between 0 and 100");
         }
         // Validate invoice is paid
         if (!this.props.status.isPaid()) {
-            throw new Error('Cannot refund unpaid invoice');
+            throw new Error("Cannot refund unpaid invoice");
         }
         // Calculate refund amount
         const refundAmount = this.props.totalAmount.amount * (refundPercentage / 100);
         // Get original payment for refund tracking
         // Find first non-refund payment (original payment, not refund record)
         // Database doesn't store payment status, so we identify by method !== 'refund'
-        const originalPayment = this.props.payments.find(p => p.method !== 'refund');
-        const originalPaymentMethod = originalPayment?.method || 'payos';
+        const originalPayment = this.props.payments.find((p) => p.method !== "refund");
+        const originalPaymentMethod = originalPayment?.method || "payos";
         // Create refund payment record (type: 'refund')
         // This will be saved as a negative payment in payment_records table
         // Status: 'refund_pending' - will be updated when gateway confirms
-        const refundPayment = Payment_1.Payment.createRefund(Money_1.Money.create(refundAmount, this.props.totalAmount.currency), originalPaymentMethod, `REFUND-${this.props.id.value}-${Date.now()}`, // Transaction ID
+        const refundPayment = Payment_1.Payment.createRefund(Money_1.Money.createSigned(refundAmount, this.props.totalAmount.currency), originalPaymentMethod, `REFUND-${this.props.id.value}-${Date.now()}`, // Transaction ID
         reason, refundedBy);
         // Add refund payment to payments array
         this.props.payments.push(refundPayment);
@@ -84,10 +84,10 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         // - Positive amounts (method !== 'refund'): payments received
         // - Negative amounts (method === 'refund'): refunds issued
         const totalPaid = this.props.payments
-            .filter(p => p.method !== 'refund' && p.amount.amount > 0)
+            .filter((p) => p.method !== "refund" && p.amount.amount > 0)
             .reduce((sum, p) => sum + p.amount.amount, 0);
         const totalRefunded = this.props.payments
-            .filter(p => p.method === 'refund' && p.amount.amount < 0)
+            .filter((p) => p.method === "refund" && p.amount.amount < 0)
             .reduce((sum, p) => sum + Math.abs(p.amount.amount), 0);
         const netPayment = totalPaid - totalRefunded;
         const newOutstanding = this.props.totalAmount.amount - netPayment;
@@ -101,9 +101,9 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         // ONLY emit PaymentRefundRequestedEvent
         // PaymentRefundedEvent will be emitted by worker/webhook when gateway confirms
         this.addDomainEvent(new PaymentRefundRequestedEvent_1.PaymentRefundRequestedEvent(refundPayment.id, // refundId
-        originalPayment?.id || 'unknown', // originalPaymentId
+        originalPayment?.id || "unknown", // originalPaymentId
         this.props.id.value, // invoiceId
-        this.props.staffId || 'system', // staffId
+        this.props.staffId || "system", // staffId
         this.props.patientId, // patientId
         refundAmount, // refundAmount
         this.props.totalAmount.currency, // currency
@@ -114,8 +114,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.appointmentId, // appointmentId
         vnpayData?.vnpTxnRef, // VNPAY transaction reference
         vnpayData?.vnpTransactionNo, // VNPAY transaction number
-        vnpayData?.vnpPayDate // VNPAY payment date
-        ));
+        vnpayData?.vnpPayDate));
         return refundAmount;
     }
     /**
@@ -126,11 +125,11 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
      */
     completeRefund(refundPaymentId, gatewayRefundId) {
         // Find the refund payment
-        const refundPayment = this.props.payments.find(p => p.id === refundPaymentId && p.method === 'refund');
+        const refundPayment = this.props.payments.find((p) => p.id === refundPaymentId && p.method === "refund");
         if (!refundPayment) {
             throw new Error(`Refund payment ${refundPaymentId} not found`);
         }
-        if (refundPayment.status !== 'refund_pending') {
+        if (refundPayment.status !== "refund_pending") {
             throw new Error(`Refund payment ${refundPaymentId} is not pending`);
         }
         // Complete the refund payment
@@ -138,10 +137,10 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         // Recalculate outstanding amount with completed refund
         // Database doesn't store payment status, so we calculate based on method and amount
         const totalPaid = this.props.payments
-            .filter(p => p.method !== 'refund' && p.amount.amount > 0)
+            .filter((p) => p.method !== "refund" && p.amount.amount > 0)
             .reduce((sum, p) => sum + p.amount.amount, 0);
         const totalRefunded = this.props.payments
-            .filter(p => p.method === 'refund' && p.amount.amount < 0)
+            .filter((p) => p.method === "refund" && p.amount.amount < 0)
             .reduce((sum, p) => sum + Math.abs(p.amount.amount), 0);
         const netPayment = totalPaid - totalRefunded;
         const newOutstanding = this.props.totalAmount.amount - netPayment;
@@ -164,27 +163,26 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedAt = new Date();
         // Emit PaymentRefundedEvent now that gateway has confirmed
         // Find original payment by method (not status, since DB doesn't persist status)
-        const originalPayment = this.props.payments.find(p => p.method !== 'refund' && p.amount.amount > 0);
+        const originalPayment = this.props.payments.find((p) => p.method !== "refund" && p.amount.amount > 0);
         this.addDomainEvent(new PaymentRefundedEvent_1.PaymentRefundedEvent(refundPayment.id, // refundId
-        originalPayment?.id || 'unknown', // originalPaymentId
+        originalPayment?.id || "unknown", // originalPaymentId
         this.props.id.value, // invoiceId
-        this.props.staffId || 'system', // staffId
+        this.props.staffId || "system", // staffId
         this.props.patientId, // patientId
         refundAmount, // refundAmount
         this.props.totalAmount.currency, // currency
-        refundPayment.refundReason || 'Refund completed', // reason
-        refundPayment.refundedBy || 'system', // refundedBy
+        refundPayment.refundReason || "Refund completed", // reason
+        refundPayment.refundedBy || "system", // refundedBy
         new Date(), // timestamp
         this.props.appointmentId, // appointmentId
-        gatewayRefundId // gatewayRefundId
-        ));
+        gatewayRefundId));
     }
     processPayment(payment) {
         if (this.props.status.isCancelled()) {
-            throw new Error('Cannot process payment for cancelled invoice');
+            throw new Error("Cannot process payment for cancelled invoice");
         }
         if (this.props.status.isPaid()) {
-            throw new Error('Invoice is already paid');
+            throw new Error("Invoice is already paid");
         }
         payment.complete();
         this.props.payments.push(payment);
@@ -197,14 +195,15 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         }
         this.props.updatedAt = new Date();
         // Emit PaymentProcessedEvent with appointmentId for prepaid flow
-        this.addDomainEvent(new PaymentProcessedEvent_1.PaymentProcessedEvent(this.props.id.value, payment.id, payment.amount.amount, payment.amount.currency, payment.method, this.props.appointmentId // Pass appointmentId to event
-        ));
+        this.addDomainEvent(new PaymentProcessedEvent_1.PaymentProcessedEvent(this.props.id.value, payment.id, payment.amount.amount, payment.amount.currency, payment.method, this.props.appointmentId));
     }
     static generateInvoiceNumber() {
         const now = new Date();
         const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const random = Math.floor(Math.random() * 10000)
+            .toString()
+            .padStart(4, "0");
         return `INV-${year}${month}-${random}`;
     }
     // Required by HealthcareAggregateRoot
@@ -213,10 +212,10 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     }
     validateBusinessInvariants() {
         if (this.props.items.length === 0) {
-            throw new Error('Invoice must have at least one item');
+            throw new Error("Invoice must have at least one item");
         }
         if (this.props.totalAmount.amount < 0) {
-            throw new Error('Total amount cannot be negative');
+            throw new Error("Total amount cannot be negative");
         }
     }
     getPatientId() {
@@ -249,17 +248,17 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             appointmentId: this.props.appointmentId,
             staffId: this.props.staffId,
             invoiceNumber: this.props.invoiceNumber,
-            items: this.props.items.map(item => item.toPersistence()),
+            items: this.props.items.map((item) => item.toPersistence()),
             subtotal: this.props.subtotal.amount,
             tax: this.props.tax.amount,
             totalAmount: this.props.totalAmount.amount,
             outstandingAmount: this.props.outstandingAmount.amount,
             currency: this.props.totalAmount.currency,
             status: this.props.status.value,
-            payments: this.props.payments.map(p => p.toPersistence()),
+            payments: this.props.payments.map((p) => p.toPersistence()),
             paidAt: this.props.paidAt,
             createdAt: this.props.createdAt,
-            updatedAt: this.props.updatedAt
+            updatedAt: this.props.updatedAt,
             // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
         };
     }

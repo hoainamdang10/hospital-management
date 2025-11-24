@@ -182,6 +182,7 @@ export class DIContainer {
 
   // Event Publishing
   private eventPublisher: IDomainEventPublisher;
+  private appEventPublisher?: EventBusPublisher;
 
   // Use Cases
   private scheduleAppointmentUseCase: ScheduleAppointmentUseCase;
@@ -425,8 +426,8 @@ export class DIContainer {
     (this.appointmentRepository as any).eventPublisher = this.eventPublisher;
 
     // Configure application-level publishers
-    const appEventPublisher = new EventBusPublisher(eventBus);
-    this.reschedulingService.setEventPublisher(appEventPublisher);
+    this.appEventPublisher = new EventBusPublisher(eventBus);
+    this.reschedulingService.setEventPublisher(this.appEventPublisher);
 
     console.log("[DI] ✅ Event publisher initialized and wired to repository");
   }
@@ -530,6 +531,7 @@ export class DIContainer {
       this.appointmentRepository,
       this.authorizationService,
       this.reminderService,
+      this.appEventPublisher, // publish appointments.cancelled directly to EventBus
     );
 
     this.confirmAppointmentUseCase = new ConfirmAppointmentUseCase(

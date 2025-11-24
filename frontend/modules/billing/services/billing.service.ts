@@ -205,7 +205,7 @@ class BillingService {
       `invoice-${Date.now()}`;
 
     const totalAmount = toNumber(invoice?.totalAmount ?? invoice?.total_amount);
-    const paidAmount = toNumber(
+    let paidAmount = toNumber(
       invoice?.paidAmount ?? invoice?.paid_amount ?? invoice?.patient_payment_amount
     );
     const outstandingAmount = toNumber(
@@ -213,6 +213,10 @@ class BillingService {
         invoice?.outstanding_amount ??
         Math.max(0, totalAmount - paidAmount)
     );
+    // Nếu paidAmount không có hoặc đang chứa outstanding, tính paid dựa trên total - outstanding
+    if (!paidAmount && totalAmount) {
+      paidAmount = Math.max(0, totalAmount - outstandingAmount);
+    }
 
     return {
       ...invoice,

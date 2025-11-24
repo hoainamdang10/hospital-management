@@ -5,7 +5,7 @@
  * Implements publish-subscribe pattern using RabbitMQ
  * Replaces cross-schema foreign keys with event-driven architecture
  */
-import { DomainEvent } from '../../domain/base/domain-event';
+import { DomainEvent } from "../../domain/base/domain-event";
 export interface EventBusConfig {
     rabbitmqUrl: string;
     exchangeName: string;

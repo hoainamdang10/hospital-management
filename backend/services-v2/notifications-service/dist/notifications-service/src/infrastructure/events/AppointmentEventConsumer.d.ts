@@ -239,6 +239,7 @@ export declare class AppointmentEventConsumer {
      * Format date for Vietnamese locale
      */
     private formatDate;
+    private formatTime;
     /**
      * Send appointment confirmed notification
      */

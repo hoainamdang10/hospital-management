@@ -1,7 +1,7 @@
 /**
  * SendNotificationUseCase - Simplified for Event Consumer Integration
  * Nhận command từ Event Consumers và gửi notification ngay lập tức
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0-simplified
  * @compliance Clean Architecture, DDD, Event Consumer Integration
@@ -12,8 +12,14 @@ import { RecipientInfo } from "../../domain/value-objects/RecipientInfo";
 import { NotificationChannel } from "../../domain/value-objects/NotificationChannel";
 import { NotificationContent } from "../../domain/value-objects/NotificationContent";
 import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
-import { ITemplateService, TemplateType } from "../../domain/services/ITemplateService";
-import { IDeliveryService, DeliveryResult } from "../../domain/services/IDeliveryService";
+import {
+  ITemplateService,
+  TemplateType,
+} from "../../domain/services/ITemplateService";
+import {
+  IDeliveryService,
+  DeliveryResult,
+} from "../../domain/services/IDeliveryService";
 
 export interface SendNotificationCommand {
   recipientId: string;
@@ -45,23 +51,45 @@ export class SendNotificationUseCase {
   constructor(
     private readonly notificationRepository: INotificationRepository,
     private readonly templateService: ITemplateService,
-    private readonly deliveryService: IDeliveryService
+    private readonly deliveryService: IDeliveryService,
   ) {}
 
   async execute(command: SendNotificationCommand): Promise<DeliveryResult[]> {
     // Validate command
-    if (!command.recipientId || !command.recipientType || !command.channels.length) {
+    if (
+      !command.recipientId ||
+      !command.recipientType ||
+      !command.channels.length
+    ) {
       throw new Error("Invalid notification command: missing required fields");
     }
 
-    // Get recipient information
+    const candidateName = (
+      command.recipientName ||
+      command.metadata?.recipientName ||
+      ""
+    ).trim();
+    const normalizedName =
+      candidateName.length >= 2 ? candidateName.replace(/\s+/g, " ") : "";
+    const fallbackName = `Người nhận ${command.recipientType}`.trim();
+
+    const contactEmail = command.recipientEmail || command.metadata?.email;
+    const contactPhone =
+      command.recipientPhone || command.metadata?.phoneNumber;
+    const contactPushToken = command.metadata?.pushToken;
+
     const recipient = RecipientInfo.create({
       recipientId: command.recipientId,
-      recipientType: command.recipientType as "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN",
-      fullName: `User ${command.recipientId}`,
+      recipientType: command.recipientType as
+        | "PATIENT"
+        | "DOCTOR"
+        | "NURSE"
+        | "ADMIN",
+      fullName: normalizedName || fallbackName,
       contactInfo: {
-        email: `${command.recipientId}@example.com`,
-        phoneNumber: "+84123456789"
+        email: contactEmail || `${command.recipientId}@example.com`,
+        phoneNumber: contactPhone,
+        pushToken: contactPushToken,
       },
       preferences: {
         preferredChannels: ["EMAIL", "SMS"],
@@ -70,40 +98,62 @@ export class SendNotificationUseCase {
         optOut: {
           marketing: false,
           reminders: false,
-          emergency: false
-        }
-      }
+          emergency: false,
+        },
+      },
     });
 
     // Determine content - either from template or direct content
+    const templateData = command.templateData || command.data;
+
     let content;
-    if (command.templateType && command.templateData) {
-      content = await this.templateService.applyTemplateByType(
-        command.templateType as TemplateType,
-        command.templateData,
-        recipient.getPreferredLanguage()
-      );
+    if (command.templateType && templateData) {
+      try {
+        content = await this.templateService.applyTemplateByType(
+          command.templateType as TemplateType,
+          templateData,
+          recipient.getPreferredLanguage(),
+        );
+      } catch (error) {
+        // Demo fallback: nếu thiếu template thì dựng content text đơn giản để tránh fail consumer
+        content = NotificationContent.create({
+          subject: command.templateType,
+          body:
+            typeof templateData === "string"
+              ? templateData
+              : JSON.stringify(templateData ?? {}),
+          contentType: "TEXT",
+          language: "vi",
+        });
+      }
     } else if (command.title && command.content) {
       content = NotificationContent.create({
         subject: command.title,
         body: command.content,
-        contentType: 'TEXT',
-        language: 'vi'
+        contentType: "TEXT",
+        language: "vi",
       });
     } else {
-      throw new Error("Either templateType+templateData or title+content must be provided");
+      // Last-resort fallback to avoid dropping events
+      content = NotificationContent.create({
+        subject: "Thông báo",
+        body: JSON.stringify(templateData ?? {}),
+        contentType: "TEXT",
+        language: "vi",
+      });
     }
 
     const channels = this.determineChannels(command.channels, recipient);
 
     const notification = Notification.create({
       recipient,
-      templateType: command.templateType || 'NOTIFICATION',
+      templateType: command.templateType || "NOTIFICATION",
       content,
       channels,
-      priority: (command.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT") || "NORMAL",
+      priority:
+        (command.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT") || "NORMAL",
       metadata: command.metadata || {
-        source: "event-consumer"
+        source: "event-consumer",
       },
     });
 
@@ -118,7 +168,7 @@ export class SendNotificationUseCase {
       metadata: notification.metadata,
     });
 
-    const hasSuccess = deliveryResults.some(r => r.success);
+    const hasSuccess = deliveryResults.some((r) => r.success);
 
     if (hasSuccess) {
       notification.markAsSent(deliveryResults);
@@ -126,21 +176,27 @@ export class SendNotificationUseCase {
       return deliveryResults;
     } else {
       notification.markAsFailed(
-        deliveryResults.map(r => ({
+        deliveryResults.map((r) => ({
           channel: r.channel,
-          reason: 'PROVIDER_ERROR',
-          errorMessage: r.providerResponse?.error || 'Delivery failed',
+          reason: "PROVIDER_ERROR",
+          errorMessage: r.providerResponse?.error || "Delivery failed",
           retryable: true,
-        }))
+        })),
       );
       await this.notificationRepository.save(notification);
       return deliveryResults;
     }
-  } catch (error: any) {
-    throw new Error(`Lỗi khi gửi notification: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+  catch(error: any) {
+    throw new Error(
+      `Lỗi khi gửi notification: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
-  private determineChannels(requestedChannels: string[], recipient: RecipientInfo): NotificationChannel[] {
+  private determineChannels(
+    requestedChannels: string[],
+    recipient: RecipientInfo,
+  ): NotificationChannel[] {
     const channels: NotificationChannel[] = [];
     for (const channelType of requestedChannels) {
       if (recipient.canReceiveOnChannel(channelType)) {

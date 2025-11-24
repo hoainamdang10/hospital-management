@@ -220,6 +220,10 @@ class BillingServiceApp {
       this.invoiceRepository,
       this.eventBus,
       loggerInstance,
+      {
+        useGatewayRefund:
+          (process.env.USE_GATEWAY_REFUND || "").toLowerCase() === "true",
+      },
     );
 
     this.completeRefundUseCase = new CompleteRefundUseCase(
@@ -281,11 +285,17 @@ class BillingServiceApp {
         queueName: "billing.appointment.events",
         exchangeName: "hospital.events",
         routingKeys: [
-          "appointment.scheduled", // Phase 1 (Prepaid): Create invoice when appointment is scheduled
-          "appointment.cancelled", // Process refunds for cancelled appointments
-          "appointment.cancelled_late", // Cancel invoice if not paid yet
-          "appointment.no_show", // Future: Apply no-show fee
-          "appointment.rescheduled", // Apply reschedule fee if policy requires
+          "appointment.scheduled",
+          "appointment.cancelled",
+          "appointment.cancelled_late",
+          "appointment.no_show",
+          "appointment.rescheduled",
+          // Appointments service is publishing `appointments.*` (plural) in outbox
+          "appointments.scheduled",
+          "appointments.cancelled",
+          "appointments.cancelled_late",
+          "appointments.no_show",
+          "appointments.rescheduled",
         ],
         prefetchCount: 10,
         retryAttempts: 3,
@@ -340,6 +350,10 @@ class BillingServiceApp {
       this.completeRefundUseCase,
       this.paymentGateway, // VnpayIntegrationService for real refund API calls
       loggerInstance,
+      {
+        useGatewayRefund:
+          (process.env.USE_GATEWAY_REFUND || "").toLowerCase() === "true",
+      },
     );
     loggerInstance.info(
       "Refund gateway worker initialized (VNPAY integration)",

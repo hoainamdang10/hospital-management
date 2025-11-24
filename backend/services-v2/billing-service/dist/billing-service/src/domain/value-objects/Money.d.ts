@@ -1,4 +1,4 @@
-import { ValueObject } from '../../../../shared/domain/base/value-object';
+import { ValueObject } from "../../../../shared/domain/base/value-object";
 export interface MoneyProps {
     amount: number;
     currency: string;

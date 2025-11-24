@@ -6,7 +6,7 @@
  * @version 3.0.0
  * @compliance Clean Architecture, DDD
  */
-import { HealthcareValueObject } from '@shared/domain/base/value-object';
+import { HealthcareValueObject } from '../../../../shared/domain/base/value-object';
 export interface TenantIdProps {
     value: string;
 }

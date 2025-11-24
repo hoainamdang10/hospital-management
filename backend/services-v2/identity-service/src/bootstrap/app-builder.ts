@@ -100,6 +100,7 @@ function setupSecurityMiddleware(
       message: "Too many requests from this IP, please try again later.",
       standardHeaders: true,
       legacyHeaders: false,
+      validate: false, // avoid trust proxy validation errors behind gateway
       skip: (req) =>
         req.path.startsWith("/health") || req.path.startsWith("/metrics"),
     });

@@ -39,7 +39,7 @@ export default function DoctorSchedulePage() {
   useEffect(() => {
     const loadAppointments = async () => {
       try {
-        const resp = await appointmentsClient.get('/api/v1/appointments', {
+        const resp = await appointmentsClient.get('/v1/appointments', {
           params: { page: 1, pageSize: 1000 },
         });
         const list = resp.data?.data?.appointments || [];
@@ -51,7 +51,7 @@ export default function DoctorSchedulePage() {
           doctorName: apt.providerName || apt.doctorName || 'Bác sĩ',
           doctorAvatar: '👨‍⚕️',
           date: (apt.appointmentDate || apt.appointmentDateTime || '').toString().slice(0, 10),
-          startTime: (apt.appointmentTime || (apt.appointmentDateTime || '').toString().slice(11, 16)) || '09:00',
+          startTime: (apt.appointmentTime?.toString().slice(0, 5) || (apt.appointmentDateTime || '').toString().slice(11, 16)) || '09:00',
           endTime: '00:00',
           type: apt.appointmentType || 'Consultation',
           status: String(apt.status || 'SCHEDULED').toLowerCase() as any,
@@ -68,161 +68,13 @@ export default function DoctorSchedulePage() {
         const res = await searchStaff({ staffType: 'doctor', status: 'active', isActive: true, limit: 100 });
         const opts = (res?.data?.items || []).map((s: any) => ({ id: s.staffId, name: s.personalInfo?.fullName || 'Bác sĩ' }));
         setDoctorOptions(opts);
-      } catch {}
+      } catch { }
     };
     loadAppointments();
     loadDoctors();
   }, []);
 
-  // Mock data - Replace with API call
-  const mockAppointments: Appointment[] = [
-    // November 3, 2025 - Monday
-    {
-      id: '1',
-      patientId: 'p1',
-      patientName: 'John Smith',
-      doctorId: 'dr-wilson',
-      doctorName: 'Dr. James Wilson',
-      doctorAvatar: '👨‍⚕️',
-      date: '2025-11-03',
-      startTime: '10:00',
-      endTime: '11:00',
-      type: 'Consultation',
-      status: 'confirmed',
-      color: 'green'
-    },
-    // November 4, 2025 - Tuesday
-    {
-      id: '2',
-      patientId: 'p2',
-      patientName: 'John Smith',
-      doctorId: 'dr-wilson',
-      doctorName: 'Dr. James Wilson',
-      doctorAvatar: '👨‍⚕️',
-      date: '2025-11-04',
-      startTime: '11:00',
-      endTime: '12:00',
-      type: 'Follow-up',
-      status: 'confirmed',
-      color: 'pink'
-    },
-    // November 6, 2025 - Thursday
-    {
-      id: '3',
-      patientId: 'p3',
-      patientName: 'Michael Johnson',
-      doctorId: 'dr-sarah',
-      doctorName: 'Dr. Sarah Johnson',
-      doctorAvatar: '👩‍⚕️',
-      date: '2025-11-06',
-      startTime: '12:00',
-      endTime: '13:00',
-      type: 'Checkup',
-      status: 'confirmed',
-      color: 'green'
-    },
-    // November 7, 2025 - Friday
-    {
-      id: '4',
-      patientId: 'p4',
-      patientName: 'Michael Johnson',
-      doctorId: 'dr-patel',
-      doctorName: 'Dr. Lisa Patel',
-      doctorAvatar: '👩‍⚕️',
-      date: '2025-11-07',
-      startTime: '11:00',
-      endTime: '12:00',
-      type: 'Consultation',
-      status: 'confirmed',
-      color: 'green'
-    },
-    {
-      id: '5',
-      patientId: 'p5',
-      patientName: 'Robert Wilson',
-      doctorId: 'dr-chen',
-      doctorName: 'Dr. Michael Chen',
-      doctorAvatar: '👨‍⚕️',
-      date: '2025-11-07',
-      startTime: '12:00',
-      endTime: '13:00',
-      type: 'Emergency',
-      status: 'confirmed',
-      color: 'yellow'
-    },
-    // November 8, 2025 - Saturday (Today)
-    {
-      id: '6',
-      patientId: 'p6',
-      patientName: 'Robert Wilson',
-      doctorId: 'dr-patel',
-      doctorName: 'Dr. Lisa Patel',
-      doctorAvatar: '👩‍⚕️',
-      date: '2025-11-08',
-      startTime: '10:00',
-      endTime: '11:00',
-      type: 'Emergency',
-      status: 'confirmed',
-      color: 'blue'
-    },
-    // More appointments for month view
-    {
-      id: '7',
-      patientId: 'p7',
-      patientName: 'Emily Davis',
-      doctorId: 'dr-patel',
-      doctorName: 'Dr. Lisa Patel',
-      doctorAvatar: '👩‍⚕️',
-      date: '2025-11-01',
-      startTime: '10:00',
-      endTime: '11:00',
-      type: 'Consultation',
-      status: 'confirmed',
-      color: 'yellow'
-    },
-    {
-      id: '8',
-      patientId: 'p8',
-      patientName: 'Michael Johnson',
-      doctorId: 'dr-wilson',
-      doctorName: 'Dr. James Wilson',
-      doctorAvatar: '👨‍⚕️',
-      date: '2025-11-01',
-      startTime: '14:00',
-      endTime: '15:00',
-      type: 'Follow-up',
-      status: 'confirmed',
-      color: 'blue'
-    },
-    {
-      id: '9',
-      patientId: 'p9',
-      patientName: 'Jessica Brown',
-      doctorId: 'dr-sarah',
-      doctorName: 'Dr. Sarah Johnson',
-      doctorAvatar: '👩‍⚕️',
-      date: '2025-11-01',
-      startTime: '16:00',
-      endTime: '17:00',
-      type: 'Checkup',
-      status: 'confirmed',
-      color: 'green'
-    },
-    {
-      id: '10',
-      patientId: 'p10',
-      patientName: 'Michael Johnson',
-      doctorId: 'dr-patel',
-      doctorName: 'Dr. Lisa Patel',
-      doctorAvatar: '👩‍⚕️',
-      date: '2025-11-05',
-      startTime: '14:00',
-      endTime: '15:00',
-      type: 'Consultation',
-      status: 'confirmed',
-      color: 'blue'
-    }
-  ];
+
 
   // Filter appointments based on selected date and doctor
   const getFilteredAppointments = () => {
@@ -262,7 +114,7 @@ export default function DoctorSchedulePage() {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
+
     // Previous month days
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
@@ -303,8 +155,8 @@ export default function DoctorSchedulePage() {
   const isToday = (date: Date) => {
     const today = new Date();
     return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -364,14 +216,13 @@ export default function DoctorSchedulePage() {
                           onClick={() => setSelectedDate(dayInfo.date)}
                           className={`
                             aspect-square p-1 text-sm rounded-md transition-colors
-                            ${
-                              isSelected
-                                ? 'bg-blue-600 text-white font-semibold'
-                                : isTodayDate
+                            ${isSelected
+                              ? 'bg-blue-600 text-white font-semibold'
+                              : isTodayDate
                                 ? 'bg-gray-900 text-white font-semibold'
                                 : dayInfo.isCurrentMonth
-                                ? 'text-gray-900 hover:bg-gray-100'
-                                : 'text-gray-400 hover:bg-gray-50'
+                                  ? 'text-gray-900 hover:bg-gray-100'
+                                  : 'text-gray-400 hover:bg-gray-50'
                             }
                           `}
                         >
@@ -421,10 +272,9 @@ export default function DoctorSchedulePage() {
                         onClick={() => setViewMode(mode)}
                         className={`
                           px-4 py-2 text-sm font-medium rounded-md transition-colors capitalize
-                          ${
-                            viewMode === mode
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'text-gray-600 hover:bg-gray-50'
+                          ${viewMode === mode
+                            ? 'bg-gray-100 text-gray-900'
+                            : 'text-gray-600 hover:bg-gray-50'
                           }
                         `}
                       >
@@ -473,67 +323,92 @@ export default function DoctorSchedulePage() {
 
 // Day View Component
 function DayView({ timeSlots }: { timeSlots: TimeSlot[] }) {
-  const getColorClasses = (color: string) => {
+  const getColorClasses = (status: string, color: string) => {
+    if (status === 'cancelled') {
+      return 'bg-gray-100 border-gray-200 text-gray-500 decoration-slate-400';
+    }
     const colors = {
-      blue: 'bg-blue-50 border-blue-200',
-      green: 'bg-green-50 border-green-200',
-      yellow: 'bg-yellow-50 border-yellow-200',
-      pink: 'bg-pink-50 border-pink-200',
-      purple: 'bg-purple-50 border-purple-200'
+      blue: 'bg-blue-50 border-blue-200 text-blue-700',
+      green: 'bg-green-50 border-green-200 text-green-700',
+      yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
+      pink: 'bg-pink-50 border-pink-200 text-pink-700',
+      purple: 'bg-purple-50 border-purple-200 text-purple-700'
     };
-    return colors[color as keyof typeof colors] || 'bg-gray-50 border-gray-200';
+    return colors[color as keyof typeof colors] || 'bg-gray-50 border-gray-200 text-gray-700';
   };
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-1">Daily Schedule</h2>
-        <p className="text-sm text-gray-600">
-          All appointments for today
-        </p>
+      <div className="mb-6 flex justify-between items-end">
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Daily Schedule</h2>
+          <p className="text-sm text-gray-600">
+            All appointments for today
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
         {timeSlots.map((slot, index) => (
-          <div key={index} className="flex items-start gap-4 py-3 border-b border-gray-100 last:border-0">
-            <div className="w-24 text-sm font-medium text-gray-600 pt-1">
-              {slot.time}
+          <div key={index} className="group flex border-b border-gray-100 last:border-0 min-h-[100px] hover:bg-gray-50 transition-colors relative">
+            {/* Time Column */}
+            <div className="w-24 flex-shrink-0 border-r border-gray-100 p-4 bg-gray-50/50">
+              <span className="text-sm font-medium text-gray-500 sticky top-0">
+                {slot.time}
+              </span>
             </div>
-            <div className="flex-1">
-              {slot.appointments.length > 0 ? (
-                <div className="space-y-2">
-                  {slot.appointments.map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      className={`border rounded-lg p-4 ${getColorClasses(appointment.color)}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-gray-900">
-                              {appointment.patientName}
-                            </h3>
-                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded capitalize">
-                              {appointment.status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {appointment.startTime} - {appointment.endTime} • {appointment.type}
-                          </p>
-                          <div className="flex items-center gap-1 mt-2 text-sm text-gray-600">
-                            <User className="h-4 w-4" />
-                            <span>{appointment.doctorName}</span>
-                          </div>
-                        </div>
-                      </div>
+
+            {/* Content Column */}
+            <div className="flex-1 p-2 relative">
+              {/* Hover Add Button (Ghost) */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                {slot.appointments.length === 0 && (
+                  <button className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 shadow-sm rounded-full text-sm font-medium text-gray-600 hover:text-blue-600 hover:border-blue-200 hover:shadow-md transition-all transform translate-y-2 group-hover:translate-y-0">
+                    <Plus className="h-4 w-4" />
+                    Schedule Appointment
+                  </button>
+                )}
+              </div>
+
+              {/* Appointments Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 relative z-20">
+                {slot.appointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className={`
+                      border rounded-md p-3 transition-all hover:shadow-md cursor-pointer
+                      ${getColorClasses(appointment.status, appointment.color)}
+                      ${appointment.status === 'cancelled' ? 'opacity-75' : ''}
+                    `}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className={`font-semibold text-sm truncate ${appointment.status === 'cancelled' ? 'line-through' : ''}`}>
+                        {appointment.patientName}
+                      </h3>
+                      <span className={`
+                        text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold
+                        ${appointment.status === 'cancelled' ? 'bg-gray-200 text-gray-600' : 'bg-white/50'}
+                      `}>
+                        {appointment.status}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-400 py-2">
-                  No appointments
-                </div>
-              )}
+
+                    <div className="flex items-center gap-2 text-xs opacity-90 mb-2">
+                      <Clock className="h-3 w-3" />
+                      <span>{appointment.startTime} - {appointment.endTime}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-black/5">
+                      <div className="w-5 h-5 rounded-full bg-white/80 flex items-center justify-center text-xs shadow-sm">
+                        {appointment.doctorAvatar}
+                      </div>
+                      <span className="text-xs font-medium truncate">
+                        {appointment.doctorName}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ))}
@@ -562,24 +437,27 @@ function WeekView({ selectedDate, appointments }: { selectedDate: Date; appointm
 
   const getAppointmentsForDayAndTime = (day: Date, time: string) => {
     const dateStr = day.toISOString().split('T')[0];
-    const hour = time.includes('PM') && !time.startsWith('12') 
+    const hour = time.includes('PM') && !time.startsWith('12')
       ? String(parseInt(time.split(':')[0]) + 12).padStart(2, '0')
       : time.split(':')[0].padStart(2, '0');
-    
-    return appointments.filter(apt => 
+
+    return appointments.filter(apt =>
       apt.date === dateStr && apt.startTime === `${hour}:00`
     );
   };
 
-  const getColorClasses = (color: string) => {
+  const getColorClasses = (status: string, color: string) => {
+    if (status === 'cancelled') {
+      return 'bg-gray-100 border-gray-200 text-gray-500 decoration-slate-400';
+    }
     const colors = {
-      blue: 'bg-blue-100 border-blue-300 text-blue-900',
-      green: 'bg-green-100 border-green-300 text-green-900',
-      yellow: 'bg-yellow-100 border-yellow-300 text-yellow-900',
-      pink: 'bg-pink-100 border-pink-300 text-pink-900',
-      purple: 'bg-purple-100 border-purple-300 text-purple-900'
+      blue: 'bg-blue-100 border-blue-200 text-blue-900',
+      green: 'bg-green-100 border-green-200 text-green-900',
+      yellow: 'bg-yellow-100 border-yellow-200 text-yellow-900',
+      pink: 'bg-pink-100 border-pink-200 text-pink-900',
+      purple: 'bg-purple-100 border-purple-200 text-purple-900'
     };
-    return colors[color as keyof typeof colors] || 'bg-gray-100 border-gray-300 text-gray-900';
+    return colors[color as keyof typeof colors] || 'bg-gray-100 border-gray-200 text-gray-900';
   };
 
   const isToday = (date: Date) => {
@@ -596,18 +474,18 @@ function WeekView({ selectedDate, appointments }: { selectedDate: Date; appointm
         </p>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[900px]">
+      <div className="overflow-x-auto pb-4">
+        <div className="min-w-[1000px]">
           {/* Header Row */}
           <div className="grid grid-cols-8 gap-2 mb-4">
             <div className="text-sm font-medium text-gray-500"></div>
             {weekDays.map((day, index) => (
-              <div key={index} className={`text-center ${isToday(day) ? 'bg-blue-50 rounded-lg p-2' : ''}`}>
-                <div className="text-sm font-semibold text-gray-900">
-                  {day.toLocaleDateString('en-US', { weekday: 'long' })}
+              <div key={index} className={`text-center p-2 rounded-lg border border-transparent ${isToday(day) ? 'bg-blue-50 border-blue-100' : ''}`}>
+                <div className={`text-sm font-semibold ${isToday(day) ? 'text-blue-700' : 'text-gray-900'}`}>
+                  {day.toLocaleDateString('en-US', { weekday: 'short' })}
                 </div>
-                <div className={`text-xs ${isToday(day) ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
-                  {day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <div className={`text-xs mt-1 ${isToday(day) ? 'text-blue-600 font-bold' : 'text-gray-500'}`}>
+                  {day.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
                 </div>
               </div>
             ))}
@@ -615,24 +493,47 @@ function WeekView({ selectedDate, appointments }: { selectedDate: Date; appointm
 
           {/* Time Slots Grid */}
           {timeSlots.map((time, timeIndex) => (
-            <div key={timeIndex} className="grid grid-cols-8 gap-2 mb-2">
-              <div className="text-sm font-medium text-gray-600 py-2">
+            <div key={timeIndex} className="grid grid-cols-8 gap-2 mb-2 min-h-[80px]">
+              <div className="text-xs font-medium text-gray-400 py-2 text-right pr-4 pt-3">
                 {time}
               </div>
               {weekDays.map((day, dayIndex) => {
                 const dayAppointments = getAppointmentsForDayAndTime(day, time);
                 return (
-                  <div key={dayIndex} className="min-h-[60px] border border-gray-200 rounded p-1">
+                  <div
+                    key={dayIndex}
+                    className={`
+                      border rounded-lg p-1 transition-colors relative group
+                      ${dayAppointments.length > 0 ? 'bg-white border-gray-200' : 'bg-gray-50/50 border-dashed border-gray-200 hover:bg-blue-50/30 hover:border-blue-200'}
+                    `}
+                  >
+                    {/* Empty Slot Hover Effect */}
+                    {dayAppointments.length === 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                        <Plus className="h-4 w-4 text-blue-400" />
+                      </div>
+                    )}
+
                     {dayAppointments.map((apt) => (
                       <div
                         key={apt.id}
-                        className={`text-xs p-2 rounded border mb-1 ${getColorClasses(apt.color)}`}
+                        className={`
+                          text-xs p-2 rounded border mb-1 shadow-sm cursor-pointer hover:shadow-md transition-all
+                          ${getColorClasses(apt.status, apt.color)}
+                          ${apt.status === 'cancelled' ? 'opacity-60' : ''}
+                        `}
                       >
-                        <div className="font-semibold truncate">{apt.patientName}</div>
-                        <div className="text-xs opacity-75">{apt.startTime} - {apt.endTime}</div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span className="text-xs">{apt.doctorAvatar}</span>
-                          <span className="text-xs truncate">{apt.doctorName.split(' ').pop()}</span>
+                        <div className={`font-semibold truncate ${apt.status === 'cancelled' ? 'line-through' : ''}`}>
+                          {apt.patientName}
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[10px] opacity-75">{apt.startTime}</span>
+                          {apt.status === 'cancelled' && (
+                            <span className="text-[8px] bg-gray-200 px-1 rounded">HỦY</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1 pt-1 border-t border-black/5">
+                          <span className="text-[10px] truncate opacity-90">{apt.doctorName.split(' ').pop()}</span>
                         </div>
                       </div>
                     ))}
@@ -658,7 +559,7 @@ function MonthView({ selectedDate, appointments }: { selectedDate: Date; appoint
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
+
     // Previous month days
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
@@ -698,7 +599,10 @@ function MonthView({ selectedDate, appointments }: { selectedDate: Date; appoint
     return appointments.filter(apt => apt.date === dateStr);
   };
 
-  const getColorClasses = (color: string) => {
+  const getColorClasses = (status: string, color: string) => {
+    if (status === 'cancelled') {
+      return 'bg-gray-100 text-gray-500 line-through opacity-75';
+    }
     const colors = {
       blue: 'bg-blue-100 text-blue-900',
       green: 'bg-green-100 text-green-900',
@@ -743,21 +647,19 @@ function MonthView({ selectedDate, appointments }: { selectedDate: Date; appoint
             return (
               <div
                 key={index}
-                className={`min-h-[120px] p-2 border-r border-b border-gray-200 ${
-                  !dayInfo.isCurrentMonth ? 'bg-gray-50' : ''
-                } ${isToday(dayInfo.date) ? 'bg-blue-50' : ''}`}
+                className={`min-h-[120px] p-2 border-r border-b border-gray-200 ${!dayInfo.isCurrentMonth ? 'bg-gray-50' : ''
+                  } ${isToday(dayInfo.date) ? 'bg-blue-50' : ''}`}
               >
-                <div className={`text-sm font-semibold mb-2 ${
-                  !dayInfo.isCurrentMonth ? 'text-gray-400' : 
+                <div className={`text-sm font-semibold mb-2 ${!dayInfo.isCurrentMonth ? 'text-gray-400' :
                   isToday(dayInfo.date) ? 'text-blue-600' : 'text-gray-900'
-                }`}>
+                  }`}>
                   {dayInfo.day}
                 </div>
                 <div className="space-y-1">
                   {visibleAppointments.map((apt) => (
                     <div
                       key={apt.id}
-                      className={`text-xs p-1 rounded ${getColorClasses(apt.color)}`}
+                      className={`text-xs p-1 rounded ${getColorClasses(apt.status, apt.color)}`}
                     >
                       <div className="font-semibold truncate">{apt.patientName}</div>
                       <div className="text-xs opacity-75">{apt.startTime}</div>
@@ -781,7 +683,7 @@ function MonthView({ selectedDate, appointments }: { selectedDate: Date; appoint
 // List View Component
 function ListView({ selectedDate, appointments }: { selectedDate: Date; appointments: Appointment[] }) {
   const dateStr = selectedDate.toISOString().split('T')[0];
-  const dayAppointments = appointments.filter(apt => apt.date === dateStr).sort((a, b) => 
+  const dayAppointments = appointments.filter(apt => apt.date === dateStr).sort((a, b) =>
     a.startTime.localeCompare(b.startTime)
   );
 

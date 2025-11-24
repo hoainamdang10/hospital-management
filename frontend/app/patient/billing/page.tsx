@@ -56,16 +56,34 @@ export default function PatientBillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   const resolvedSummary = useMemo(() => {
-    const totalsFromInvoices = invoices.reduce(
+    const eligibleInvoices = invoices.filter((inv) => inv.status !== 'cancelled');
+
+    const totalsFromInvoices = eligibleInvoices.reduce(
       (acc, inv) => {
-        const totalAmt = inv.totalAmount ?? 0;
-        const paidAmt = inv.status === 'paid' ? ((totalAmt || inv.paidAmount) ?? 0) : 0;
         const refundedAmt = getRefundAmount(inv);
+        const totalAmt = Math.max(0, (inv.totalAmount ?? 0) - refundedAmt);
+
+        // Ưu tiên lấy từ payments hoàn tất, fallback sang paidAmount/totalAmount
+        const paidFromPayments =
+          inv.payments
+            ?.filter((p) => p.method !== 'refund' && (p.status === 'completed' || !p.status))
+            .reduce((sum, p) => sum + Math.max(0, p.amount ?? 0), 0) ?? 0;
+
+        const paidFromOutstanding = Math.max(
+          0,
+          (inv.totalAmount ?? 0) - (inv.outstandingAmount ?? 0)
+        );
+
+        const paidBase = paidFromPayments || paidFromOutstanding || inv.paidAmount || 0;
+        const netPaid = Math.max(0, paidBase - refundedAmt);
+
         const outstandingAmt =
-          inv.outstandingAmount ?? Math.max(0, (inv.totalAmount ?? 0) - (inv.paidAmount ?? 0));
+          inv.outstandingAmount ?? Math.max(0, (inv.totalAmount ?? 0) - Math.max(0, netPaid));
 
         acc.totalAmount += totalAmt;
-        if (inv.status === 'paid') acc.totalPaid += totalAmt || paidAmt;
+        if (inv.status === 'paid' || inv.status === 'partially_paid') {
+          acc.totalPaid += netPaid;
+        }
         if (refundedAmt > 0) acc.totalRefunded += refundedAmt;
         if (isPendingStatus(inv.status) || inv.status === 'draft')
           acc.totalOutstanding += outstandingAmt;
@@ -75,31 +93,32 @@ export default function PatientBillingPage() {
     );
 
     const totalAmount =
-      (invoices.length ? totalsFromInvoices.totalAmount : undefined) ??
+      (eligibleInvoices.length ? totalsFromInvoices.totalAmount : undefined) ??
       summary?.totalAmount ??
       summary?.total ??
       0;
 
     const totalPaid =
-      (invoices.length ? totalsFromInvoices.totalPaid : undefined) ??
+      (eligibleInvoices.length ? totalsFromInvoices.totalPaid : undefined) ??
       summary?.paidAmount ??
       summary?.totalPaid ??
       0;
 
     const totalOutstanding =
-      (invoices.length ? totalsFromInvoices.totalOutstanding : undefined) ??
+      (eligibleInvoices.length ? totalsFromInvoices.totalOutstanding : undefined) ??
       summary?.outstandingAmount ??
       summary?.totalOutstanding ??
       0;
 
     const pendingCount =
-      invoices.length > 0
-        ? invoices.filter((inv) => isPendingStatus(inv.status) || inv.status === 'draft').length
+      eligibleInvoices.length > 0
+        ? eligibleInvoices.filter((inv) => isPendingStatus(inv.status) || inv.status === 'draft')
+            .length
         : (summary?.pendingInvoiceCount ?? 0);
 
     const paidCount =
-      invoices.length > 0
-        ? invoices.filter((inv) => inv.status === 'paid').length
+      eligibleInvoices.length > 0
+        ? eligibleInvoices.filter((inv) => inv.status === 'paid').length
         : (summary?.paidInvoiceCount ?? 0);
 
     return {
@@ -117,7 +136,7 @@ export default function PatientBillingPage() {
 
     return invoices
       .filter((inv) => {
-        if (statusFilter === 'all') return true;
+        if (statusFilter === 'all') return inv.status !== 'cancelled';
         if (statusFilter === 'pending')
           return isPendingStatus(inv.status) || inv.status === 'draft';
         return inv.status === statusFilter;

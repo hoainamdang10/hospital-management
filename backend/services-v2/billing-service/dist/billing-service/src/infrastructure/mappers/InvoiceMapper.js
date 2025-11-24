@@ -27,11 +27,11 @@ class InvoiceMapper {
                 // Convert ISO timestamp back to VNPAY format (yyyyMMddHHmmss)
                 const payDate = new Date(p.vnpay_pay_date);
                 const vnpayPayDate = payDate.getFullYear().toString() +
-                    (payDate.getMonth() + 1).toString().padStart(2, '0') +
-                    payDate.getDate().toString().padStart(2, '0') +
-                    payDate.getHours().toString().padStart(2, '0') +
-                    payDate.getMinutes().toString().padStart(2, '0') +
-                    payDate.getSeconds().toString().padStart(2, '0');
+                    (payDate.getMonth() + 1).toString().padStart(2, "0") +
+                    payDate.getDate().toString().padStart(2, "0") +
+                    payDate.getHours().toString().padStart(2, "0") +
+                    payDate.getMinutes().toString().padStart(2, "0") +
+                    payDate.getSeconds().toString().padStart(2, "0");
                 vnpayData = {
                     vnpTxnRef: p.vnpay_txn_ref,
                     vnpTransactionNo: p.vnpay_transaction_no,
@@ -43,7 +43,8 @@ class InvoiceMapper {
                 ? Money_1.Money.createSigned(p.amount, p.currency)
                 : Money_1.Money.create(p.amount, p.currency);
             return Payment_1.Payment.create(money, p.method, // Database stores string, cast to PaymentMethod
-            p.transaction_id, p.payment_id, vnpayData);
+            p.transaction_id, p.payment_id, vnpayData, // Pass VNPAY data to Payment entity
+            p.status || undefined, p.processed_at ? new Date(p.processed_at) : undefined, p.refunded_at ? new Date(p.refunded_at) : undefined, p.refund_reason, p.refunded_by, p.gateway_refund_id);
         });
         const props = {
             id: InvoiceId_1.InvoiceId.create(record.id),
@@ -134,16 +135,29 @@ class InvoiceMapper {
             amount: p.amount,
             currency: p.currency || persistence.currency,
             method: p.method,
+            status: p.status,
             transaction_id: p.transactionId,
-            processed_at: p.paidAt ? new Date(p.paidAt).toISOString() : new Date().toISOString(),
+            processed_at: p.paidAt
+                ? new Date(p.paidAt).toISOString()
+                : p.refundedAt
+                    ? new Date(p.refundedAt).toISOString()
+                    : new Date().toISOString(),
             processed_by: persistence.patientId, // Patient processes their own payment (prepaid model)
+            refunded_at: p.refundedAt
+                ? new Date(p.refundedAt).toISOString()
+                : undefined,
+            refund_reason: p.refundReason,
+            refunded_by: p.refundedBy,
+            gateway_refund_id: p.gatewayRefundId,
             created_at: new Date().toISOString(),
             // VNPAY-specific fields for refund support
             vnpay_txn_ref: p.vnpayData?.vnpTxnRef,
             vnpay_transaction_no: p.vnpayData?.vnpTransactionNo,
-            vnpay_pay_date: p.vnpayData?.vnpPayDate ? new Date(
-            // Parse VNPAY date format: yyyyMMddHHmmss
-            p.vnpayData.vnpPayDate.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6Z')).toISOString() : undefined,
+            vnpay_pay_date: p.vnpayData?.vnpPayDate
+                ? new Date(
+                // Parse VNPAY date format: yyyyMMddHHmmss
+                p.vnpayData.vnpPayDate.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, "$1-$2-$3T$4:$5:$6Z")).toISOString()
+                : undefined,
         }));
         return {
             invoice: invoiceRecord,

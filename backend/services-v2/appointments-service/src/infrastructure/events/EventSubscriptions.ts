@@ -42,7 +42,7 @@ import { ProviderEventConsumer } from "./ProviderEventConsumer";
 export class EventSubscriptions {
   private eventBus: IEventBus;
   private isConnected: boolean = false;
-  private schedulerHandlers: {
+  private schedulerHandlers?: {
     scheduled: AppointmentScheduledSchedulerHandler;
     cancelled: AppointmentCancelledSchedulerHandler;
     rescheduled: AppointmentRescheduledSchedulerHandler;
@@ -61,32 +61,49 @@ export class EventSubscriptions {
   ) {
     this.eventBus = EventBusFactory.create(config);
 
-    // Initialize Outbox + Scheduler integration handlers
-    const schedulerURL =
-      process.env.SCHEDULER_SERVICE_URL || "http://localhost:3025";
-    const schedulerApiKey = process.env.SCHEDULER_API_KEY;
-    const tenantId = process.env.TENANT_ID || "hospital-1";
-    const outboxReservedTimeout = parseInt(
-      process.env.OUTBOX_RESERVED_TIMEOUT_MINUTES || "5",
-      10,
-    );
-
     const supabaseUrl = process.env.SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const outboxRepo = new OutboxRepository(
-      supabaseUrl,
-      supabaseKey,
-      outboxReservedTimeout,
-    );
 
-    this.schedulerHandlers = {
-      scheduled: new AppointmentScheduledSchedulerHandler(outboxRepo, tenantId),
-      cancelled: new AppointmentCancelledSchedulerHandler(outboxRepo, tenantId),
-      rescheduled: new AppointmentRescheduledSchedulerHandler(
-        outboxRepo,
-        tenantId,
-      ),
-    };
+    // Initialize Outbox + Scheduler integration handlers (optional)
+    const enableScheduler = (() => {
+      const schedulerDisabled =
+        (process.env.SCHEDULER_DISABLED || "true").toLowerCase() === "true";
+      const enableEnv =
+        (process.env.ENABLE_SCHEDULER || "false").toLowerCase() === "true";
+      return enableEnv && !schedulerDisabled;
+    })();
+    if (enableScheduler) {
+      const tenantId = process.env.TENANT_ID || "hospital-1";
+      const outboxReservedTimeout = parseInt(
+        process.env.OUTBOX_RESERVED_TIMEOUT_MINUTES || "5",
+        10,
+      );
+
+      const outboxRepo = new OutboxRepository(
+        supabaseUrl,
+        supabaseKey,
+        outboxReservedTimeout,
+      );
+
+      this.schedulerHandlers = {
+        scheduled: new AppointmentScheduledSchedulerHandler(
+          outboxRepo,
+          tenantId,
+        ),
+        cancelled: new AppointmentCancelledSchedulerHandler(
+          outboxRepo,
+          tenantId,
+        ),
+        rescheduled: new AppointmentRescheduledSchedulerHandler(
+          outboxRepo,
+          tenantId,
+        ),
+      };
+    } else {
+      console.log(
+        "[EventSubscriptions] Scheduler integration disabled (ENABLE_SCHEDULER=false)",
+      );
+    }
 
     // Initialize StaffScheduleUpdated handler
     const providerScheduleRepo = new SupabaseProviderScheduleRepository(
@@ -163,15 +180,17 @@ export class EventSubscriptions {
       "[EventSubscriptions] ✅ Subscribed to AppointmentScheduled (Read Model)",
     );
 
-    // 1b. Scheduler Integration Handler
-    await this.eventBus.subscribe(
-      "AppointmentScheduled",
-      this.schedulerHandlers.scheduled,
-      `${this.config.serviceName}.appointment.scheduled.scheduler`,
-    );
-    console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentScheduled (Scheduler Integration)",
-    );
+    // 1b. Scheduler Integration Handler (optional)
+    if (this.schedulerHandlers) {
+      await this.eventBus.subscribe(
+        "AppointmentScheduled",
+        this.schedulerHandlers.scheduled,
+        `${this.config.serviceName}.appointment.scheduled.scheduler`,
+      );
+      console.log(
+        "[EventSubscriptions] ✅ Subscribed to AppointmentScheduled (Scheduler Integration)",
+      );
+    }
 
     // 2. Subscribe to PatientUpdated events (from Patient Registry Service)
     await this.eventBus.subscribe(
@@ -245,15 +264,17 @@ export class EventSubscriptions {
       "[EventSubscriptions] ✅ Subscribed to AppointmentCancelled (Read Model)",
     );
 
-    // 7b. Scheduler Integration Handler
-    await this.eventBus.subscribe(
-      "AppointmentCancelled",
-      this.schedulerHandlers.cancelled,
-      `${this.config.serviceName}.appointment.cancelled.scheduler`,
-    );
-    console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentCancelled (Scheduler Integration)",
-    );
+    // 7b. Scheduler Integration Handler (optional)
+    if (this.schedulerHandlers) {
+      await this.eventBus.subscribe(
+        "AppointmentCancelled",
+        this.schedulerHandlers.cancelled,
+        `${this.config.serviceName}.appointment.cancelled.scheduler`,
+      );
+      console.log(
+        "[EventSubscriptions] ✅ Subscribed to AppointmentCancelled (Scheduler Integration)",
+      );
+    }
 
     // 8. Subscribe to AppointmentRescheduled events (from Scheduling Service itself)
     await this.eventBus.subscribe(
@@ -265,14 +286,16 @@ export class EventSubscriptions {
       "[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Read Model)",
     );
 
-    await this.eventBus.subscribe(
-      "AppointmentRescheduled",
-      this.schedulerHandlers.rescheduled,
-      `${this.config.serviceName}.appointment.rescheduled.scheduler`,
-    );
-    console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Scheduler Integration)",
-    );
+    if (this.schedulerHandlers) {
+      await this.eventBus.subscribe(
+        "AppointmentRescheduled",
+        this.schedulerHandlers.rescheduled,
+        `${this.config.serviceName}.appointment.rescheduled.scheduler`,
+      );
+      console.log(
+        "[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Scheduler Integration)",
+      );
+    }
 
     // 9. Subscribe to StaffScheduleUpdated events (from Provider Staff Service)
     // This caches work schedule templates for runtime availability calculation

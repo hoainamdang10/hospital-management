@@ -341,17 +341,21 @@ export class BillingEventConsumer {
         return;
       }
 
-      if (
-        routingKey.startsWith("billing.payment.") &&
-        !((payload as any)?.paymentId || event.eventData?.paymentId)
-      ) {
-        console.error("[BillingEventConsumer] Missing paymentId in payload", {
-          eventId,
-          routingKey,
-          event,
-        });
-        this.channel?.ack(msg);
-        return;
+      if (routingKey.startsWith("billing.payment.")) {
+        const isRefundEvent =
+          routingKey.includes("refunded") ||
+          routingKey.includes("refund_requested");
+        const hasPaymentId =
+          (payload as any)?.paymentId || event.eventData?.paymentId;
+        if (!isRefundEvent && !hasPaymentId) {
+          console.error("[BillingEventConsumer] Missing paymentId in payload", {
+            eventId,
+            routingKey,
+            event,
+          });
+          this.channel?.ack(msg);
+          return;
+        }
       }
 
       if (await this.inboxRepo.exists(eventId)) {
@@ -401,6 +405,10 @@ export class BillingEventConsumer {
           await this.handlePaymentProcessed(
             payload as PaymentProcessedEventData,
           );
+          break;
+
+        case "billing.payment.refunded":
+          await this.handlePaymentRefunded(payload as any);
           break;
 
         case "billing.invoice.generated":
@@ -778,6 +786,47 @@ export class BillingEventConsumer {
         error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
+    }
+  }
+
+  /**
+   * Handle payment refunded event
+   */
+  private async handlePaymentRefunded(data: any): Promise<void> {
+    try {
+      const refundData: RefundProcessedEventData = {
+        refundId:
+          data.refundId || data.refundPaymentId || data.paymentId || "unknown",
+        patientId: data.patientId,
+        patientName: data.patientName || "",
+        originalPaymentId: data.originalPaymentId || data.paymentId || "",
+        refundAmount: Number(data.refundAmount || 0),
+        refundReason: data.reason || data.refundReason || "Hoàn tiền",
+        processedAt: data.refundedAt ? new Date(data.refundedAt) : new Date(),
+        processedBy: data.refundedBy || "system",
+        refundMethod: data.gatewayRefundId ? "online" : "offline",
+      };
+
+      if (!refundData.patientId) {
+        console.warn(
+          "[BillingEventConsumer] Missing patientId in refund event, skipping",
+          { refundId: refundData.refundId },
+        );
+        return;
+      }
+
+      const preferences = await this.getNotificationPreferencesUseCase.execute({
+        userId: refundData.patientId,
+        userType: "patient",
+      });
+
+      await this.sendRefundProcessedNotification(refundData, preferences);
+      await this.sendRefundDepartmentNotification(refundData);
+    } catch (error) {
+      console.error("Failed to process payment refunded event", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        data,
+      });
     }
   }
 

@@ -90,6 +90,8 @@ export class AppBuilder {
       message: "Too many requests from this IP, please try again later.",
       standardHeaders: true,
       legacyHeaders: false,
+      // Avoid express-rate-limit trust proxy validation errors when behind gateway
+      validate: false,
       // Health + metrics endpoints are hit frequently by internal services (API Gateway, orchestrators)
       skip: (req) =>
         req.path.startsWith("/health") || req.path.startsWith("/metrics"),

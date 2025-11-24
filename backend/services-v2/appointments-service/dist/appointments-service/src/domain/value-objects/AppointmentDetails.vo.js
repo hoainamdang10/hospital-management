@@ -10,7 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentDetails = void 0;
-const value_object_1 = require("@shared/domain/base/value-object");
+const value_object_1 = require("../../../../shared/domain/base/value-object");
 /**
  * AppointmentDetails Value Object
  * Contains clinical information about the appointment

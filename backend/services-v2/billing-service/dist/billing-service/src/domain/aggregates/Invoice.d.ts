@@ -1,9 +1,9 @@
-import { HealthcareAggregateRoot } from '../../../../shared/domain/base/aggregate-root';
-import { InvoiceId } from '../value-objects/InvoiceId';
-import { Money } from '../value-objects/Money';
-import { InvoiceStatus } from '../value-objects/InvoiceStatus';
-import { InvoiceItem } from '../entities/InvoiceItem';
-import { Payment } from '../entities/Payment';
+import { HealthcareAggregateRoot } from "../../../../shared/domain/base/aggregate-root";
+import { InvoiceId } from "../value-objects/InvoiceId";
+import { Money } from "../value-objects/Money";
+import { InvoiceStatus } from "../value-objects/InvoiceStatus";
+import { InvoiceItem } from "../entities/InvoiceItem";
+import { Payment } from "../entities/Payment";
 export interface InvoiceProps {
     id: InvoiceId;
     patientId: string;

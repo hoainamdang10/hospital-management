@@ -494,50 +494,50 @@ const server = app.listen(PORT, async () => {
     logger.warn("Service will continue without event subscriptions");
   }
 
-  // Start Outbox Publisher Worker (only when scheduler integration is enabled)
-  if (config.features.enableScheduler) {
-    try {
-      const { OutboxRepository } = await import(
-        "./infrastructure/outbox/OutboxRepository"
-      );
-      const { OutboxPublisherWorker } = await import(
-        "./infrastructure/outbox/OutboxPublisherWorker"
-      );
-      const { RemoteSchedulerAdapter } = await import(
-        "./infrastructure/adapters/RemoteSchedulerAdapter"
-      );
-
-      const outboxRepo = new OutboxRepository(
-        config.supabase.url,
-        config.supabase.serviceRoleKey,
-        config.outbox.reservedTimeoutMinutes,
-      );
-
-      const scheduler = new RemoteSchedulerAdapter({
-        baseUrl: config.services.schedulerServiceUrl,
-        apiKey: config.services.schedulerApiKey,
-        timeout: 5000,
-      });
-
-      const worker = new OutboxPublisherWorker(outboxRepo, scheduler, {
-        intervalMs: config.outbox.pollIntervalMs,
-        batchSize: config.outbox.batchSize,
-        baseDelayMs: config.outbox.baseDelayMs,
-        maxDelayMs: config.outbox.maxDelayMs,
-      });
-      worker.start();
-      (app as any).outboxWorker = worker;
-      logger.info("Outbox publisher worker started", undefined, {
-        pollIntervalMs: config.outbox.pollIntervalMs,
-        batchSize: config.outbox.batchSize,
-      });
-    } catch (e) {
-      logger.error("Failed to start Outbox publisher worker", e as Error);
-    }
-  } else {
-    logger.info(
-      "Scheduler disabled (ENABLE_SCHEDULER=false) - skipping OutboxPublisherWorker",
+  // Start Outbox Publisher Worker
+  try {
+    const { OutboxRepository } = await import(
+      "./infrastructure/outbox/OutboxRepository"
     );
+    const { OutboxPublisherWorker } = await import(
+      "./infrastructure/outbox/OutboxPublisherWorker"
+    );
+    const { RemoteSchedulerAdapter } = await import(
+      "./infrastructure/adapters/RemoteSchedulerAdapter"
+    );
+
+    const outboxRepo = new OutboxRepository(
+      config.supabase.url,
+      config.supabase.serviceRoleKey,
+      config.outbox.reservedTimeoutMinutes,
+    );
+
+    const scheduler = config.features.enableScheduler
+      ? new RemoteSchedulerAdapter({
+          baseUrl: config.services.schedulerServiceUrl,
+          apiKey: config.services.schedulerApiKey,
+          timeout: 5000,
+        })
+      : undefined;
+
+    const worker = new OutboxPublisherWorker(outboxRepo, scheduler, {
+      intervalMs: config.outbox.pollIntervalMs,
+      batchSize: config.outbox.batchSize,
+      baseDelayMs: config.outbox.baseDelayMs,
+      maxDelayMs: config.outbox.maxDelayMs,
+      rabbitmqUrl:
+        process.env.RABBITMQ_URL || "amqp://admin:admin@rabbitmq-v2:5672",
+      exchange: "hospital.events",
+    });
+    worker.start();
+    (app as any).outboxWorker = worker;
+    logger.info("Outbox publisher worker started", undefined, {
+      pollIntervalMs: config.outbox.pollIntervalMs,
+      batchSize: config.outbox.batchSize,
+      schedulerEnabled: config.features.enableScheduler,
+    });
+  } catch (e) {
+    logger.error("Failed to start Outbox publisher worker", e as Error);
   }
 
   // ==================== FLOW 3 - PHASE 1B: PAYMENT TIMEOUT CRON JOB ====================
@@ -599,7 +599,7 @@ const server = app.listen(PORT, async () => {
     const appointmentRepository = container.getAppointmentRepository();
     const autoCompleteAppointmentsUseCase = new AutoCompleteAppointmentsUseCase(
       appointmentRepository,
-      30 // Buffer: 30 minutes after appointment time (optimized for academic project)
+      30, // Buffer: 30 minutes after appointment time (optimized for academic project)
     );
 
     // Run every 5 minutes: */5 * * * * (optimized for academic project)
@@ -686,4 +686,3 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 export default app;
-

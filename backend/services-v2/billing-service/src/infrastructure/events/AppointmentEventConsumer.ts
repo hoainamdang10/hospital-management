@@ -816,17 +816,23 @@ export class AppointmentEventConsumer {
       refundPercentage: data.cancellationPolicy.refundPercentage,
     });
 
+    // Fallback: nếu payload không gửi policy, coi như đủ điều kiện hoàn 100%
+    const refundEligible =
+      data.cancellationPolicy.refundEligible !== undefined
+        ? data.cancellationPolicy.refundEligible
+        : true;
+    const refundPercentage =
+      data.cancellationPolicy.refundPercentage !== undefined
+        ? data.cancellationPolicy.refundPercentage
+        : 100;
+
     try {
       // Only process if refund is eligible
-      if (
-        data.cancellationPolicy.refundEligible &&
-        data.cancellationPolicy.refundPercentage &&
-        data.cancellationPolicy.refundPercentage > 0
-      ) {
+      if (refundEligible && refundPercentage > 0) {
         this.loggerInstance.info("Refund eligible - processing refund", {
           appointmentId: data.appointmentId,
           patientId: data.patientId,
-          refundPercentage: data.cancellationPolicy.refundPercentage,
+          refundPercentage,
           reason: data.cancellationReason,
         });
 
@@ -836,7 +842,7 @@ export class AppointmentEventConsumer {
             {
               appointmentId: data.appointmentId,
               patientId: data.patientId,
-              refundPercentage: data.cancellationPolicy.refundPercentage,
+              refundPercentage,
               reason: data.cancellationReason,
               refundedBy: data.cancelledBy,
             },

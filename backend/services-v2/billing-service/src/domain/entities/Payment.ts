@@ -1,8 +1,19 @@
-import { Entity } from '@shared/domain/base/entity';
-import { Money } from '../value-objects/Money';
+import { Entity } from "@shared/domain/base/entity";
+import { Money } from "../value-objects/Money";
 
-export type PaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'payos' | 'insurance' | 'refund';
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'refund_pending';
+export type PaymentMethod =
+  | "cash"
+  | "card"
+  | "bank_transfer"
+  | "payos"
+  | "insurance"
+  | "refund";
+export type PaymentStatus =
+  | "pending"
+  | "completed"
+  | "failed"
+  | "refunded"
+  | "refund_pending";
 
 export interface VnpayTransactionData {
   vnpTxnRef: string; // VNPAY transaction reference (required for refund)
@@ -34,21 +45,33 @@ export class Payment extends Entity<PaymentProps> {
     method: PaymentMethod,
     transactionId?: string,
     id?: string,
-    vnpayData?: VnpayTransactionData
+    vnpayData?: VnpayTransactionData,
+    status?: PaymentStatus,
+    paidAt?: Date,
+    refundedAt?: Date,
+    refundReason?: string,
+    refundedBy?: string,
+    gatewayRefundId?: string,
   ): Payment {
-    return new Payment({
-      id: id || '',
-      amount,
-      method,
-      status: method === 'refund' ? 'refund_pending' : 'pending',
-      transactionId,
-      paidAt: undefined,
-      refundedAt: undefined,
-      refundReason: undefined,
-      refundedBy: undefined,
-      gatewayRefundId: undefined,
-      vnpayData
-    }, id);
+    const computedStatus =
+      status || (method === "refund" ? "refund_pending" : "pending");
+
+    return new Payment(
+      {
+        id: id || "",
+        amount,
+        method,
+        status: computedStatus,
+        transactionId,
+        paidAt,
+        refundedAt,
+        refundReason,
+        refundedBy,
+        gatewayRefundId,
+        vnpayData,
+      },
+      id,
+    );
   }
 
   /**
@@ -62,20 +85,28 @@ export class Payment extends Entity<PaymentProps> {
     transactionId: string,
     reason: string,
     refundedBy: string,
-    id?: string
+    id?: string,
+    status?: PaymentStatus,
+    refundedAt?: Date,
+    gatewayRefundId?: string,
   ): Payment {
-    return new Payment({
-      id: id || '',
-      amount: Money.createSigned(-Math.abs(amount.amount), amount.currency), // Negative amount for refund
-      method: 'refund',
-      status: 'refund_pending', // Will be updated when gateway confirms
-      transactionId,
-      paidAt: undefined,
-      refundedAt: undefined,
-      refundReason: reason,
-      refundedBy: refundedBy,
-      gatewayRefundId: undefined // Will be set when gateway processes refund
-    }, id);
+    const computedStatus = status || "refund_pending";
+
+    return new Payment(
+      {
+        id: id || "",
+        amount: Money.createSigned(-Math.abs(amount.amount), amount.currency), // Negative amount for refund
+        method: "refund",
+        status: computedStatus, // Will be updated when gateway confirms
+        transactionId,
+        paidAt: undefined,
+        refundedAt: refundedAt,
+        refundReason: reason,
+        refundedBy: refundedBy,
+        gatewayRefundId: gatewayRefundId, // Will be set when gateway processes refund
+      },
+      id,
+    );
   }
 
   get amount(): Money {
@@ -119,35 +150,35 @@ export class Payment extends Entity<PaymentProps> {
   }
 
   public complete(): void {
-    if (this.props.status !== 'pending') {
-      throw new Error('Can only complete pending payments');
+    if (this.props.status !== "pending") {
+      throw new Error("Can only complete pending payments");
     }
-    this.props.status = 'completed';
+    this.props.status = "completed";
     this.props.paidAt = new Date();
   }
 
   public fail(): void {
-    if (this.props.status !== 'pending') {
-      throw new Error('Can only fail pending payments');
+    if (this.props.status !== "pending") {
+      throw new Error("Can only fail pending payments");
     }
-    this.props.status = 'failed';
+    this.props.status = "failed";
   }
 
   public refund(): void {
-    if (this.props.status !== 'completed') {
-      throw new Error('Can only refund completed payments');
+    if (this.props.status !== "completed") {
+      throw new Error("Can only refund completed payments");
     }
-    this.props.status = 'refunded';
+    this.props.status = "refunded";
     this.props.refundedAt = new Date();
   }
 
   public validate(): void {
     // Allow negative amounts for refund payments
-    if (this.props.method !== 'refund' && this.props.amount.amount <= 0) {
-      throw new Error('Payment amount must be greater than 0');
+    if (this.props.method !== "refund" && this.props.amount.amount <= 0) {
+      throw new Error("Payment amount must be greater than 0");
     }
-    if (this.props.method === 'refund' && this.props.amount.amount >= 0) {
-      throw new Error('Refund payment amount must be negative');
+    if (this.props.method === "refund" && this.props.amount.amount >= 0) {
+      throw new Error("Refund payment amount must be negative");
     }
   }
 
@@ -155,13 +186,13 @@ export class Payment extends Entity<PaymentProps> {
    * Mark refund as completed (when gateway confirms)
    */
   public completeRefund(gatewayRefundId?: string): void {
-    if (this.props.method !== 'refund') {
-      throw new Error('Can only complete refund for refund payments');
+    if (this.props.method !== "refund") {
+      throw new Error("Can only complete refund for refund payments");
     }
-    if (this.props.status !== 'refund_pending') {
-      throw new Error('Can only complete pending refunds');
+    if (this.props.status !== "refund_pending") {
+      throw new Error("Can only complete pending refunds");
     }
-    this.props.status = 'completed';
+    this.props.status = "completed";
     this.props.refundedAt = new Date();
     if (gatewayRefundId) {
       this.props.gatewayRefundId = gatewayRefundId;
@@ -181,7 +212,7 @@ export class Payment extends Entity<PaymentProps> {
       refundReason: this.props.refundReason,
       refundedBy: this.props.refundedBy,
       gatewayRefundId: this.props.gatewayRefundId,
-      vnpayData: this.props.vnpayData
+      vnpayData: this.props.vnpayData,
     };
   }
 }

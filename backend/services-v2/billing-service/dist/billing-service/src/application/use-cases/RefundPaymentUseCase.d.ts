@@ -13,10 +13,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
-import { BaseHealthcareUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
-import { IEventBus } from '../../../../shared/application/services/event-bus.interface';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { BaseHealthcareUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
+import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { IEventBus } from "../../../../shared/application/services/event-bus.interface";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface RefundPaymentRequest {
     appointmentId: string;
     patientId: string;
@@ -35,7 +35,10 @@ export declare class RefundPaymentUseCase extends BaseHealthcareUseCase<RefundPa
     private readonly invoiceRepository;
     private readonly eventBus;
     private readonly logger;
-    constructor(invoiceRepository: IInvoiceRepository, eventBus: IEventBus, logger: ILogger);
+    private readonly config;
+    constructor(invoiceRepository: IInvoiceRepository, eventBus: IEventBus, logger: ILogger, config: {
+        useGatewayRefund: boolean;
+    });
     protected executeInternal(request: RefundPaymentRequest): Promise<RefundPaymentResponse>;
     authorize(request: RefundPaymentRequest, userId: string): Promise<boolean>;
     involvesPHI(request: RefundPaymentRequest): boolean;
