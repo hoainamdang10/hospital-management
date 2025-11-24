@@ -9,6 +9,7 @@
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { OutboxRepository } from "../outbox/OutboxRepository";
 import {
   Appointment,
   AppointmentType,
@@ -84,6 +85,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   private readonly supabase: SupabaseClient<any, "appointments_schema">;
   private readonly schema: string = "appointments_schema";
   private readonly tableName: string = "appointments";
+  private readonly outboxRepo: OutboxRepository;
 
   constructor(
     supabaseUrl: string,
@@ -104,6 +106,8 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         },
       },
     }) as SupabaseClient<any, "appointments_schema">;
+
+    this.outboxRepo = new OutboxRepository(supabaseUrl, supabaseKey, 5);
   }
 
   /**
@@ -137,13 +141,6 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    * This provides denormalized names for Notifications Service
    */
   private async publishDomainEvents(appointment: Appointment): Promise<void> {
-    if (!this.eventPublisher) {
-      console.debug(
-        "[SupabaseAppointmentRepository] Event publisher not configured, skipping event publishing",
-      );
-      return;
-    }
-
     const events = appointment.getUncommittedEvents();
     if (events.length === 0) {
       return;
@@ -219,8 +216,23 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         }
       }
 
-      // Publish enriched events in batch
-      await this.eventPublisher.publishBatch(events);
+      // Enqueue to Outbox for reliable delivery
+      await Promise.all(
+        events.map((event: DomainEvent) =>
+          this.outboxRepo.enqueue({
+            eventType: `appointments.${event.getRoutingKey()}`,
+            aggregateType: event.aggregateType,
+            aggregateId: event.aggregateId,
+            payload: event.toJSON(),
+            dedupKey: event.eventId,
+          }),
+        ),
+      );
+
+      // Optional: also publish directly if configured (backward compatibility)
+      if (this.eventPublisher) {
+        await this.eventPublisher.publishBatch(events);
+      }
 
       // Mark events as committed after successful publishing
       appointment.markEventsAsCommitted();
@@ -230,6 +242,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         eventCount: events.length,
         eventTypes: events.map((event: DomainEvent) => event.eventType),
         enriched: !!readModel,
+        viaOutbox: true,
       });
     } catch (error) {
       console.error(
