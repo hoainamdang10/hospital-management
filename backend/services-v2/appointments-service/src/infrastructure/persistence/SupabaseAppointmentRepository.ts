@@ -256,7 +256,9 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       await Promise.all(
         events.map((event: DomainEvent) =>
           this.outboxRepo.enqueue({
-            eventType: `appointments.${event.getRoutingKey()}`,
+            eventType: event.getRoutingKey().startsWith("appointment")
+              ? event.getRoutingKey()
+              : `appointment.${event.getRoutingKey()}`,
             aggregateType: event.aggregateType,
             aggregateId: event.aggregateId,
             payload: event.toJSON(),

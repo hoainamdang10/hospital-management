@@ -36,6 +36,39 @@ export class SupabaseAppointmentReadModelRepository
   async create(
     data: CreateAppointmentReadModelData,
   ): Promise<AppointmentReadModel> {
+    // Helper to keep the most advanced status when reprocessing duplicated events
+    const statusRank = (value?: string | null): number => {
+      if (!value) return 0;
+      const v = value.toUpperCase();
+      const map: Record<string, number> = {
+        CANCELLED: 100,
+        COMPLETED: 90,
+        CONFIRMED: 80,
+        SCHEDULED: 50,
+        PENDING: 40,
+      };
+      return map[v] ?? 10;
+    };
+    const paymentRank = (value?: string | null): number => {
+      if (!value) return 0;
+      const v = value.toUpperCase();
+      const map: Record<string, number> = {
+        PAID: 100,
+        REFUNDED: 90,
+        PARTIAL: 80,
+        PENDING: 40,
+        FAILED: 30,
+      };
+      return map[v] ?? 10;
+    };
+
+    // Check existing read-model to avoid overwriting advanced states (idempotent upsert)
+    const { data: existing } = await this.client
+      .from(this.tableName)
+      .select("*")
+      .eq("appointment_id", data.appointmentId)
+      .maybeSingle();
+
     const record = {
       appointment_id: data.appointmentId,
       patient_id: data.patientId,
@@ -45,8 +78,14 @@ export class SupabaseAppointmentReadModelRepository
       duration_minutes: data.durationMinutes,
       type: data.type,
       priority: data.priority,
-      status: data.status,
-      payment_status: data.paymentStatus,
+      status:
+        statusRank(existing?.status) > statusRank(data.status)
+          ? existing?.status
+          : data.status,
+      payment_status:
+        paymentRank(existing?.payment_status) > paymentRank(data.paymentStatus)
+          ? existing?.payment_status
+          : data.paymentStatus,
       room_id: data.roomId,
       department_id: data.departmentId,
       consultation_fee: data.consultationFee, // Billing reference only
@@ -79,17 +118,18 @@ export class SupabaseAppointmentReadModelRepository
       notes: data.notes,
       special_instructions: data.specialInstructions,
       required_equipment: data.requiredEquipment || [],
+      synced_at: new Date().toISOString(),
     };
 
     const { data: result, error } = await this.client
       .from(this.tableName)
-      .insert(record)
+      .upsert(record, { onConflict: "appointment_id" })
       .select()
       .single();
 
     if (error) {
       throw new Error(
-        `Failed to create appointment read model: ${error.message}`,
+        `Failed to upsert appointment read model: ${error.message}`,
       );
     }
 

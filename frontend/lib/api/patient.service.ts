@@ -255,11 +255,48 @@ class PatientService {
     page?: number;
     limit?: number;
   }): Promise<{ patients: Patient[]; total: number }> {
-    const response = await apiClient.get<{ success: boolean; data: { patients: Patient[]; total: number } }>(
-      `${this.baseUrl}/search`,
-      { params }
-    );
-    return response.data.data;
+    const page = params.page || 1;
+    const limit = params.limit || 20;
+
+    let response;
+
+    // If keyword is provided and valid (>= 2 chars), use search endpoint
+    if (params.keyword && params.keyword.trim().length >= 2) {
+      response = await apiClient.get<{
+        success: boolean;
+        data: Patient[];
+        pagination: { total: number; page: number; limit: number; totalPages: number }
+      }>(
+        `${this.baseUrl}/search`,
+        {
+          params: {
+            searchTerm: params.keyword,
+            page,
+            limit
+          }
+        }
+      );
+    } else {
+      // Otherwise use list endpoint (default view)
+      response = await apiClient.get<{
+        success: boolean;
+        data: Patient[];
+        pagination: { total: number; page: number; limit: number; totalPages: number }
+      }>(
+        `${this.baseUrl}`,
+        {
+          params: {
+            page,
+            limit
+          }
+        }
+      );
+    }
+
+    return {
+      patients: response.data.data,
+      total: response.data.pagination?.total || 0
+    };
   }
 }
 

@@ -144,6 +144,24 @@ export default function MyAppointmentsPage() {
   const completedCount = appointments.filter((apt) => apt.status === 'COMPLETED').length;
   const cancelledCount = appointments.filter((apt) => apt.status === 'CANCELLED').length;
 
+  const getStatusLabel = (status: string, paymentStatus?: string) => {
+    const paid = paymentStatus?.toUpperCase() === 'PAID';
+    switch (status) {
+      case 'PENDING_PAYMENT':
+        return 'Chờ thanh toán';
+      case 'SCHEDULED':
+        return paid ? 'Đã xác nhận' : 'Đã đặt';
+      case 'CONFIRMED':
+        return 'Đã xác nhận';
+      case 'COMPLETED':
+        return 'Đã hoàn thành';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -312,6 +330,7 @@ export default function MyAppointmentsPage() {
               <AppointmentItem
                 key={appointment.id}
                 appointment={appointment}
+                statusLabel={getStatusLabel(appointment.status, appointment.paymentStatus)}
                 onUpdate={loadAppointments}
               />
             ))}
@@ -325,16 +344,18 @@ export default function MyAppointmentsPage() {
 // Appointment Item Component
 function AppointmentItem({
   appointment,
+  statusLabel,
   onUpdate,
 }: {
   appointment: AppointmentReadModel;
+  statusLabel: string;
   onUpdate: () => void;
 }) {
   const router = useRouter();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const statusConfig = {
-    SCHEDULED: { color: 'bg-blue-100 text-blue-800', label: 'Đã đặt' },
+    SCHEDULED: { color: 'bg-blue-100 text-blue-800', label: statusLabel || 'Đã đặt' },
     PENDING_PAYMENT: { color: 'bg-yellow-100 text-yellow-800', label: 'Chờ thanh toán' },
     CONFIRMED: { color: 'bg-green-100 text-green-800', label: 'Đã xác nhận' },
     CANCELLED: { color: 'bg-red-100 text-red-800', label: 'Đã hủy' },

@@ -9,6 +9,9 @@ export interface Invoice {
   id: string;
   patientId: string;
   appointmentId?: string;
+  appointmentCode?: string;
+  doctorName?: string;
+  doctorDepartment?: string;
   invoiceNumber?: string;
   invoiceCode?: string;
   items: InvoiceItem[];
@@ -228,6 +231,21 @@ class BillingService {
         invoice?.invoice_id,
       invoiceCode: invoice?.vietnamese_invoice_number,
       appointmentId: invoice?.appointmentId ?? invoice?.appointment_id,
+      appointmentCode:
+        invoice?.appointmentCode ??
+        invoice?.appointment_code ??
+        invoice?.appointmentId ??
+        invoice?.appointment_id,
+      doctorName:
+        invoice?.doctorName ??
+        invoice?.doctor_name ??
+        invoice?.providerName ??
+        invoice?.provider_name,
+      doctorDepartment:
+        invoice?.doctorDepartment ??
+        invoice?.doctor_department ??
+        invoice?.departmentName ??
+        invoice?.department_name,
       subtotal: toNumber(invoice?.subtotal ?? invoice?.subtotalAmount ?? invoice?.subtotal_amount),
       tax: toNumber(invoice?.tax ?? invoice?.taxAmount ?? invoice?.tax_amount),
       insuranceCoverage: toNumber(

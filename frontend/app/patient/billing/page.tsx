@@ -436,7 +436,11 @@ function InvoiceCard({
             {dueDate && ` • Hạn thanh toán: ${formatDate(dueDate)}`}
           </p>
           {invoice.appointmentId && (
-            <p className="text-xs text-gray-500">Mã lịch hẹn: {invoice.appointmentId}</p>
+            <p className="text-xs text-gray-500">
+              Lịch hẹn: {invoice.appointmentId}
+              {invoice.doctorName && ` • Bác sĩ: ${invoice.doctorName}`}
+              {invoice.doctorDepartment && ` (${invoice.doctorDepartment})`}
+            </p>
           )}
           <div className="flex flex-wrap gap-3 text-sm text-gray-600">
             <span>Tổng: {formatCurrency(invoice.totalAmount)}</span>
@@ -517,7 +521,10 @@ function InvoiceDetailsDialog({
               {getStatusBadge(invoice.status).label}
             </Badge>
             {invoice.appointmentId && (
-              <Badge variant="outline">Lịch hẹn: {invoice.appointmentId}</Badge>
+              <Badge variant="outline">
+                Lịch hẹn: {invoice.appointmentId}
+                {invoice.doctorName && ` • BS: ${invoice.doctorName}`}
+              </Badge>
             )}
             {invoice.invoiceCode && (
               <Badge variant="outline">Số hóa đơn: {invoice.invoiceCode}</Badge>

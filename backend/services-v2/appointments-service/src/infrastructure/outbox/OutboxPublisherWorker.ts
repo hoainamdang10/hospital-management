@@ -74,6 +74,11 @@ export class OutboxPublisherWorker {
     const payload = evt.payload_json || {};
     const eventType = evt.event_type;
 
+    console.log("[OutboxWorker] processing", {
+      id: evt.id,
+      eventType,
+    });
+
     try {
       if (eventType === "SchedulerReminderCreate") {
         console.warn(
@@ -92,9 +97,22 @@ export class OutboxPublisherWorker {
         // Generic relay to RabbitMQ for appointment.* events (billing/notifications)
         const channel = await this.ensureChannel();
         // Normalize routing key to singular prefix for compatibility with consumers
-        const routingKey = eventType.startsWith("appointments.")
-          ? eventType.replace(/^appointments\./, "appointment.")
-          : eventType;
+        const rawEventType =
+          typeof eventType === "string" ? eventType.trim() : eventType;
+        let routingKey = rawEventType;
+        routingKey = routingKey.replace(
+          /^appointments\.appointment\./,
+          "appointment.",
+        );
+        routingKey = routingKey.replace(/^appointments\./, "appointment.");
+        routingKey = routingKey.replace(
+          /^appointment\.appointment\./,
+          "appointment.",
+        );
+        routingKey = routingKey.replace(/^(appointment\.){2,}/, "appointment.");
+        if (!routingKey.startsWith("appointment.")) {
+          routingKey = `appointment.${routingKey}`;
+        }
         channel.publish(
           this.options.exchange || "hospital.events",
           routingKey,

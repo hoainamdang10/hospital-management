@@ -231,7 +231,14 @@ export class AppointmentReadModelEventHandler {
 
       // Preserve existing status if present to avoid downgrading confirmed appointments
       const existing = await this.readModelRepo.findById(event.appointmentId);
-      const status = existing?.status || "scheduled";
+      let status = existing?.status || "scheduled";
+      // If đã thanh toán hoặc trước đó đã confirmed thì giữ CONFIRMED
+      if (
+        status?.toLowerCase() !== "confirmed" &&
+        existing?.paymentStatus?.toUpperCase() === "PAID"
+      ) {
+        status = "confirmed";
+      }
 
       const formattedTime = this.formatTime(newStart);
 
