@@ -461,6 +461,14 @@ export class AppointmentEventConsumer {
       appointmentId,
       patientId,
       staffId,
+      doctorName:
+        payload?.doctorName || payload?.doctor_name || payload?.doctorFullName,
+      doctorDepartment:
+        payload?.departmentName ||
+        payload?.department?.name ||
+        payload?.doctorDepartment ||
+        payload?.department_id ||
+        null,
       departmentId:
         payload?.departmentId ||
         payload?.department_id ||
@@ -595,6 +603,8 @@ export class AppointmentEventConsumer {
         patientId: patientUuid,
         staffId: staffUuid,
         departmentId: data.departmentId,
+        doctorName: data.doctorName,
+        doctorDepartment: data.doctorDepartment,
         serviceType: data.serviceType,
         scheduledAt: data.scheduledAt,
         duration: data.duration,
@@ -868,6 +878,17 @@ export class AppointmentEventConsumer {
             },
           );
         }
+      }
+
+      // Persist cancellation metadata on existing invoices to improve UX
+      const cancelledInvoices =
+        await this.invoiceRepository.findAllByAppointmentId(data.appointmentId);
+      for (const inv of cancelledInvoices) {
+        inv.setMetadata({
+          cancellationReason: data.cancellationReason,
+          cancelledBy: data.cancelledBy,
+        });
+        await this.invoiceRepository.save(inv);
       }
 
       // Handle penalty if applied

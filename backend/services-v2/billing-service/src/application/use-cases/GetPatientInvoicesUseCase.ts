@@ -11,6 +11,9 @@ export interface GetPatientInvoicesResponse {
     invoiceId: string;
     invoiceNumber?: string;
     appointmentId?: string;
+    doctorName?: string;
+    doctorDepartment?: string;
+    cancellationReason?: string;
     totalAmount: number;
     outstandingAmount: number;
     paidAmount: number;
@@ -63,6 +66,9 @@ export class GetPatientInvoicesUseCase extends BaseHealthcareUseCase<
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
         appointmentId: invoice.getAppointmentId?.() ?? undefined,
+        doctorName: invoice.metadata?.doctorName,
+        doctorDepartment: invoice.metadata?.doctorDepartment,
+        cancellationReason: invoice.metadata?.cancellationReason,
         totalAmount: invoice.totalAmount.amount,
         outstandingAmount: Math.max(
           0,

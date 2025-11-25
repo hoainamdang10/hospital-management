@@ -19,6 +19,8 @@ export interface AppointmentInvoiceRequest {
   patientId: string;
   staffId: string;
   departmentId: string;
+  doctorName?: string;
+  doctorDepartment?: string;
   serviceType: "consultation" | "procedure" | "follow_up";
   scheduledAt: Date;
   completedAt?: Date; // Optional: only for appointment.completed event
@@ -171,6 +173,10 @@ export class BillingService {
         patientId: request.patientId,
         appointmentId: request.appointmentId,
         staffId: request.staffId,
+        metadata: {
+          doctorName: request.doctorName,
+          doctorDepartment: request.doctorDepartment,
+        },
         items: lineItems.map((item) => ({
           description: item.description,
           quantity: item.quantity,

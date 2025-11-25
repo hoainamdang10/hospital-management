@@ -16,6 +16,7 @@ export interface InvoiceProps {
   patientId: string;
   appointmentId?: string;
   staffId?: string;
+  metadata?: any;
   invoiceNumber?: string;
   items: InvoiceItem[];
   subtotal: Money;
@@ -73,6 +74,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       paidAt: undefined, // Not paid yet
       createdAt: now,
       updatedAt: now,
+      metadata: {},
     });
 
     invoice.addDomainEvent(
@@ -378,6 +380,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       patientId: this.props.patientId,
       appointmentId: this.props.appointmentId,
       staffId: this.props.staffId,
+      metadata: this.props.metadata || {},
       invoiceNumber: this.props.invoiceNumber,
       items: this.props.items.map((item) => item.toPersistence()),
       subtotal: this.props.subtotal.amount,
@@ -405,6 +408,18 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
 
   get invoiceNumber(): string | undefined {
     return this.props.invoiceNumber;
+  }
+
+  get metadata(): any {
+    return this.props.metadata || {};
+  }
+
+  public setMetadata(metadata: any): void {
+    this.props.metadata = {
+      ...(this.props.metadata || {}),
+      ...(metadata || {}),
+    };
+    this.props.updatedAt = new Date();
   }
 
   get items(): InvoiceItem[] {
