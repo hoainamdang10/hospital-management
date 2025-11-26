@@ -47,6 +47,7 @@ export interface CommunicationPreferences {
 }
 
 export interface Patient {
+  id: string;
   patientId: string;
   userId: string;
   firstName: string;
@@ -102,11 +103,15 @@ class PatientService {
       return normalized;
     }
 
-    if (!this.isUuid(normalized)) {
-      this.patientIdCache.set(normalized, normalized);
+    if (this.isUuid(normalized)) {
       return normalized;
     }
 
+    // If not UUID and not PAT- code (e.g. username?), try to resolve
+    // But for now, let's assume if it's not UUID, it might be a PAT- code or we just use it.
+    // The previous logic forced UUID -> PAT- code. We want to allow UUID.
+
+    /*
     const patient = await this.request<Patient>(`/user/${normalized}`);
     if (!patient?.patientId) {
       throw new Error('PATIENT_NOT_FOUND');
@@ -115,6 +120,8 @@ class PatientService {
     this.patientIdCache.set(normalized, patient.patientId);
     this.patientIdCache.set(patient.patientId, patient.patientId);
     return patient.patientId;
+    */
+    return normalized;
   }
 
   private isPatientCode(identifier: string): boolean {

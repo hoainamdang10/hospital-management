@@ -45,6 +45,7 @@ export interface PaymentRecord {
   status: 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED';
   method: 'PayOS' | 'Cash' | 'Card' | 'BankTransfer';
   createdAt: string;
+  description?: string;
 }
 
 export interface WebhookEvent {
@@ -59,63 +60,144 @@ export interface WebhookEvent {
 /**
  * Get admin dashboard statistics
  */
+/**
+ * Get admin dashboard statistics with REAL data calculation
+ */
 export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   try {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
     // Fetch data from multiple services in parallel
-    const [appointmentsData, patientsData, staffData] = await Promise.all([
-      // Get total appointments
+    const [appointmentsResp, patientsResp, staffResp, invoicesResp] = await Promise.all([
       appointmentsClient.get('/v1/appointments', {
-        params: {
-          page: 1,
-          pageSize: 1000,
-        },
+        params: { page: 1, pageSize: 1000, sortBy: 'appointmentDateTime', sortOrder: 'desc' },
       }).catch(() => ({ data: { data: { appointments: [], total: 0 } } })),
 
-      // Get total patients (using patient registry service)
       patientClient.get('/v1/patients', {
-        params: {
-          page: 1,
-          pageSize: 1,
-        },
-      }).catch(() => ({ data: { data: { total: 0 } } })),
+        params: { page: 1, pageSize: 1000, sortBy: 'createdAt', sortOrder: 'desc' },
+      }).catch(() => ({ data: { data: { patients: [], total: 0 } } })),
 
-      // Get total staff (using provider staff service)
       staffClient.get('/v1/staff/search', {
-        params: {
-          page: 1,
-          pageSize: 1,
-        },
-      }).catch(() => ({ data: { data: { total: 0 } } })),
+        params: { page: 1, pageSize: 1000 },
+      }).catch(() => ({ data: { data: { items: [], pagination: { total: 0 } } } })),
+
+      billingClient.get('/v1/billing/invoices/search', {
+        params: { pageSize: 1000 },
+      }).catch((err) => {
+        console.error('Failed to fetch invoices for stats:', err);
+        return { data: { invoices: [] } };
+      }),
     ]);
 
-    const totalAppointments = appointmentsData.data?.data?.total || appointmentsData.data?.data?.appointments?.length || 0;
-    const totalPatients = patientsData.data?.data?.total || 0;
-    const totalStaff = staffData.data?.data?.total || 0;
+    // 1. Appointments (Count only)
+    const appointments = appointmentsResp.data?.data?.appointments || [];
+    const totalAppointments = appointmentsResp.data?.data?.total || appointments.length;
 
-    // Calculate revenue from appointments if available (consultationFee)
-    const appointments = appointmentsData.data?.data?.appointments || [];
-    const totalRevenue = appointments.reduce((sum: number, apt: any) => sum + Number(apt.consultationFee || 0), 0);
+    let thisMonthApts = 0;
+    let lastMonthApts = 0;
 
-    // Calculate changes (mock - compare with previous period)
-    const revenueChange = '+20.1%';
-    const appointmentsChange = '+180.1%';
-    const patientsChange = '+19%';
-    const staffChange = '+201';
+    appointments.forEach((apt: any) => {
+      let date: Date;
+      if (apt.appointmentDateTime) {
+        date = new Date(apt.appointmentDateTime);
+      } else if (apt.appointmentDate) {
+        date = new Date(apt.appointmentDate);
+        if (apt.appointmentTime) {
+          const [hours, minutes] = apt.appointmentTime.split(':');
+          date.setHours(parseInt(hours), parseInt(minutes));
+        }
+      } else {
+        return;
+      }
+
+      if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+        thisMonthApts++;
+      } else if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
+        lastMonthApts++;
+      }
+    });
+
+    // 2. Revenue (From Invoices)
+    const invoices = invoicesResp.data?.invoices || invoicesResp.data?.data?.invoices || invoicesResp.data?.data || [];
+    let thisMonthRevenue = 0;
+    let lastMonthRevenue = 0;
+
+    invoices.forEach((inv: any) => {
+      // Only count PAID invoices for revenue
+      if (inv.status?.toLowerCase() !== 'paid') return;
+
+      const date = new Date(inv.createdAt);
+      const amount = Number(inv.totalAmount || 0);
+
+      if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+        thisMonthRevenue += amount;
+      } else if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
+        lastMonthRevenue += amount;
+      }
+    });
+
+    // 3. Patients
+    const patients = patientsResp.data?.data?.patients || patientsResp.data?.data || [];
+    const totalPatients = patientsResp.data?.data?.total || patients.length;
+
+    let thisMonthPatients = 0;
+    let lastMonthPatients = 0;
+
+    patients.forEach((p: any) => {
+      const dateStr = p.createdAt || p.created_at || p.joinedAt;
+      if (dateStr) {
+        const date = new Date(dateStr);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+          thisMonthPatients++;
+        } else if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
+          lastMonthPatients++;
+        }
+      }
+    });
+
+    // 4. Staff
+    const staffList = staffResp.data?.data?.items || [];
+    const totalStaff = staffResp.data?.data?.pagination?.total || staffList.length;
+
+    let thisMonthStaff = 0;
+    let lastMonthStaff = 0;
+
+    staffList.forEach((s: any) => {
+      const dateStr = s.hireDate || s.createdAt || s.created_at;
+      if (dateStr) {
+        const date = new Date(dateStr);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+          thisMonthStaff++;
+        } else if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
+          lastMonthStaff++;
+        }
+      }
+    });
+
+    // Helper to calculate percentage change
+    const calculateChange = (current: number, previous: number): string => {
+      if (previous === 0) return current > 0 ? '+100%' : '0%';
+      const change = ((current - previous) / previous) * 100;
+      return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
+    };
 
     return {
-      totalRevenue,
-      revenueChange,
-      totalAppointments,
-      appointmentsChange,
-      totalPatients,
-      patientsChange,
-      totalStaff,
-      staffChange,
+      totalRevenue: thisMonthRevenue,
+      revenueChange: calculateChange(thisMonthRevenue, lastMonthRevenue),
+      totalAppointments: totalAppointments, // Total all time
+      appointmentsChange: calculateChange(thisMonthApts, lastMonthApts),
+      totalPatients: totalPatients,
+      patientsChange: calculateChange(thisMonthPatients, lastMonthPatients),
+      totalStaff: totalStaff,
+      staffChange: calculateChange(thisMonthStaff, lastMonthStaff),
     };
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch stats:', error);
 
-    // Return default values on error
     return {
       totalRevenue: 0,
       revenueChange: '0%',
@@ -145,13 +227,23 @@ export async function getRecentAppointments(limit: number = 10): Promise<RecentA
 
     const appointments = response.data?.data?.appointments || [];
 
-    return appointments.map((apt: any) => ({
-      id: apt.appointmentId,
-      patientName: apt.patientName || 'Bệnh nhân',
-      appointmentType: apt.appointmentType || 'Khám bệnh',
-      appointmentDateTime: apt.appointmentDateTime,
-      status: apt.status,
-    }));
+    return appointments.map((apt: any) => {
+      let dateTime = apt.appointmentDateTime;
+      if (!dateTime && apt.appointmentDate) {
+        dateTime = apt.appointmentDate;
+        if (apt.appointmentTime) {
+          dateTime += `T${apt.appointmentTime}`;
+        }
+      }
+
+      return {
+        id: apt.appointmentId,
+        patientName: apt.patientName || 'Bệnh nhân',
+        appointmentType: apt.appointmentType || 'Khám bệnh',
+        appointmentDateTime: dateTime || new Date().toISOString(),
+        status: apt.status,
+      };
+    });
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch recent appointments:', error);
     return [];
@@ -177,7 +269,19 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
     const monthlyData: { [key: string]: { patients: Set<string>; appointments: number; revenue: number } } = {};
 
     appointments.forEach((apt: any) => {
-      const date = new Date(apt.appointmentDateTime);
+      let date: Date;
+      if (apt.appointmentDateTime) {
+        date = new Date(apt.appointmentDateTime);
+      } else if (apt.appointmentDate) {
+        date = new Date(apt.appointmentDate);
+        if (apt.appointmentTime) {
+          const [hours, minutes] = apt.appointmentTime.split(':');
+          date.setHours(parseInt(hours), parseInt(minutes));
+        }
+      } else {
+        return;
+      }
+
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       if (!monthlyData[monthKey]) {
@@ -267,9 +371,9 @@ export async function getInvoiceSummary(): Promise<{ summary: InvoiceStatusSumma
 export async function getRevenueTrend(days: number = 14): Promise<{ date: string; amount: number }[]> {
   try {
     const resp = await billingClient.get('/v1/billing/invoices/search', {
-      params: { page: 1, pageSize: 1000, status: 'PAID' },
+      params: { status: 'paid' },
     });
-    const invoices = resp.data?.data?.invoices || resp.data?.data || [];
+    const invoices = resp.data?.invoices || resp.data?.data?.invoices || resp.data?.data || [];
     const end = new Date(); end.setHours(0, 0, 0, 0);
     const trend: Record<string, number> = {};
     for (let i = 0; i < days; i++) {
@@ -303,9 +407,9 @@ export async function getRevenueTrend(days: number = 14): Promise<{ date: string
 export async function getInvoiceStatusDistribution(): Promise<InvoiceStatusSummary> {
   try {
     const resp = await billingClient.get('/v1/billing/invoices/search', {
-      params: { page: 1, pageSize: 1000 },
+      params: {},
     });
-    const invoices = resp.data?.data?.invoices || resp.data?.data || [];
+    const invoices = resp.data?.invoices || resp.data?.data?.invoices || resp.data?.data || [];
     return {
       paid: invoices.filter((i: any) => i.status?.toUpperCase() === 'PAID').length,
       pending: invoices.filter((i: any) => i.status?.toUpperCase() === 'PENDING').length,
@@ -323,18 +427,61 @@ export async function getInvoiceStatusDistribution(): Promise<InvoiceStatusSumma
  */
 export async function getRecentPayments(limit: number = 10): Promise<PaymentRecord[]> {
   try {
+    // 1. Fetch Invoices
     const resp = await billingClient.get('/v1/billing/invoices/search', {
-      params: { page: 1, pageSize: 1000, status: 'PAID', sortBy: 'updatedAt', sortOrder: 'DESC' },
+      params: { status: 'paid', pageSize: limit },
     });
-    const invoices = resp.data?.data?.invoices || resp.data?.data || [];
-    return invoices.slice(0, limit).map((inv: any) => ({
-      invoiceId: inv.invoiceId || inv.invoiceNumber || inv.id,
-      patientName: inv.patientName || 'Bệnh nhân',
-      amount: Number(inv.totalAmount || inv.amount || 0),
-      status: 'PAID',
-      method: (String(inv.paymentMethod || 'PayOS').toLowerCase().includes('cash') ? 'Cash' : 'PayOS'),
-      createdAt: inv.paidAt || inv.updatedAt || inv.createdAt,
-    }));
+    const invoices = resp.data?.invoices || resp.data?.data?.invoices || resp.data?.data || [];
+
+    if (invoices.length === 0) return [];
+
+    // 2. Fetch Patients (to get names)
+    // Note: In a real app, we should fetch only specific IDs, but for MVP/Dashboard we fetch a batch
+    const patientsResp = await patientClient.get('/v1/patients', {
+      params: { page: 1, pageSize: 1000 },
+    }).catch(() => ({ data: { data: { patients: [] } } }));
+
+    const patients = patientsResp.data?.data?.patients || [];
+    const patientMap = new Map(patients.map((p: any) => [
+      p.id || p.patient_id,
+      p.personalInfo?.fullName || p.personal_info?.fullName || p.fullName || 'Bệnh nhân'
+    ]));
+
+    // 3. Fetch Appointments (to get type/description)
+    const appointmentsResp = await appointmentsClient.get('/v1/appointments', {
+      params: { page: 1, pageSize: 1000 },
+    }).catch(() => ({ data: { data: { appointments: [] } } }));
+
+    const appointments = appointmentsResp.data?.data?.appointments || [];
+    const appointmentMap = new Map(appointments.map((apt: any) => [
+      apt.appointmentId || apt.id,
+      apt
+    ]));
+
+    // 4. Map Data
+    return invoices.map((inv: any) => {
+      const patientName = patientMap.get(inv.patientId) || inv.patientName || 'Bệnh nhân';
+      const appointment = appointmentMap.get(inv.appointmentId) as any;
+
+      let description = '';
+      if (appointment) {
+        description = appointment.appointmentType || 'Khám bệnh';
+        // Add time if available
+        if (appointment.appointmentTime) {
+          description += ` - ${appointment.appointmentTime.slice(0, 5)}`;
+        }
+      }
+
+      return {
+        invoiceId: inv.invoiceId || inv.invoiceNumber || inv.id,
+        patientName: patientName,
+        amount: Number(inv.totalAmount || inv.amount || 0),
+        status: 'PAID',
+        method: (String(inv.paymentMethod || 'PayOS').toLowerCase().includes('cash') ? 'Cash' : 'PayOS'),
+        createdAt: inv.paidAt || inv.updatedAt || inv.createdAt,
+        description: description
+      };
+    });
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch recent payments:', error);
     return [];

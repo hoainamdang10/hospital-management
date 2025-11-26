@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePatient } from '@/hooks/usePatient';
 import {
   billingService,
   type Invoice,
@@ -13,7 +14,10 @@ import {
 
 export function useBilling() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const patientIdentifier = user?.id || user?.userId || null;
+  const { patientId, internalId } = usePatient();
+  // Use internalId (UUID) if available, otherwise fallback to patientId (PAT-...)
+  // Backend likely expects UUID for authorization checks
+  const patientIdentifier = internalId || patientId || user?.id || user?.userId || null;
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);

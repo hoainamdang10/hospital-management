@@ -11,13 +11,13 @@ export interface OutboxWorkerOptions {
 }
 export declare class OutboxPublisherWorker {
     private outboxRepo;
-    private scheduler;
+    private scheduler?;
     private options;
     private timer?;
     private running;
     private amqpConn?;
     private amqpChannel?;
-    constructor(outboxRepo: OutboxRepository, scheduler: RemoteSchedulerAdapter, options?: OutboxWorkerOptions);
+    constructor(outboxRepo: OutboxRepository, scheduler?: RemoteSchedulerAdapter | undefined, options?: OutboxWorkerOptions);
     start(): void;
     stop(): void;
     private computeNextRetry;

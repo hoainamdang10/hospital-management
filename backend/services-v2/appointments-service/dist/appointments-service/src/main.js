@@ -421,39 +421,37 @@ const server = app.listen(PORT, async () => {
         logger.error("Failed to connect event subscriptions", error);
         logger.warn("Service will continue without event subscriptions");
     }
-    // Start Outbox Publisher Worker (only when scheduler integration is enabled)
-    if (config.features.enableScheduler) {
-        try {
-            const { OutboxRepository } = await Promise.resolve().then(() => __importStar(require("./infrastructure/outbox/OutboxRepository")));
-            const { OutboxPublisherWorker } = await Promise.resolve().then(() => __importStar(require("./infrastructure/outbox/OutboxPublisherWorker")));
-            const { RemoteSchedulerAdapter } = await Promise.resolve().then(() => __importStar(require("./infrastructure/adapters/RemoteSchedulerAdapter")));
-            const outboxRepo = new OutboxRepository(config.supabase.url, config.supabase.serviceRoleKey, config.outbox.reservedTimeoutMinutes);
-            const scheduler = new RemoteSchedulerAdapter({
+    // Start Outbox Publisher Worker
+    try {
+        const { OutboxRepository } = await Promise.resolve().then(() => __importStar(require("./infrastructure/outbox/OutboxRepository")));
+        const { OutboxPublisherWorker } = await Promise.resolve().then(() => __importStar(require("./infrastructure/outbox/OutboxPublisherWorker")));
+        const { RemoteSchedulerAdapter } = await Promise.resolve().then(() => __importStar(require("./infrastructure/adapters/RemoteSchedulerAdapter")));
+        const outboxRepo = new OutboxRepository(config.supabase.url, config.supabase.serviceRoleKey, config.outbox.reservedTimeoutMinutes);
+        const scheduler = config.features.enableScheduler
+            ? new RemoteSchedulerAdapter({
                 baseUrl: config.services.schedulerServiceUrl,
                 apiKey: config.services.schedulerApiKey,
                 timeout: 5000,
-            });
-            const worker = new OutboxPublisherWorker(outboxRepo, scheduler, {
-                intervalMs: config.outbox.pollIntervalMs,
-                batchSize: config.outbox.batchSize,
-                baseDelayMs: config.outbox.baseDelayMs,
-                maxDelayMs: config.outbox.maxDelayMs,
-                rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@rabbitmq-v2:5672",
-                exchange: "hospital.events",
-            });
-            worker.start();
-            app.outboxWorker = worker;
-            logger.info("Outbox publisher worker started", undefined, {
-                pollIntervalMs: config.outbox.pollIntervalMs,
-                batchSize: config.outbox.batchSize,
-            });
-        }
-        catch (e) {
-            logger.error("Failed to start Outbox publisher worker", e);
-        }
+            })
+            : undefined;
+        const worker = new OutboxPublisherWorker(outboxRepo, scheduler, {
+            intervalMs: config.outbox.pollIntervalMs,
+            batchSize: config.outbox.batchSize,
+            baseDelayMs: config.outbox.baseDelayMs,
+            maxDelayMs: config.outbox.maxDelayMs,
+            rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@rabbitmq-v2:5672",
+            exchange: "hospital.events",
+        });
+        worker.start();
+        app.outboxWorker = worker;
+        logger.info("Outbox publisher worker started", undefined, {
+            pollIntervalMs: config.outbox.pollIntervalMs,
+            batchSize: config.outbox.batchSize,
+            schedulerEnabled: config.features.enableScheduler,
+        });
     }
-    else {
-        logger.info("Scheduler disabled (ENABLE_SCHEDULER=false) - skipping OutboxPublisherWorker");
+    catch (e) {
+        logger.error("Failed to start Outbox publisher worker", e);
     }
     // ==================== FLOW 3 - PHASE 1B: PAYMENT TIMEOUT CRON JOB ====================
     // Setup cron job to expire unpaid appointments every 5 minutes

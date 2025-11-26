@@ -1,11 +1,12 @@
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
-import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
-import { IEventBus } from '../../../../shared/application/services/event-bus.interface';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { BaseHealthcareUseCase } from "../../../../shared/application/base/base-healthcare-use-case";
+import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { IEventBus } from "../../../../shared/application/services/event-bus.interface";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface CreateInvoiceRequest {
     patientId: string;
     appointmentId?: string;
     staffId?: string;
+    metadata?: any;
     items: Array<{
         description: string;
         quantity: number;

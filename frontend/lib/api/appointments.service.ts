@@ -149,4 +149,50 @@ export const appointmentsService = {
     const response = await apiClient.get('/appointments/statistics', { params });
     return response.data;
   },
+
+  /**
+   * Get appointments for a doctor
+   * GET /api/v1/doctors/:doctorId/appointments
+   */
+  async getDoctorAppointments(
+    doctorId: string,
+    params?: ListAppointmentsParams
+  ): Promise<ListAppointmentsResponse> {
+    const response = await apiClient.get<any>(`/v1/doctors/${doctorId}/appointments`, { params });
+    const payload = response.data.data || response.data;
+    return {
+      success: payload.success ?? response.data.success ?? true,
+      appointments: payload.appointments || payload.data || [],
+      totalCount: payload.total || payload.totalCount || 0,
+      hasMore:
+        (payload.total || 0) > (payload.page || 1) * (payload.pageSize || payload.limit || 10),
+    };
+  },
+
+  /**
+   * Check-in appointment
+   * POST /api/v1/appointments/:id/check-in
+   */
+  async checkInAppointment(id: string): Promise<SuccessResponse> {
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/check-in`);
+    return response.data;
+  },
+
+  /**
+   * Start appointment
+   * POST /api/v1/appointments/:id/start
+   */
+  async startAppointment(id: string): Promise<SuccessResponse> {
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/start`);
+    return response.data;
+  },
+
+  /**
+   * Complete appointment
+   * POST /api/v1/appointments/:id/complete
+   */
+  async completeAppointment(id: string): Promise<SuccessResponse> {
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/complete`);
+    return response.data;
+  },
 };

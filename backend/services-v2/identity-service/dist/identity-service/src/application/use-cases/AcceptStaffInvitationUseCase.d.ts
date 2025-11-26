@@ -13,9 +13,9 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { IUserRepository } from '../repositories/IUserRepository';
-import { ILogger } from '../services/ILogger';
-import { IEventPublisher } from '../services/IEventPublisher';
+import { IUserRepository } from "../repositories/IUserRepository";
+import { ILogger } from "../services/ILogger";
+import { IEventPublisher } from "../services/IEventPublisher";
 export interface AcceptStaffInvitationRequest {
     invitationToken: string;
     password: string;

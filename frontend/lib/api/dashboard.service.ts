@@ -96,9 +96,14 @@ export async function getPatientDashboardStats(
     sevenDaysAhead.setHours(23, 59, 59, 999); // End of the 7th day
 
     // Count upcoming appointments (including today through next 7 days)
+    // Explicitly filter by status to ensure accuracy even if backend ignores status param
     const upcomingConfirmed7DaysCount = [
-      ...((confirmedApts as any).appointments || []),
-      ...((scheduledApts as any).appointments || []),
+      ...((confirmedApts as any).appointments || []).filter(
+        (a: any) => a.status === 'CONFIRMED'
+      ),
+      ...((scheduledApts as any).appointments || []).filter(
+        (a: any) => a.status === 'SCHEDULED'
+      ),
     ].filter((apt: any) => {
       const dateStr = apt.appointmentDate || apt.date;
       const timeStr = apt.appointmentTime || apt.time || '00:00:00';
@@ -111,19 +116,23 @@ export async function getPatientDashboardStats(
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
 
-    const completedCount = ((completedApts as any).appointments || []).filter((apt: any) => {
-      const dateStr = apt.appointmentDate || apt.date;
-      const timeStr = apt.appointmentTime || apt.time || '00:00:00';
-      const dt = new Date(`${dateStr}T${timeStr}`);
-      return dt >= thirtyDaysAgo && dt <= now;
-    }).length;
+    const completedCount = ((completedApts as any).appointments || [])
+      .filter((a: any) => a.status === 'COMPLETED')
+      .filter((apt: any) => {
+        const dateStr = apt.appointmentDate || apt.date;
+        const timeStr = apt.appointmentTime || apt.time || '00:00:00';
+        const dt = new Date(`${dateStr}T${timeStr}`);
+        return dt >= thirtyDaysAgo && dt <= now;
+      }).length;
 
-    const cancelledCount = ((cancelledApts as any).appointments || []).filter((apt: any) => {
-      const dateStr = apt.appointmentDate || apt.date;
-      const timeStr = apt.appointmentTime || apt.time || '00:00:00';
-      const dt = new Date(`${dateStr}T${timeStr}`);
-      return dt >= thirtyDaysAgo && dt <= now;
-    }).length;
+    const cancelledCount = ((cancelledApts as any).appointments || [])
+      .filter((a: any) => a.status === 'CANCELLED')
+      .filter((apt: any) => {
+        const dateStr = apt.appointmentDate || apt.date;
+        const timeStr = apt.appointmentTime || apt.time || '00:00:00';
+        const dt = new Date(`${dateStr}T${timeStr}`);
+        return dt >= thirtyDaysAgo && dt <= now;
+      }).length;
 
     const recentCompletedOrCancelledCount = completedCount + cancelledCount;
 

@@ -25,6 +25,6 @@ function registerRoutes(app, deps) {
     // User management routes
     app.use("/api/v1/users", (0, user_routes_1.createUserRoutes)(deps));
     // Admin routes
-    app.use("/admin", (0, admin_routes_1.createAdminRoutes)(deps));
+    app.use("/api/admin", (0, admin_routes_1.createAdminRoutes)(deps));
 }
 //# sourceMappingURL=index.js.map

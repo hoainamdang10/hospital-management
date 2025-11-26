@@ -14,12 +14,12 @@
  * @version 2.0.0
  */
 
-import { IUserRepository } from '../repositories/IUserRepository';
-import { Email } from '../../domain/value-objects/Email';
-import { PersonalInfo } from '../../domain/value-objects/PersonalInfo';
-import { ILogger } from '../services/ILogger';
-import { IEventPublisher } from '../services/IEventPublisher';
-import { getErrorMessage } from '../../utils/error-helper';
+import { IUserRepository } from "../repositories/IUserRepository";
+import { Email } from "../../domain/value-objects/Email";
+import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
+import { ILogger } from "../services/ILogger";
+import { IEventPublisher } from "../services/IEventPublisher";
+import { getErrorMessage } from "../../utils/error-helper";
 
 export interface AcceptStaffInvitationRequest {
   invitationToken: string;
@@ -43,13 +43,15 @@ export class AcceptStaffInvitationUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly logger: ILogger,
-    private readonly eventPublisher?: IEventPublisher
+    private readonly eventPublisher?: IEventPublisher,
   ) {}
 
-  async execute(request: AcceptStaffInvitationRequest): Promise<AcceptStaffInvitationResponse> {
+  async execute(
+    request: AcceptStaffInvitationRequest,
+  ): Promise<AcceptStaffInvitationResponse> {
     try {
-      this.logger.info('Processing staff invitation acceptance', {
-        token: request.invitationToken.substring(0, 10) + '...'
+      this.logger.info("Processing staff invitation acceptance", {
+        token: request.invitationToken.substring(0, 10) + "...",
       });
 
       // 1. Validate input
@@ -58,21 +60,23 @@ export class AcceptStaffInvitationUseCase {
         return {
           success: false,
           error: validationError,
-          errorCode: 'VALIDATION_ERROR'
+          errorCode: "VALIDATION_ERROR",
         };
       }
 
       // 2. Verify invitation token
-      const invitation = await this.userRepository.verifyStaffInvitation(request.invitationToken);
-      
+      const invitation = await this.userRepository.verifyStaffInvitation(
+        request.invitationToken,
+      );
+
       if (!invitation.isValid || !invitation.email || !invitation.role) {
-        this.logger.warn('Invalid or expired invitation token', {
-          token: request.invitationToken.substring(0, 10) + '...'
+        this.logger.warn("Invalid or expired invitation token", {
+          token: request.invitationToken.substring(0, 10) + "...",
         });
         return {
           success: false,
-          error: 'Liên kết mời không hợp lệ hoặc đã hết hạn',
-          errorCode: 'INVALID_INVITATION'
+          error: "Liên kết mời không hợp lệ hoặc đã hết hạn",
+          errorCode: "INVALID_INVITATION",
         };
       }
 
@@ -80,63 +84,112 @@ export class AcceptStaffInvitationUseCase {
       const email = Email.create(invitation.email);
       const existingUser = await this.userRepository.findByEmail(email);
       if (existingUser) {
-        this.logger.warn('User already exists for invitation', {
-          email: invitation.email
+        this.logger.warn("User already exists for invitation", {
+          email: invitation.email,
         });
         return {
           success: false,
-          error: 'Tài khoản đã được kích hoạt trước đó',
-          errorCode: 'USER_ALREADY_EXISTS'
+          error:
+            "Tài khoản đã được kích hoạt trước đó. Vui lòng đăng nhập hoặc dùng chức năng quên mật khẩu.",
+          errorCode: "USER_ALREADY_EXISTS",
         };
       }
 
       // 4. Create auth user + profile
+      const invitationData = (invitation.invitationData || {}) as Record<
+        string,
+        unknown
+      >;
+
+      const invitationFullName =
+        typeof invitationData.fullName === "string"
+          ? invitationData.fullName
+          : undefined;
+      const invitationPhone =
+        typeof invitationData.phoneNumber === "string"
+          ? invitationData.phoneNumber
+          : undefined;
+
+      const fullName =
+        request.fullName?.trim().length && request.fullName.trim().length >= 2
+          ? request.fullName.trim()
+          : invitationFullName || invitation.email.split("@")[0] || "Staff";
+
+      const phoneNumber =
+        request.phoneNumber && request.phoneNumber.trim().length > 0
+          ? request.phoneNumber.trim()
+          : invitationPhone;
+
+      // Validate before creating auth user (align with patient flow)
+      if (!fullName || fullName.trim().length < 2) {
+        return {
+          success: false,
+          error: "Họ tên phải có ít nhất 2 ký tự",
+          errorCode: "VALIDATION_ERROR",
+        };
+      }
+
+      if (phoneNumber && !/^[0-9]{10,11}$/.test(phoneNumber)) {
+        return {
+          success: false,
+          error: "Số điện thoại không hợp lệ (phải có 10-11 chữ số)",
+          errorCode: "VALIDATION_ERROR",
+        };
+      }
+
       const user = await this.userRepository.createAuthUser({
         email: invitation.email,
         password: request.password,
-        fullName: request.fullName,
+        fullName,
         roleType: invitation.role,
-        phoneNumber: request.phoneNumber,
+        phoneNumber,
         emailConfirm: true, // Staff accounts are pre-verified
         metadata: {
           invitationToken: request.invitationToken,
           activatedViaInvitation: true,
-          invitationData: invitation.invitationData
-        }
+          invitationData: invitation.invitationData,
+        },
       });
 
-      this.logger.info('Staff account created successfully', {
+      this.logger.info("Staff account created successfully", {
         userId: user.id,
         email: invitation.email,
-        role: invitation.role
+        role: invitation.role,
       });
 
       // 4.5. Record staff activation (emits UserCreatedEvent for downstream services)
       // This is needed for downstream services (Staff Service, Patient Registry) to create profiles
       const personalInfo = PersonalInfo.create({
-        fullName: request.fullName,
-        phoneNumber: request.phoneNumber,
+        fullName,
+        phoneNumber,
         dateOfBirth: undefined, // Will be updated later
         gender: undefined,
         citizenId: undefined,
-        address: undefined
+        address: undefined,
       });
-      
-      // ✅ FIX: Use public domain method instead of calling protected addDomainEvent
-      user.recordStaffActivation(personalInfo);
 
-      this.logger.info('Staff activation recorded with UserCreatedEvent', {
+      const professionalData = invitation.invitationData as
+        | Record<string, unknown>
+        | undefined;
+
+      // ✅ FIX: Use public domain method instead of calling protected addDomainEvent
+      user.recordStaffActivation(personalInfo, professionalData);
+
+      this.logger.info("Staff activation recorded with UserCreatedEvent", {
         userId: user.id,
-        role: invitation.role
+        role: invitation.role,
       });
 
       // 5. Mark invitation as used
       try {
-        await this.userRepository.markInvitationAsUsed(request.invitationToken, user.id);
+        await this.userRepository.markInvitationAsUsed(
+          request.invitationToken,
+          user.id,
+        );
       } catch (error) {
-        this.logger.error('Failed to mark invitation as used', {
+        this.logger.error("Failed to mark invitation as used", {
           userId: user.id,
-          error: getErrorMessage(error)
+          error: getErrorMessage(error),
         });
         // Don't fail the whole process if this fails
       }
@@ -148,14 +201,14 @@ export class AcceptStaffInvitationUseCase {
           await this.eventPublisher.publishDomainEvents(domainEvents);
           user.markEventsAsCommitted();
 
-          this.logger.info('Domain events published for staff activation', {
+          this.logger.info("Domain events published for staff activation", {
             userId: user.id,
-            eventCount: domainEvents.length
+            eventCount: domainEvents.length,
           });
         } catch (error) {
-          this.logger.error('Failed to publish domain events', {
+          this.logger.error("Failed to publish domain events", {
             userId: user.id,
-            error: getErrorMessage(error)
+            error: getErrorMessage(error),
           });
           // Don't fail activation if event publishing fails
         }
@@ -166,41 +219,41 @@ export class AcceptStaffInvitationUseCase {
         userId: user.id,
         email: user.email.value,
         role: invitation.role,
-        message: 'Tài khoản nhân viên đã được kích hoạt thành công'
+        message: "Tài khoản nhân viên đã được kích hoạt thành công",
       };
-
     } catch (error) {
-      this.logger.error('Staff invitation acceptance failed', {
-        error: getErrorMessage(error)
+      this.logger.error("Staff invitation acceptance failed", {
+        error: getErrorMessage(error),
       });
 
       return {
         success: false,
         error: `Kích hoạt tài khoản thất bại: ${getErrorMessage(error)}`,
-        errorCode: 'ACTIVATION_FAILED'
+        errorCode: "ACTIVATION_FAILED",
       };
     }
   }
 
-  private validateRequest(request: AcceptStaffInvitationRequest): string | null {
-    if (!request.invitationToken || request.invitationToken.trim().length === 0) {
-      return 'Token mời không hợp lệ';
+  private validateRequest(
+    request: AcceptStaffInvitationRequest,
+  ): string | null {
+    if (
+      !request.invitationToken ||
+      request.invitationToken.trim().length === 0
+    ) {
+      return "Token mời không hợp lệ";
     }
 
     if (!request.password || request.password.length < 8) {
-      return 'Mật khẩu phải có ít nhất 8 ký tự';
+      return "Mật khẩu phải có ít nhất 8 ký tự";
     }
 
     if (request.password !== request.confirmPassword) {
-      return 'Mật khẩu xác nhận không khớp';
-    }
-
-    if (!request.fullName || request.fullName.trim().length < 2) {
-      return 'Họ tên phải có ít nhất 2 ký tự';
+      return "Mật khẩu xác nhận không khớp";
     }
 
     if (request.phoneNumber && !/^[0-9]{10,11}$/.test(request.phoneNumber)) {
-      return 'Số điện thoại không hợp lệ (phải có 10-11 chữ số)';
+      return "Số điện thoại không hợp lệ (phải có 10-11 chữ số)";
     }
 
     return null;

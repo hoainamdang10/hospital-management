@@ -203,7 +203,21 @@ class AuthenticateUserUseCase {
             });
             // Step 6: Get user roles and permissions (Pure RBAC)
             const roles = await this.userRepository.getUserRoles(user.userId);
-            const permissions = authResult.permissions || await this.permissionRepository.getUserPermissions(user.userId);
+            const permissions = authResult.permissions ||
+                (await this.permissionRepository.getUserPermissions(user.userId));
+            // Step 6.1: Sync roles into Supabase app_metadata so gateway tokens carry roles
+            try {
+                await this.authService.updateUserMetadata(user.id, {
+                    roles,
+                    permissions,
+                });
+            }
+            catch (error) {
+                this.logger.warn("Failed to sync roles to app_metadata", {
+                    userId: user.id,
+                    error: (0, error_helper_1.getErrorMessage)(error),
+                });
+            }
             // Step 7: Publish domain events
             if (this.eventPublisher) {
                 try {

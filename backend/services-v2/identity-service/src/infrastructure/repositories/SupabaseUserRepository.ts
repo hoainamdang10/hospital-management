@@ -584,21 +584,24 @@ export class SupabaseUserRepository implements IUserRepository {
    * Update user profile data (for patient sync)
    * Updates auth_schema.user_profiles table
    */
-  async updateProfile(userId: string, profileData: {
-    full_name?: string;
-    date_of_birth?: Date;
-    gender?: string;
-    citizen_id?: string;
-    phone_number?: string;
-    address?: string;
-    ward?: string;
-    district?: string;
-    city?: string;
-    province?: string;
-    country?: string;
-    updated_at?: Date;
-    updated_by?: string;
-  }): Promise<void> {
+  async updateProfile(
+    userId: string,
+    profileData: {
+      full_name?: string;
+      date_of_birth?: Date;
+      gender?: string;
+      citizen_id?: string;
+      phone_number?: string;
+      address?: string;
+      ward?: string;
+      district?: string;
+      city?: string;
+      province?: string;
+      country?: string;
+      updated_at?: Date;
+      updated_by?: string;
+    },
+  ): Promise<void> {
     return await this.circuitBreaker.execute(async () => {
       try {
         // Remove undefined values
@@ -610,31 +613,32 @@ export class SupabaseUserRepository implements IUserRepository {
         }
 
         if (Object.keys(cleanData).length === 0) {
-          this.logger.debug('No profile data to update', { userId });
+          this.logger.debug("No profile data to update", { userId });
           return;
         }
 
         const { error } = await this.supabaseClient
-          .from('user_profiles')
+          .from("user_profiles")
           .update(cleanData)
-          .eq('user_id', userId);
+          .eq("user_id", userId);
 
         if (error) {
-          throw new Error(`Failed to update user profile: ${getErrorMessage(error)}`);
+          throw new Error(
+            `Failed to update user profile: ${getErrorMessage(error)}`,
+          );
         }
 
-        this.logger.info('User profile updated successfully', {
+        this.logger.info("User profile updated successfully", {
           userId,
-          updatedFields: Object.keys(cleanData)
+          updatedFields: Object.keys(cleanData),
         });
 
         // Invalidate cache after profile update
         await this.invalidateUserCache(userId);
-
       } catch (error) {
-        this.logger.error('Error updating user profile', {
+        this.logger.error("Error updating user profile", {
           userId,
-          error: getErrorMessage(error)
+          error: getErrorMessage(error),
         });
         throw error;
       }
@@ -699,10 +703,16 @@ export class SupabaseUserRepository implements IUserRepository {
             eventCount: events.length,
           });
         } catch (publishError) {
-          this.logger.warn("Failed to publish events immediately, outbox will retry", {
-            userId: user.id,
-            error: publishError instanceof Error ? publishError.message : String(publishError),
-          });
+          this.logger.warn(
+            "Failed to publish events immediately, outbox will retry",
+            {
+              userId: user.id,
+              error:
+                publishError instanceof Error
+                  ? publishError.message
+                  : String(publishError),
+            },
+          );
           // Don't throw - outbox will handle retry
         }
       }
@@ -1583,7 +1593,10 @@ export class SupabaseUserRepository implements IUserRepository {
         .update({
           status: "ACCEPTED",
           accepted_at: new Date().toISOString(),
-          accepted_by_user_id: userId,
+          // Schema column is `accepted_by` (uuid). The previous
+          // `accepted_by_user_id` column does not exist in Supabase,
+          // so use the actual column to avoid schema cache errors.
+          accepted_by: userId,
         })
         .eq("invitation_token", token)
         .eq("status", "PENDING");
@@ -1673,7 +1686,8 @@ export class SupabaseUserRepository implements IUserRepository {
         invitationToken: row.invitation_token,
         expiresAt: new Date(row.expires_at),
         acceptedAt: row.accepted_at ? new Date(row.accepted_at) : undefined,
-        acceptedBy: row.accepted_by_user_id || undefined,
+        // DB column is `accepted_by`
+        acceptedBy: row.accepted_by || undefined,
         status: row.status,
         invitationData: row.invitation_data || {},
         createdAt: new Date(row.created_at),
@@ -1728,7 +1742,7 @@ export class SupabaseUserRepository implements IUserRepository {
         invitationToken: data.invitation_token,
         expiresAt: new Date(data.expires_at),
         acceptedAt: data.accepted_at ? new Date(data.accepted_at) : undefined,
-        acceptedBy: data.accepted_by_user_id || undefined,
+        acceptedBy: data.accepted_by || undefined,
         status: data.status,
         invitationData: data.invitation_data || {},
         createdAt: new Date(data.created_at),

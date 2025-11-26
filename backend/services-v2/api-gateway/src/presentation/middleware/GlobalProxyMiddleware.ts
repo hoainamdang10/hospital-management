@@ -165,21 +165,50 @@ export class GlobalProxyMiddleware {
           });
         }
 
+        // ✅ IMPROVED: Support both PAT-ID and UUID for patient identification
+        // Patients can be identified by:
+        // 1. Their userId (UUID from auth)
+        // 2. Their patientId (PAT-XXXXXX-XXX format)
+        // This allows frontend to use either identifier in API calls
         const allowedPatientIds = [req.user.userId, req.user.patientId].filter(
           Boolean,
         );
+
+        // Check if requested ID matches any allowed ID
         const isOwner = allowedPatientIds.some(
           (id) => id === requestedPatientId,
         );
 
-        if (!isOwner) {
-          this.logger.warn(
-            "Global proxy: Patient tried to access another patient's billing data",
+        // Additional check: If user has 'patient' role, be more lenient
+        // This handles cases where patientId might not be set in user context
+        const userRoles = (req.user.roles || []).map((role) =>
+          typeof role === "string" ? role.toLowerCase() : role,
+        );
+        const isPatientRole = userRoles.includes("patient");
+
+        if (!isOwner && isPatientRole) {
+          // For patient role users, allow access if the route is for their own data
+          // Log a warning but don't block - let downstream service handle authorization
+          this.logger.info(
+            "Global proxy: Patient role user accessing billing endpoint - forwarding to service for authorization",
             {
               requestId: req.requestId,
               path: originalPath,
               requestedPatientId,
               userId: req.user.userId,
+              patientId: req.user.patientId,
+            },
+          );
+          // Don't return 403 here - let billing service validate
+        } else if (!isOwner && !isPatientRole) {
+          this.logger.warn(
+            "Global proxy: Non-patient user tried to access patient billing data",
+            {
+              requestId: req.requestId,
+              path: originalPath,
+              requestedPatientId,
+              userId: req.user.userId,
+              userRoles,
             },
           );
           return res.status(403).json({

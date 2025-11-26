@@ -18,12 +18,11 @@ import { patientService } from '@/lib/api/patient.service';
  */
 export default function PatientDashboardPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { patient, patientId } = usePatient();
+  const { patient, patientId, internalId } = usePatient();
   const {
     summary,
     invoices,
     pendingInvoices,
-    paidInvoices,
     isLoading: isBillingLoading,
   } = useBilling();
   const [hasInsurance, setHasInsurance] = useState<boolean>(false);
@@ -36,8 +35,9 @@ export default function PatientDashboardPage() {
       user,
       patient,
       patientId,
+      internalId,
     });
-  }, [isAuthLoading, user, patient, patientId]);
+  }, [isAuthLoading, user, patient, patientId, internalId]);
   const [stats, setStats] = useState<DashboardStats>({
     upcomingConfirmed7DaysCount: 0,
     pendingPaymentsCount: 0,
@@ -58,7 +58,8 @@ export default function PatientDashboardPage() {
 
     try {
       setIsLoadingStats(true);
-      const billingIdentifier = user?.id || user?.userId || patientId;
+      // Use internalId (UUID) for billing if available, as backend might require it
+      const billingIdentifier = internalId || patientId || user?.id || user?.userId;
       const data = await getPatientDashboardStats(patientId, { billingIdentifier });
       setStats(data);
     } catch (error) {
@@ -71,9 +72,10 @@ export default function PatientDashboardPage() {
   const loadProfileBadges = async () => {
     if (!patientId) return;
     try {
+      const idToUse = internalId || patientId;
       const [insuranceRes, contactsRes] = await Promise.all([
-        patientService.getInsurance(patientId).catch(() => ({ insuranceInfo: null })),
-        patientService.getEmergencyContacts(patientId).catch(() => ({ contacts: [] })),
+        patientService.getInsurance(idToUse).catch(() => ({ insuranceInfo: null })),
+        patientService.getEmergencyContacts(idToUse).catch(() => ({ contacts: [] })),
       ]);
       setHasInsurance(!!insuranceRes.insuranceInfo);
       setHasEmergencyContact(
@@ -127,12 +129,12 @@ export default function PatientDashboardPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Upcoming Appointments - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <UpcomingAppointments patientId={patientId} />
+            <UpcomingAppointments patientId={patientId || undefined} />
           </div>
 
           {/* Recent Activity - Takes 1 column */}
           <div className="lg:col-span-1">
-            <RecentActivity patientId={patientId} />
+            <RecentActivity patientId={patientId || undefined} />
           </div>
         </div>
 
@@ -158,13 +160,13 @@ export default function PatientDashboardPage() {
                   isBillingLoading
                     ? '...'
                     : invoices
-                        .filter(
-                          (i) =>
-                            i.status === 'paid' &&
-                            new Date(i.updatedAt).getMonth() === new Date().getMonth() &&
-                            new Date(i.updatedAt).getFullYear() === new Date().getFullYear()
-                        )
-                        .length.toString()
+                      .filter(
+                        (i) =>
+                          i.status === 'paid' &&
+                          new Date(i.updatedAt).getMonth() === new Date().getMonth() &&
+                          new Date(i.updatedAt).getFullYear() === new Date().getFullYear()
+                      )
+                      .length.toString()
                 }
                 icon={CreditCard}
                 color="green"

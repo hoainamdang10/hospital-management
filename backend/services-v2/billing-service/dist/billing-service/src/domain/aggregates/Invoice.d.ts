@@ -9,6 +9,7 @@ export interface InvoiceProps {
     patientId: string;
     appointmentId?: string;
     staffId?: string;
+    metadata?: any;
     invoiceNumber?: string;
     items: InvoiceItem[];
     subtotal: Money;
@@ -54,6 +55,8 @@ export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     get invoiceId(): InvoiceId;
     get patientId(): string;
     get invoiceNumber(): string | undefined;
+    get metadata(): any;
+    setMetadata(metadata: any): void;
     get items(): InvoiceItem[];
     get subtotal(): Money;
     get tax(): Money;

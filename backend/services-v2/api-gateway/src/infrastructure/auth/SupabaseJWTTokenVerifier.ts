@@ -121,8 +121,13 @@ export class SupabaseJWTTokenVerifier implements ITokenVerifier {
           .map((value) => (typeof value === "string" ? value : String(value)))
           .map((value) => (toLower ? value.toLowerCase() : value));
 
+      // Extract roles with backward compatibility (role / role_type metadata)
       const rawRoles = user.user_metadata?.roles ||
-        user.app_metadata?.roles || ["patient"];
+        user.app_metadata?.roles ||
+        user.user_metadata?.role ||
+        user.user_metadata?.role_type ||
+        user.app_metadata?.role ||
+        user.app_metadata?.role_type || ["patient"];
       const roles = normalizeStrings(toArray(rawRoles, ["patient"]), true);
       const rawPermissions =
         user.user_metadata?.permissions || user.app_metadata?.permissions || [];

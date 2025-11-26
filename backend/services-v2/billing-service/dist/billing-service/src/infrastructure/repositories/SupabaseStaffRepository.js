@@ -10,8 +10,8 @@ class SupabaseStaffRepository {
     constructor(supabase, logger = logger_1.logger) {
         this.supabase = supabase;
         this.logger = logger;
-        this.schemaName = 'provider_schema';
-        this.tableName = 'staff_profiles';
+        this.schemaName = "provider_schema";
+        this.tableName = "staff_profiles";
     }
     /**
      * Resolve identifier to UUID (handles UUID vs domain staff_id)
@@ -35,11 +35,11 @@ class SupabaseStaffRepository {
                 .getRawClient()
                 .schema(this.schemaName)
                 .from(this.tableName)
-                .select('id, staff_id, user_id, staff_type, personal_info')
-                .eq('staff_id', staffCode)
+                .select("id, staff_id, user_id, staff_type, personal_info")
+                .eq("staff_id", staffCode)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116') {
+                if (error.code === "PGRST116") {
                     return null;
                 }
                 throw error;
@@ -47,11 +47,39 @@ class SupabaseStaffRepository {
             return data;
         }
         catch (error) {
-            this.logger.error('Failed to find staff by code', {
+            this.logger.error("Failed to find staff by code", {
                 staffCode,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
+        }
+    }
+    /**
+     * Find staff profile by UUID
+     */
+    async findById(id) {
+        try {
+            const { data, error } = await this.supabase
+                .getRawClient()
+                .schema(this.schemaName)
+                .from(this.tableName)
+                .select("id, staff_id, user_id, staff_type, personal_info")
+                .eq("id", id)
+                .single();
+            if (error) {
+                if (error.code === "PGRST116") {
+                    return null;
+                }
+                throw error;
+            }
+            return data;
+        }
+        catch (error) {
+            this.logger.error("Failed to find staff by id", {
+                staffId: id,
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+            return null;
         }
     }
     isUUID(value) {

@@ -32,5 +32,5 @@ export function registerRoutes(
   app.use("/api/v1/users", createUserRoutes(deps));
 
   // Admin routes
-  app.use("/admin", createAdminRoutes(deps));
+  app.use("/api/admin", createAdminRoutes(deps));
 }

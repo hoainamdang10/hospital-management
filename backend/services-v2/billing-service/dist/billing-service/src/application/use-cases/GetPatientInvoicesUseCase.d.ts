@@ -1,6 +1,6 @@
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
-import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { BaseHealthcareUseCase } from "../../../../shared/application/base/base-healthcare-use-case";
+import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface GetPatientInvoicesRequest {
     patientId: string;
 }
@@ -8,10 +8,28 @@ export interface GetPatientInvoicesResponse {
     invoices: Array<{
         invoiceId: string;
         invoiceNumber?: string;
+        appointmentId?: string;
+        doctorName?: string;
+        doctorDepartment?: string;
+        cancellationReason?: string;
         totalAmount: number;
         outstandingAmount: number;
+        paidAmount: number;
         status: string;
         createdAt: Date;
+        payments: Array<{
+            id: string;
+            amount: number;
+            currency: string;
+            method: string;
+            status: string;
+            transactionId?: string;
+            paidAt?: Date;
+            refundedAt?: Date;
+            refundReason?: string;
+            refundedBy?: string;
+            gatewayRefundId?: string;
+        }>;
     }>;
     totalCount: number;
 }

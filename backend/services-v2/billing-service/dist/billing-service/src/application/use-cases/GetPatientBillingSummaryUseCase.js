@@ -8,41 +8,66 @@ class GetPatientBillingSummaryUseCase extends base_healthcare_use_case_1.BaseHea
         this.invoiceRepository = invoiceRepository;
         this.logger = logger;
     }
+    calculatePaymentStats(inv) {
+        const paidCompleted = inv.payments
+            .filter((p) => p.method !== "refund" && p.status === "completed")
+            .reduce((sum, p) => sum + p.amount.amount, 0);
+        const refunds = inv.payments
+            .filter((p) => p.method === "refund" &&
+            (p.status === "completed" || p.status === "refund_pending"))
+            .reduce((sum, p) => sum + Math.abs(p.amount.amount), 0);
+        const netPaid = Math.max(0, paidCompleted - refunds);
+        const outstanding = Math.max(0, inv.totalAmount.amount - netPaid);
+        return { paidCompleted, refunds, netPaid, outstanding };
+    }
     async executeImpl(request) {
-        this.logger.info('Getting patient billing summary', { patientId: request.patientId });
+        this.logger.info("Getting patient billing summary", {
+            patientId: request.patientId,
+        });
         const invoices = await this.invoiceRepository.findByPatientId(request.patientId);
-        const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount.amount, 0);
-        const totalPaid = invoices.reduce((sum, inv) => {
-            const paid = inv.payments
-                .filter(p => p.status === 'completed')
-                .reduce((pSum, p) => pSum + p.amount.amount, 0);
-            return sum + paid;
+        // Loại bỏ hóa đơn đã hủy khỏi các phép cộng tiền
+        const activeInvoices = invoices.filter((inv) => inv.status.value !== "cancelled");
+        const totalAmount = activeInvoices.reduce((sum, inv) => {
+            const { refunds } = this.calculatePaymentStats(inv);
+            const net = Math.max(0, inv.totalAmount.amount - refunds);
+            return sum + net;
         }, 0);
-        const totalOutstanding = invoices.reduce((sum, inv) => sum + inv.outstandingAmount.amount, 0);
-        const overdueAmount = invoices
-            .filter(inv => inv.status.value === 'overdue')
-            .reduce((sum, inv) => sum + inv.outstandingAmount.amount, 0);
+        const totalPaid = activeInvoices.reduce((sum, inv) => {
+            const { netPaid } = this.calculatePaymentStats(inv);
+            return sum + netPaid;
+        }, 0);
+        const totalOutstanding = activeInvoices
+            .filter((inv) => ["pending", "partially_paid", "overdue", "draft"].includes(inv.status.value))
+            .reduce((sum, inv) => {
+            const { outstanding } = this.calculatePaymentStats(inv);
+            return sum + outstanding;
+        }, 0);
+        const overdueAmount = activeInvoices
+            .filter((inv) => inv.status.value === "overdue")
+            .reduce((sum, inv) => {
+            const { outstanding } = this.calculatePaymentStats(inv);
+            return sum + outstanding;
+        }, 0);
         const invoicesByStatus = {
-            draft: invoices.filter(inv => inv.status.value === 'draft').length,
-            pending: invoices.filter(inv => inv.status.value === 'pending').length,
-            partially_paid: invoices.filter(inv => inv.status.value === 'partially_paid').length,
-            paid: invoices.filter(inv => inv.status.value === 'paid').length,
-            cancelled: invoices.filter(inv => inv.status.value === 'cancelled').length,
-            overdue: invoices.filter(inv => inv.status.value === 'overdue').length
+            draft: invoices.filter((inv) => inv.status.value === "draft").length,
+            pending: invoices.filter((inv) => inv.status.value === "pending").length,
+            partially_paid: invoices.filter((inv) => inv.status.value === "partially_paid").length,
+            paid: invoices.filter((inv) => inv.status.value === "paid").length,
+            cancelled: invoices.filter((inv) => inv.status.value === "cancelled")
+                .length,
+            overdue: invoices.filter((inv) => inv.status.value === "overdue").length,
         };
-        const recentInvoices = invoices
-            .slice(0, 5)
-            .map(inv => ({
+        const recentInvoices = invoices.slice(0, 5).map((inv) => ({
             invoiceId: inv.id,
             invoiceNumber: inv.invoiceNumber,
             totalAmount: inv.totalAmount.amount,
             outstandingAmount: inv.outstandingAmount.amount,
             status: inv.status.value,
-            createdAt: inv.createdAt
+            createdAt: inv.createdAt,
         }));
-        this.logger.info('Patient billing summary retrieved', {
+        this.logger.info("Patient billing summary retrieved", {
             patientId: request.patientId,
-            totalInvoices: invoices.length
+            totalInvoices: invoices.length,
         });
         return {
             patientId: request.patientId,
@@ -52,7 +77,7 @@ class GetPatientBillingSummaryUseCase extends base_healthcare_use_case_1.BaseHea
             totalOutstanding,
             overdueAmount,
             invoicesByStatus,
-            recentInvoices
+            recentInvoices,
         };
     }
 }

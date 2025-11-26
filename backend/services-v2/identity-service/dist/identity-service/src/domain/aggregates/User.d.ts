@@ -200,7 +200,7 @@ export declare class User extends HealthcareAggregateRoot<UserProps> {
      *
      * @param personalInfo - Personal information provided during activation
      */
-    recordStaffActivation(personalInfo: PersonalInfo): void;
+    recordStaffActivation(personalInfo: PersonalInfo, invitationData?: Record<string, unknown>): void;
     /**
      * Activate user (only from LOCKED or SUSPENDED status)
      */

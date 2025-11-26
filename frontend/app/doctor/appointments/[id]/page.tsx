@@ -1,268 +1,168 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import {
-    User,
-    Calendar as CalendarIcon,
-    Clock,
-    Save,
-    CheckCircle2,
-    ArrowLeft,
-    FileText,
-    Activity
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
 import { appointmentsService } from '@/lib/api/appointments.service';
+import { AppointmentReadModel } from '@/lib/types/appointments';
+import { toast } from 'sonner';
 
-interface AppointmentDetail {
-    id: string;
-    appointmentId: string;
-    status: string;
-    appointmentDate: string;
-    appointmentTime: string;
-    reason: string;
-    notes?: string; // Used for diagnosis/conclusion in Lite mode
-    patient: {
-        id: string;
-        patientId: string;
-        fullName: string;
-        dateOfBirth: string;
-        gender: string;
-        phoneNumber: string;
-    };
-}
+type Props = {
+  params: { id: string };
+};
 
-export default function DoctorExaminationPage() {
-    const router = useRouter();
-    const params = useParams();
-    const id = params?.id as string;
+const statusBadge = (status?: string) => {
+  const value = (status || '').toUpperCase();
+  switch (value) {
+    case 'ARRIVED':
+      return <Badge className="bg-green-100 text-green-700">Đã check-in</Badge>;
+    case 'IN_PROGRESS':
+      return <Badge className="bg-blue-100 text-blue-700">Đang khám</Badge>;
+    case 'COMPLETED':
+      return <Badge variant="outline">Đã xong</Badge>;
+    case 'CONFIRMED':
+    case 'SCHEDULED':
+      return (
+        <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-yellow-700">
+          Chờ khám
+        </Badge>
+      );
+    default:
+      return <Badge variant="outline">{value || 'N/A'}</Badge>;
+  }
+};
 
-    const [appointment, setAppointment] = useState<AppointmentDetail | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+export default function DoctorAppointmentDetailPage({ params }: Props) {
+  const router = useRouter();
+  const [appointment, setAppointment] = useState<AppointmentReadModel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
-    // Form states
-    const [diagnosis, setDiagnosis] = useState('');
-    const [prescription, setPrescription] = useState(''); // We'll append this to notes or save separately if API supports
-
-    useEffect(() => {
-        const fetchAppointment = async () => {
-            if (!id) return;
-            setIsLoading(true);
-            try {
-                const res = await appointmentsService.getAppointment(id);
-                if (res.success && res.data) {
-                    const data = res.data;
-                    setAppointment({
-                        id: data.id,
-                        appointmentId: data.appointmentId,
-                        status: data.status,
-                        appointmentDate: data.appointmentDate,
-                        appointmentTime: data.appointmentTime,
-                        reason: data.reason,
-                        notes: data.notes,
-                        patient: {
-                            id: data.patientId,
-                            patientId: data.patientId,
-                            fullName: data.patientName,
-                            dateOfBirth: data.patientDob || '1990-01-01',
-                            gender: data.patientGender || 'Unknown',
-                            phoneNumber: data.patientPhone || 'N/A'
-                        }
-                    });
-
-                    // Pre-fill diagnosis if exists (using notes field as a simple storage for now)
-                    if (data.notes) {
-                        setDiagnosis(data.notes);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to fetch appointment:', error);
-                toast.error('Không thể tải thông tin ca khám');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchAppointment();
-    }, [id]);
-
-    const handleComplete = async () => {
-        if (!diagnosis.trim()) {
-            toast.error('Vui lòng nhập kết luận khám bệnh');
-            return;
-        }
-
-        setIsSaving(true);
-        try {
-            // 1. Update notes with diagnosis and prescription
-            // In a real Lite app, we might want to save this to a specific 'medical_record' table, 
-            // but for now, updating the appointment notes is a good workaround.
-            const finalNotes = `CHẨN ĐOÁN:\n${diagnosis}\n\nĐIỀU TRỊ/TOA THUỐC:\n${prescription}`;
-
-            // Update notes first (if API supports updateAppointment)
-            // await appointmentsService.updateAppointment(id, { notes: finalNotes });
-
-            // 2. Complete the appointment
-            // The completeAppointment API might accept notes/diagnosis directly
-            const res = await appointmentsService.completeAppointment(id); // Assuming this endpoint exists and handles status change
-
-            if (res.success) {
-                toast.success('Đã hoàn thành ca khám');
-                router.push('/doctor/appointments');
-            }
-        } catch (error) {
-            console.error('Failed to complete appointment:', error);
-            toast.error('Lỗi khi lưu kết quả khám');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    if (isLoading) {
-        return <div className="flex h-screen items-center justify-center">Đang tải dữ liệu...</div>;
+  const load = async () => {
+    try {
+      setLoading(true);
+      const data = await appointmentsService.getById(params.id);
+      setAppointment(data);
+    } catch (error) {
+      toast.error('Không tải được thông tin lịch hẹn');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (!appointment) {
-        return <div>Không tìm thấy ca khám</div>;
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
+
+  const doAction = async (action: 'checkin' | 'start' | 'complete') => {
+    try {
+      setActionLoading(true);
+      if (action === 'checkin') await appointmentsService.checkInAppointment(params.id);
+      if (action === 'start') await appointmentsService.startAppointment(params.id);
+      if (action === 'complete') await appointmentsService.completeAppointment(params.id);
+      await load();
+      toast.success('Đã cập nhật trạng thái');
+    } catch (error) {
+      toast.error('Thao tác thất bại');
+    } finally {
+      setActionLoading(false);
     }
+  };
 
-    const isReadOnly = appointment.status === 'COMPLETED';
+  const status = (appointment?.status || '').toUpperCase();
 
-    return (
-        <div className="space-y-6 max-w-5xl mx-auto pb-10">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Khám bệnh</h1>
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                            <span>Mã phiếu: {appointment.appointmentId}</span>
-                            <span>•</span>
-                            <Badge variant={isReadOnly ? "secondary" : "default"}>
-                                {isReadOnly ? 'Đã hoàn thành' : 'Đang khám'}
-                            </Badge>
-                        </div>
-                    </div>
-                </div>
-
-                {!isReadOnly && (
-                    <Button size="lg" onClick={handleComplete} disabled={isSaving}>
-                        {isSaving ? (
-                            'Đang lưu...'
-                        ) : (
-                            <>
-                                <CheckCircle2 className="mr-2 h-5 w-5" />
-                                Hoàn thành khám
-                            </>
-                        )}
-                    </Button>
-                )}
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-3">
-                {/* Left Column: Patient Info */}
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader className="bg-muted/40 pb-4">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <User className="h-5 w-5 text-primary" />
-                                Thông tin bệnh nhân
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 space-y-4">
-                            <div>
-                                <div className="font-semibold text-lg">{appointment.patient.fullName}</div>
-                                <div className="text-sm text-muted-foreground">{appointment.patient.patientId}</div>
-                            </div>
-
-                            <Separator />
-
-                            <div className="space-y-3 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Ngày sinh:</span>
-                                    <span className="font-medium">
-                                        {format(new Date(appointment.patient.dateOfBirth), 'dd/MM/yyyy')}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Giới tính:</span>
-                                    <span className="font-medium">{appointment.patient.gender}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">SĐT:</span>
-                                    <span className="font-medium">{appointment.patient.phoneNumber}</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="bg-muted/40 pb-4">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Activity className="h-5 w-5 text-primary" />
-                                Lý do khám
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <p className="text-sm leading-relaxed">{appointment.reason}</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Right Column: Examination Form */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card className="h-full flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <FileText className="h-5 w-5 text-primary" />
-                                Kết quả khám & Điều trị
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6 flex-1">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Chẩn đoán / Kết luận <span className="text-red-500">*</span>
-                                </label>
-                                <Textarea
-                                    placeholder="Nhập chẩn đoán bệnh, triệu chứng lâm sàng..."
-                                    className="min-h-[150px] text-base"
-                                    value={diagnosis}
-                                    onChange={(e) => setDiagnosis(e.target.value)}
-                                    disabled={isReadOnly}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Hướng điều trị / Toa thuốc
-                                </label>
-                                <Textarea
-                                    placeholder="Kê đơn thuốc, lời dặn dò cho bệnh nhân..."
-                                    className="min-h-[150px] font-mono text-sm"
-                                    value={prescription}
-                                    onChange={(e) => setPrescription(e.target.value)}
-                                    disabled={isReadOnly}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    * Nhập tên thuốc, liều lượng và cách dùng. Thông tin này sẽ được gửi cho bệnh nhân.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Chi tiết lịch hẹn</h1>
+          <p className="text-muted-foreground">Mã: {appointment?.appointment_id || params.id}</p>
         </div>
-    );
+        <div className="flex gap-2">
+          {status === 'CONFIRMED' || status === 'SCHEDULED' ? (
+            <Button disabled={actionLoading} onClick={() => doAction('checkin')}>
+              Check-in
+            </Button>
+          ) : null}
+          {status === 'ARRIVED' ? (
+            <Button disabled={actionLoading} onClick={() => doAction('start')}>
+              Bắt đầu khám
+            </Button>
+          ) : null}
+          {status === 'IN_PROGRESS' ? (
+            <Button disabled={actionLoading} onClick={() => doAction('complete')}>
+              Hoàn thành khám
+            </Button>
+          ) : null}
+          <Button variant="outline" onClick={() => router.back()}>
+            Quay lại
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <Card>
+          <CardContent className="p-6">Đang tải...</CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>{appointment?.patient_full_name}</CardTitle>
+              <p className="text-muted-foreground text-sm">
+                {appointment?.patient_phone} • {appointment?.patient_email}
+              </p>
+            </div>
+            {statusBadge(appointment?.status)}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Bác sĩ</p>
+                <p className="font-medium">{appointment?.doctor_full_name}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Khoa</p>
+                <p className="font-medium">{appointment?.doctor_department || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Ngày khám</p>
+                <p className="font-medium">{appointment?.appointment_date}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Giờ khám</p>
+                <p className="font-medium">{appointment?.appointment_time}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Trạng thái thanh toán</p>
+                <p className="font-medium">{appointment?.payment_status || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Ưu tiên</p>
+                <p className="font-medium">{appointment?.priority || 'N/A'}</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-sm">Lý do khám</p>
+              <p className="font-medium">{appointment?.reason || 'Không có'}</p>
+            </div>
+
+            {appointment?.notes ? (
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-sm">Ghi chú</p>
+                <p className="font-medium">{appointment.notes}</p>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 }

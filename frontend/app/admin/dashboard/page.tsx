@@ -1,15 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Calendar, DollarSign, UserCog, TrendingUp, Clock, Loader2 } from 'lucide-react';
+import {
+  Users,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  Loader2,
+  CreditCard,
+  Activity,
+  AlertCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  MoreHorizontal,
+  CheckCircle2,
+  XCircle
+} from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { 
-  getAdminDashboardStats, 
-  getRecentAppointments, 
+import {
+  getAdminDashboardStats,
+  getRecentAppointments,
   getMonthlyStats,
   getInvoiceSummary,
   getRevenueTrend,
@@ -30,26 +45,16 @@ import {
 /**
  * Admin Dashboard Page
  * Route: /admin/dashboard
+ * 
+ * Optimized for "Booking Online & Prepaid" model.
+ * Focuses on Revenue, Booking Status, and Payment Health.
  */
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Helper function to map height to Tailwind class
-  const getHeightClass = (height: number) => {
-    // Map height values to Tailwind's arbitrary value classes
-    if (height <= 20) return 'h-[20px]';
-    if (height <= 40) return 'h-[40px]';
-    if (height <= 60) return 'h-[60px]';
-    if (height <= 80) return 'h-[80px]';
-    if (height <= 100) return 'h-[100px]';
-    if (height <= 120) return 'h-[120px]';
-    if (height <= 140) return 'h-[140px]';
-    if (height <= 160) return 'h-[160px]';
-    if (height <= 180) return 'h-[180px]';
-    return 'h-[200px]';
-  };
+
+  // State
   const [stats, setStats] = useState<AdminDashboardStats>({
     totalRevenue: 0,
     revenueChange: '0%',
@@ -76,8 +81,7 @@ export default function AdminDashboardPage() {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch all data in parallel
+
       const [
         statsData,
         appointmentsData,
@@ -116,418 +120,408 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Helper for bar chart height
+  const getHeightClass = (height: number) => {
+    if (height <= 20) return 'h-[20px]';
+    if (height <= 40) return 'h-[40px]';
+    if (height <= 60) return 'h-[60px]';
+    if (height <= 80) return 'h-[80px]';
+    if (height <= 100) return 'h-[100px]';
+    if (height <= 120) return 'h-[120px]';
+    if (height <= 140) return 'h-[140px]';
+    if (height <= 160) return 'h-[160px]';
+    if (height <= 180) return 'h-[180px]';
+    return 'h-[200px]';
+  };
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        
-        <WelcomeHeader userName={user?.fullName || user?.email || 'Quản trị viên'} />
+      <div className="space-y-8 pb-10">
 
-        
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <WelcomeHeader userName={user?.fullName || user?.email || 'Quản trị viên'} />
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              Hệ thống hoạt động bình thường
+            </span>
+          </div>
+        </div>
+
+        {/* Key Metrics Grid - 4 Columns for better focus */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Tổng doanh thu"
+            value={formatCurrency(stats.totalRevenue)}
+            change={stats.revenueChange}
+            trend="up"
+            subtitle="tháng này"
+            icon={DollarSign}
+            color="blue"
+            isLoading={isLoading}
+          />
           <StatCard
             title="Lịch hẹn hôm nay"
             value={formatNumber(checkInSummary.total)}
-            change={stats.revenueChange}
-            subtitle="tổng số lịch trong ngày"
-            icon={Calendar}
-            iconColor="text-blue-600"
-            iconBg="bg-blue-50"
-            isLoading={isLoading}
-          />
-          <StatCard
-            title="Check-in hôm nay"
-            value={`${formatNumber(checkInSummary.checkedIn)} / ${formatNumber(checkInSummary.total)}`}
             change={stats.appointmentsChange}
-            subtitle="đã check-in / tổng lịch"
+            trend="up"
+            subtitle={`${checkInSummary.checkedIn} đã check-in`}
+            icon={Calendar}
+            color="emerald"
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Bệnh nhân mới"
+            value={formatNumber(stats.totalPatients)}
+            change={stats.patientsChange}
+            trend="up"
+            subtitle="tổng số bệnh nhân"
             icon={Users}
-            iconColor="text-emerald-600"
-            iconBg="bg-emerald-50"
+            color="indigo"
             isLoading={isLoading}
           />
           <StatCard
-            title="Doanh thu hôm nay"
-            value={`${formatCurrency(todayRevenue.payos + todayRevenue.cash)}`}
-            change={stats.revenueChange}
-            subtitle={`PayOS ${formatCurrency(todayRevenue.payos)} · Tiền mặt ${formatCurrency(todayRevenue.cash)}`}
-            icon={DollarSign}
-            iconColor="text-amber-600"
-            iconBg="bg-amber-50"
-            isLoading={isLoading}
-          />
-          <StatCard
-            title="Invoice đã thanh toán"
-            value={formatNumber(invoiceSummary.paid)}
-            change={'+12%'}
-            subtitle="so với hôm qua"
-            icon={UserCog}
-            iconColor="text-purple-600"
-            iconBg="bg-purple-50"
-            isLoading={isLoading}
-          />
-          <StatCard
-            title="Đang chờ thanh toán"
-            value={formatNumber(invoiceSummary.pending)}
-            change={'-5%'}
-            subtitle="so với tuần trước"
-            icon={TrendingUp}
-            iconColor="text-indigo-600"
-            iconBg="bg-indigo-50"
-            isLoading={isLoading}
-          />
-          <StatCard
-            title="Thanh toán lỗi / webhook lỗi"
-            value={formatNumber(invoiceSummary.failed)}
-            change={'+2%'}
-            subtitle="24h gần nhất"
-            icon={Loader2}
-            iconColor="text-red-600"
-            iconBg="bg-red-50"
+            title="Cần xử lý"
+            value={formatNumber(invoiceSummary.pending + invoiceSummary.failed)}
+            change={invoiceSummary.failed > 0 ? '+1' : '0'}
+            trend={invoiceSummary.failed > 0 ? 'down' : 'neutral'}
+            subtitle="thanh toán lỗi / chờ"
+            icon={AlertCircle}
+            color="amber"
             isLoading={isLoading}
           />
         </div>
 
-        
+        {/* Charts Section */}
         <div className="grid gap-6 lg:grid-cols-3">
-          
-          <div className="lg:col-span-2">
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-              
-              <div className="border-b border-gray-200 px-6 pt-6">
-                <div className="flex space-x-8">
-                  <button
-                    onClick={() => setActiveTab('overview')}
-                    className={`pb-4 text-sm font-medium transition-colors ${
-                      activeTab === 'overview'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Tổng quan
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('analytics')}
-                    className={`pb-4 text-sm font-medium transition-colors ${
-                      activeTab === 'analytics'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Phân tích
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('reports')}
-                    className={`pb-4 text-sm font-medium transition-colors ${
-                      activeTab === 'reports'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Báo cáo
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('notifications')}
-                    className={`pb-4 text-sm font-medium transition-colors ${
-                      activeTab === 'notifications'
-                        ? 'border-b-2 border-primary text-primary'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Thông báo
-                  </button>
+          {/* Revenue Trend - Takes 2/3 width */}
+          <div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-blue-500" />
+                  Xu hướng doanh thu
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">Doanh thu 14 ngày gần nhất (Prepaid & Tại quầy)</p>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">
+                  <div className="h-2 w-2 rounded-full bg-blue-500"></div> PayOS
+                </span>
+                <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 text-gray-600">
+                  <div className="h-2 w-2 rounded-full bg-gray-400"></div> Tiền mặt
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              {isLoading ? (
+                <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>
+              ) : (
+                <div className="flex h-64 items-end justify-between gap-2 px-2">
+                  {revenueTrend.map((d, i) => {
+                    const max = Math.max(...revenueTrend.map(x => x.amount), 1);
+                    const h = (d.amount / max) * 200; // max height 200px
+                    const label = d.date.slice(5); // MM-DD
+                    return (
+                      <div key={i} className="flex flex-1 flex-col items-center gap-2 group cursor-pointer">
+                        <div className="relative w-full flex items-end justify-center h-[200px]">
+                          <div
+                            className="w-full max-w-[40px] rounded-t-lg bg-gradient-to-t from-blue-500 to-blue-400 opacity-80 group-hover:opacity-100 transition-all duration-300"
+                            style={{ height: `${Math.max(h, 4)}px` }}
+                          ></div>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full mb-2 hidden group-hover:block z-10">
+                            <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap shadow-lg">
+                              {formatCurrency(d.amount)}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] sm:text-xs text-gray-400 font-medium">{label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Invoice Status - Takes 1/3 width */}
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm flex flex-col">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-emerald-500" />
+                Trạng thái thanh toán
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">Tỷ lệ thanh toán thành công</p>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center relative">
+              {isLoading ? (
+                <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+              ) : (
+                <>
+                  <svg viewBox="0 0 42 42" className="h-48 w-48 transform -rotate-90">
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f3f4f6" strokeWidth="4" />
+                    {(() => {
+                      const total = Math.max(invoiceSummary.paid + invoiceSummary.pending + invoiceSummary.failed + invoiceSummary.refunded, 1);
+                      const segments = [
+                        { value: invoiceSummary.paid, color: '#10b981' }, // Emerald
+                        { value: invoiceSummary.pending, color: '#f59e0b' }, // Amber
+                        { value: invoiceSummary.failed, color: '#ef4444' }, // Red
+                        { value: invoiceSummary.refunded, color: '#6366f1' }, // Indigo
+                      ];
+                      let cumulative = 0;
+                      return segments.map((s, i) => {
+                        const pct = (s.value / total) * 100;
+                        const dashArray = `${pct} ${100 - pct}`;
+                        const dashOffset = 100 - cumulative; // SVG dashoffset works backwards
+                        cumulative += pct;
+                        return (
+                          <circle
+                            key={i}
+                            cx="21" cy="21" r="15.915"
+                            fill="transparent"
+                            stroke={s.color}
+                            strokeWidth="4"
+                            strokeDasharray={dashArray}
+                            strokeDashoffset={dashOffset}
+                            className="transition-all duration-1000 ease-out"
+                          />
+                        );
+                      });
+                    })()}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-3xl font-bold text-gray-900">{invoiceSummary.paid}</span>
+                    <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Đã thanh toán</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50/50">
+                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500">Thành công</span>
+                  <span className="text-sm font-bold text-gray-900">{invoiceSummary.paid}</span>
                 </div>
               </div>
-
-              
-              <div className="p-6">
-                <div className="grid gap-6 lg:grid-cols-2">
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Doanh thu theo ngày</h3>
-                    <p className="text-sm text-gray-500">14 ngày gần nhất</p>
-                    <div className="mt-4">
-                      {isLoading ? (
-                        <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
-                      ) : (
-                        <div className="flex h-48 items-end justify-between space-x-2">
-                          {revenueTrend.map((d, i) => {
-                            const max = Math.max(...revenueTrend.map(x => x.amount), 1);
-                            const h = (d.amount / max) * 160;
-                            const label = d.date.slice(5);
-                            return (
-                              <div key={i} className="flex flex-1 flex-col items-center space-y-2">
-                                <div className="relative w-full group">
-                                  <div className={`w-full rounded-t-lg bg-emerald-500 ${getHeightClass(h)}`} title={`${label}: ${formatCurrency(d.amount)}`} />
-                                  <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-gray-900 px-2 py-1 text-xs text-white group-hover:block">
-                                    {formatCurrency(d.amount)}
-                                  </div>
-                                </div>
-                                <span className="text-xs text-gray-500">{label}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Trạng thái hóa đơn</h3>
-                    <p className="text-sm text-gray-500">Tổng quan Paid/Pending/Failed/Refunded</p>
-                    <div className="mt-4 flex items-center justify-center">
-                      <svg viewBox="0 0 42 42" className="h-40 w-40">
-                        <circle cx="21" cy="21" r="15.915" fill="#f3f4f6" />
-                        {(() => {
-                          const total = Math.max(invoiceSummary.paid + invoiceSummary.pending + invoiceSummary.failed + invoiceSummary.refunded, 1);
-                          const segments = [
-                            { value: invoiceSummary.paid, color: '#10b981' },
-                            { value: invoiceSummary.pending, color: '#f59e0b' },
-                            { value: invoiceSummary.failed, color: '#ef4444' },
-                            { value: invoiceSummary.refunded, color: '#6366f1' },
-                          ];
-                          let cumulative = 0;
-                          return segments.map((s, i) => {
-                            const pct = (s.value / total) * 100;
-                            const dashArray = `${pct} ${100 - pct}`;
-                            const dashOffset = 25 + (cumulative / 100) * 100;
-                            cumulative += pct;
-                            return (
-                              <circle key={i} cx="21" cy="21" r="15.915" fill="transparent" stroke={s.color} strokeWidth="6" strokeDasharray={dashArray} strokeDashoffset={dashOffset} />
-                            );
-                          });
-                        })()}
-                      </svg>
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-emerald-500" /> <span>Paid: {invoiceSummary.paid}</span></div>
-                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-amber-500" /> <span>Pending: {invoiceSummary.pending}</span></div>
-                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-red-500" /> <span>Failed: {invoiceSummary.failed}</span></div>
-                      <div className="flex items-center space-x-2"><span className="h-3 w-3 rounded-full bg-indigo-500" /> <span>Refunded: {invoiceSummary.refunded}</span></div>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50/50">
+                <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500">Chờ xử lý</span>
+                  <span className="text-sm font-bold text-gray-900">{invoiceSummary.pending}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-red-50/50">
+                <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500">Thất bại</span>
+                  <span className="text-sm font-bold text-gray-900">{invoiceSummary.failed}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-indigo-50/50">
+                <div className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500">Hoàn tiền</span>
+                  <span className="text-sm font-bold text-gray-900">{invoiceSummary.refunded}</span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          
-          <div className="lg:col-span-1">
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Lịch hẹn gần đây</h3>
-                <p className="text-sm text-gray-500">Bạn có {recentAppointments.length} lịch hẹn gần đây.</p>
+        {/* Recent Activity Section */}
+        <div className="grid gap-6 lg:grid-cols-2">
+
+          {/* Recent Appointments */}
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Lịch hẹn gần đây</h3>
+                <p className="text-sm text-gray-500">Các cuộc hẹn sắp tới và vừa qua</p>
               </div>
+              <button className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">
+                Xem tất cả
+              </button>
+            </div>
 
+            <div className="p-0">
               {isLoading ? (
-                <div className="flex h-48 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
+                <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
               ) : recentAppointments.length === 0 ? (
-                <div className="flex h-48 items-center justify-center text-gray-500">
-                  Không có lịch hẹn nào
+                <div className="flex h-48 flex-col items-center justify-center text-gray-500 gap-2">
+                  <Calendar className="h-8 w-8 text-gray-300" />
+                  <p>Chưa có lịch hẹn nào</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {recentAppointments.map((appointment) => (
-                    <AppointmentCard key={appointment.id} appointment={appointment} />
+                <div className="divide-y divide-gray-50">
+                  {recentAppointments.map((apt) => (
+                    <div key={apt.id} className="p-4 hover:bg-gray-50/50 transition-colors flex items-center justify-between group">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                          {apt.patientName.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{apt.patientName}</p>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                            <Clock className="h-3 w-3" />
+                            {format(new Date(apt.appointmentDateTime), 'HH:mm dd/MM', { locale: vi })}
+                            <span className="text-gray-300">•</span>
+                            <span>{apt.appointmentType}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${apt.status === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                          apt.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                            apt.status === 'COMPLETED' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                              'bg-gray-50 text-gray-600 border-gray-100'
+                          }`}>
+                          {apt.status === 'CONFIRMED' ? 'Đã xác nhận' :
+                            apt.status === 'PENDING' ? 'Chờ xác nhận' :
+                              apt.status === 'COMPLETED' ? 'Hoàn thành' : apt.status}
+                        </span>
+                        <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
+            </div>
+          </div>
 
-              <button className="mt-6 w-full rounded-lg border border-gray-300 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Xem tất cả lịch hẹn
+          {/* Recent Payments */}
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Giao dịch mới nhất</h3>
+                <p className="text-sm text-gray-500">Lịch sử thanh toán PayOS & Tiền mặt</p>
+              </div>
+              <button className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">
+                Xem tất cả
               </button>
             </div>
-          </div>
-        </div>
 
-        {/* Recent Activity Tables */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Recent Payments */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Thanh toán gần nhất</h3>
-              <p className="text-sm text-gray-500">Danh sách 8 giao dịch gần đây</p>
-            </div>
-            {isLoading ? (
-              <div className="flex h-40 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
-            ) : recentPayments.length === 0 ? (
-              <div className="flex h-40 items-center justify-center text-gray-500">Không có giao dịch gần đây</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-xs text-gray-500">
-                      <th className="py-2 text-left">Mã hóa đơn</th>
-                      <th className="py-2 text-left">Bệnh nhân</th>
-                      <th className="py-2 text-left">Số tiền</th>
-                      <th className="py-2 text-left">Trạng thái</th>
-                      <th className="py-2 text-left">Thời gian</th>
-                      <th className="py-2 text-left">Phương thức</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentPayments.map((p, idx) => (
-                      <tr key={idx} className="border-b hover:bg-gray-50">
-                        <td className="py-2 font-medium text-gray-900">{p.invoiceId}</td>
-                        <td className="py-2 text-gray-700">{p.patientName}</td>
-                        <td className="py-2 text-gray-700">{formatCurrency(p.amount)}</td>
-                        <td className="py-2">
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            p.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
-                            p.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                            p.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'
-                          }`}>{p.status}</span>
-                        </td>
-                        <td className="py-2 text-gray-700">{format(new Date(p.createdAt), 'HH:mm dd/MM', { locale: vi })}</td>
-                        <td className="py-2 text-gray-700">{p.method}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Recent Webhooks / Errors */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Webhook / Lỗi hệ thống gần nhất</h3>
-                <p className="text-sm text-gray-500">Theo dõi PayOS và integration</p>
-              </div>
-            </div>
-            {isLoading ? (
-              <div className="flex h-40 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
-            ) : webhookEvents.length === 0 ? (
-              <div className="flex h-40 items-center justify-center text-gray-500">Không có sự kiện gần đây</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-xs text-gray-500">
-                      <th className="py-2 text-left">Thời gian</th>
-                      <th className="py-2 text-left">Endpoint</th>
-                      <th className="py-2 text-left">HTTP</th>
-                      <th className="py-2 text-left">Invoice</th>
-                      <th className="py-2 text-left">Trạng thái</th>
-                      <th className="py-2 text-left">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {webhookEvents.map((e, idx) => (
-                      <tr key={idx} className="border-b hover:bg-gray-50">
-                        <td className="py-2 text-gray-700">{format(new Date(e.timestamp), 'HH:mm dd/MM', { locale: vi })}</td>
-                        <td className="py-2 text-gray-700">{e.endpoint}</td>
-                        <td className="py-2 text-gray-700">{e.statusCode}</td>
-                        <td className="py-2 text-gray-700">{e.invoiceId || '-'}</td>
-                        <td className="py-2">
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${e.success ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{e.success ? 'Success' : 'Failed'}</span>
-                        </td>
-                        <td className="py-2">
-                          <div className="flex items-center space-x-2">
-                            <button className="rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50">Xem chi tiết</button>
-                            <button className="rounded-lg border border-primary-300 px-2 py-1 text-xs text-primary-700 hover:bg-primary-50">Replay</button>
+            <div className="p-0">
+              {isLoading ? (
+                <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+              ) : recentPayments.length === 0 ? (
+                <div className="flex h-48 flex-col items-center justify-center text-gray-500 gap-2">
+                  <CreditCard className="h-8 w-8 text-gray-300" />
+                  <p>Chưa có giao dịch nào</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {recentPayments.map((p, idx) => (
+                    <div key={idx} className="p-4 hover:bg-gray-50/50 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${p.status === 'PAID' ? 'bg-emerald-50 text-emerald-600' :
+                          p.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
+                            'bg-red-50 text-red-600'
+                          }`}>
+                          {p.status === 'PAID' ? <CheckCircle2 className="h-5 w-5" /> :
+                            p.status === 'PENDING' ? <Clock className="h-5 w-5" /> :
+                              <XCircle className="h-5 w-5" />}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{p.patientName}</p>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                            {p.description && (
+                              <>
+                                <span className="font-medium text-blue-600">{p.description}</span>
+                                <span className="text-gray-300">•</span>
+                              </>
+                            )}
+                            <span className="font-mono">{p.invoiceId}</span>
+                            <span className="text-gray-300">•</span>
+                            <span>{format(new Date(p.createdAt), 'HH:mm dd/MM', { locale: vi })}</span>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">{formatCurrency(p.amount)}</p>
+                        <p className="text-xs text-gray-500">{p.method}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
         </div>
       </div>
     </DashboardLayout>
   );
 }
 
+// --- Components ---
+
 interface StatCardProps {
   title: string;
   value: string;
   change: string;
+  trend: 'up' | 'down' | 'neutral';
   subtitle: string;
   icon: any;
-  iconColor: string;
-  iconBg: string;
+  color: 'blue' | 'emerald' | 'indigo' | 'amber' | 'red' | 'purple';
   isLoading?: boolean;
 }
 
-function StatCard({ title, value, change, subtitle, icon: Icon, iconColor, iconBg, isLoading = false }: StatCardProps) {
+function StatCard({ title, value, change, trend, subtitle, icon: Icon, color, isLoading = false }: StatCardProps) {
+  const colorStyles = {
+    blue: 'bg-blue-50 text-blue-600 ring-blue-100',
+    emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+    indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+    amber: 'bg-amber-50 text-amber-600 ring-amber-100',
+    red: 'bg-red-50 text-red-600 ring-red-100',
+    purple: 'bg-purple-50 text-purple-600 ring-purple-100',
+  };
+
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
       <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-2">
-            <div className={`rounded-lg p-2 ${iconBg}`}>
-              <Icon className={`h-5 w-5 ${iconColor}`} />
-            </div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-          </div>
-          <div className="mt-4">
+        <div className="relative z-10">
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <div className="mt-2 flex items-baseline gap-2">
             {isLoading ? (
-              <div className="flex items-center">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-              </div>
+              <div className="h-8 w-24 animate-pulse rounded bg-gray-100" />
             ) : (
-              <>
-                <p className="text-3xl font-bold text-gray-900">{value}</p>
-                <div className="mt-2 flex items-center space-x-2">
-                  <span className="inline-flex items-center text-sm font-medium text-emerald-600">
-                    <TrendingUp className="mr-1 h-4 w-4" />
-                    {change}
-                  </span>
-                  <span className="text-sm text-gray-500">{subtitle}</span>
-                </div>
-              </>
+              <h3 className="text-2xl font-bold text-gray-900 tracking-tight">{value}</h3>
             )}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-interface AppointmentCardProps {
-  appointment: RecentAppointment;
-}
-
-function AppointmentCard({ appointment }: AppointmentCardProps) {
-  const statusConfig = {
-    SCHEDULED: { label: 'Đã lên lịch', color: 'bg-blue-100 text-blue-700' },
-    CONFIRMED: { label: 'Đã xác nhận', color: 'bg-emerald-100 text-emerald-700' },
-    COMPLETED: { label: 'Hoàn thành', color: 'bg-gray-100 text-gray-700' },
-    CANCELLED: { label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
-  }[appointment.status];
-
-  const formattedTime = format(new Date(appointment.appointmentDateTime), 'HH:mm, dd/MM/yyyy', { locale: vi });
-
-  return (
-    <div className="group rounded-lg border border-gray-200 p-4 transition-all hover:border-primary hover:shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
-            {appointment.patientName.charAt(0)}
-          </div>
-          <div>
-            <p className="font-medium text-gray-900">{appointment.patientName}</p>
-            <p className="text-sm text-gray-500">{appointment.appointmentType}</p>
-            <div className="mt-1 flex items-center text-xs text-gray-400">
-              <Clock className="mr-1 h-3 w-3" />
-              {formattedTime}
-            </div>
-          </div>
+        <div className={`rounded-xl p-2.5 ring-1 ${colorStyles[color]} transition-colors`}>
+          <Icon className="h-5 w-5" />
         </div>
-        <button className="text-gray-400 opacity-0 transition-opacity group-hover:opacity-100">
-          •••
-        </button>
       </div>
-      <div className="mt-3">
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusConfig.color}`}>
-          {statusConfig.label}
-        </span>
+
+      <div className="mt-4 flex items-center gap-2">
+        {isLoading ? (
+          <div className="h-4 w-16 animate-pulse rounded bg-gray-100" />
+        ) : (
+          <>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${trend === 'up' ? 'bg-emerald-50 text-emerald-700' :
+              trend === 'down' ? 'bg-red-50 text-red-700' :
+                'bg-gray-50 text-gray-600'
+              }`}>
+              {trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> :
+                trend === 'down' ? <ArrowDownRight className="h-3 w-3" /> : null}
+              {change}
+            </span>
+            <span className="text-xs text-gray-400">{subtitle}</span>
+          </>
+        )}
       </div>
+
+      {/* Decorative background blob */}
+      <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-0 transition-opacity group-hover:opacity-10 ${colorStyles[color].split(' ')[0]}`} />
     </div>
   );
 }

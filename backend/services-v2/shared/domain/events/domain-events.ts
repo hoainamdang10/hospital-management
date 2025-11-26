@@ -29,12 +29,35 @@ export class UserCreatedEvent extends DomainEvent {
       | "receptionist",
     public readonly citizenId?: string,
     public readonly phoneNumber?: string,
+    // Professional fields (optional to keep backward compatibility)
+    public readonly department?: string,
+    public readonly specializationCode?: string,
+    public readonly specializationName?: string,
+    public readonly licenseNumber?: string,
+    public readonly education?: string[],
+    public readonly yearsOfExperience?: number,
+    public readonly position?: string,
+    public readonly title?: string,
   ) {
     super(
       "UserCreated",
       userId,
       "User",
-      { email, fullName, roleType, citizenId, phoneNumber },
+      {
+        email,
+        fullName,
+        roleType,
+        citizenId,
+        phoneNumber,
+        department,
+        specializationCode,
+        specializationName,
+        licenseNumber,
+        education,
+        yearsOfExperience,
+        position,
+        title,
+      },
       1,
       undefined,
       undefined,
@@ -50,6 +73,14 @@ export class UserCreatedEvent extends DomainEvent {
       roleType: this.roleType,
       citizenId: this.citizenId,
       phoneNumber: this.phoneNumber,
+      department: this.department,
+      specializationCode: this.specializationCode,
+      specializationName: this.specializationName,
+      licenseNumber: this.licenseNumber,
+      education: this.education,
+      yearsOfExperience: this.yearsOfExperience,
+      position: this.position,
+      title: this.title,
     };
   }
 
@@ -649,6 +680,118 @@ export class AppointmentRescheduledEvent extends DomainEvent {
       newEndTime: this.newEndTime,
       rescheduleReason: this.rescheduleReason,
       rescheduledBy: this.rescheduledBy,
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId || null;
+  }
+}
+
+/**
+ * PLACEHOLDER: AppointmentCheckedInEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+export class AppointmentCheckedInEvent extends DomainEvent {
+  constructor(
+    public readonly appointmentId: string,
+    public readonly patientId: string,
+    public readonly doctorId: string,
+    public readonly checkedInAt: Date | string,
+    public readonly priority: string,
+    correlationId?: string,
+    causationId?: string,
+    userId?: string,
+  ) {
+    const checkedInDate =
+      checkedInAt instanceof Date ? checkedInAt : new Date(checkedInAt);
+
+    super(
+      "AppointmentCheckedIn",
+      appointmentId,
+      "Appointment",
+      {
+        appointmentId,
+        patientId,
+        doctorId,
+        checkedInAt: checkedInDate,
+        priority,
+      },
+      1,
+      correlationId,
+      causationId,
+      userId,
+    );
+  }
+
+  getEventData(): Record<string, unknown> {
+    return {
+      appointmentId: this.appointmentId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      checkedInAt: this.checkedInAt,
+      priority: this.priority,
+    };
+  }
+
+  containsPHI(): boolean {
+    return true;
+  }
+
+  getPatientId(): string | null {
+    return this.patientId || null;
+  }
+}
+
+/**
+ * PLACEHOLDER: AppointmentStartedEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+export class AppointmentStartedEvent extends DomainEvent {
+  constructor(
+    public readonly appointmentId: string,
+    public readonly patientId: string,
+    public readonly doctorId: string,
+    public readonly appointmentDate: string,
+    public readonly appointmentTime: string,
+    public readonly startedBy: string,
+    correlationId?: string,
+    causationId?: string,
+    userId?: string,
+  ) {
+    super(
+      "AppointmentStarted",
+      appointmentId,
+      "Appointment",
+      {
+        appointmentId,
+        patientId,
+        doctorId,
+        appointmentDate,
+        appointmentTime,
+        startedAt: new Date(),
+        startedBy,
+      },
+      1,
+      correlationId,
+      causationId,
+      userId,
+    );
+  }
+
+  getEventData(): Record<string, unknown> {
+    return {
+      appointmentId: this.appointmentId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      appointmentDate: this.appointmentDate,
+      appointmentTime: this.appointmentTime,
+      startedAt: this.occurredAt,
+      startedBy: this.startedBy,
     };
   }
 
@@ -1316,6 +1459,8 @@ export const EVENT_TYPE_REGISTRY: Record<
   // Scheduling Service Events
   AppointmentScheduled: AppointmentScheduledEvent,
   AppointmentRescheduled: AppointmentRescheduledEvent,
+  AppointmentCheckedIn: AppointmentCheckedInEvent,
+  AppointmentStarted: AppointmentStartedEvent,
   AppointmentConfirmed: AppointmentConfirmedEvent,
   AppointmentCancelled: AppointmentCancelledEvent,
   AppointmentCompleted: AppointmentCompletedEvent,

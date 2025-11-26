@@ -43,6 +43,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             paidAt: undefined, // Not paid yet
             createdAt: now,
             updatedAt: now,
+            metadata: {},
         });
         invoice.addDomainEvent(new InvoiceCreatedEvent_1.InvoiceCreatedEvent(invoiceId.value, patientId, totalAmount.amount, totalAmount.currency, "draft"));
         return invoice;
@@ -247,6 +248,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             patientId: this.props.patientId,
             appointmentId: this.props.appointmentId,
             staffId: this.props.staffId,
+            metadata: this.props.metadata || {},
             invoiceNumber: this.props.invoiceNumber,
             items: this.props.items.map((item) => item.toPersistence()),
             subtotal: this.props.subtotal.amount,
@@ -271,6 +273,16 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     }
     get invoiceNumber() {
         return this.props.invoiceNumber;
+    }
+    get metadata() {
+        return this.props.metadata || {};
+    }
+    setMetadata(metadata) {
+        this.props.metadata = {
+            ...(this.props.metadata || {}),
+            ...(metadata || {}),
+        };
+        this.props.updatedAt = new Date();
     }
     get items() {
         return this.props.items;

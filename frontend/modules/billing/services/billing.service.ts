@@ -114,7 +114,7 @@ class BillingService {
    */
   async getInvoiceById(invoiceId: string): Promise<Invoice> {
     const response = await apiClient.get(`${this.baseUrl}/${invoiceId}`);
-    return response.data;
+    return this.normalizeInvoice(response.data);
   }
 
   /**

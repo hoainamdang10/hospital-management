@@ -17,6 +17,8 @@ export interface AppointmentInvoiceRequest {
     patientId: string;
     staffId: string;
     departmentId: string;
+    doctorName?: string;
+    doctorDepartment?: string;
     serviceType: "consultation" | "procedure" | "follow_up";
     scheduledAt: Date;
     completedAt?: Date;

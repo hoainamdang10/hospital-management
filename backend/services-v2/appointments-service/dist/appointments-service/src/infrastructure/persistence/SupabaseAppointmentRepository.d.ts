@@ -20,6 +20,7 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
     private readonly supabase;
     private readonly schema;
     private readonly tableName;
+    private readonly outboxRepo;
     constructor(supabaseUrl: string, supabaseKey: string, eventPublisher?: IDomainEventPublisher | undefined);
     /**
      * Save appointment (create or update)

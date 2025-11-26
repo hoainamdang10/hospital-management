@@ -26,11 +26,11 @@ const UserActivatedEvent_1 = require("../events/UserActivatedEvent");
  */
 function convertToSharedRoleType(roleType) {
     const roleMapping = {
-        'ADMIN': 'admin',
-        'DOCTOR': 'doctor',
-        'NURSE': 'nurse',
-        'RECEPTIONIST': 'receptionist',
-        'PATIENT': 'patient'
+        ADMIN: "admin",
+        DOCTOR: "doctor",
+        NURSE: "nurse",
+        RECEPTIONIST: "receptionist",
+        PATIENT: "patient",
     };
     const converted = roleMapping[roleType.toUpperCase()];
     if (!converted) {
@@ -78,7 +78,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             // Validate business invariants before creating
             user.validateBusinessInvariants();
             // Domain event for user creation (with primary role)
-            user.addDomainEvent(new domain_events_1.UserCreatedEvent(userId.value, email.value, '', // Empty fullName for initial registration
+            user.addDomainEvent(new domain_events_1.UserCreatedEvent(userId.value, email.value, "", // Empty fullName for initial registration
             convertToSharedRoleType(healthcareRoles[0].type)));
             return user;
         }
@@ -477,7 +477,7 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
      *
      * @param personalInfo - Personal information provided during activation
      */
-    recordStaffActivation(personalInfo) {
+    recordStaffActivation(personalInfo, invitationData) {
         try {
             // Validate user is in acceptable state for staff activation
             if (this.props.accountStatus !== AccountStatus_1.AccountStatus.ACTIVE) {
@@ -487,9 +487,37 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             // Use first role as primary role for event
             const primaryRole = this.props.healthcareRoles[0];
             if (!primaryRole) {
-                throw new Error('User must have at least one role for staff activation');
+                throw new Error("User must have at least one role for staff activation");
             }
-            this.addDomainEvent(new domain_events_1.UserCreatedEvent(this.props.id.value, this.props.email.value, personalInfo.fullName, convertToSharedRoleType(primaryRole.type), personalInfo.citizenId, personalInfo.phoneNumber));
+            // Extract professional data (all optional for backward compatibility)
+            const departmentRaw = invitationData?.["department"] ?? invitationData?.["departmentCode"];
+            const department = typeof departmentRaw === "string" ? departmentRaw : undefined;
+            const specializationCodeRaw = invitationData?.["specializationCode"] ??
+                invitationData?.["specialization"];
+            const specializationCode = typeof specializationCodeRaw === "string"
+                ? specializationCodeRaw
+                : undefined;
+            const specializationNameRaw = invitationData?.["specializationName"] ??
+                invitationData?.["specializationNameVi"] ??
+                invitationData?.["specializationNameEn"];
+            const specializationName = typeof specializationNameRaw === "string"
+                ? specializationNameRaw
+                : undefined;
+            const licenseNumberRaw = invitationData?.["licenseNumber"];
+            const licenseNumber = typeof licenseNumberRaw === "string" ? licenseNumberRaw : undefined;
+            const educationRaw = invitationData?.["education"];
+            const education = Array.isArray(educationRaw)
+                ? educationRaw.filter((e) => typeof e === "string")
+                : undefined;
+            const yearsOfExperienceRaw = invitationData?.["yearsOfExperience"];
+            const yearsOfExperience = typeof yearsOfExperienceRaw === "number"
+                ? yearsOfExperienceRaw
+                : undefined;
+            const positionRaw = invitationData?.["position"];
+            const position = typeof positionRaw === "string" ? positionRaw : undefined;
+            const titleRaw = invitationData?.["title"];
+            const title = typeof titleRaw === "string" ? titleRaw : undefined;
+            this.addDomainEvent(new domain_events_1.UserCreatedEvent(this.props.id.value, this.props.email.value, personalInfo.fullName, convertToSharedRoleType(primaryRole.type), personalInfo.citizenId, personalInfo.phoneNumber, department, specializationCode, specializationName, licenseNumber, education, yearsOfExperience, position, title));
             this.props.updatedAt = new Date();
         }
         catch (error) {

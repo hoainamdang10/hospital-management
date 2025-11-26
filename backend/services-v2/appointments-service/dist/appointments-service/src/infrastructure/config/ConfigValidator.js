@@ -90,9 +90,12 @@ function loadConfig() {
         },
         // Feature Flags
         features: {
-            enableScheduler: process.env.ENABLE_SCHEDULER === undefined
-                ? false
-                : !["false", "0", "off", "no"].includes(process.env.ENABLE_SCHEDULER.trim().toLowerCase()),
+            // Default OFF. To enable, set ENABLE_SCHEDULER=true and SCHEDULER_DISABLED=false.
+            enableScheduler: (() => {
+                const schedulerDisabled = (process.env.SCHEDULER_DISABLED || "true").toLowerCase() === "true";
+                const enableEnv = (process.env.ENABLE_SCHEDULER || "false").toLowerCase() === "true";
+                return enableEnv && !schedulerDisabled;
+            })(),
         },
     };
     // Validate config

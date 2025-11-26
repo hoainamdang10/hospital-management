@@ -45,7 +45,7 @@ export const patientClient = axios.create({
 
 // Billing Service (Port 3009)
 export const billingClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BILLING_API || '',
+  baseURL: process.env.NEXT_PUBLIC_BILLING_API || '/api',
   ...baseConfig,
 });
 
@@ -71,7 +71,7 @@ clients.forEach((client) => {
       if (error.response?.status === 401) {
         // Skip redirect in development mode
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-        
+
         if (!isDevMode && typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');

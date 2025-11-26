@@ -129,7 +129,12 @@ class AppointmentReadModelEventHandler {
             const durationMinutes = Math.max(0, Math.round((newEnd.getTime() - newStart.getTime()) / 60000));
             // Preserve existing status if present to avoid downgrading confirmed appointments
             const existing = await this.readModelRepo.findById(event.appointmentId);
-            const status = existing?.status || "scheduled";
+            let status = existing?.status || "scheduled";
+            // If đã thanh toán hoặc trước đó đã confirmed thì giữ CONFIRMED
+            if (status?.toLowerCase() !== "confirmed" &&
+                existing?.paymentStatus?.toUpperCase() === "PAID") {
+                status = "confirmed";
+            }
             const formattedTime = this.formatTime(newStart);
             await this.readModelRepo.updateSchedule(event.appointmentId, newStart, formattedTime, durationMinutes, status);
             console.log(`[ReadModel] Updated schedule for appointment ${event.appointmentId} -> ${newStart.toISOString()} (${formattedTime})`);

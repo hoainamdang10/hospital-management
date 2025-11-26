@@ -2,7 +2,7 @@
  * SupabaseStaffRepository - resolves staff information for Billing Service
  * Allows mapping between external staff codes (e.g. CARD-DOC-...) and UUID ids stored in provider schema.
  */
-import { OptimizedSupabaseClient } from '../../../../shared/infrastructure/database/optimized-supabase-client';
+import { OptimizedSupabaseClient } from "../../../../shared/infrastructure/database/optimized-supabase-client";
 export interface StaffProfile {
     id: string;
     staff_id: string;
@@ -30,6 +30,10 @@ export declare class SupabaseStaffRepository {
      * Find staff profile by human-readable staff code (CARD-DOC-...)
      */
     findByStaffCode(staffCode: string): Promise<StaffProfile | null>;
+    /**
+     * Find staff profile by UUID
+     */
+    findById(id: string): Promise<StaffProfile | null>;
     private isUUID;
 }
 //# sourceMappingURL=SupabaseStaffRepository.d.ts.map

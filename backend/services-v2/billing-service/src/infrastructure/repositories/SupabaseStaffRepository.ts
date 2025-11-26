@@ -3,8 +3,8 @@
  * Allows mapping between external staff codes (e.g. CARD-DOC-...) and UUID ids stored in provider schema.
  */
 
-import { logger as defaultLogger } from '@infrastructure/logging/logger';
-import { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
+import { logger as defaultLogger } from "@infrastructure/logging/logger";
+import { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
 
 export interface StaffProfile {
   id: string;
@@ -15,18 +15,20 @@ export interface StaffProfile {
 }
 
 export class SupabaseStaffRepository {
-  private readonly schemaName = 'provider_schema';
-  private readonly tableName = 'staff_profiles';
+  private readonly schemaName = "provider_schema";
+  private readonly tableName = "staff_profiles";
 
   constructor(
     private readonly supabase: OptimizedSupabaseClient,
-    private readonly logger = defaultLogger
+    private readonly logger = defaultLogger,
   ) {}
 
   /**
    * Resolve identifier to UUID (handles UUID vs domain staff_id)
    */
-  async resolveStaffId(identifier: string | undefined | null): Promise<string | null> {
+  async resolveStaffId(
+    identifier: string | undefined | null,
+  ): Promise<string | null> {
     if (!identifier) {
       return null;
     }
@@ -48,12 +50,12 @@ export class SupabaseStaffRepository {
         .getRawClient()
         .schema(this.schemaName)
         .from(this.tableName)
-        .select('id, staff_id, user_id, staff_type, personal_info')
-        .eq('staff_id', staffCode)
+        .select("id, staff_id, user_id, staff_type, personal_info")
+        .eq("staff_id", staffCode)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           return null;
         }
         throw error;
@@ -61,16 +63,47 @@ export class SupabaseStaffRepository {
 
       return data as StaffProfile;
     } catch (error) {
-      this.logger.error('Failed to find staff by code', {
+      this.logger.error("Failed to find staff by code", {
         staffCode,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
   }
 
+  /**
+   * Find staff profile by UUID
+   */
+  async findById(id: string): Promise<StaffProfile | null> {
+    try {
+      const { data, error } = await this.supabase
+        .getRawClient()
+        .schema(this.schemaName)
+        .from(this.tableName)
+        .select("id, staff_id, user_id, staff_type, personal_info")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          return null;
+        }
+        throw error;
+      }
+
+      return data as StaffProfile;
+    } catch (error) {
+      this.logger.error("Failed to find staff by id", {
+        staffId: id,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
   private isUUID(value: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(value);
   }
 }

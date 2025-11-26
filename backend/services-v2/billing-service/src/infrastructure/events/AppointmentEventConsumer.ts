@@ -38,6 +38,8 @@ export interface AppointmentScheduledEventData {
   patientId: string;
   staffId: string;
   departmentId: string;
+  doctorName?: string;
+  doctorDepartment?: string;
   scheduledAt: Date;
   duration: number;
   status: "pending_payment";
@@ -541,6 +543,58 @@ export class AppointmentEventConsumer {
   }
 
   /**
+   * Best-effort enrichment to attach doctor name/department to appointment events.
+   * Falls back to staffId/departmentId when profile lookup is unavailable.
+   */
+  private async enrichDoctorInfo(
+    data: AppointmentScheduledEventData,
+  ): Promise<AppointmentScheduledEventData> {
+    if (data.doctorName && data.doctorDepartment) {
+      return data;
+    }
+
+    try {
+      const staffId = data.staffId;
+      if (staffId) {
+        const profile = await this.staffRepository.findById(staffId);
+        const personal = (profile as any)?.personal_info || {};
+        const derivedName =
+          personal.fullName ||
+          personal.full_name ||
+          personal.name ||
+          personal.displayName;
+        const derivedDepartment =
+          data.doctorDepartment ||
+          personal?.department?.name ||
+          personal?.departmentName ||
+          personal?.department;
+
+        return {
+          ...data,
+          doctorName: data.doctorName || derivedName || staffId,
+          doctorDepartment:
+            data.doctorDepartment ||
+            derivedDepartment ||
+            data.departmentId ||
+            undefined,
+        };
+      }
+    } catch (error) {
+      this.loggerInstance.warn("Doctor enrichment failed (non-blocking)", {
+        appointmentId: data.appointmentId,
+        staffId: data.staffId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+
+    return {
+      ...data,
+      doctorName: data.doctorName || data.staffId || undefined,
+      doctorDepartment: data.doctorDepartment || data.departmentId || undefined,
+    };
+  }
+
+  /**
    * Normalize staff identifier to UUID stored in provider_schema
    */
   private async resolveStaffIdentifier(
@@ -585,30 +639,36 @@ export class AppointmentEventConsumer {
         return;
       }
       const patientUuid = patient.id;
+      const enrichedData = await this.enrichDoctorInfo({
+        ...data,
+        staffId: staffUuid || data.staffId,
+      });
 
       this.loggerInstance.info(
         "Processing appointment scheduled for billing (Prepaid Model)",
         {
-          appointmentId: data.appointmentId,
+          appointmentId: enrichedData.appointmentId,
           patientId: patientUuid,
           staffId: staffUuid,
-          serviceType: data.serviceType,
+          serviceType: enrichedData.serviceType,
+          doctorName: enrichedData.doctorName,
+          doctorDepartment: enrichedData.doctorDepartment,
         },
       );
 
       // Generate invoice based on service type
       // Invoice status will be PENDING (waiting for payment)
       const invoice = await this.billingService.generateAppointmentInvoice({
-        appointmentId: data.appointmentId,
+        appointmentId: enrichedData.appointmentId,
         patientId: patientUuid,
         staffId: staffUuid,
-        departmentId: data.departmentId,
-        doctorName: data.doctorName,
-        doctorDepartment: data.doctorDepartment,
-        serviceType: data.serviceType,
-        scheduledAt: data.scheduledAt,
-        duration: data.duration,
-        consultationFee: data.consultationFee,
+        departmentId: enrichedData.departmentId,
+        doctorName: enrichedData.doctorName,
+        doctorDepartment: enrichedData.doctorDepartment,
+        serviceType: enrichedData.serviceType,
+        scheduledAt: enrichedData.scheduledAt,
+        duration: enrichedData.duration,
+        consultationFee: enrichedData.consultationFee,
         insuranceInfo: patient.insuranceInfo,
       });
 

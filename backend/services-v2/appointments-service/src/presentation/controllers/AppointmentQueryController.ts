@@ -1,20 +1,20 @@
 /**
  * Appointment Query Controller - Presentation Layer
  * REST API controller for appointment queries (CQRS Read Model)
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS, REST API
  */
 
-import { Request, Response } from 'express';
-import { GetAppointmentDetailsQuery } from '../../application/queries/GetAppointmentDetailsQuery';
-import { ListAppointmentsQuery } from '../../application/queries/ListAppointmentsQuery';
+import { Request, Response } from "express";
+import { GetAppointmentDetailsQuery } from "../../application/queries/GetAppointmentDetailsQuery";
+import { ListAppointmentsQuery } from "../../application/queries/ListAppointmentsQuery";
 
 export class AppointmentQueryController {
   constructor(
     private getAppointmentDetailsQuery: GetAppointmentDetailsQuery,
-    private listAppointmentsQuery: ListAppointmentsQuery
+    private listAppointmentsQuery: ListAppointmentsQuery,
   ) {}
 
   /**
@@ -25,26 +25,30 @@ export class AppointmentQueryController {
     try {
       const { id } = req.params;
 
-      const appointmentDetails = await this.getAppointmentDetailsQuery.execute(id);
+      const appointmentDetails =
+        await this.getAppointmentDetailsQuery.execute(id);
 
       res.status(200).json({
         success: true,
-        data: appointmentDetails
+        data: appointmentDetails,
       });
     } catch (error: any) {
-      console.error('[AppointmentQueryController] Failed to get appointment details:', error);
+      console.error(
+        "[AppointmentQueryController] Failed to get appointment details:",
+        error,
+      );
 
-      if (error.message.includes('not found')) {
+      if (error.message.includes("not found")) {
         res.status(404).json({
           success: false,
-          error: 'Appointment not found'
+          error: "Appointment not found",
         });
         return;
       }
 
       res.status(500).json({
         success: false,
-        error: 'Failed to get appointment details'
+        error: "Failed to get appointment details",
       });
     }
   }
@@ -52,7 +56,7 @@ export class AppointmentQueryController {
   /**
    * GET /api/appointments
    * List appointments with filters and pagination
-   * 
+   *
    * Query params:
    * - patientId: Filter by patient ID
    * - doctorId: Filter by doctor ID
@@ -77,7 +81,7 @@ export class AppointmentQueryController {
         priority,
         departmentId,
         page,
-        pageSize
+        pageSize,
       } = req.query;
 
       const result = await this.listAppointmentsQuery.execute({
@@ -90,19 +94,22 @@ export class AppointmentQueryController {
         priority: priority as string,
         departmentId: departmentId as string,
         page: page ? parseInt(page as string) : undefined,
-        pageSize: pageSize ? parseInt(pageSize as string) : undefined
+        pageSize: pageSize ? parseInt(pageSize as string) : undefined,
       });
 
       res.status(200).json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error: any) {
-      console.error('[AppointmentQueryController] Failed to list appointments:', error);
+      console.error(
+        "[AppointmentQueryController] Failed to list appointments:",
+        error,
+      );
 
       res.status(500).json({
         success: false,
-        error: 'Failed to list appointments'
+        error: "Failed to list appointments",
       });
     }
   }
@@ -119,19 +126,22 @@ export class AppointmentQueryController {
       const result = await this.listAppointmentsQuery.execute({
         patientId,
         page: page ? parseInt(page as string) : undefined,
-        pageSize: pageSize ? parseInt(pageSize as string) : undefined
+        pageSize: pageSize ? parseInt(pageSize as string) : undefined,
       });
 
       res.status(200).json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error: any) {
-      console.error('[AppointmentQueryController] Failed to get patient appointments:', error);
+      console.error(
+        "[AppointmentQueryController] Failed to get patient appointments:",
+        error,
+      );
 
       res.status(500).json({
         success: false,
-        error: 'Failed to get patient appointments'
+        error: "Failed to get patient appointments",
       });
     }
   }
@@ -143,29 +153,47 @@ export class AppointmentQueryController {
   async getDoctorAppointments(req: Request, res: Response): Promise<void> {
     try {
       const { doctorId } = req.params;
+      const authUser = (req as any).user;
+      const effectiveDoctorId =
+        authUser?.role === "doctor" && authUser?.userId
+          ? authUser.userId
+          : doctorId;
+      if (
+        authUser?.role === "doctor" &&
+        authUser?.userId &&
+        authUser.userId !== doctorId
+      ) {
+        res.status(403).json({
+          success: false,
+          error: "Forbidden: doctor can only view own appointments",
+        });
+        return;
+      }
       const { page, pageSize, startDate, endDate, status } = req.query;
 
       const result = await this.listAppointmentsQuery.execute({
-        doctorId,
+        doctorId: effectiveDoctorId,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
         status: status as string,
         page: page ? parseInt(page as string) : undefined,
-        pageSize: pageSize ? parseInt(pageSize as string) : undefined
+        pageSize: pageSize ? parseInt(pageSize as string) : undefined,
       });
 
       res.status(200).json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error: any) {
-      console.error('[AppointmentQueryController] Failed to get doctor appointments:', error);
+      console.error(
+        "[AppointmentQueryController] Failed to get doctor appointments:",
+        error,
+      );
 
       res.status(500).json({
         success: false,
-        error: 'Failed to get doctor appointments'
+        error: "Failed to get doctor appointments",
       });
     }
   }
 }
-

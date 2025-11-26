@@ -41,6 +41,7 @@ export function usePatient() {
   return {
     patient,
     patientId: patient?.patientId || null,
+    internalId: patient?.id || null,
     isLoading,
     error,
     reload: loadPatient,

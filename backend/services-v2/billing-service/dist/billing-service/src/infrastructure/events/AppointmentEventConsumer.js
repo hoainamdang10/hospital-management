@@ -261,6 +261,12 @@ class AppointmentEventConsumer {
             appointmentId,
             patientId,
             staffId,
+            doctorName: payload?.doctorName || payload?.doctor_name || payload?.doctorFullName,
+            doctorDepartment: payload?.departmentName ||
+                payload?.department?.name ||
+                payload?.doctorDepartment ||
+                payload?.department_id ||
+                null,
             departmentId: payload?.departmentId ||
                 payload?.department_id ||
                 payload?.department?.id ||
@@ -314,6 +320,50 @@ class AppointmentEventConsumer {
         return Number.isFinite(parsed) ? parsed : fallback;
     }
     /**
+     * Best-effort enrichment to attach doctor name/department to appointment events.
+     * Falls back to staffId/departmentId when profile lookup is unavailable.
+     */
+    async enrichDoctorInfo(data) {
+        if (data.doctorName && data.doctorDepartment) {
+            return data;
+        }
+        try {
+            const staffId = data.staffId;
+            if (staffId) {
+                const profile = await this.staffRepository.findById(staffId);
+                const personal = profile?.personal_info || {};
+                const derivedName = personal.fullName ||
+                    personal.full_name ||
+                    personal.name ||
+                    personal.displayName;
+                const derivedDepartment = data.doctorDepartment ||
+                    personal?.department?.name ||
+                    personal?.departmentName ||
+                    personal?.department;
+                return {
+                    ...data,
+                    doctorName: data.doctorName || derivedName || staffId,
+                    doctorDepartment: data.doctorDepartment ||
+                        derivedDepartment ||
+                        data.departmentId ||
+                        undefined,
+                };
+            }
+        }
+        catch (error) {
+            this.loggerInstance.warn("Doctor enrichment failed (non-blocking)", {
+                appointmentId: data.appointmentId,
+                staffId: data.staffId,
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+        return {
+            ...data,
+            doctorName: data.doctorName || data.staffId || undefined,
+            doctorDepartment: data.doctorDepartment || data.departmentId || undefined,
+        };
+    }
+    /**
      * Normalize staff identifier to UUID stored in provider_schema
      */
     async resolveStaffIdentifier(staffId) {
@@ -353,23 +403,31 @@ class AppointmentEventConsumer {
                 return;
             }
             const patientUuid = patient.id;
+            const enrichedData = await this.enrichDoctorInfo({
+                ...data,
+                staffId: staffUuid || data.staffId,
+            });
             this.loggerInstance.info("Processing appointment scheduled for billing (Prepaid Model)", {
-                appointmentId: data.appointmentId,
+                appointmentId: enrichedData.appointmentId,
                 patientId: patientUuid,
                 staffId: staffUuid,
-                serviceType: data.serviceType,
+                serviceType: enrichedData.serviceType,
+                doctorName: enrichedData.doctorName,
+                doctorDepartment: enrichedData.doctorDepartment,
             });
             // Generate invoice based on service type
             // Invoice status will be PENDING (waiting for payment)
             const invoice = await this.billingService.generateAppointmentInvoice({
-                appointmentId: data.appointmentId,
+                appointmentId: enrichedData.appointmentId,
                 patientId: patientUuid,
                 staffId: staffUuid,
-                departmentId: data.departmentId,
-                serviceType: data.serviceType,
-                scheduledAt: data.scheduledAt,
-                duration: data.duration,
-                consultationFee: data.consultationFee,
+                departmentId: enrichedData.departmentId,
+                doctorName: enrichedData.doctorName,
+                doctorDepartment: enrichedData.doctorDepartment,
+                serviceType: enrichedData.serviceType,
+                scheduledAt: enrichedData.scheduledAt,
+                duration: enrichedData.duration,
+                consultationFee: enrichedData.consultationFee,
                 insuranceInfo: patient.insuranceInfo,
             });
             this.loggerInstance.info("Invoice created for scheduled appointment (Prepaid)", {
@@ -545,15 +603,20 @@ class AppointmentEventConsumer {
             refundEligible: data.cancellationPolicy.refundEligible,
             refundPercentage: data.cancellationPolicy.refundPercentage,
         });
+        // Fallback: nếu payload không gửi policy, coi như đủ điều kiện hoàn 100%
+        const refundEligible = data.cancellationPolicy.refundEligible !== undefined
+            ? data.cancellationPolicy.refundEligible
+            : true;
+        const refundPercentage = data.cancellationPolicy.refundPercentage !== undefined
+            ? data.cancellationPolicy.refundPercentage
+            : 100;
         try {
             // Only process if refund is eligible
-            if (data.cancellationPolicy.refundEligible &&
-                data.cancellationPolicy.refundPercentage &&
-                data.cancellationPolicy.refundPercentage > 0) {
+            if (refundEligible && refundPercentage > 0) {
                 this.loggerInstance.info("Refund eligible - processing refund", {
                     appointmentId: data.appointmentId,
                     patientId: data.patientId,
-                    refundPercentage: data.cancellationPolicy.refundPercentage,
+                    refundPercentage,
                     reason: data.cancellationReason,
                 });
                 // Call RefundPaymentUseCase if available
@@ -561,7 +624,7 @@ class AppointmentEventConsumer {
                     const refundResult = await this.refundPaymentUseCase.execute({
                         appointmentId: data.appointmentId,
                         patientId: data.patientId,
-                        refundPercentage: data.cancellationPolicy.refundPercentage,
+                        refundPercentage,
                         reason: data.cancellationReason,
                         refundedBy: data.cancelledBy,
                     }, this.getSystemContext());
@@ -583,6 +646,15 @@ class AppointmentEventConsumer {
                         appointmentId: data.appointmentId,
                     });
                 }
+            }
+            // Persist cancellation metadata on existing invoices to improve UX
+            const cancelledInvoices = await this.invoiceRepository.findAllByAppointmentId(data.appointmentId);
+            for (const inv of cancelledInvoices) {
+                inv.setMetadata({
+                    cancellationReason: data.cancellationReason,
+                    cancelledBy: data.cancelledBy,
+                });
+                await this.invoiceRepository.save(inv);
             }
             // Handle penalty if applied
             if (data.cancellationPolicy.penaltyApplied &&

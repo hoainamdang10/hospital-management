@@ -17,7 +17,7 @@ export declare class EventSubscriptions {
     private config;
     private eventBus;
     private isConnected;
-    private schedulerHandlers;
+    private schedulerHandlers?;
     private staffScheduleUpdatedHandler;
     private patientEventConsumer;
     private providerEventConsumer;

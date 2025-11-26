@@ -15,8 +15,8 @@ import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { DIContainer } from "../../shared/infrastructure/di/container";
 import { setupDependencies, ServiceTokens } from './infrastructure/di/setup';
-// import { createNotificationRoutes } from './presentation/routes/notificationRoutes'; // OUT OF SCOPE
-// import { NotificationController } from './presentation/controllers/NotificationController'; // OUT OF SCOPE
+import { createNotificationRoutes } from './presentation/routes/notificationRoutes';
+import { NotificationController } from './presentation/controllers/NotificationController';
 import { swaggerSpec } from './infrastructure/swagger/swagger.config';
 
 // Load environment variables
@@ -192,10 +192,10 @@ async function bootstrap() {
 
     // OUT OF SCOPE - Controllers and API routes archived for thesis
     // Only event consumers + cron job active
-    // const notificationController = container.resolve<NotificationController>(
-    //   ServiceTokens.NOTIFICATION_CONTROLLER
-    // );
-    // console.log('✅ Controllers resolved');
+    const notificationController = container.resolve<NotificationController>(
+      ServiceTokens.NOTIFICATION_CONTROLLER
+    );
+    console.log('✅ Controllers resolved');
 
     // Connect EventBus
     const eventBus = container.resolve(ServiceTokens.EVENT_BUS) as any;
@@ -211,9 +211,9 @@ async function bootstrap() {
     console.log('✅ Reminder Cron Job initialized');
 
     // OUT OF SCOPE - API routes disabled
-    // const notificationRoutes = createNotificationRoutes(notificationController);
-    // app.use('/api/v1/notifications', notificationRoutes);
-    // console.log('✅ Routes mounted at /api/v1/notifications');
+    const notificationRoutes = createNotificationRoutes(notificationController);
+    app.use('/api/v1/notifications', notificationRoutes);
+    console.log('✅ Routes mounted at /api/v1/notifications');
 
     // Swagger API Documentation
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

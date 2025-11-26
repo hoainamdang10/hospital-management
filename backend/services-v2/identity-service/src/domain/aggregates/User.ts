@@ -30,20 +30,25 @@ import { UserActivatedEvent } from "../events/UserActivatedEvent";
 /**
  * Convert HealthcareRoleType to shared role type
  */
-function convertToSharedRoleType(roleType: string): 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' {
-  const roleMapping: Record<string, 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist'> = {
-    'ADMIN': 'admin',
-    'DOCTOR': 'doctor', 
-    'NURSE': 'nurse',
-    'RECEPTIONIST': 'receptionist',
-    'PATIENT': 'patient'
+function convertToSharedRoleType(
+  roleType: string,
+): "admin" | "doctor" | "nurse" | "patient" | "receptionist" {
+  const roleMapping: Record<
+    string,
+    "admin" | "doctor" | "nurse" | "patient" | "receptionist"
+  > = {
+    ADMIN: "admin",
+    DOCTOR: "doctor",
+    NURSE: "nurse",
+    RECEPTIONIST: "receptionist",
+    PATIENT: "patient",
   };
-  
+
   const converted = roleMapping[roleType.toUpperCase()];
   if (!converted) {
     throw new Error(`Unsupported role type: ${roleType}`);
   }
-  
+
   return converted;
 }
 
@@ -116,8 +121,8 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         new UserCreatedEvent(
           userId.value,
           email.value,
-          '', // Empty fullName for initial registration
-          convertToSharedRoleType(healthcareRoles[0].type)
+          "", // Empty fullName for initial registration
+          convertToSharedRoleType(healthcareRoles[0].type),
         ),
       );
 
@@ -641,22 +646,76 @@ export class User extends HealthcareAggregateRoot<UserProps> {
    * Record staff activation from invitation acceptance
    * This is used when a staff account is provisioned and later activated
    * Emits UserCreatedEvent for downstream services (Staff Service, Patient Registry)
-   * 
+   *
    * @param personalInfo - Personal information provided during activation
    */
-  public recordStaffActivation(personalInfo: PersonalInfo): void {
+  public recordStaffActivation(
+    personalInfo: PersonalInfo,
+    invitationData?: Record<string, unknown>,
+  ): void {
     try {
       // Validate user is in acceptable state for staff activation
       if (this.props.accountStatus !== AccountStatus.ACTIVE) {
-        throw new Error(`Cannot record staff activation for account with status: ${this.props.accountStatus}`);
+        throw new Error(
+          `Cannot record staff activation for account with status: ${this.props.accountStatus}`,
+        );
       }
 
       // Add UserCreatedEvent for downstream services
       // Use first role as primary role for event
       const primaryRole = this.props.healthcareRoles[0];
       if (!primaryRole) {
-        throw new Error('User must have at least one role for staff activation');
+        throw new Error(
+          "User must have at least one role for staff activation",
+        );
       }
+
+      // Extract professional data (all optional for backward compatibility)
+      const departmentRaw =
+        invitationData?.["department"] ?? invitationData?.["departmentCode"];
+      const department =
+        typeof departmentRaw === "string" ? departmentRaw : undefined;
+
+      const specializationCodeRaw =
+        invitationData?.["specializationCode"] ??
+        invitationData?.["specialization"];
+      const specializationCode =
+        typeof specializationCodeRaw === "string"
+          ? specializationCodeRaw
+          : undefined;
+
+      const specializationNameRaw =
+        invitationData?.["specializationName"] ??
+        invitationData?.["specializationNameVi"] ??
+        invitationData?.["specializationNameEn"];
+      const specializationName =
+        typeof specializationNameRaw === "string"
+          ? specializationNameRaw
+          : undefined;
+
+      const licenseNumberRaw = invitationData?.["licenseNumber"];
+      const licenseNumber =
+        typeof licenseNumberRaw === "string" ? licenseNumberRaw : undefined;
+
+      const educationRaw = invitationData?.["education"];
+      const education = Array.isArray(educationRaw)
+        ? (educationRaw as unknown[]).filter(
+            (e): e is string => typeof e === "string",
+          )
+        : undefined;
+
+      const yearsOfExperienceRaw = invitationData?.["yearsOfExperience"];
+      const yearsOfExperience =
+        typeof yearsOfExperienceRaw === "number"
+          ? yearsOfExperienceRaw
+          : undefined;
+
+      const positionRaw = invitationData?.["position"];
+      const position =
+        typeof positionRaw === "string" ? positionRaw : undefined;
+
+      const titleRaw = invitationData?.["title"];
+      const title = typeof titleRaw === "string" ? titleRaw : undefined;
 
       this.addDomainEvent(
         new UserCreatedEvent(
@@ -665,13 +724,23 @@ export class User extends HealthcareAggregateRoot<UserProps> {
           personalInfo.fullName,
           convertToSharedRoleType(primaryRole.type),
           personalInfo.citizenId,
-          personalInfo.phoneNumber
-        )
+          personalInfo.phoneNumber,
+          department,
+          specializationCode,
+          specializationName,
+          licenseNumber,
+          education,
+          yearsOfExperience,
+          position,
+          title,
+        ),
       );
 
       this.props.updatedAt = new Date();
     } catch (error) {
-      throw new Error(`Failed to record staff activation: ${getErrorMessage(error)}`);
+      throw new Error(
+        `Failed to record staff activation: ${getErrorMessage(error)}`,
+      );
     }
   }
 

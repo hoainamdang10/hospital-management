@@ -384,7 +384,10 @@ class ApiGatewayApplication {
       ServiceRoute.create({
         serviceName: "billing-service",
         baseUrl:
-          process.env.BILLING_SERVICE_URL || "http://billing-service:3009",
+          process.env.BILLING_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://billing-service:3009"
+            : "http://localhost:3009"),
         pathPrefix: "/api/v1/billing/invoices",
         requiresAuth: true,
         // Ownership/authorization handled downstream (patient/staff specific checks)
@@ -394,7 +397,10 @@ class ApiGatewayApplication {
       ServiceRoute.create({
         serviceName: "billing-service",
         baseUrl:
-          process.env.BILLING_SERVICE_URL || "http://billing-service:3009",
+          process.env.BILLING_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://billing-service:3009"
+            : "http://localhost:3009"),
         pathPrefix: "/api/v1/billing",
         requiresAuth: true,
         requiredPermissions: ["billing:read"],
@@ -406,7 +412,10 @@ class ApiGatewayApplication {
       ServiceRoute.create({
         serviceName: "billing-service",
         baseUrl:
-          process.env.BILLING_SERVICE_URL || "http://billing-service:3009",
+          process.env.BILLING_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://billing-service:3009"
+            : "http://localhost:3009"),
         pathPrefix: "/api/v1/billing/invoices/patient",
         requiresAuth: true,
         requiredRoles: ["patient"],
@@ -418,7 +427,10 @@ class ApiGatewayApplication {
       ServiceRoute.create({
         serviceName: "notifications-service",
         baseUrl:
-          process.env.NOTIFICATIONS_SERVICE_URL || "http://localhost:3011",
+          process.env.NOTIFICATIONS_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://notifications-service:3011"
+            : "http://localhost:3011"),
         pathPrefix: "/api/v1/notifications",
         requiresAuth: true,
       }),

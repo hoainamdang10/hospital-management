@@ -145,11 +145,17 @@ class BillingServiceApp {
             queueName: "billing.appointment.events",
             exchangeName: "hospital.events",
             routingKeys: [
-                "appointment.scheduled", // Phase 1 (Prepaid): Create invoice when appointment is scheduled
-                "appointment.cancelled", // Process refunds for cancelled appointments
-                "appointment.cancelled_late", // Cancel invoice if not paid yet
-                "appointment.no_show", // Future: Apply no-show fee
-                "appointment.rescheduled", // Apply reschedule fee if policy requires
+                "appointment.scheduled",
+                "appointment.cancelled",
+                "appointment.cancelled_late",
+                "appointment.no_show",
+                "appointment.rescheduled",
+                // Appointments service is publishing `appointments.*` (plural) in outbox
+                "appointments.scheduled",
+                "appointments.cancelled",
+                "appointments.cancelled_late",
+                "appointments.no_show",
+                "appointments.rescheduled",
             ],
             prefetchCount: 10,
             retryAttempts: 3,

@@ -54,6 +54,10 @@ class BillingService {
                 patientId: request.patientId,
                 appointmentId: request.appointmentId,
                 staffId: request.staffId,
+                metadata: {
+                    doctorName: request.doctorName,
+                    doctorDepartment: request.doctorDepartment,
+                },
                 items: lineItems.map((item) => ({
                     description: item.description,
                     quantity: item.quantity,

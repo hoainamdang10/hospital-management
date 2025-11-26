@@ -68,7 +68,7 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
    */
   async execute(request: AuthenticateUserRequest): Promise<AuthenticateUserResponse> {
     const startTime = Date.now();
-    
+
     try {
       // Input validation
       this.validateRequest(request);
@@ -108,7 +108,7 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
     } catch (error) {
       // Log authentication failure
       const errorMessage = getErrorMessage(error);
-      
+
       // Safely mask email - fallback to raw string if email is invalid
       let maskedEmail = request.email;
       try {
@@ -117,7 +117,7 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
         // If email is invalid, just use raw string (already failed anyway)
         maskedEmail = request.email || '[empty]';
       }
-      
+
       this.logger.error('Authentication failed', {
         email: maskedEmail,
         ipAddress: request.ipAddress,
@@ -312,7 +312,22 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
 
       // Step 6: Get user roles and permissions (Pure RBAC)
       const roles = await this.userRepository.getUserRoles(user.userId);
-      const permissions = authResult.permissions || await this.permissionRepository.getUserPermissions(user.userId);
+      const permissions =
+        authResult.permissions ||
+        (await this.permissionRepository.getUserPermissions(user.userId));
+
+      // Step 6.1: Sync roles into Supabase app_metadata so gateway tokens carry roles
+      try {
+        await this.authService.updateUserMetadata(user.id, {
+          roles,
+          permissions,
+        });
+      } catch (error) {
+        this.logger.warn("Failed to sync roles to app_metadata", {
+          userId: user.id,
+          error: getErrorMessage(error),
+        });
+      }
 
       // Step 7: Publish domain events
       if (this.eventPublisher) {
@@ -612,4 +627,3 @@ export class AuthenticateUserUseCase implements IUseCase<AuthenticateUserRequest
     return authResult.roles?.some(role => mfaRequiredRoles.includes(role)) || false;
   }
 }
-

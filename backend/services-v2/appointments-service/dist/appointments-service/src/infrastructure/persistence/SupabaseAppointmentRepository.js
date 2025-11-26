@@ -11,6 +11,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseAppointmentRepository = void 0;
 const supabase_js_1 = require("@supabase/supabase-js");
+const OutboxRepository_1 = require("../outbox/OutboxRepository");
 const Appointment_aggregate_1 = require("../../domain/aggregates/Appointment.aggregate");
 const AppointmentId_vo_1 = require("../../domain/value-objects/AppointmentId.vo");
 const TimeSlot_vo_1 = require("../../domain/value-objects/TimeSlot.vo");
@@ -39,6 +40,7 @@ class SupabaseAppointmentRepository {
                 },
             },
         });
+        this.outboxRepo = new OutboxRepository_1.OutboxRepository(supabaseUrl, supabaseKey, 5);
     }
     /**
      * Save appointment (create or update)
@@ -53,6 +55,34 @@ class SupabaseAppointmentRepository {
             console.error("[Repository] Database error:", error);
             throw new Error(`Failed to save appointment: ${error.message}`);
         }
+        // Upsert read model entry (minimal fields to ensure FE listing)
+        try {
+            const readModelRecord = {
+                appointment_id: record.appointment_id,
+                patient_id: record.patient_id,
+                doctor_id: record.doctor_id,
+                appointment_date: record.appointment_date,
+                appointment_time: record.appointment_time,
+                duration_minutes: record.duration_minutes,
+                type: record.type,
+                priority: record.priority,
+                status: record.status,
+                payment_status: record.payment_status,
+                department_id: record.department_id,
+                consultation_fee: record.consultation_fee,
+            };
+            const { error: rmError } = await this.supabase
+                .from("appointment_read_model")
+                .upsert(readModelRecord, { onConflict: "appointment_id" });
+            if (rmError) {
+                console.warn("[Repository] Failed to upsert appointment_read_model (non-critical)", rmError.message);
+            }
+        }
+        catch (rmUpsertError) {
+            console.warn("[Repository] Error upserting appointment_read_model (non-critical)", rmUpsertError instanceof Error
+                ? rmUpsertError.message
+                : "Unknown error");
+        }
         // Publish domain events after successful persistence
         await this.publishDomainEvents(appointment);
     }
@@ -63,10 +93,6 @@ class SupabaseAppointmentRepository {
      * This provides denormalized names for Notifications Service
      */
     async publishDomainEvents(appointment) {
-        if (!this.eventPublisher) {
-            console.debug("[SupabaseAppointmentRepository] Event publisher not configured, skipping event publishing");
-            return;
-        }
         const events = appointment.getUncommittedEvents();
         if (events.length === 0) {
             return;
@@ -122,8 +148,16 @@ class SupabaseAppointmentRepository {
                     event.departmentName = readModel.doctor_department;
                 }
             }
-            // Publish enriched events in batch
-            await this.eventPublisher.publishBatch(events);
+            // Enqueue to Outbox for reliable delivery
+            await Promise.all(events.map((event) => this.outboxRepo.enqueue({
+                eventType: event.getRoutingKey().startsWith("appointment")
+                    ? event.getRoutingKey()
+                    : `appointment.${event.getRoutingKey()}`,
+                aggregateType: event.aggregateType,
+                aggregateId: event.aggregateId,
+                payload: event.toJSON(),
+                dedupKey: event.eventId,
+            })));
             // Mark events as committed after successful publishing
             appointment.markEventsAsCommitted();
             console.info("[SupabaseAppointmentRepository] Domain events published", {
@@ -131,6 +165,7 @@ class SupabaseAppointmentRepository {
                 eventCount: events.length,
                 eventTypes: events.map((event) => event.eventType),
                 enriched: !!readModel,
+                viaOutbox: true,
             });
         }
         catch (error) {

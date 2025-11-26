@@ -36,7 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OutboxPublisherWorker = void 0;
 const amqplib = __importStar(require("amqplib"));
 class OutboxPublisherWorker {
-    constructor(outboxRepo, scheduler, options = {}) {
+    constructor(outboxRepo, 
+    // Optional scheduler; if absent, scheduler-specific events will be skipped
+    scheduler, options = {}) {
         this.outboxRepo = outboxRepo;
         this.scheduler = scheduler;
         this.options = options;
@@ -77,6 +79,10 @@ class OutboxPublisherWorker {
         // Payload schema is designed to directly call Scheduler createOrUpdateByDedup/cancel
         const payload = evt.payload_json || {};
         const eventType = evt.event_type;
+        console.log("[OutboxWorker] processing", {
+            id: evt.id,
+            eventType,
+        });
         try {
             if (eventType === "SchedulerReminderCreate") {
                 console.warn("[OutboxWorker] Skip SchedulerReminderCreate (scheduler disabled)", { id: evt.id });
@@ -84,11 +90,25 @@ class OutboxPublisherWorker {
             else if (eventType === "SchedulerReminderCancelByOwner") {
                 console.warn("[OutboxWorker] Skip SchedulerReminderCancelByOwner (scheduler disabled)", { id: evt.id });
             }
-            else if (eventType.startsWith("appointment")) {
+            else if (eventType.startsWith("appointment") ||
+                eventType.startsWith("appointments.")) {
                 // Generic relay to RabbitMQ for appointment.* events (billing/notifications)
                 const channel = await this.ensureChannel();
-                const routingKey = eventType;
+                // Normalize routing key to singular prefix for compatibility with consumers
+                const rawEventType = typeof eventType === "string" ? eventType.trim() : eventType;
+                let routingKey = rawEventType;
+                routingKey = routingKey.replace(/^appointments\.appointment\./, "appointment.");
+                routingKey = routingKey.replace(/^appointments\./, "appointment.");
+                routingKey = routingKey.replace(/^appointment\.appointment\./, "appointment.");
+                routingKey = routingKey.replace(/^(appointment\.){2,}/, "appointment.");
+                if (!routingKey.startsWith("appointment.")) {
+                    routingKey = `appointment.${routingKey}`;
+                }
                 channel.publish(this.options.exchange || "hospital.events", routingKey, Buffer.from(JSON.stringify(payload)), { persistent: true });
+                console.log("[OutboxWorker] published", {
+                    id: evt.id,
+                    routingKey,
+                });
             }
             else {
                 // Unknown event: mark sent to avoid poison

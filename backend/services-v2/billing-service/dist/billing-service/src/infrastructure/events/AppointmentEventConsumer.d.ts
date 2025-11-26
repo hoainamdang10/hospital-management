@@ -32,6 +32,8 @@ export interface AppointmentScheduledEventData {
     patientId: string;
     staffId: string;
     departmentId: string;
+    doctorName?: string;
+    doctorDepartment?: string;
     scheduledAt: Date;
     duration: number;
     status: "pending_payment";
@@ -135,6 +137,11 @@ export declare class AppointmentEventConsumer {
     private safeDate;
     private toBoolean;
     private toNumber;
+    /**
+     * Best-effort enrichment to attach doctor name/department to appointment events.
+     * Falls back to staffId/departmentId when profile lookup is unavailable.
+     */
+    private enrichDoctorInfo;
     /**
      * Normalize staff identifier to UUID stored in provider_schema
      */
