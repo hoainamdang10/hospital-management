@@ -373,8 +373,61 @@ export class RabbitMQEventBus implements IEventBus {
     // Get event class from registry
     const EventClass = EVENT_TYPE_REGISTRY[data.eventType];
 
+    // Fallback: handle integration events with dot notation (e.g., provider.staff.updated)
     if (!EventClass) {
-      throw new Error(`Unknown event type: ${data.eventType}`);
+      const eventData = data.eventData || data.payload || data.data || {};
+      const aggregateId =
+        data.aggregateId ||
+        eventData.aggregateId ||
+        eventData.staffId ||
+        eventData.id ||
+        "unknown";
+
+      const genericEvent = Object.create(GenericIntegrationEvent.prototype);
+      Object.assign(genericEvent, {
+        eventId: data.eventId,
+        eventType: data.eventType,
+        aggregateId,
+        aggregateType: data.aggregateType || "Integration",
+        eventVersion: data.eventVersion || 1,
+        occurredAt: new Date(data.occurredAt),
+        correlationId: data.correlationId,
+        causationId: data.causationId,
+        userId: data.userId,
+        metadata: data.metadata || {
+          source: "integration",
+          priority: "normal",
+          retryable: true,
+          publishExternal: true,
+        },
+        data: eventData,
+        getEventData() {
+          return this.data;
+        },
+        containsPHI() {
+          return false;
+        },
+        getPatientId() {
+          return null;
+        },
+        toJSON() {
+          return {
+            eventId: this.eventId,
+            eventType: this.eventType,
+            aggregateId: this.aggregateId,
+            aggregateType: this.aggregateType,
+            eventVersion: this.eventVersion,
+            occurredAt: this.occurredAt,
+            eventData: this.data,
+            correlationId: this.correlationId,
+            causationId: this.causationId,
+            userId: this.userId,
+            metadata: this.metadata,
+          };
+        },
+      });
+
+      return genericEvent as DomainEvent;
     }
 
     const eventData = data.eventData || data.payload || {};
@@ -434,6 +487,51 @@ export class RabbitMQEventBus implements IEventBus {
         `Failed to deserialize event ${data.eventType}: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+}
+
+/**
+ * Generic integration event fallback for events not registered in EVENT_TYPE_REGISTRY
+ * Handles dot-notation event types like provider.staff.updated
+ */
+class GenericIntegrationEvent extends DomainEvent {
+  private readonly data: any;
+
+  constructor(
+    eventType: string,
+    aggregateId: string,
+    aggregateType: string,
+    eventData: any,
+  ) {
+    super(
+      eventType,
+      aggregateId,
+      aggregateType,
+      eventData,
+      1,
+      undefined,
+      undefined,
+      undefined,
+      {
+        source: "integration",
+        priority: "normal",
+        publishExternal: true,
+        retryable: true,
+      },
+    );
+    this.data = eventData;
+  }
+
+  getEventData(): any {
+    return this.data;
+  }
+
+  containsPHI(): boolean {
+    return false;
+  }
+
+  getPatientId(): string | null {
+    return null;
   }
 }
 

@@ -47,24 +47,27 @@ export class ProviderReadModelRepository {
    * Upsert provider read model (idempotent)
    */
   async upsert(provider: ProviderReadModel): Promise<void> {
-    const { error } = await this.supabase.from(this.table).upsert(
-      {
-        provider_id: provider.providerId,
-        tenant_id: provider.tenantId,
-        full_name: provider.fullName,
-        specialization: provider.specialization || null,
-        department: provider.department || null,
-        license_number: provider.licenseNumber || null,
-        phone: provider.phone || null,
-        email: provider.email || null,
-        is_active: provider.isActive,
-        synced_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: "provider_id",
-      },
-    );
+    const { error } = await this.supabase
+      .schema(this.schema)
+      .from(this.table)
+      .upsert(
+        {
+          provider_id: provider.providerId,
+          tenant_id: provider.tenantId,
+          full_name: provider.fullName,
+          specialization: provider.specialization || null,
+          department: provider.department || null,
+          license_number: provider.licenseNumber || null,
+          phone: provider.phone || null,
+          email: provider.email || null,
+          is_active: provider.isActive,
+          synced_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "provider_id",
+        },
+      );
 
     if (error) {
       throw new Error(`Failed to upsert provider read model: ${error.message}`);
@@ -160,6 +163,7 @@ export class ProviderReadModelRepository {
     if (providerIds.length === 0) return [];
 
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("*")
       .in("provider_id", providerIds);
@@ -179,6 +183,7 @@ export class ProviderReadModelRepository {
     limit = 100,
   ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("*")
       .eq("tenant_id", tenantId)
@@ -201,6 +206,7 @@ export class ProviderReadModelRepository {
     limit = 50,
   ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("*")
       .eq("tenant_id", tenantId)
@@ -227,6 +233,7 @@ export class ProviderReadModelRepository {
     limit = 50,
   ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("*")
       .eq("tenant_id", tenantId)
@@ -255,6 +262,7 @@ export class ProviderReadModelRepository {
     const searchPattern = `%${query}%`;
 
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("*")
       .eq("tenant_id", tenantId)
@@ -279,6 +287,7 @@ export class ProviderReadModelRepository {
     limit = 100,
   ): Promise<ProviderReadModel[]> {
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("*")
       .eq("tenant_id", tenantId)
@@ -357,6 +366,7 @@ export class ProviderReadModelRepository {
    */
   async exists(providerId: string): Promise<boolean> {
     const { data, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("provider_id")
       .eq("provider_id", providerId)
@@ -374,6 +384,7 @@ export class ProviderReadModelRepository {
    */
   async countByTenant(tenantId: string): Promise<number> {
     const { count, error } = await this.supabase
+      .schema(this.schema)
       .from(this.table)
       .select("provider_id", { count: "exact", head: true })
       .eq("tenant_id", tenantId);

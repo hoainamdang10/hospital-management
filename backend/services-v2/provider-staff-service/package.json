@@ -17,7 +17,8 @@
     "test:coverage:unit": "jest --coverage --testPathIgnorePatterns=integration",
     "test:coverage:integration": "jest --config jest.integration.config.js --coverage",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "backfill:readmodel": "ts-node -r tsconfig-paths/register scripts/backfill-staff-readmodel.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",

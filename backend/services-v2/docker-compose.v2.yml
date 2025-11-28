@@ -294,8 +294,8 @@ services:
       - DATABASE_SCHEMA=provider_schema
       # Department management now integrated (departments_schema also accessible)
       - IDENTITY_SERVICE_URL=http://identity-service:3001
-      - BYPASS_AUTH=true # Enable auth bypass for development/testing
-      - DISABLE_RATE_LIMIT=true # Disable rate limiting for development
+      - BYPASS_AUTH=false
+      - DISABLE_RATE_LIMIT=true
     depends_on:
       - redis-v2
       - rabbitmq-v2

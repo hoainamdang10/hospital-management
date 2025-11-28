@@ -110,6 +110,16 @@ export default function AddDoctorPage() {
 
     try {
       const { authService } = await import('@/lib/api/auth.service');
+      const selectedDept = departments.find((d) => d.code === formData.department);
+      const selectedSpec =
+        departments.find((d) => d.code.toLowerCase() === formData.specialization) || selectedDept;
+      const educationArray = formData.education
+        ? formData.education
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
       const payload = {
         email: formData.email,
         fullName: formData.fullName,
@@ -117,15 +127,19 @@ export default function AddDoctorPage() {
         phoneNumber: formData.phone,
         // Các field chuyên môn gửi phẳng để backend lưu vào invitationData
         departmentCode: formData.department || 'GENERAL',
-        specializationCode: formData.specialization || undefined,
-        specialization: formData.specialization || undefined,
-        specializationName: formData.specialization || undefined,
+        departmentName: selectedDept?.nameVi || selectedDept?.nameEn,
+        specializationCode:
+          formData.specialization || selectedSpec?.code?.toLowerCase() || undefined,
+        specialization: formData.specialization || selectedSpec?.code?.toLowerCase() || undefined,
+        specializationName:
+          selectedSpec?.nameVi || selectedSpec?.nameEn || formData.specialization || undefined,
         title: 'Bác sĩ',
         position: 'Bác sĩ điều trị',
         licenseNumber: formData.licenseNumber || `TEMP-${Date.now()}`,
         employmentType: 'full_time' as const,
         yearsOfExperience: Number(formData.experience || 0),
-        education: formData.education ? [formData.education] : ['General Medicine'],
+        education: educationArray.length > 0 ? educationArray : ['General Medicine'],
+        bio: formData.bio || undefined,
         workSchedule: {
           workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
           workingHours: { start: '08:00', end: '17:00' },

@@ -492,6 +492,8 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
             // Extract professional data (all optional for backward compatibility)
             const departmentRaw = invitationData?.["department"] ?? invitationData?.["departmentCode"];
             const department = typeof departmentRaw === "string" ? departmentRaw : undefined;
+            const departmentNameRaw = invitationData?.["departmentName"];
+            const departmentName = typeof departmentNameRaw === "string" ? departmentNameRaw : undefined;
             const specializationCodeRaw = invitationData?.["specializationCode"] ??
                 invitationData?.["specialization"];
             const specializationCode = typeof specializationCodeRaw === "string"
@@ -502,7 +504,9 @@ class User extends aggregate_root_1.HealthcareAggregateRoot {
                 invitationData?.["specializationNameEn"];
             const specializationName = typeof specializationNameRaw === "string"
                 ? specializationNameRaw
-                : undefined;
+                : specializationCode
+                    ? specializationCode.toUpperCase()
+                    : undefined;
             const licenseNumberRaw = invitationData?.["licenseNumber"];
             const licenseNumber = typeof licenseNumberRaw === "string" ? licenseNumberRaw : undefined;
             const educationRaw = invitationData?.["education"];

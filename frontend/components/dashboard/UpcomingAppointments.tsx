@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreVertical, Calendar as CalendarIcon, Clock, User } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { appointmentsService } from '@/lib/api/appointments.service';
+import { cn } from '@/lib/utils';
 
 interface Appointment {
   id: string;
@@ -136,13 +137,13 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return 'bg-teal-100 text-teal-700';
+        return 'bg-teal-50 text-teal-700 border-teal-100';
       case 'pending':
-        return 'bg-orange-100 text-orange-700';
+        return 'bg-orange-50 text-orange-700 border-orange-100';
       case 'cancelled':
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-50 text-gray-700 border-gray-100';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-50 text-gray-700 border-gray-100';
     }
   };
 
@@ -161,14 +162,14 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">Lịch hẹn sắp tới</h2>
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex animate-pulse gap-4">
-              <div className="h-16 flex-1 rounded bg-gray-200" />
+              <div className="h-16 flex-1 rounded-xl bg-gray-100" />
             </div>
           ))}
         </div>
@@ -177,28 +178,38 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="p-6">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Patient Appointment</h2>
-        <button className="text-sm font-medium text-blue-600 hover:text-blue-700">View All</button>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-xl">
+            <CalendarIcon className="w-6 h-6 text-blue-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Lịch hẹn sắp tới</h2>
+        </div>
+        <button className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors">Xem tất cả</button>
       </div>
 
       {/* Mini Calendar */}
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="mb-4 flex items-center justify-between">
-          <button
-            onClick={handlePrevWeek}
-            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <button
-            onClick={handleNextWeek}
-            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
-          >
-            <ChevronRight className="h-5 w-5 text-gray-600" />
-          </button>
+          <span className="text-sm font-medium text-gray-500">
+            Tháng {format(weekStart, 'M, yyyy')}
+          </span>
+          <div className="flex gap-1">
+            <button
+              onClick={handlePrevWeek}
+              className="rounded-full p-1.5 hover:bg-gray-100 transition-colors text-gray-600"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleNextWeek}
+              className="rounded-full p-1.5 hover:bg-gray-100 transition-colors text-gray-600"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-7 gap-2">
@@ -210,15 +221,16 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
               <button
                 key={index}
                 onClick={() => setSelectedDate(day)}
-                className={`flex flex-col items-center rounded-lg p-3 transition-all ${
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-2xl py-3 transition-all duration-200",
                   isSelected
-                    ? 'bg-blue-900 text-white shadow-lg'
+                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30 scale-105'
                     : isToday
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                }`}
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'hover:bg-gray-50 text-gray-600'
+                )}
               >
-                <span className="mb-1 text-xs font-medium">
+                <span className="mb-1 text-xs font-medium opacity-80">
                   {format(day, 'EEE', { locale: vi }).toUpperCase()}
                 </span>
                 <span className="text-lg font-bold">{format(day, 'd')}</span>
@@ -228,60 +240,66 @@ export function UpcomingAppointments({ patientId }: UpcomingAppointmentsProps) {
         </div>
       </div>
 
-      {/* Appointments Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                Name
-              </th>
-              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                Date
-              </th>
-              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                Time
-              </th>
-              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                Doctor
-              </th>
-              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                Treatment
-              </th>
-              <th className="pb-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="pb-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {appointments.map((appointment) => (
-              <tr key={appointment.id} className="group transition-colors hover:bg-gray-50">
-                <td className="py-4 text-sm font-medium text-gray-900">
-                  {appointment.patientName}
-                </td>
-                <td className="py-4 text-sm text-gray-600">{appointment.date}</td>
-                <td className="py-4 text-sm text-gray-600">{appointment.time}</td>
-                <td className="py-4 text-sm text-gray-600">{appointment.doctor}</td>
-                <td className="py-4 text-sm text-gray-600">{appointment.treatment}</td>
-                <td className="py-4">
-                  <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(
-                      appointment.status
-                    )}`}
-                  >
-                    {getStatusLabel(appointment.status)}
-                  </span>
-                </td>
-                <td className="py-4">
-                  <button className="rounded-lg p-1 opacity-0 transition-all group-hover:opacity-100 hover:bg-gray-200">
-                    <MoreVertical className="h-4 w-4 text-gray-600" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Appointments List (Mobile Friendly) */}
+      <div className="space-y-4">
+        {appointments.length > 0 ? (
+          appointments.map((appointment) => (
+            <div
+              key={appointment.id}
+              className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white/50 p-4 transition-all hover:bg-white hover:shadow-md hover:border-gray-200"
+            >
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                  <User className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">{appointment.doctor}</h4>
+                  <p className="text-sm text-gray-500">{appointment.treatment}</p>
+                  <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 sm:hidden">
+                    <div className="flex items-center gap-1">
+                      <CalendarIcon className="h-3 w-3" />
+                      {appointment.date}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {appointment.time}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between sm:justify-end gap-6">
+                <div className="hidden sm:block text-right">
+                  <div className="flex items-center justify-end gap-1.5 text-sm font-medium text-gray-900">
+                    <CalendarIcon className="h-4 w-4 text-gray-400" />
+                    {appointment.date}
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5 text-xs text-gray-500 mt-1">
+                    <Clock className="h-3 w-3 text-gray-400" />
+                    {appointment.time}
+                  </div>
+                </div>
+
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border",
+                    getStatusColor(appointment.status)
+                  )}
+                >
+                  {getStatusLabel(appointment.status)}
+                </span>
+
+                <button className="rounded-full p-2 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            Không có lịch hẹn nào trong ngày này.
+          </div>
+        )}
       </div>
     </div>
   );

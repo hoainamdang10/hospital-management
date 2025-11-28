@@ -33,7 +33,7 @@ class ProviderEventConsumer {
         const eventId = event.eventId || event.id || event.metadata?.eventId;
         const eventType = event.eventType || event.type;
         if (!eventId) {
-            console.error('[ProviderEventConsumer] Missing eventId, cannot process:', event);
+            console.error("[ProviderEventConsumer] Missing eventId, cannot process:", event);
             return;
         }
         // Idempotency check
@@ -45,20 +45,20 @@ class ProviderEventConsumer {
         try {
             // Route to handler based on event type
             switch (eventType) {
-                case 'provider.staff.created':
-                case 'StaffRegisteredEvent':
+                case "provider.staff.created":
+                case "StaffRegisteredEvent":
                     await this.handleStaffCreated(event);
                     break;
-                case 'provider.staff.updated':
-                case 'StaffUpdatedEvent':
+                case "provider.staff.updated":
+                case "StaffUpdatedEvent":
                     await this.handleStaffUpdated(event);
                     break;
-                case 'provider.staff.deactivated':
-                case 'provider.staff.status.changed':
-                case 'StaffStatusChangedEvent':
+                case "provider.staff.deactivated":
+                case "provider.staff.status.changed":
+                case "StaffStatusChangedEvent":
                     await this.handleStaffStatusChanged(event);
                     break;
-                case 'provider.staff.deleted':
+                case "provider.staff.deleted":
                     await this.handleStaffDeleted(event);
                     break;
                 default:
@@ -69,8 +69,8 @@ class ProviderEventConsumer {
             await this.inboxRepo.save({
                 eventId,
                 eventType,
-                sourceService: 'provider-staff-service',
-                payloadJson: event
+                sourceService: "provider-staff-service",
+                payloadJson: event,
             });
             console.log(`[ProviderEventConsumer] Event processed successfully: ${eventId}`);
         }
@@ -84,21 +84,13 @@ class ProviderEventConsumer {
      */
     async handleStaffCreated(event) {
         const payload = event.payload || event.data || event;
-        const staffData = {
-            providerId: payload.staffId || payload.id,
-            tenantId: payload.tenantId || 'default-tenant',
-            fullName: `${payload.firstName} ${payload.lastName}`,
-            specialization: payload.specialization,
-            department: payload.departmentId,
-            licenseNumber: payload.licenseNumber,
-            phone: payload.phone,
-            email: payload.email,
-            isActive: payload.status === 'active',
+        const staffData = this.mapPayloadToProvider(payload);
+        await this.providerReadRepo.upsert({
+            ...staffData,
             syncedAt: new Date(),
             createdAt: payload.createdAt || new Date(),
-            updatedAt: payload.updatedAt || new Date()
-        };
-        await this.providerReadRepo.upsert(staffData);
+            updatedAt: payload.updatedAt || new Date(),
+        });
         console.log(`[ProviderEventConsumer] Staff created in read model: ${staffData.providerId}`);
     }
     /**
@@ -106,51 +98,29 @@ class ProviderEventConsumer {
      */
     async handleStaffUpdated(event) {
         const payload = event.payload || event.data || event;
-        const staffId = payload.staffId || payload.id;
-        const updates = {
-            providerId: staffId,
-            tenantId: payload.tenantId || 'default-tenant',
-            isActive: payload.status === 'active',
+        const staffData = this.mapPayloadToProvider(payload);
+        await this.providerReadRepo.upsert({
+            ...staffData,
             syncedAt: new Date(),
-            updatedAt: new Date()
-        };
-        // Only update fields that are present
-        if (payload.firstName && payload.lastName) {
-            updates.fullName = `${payload.firstName} ${payload.lastName}`;
-        }
-        if (payload.email !== undefined)
-            updates.email = payload.email;
-        if (payload.phone !== undefined)
-            updates.phone = payload.phone;
-        if (payload.specialization !== undefined)
-            updates.specialization = payload.specialization;
-        if (payload.licenseNumber !== undefined)
-            updates.licenseNumber = payload.licenseNumber;
-        if (payload.departmentId !== undefined)
-            updates.department = payload.departmentId;
-        await this.providerReadRepo.upsert(updates);
-        console.log(`[ProviderEventConsumer] Staff updated in read model: ${staffId}`);
+            updatedAt: new Date(),
+        });
+        console.log(`[ProviderEventConsumer] Staff updated in read model: ${staffData.providerId}`);
     }
     /**
      * Handle staff status changed event
      */
     async handleStaffStatusChanged(event) {
         const payload = event.payload || event.data || event;
-        const staffId = payload.staffId || payload.id;
-        const status = payload.status || payload.newStatus;
-        const isActive = status === 'active';
+        const staffData = this.mapPayloadToProvider(payload);
         await this.providerReadRepo.upsert({
-            providerId: staffId,
-            tenantId: payload.tenantId || 'default-tenant',
-            fullName: payload.fullName || 'Unknown', // Required field, use placeholder if not provided
-            isActive,
+            ...staffData,
             syncedAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
         });
-        console.log(`[ProviderEventConsumer] Staff status updated: ${staffId} -> ${status}`);
+        console.log(`[ProviderEventConsumer] Staff status updated: ${staffData.providerId} -> ${payload.status || payload.newStatus}`);
         // If staff is deactivated, handle appointment implications
-        if (!isActive) {
-            console.warn(`[ProviderEventConsumer] Staff ${staffId} deactivated - should trigger appointment rescheduling`);
+        if (!staffData.isActive) {
+            console.warn(`[ProviderEventConsumer] Staff ${staffData.providerId} deactivated - should trigger appointment rescheduling`);
             // TODO: Trigger rescheduling use case or emit internal event
         }
     }
@@ -164,6 +134,97 @@ class ProviderEventConsumer {
         console.log(`[ProviderEventConsumer] Staff deleted from read model: ${staffId}`);
         // Appointments with this staff should be handled
         console.warn(`[ProviderEventConsumer] Staff ${staffId} deleted - appointments require attention`);
+    }
+    /**
+     * Map various payload shapes from provider-staff service into ProviderReadModel fields
+     * Handles both camelCase and snake_case, and ensures fullName is non-null.
+     */
+    mapPayloadToProvider(payload) {
+        // Unwrap GenericIntegrationEvent shape where actual payload is in `data`
+        const src = payload && typeof payload.data === "object" ? payload.data : payload;
+        const updated = src.updatedData || {};
+        const personalUpdated = updated.personalInfo || updated.personal_info || {};
+        const professionalUpdated = updated.professionalInfo || updated.professional_info || {};
+        const normalizeId = (value) => {
+            if (typeof value === "string")
+                return value;
+            if (value?.props?.value)
+                return value.props.value;
+            if (value?.value)
+                return value.value;
+            return `${value ?? "unknown"}`;
+        };
+        const personal = src.personalInfo || src.personal_info || src.personal || {};
+        const professional = src.professionalInfo || src.professional_info || src.professional || {};
+        const firstName = personal.firstName ||
+            personal.first_name ||
+            personalUpdated.firstName ||
+            personalUpdated.first_name ||
+            src.firstName ||
+            src.first_name ||
+            "";
+        const lastName = personal.lastName ||
+            personal.last_name ||
+            personalUpdated.lastName ||
+            personalUpdated.last_name ||
+            src.lastName ||
+            src.last_name ||
+            "";
+        const fullNameCandidates = [
+            src.fullName,
+            personal.fullName,
+            personal.full_name,
+            personalUpdated.fullName,
+            personalUpdated.full_name,
+            `${firstName} ${lastName}`.trim(),
+        ].filter((v) => typeof v === "string" && v.trim().length > 0);
+        const providerId = normalizeId(src.staffId || src.id || src.aggregateId || personal.staffId);
+        const fullName = (fullNameCandidates[0] ||
+            `${providerId}` ||
+            "Unknown").trim();
+        const specialization = src.specialization ||
+            professional.specialization ||
+            professional.specializationName ||
+            professional.title ||
+            professionalUpdated.specialization ||
+            professionalUpdated.specializationName ||
+            professionalUpdated.title;
+        const department = src.department ||
+            src.departmentId ||
+            professional.department ||
+            professional.departmentName ||
+            professional.department_name ||
+            professionalUpdated.department ||
+            professionalUpdated.departmentName ||
+            professionalUpdated.department_name;
+        const licenseNumber = src.licenseNumber ||
+            professional.licenseNumber ||
+            professional.license_number ||
+            professionalUpdated.licenseNumber ||
+            professionalUpdated.license_number ||
+            updated.licenseNumber;
+        const phone = personal.phoneNumber ||
+            personal.phone ||
+            personalUpdated.phoneNumber ||
+            personalUpdated.phone ||
+            src.phone ||
+            src.phoneNumber;
+        const email = personal.email || personalUpdated.email || src.email || updated.email;
+        const statusValue = src.status || src.newStatus || src.isActive || "active";
+        const isActive = typeof statusValue === "string"
+            ? statusValue.toLowerCase() === "active"
+            : !!statusValue;
+        return {
+            providerId,
+            tenantId: payload.tenantId || "hospital-1",
+            fullName,
+            specialization: specialization || null,
+            department: department || null,
+            licenseNumber: licenseNumber || null,
+            phone: phone || null,
+            email: email || null,
+            isActive,
+        };
     }
 }
 exports.ProviderEventConsumer = ProviderEventConsumer;

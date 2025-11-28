@@ -220,11 +220,22 @@ class AppointmentController {
      */
     async confirmAppointment(req, res) {
         try {
-            const userId = req.user?.id;
+            const user = req.user;
+            const userId = user?.id;
+            const userRole = user?.role;
             if (!userId) {
                 res.status(401).json({
                     success: false,
                     message: "Unauthorized",
+                });
+                return;
+            }
+            if (userRole === "doctor" &&
+                req.body?.doctorId &&
+                req.body.doctorId !== userId) {
+                res.status(403).json({
+                    success: false,
+                    message: "Forbidden: doctor can only confirm own appointments",
                 });
                 return;
             }
@@ -248,11 +259,22 @@ class AppointmentController {
      */
     async completeAppointment(req, res) {
         try {
-            const userId = req.user?.id;
+            const user = req.user;
+            const userId = user?.id;
+            const userRole = user?.role;
             if (!userId) {
                 res.status(401).json({
                     success: false,
                     message: "Unauthorized",
+                });
+                return;
+            }
+            if (userRole === "doctor" &&
+                req.body?.doctorId &&
+                req.body.doctorId !== userId) {
+                res.status(403).json({
+                    success: false,
+                    message: "Forbidden: doctor can only complete own appointments",
                 });
                 return;
             }
@@ -276,11 +298,22 @@ class AppointmentController {
      */
     async cancelAppointment(req, res) {
         try {
-            const userId = req.user?.id;
+            const user = req.user;
+            const userId = user?.id;
+            const userRole = user?.role;
             if (!userId) {
                 res.status(401).json({
                     success: false,
                     message: "Unauthorized",
+                });
+                return;
+            }
+            if (userRole === "doctor" &&
+                req.body?.doctorId &&
+                req.body.doctorId !== userId) {
+                res.status(403).json({
+                    success: false,
+                    message: "Forbidden: doctor can only cancel own appointments",
                 });
                 return;
             }
@@ -413,9 +446,20 @@ class AppointmentController {
      */
     async rescheduleAppointment(req, res) {
         try {
-            const userId = req.user?.id;
+            const user = req.user;
+            const userId = user?.id;
+            const userRole = user?.role;
             if (!userId) {
                 res.status(401).json({ success: false, message: "Unauthorized" });
+                return;
+            }
+            if (userRole === "doctor" &&
+                req.body?.doctorId &&
+                req.body.doctorId !== userId) {
+                res.status(403).json({
+                    success: false,
+                    message: "Forbidden: doctor can only reschedule own appointments",
+                });
                 return;
             }
             const { appointmentDate, appointmentTime, reason, notifyPatient, notifyDoctor, } = req.body;
@@ -445,9 +489,21 @@ class AppointmentController {
      */
     async checkInAppointment(req, res) {
         try {
-            const userId = req.user?.id;
+            const user = req.user;
+            const userId = user?.id;
+            const userRole = user?.role;
             if (!userId) {
                 res.status(401).json({ success: false, message: "Unauthorized" });
+                return;
+            }
+            // Optional guard: doctor can only check-in own appointments if doctorId is provided in body
+            if (userRole === "doctor" &&
+                req.body?.doctorId &&
+                req.body.doctorId !== userId) {
+                res.status(403).json({
+                    success: false,
+                    message: "Forbidden: doctor can only check-in own appointments",
+                });
                 return;
             }
             const result = await this.checkInAppointmentUseCase.execute({
@@ -497,9 +553,21 @@ class AppointmentController {
      */
     async startAppointment(req, res) {
         try {
-            const userId = req.user?.id;
+            const user = req.user;
+            const userId = user?.id;
+            const userRole = user?.role;
             if (!userId) {
                 res.status(401).json({ success: false, message: "Unauthorized" });
+                return;
+            }
+            // Doctor can only start own appointments
+            if (userRole === "doctor" &&
+                req.body?.doctorId &&
+                req.body.doctorId !== userId) {
+                res.status(403).json({
+                    success: false,
+                    message: "Forbidden: doctor can only start own appointments",
+                });
                 return;
             }
             const result = await this.startAppointmentUseCase.execute({

@@ -7,7 +7,7 @@
  * event-driven architecture between microservices.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EVENT_TYPE_REGISTRY = exports.NotificationFailedEvent = exports.NotificationSentEvent = exports.InsuranceClaimProcessedEvent = exports.InsuranceClaimSubmittedEvent = exports.InvoiceOverdueEvent = exports.PaymentReceivedEvent = exports.InvoiceGeneratedEvent = exports.LabResultsReadyEvent = exports.PrescriptionCreatedEvent = exports.MedicalRecordCreatedEvent = exports.AppointmentCompletedEvent = exports.AppointmentCancelledEvent = exports.AppointmentConfirmedEvent = exports.AppointmentRescheduledEvent = exports.AppointmentScheduledEvent = exports.DoctorAvailabilityChangedEvent = exports.DoctorScheduleUpdatedEvent = exports.DoctorRegisteredEvent = exports.PatientInsuranceUpdatedEvent = exports.PatientUpdatedEvent = exports.PatientRegisteredEvent = exports.UserDeactivatedEvent = exports.UserRoleChangedEvent = exports.UserAuthenticatedEvent = exports.UserCreatedEvent = void 0;
+exports.EVENT_TYPE_REGISTRY = exports.NotificationFailedEvent = exports.NotificationSentEvent = exports.InsuranceClaimProcessedEvent = exports.InsuranceClaimSubmittedEvent = exports.InvoiceOverdueEvent = exports.PaymentReceivedEvent = exports.InvoiceGeneratedEvent = exports.LabResultsReadyEvent = exports.PrescriptionCreatedEvent = exports.MedicalRecordCreatedEvent = exports.AppointmentCompletedEvent = exports.AppointmentCancelledEvent = exports.AppointmentConfirmedEvent = exports.AppointmentStartedEvent = exports.AppointmentCheckedInEvent = exports.AppointmentRescheduledEvent = exports.AppointmentScheduledEvent = exports.DoctorAvailabilityChangedEvent = exports.DoctorScheduleUpdatedEvent = exports.DoctorRegisteredEvent = exports.PatientInsuranceUpdatedEvent = exports.PatientUpdatedEvent = exports.PatientRegisteredEvent = exports.UserDeactivatedEvent = exports.UserRoleChangedEvent = exports.UserAuthenticatedEvent = exports.UserCreatedEvent = void 0;
 const domain_event_1 = require("../base/domain-event");
 // ============================================================================
 // IDENTITY SERVICE EVENTS
@@ -17,14 +17,38 @@ const domain_event_1 = require("../base/domain-event");
  * Subscribers: Patient Service, Doctor Service, Notification Service
  */
 class UserCreatedEvent extends domain_event_1.DomainEvent {
-    constructor(userId, email, fullName, roleType, citizenId, phoneNumber) {
-        super("UserCreated", userId, "User", { email, fullName, roleType, citizenId, phoneNumber }, 1, undefined, undefined, userId);
+    constructor(userId, email, fullName, roleType, citizenId, phoneNumber, 
+    // Professional fields (optional to keep backward compatibility)
+    department, specializationCode, specializationName, licenseNumber, education, yearsOfExperience, position, title) {
+        super("UserCreated", userId, "User", {
+            email,
+            fullName,
+            roleType,
+            citizenId,
+            phoneNumber,
+            department,
+            specializationCode,
+            specializationName,
+            licenseNumber,
+            education,
+            yearsOfExperience,
+            position,
+            title,
+        }, 1, undefined, undefined, userId);
         this.userId = userId;
         this.email = email;
         this.fullName = fullName;
         this.roleType = roleType;
         this.citizenId = citizenId;
         this.phoneNumber = phoneNumber;
+        this.department = department;
+        this.specializationCode = specializationCode;
+        this.specializationName = specializationName;
+        this.licenseNumber = licenseNumber;
+        this.education = education;
+        this.yearsOfExperience = yearsOfExperience;
+        this.position = position;
+        this.title = title;
     }
     getEventData() {
         return {
@@ -34,6 +58,14 @@ class UserCreatedEvent extends domain_event_1.DomainEvent {
             roleType: this.roleType,
             citizenId: this.citizenId,
             phoneNumber: this.phoneNumber,
+            department: this.department,
+            specializationCode: this.specializationCode,
+            specializationName: this.specializationName,
+            licenseNumber: this.licenseNumber,
+            education: this.education,
+            yearsOfExperience: this.yearsOfExperience,
+            position: this.position,
+            title: this.title,
         };
     }
     containsPHI() {
@@ -456,6 +488,84 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
     }
 }
 exports.AppointmentRescheduledEvent = AppointmentRescheduledEvent;
+/**
+ * PLACEHOLDER: AppointmentCheckedInEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+class AppointmentCheckedInEvent extends domain_event_1.DomainEvent {
+    constructor(appointmentId, patientId, doctorId, checkedInAt, priority, correlationId, causationId, userId) {
+        const checkedInDate = checkedInAt instanceof Date ? checkedInAt : new Date(checkedInAt);
+        super("AppointmentCheckedIn", appointmentId, "Appointment", {
+            appointmentId,
+            patientId,
+            doctorId,
+            checkedInAt: checkedInDate,
+            priority,
+        }, 1, correlationId, causationId, userId);
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.checkedInAt = checkedInAt;
+        this.priority = priority;
+    }
+    getEventData() {
+        return {
+            appointmentId: this.appointmentId,
+            patientId: this.patientId,
+            doctorId: this.doctorId,
+            checkedInAt: this.checkedInAt,
+            priority: this.priority,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId || null;
+    }
+}
+exports.AppointmentCheckedInEvent = AppointmentCheckedInEvent;
+/**
+ * PLACEHOLDER: AppointmentStartedEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+class AppointmentStartedEvent extends domain_event_1.DomainEvent {
+    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, startedBy, correlationId, causationId, userId) {
+        super("AppointmentStarted", appointmentId, "Appointment", {
+            appointmentId,
+            patientId,
+            doctorId,
+            appointmentDate,
+            appointmentTime,
+            startedAt: new Date(),
+            startedBy,
+        }, 1, correlationId, causationId, userId);
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.appointmentDate = appointmentDate;
+        this.appointmentTime = appointmentTime;
+        this.startedBy = startedBy;
+    }
+    getEventData() {
+        return {
+            appointmentId: this.appointmentId,
+            patientId: this.patientId,
+            doctorId: this.doctorId,
+            appointmentDate: this.appointmentDate,
+            appointmentTime: this.appointmentTime,
+            startedAt: this.occurredAt,
+            startedBy: this.startedBy,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId || null;
+    }
+}
+exports.AppointmentStartedEvent = AppointmentStartedEvent;
 /**
  * Published when appointment is confirmed
  * Subscribers: Notification Service, Doctor Service
@@ -993,6 +1103,8 @@ exports.EVENT_TYPE_REGISTRY = {
     // Scheduling Service Events
     AppointmentScheduled: AppointmentScheduledEvent,
     AppointmentRescheduled: AppointmentRescheduledEvent,
+    AppointmentCheckedIn: AppointmentCheckedInEvent,
+    AppointmentStarted: AppointmentStartedEvent,
     AppointmentConfirmed: AppointmentConfirmedEvent,
     AppointmentCancelled: AppointmentCancelledEvent,
     AppointmentCompleted: AppointmentCompletedEvent,

@@ -7,14 +7,15 @@
  * @compliance RESTful API, Clean Architecture
  */
 
-import { Router } from 'express';
-import { StaffController } from '../controllers/StaffController';
-import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';
-import { RateLimitMiddleware } from '../middleware/RateLimitMiddleware';
-import { AuthenticationMiddleware } from '../middleware/AuthenticationMiddleware';
+import { Router } from "express";
+import { StaffController } from "../controllers/StaffController";
+import { ErrorHandlingMiddleware } from "../middleware/ErrorHandlingMiddleware";
+import { RateLimitMiddleware } from "../middleware/RateLimitMiddleware";
+import { AuthenticationMiddleware } from "../middleware/AuthenticationMiddleware";
 import {
   validateRegisterStaff,
   validateUpdateStaffInfo,
+  validateSelfUpdateStaffInfo,
   validateStaffId,
   validateUserId,
   validateLicenseNumber,
@@ -30,8 +31,8 @@ import {
   validateReactivateStaff,
   validateTerminateStaff,
   validateUpdateEmploymentStatus,
-  validateUpdateSchedule
-} from '../middleware/ValidationMiddleware';
+  validateUpdateSchedule,
+} from "../middleware/ValidationMiddleware";
 
 /**
  * Create staff routes with authentication and rate limiting
@@ -41,37 +42,52 @@ export function createStaffRoutes(controller: StaffController): Router {
   const asyncHandler = ErrorHandlingMiddleware.asyncHandler;
 
   // Check if auth bypass is enabled (for development/testing)
-  const bypassAuth = process.env.BYPASS_AUTH === 'true';
+  const bypassAuth = process.env.BYPASS_AUTH === "true";
 
   // Create authentication middleware
-  const requireAuth = bypassAuth 
+  const requireAuth = bypassAuth
     ? AuthenticationMiddleware.bypassAuth
     : AuthenticationMiddleware.requireAuth(
-        process.env.SUPABASE_URL || '',
-        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+        process.env.SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || "",
       );
 
   const adminOnly = bypassAuth
     ? AuthenticationMiddleware.bypassAuth
     : AuthenticationMiddleware.adminOnly(
-        process.env.SUPABASE_URL || '',
-        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+        process.env.SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || "",
       );
 
   const healthcareStaffOnly = bypassAuth
     ? AuthenticationMiddleware.bypassAuth
     : AuthenticationMiddleware.healthcareStaffOnly(
-        process.env.SUPABASE_URL || '',
-        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+        process.env.SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || "",
       );
 
   // Log auth bypass status
   if (bypassAuth) {
-    console.warn('[SECURITY WARNING] Authentication bypass is ENABLED. This should only be used in development/testing!');
+    console.warn(
+      "[SECURITY WARNING] Authentication bypass is ENABLED. This should only be used in development/testing!",
+    );
   }
 
   // Apply general rate limiting to all routes
   router.use(RateLimitMiddleware.general);
+
+  // ==================== SELF SERVICE (DOCTOR) ====================
+  /**
+   * Self update staff info (doctor tự cập nhật hồ sơ)
+   * PUT /api/v1/staff/me
+   * - Auth bắt buộc, không rate-limit để tránh cảnh báo trust proxy
+   */
+  router.put(
+    "/me",
+    healthcareStaffOnly,
+    validateSelfUpdateStaffInfo,
+    asyncHandler(controller.selfUpdateStaffInfo.bind(controller)),
+  );
 
   // ==================== PUBLIC ROUTES ====================
 
@@ -80,11 +96,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * POST /api/v1/staff
    */
   router.post(
-    '/',
+    "/",
     RateLimitMiddleware.writeOperations,
     adminOnly,
     validateRegisterStaff,
-    asyncHandler(controller.registerStaff.bind(controller))
+    asyncHandler(controller.registerStaff.bind(controller)),
   );
 
   // ==================== LIST STAFF ROUTES ====================
@@ -94,26 +110,26 @@ export function createStaffRoutes(controller: StaffController): Router {
    * GET /api/v1/staff?staffType=...&departmentId=...&status=...&page=1&limit=20
    */
   router.get(
-    '/',
+    "/",
     RateLimitMiddleware.search,
     requireAuth,
     validateGetStaffList,
-    asyncHandler(controller.getAllStaff.bind(controller))
+    asyncHandler(controller.getAllStaff.bind(controller)),
   );
 
   // ==================== SEARCH ROUTES ====================
 
   /**
-    * Search staff (PUBLIC - for appointment booking)
-    * GET /api/v1/staff/search?searchTerm=...&departmentId=...&staffType=doctor
-    * No authentication required - patients need to search doctors for booking
-    */
-   router.get(
-     '/search',
-     RateLimitMiddleware.search,
-     validateSearchStaff,
-     asyncHandler(controller.searchStaff.bind(controller))
-   );
+   * Search staff (PUBLIC - for appointment booking)
+   * GET /api/v1/staff/search?searchTerm=...&departmentId=...&staffType=doctor
+   * No authentication required - patients need to search doctors for booking
+   */
+  router.get(
+    "/search",
+    RateLimitMiddleware.search,
+    validateSearchStaff,
+    asyncHandler(controller.searchStaff.bind(controller)),
+  );
 
   // ==================== GET STAFF ROUTES ====================
 
@@ -122,10 +138,10 @@ export function createStaffRoutes(controller: StaffController): Router {
    * GET /api/v1/staff/user/:userId
    */
   router.get(
-    '/user/:userId',
+    "/user/:userId",
     requireAuth,
     validateUserId,
-    asyncHandler(controller.getStaffByUserId.bind(controller))
+    asyncHandler(controller.getStaffByUserId.bind(controller)),
   );
 
   /**
@@ -133,10 +149,22 @@ export function createStaffRoutes(controller: StaffController): Router {
    * GET /api/v1/staff/license/:licenseNumber
    */
   router.get(
-    '/license/:licenseNumber',
+    "/license/:licenseNumber",
     healthcareStaffOnly,
     validateLicenseNumber,
-    asyncHandler(controller.getStaffByLicenseNumber.bind(controller))
+    asyncHandler(controller.getStaffByLicenseNumber.bind(controller)),
+  );
+
+  /**
+   * Check license availability (for admin/invitation form pre-check)
+   * GET /api/v1/staff/license-check/:licenseNumber
+   */
+  router.get(
+    "/license-check/:licenseNumber",
+    RateLimitMiddleware.search,
+    adminOnly,
+    validateLicenseNumber,
+    asyncHandler(controller.checkLicenseAvailability.bind(controller)),
   );
 
   /**
@@ -145,10 +173,10 @@ export function createStaffRoutes(controller: StaffController): Router {
    * Note: This must be last among GET routes to avoid conflicts
    */
   router.get(
-    '/:staffId',
+    "/:staffId",
     requireAuth,
     validateStaffId,
-    asyncHandler(controller.getStaffById.bind(controller))
+    asyncHandler(controller.getStaffById.bind(controller)),
   );
 
   // ==================== UPDATE STAFF ROUTES ====================
@@ -158,11 +186,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * PUT /api/v1/staff/:staffId
    */
   router.put(
-    '/:staffId',
+    "/:staffId",
     RateLimitMiddleware.writeOperations,
     adminOnly,
     validateUpdateStaffInfo,
-    asyncHandler(controller.updateStaffInfo.bind(controller))
+    asyncHandler(controller.updateStaffInfo.bind(controller)),
   );
 
   /**
@@ -170,12 +198,12 @@ export function createStaffRoutes(controller: StaffController): Router {
    * POST /api/v1/staff/:staffId/departments
    */
   router.post(
-    '/:staffId/departments',
+    "/:staffId/departments",
     RateLimitMiddleware.writeOperations,
     adminOnly,
     validateStaffId,
     validateAssignDepartment,
-    asyncHandler(controller.assignToDepartment.bind(controller))
+    asyncHandler(controller.assignToDepartment.bind(controller)),
   );
 
   // ==================== CREDENTIAL MANAGEMENT ROUTES ====================
@@ -186,10 +214,10 @@ export function createStaffRoutes(controller: StaffController): Router {
    * Note: This must be before /:staffId/credentials to avoid route conflicts
    */
   router.get(
-    '/credentials/expiring',
+    "/credentials/expiring",
     adminOnly,
     validateGetExpiringCredentials,
-    asyncHandler(controller.getExpiringCredentials.bind(controller))
+    asyncHandler(controller.getExpiringCredentials.bind(controller)),
   );
 
   /**
@@ -197,11 +225,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * POST /api/v1/staff/:staffId/credentials
    */
   router.post(
-    '/:staffId/credentials',
+    "/:staffId/credentials",
     RateLimitMiddleware.credentialManagement,
     adminOnly,
     validateAddCredential,
-    asyncHandler(controller.addStaffCredential.bind(controller))
+    asyncHandler(controller.addStaffCredential.bind(controller)),
   );
 
   /**
@@ -209,11 +237,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * PUT /api/v1/staff/:staffId/credentials/:credentialNumber/renew
    */
   router.put(
-    '/:staffId/credentials/:credentialNumber/renew',
+    "/:staffId/credentials/:credentialNumber/renew",
     RateLimitMiddleware.credentialManagement,
     adminOnly,
     validateRenewCredential,
-    asyncHandler(controller.renewStaffCredential.bind(controller))
+    asyncHandler(controller.renewStaffCredential.bind(controller)),
   );
 
   /**
@@ -221,11 +249,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * DELETE /api/v1/staff/:staffId/credentials/:credentialNumber
    */
   router.delete(
-    '/:staffId/credentials/:credentialNumber',
+    "/:staffId/credentials/:credentialNumber",
     RateLimitMiddleware.credentialManagement,
     adminOnly,
     validateRemoveCredential,
-    asyncHandler(controller.removeStaffCredential.bind(controller))
+    asyncHandler(controller.removeStaffCredential.bind(controller)),
   );
 
   // ==================== STATUS MANAGEMENT ROUTES ====================
@@ -235,11 +263,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * POST /api/v1/staff/:staffId/activate
    */
   router.post(
-    '/:staffId/activate',
+    "/:staffId/activate",
     RateLimitMiddleware.statusChange,
     adminOnly,
     validateActivateStaff,
-    asyncHandler(controller.activateStaff.bind(controller))
+    asyncHandler(controller.activateStaff.bind(controller)),
   );
 
   /**
@@ -247,11 +275,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * POST /api/v1/staff/:staffId/suspend
    */
   router.post(
-    '/:staffId/suspend',
+    "/:staffId/suspend",
     RateLimitMiddleware.statusChange,
     adminOnly,
     validateSuspendStaff,
-    asyncHandler(controller.suspendStaff.bind(controller))
+    asyncHandler(controller.suspendStaff.bind(controller)),
   );
 
   /**
@@ -259,11 +287,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * POST /api/v1/staff/:staffId/reactivate
    */
   router.post(
-    '/:staffId/reactivate',
+    "/:staffId/reactivate",
     RateLimitMiddleware.statusChange,
     adminOnly,
     validateReactivateStaff,
-    asyncHandler(controller.reactivateStaff.bind(controller))
+    asyncHandler(controller.reactivateStaff.bind(controller)),
   );
 
   /**
@@ -271,11 +299,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * POST /api/v1/staff/:staffId/terminate
    */
   router.post(
-    '/:staffId/terminate',
+    "/:staffId/terminate",
     RateLimitMiddleware.statusChange,
     adminOnly,
     validateTerminateStaff,
-    asyncHandler(controller.terminateStaff.bind(controller))
+    asyncHandler(controller.terminateStaff.bind(controller)),
   );
 
   /**
@@ -283,11 +311,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * PATCH /api/v1/staff/:staffId/employment-status
    */
   router.patch(
-    '/:staffId/employment-status',
+    "/:staffId/employment-status",
     RateLimitMiddleware.statusChange,
     adminOnly,
     validateUpdateEmploymentStatus,
-    asyncHandler(controller.updateEmploymentStatus.bind(controller))
+    asyncHandler(controller.updateEmploymentStatus.bind(controller)),
   );
 
   // ==================== SCHEDULE MANAGEMENT ====================
@@ -297,12 +325,12 @@ export function createStaffRoutes(controller: StaffController): Router {
    * PUT /api/v1/staff/:staffId/schedule
    */
   router.put(
-    '/:staffId/schedule',
+    "/:staffId/schedule",
     RateLimitMiddleware.writeOperations,
     adminOnly,
     validateStaffId,
     validateUpdateSchedule,
-    asyncHandler(controller.updateStaffSchedule.bind(controller))
+    asyncHandler(controller.updateStaffSchedule.bind(controller)),
   );
 
   /**
@@ -310,10 +338,10 @@ export function createStaffRoutes(controller: StaffController): Router {
    * GET /api/v1/staff/:staffId/schedule
    */
   router.get(
-    '/:staffId/schedule',
+    "/:staffId/schedule",
     requireAuth,
     validateStaffId,
-    asyncHandler(controller.getStaffSchedule.bind(controller))
+    asyncHandler(controller.getStaffSchedule.bind(controller)),
   );
 
   /**
@@ -340,26 +368,26 @@ export function createStaffRoutes(controller: StaffController): Router {
    * DELETE /api/v1/staff/:staffId/specializations/:specializationCode
    */
   router.get(
-    '/:staffId/specializations',
+    "/:staffId/specializations",
     requireAuth,
     validateStaffId,
-    asyncHandler(controller.getStaffSpecializations.bind(controller))
+    asyncHandler(controller.getStaffSpecializations.bind(controller)),
   );
 
   router.post(
-    '/:staffId/specializations',
+    "/:staffId/specializations",
     RateLimitMiddleware.writeOperations,
     adminOnly,
     validateStaffId,
-    asyncHandler(controller.addStaffSpecialization.bind(controller))
+    asyncHandler(controller.addStaffSpecialization.bind(controller)),
   );
 
   router.delete(
-    '/:staffId/specializations/:specializationCode',
+    "/:staffId/specializations/:specializationCode",
     RateLimitMiddleware.writeOperations,
     adminOnly,
     validateStaffId,
-    asyncHandler(controller.removeStaffSpecialization.bind(controller))
+    asyncHandler(controller.removeStaffSpecialization.bind(controller)),
   );
 
   /**
@@ -367,11 +395,11 @@ export function createStaffRoutes(controller: StaffController): Router {
    * PUT /api/v1/staff/:staffId/department-head
    */
   router.put(
-    '/:staffId/department-head',
+    "/:staffId/department-head",
     RateLimitMiddleware.writeOperations,
     adminOnly,
     validateStaffId,
-    asyncHandler(controller.setDepartmentHead.bind(controller))
+    asyncHandler(controller.setDepartmentHead.bind(controller)),
   );
 
   return router;
@@ -465,4 +493,3 @@ export function createStaffRoutes(controller: StaffController): Router {
  *     - Body: { employmentType, contractEndDate? }
  *     - Response: UpdateEmploymentStatusResponse
  */
-

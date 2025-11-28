@@ -44,7 +44,7 @@
   --color-destructive: #EF4444;
   
   /* Fonts */
-  --font-sans: 'Inter', 'Roboto', system-ui, sans-serif;
+  --font-sans: var(--font-inter), 'Inter', 'Roboto', system-ui, sans-serif;
   --font-mono: 'Roboto Mono', monospace;
   
   /* Border Radius */

@@ -1,80 +1,103 @@
 import Link from 'next/link';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Stethoscope } from 'lucide-react';
 
 export function PublicFooter() {
   return (
-    <footer className="border-t bg-gray-50">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-4">
-          {/* About */}
+    <footer className="bg-slate-900 text-slate-300">
+      <div className="container mx-auto px-4 py-16">
+        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+          {/* Brand */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Về chúng tôi</h3>
-            <p className="text-sm text-gray-600">
-              Hệ thống quản lý bệnh viện hiện đại, mang đến dịch vụ y tế chất lượng cao.
+            <Link href="/" className="mb-6 flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
+                <Stethoscope className="h-6 w-6" />
+              </div>
+              <span className="text-2xl font-bold text-white">
+                Hospital<span className="text-primary-400">V2</span>
+              </span>
+            </Link>
+            <p className="mb-6 text-sm leading-relaxed text-slate-400">
+              Hệ thống quản lý bệnh viện hiện đại, mang đến trải nghiệm chăm sóc sức khỏe toàn diện
+              với công nghệ tiên tiến nhất.
             </p>
+            <div className="flex gap-4">
+              {[Facebook, Twitter, Instagram, Linkedin].map((Icon, i) => (
+                <a
+                  key={i}
+                  href="#"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 transition-colors hover:bg-primary hover:text-white"
+                >
+                  <Icon className="h-5 w-5" />
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Liên kết</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/about" className="text-gray-600 hover:text-primary">
-                  Giới thiệu
-                </Link>
-              </li>
-              <li>
-                <Link href="/services" className="text-gray-600 hover:text-primary">
-                  Dịch vụ
-                </Link>
-              </li>
-              <li>
-                <Link href="/doctors" className="text-gray-600 hover:text-primary">
-                  Bác sĩ
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-gray-600 hover:text-primary">
-                  Liên hệ
-                </Link>
-              </li>
+            <h3 className="mb-6 text-lg font-semibold text-white">Liên kết nhanh</h3>
+            <ul className="space-y-4 text-sm">
+              {[
+                { label: 'Về chúng tôi', href: '/about' },
+                { label: 'Dịch vụ y tế', href: '/services' },
+                { label: 'Đội ngũ bác sĩ', href: '/doctors' },
+                { label: 'Tin tức & Sự kiện', href: '/news' },
+                { label: 'Liên hệ', href: '/contact' },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="transition-colors hover:text-primary-400"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Services */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Hỗ trợ</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/faq" className="text-gray-600 hover:text-primary">
-                  Câu hỏi thường gặp
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="text-gray-600 hover:text-primary">
-                  Chính sách bảo mật
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-gray-600 hover:text-primary">
-                  Điều khoản dịch vụ
-                </Link>
-              </li>
+            <h3 className="mb-6 text-lg font-semibold text-white">Chuyên khoa</h3>
+            <ul className="space-y-4 text-sm">
+              {[
+                'Khoa Nội tổng quát',
+                'Khoa Ngoại',
+                'Khoa Nhi',
+                'Khoa Sản phụ khoa',
+                'Khoa Tim mạch',
+              ].map((item) => (
+                <li key={item}>
+                  <a href="#" className="transition-colors hover:text-primary-400">
+                    {item}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h3 className="mb-4 text-lg font-semibold">Liên hệ</h3>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li>📍 123 Đường ABC, Quận 1, TP.HCM</li>
-              <li>📞 (028) 1234 5678</li>
-              <li>✉️ info@hospital.com</li>
+            <h3 className="mb-6 text-lg font-semibold text-white">Thông tin liên hệ</h3>
+            <ul className="space-y-4 text-sm">
+              <li className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 flex-shrink-0 text-primary-400" />
+                <span>123 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Phone className="h-5 w-5 flex-shrink-0 text-primary-400" />
+                <span>(028) 1234 5678</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Mail className="h-5 w-5 flex-shrink-0 text-primary-400" />
+                <span>contact@hospital-v2.com</span>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 border-t pt-8 text-center text-sm text-gray-600">
-          <p>&copy; 2025 Hospital Management System V2. All rights reserved.</p>
+        <div className="mt-16 border-t border-white/10 pt-8 text-center text-sm text-slate-500">
+          <p>&copy; {new Date().getFullYear()} Hospital Management System V2. All rights reserved.</p>
         </div>
       </div>
     </footer>

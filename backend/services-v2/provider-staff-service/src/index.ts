@@ -140,6 +140,18 @@ async function initializeEventPublisher() {
     );
     await resolvedEventBus.subscribe("StaffUpdated", staffDomainEventHandler);
 
+    const staffReadModelProjectionHandler = container.resolve(
+      ServiceTokens.STAFF_READ_MODEL_PROJECTION_HANDLER,
+    ) as any;
+    await resolvedEventBus.subscribe(
+      "StaffRegistered",
+      staffReadModelProjectionHandler,
+    );
+    await resolvedEventBus.subscribe(
+      "StaffUpdated",
+      staffReadModelProjectionHandler,
+    );
+
     logger.info(
       "RabbitMQ Event Publisher and Staff Event Handler initialized successfully",
     );

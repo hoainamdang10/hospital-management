@@ -119,6 +119,8 @@ export const authService = {
     licenseNumber?: string;
     yearsOfExperience?: number;
     education?: string[];
+    bio?: string;
+    departmentName?: string;
     employmentType?: 'full_time' | 'part_time' | 'contract' | 'intern' | 'volunteer';
     workSchedule?: {
       workingDays?: string[];

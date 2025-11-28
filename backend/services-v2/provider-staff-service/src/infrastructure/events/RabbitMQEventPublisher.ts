@@ -62,7 +62,7 @@ export class RabbitMQEventPublisher {
     private readonly config: RabbitMQConfig,
     private readonly publisherConfig: PublisherConfig,
     private readonly logger: ILogger,
-  ) {}
+  ) { }
 
   /**
    * Initialize connection to RabbitMQ
@@ -235,6 +235,10 @@ export class RabbitMQEventPublisher {
     const routingKey = this.getRoutingKey(event);
     const message = this.serializeEvent(event);
 
+    const occurredAtString = event.occurredAt instanceof Date
+      ? event.occurredAt.toISOString()
+      : new Date(event.occurredAt).toISOString();
+
     const published = this.channel.publish(
       this.config.exchange,
       routingKey,
@@ -247,7 +251,7 @@ export class RabbitMQEventPublisher {
         type: event.eventType,
         headers: {
           aggregateId: event.aggregateId,
-          occurredAt: event.occurredAt.toISOString(),
+          occurredAt: occurredAtString,
         },
       },
     );
@@ -302,9 +306,13 @@ export class RabbitMQEventPublisher {
    * Serialize event to JSON
    */
   private serializeEvent(event: IntegrationEvent): string {
+    const occurredAtString = event.occurredAt instanceof Date
+      ? event.occurredAt.toISOString()
+      : new Date(event.occurredAt).toISOString();
+
     return JSON.stringify({
       ...event,
-      occurredAt: event.occurredAt.toISOString(),
+      occurredAt: occurredAtString,
     });
   }
 

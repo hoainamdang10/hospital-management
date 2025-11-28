@@ -27,6 +27,7 @@ export interface GetPatientProfileResponse {
   message: string;
   errors?: string[];
   data?: {
+    id: string;
     patientId: string;
     userId: string;
     personalInfo: {
@@ -110,7 +111,7 @@ export class GetPatientProfileUseCase {
     private readonly patientRepository: IPatientRepository,
     private readonly logger: ILogger,
     private readonly auditService: AuditService,
-  ) {}
+  ) { }
 
   async execute(request: GetPatientProfileRequest): Promise<GetPatientProfileResponse> {
     try {
@@ -175,6 +176,7 @@ export class GetPatientProfileUseCase {
         success: true,
         message: 'Lấy thông tin bệnh nhân thành công',
         data: {
+          id: patient.id,
           patientId: patient.getPatientId() || '',
           userId: patient.getUserId(),
           personalInfo: {

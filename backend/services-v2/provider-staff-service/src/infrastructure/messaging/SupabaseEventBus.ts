@@ -2,17 +2,17 @@
  * Supabase Event Bus - Infrastructure Layer
  * V2 Clean Architecture + DDD + Event-Driven Implementation
  * Implements event publishing and handling with Supabase
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Event-Driven Architecture
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { IEventBus } from '@shared/events/event-bus.interface';
-import { DomainEvent } from '@shared/domain/base/domain-event';
-import { ILogger } from '@shared/infrastructure/logging/logger.interface';
-import { CircuitBreakerFactory } from '../resilience/CircuitBreaker';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { IEventBus } from "@shared/events/event-bus.interface";
+import { DomainEvent } from "@shared/domain/base/domain-event";
+import { ILogger } from "@shared/infrastructure/logging/logger.interface";
+import { CircuitBreakerFactory } from "../resilience/CircuitBreaker";
 
 export interface IEventHandler<T extends DomainEvent> {
   handle(event: T): Promise<void>;
@@ -30,18 +30,21 @@ export class SupabaseEventBus implements IEventBus {
   private eventHistory: Map<string, DomainEvent[]> = new Map();
   private readonly supabaseClient: SupabaseClient;
   private readonly logger: ILogger;
-  private readonly circuitBreaker = CircuitBreakerFactory.getBreaker('event-bus');
+  private readonly circuitBreaker =
+    CircuitBreakerFactory.getBreaker("event-bus");
 
   constructor(
     supabaseUrl: string,
     supabaseKey: string,
     logger: ILogger,
-    schema: string = 'provider_schema'
+    schema: string = "provider_schema",
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: { autoRefreshToken: false, persistSession: false },
       db: { schema },
-      global: { headers: { 'X-Client-Info': 'provider-staff-service-eventbus' } }
+      global: {
+        headers: { "X-Client-Info": "provider-staff-service-eventbus" },
+      },
     }) as any;
 
     this.logger = logger;
@@ -51,14 +54,16 @@ export class SupabaseEventBus implements IEventBus {
    * Connect to event bus (no-op for Supabase)
    */
   public async connect(): Promise<void> {
-    this.logger.info('SupabaseEventBus connected (using Supabase as event store)');
+    this.logger.info(
+      "SupabaseEventBus connected (using Supabase as event store)",
+    );
   }
 
   /**
    * Disconnect from event bus (no-op for Supabase)
    */
   public async disconnect(): Promise<void> {
-    this.logger.info('SupabaseEventBus disconnected');
+    this.logger.info("SupabaseEventBus disconnected");
   }
 
   /**
@@ -66,27 +71,28 @@ export class SupabaseEventBus implements IEventBus {
    */
   async publish(event: DomainEvent): Promise<void> {
     try {
-      this.logger.info('Publishing domain event', {
+      this.logger.info("Publishing domain event", {
         eventType: event.eventType,
         aggregateId: event.aggregateId,
-        eventId: event.eventId
+        eventId: event.eventId,
       });
 
       await this.storeEvent(event);
       this.addToHistory(event);
       await this.notifyHandlers(event);
 
-      this.logger.info('Domain event published successfully', {
+      this.logger.info("Domain event published successfully", {
         eventType: event.eventType,
-        eventId: event.eventId
+        eventId: event.eventId,
       });
-
     } catch (error) {
-      this.logger.error('Error publishing event', {
+      this.logger.error("Error publishing event", {
         eventType: event.eventType,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw new Error(`Loi publish event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Loi publish event: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -95,26 +101,27 @@ export class SupabaseEventBus implements IEventBus {
    */
   async publishAll(events: DomainEvent[]): Promise<void> {
     try {
-      this.logger.info('Publishing multiple domain events', {
-        count: events.length
+      this.logger.info("Publishing multiple domain events", {
+        count: events.length,
       });
 
       await this.storeEvents(events);
-      events.forEach(event => this.addToHistory(event));
+      events.forEach((event) => this.addToHistory(event));
 
       for (const event of events) {
         await this.notifyHandlers(event);
       }
 
-      this.logger.info('All domain events published successfully', {
-        count: events.length
+      this.logger.info("All domain events published successfully", {
+        count: events.length,
       });
-
     } catch (error) {
-      this.logger.error('Error publishing events', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error("Error publishing events", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw new Error(`Loi publish events: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Loi publish events: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -124,7 +131,7 @@ export class SupabaseEventBus implements IEventBus {
   async subscribe<T extends DomainEvent>(
     eventType: string,
     handler: IEventHandler<T>,
-    _queueName?: string
+    _queueName?: string,
   ): Promise<void> {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, []);
@@ -139,9 +146,9 @@ export class SupabaseEventBus implements IEventBus {
       return bPriority - aPriority;
     });
 
-    this.logger.info('Event handler subscribed', {
+    this.logger.info("Event handler subscribed", {
       eventType,
-      handlerName: handler.getHandlerName()
+      handlerName: handler.getHandlerName(),
     });
   }
 
@@ -154,9 +161,9 @@ export class SupabaseEventBus implements IEventBus {
       const index = handlers.indexOf(handler);
       if (index > -1) {
         handlers.splice(index, 1);
-        this.logger.info('Event handler unsubscribed', {
+        this.logger.info("Event handler unsubscribed", {
           eventType,
-          handlerName: handler.getHandlerName()
+          handlerName: handler.getHandlerName(),
         });
       }
     }
@@ -175,32 +182,35 @@ export class SupabaseEventBus implements IEventBus {
           }
 
           const { data, error } = await this.supabaseClient
-            .from('domain_events')
-            .select('*')
-            .eq('aggregate_id', aggregateId)
-            .order('occurred_at', { ascending: true });
+            .from("domain_events")
+            .select("*")
+            .eq("aggregate_id", aggregateId)
+            .order("occurred_at", { ascending: true });
 
           if (error) {
             throw new Error(`Loi lay event history: ${error.message}`);
           }
 
-          const events = (data || []).map(eventData => this.deserializeEvent(eventData));
+          const events = (data || []).map((eventData) =>
+            this.deserializeEvent(eventData),
+          );
           this.eventHistory.set(aggregateId, events);
 
           return events;
-
         } catch (error) {
-          this.logger.error('Error getting event history', {
+          this.logger.error("Error getting event history", {
             aggregateId,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           throw error;
         }
       },
       async () => {
-        this.logger.warn('Circuit breaker fallback for getEventHistory', { aggregateId });
+        this.logger.warn("Circuit breaker fallback for getEventHistory", {
+          aggregateId,
+        });
         return [];
-      }
+      },
     );
   }
 
@@ -209,7 +219,7 @@ export class SupabaseEventBus implements IEventBus {
    */
   async clearEventHistory(): Promise<void> {
     this.eventHistory.clear();
-    this.logger.info('Event history cleared');
+    this.logger.info("Event history cleared");
   }
 
   /**
@@ -221,7 +231,7 @@ export class SupabaseEventBus implements IEventBus {
         const eventData = this.serializeEvent(event);
 
         const { error } = await this.supabaseClient
-          .from('domain_events')
+          .from("domain_events")
           .insert(eventData);
 
         if (error) {
@@ -229,12 +239,15 @@ export class SupabaseEventBus implements IEventBus {
         }
       },
       async () => {
-        this.logger.error('Circuit breaker fallback for storeEvent - event not stored', {
-          eventId: event.eventId,
-          eventType: event.eventType
-        });
+        this.logger.error(
+          "Circuit breaker fallback for storeEvent - event not stored",
+          {
+            eventId: event.eventId,
+            eventType: event.eventType,
+          },
+        );
         // Don't throw - allow event to be processed in memory even if storage fails
-      }
+      },
     );
   }
 
@@ -244,10 +257,10 @@ export class SupabaseEventBus implements IEventBus {
   private async storeEvents(events: DomainEvent[]): Promise<void> {
     return await this.circuitBreaker.execute(
       async () => {
-        const eventsData = events.map(event => this.serializeEvent(event));
+        const eventsData = events.map((event) => this.serializeEvent(event));
 
         const { error } = await this.supabaseClient
-          .from('domain_events')
+          .from("domain_events")
           .insert(eventsData);
 
         if (error) {
@@ -255,11 +268,14 @@ export class SupabaseEventBus implements IEventBus {
         }
       },
       async () => {
-        this.logger.error('Circuit breaker fallback for storeEvents - events not stored', {
-          count: events.length
-        });
+        this.logger.error(
+          "Circuit breaker fallback for storeEvents - events not stored",
+          {
+            count: events.length,
+          },
+        );
         // Don't throw - allow events to be processed in memory even if storage fails
-      }
+      },
     );
   }
 
@@ -288,10 +304,10 @@ export class SupabaseEventBus implements IEventBus {
           await handler.handle(event);
         }
       } catch (error) {
-        this.logger.error('Error in event handler', {
+        this.logger.error("Error in event handler", {
           handlerName: handler.getHandlerName(),
           eventType: event.eventType,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -301,14 +317,24 @@ export class SupabaseEventBus implements IEventBus {
    * Serialize event for storage
    */
   private serializeEvent(event: DomainEvent): any {
+    const occurredAtValue =
+      (event as any).timestamp ||
+      (event as any).occurredAt ||
+      (event as any).occurred_at ||
+      new Date();
+    const occurredAt =
+      occurredAtValue instanceof Date
+        ? occurredAtValue.toISOString()
+        : new Date(occurredAtValue).toISOString();
+
     return {
       event_id: event.eventId,
       event_type: event.eventType,
       aggregate_id: event.aggregateId,
       aggregate_type: event.aggregateType,
-      occurred_at: (event as any).timestamp ? new Date((event as any).timestamp).toISOString() : new Date().toISOString(),
+      occurred_at: occurredAt,
       event_data: JSON.stringify(event),
-      metadata: event.metadata || {}
+      metadata: event.metadata || {},
     };
   }
 
@@ -319,8 +345,7 @@ export class SupabaseEventBus implements IEventBus {
     const parsedData = JSON.parse(eventData.event_data);
     return {
       ...parsedData,
-      timestamp: new Date(parsedData.timestamp)
+      timestamp: new Date(parsedData.timestamp),
     };
   }
 }
-

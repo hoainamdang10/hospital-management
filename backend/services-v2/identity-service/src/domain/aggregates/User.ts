@@ -675,6 +675,9 @@ export class User extends HealthcareAggregateRoot<UserProps> {
         invitationData?.["department"] ?? invitationData?.["departmentCode"];
       const department =
         typeof departmentRaw === "string" ? departmentRaw : undefined;
+      const departmentNameRaw = invitationData?.["departmentName"];
+      const departmentName =
+        typeof departmentNameRaw === "string" ? departmentNameRaw : undefined;
 
       const specializationCodeRaw =
         invitationData?.["specializationCode"] ??
@@ -691,7 +694,9 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       const specializationName =
         typeof specializationNameRaw === "string"
           ? specializationNameRaw
-          : undefined;
+          : specializationCode
+            ? specializationCode.toUpperCase()
+            : undefined;
 
       const licenseNumberRaw = invitationData?.["licenseNumber"];
       const licenseNumber =
@@ -717,6 +722,20 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       const titleRaw = invitationData?.["title"];
       const title = typeof titleRaw === "string" ? titleRaw : undefined;
 
+      const consultationFeeRaw = invitationData?.["consultationFee"];
+      const consultationFee =
+        typeof consultationFeeRaw === "number" ? consultationFeeRaw : undefined;
+
+      const employmentTypeRaw = invitationData?.["employmentType"];
+      const employmentType =
+        typeof employmentTypeRaw === "string" ? employmentTypeRaw : undefined;
+
+      const workScheduleRaw = invitationData?.["workSchedule"];
+      const workSchedule =
+        typeof workScheduleRaw === "object" && workScheduleRaw !== null
+          ? workScheduleRaw
+          : undefined;
+
       this.addDomainEvent(
         new UserCreatedEvent(
           this.props.id.value,
@@ -725,6 +744,11 @@ export class User extends HealthcareAggregateRoot<UserProps> {
           convertToSharedRoleType(primaryRole.type),
           personalInfo.citizenId,
           personalInfo.phoneNumber,
+          personalInfo.dateOfBirth
+            ? personalInfo.dateOfBirth.toISOString()
+            : undefined,
+          personalInfo.gender,
+          personalInfo.address,
           department,
           specializationCode,
           specializationName,
@@ -733,6 +757,9 @@ export class User extends HealthcareAggregateRoot<UserProps> {
           yearsOfExperience,
           position,
           title,
+          employmentType,
+          workSchedule,
+          consultationFee,
         ),
       );
 

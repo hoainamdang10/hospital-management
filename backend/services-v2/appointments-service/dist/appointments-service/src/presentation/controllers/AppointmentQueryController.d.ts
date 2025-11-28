@@ -6,9 +6,9 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS, REST API
  */
-import { Request, Response } from 'express';
-import { GetAppointmentDetailsQuery } from '../../application/queries/GetAppointmentDetailsQuery';
-import { ListAppointmentsQuery } from '../../application/queries/ListAppointmentsQuery';
+import { Request, Response } from "express";
+import { GetAppointmentDetailsQuery } from "../../application/queries/GetAppointmentDetailsQuery";
+import { ListAppointmentsQuery } from "../../application/queries/ListAppointmentsQuery";
 export declare class AppointmentQueryController {
     private getAppointmentDetailsQuery;
     private listAppointmentsQuery;

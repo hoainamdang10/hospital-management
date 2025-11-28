@@ -9,7 +9,14 @@ export interface Staff {
   id: string;
   staffId: string;
   userId: string;
-  staffType: 'doctor' | 'nurse' | 'admin' | 'receptionist' | 'technician' | 'pharmacist' | 'therapist';
+  staffType:
+    | 'doctor'
+    | 'nurse'
+    | 'admin'
+    | 'receptionist'
+    | 'technician'
+    | 'pharmacist'
+    | 'therapist';
   personalInfo: {
     fullName: string;
     email: string;
@@ -66,6 +73,7 @@ export interface Staff {
   }>;
   yearsOfExperience: number;
   consultationFee?: number;
+  licenseNumber?: string;
   status: 'active' | 'inactive' | 'suspended' | 'on_leave' | 'terminated';
   isActive: boolean;
 }
@@ -85,7 +93,7 @@ export interface SearchStaffResponse {
   success: boolean;
   message?: string;
   data: {
-    items: Staff[];  // Backend uses "items" from ResponseHelper.paginated
+    items: Staff[]; // Backend uses "items" from ResponseHelper.paginated
     pagination: {
       total: number;
       page: number;
@@ -118,7 +126,7 @@ export async function getDoctorsByDepartment(
         status: 'active',
         isActive: true,
         limit,
-      }
+      },
     });
     return response.data?.data?.items ?? [];
   } catch (error) {
@@ -131,9 +139,7 @@ export async function getDoctorsByDepartment(
  * Get staff by ID
  */
 export async function getStaffById(staffId: string): Promise<Staff> {
-  const response = await apiClient.get<{ success: boolean; data: any }>(
-    `/v1/staff/${staffId}`
-  );
+  const response = await apiClient.get<{ success: boolean; data: any }>(`/v1/staff/${staffId}`);
   const data = response.data.data;
 
   // Map snake_case to camelCase if needed
@@ -149,6 +155,16 @@ export async function getStaffById(staffId: string): Promise<Staff> {
 
   if (data.consultation_fee !== undefined && !mapped.consultationFee) {
     mapped.consultationFee = data.consultation_fee;
+  }
+  // Employment info may carry years and status
+  if (data.employmentInfo?.yearsOfExperience !== undefined) {
+    mapped.yearsOfExperience = data.employmentInfo.yearsOfExperience;
+  }
+  if (data.employmentInfo?.employmentType && !mapped.employmentType) {
+    mapped.employmentType = data.employmentInfo.employmentType;
+  }
+  if (data.employmentInfo?.isActive !== undefined && mapped.isActive === undefined) {
+    mapped.isActive = data.employmentInfo.isActive;
   }
 
   if (data.user_id !== undefined && !mapped.userId) {
@@ -180,14 +196,92 @@ export async function getStaffById(staffId: string): Promise<Staff> {
 
 export async function getStaffByUserId(userId: string): Promise<Staff | null> {
   try {
-    const response = await apiClient.get<{ success: boolean; data: Staff }>(
+    const response = await apiClient.get<{ success: boolean; data: any }>(
       `/v1/staff/user/${userId}`
     );
-    return response.data.data;
+    const data = response.data.data;
+
+    // Normalize snake_case from backend (in case gateway strips camelCase)
+    const mapped: any = { ...data };
+
+    if (data.staff_id !== undefined && !mapped.staffId) {
+      mapped.staffId = data.staff_id;
+    }
+    if (data.user_id !== undefined && !mapped.userId) {
+      mapped.userId = data.user_id;
+    }
+    if (data.staff_type !== undefined && !mapped.staffType) {
+      mapped.staffType = data.staff_type;
+    }
+    if (data.personal_info !== undefined && !mapped.personalInfo) {
+      mapped.personalInfo = data.personal_info;
+    }
+    if (data.professional_info !== undefined && !mapped.professionalInfo) {
+      mapped.professionalInfo = data.professional_info;
+    }
+    if (data.work_schedule !== undefined && !mapped.workSchedule) {
+      mapped.workSchedule = data.work_schedule;
+    }
+    if (data.is_active !== undefined && mapped.isActive === undefined) {
+      mapped.isActive = data.is_active;
+    }
+    if (data.years_of_experience !== undefined && mapped.yearsOfExperience === undefined) {
+      mapped.yearsOfExperience = data.years_of_experience;
+    }
+    if (data.consultation_fee !== undefined && mapped.consultationFee === undefined) {
+      mapped.consultationFee = data.consultation_fee;
+    }
+    if (data.license_number !== undefined && mapped.licenseNumber === undefined) {
+      mapped.licenseNumber = data.license_number;
+    }
+    if (
+      data.employmentInfo?.yearsOfExperience !== undefined &&
+      mapped.yearsOfExperience === undefined
+    ) {
+      mapped.yearsOfExperience = data.employmentInfo.yearsOfExperience;
+    }
+    if (data.employmentInfo?.employmentType && !mapped.employmentType) {
+      mapped.employmentType = data.employmentInfo.employmentType;
+    }
+    if (data.employmentInfo?.isActive !== undefined && mapped.isActive === undefined) {
+      mapped.isActive = data.employmentInfo.isActive;
+    }
+
+    return mapped as Staff;
   } catch (error) {
     console.error('Failed to fetch staff by userId', error);
     return null;
   }
+}
+
+/**
+ * Self update staff profile (doctor/nurse)
+ */
+export async function updateMyStaffProfile(payload: {
+  staffId?: string;
+  personalInfo?: {
+    fullName?: string;
+    phoneNumber?: string;
+    address?: {
+      street?: string;
+      ward?: string;
+      district?: string;
+      city?: string;
+      province?: string;
+      country?: string;
+    };
+  };
+  professionalInfo?: {
+    title?: string;
+    position?: string;
+    education?: string[];
+    languages?: string[];
+    bio?: string;
+  };
+}): Promise<{ success: boolean; data: Staff }> {
+  // Use apiClient base (/api) so session cookie is sent via gateway
+  const response = await apiClient.put('/v1/staff/me', payload);
+  return response.data;
 }
 
 /**
@@ -248,7 +342,10 @@ export async function createStaffProfile(payload: {
   return response.data;
 }
 
-export async function assignStaffToDepartment(staffId: string, options: { departmentId: string; role?: string; isPrimary?: boolean; startDate?: string }): Promise<{ success: boolean; message?: string }> {
+export async function assignStaffToDepartment(
+  staffId: string,
+  options: { departmentId: string; role?: string; isPrimary?: boolean; startDate?: string }
+): Promise<{ success: boolean; message?: string }> {
   const body = {
     staffId,
     departmentId: options.departmentId,
@@ -261,17 +358,25 @@ export async function assignStaffToDepartment(staffId: string, options: { depart
   return response.data;
 }
 
-export async function updateStaffInfo(staffId: string, data: Partial<Staff>): Promise<{ success: boolean; data: Staff }> {
+export async function updateStaffInfo(
+  staffId: string,
+  data: Partial<Staff>
+): Promise<{ success: boolean; data: Staff }> {
   const response = await apiClient.put(`/v1/staff/${staffId}`, data);
   return response.data;
 }
 
-export async function suspendStaff(staffId: string, reason?: string): Promise<{ success: boolean; message?: string }> {
+export async function suspendStaff(
+  staffId: string,
+  reason?: string
+): Promise<{ success: boolean; message?: string }> {
   const response = await apiClient.post(`/v1/staff/${staffId}/suspend`, { reason });
   return response.data;
 }
 
-export async function reactivateStaff(staffId: string): Promise<{ success: boolean; message?: string }> {
+export async function reactivateStaff(
+  staffId: string
+): Promise<{ success: boolean; message?: string }> {
   const response = await apiClient.post(`/v1/staff/${staffId}/reactivate`);
   return response.data;
 }

@@ -15,6 +15,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { ILogger } from "../../application/interfaces/ILogger";
 import { IAuditService } from "../../application/interfaces/IAuditService";
 import { CircuitBreakerFactory } from "../resilience/CircuitBreaker";
+import { OutboxService } from "../outbox/OutboxService";
 
 /**
  * Supabase Provider Staff Repository
@@ -29,6 +30,7 @@ export class SupabaseProviderStaffRepository
   private readonly auditService: IAuditService;
   private readonly tableName: string;
   private readonly fullTableName: string;
+  private readonly outboxService?: OutboxService;
   private readonly circuitBreaker =
     CircuitBreakerFactory.getBreaker("staff-repository");
 
@@ -39,6 +41,7 @@ export class SupabaseProviderStaffRepository
     auditService: IAuditService,
     schema: string = "provider_schema",
     tableName: string = "staff_profiles",
+    outboxService?: OutboxService,
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -51,6 +54,7 @@ export class SupabaseProviderStaffRepository
     this.tableName = tableName;
     // Don't prefix schema - Supabase client already configured with schema
     this.fullTableName = this.tableName;
+    this.outboxService = outboxService;
   }
 
   /**
@@ -370,6 +374,8 @@ export class SupabaseProviderStaffRepository
             staffType: staff.staffType,
             isActive: staff.isActive,
           });
+
+          await this.persistDomainEvents(staff);
         } catch (error) {
           this.logger.error("Error saving staff", {
             staffId: staff.staffIdValue,
@@ -435,6 +441,8 @@ export class SupabaseProviderStaffRepository
           this.logger.info("Staff updated successfully", {
             staffId: staff.id,
           });
+
+          await this.persistDomainEvents(staff);
         } catch (error) {
           this.logger.error("Error updating staff", {
             staffId: staff.id,
@@ -938,6 +946,31 @@ export class SupabaseProviderStaffRepository
         };
       },
     );
+  }
+
+  /**
+   * Persist domain events to outbox and mark them as committed
+   */
+  private async persistDomainEvents(staff: ProviderStaff): Promise<void> {
+    const events = staff.getUncommittedEvents();
+    if (!events.length) {
+      return;
+    }
+
+    if (!this.outboxService) {
+      this.logger.warn("OutboxService not configured; events not persisted", {
+        staffId: staff.staffIdValue,
+        eventCount: events.length,
+      });
+      staff.markEventsAsCommitted();
+      return;
+    }
+
+    for (const event of events) {
+      await this.outboxService.storeEvent(event);
+    }
+
+    staff.markEventsAsCommitted();
   }
 
   /**

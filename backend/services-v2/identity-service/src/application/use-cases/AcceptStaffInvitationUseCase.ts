@@ -101,6 +101,17 @@ export class AcceptStaffInvitationUseCase {
         unknown
       >;
 
+      const parsedDateOfBirth = this.parseDate(
+        invitationData.dateOfBirth || invitationData.dob,
+      );
+      const parsedGender = this.normalizeGender(invitationData.gender);
+      const parsedCitizenId = this.pickFirstString(invitationData, [
+        "citizenId",
+        "nationalId",
+        "cccd",
+      ]);
+      const resolvedAddress = this.buildAddress(invitationData);
+
       const invitationFullName =
         typeof invitationData.fullName === "string"
           ? invitationData.fullName
@@ -162,10 +173,10 @@ export class AcceptStaffInvitationUseCase {
       const personalInfo = PersonalInfo.create({
         fullName,
         phoneNumber,
-        dateOfBirth: undefined, // Will be updated later
-        gender: undefined,
-        citizenId: undefined,
-        address: undefined,
+        dateOfBirth: parsedDateOfBirth || undefined,
+        gender: parsedGender || undefined,
+        citizenId: parsedCitizenId || undefined,
+        address: resolvedAddress || undefined,
       });
 
       const professionalData = invitation.invitationData as
@@ -257,5 +268,56 @@ export class AcceptStaffInvitationUseCase {
     }
 
     return null;
+  }
+
+  private parseDate(value: unknown): Date | null {
+    if (typeof value === "string" || value instanceof Date) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    return null;
+  }
+
+  private normalizeGender(value: unknown): "male" | "female" | "other" | null {
+    if (typeof value !== "string") return null;
+    const normalized = value.toLowerCase();
+    if (normalized === "male" || normalized === "m") return "male";
+    if (normalized === "female" || normalized === "f") return "female";
+    if (normalized === "other" || normalized === "o") return "other";
+    return null;
+  }
+
+  private pickFirstString(
+    data: Record<string, unknown>,
+    keys: string[],
+  ): string | undefined {
+    for (const key of keys) {
+      const val = data[key];
+      if (typeof val === "string" && val.trim().length > 0) {
+        return val.trim();
+      }
+    }
+    return undefined;
+  }
+
+  private buildAddress(data: Record<string, unknown>): string | null {
+    const addressObj =
+      (data.address as Record<string, unknown> | undefined) ||
+      (data.contact as Record<string, unknown> | undefined);
+    const fields: string[] = [];
+    const pushIfStr = (v: unknown) => {
+      if (typeof v === "string" && v.trim().length > 0) {
+        fields.push(v.trim());
+      }
+    };
+    if (addressObj) {
+      pushIfStr(addressObj.street || addressObj["street1"]);
+      pushIfStr(addressObj.ward);
+      pushIfStr(addressObj.district);
+      pushIfStr(addressObj.city);
+      pushIfStr(addressObj.province || addressObj.state);
+      pushIfStr(addressObj.country);
+    }
+    return fields.length ? fields.join(", ") : null;
   }
 }

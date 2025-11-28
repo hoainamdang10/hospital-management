@@ -124,8 +124,17 @@ export class AuthenticationMiddleware {
       req.user = {
         id: user.id,
         email: user.email,
-        role: user.user_metadata?.role || user.app_metadata?.role,
-        roles: user.user_metadata?.roles || user.app_metadata?.roles || [],
+        role:
+          user.user_metadata?.role?.toString().toLowerCase() ||
+          user.app_metadata?.role?.toString().toLowerCase(),
+        roles:
+          (user.user_metadata?.roles as string[] | undefined)?.map((r) =>
+            r.toString().toLowerCase(),
+          ) ||
+          (user.app_metadata?.roles as string[] | undefined)?.map((r) =>
+            r.toString().toLowerCase(),
+          ) ||
+          [],
         metadata: {
           ...user.user_metadata,
           ...user.app_metadata,
@@ -134,8 +143,15 @@ export class AuthenticationMiddleware {
 
       // Check role-based access if required
       if (this.config.allowedRoles && this.config.allowedRoles.length > 0) {
+        const allowedLower = this.config.allowedRoles.map((r) =>
+          r.toLowerCase(),
+        );
         const hasRequiredRole = this.config.allowedRoles.some(
-          (role) => req.user?.role === role || req.user?.roles?.includes(role),
+          (role) =>
+            req.user?.role === role.toLowerCase() ||
+            req.user?.roles?.includes(role.toLowerCase()) ||
+            allowedLower.includes(req.user?.role || "") ||
+            req.user?.roles?.some((r) => allowedLower.includes(r)),
         );
 
         if (!hasRequiredRole) {

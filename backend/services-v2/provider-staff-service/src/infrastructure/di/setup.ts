@@ -67,6 +67,9 @@ import { AppointmentCompletedEventHandler } from "../events/AppointmentCompleted
 import { ReviewEventHandler } from "../events/ReviewEventHandler";
 import { BillingEventHandler } from "../events/BillingEventHandler";
 import { StaffReadModelRepository } from "../repositories/StaffReadModelRepository";
+import { StaffReadModelProjectionHandler } from "../events/StaffReadModelProjectionHandler";
+import { OutboxService } from "../outbox/OutboxService";
+import { OutboxPublisher } from "../outbox/OutboxPublisher";
 
 // Service Tokens
 export const ServiceTokens = {
@@ -76,6 +79,8 @@ export const ServiceTokens = {
   LOGGER: "Logger",
   AUDIT_SERVICE: "AuditService",
   EVENT_BUS: "EventBus",
+  OUTBOX_SERVICE: "OutboxService",
+  OUTBOX_PUBLISHER: "OutboxPublisher",
 
   // Repositories
   PROVIDER_STAFF_REPOSITORY: "ProviderStaffRepository",
@@ -116,16 +121,17 @@ export const ServiceTokens = {
 
   // Event Handlers
   STAFF_DOMAIN_EVENT_HANDLER: "StaffDomainEventHandler",
+  STAFF_READ_MODEL_PROJECTION_HANDLER: "StaffReadModelProjectionHandler",
   USER_CREATED_EVENT_HANDLER: "UserCreatedEventHandler",
   USER_DEACTIVATED_EVENT_HANDLER: "UserDeactivatedEventHandler",
   USER_ROLE_CHANGED_EVENT_HANDLER: "UserRoleChangedEventHandler",
   IDENTITY_EVENT_CONSUMER: "IdentityEventConsumer",
-  
+
   // Enhanced Event Consumers
   ENHANCED_DEPARTMENT_EVENT_CONSUMER: "EnhancedDepartmentEventConsumer",
   REVIEW_EVENT_CONSUMER: "ReviewEventConsumer",
   // SCHEDULING_EVENT_CONSUMER: "SchedulingEventConsumer", // TODO: Re-enable when needed
-  
+
   // Appointments Event Handlers
   APPOINTMENT_SCHEDULED_EVENT_HANDLER: "AppointmentScheduledEventHandler",
   APPOINTMENT_CANCELLED_EVENT_HANDLER: "AppointmentCancelledEventHandler",
@@ -138,10 +144,10 @@ export const ServiceTokens = {
 
   // Review Event Handlers
   REVIEW_EVENT_HANDLER: "ReviewEventHandler",
-  
+
   // Billing Event Handlers
   BILLING_EVENT_HANDLER: "BillingEventHandler",
-  
+
   // Read Model Repository
   STAFF_READ_MODEL_REPOSITORY: "StaffReadModelRepository",
 } as const;
@@ -150,7 +156,7 @@ export function setupDependencies(): DIContainer {
   const container = new DIContainer({
     enableHealthcareCompliance: true,
     enableHealthChecks: true,
-    enableMetrics: true
+    enableMetrics: true,
   });
 
   // Register infrastructure services
@@ -159,21 +165,24 @@ export function setupDependencies(): DIContainer {
     () => ({
       debug: (message: string, meta?: Record<string, unknown>) => {
         // Logger implementation - replace console in production
-        if (process.env.NODE_ENV !== 'production') {
+        if (process.env.NODE_ENV !== "production") {
           console.debug(`[DEBUG] ${message}`, meta);
         }
       },
       info: (message: string, meta?: Record<string, unknown>) => {
         // Logger implementation - replace console in production
-        if (process.env.NODE_ENV !== 'production') {
+        if (process.env.NODE_ENV !== "production") {
           console.log(`[INFO] ${message}`, meta);
         }
       },
-      warn: (message: string, meta?: Record<string, unknown>) => console.warn(`[WARN] ${message}`, meta),
-      error: (message: string, meta?: Record<string, unknown>) => console.error(`[ERROR] ${message}`, meta),
-      fatal: (message: string, meta?: Record<string, unknown>) => console.error(`[FATAL] ${message}`, meta),
+      warn: (message: string, meta?: Record<string, unknown>) =>
+        console.warn(`[WARN] ${message}`, meta),
+      error: (message: string, meta?: Record<string, unknown>) =>
+        console.error(`[ERROR] ${message}`, meta),
+      fatal: (message: string, meta?: Record<string, unknown>) =>
+        console.error(`[FATAL] ${message}`, meta),
     }),
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   container.registerFactory(
@@ -182,30 +191,48 @@ export function setupDependencies(): DIContainer {
       const logger = container.resolve(ServiceTokens.LOGGER);
       return {
         logDataAccess: async (entry: Record<string, unknown>) => {
-          logger.info('AUDIT: Data Access', entry);
+          logger.info("AUDIT: Data Access", entry);
         },
         logDataModification: async (entry: Record<string, unknown>) => {
-          logger.info('AUDIT: Data Modification', entry);
+          logger.info("AUDIT: Data Modification", entry);
         },
         logSecurityEvent: async (entry: Record<string, unknown>) => {
-          logger.info('AUDIT: Security Event', entry);
+          logger.info("AUDIT: Security Event", entry);
         },
       };
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register Supabase URL and Key
   container.registerFactory(
     ServiceTokens.SUPABASE_URL,
     () => process.env.SUPABASE_URL || "",
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   container.registerFactory(
     ServiceTokens.SUPABASE_KEY,
     () => process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
+  );
+
+  // Register Outbox Service (transactional outbox)
+  container.registerFactory(
+    ServiceTokens.OUTBOX_SERVICE,
+    (container) => {
+      const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
+      const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
+      const logger = container.resolve(ServiceTokens.LOGGER);
+      const supabaseClient = createClient(supabaseUrl, supabaseKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        db: { schema: "provider_schema" },
+        global: { headers: { "X-Client-Info": "provider-staff-outbox" } },
+      }) as any;
+
+      return new OutboxService(supabaseClient, logger, "provider_schema");
+    },
+    ServiceLifetime.SINGLETON,
   );
 
   // Register event bus (Hybrid: Supabase + RabbitMQ)
@@ -219,15 +246,43 @@ export function setupDependencies(): DIContainer {
       return new HybridEventBus({
         supabaseUrl,
         supabaseKey,
-        schema: 'provider_schema',
-        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
-        rabbitmqExchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
-        rabbitmqExchangeType: (process.env.RABBITMQ_EXCHANGE_TYPE as 'topic' | 'direct' | 'fanout') || 'topic',
-        serviceName: 'provider-staff-service',
-        logger
+        schema: "provider_schema",
+        rabbitmqUrl:
+          process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
+        rabbitmqExchange: process.env.RABBITMQ_EXCHANGE || "hospital.events",
+        rabbitmqExchangeType:
+          (process.env.RABBITMQ_EXCHANGE_TYPE as
+            | "topic"
+            | "direct"
+            | "fanout") || "topic",
+        serviceName: "provider-staff-service",
+        logger,
       });
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
+  );
+
+  // Register Outbox Publisher
+  container.registerFactory(
+    ServiceTokens.OUTBOX_PUBLISHER,
+    (container) => {
+      const outboxService = container.resolve(
+        ServiceTokens.OUTBOX_SERVICE,
+      ) as OutboxService;
+      const eventBus = container.resolve(
+        ServiceTokens.EVENT_BUS,
+      ) as HybridEventBus;
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new OutboxPublisher(outboxService, eventBus, logger, {
+        pollingIntervalMs: parseInt(
+          process.env.OUTBOX_POLL_INTERVAL_MS || "5000",
+          10,
+        ),
+        batchSize: parseInt(process.env.OUTBOX_BATCH_SIZE || "100", 10),
+      });
+    },
+    ServiceLifetime.SINGLETON,
   );
 
   // Register external service clients
@@ -237,15 +292,16 @@ export function setupDependencies(): DIContainer {
       const logger = container.resolve(ServiceTokens.LOGGER);
       return new DepartmentServiceClient(
         {
-          baseUrl: process.env.DEPARTMENT_SERVICE_URL || 'http://localhost:3025',
-          timeout: parseInt(process.env.DEPARTMENT_SERVICE_TIMEOUT || '5000'),
+          baseUrl:
+            process.env.DEPARTMENT_SERVICE_URL || "http://localhost:3025",
+          timeout: parseInt(process.env.DEPARTMENT_SERVICE_TIMEOUT || "5000"),
           retryAttempts: 3,
-          retryDelay: 1000
+          retryDelay: 1000,
         },
-        logger
+        logger,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register repositories
@@ -256,17 +312,21 @@ export function setupDependencies(): DIContainer {
       const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
+      const outboxService = container.resolve(
+        ServiceTokens.OUTBOX_SERVICE,
+      ) as OutboxService;
 
       return new SupabaseProviderStaffRepository(
         supabaseUrl,
         supabaseKey,
         logger,
         auditService,
-        'provider_schema',
-        'staff_profiles'
+        "provider_schema",
+        "staff_profiles",
+        outboxService,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register StaffReadModel Repository
@@ -276,102 +336,118 @@ export function setupDependencies(): DIContainer {
       const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
       const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
       const logger = container.resolve(ServiceTokens.LOGGER);
-      
-      const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+      const supabaseClient = createClient(supabaseUrl, supabaseKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        db: { schema: "provider_schema" },
+        global: { headers: { "X-Client-Info": "provider-staff-read-model" } },
+      }) as any;
 
       return new StaffReadModelRepository(supabaseClient, logger);
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register use cases
   container.registerFactory(
     ServiceTokens.REGISTER_STAFF_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
       const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new RegisterStaffUseCase(
-        staffRepository,
-        eventBus,
-        logger
-      );
+      return new RegisterStaffUseCase(staffRepository, eventBus, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.GET_STAFF_PROFILE_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new GetStaffProfileUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.UPDATE_STAFF_PROFILE_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new UpdateStaffProfileUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.DEACTIVATE_STAFF_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new DeactivateStaffUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.SEARCH_STAFF_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new SearchStaffUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.GET_STAFF_BY_DEPARTMENT_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new GetStaffByDepartmentUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new UpdateStaffScheduleUseCase(staffRepository, eventBus, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.UPDATE_STAFF_DEPARTMENT_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
       const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
       const logger = container.resolve(ServiceTokens.LOGGER);
@@ -380,16 +456,18 @@ export function setupDependencies(): DIContainer {
         staffRepository,
         auditService,
         eventBus,
-        logger
+        logger,
       );
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.UPDATE_STAFF_PERFORMANCE_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
       const eventBus = container.resolve(ServiceTokens.EVENT_BUS);
       const logger = container.resolve(ServiceTokens.LOGGER);
@@ -398,21 +476,23 @@ export function setupDependencies(): DIContainer {
         staffRepository,
         auditService,
         eventBus,
-        logger
+        logger,
       );
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.ADD_STAFF_CERTIFICATION_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new AddStaffCertificationUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   // REMOVED: UPDATE_STAFF_AVAILABILITY_USE_CASE registration - Belongs to Scheduling/Appointment Service
@@ -420,134 +500,156 @@ export function setupDependencies(): DIContainer {
   container.registerFactory(
     ServiceTokens.ASSIGN_STAFF_TO_DEPARTMENT_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
       return new AssignStaffToDepartmentUseCase(
         staffRepository,
         logger,
-        auditService
+        auditService,
       );
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
       return new SetDepartmentHeadUseCase(
         staffRepository,
         logger,
-        auditService
+        auditService,
       );
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   // Register credential management use cases
   container.registerFactory(
     ServiceTokens.ADD_STAFF_CREDENTIAL_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new AddStaffCredentialUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.REMOVE_STAFF_CREDENTIAL_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new RemoveStaffCredentialUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.RENEW_STAFF_CREDENTIAL_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new RenewStaffCredentialUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.GET_EXPIRING_CREDENTIALS_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new GetExpiringCredentialsUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   // Register employment status management use cases
   container.registerFactory(
     ServiceTokens.ACTIVATE_STAFF_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new ActivateStaffUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.SUSPEND_STAFF_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new SuspendStaffUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.REACTIVATE_STAFF_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new ReactivateStaffUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.TERMINATE_STAFF_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new TerminateStaffUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.UPDATE_EMPLOYMENT_STATUS_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new UpdateEmploymentStatusUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   // REMOVED: Availability Management Use Cases - Belongs to Scheduling/Appointment Service (bounded context violation)
@@ -559,48 +661,70 @@ export function setupDependencies(): DIContainer {
   container.registerFactory(
     ServiceTokens.GET_STAFF_SPECIALIZATIONS_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new GetStaffSpecializationsUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.ADD_STAFF_SPECIALIZATION_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new AddStaffSpecializationUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   container.registerFactory(
     ServiceTokens.REMOVE_STAFF_SPECIALIZATION_USE_CASE,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new RemoveStaffSpecializationUseCase(staffRepository, logger);
     },
-    ServiceLifetime.TRANSIENT
+    ServiceLifetime.TRANSIENT,
   );
 
   // Register handlers
   container.registerFactory(
     ServiceTokens.STAFF_COMMAND_HANDLERS,
     (container) => {
-      const registerStaffUseCase = container.resolve(ServiceTokens.REGISTER_STAFF_USE_CASE);
-      const updateStaffProfileUseCase = container.resolve(ServiceTokens.UPDATE_STAFF_PROFILE_USE_CASE);
-      const activateStaffUseCase = container.resolve(ServiceTokens.ACTIVATE_STAFF_USE_CASE);
-      const suspendStaffUseCase = container.resolve(ServiceTokens.SUSPEND_STAFF_USE_CASE);
-      const terminateStaffUseCase = container.resolve(ServiceTokens.TERMINATE_STAFF_USE_CASE);
-      const addStaffCredentialUseCase = container.resolve(ServiceTokens.ADD_STAFF_CREDENTIAL_USE_CASE);
-      const assignStaffToDepartmentUseCase = container.resolve(ServiceTokens.ASSIGN_STAFF_TO_DEPARTMENT_USE_CASE);
-      const updateStaffScheduleUseCase = container.resolve(ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE);
+      const registerStaffUseCase = container.resolve(
+        ServiceTokens.REGISTER_STAFF_USE_CASE,
+      );
+      const updateStaffProfileUseCase = container.resolve(
+        ServiceTokens.UPDATE_STAFF_PROFILE_USE_CASE,
+      );
+      const activateStaffUseCase = container.resolve(
+        ServiceTokens.ACTIVATE_STAFF_USE_CASE,
+      );
+      const suspendStaffUseCase = container.resolve(
+        ServiceTokens.SUSPEND_STAFF_USE_CASE,
+      );
+      const terminateStaffUseCase = container.resolve(
+        ServiceTokens.TERMINATE_STAFF_USE_CASE,
+      );
+      const addStaffCredentialUseCase = container.resolve(
+        ServiceTokens.ADD_STAFF_CREDENTIAL_USE_CASE,
+      );
+      const assignStaffToDepartmentUseCase = container.resolve(
+        ServiceTokens.ASSIGN_STAFF_TO_DEPARTMENT_USE_CASE,
+      );
+      const updateStaffScheduleUseCase = container.resolve(
+        ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new StaffCommandHandlers(
@@ -612,28 +736,34 @@ export function setupDependencies(): DIContainer {
         addStaffCredentialUseCase,
         assignStaffToDepartmentUseCase,
         updateStaffScheduleUseCase,
-        logger
+        logger,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   container.registerFactory(
     ServiceTokens.STAFF_QUERY_HANDLERS,
     (container) => {
-      const getStaffProfileUseCase = container.resolve(ServiceTokens.GET_STAFF_PROFILE_USE_CASE);
-      const searchStaffUseCase = container.resolve(ServiceTokens.SEARCH_STAFF_USE_CASE);
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const getStaffProfileUseCase = container.resolve(
+        ServiceTokens.GET_STAFF_PROFILE_USE_CASE,
+      );
+      const searchStaffUseCase = container.resolve(
+        ServiceTokens.SEARCH_STAFF_USE_CASE,
+      );
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
       return new StaffQueryHandlers(
         getStaffProfileUseCase,
         searchStaffUseCase,
         staffRepository,
-        logger
+        logger,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register event handlers
@@ -647,59 +777,89 @@ export function setupDependencies(): DIContainer {
       return new StaffDomainEventHandler({
         logger,
         auditService,
-        eventBus
+        eventBus,
       });
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
+  );
+
+  container.registerFactory(
+    ServiceTokens.STAFF_READ_MODEL_PROJECTION_HANDLER,
+    (container) => {
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
+      const readModelRepository = container.resolve(
+        ServiceTokens.STAFF_READ_MODEL_REPOSITORY,
+      );
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new StaffReadModelProjectionHandler(
+        staffRepository,
+        readModelRepository,
+        logger,
+      );
+    },
+    ServiceLifetime.SINGLETON,
   );
 
   // Register Identity Service event handlers
   container.registerFactory(
     ServiceTokens.USER_CREATED_EVENT_HANDLER,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
+      const staffReadModelRepository = container.resolve(
+        ServiceTokens.STAFF_READ_MODEL_REPOSITORY,
+      );
 
       return new UserCreatedEventHandler(
         staffRepository,
         logger,
-        auditService
+        auditService,
+        staffReadModelRepository,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   container.registerFactory(
     ServiceTokens.USER_DEACTIVATED_EVENT_HANDLER,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
       return new UserDeactivatedEventHandler(
         staffRepository,
         logger,
-        auditService
+        auditService,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   container.registerFactory(
     ServiceTokens.USER_ROLE_CHANGED_EVENT_HANDLER,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
       return new UserRoleChangedEventHandler(
         staffRepository,
         logger,
-        auditService
+        auditService,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register Identity Event Consumer
@@ -707,18 +867,29 @@ export function setupDependencies(): DIContainer {
     ServiceTokens.IDENTITY_EVENT_CONSUMER,
     (container) => {
       const logger = container.resolve(ServiceTokens.LOGGER);
-      const userCreatedHandler = container.resolve(ServiceTokens.USER_CREATED_EVENT_HANDLER);
-      const userDeactivatedHandler = container.resolve(ServiceTokens.USER_DEACTIVATED_EVENT_HANDLER);
-      const userRoleChangedHandler = container.resolve(ServiceTokens.USER_ROLE_CHANGED_EVENT_HANDLER);
+      const userCreatedHandler = container.resolve(
+        ServiceTokens.USER_CREATED_EVENT_HANDLER,
+      );
+      const userDeactivatedHandler = container.resolve(
+        ServiceTokens.USER_DEACTIVATED_EVENT_HANDLER,
+      );
+      const userRoleChangedHandler = container.resolve(
+        ServiceTokens.USER_ROLE_CHANGED_EVENT_HANDLER,
+      );
 
       const config = {
-        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
-        exchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
-        queueName: 'provider-staff-service.identity-events',
-        routingKeys: ['user.created.event', 'user.deactivated.event', 'user.role.changed.event'],
+        rabbitmqUrl:
+          process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
+        exchange: process.env.RABBITMQ_EXCHANGE || "hospital.events",
+        queueName: "provider-staff-service.identity-events",
+        routingKeys: [
+          "user.created.event",
+          "user.deactivated.event",
+          "user.role.changed.event",
+        ],
         prefetchCount: 1,
         retryAttempts: 3,
-        retryDelayMs: 1000
+        retryDelayMs: 1000,
       };
 
       return new IdentityEventConsumer(
@@ -726,53 +897,50 @@ export function setupDependencies(): DIContainer {
         logger,
         userCreatedHandler,
         userDeactivatedHandler,
-        userRoleChangedHandler
+        userRoleChangedHandler,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register Appointments Service event handlers
   container.registerFactory(
     ServiceTokens.APPOINTMENT_SCHEDULED_EVENT_HANDLER,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new AppointmentScheduledEventHandler(
-        staffRepository,
-        logger
-      );
+      return new AppointmentScheduledEventHandler(staffRepository, logger);
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   container.registerFactory(
     ServiceTokens.APPOINTMENT_CANCELLED_EVENT_HANDLER,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new AppointmentCancelledEventHandler(
-        staffRepository,
-        logger
-      );
+      return new AppointmentCancelledEventHandler(staffRepository, logger);
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   container.registerFactory(
     ServiceTokens.APPOINTMENT_COMPLETED_EVENT_HANDLER,
     (container) => {
-      const staffRepository = container.resolve(ServiceTokens.PROVIDER_STAFF_REPOSITORY);
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
 
-      return new AppointmentCompletedEventHandler(
-        staffRepository,
-        logger
-      );
+      return new AppointmentCompletedEventHandler(staffRepository, logger);
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register Patient Service event handlers
@@ -833,17 +1001,15 @@ export function setupDependencies(): DIContainer {
   container.registerFactory(
     ServiceTokens.REVIEW_EVENT_HANDLER,
     (container) => {
-      const readModelRepository = container.resolve(ServiceTokens.STAFF_READ_MODEL_REPOSITORY);
+      const readModelRepository = container.resolve(
+        ServiceTokens.STAFF_READ_MODEL_REPOSITORY,
+      );
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
-      return new ReviewEventHandler(
-        readModelRepository,
-        logger,
-        auditService
-      );
+      return new ReviewEventHandler(readModelRepository, logger, auditService);
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register Billing Event Handler
@@ -853,12 +1019,9 @@ export function setupDependencies(): DIContainer {
       const logger = container.resolve(ServiceTokens.LOGGER);
       const auditService = container.resolve(ServiceTokens.AUDIT_SERVICE);
 
-      return new BillingEventHandler(
-        logger,
-        auditService
-      );
+      return new BillingEventHandler(logger, auditService);
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // Register Enhanced Department Event Consumer
@@ -866,23 +1029,30 @@ export function setupDependencies(): DIContainer {
     ServiceTokens.ENHANCED_DEPARTMENT_EVENT_CONSUMER,
     (container) => {
       const logger = container.resolve(ServiceTokens.LOGGER);
-      const getStaffProfileUseCase = container.resolve('GetStaffProfileUseCase');
-      const setDepartmentHeadUseCase = container.resolve('SetDepartmentHeadUseCase');
-      const updateStaffDepartmentUseCase = container.resolve('UpdateStaffDepartmentUseCase');
+      const getStaffProfileUseCase = container.resolve(
+        "GetStaffProfileUseCase",
+      );
+      const setDepartmentHeadUseCase = container.resolve(
+        "SetDepartmentHeadUseCase",
+      );
+      const updateStaffDepartmentUseCase = container.resolve(
+        "UpdateStaffDepartmentUseCase",
+      );
 
       const config = {
-        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
-        queueName: 'provider-staff-service.department-events',
-        exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
+        rabbitmqUrl:
+          process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
+        queueName: "provider-staff-service.department-events",
+        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events",
         routingKeys: [
-          'department.staff.assigned',
-          'department.staff.removed', 
-          'department.head.assigned',
-          'department.staff.transferred'
+          "department.staff.assigned",
+          "department.staff.removed",
+          "department.head.assigned",
+          "department.staff.transferred",
         ],
         prefetchCount: 10,
         retryAttempts: 3,
-        retryDelayMs: 1000
+        retryDelayMs: 1000,
       };
 
       return new EnhancedDepartmentEventConsumer(
@@ -890,15 +1060,15 @@ export function setupDependencies(): DIContainer {
         logger,
         getStaffProfileUseCase,
         setDepartmentHeadUseCase,
-        updateStaffDepartmentUseCase
+        updateStaffDepartmentUseCase,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
   // TODO: Fix other event consumers later - focus on core functionality first
   const logger = container.resolve(ServiceTokens.LOGGER) as ILogger;
-  logger.info('EnhancedDepartmentEventConsumer registered successfully');
+  logger.info("EnhancedDepartmentEventConsumer registered successfully");
 
   // TODO: Re-enable SchedulingEventConsumer when scheduling events are properly defined
 
@@ -907,34 +1077,39 @@ export function setupDependencies(): DIContainer {
     ServiceTokens.REVIEW_EVENT_CONSUMER,
     (container) => {
       const logger = container.resolve(ServiceTokens.LOGGER);
-      const getStaffProfileUseCase = container.resolve('GetStaffProfileUseCase');
-      const updateStaffPerformanceUseCase = container.resolve('UpdateStaffPerformanceUseCase');
+      const getStaffProfileUseCase = container.resolve(
+        "GetStaffProfileUseCase",
+      );
+      const updateStaffPerformanceUseCase = container.resolve(
+        "UpdateStaffPerformanceUseCase",
+      );
 
       const config = {
-        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
-        queueName: 'provider-staff-service.review-events',
-        exchangeName: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
+        rabbitmqUrl:
+          process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
+        queueName: "provider-staff-service.review-events",
+        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events",
         routingKeys: [
-          'review.staff.created',
-          'review.staff.updated',
-          'review.staff.deleted'
+          "review.staff.created",
+          "review.staff.updated",
+          "review.staff.deleted",
         ],
         prefetchCount: 10,
         retryAttempts: 3,
-        retryDelayMs: 1000
+        retryDelayMs: 1000,
       };
 
       return new ReviewEventConsumer(
         config,
         logger,
         getStaffProfileUseCase,
-        updateStaffPerformanceUseCase
+        updateStaffPerformanceUseCase,
       );
     },
-    ServiceLifetime.SINGLETON
+    ServiceLifetime.SINGLETON,
   );
 
-  logger.info('Provider Staff Service DI setup completed successfully');
+  logger.info("Provider Staff Service DI setup completed successfully");
 
   return container;
 }

@@ -643,3 +643,47 @@ export const validateUpdateSchedule = [
 
   handleValidationErrors,
 ];
+
+// ==================== SELF UPDATE STAFF INFO (DOCTOR) ====================
+// Cho phép bác sĩ tự cập nhật một số trường an toàn trên hồ sơ của mình
+export const validateSelfUpdateStaffInfo = [
+  body("personalInfo")
+    .optional()
+    .isObject()
+    .withMessage("personalInfo phải là object"),
+  body("personalInfo.fullName")
+    .optional()
+    .isLength({ min: 2, max: 255 })
+    .withMessage("Họ tên phải từ 2-255 ký tự"),
+  body("personalInfo.phoneNumber")
+    .optional()
+    .matches(/^(0|\+84)[0-9]{9,10}$/)
+    .withMessage("Số điện thoại không đúng định dạng"),
+  body("personalInfo.address")
+    .optional()
+    .isObject()
+    .withMessage("Địa chỉ phải là object nếu được cung cấp"),
+
+  body("professionalInfo")
+    .optional()
+    .isObject()
+    .withMessage("professionalInfo phải là object"),
+  body("professionalInfo.title")
+    .optional()
+    .isLength({ min: 2, max: 255 })
+    .withMessage("Chức danh phải từ 2-255 ký tự"),
+  body("professionalInfo.position")
+    .optional()
+    .isLength({ min: 2, max: 255 })
+    .withMessage("Vị trí phải từ 2-255 ký tự"),
+  body("professionalInfo.education")
+    .optional({ checkFalsy: true })
+    .isArray({ min: 1 })
+    .withMessage("Bằng cấp phải là mảng nếu được cung cấp"),
+  body("professionalInfo.languages")
+    .optional({ checkFalsy: true })
+    .isArray({ min: 1 })
+    .withMessage("Ngôn ngữ phải là mảng nếu được cung cấp"),
+
+  handleValidationErrors,
+];

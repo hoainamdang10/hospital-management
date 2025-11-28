@@ -173,12 +173,18 @@ export class HybridEventBus implements IEventBus {
     const normalizedEventType = this.buildEventType(event);
     const originalEventType = event.eventType;
 
+    // Defensive coercion: ensure occurredAt is a Date object
+    const rawTimestamp = (event as any).timestamp || new Date();
+    const occurredAt = rawTimestamp instanceof Date
+      ? rawTimestamp
+      : new Date(rawTimestamp);
+
     return {
       eventId: event.eventId,
       eventType: normalizedEventType,
       aggregateId: event.aggregateId,
       aggregateType: event.aggregateType || 'ProviderStaff',
-      occurredAt: (event as any).timestamp || new Date(),
+      occurredAt,
       serviceName: this.serviceName,
       eventData: this.extractEventData(event),
       routingKey: normalizedEventType,

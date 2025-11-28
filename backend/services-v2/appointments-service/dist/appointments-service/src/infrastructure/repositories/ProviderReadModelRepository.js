@@ -30,7 +30,10 @@ class ProviderReadModelRepository {
      * Upsert provider read model (idempotent)
      */
     async upsert(provider) {
-        const { error } = await this.supabase.from(this.table).upsert({
+        const { error } = await this.supabase
+            .schema(this.schema)
+            .from(this.table)
+            .upsert({
             provider_id: provider.providerId,
             tenant_id: provider.tenantId,
             full_name: provider.fullName,
@@ -119,6 +122,7 @@ class ProviderReadModelRepository {
         if (providerIds.length === 0)
             return [];
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("*")
             .in("provider_id", providerIds);
@@ -132,6 +136,7 @@ class ProviderReadModelRepository {
      */
     async findByTenant(tenantId, limit = 100) {
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("*")
             .eq("tenant_id", tenantId)
@@ -147,6 +152,7 @@ class ProviderReadModelRepository {
      */
     async findBySpecialization(specialization, tenantId, limit = 50) {
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("*")
             .eq("tenant_id", tenantId)
@@ -164,6 +170,7 @@ class ProviderReadModelRepository {
      */
     async findByDepartment(department, tenantId, limit = 50) {
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("*")
             .eq("tenant_id", tenantId)
@@ -182,6 +189,7 @@ class ProviderReadModelRepository {
     async search(query, tenantId, limit = 20) {
         const searchPattern = `%${query}%`;
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("*")
             .eq("tenant_id", tenantId)
@@ -198,6 +206,7 @@ class ProviderReadModelRepository {
      */
     async findActive(tenantId, limit = 100) {
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("*")
             .eq("tenant_id", tenantId)
@@ -259,6 +268,7 @@ class ProviderReadModelRepository {
      */
     async exists(providerId) {
         const { data, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("provider_id")
             .eq("provider_id", providerId)
@@ -273,6 +283,7 @@ class ProviderReadModelRepository {
      */
     async countByTenant(tenantId) {
         const { count, error } = await this.supabase
+            .schema(this.schema)
             .from(this.table)
             .select("provider_id", { count: "exact", head: true })
             .eq("tenant_id", tenantId);

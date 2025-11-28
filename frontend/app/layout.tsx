@@ -20,7 +20,11 @@ export const metadata: Metadata = {
   description: 'Hệ thống quản lý bệnh viện hiện đại và toàn diện',
   keywords: ['hospital', 'healthcare', 'management', 'bệnh viện', 'y tế'],
   authors: [{ name: 'Hospital Management Team' }],
-  viewport: 'width=device-width, initial-scale=1',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
   themeColor: '#0066CC',
 };
 

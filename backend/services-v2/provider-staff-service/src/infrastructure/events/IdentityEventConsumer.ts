@@ -121,7 +121,11 @@ export class IdentityEventConsumer {
           if (!msg) return;
 
           try {
-            await this.handleMessage(msg);
+            const shouldAck = await this.handleMessage(msg);
+            if (shouldAck === false) {
+              this.channel!.ack(msg);
+              return;
+            }
             this.channel!.ack(msg);
           } catch (error) {
             this.logger.error("Error processing message", {
@@ -182,9 +186,10 @@ export class IdentityEventConsumer {
   /**
    * Handle incoming message
    */
-  private async handleMessage(msg: amqp.ConsumeMessage): Promise<void> {
+  private async handleMessage(msg: amqp.ConsumeMessage): Promise<boolean> {
     const content = msg.content.toString();
     const routingKey = msg.fields.routingKey;
+    const rawHexPreview = msg.content.slice(0, 64).toString("hex");
 
     this.logger.info("Received message from Identity Service", {
       routingKey,
@@ -193,7 +198,17 @@ export class IdentityEventConsumer {
     });
 
     try {
-      const event = JSON.parse(content);
+      // Sanitize payload to avoid parse failures due to stray chars/BOM
+      let sanitized = content.trim();
+      if (sanitized.startsWith("\uFEFF")) {
+        sanitized = sanitized.slice(1);
+      }
+      const firstBrace = sanitized.indexOf("{");
+      if (firstBrace > 0) {
+        sanitized = sanitized.slice(firstBrace);
+      }
+
+      const event = JSON.parse(sanitized);
 
       // Route to appropriate handler based on event type
       switch (event.eventType) {
@@ -217,13 +232,25 @@ export class IdentityEventConsumer {
             eventId: event.eventId,
           });
       }
+      return true;
     } catch (error) {
+      // Extra debug for malformed JSON
+      // eslint-disable-next-line no-console
+      console.error("[IDENTITY EVENT RAW DEBUG]", {
+        routingKey,
+        messageId: msg.properties.messageId,
+        rawContentPreview: content.substring(0, 200),
+        rawHexPreview,
+      });
       this.logger.error("Error parsing or handling message", {
         error: error instanceof Error ? error.message : "Unknown error",
         routingKey,
         messageId: msg.properties.messageId,
+        rawContentPreview: content.substring(0, 200),
+        rawHexPreview,
       });
-      throw error;
+      // Signal caller to ack to avoid poison-message requeue loops
+      return false;
     }
   }
 
@@ -232,13 +259,28 @@ export class IdentityEventConsumer {
    */
   private async handleUserCreated(eventData: any): Promise<void> {
     const payload = eventData.payload || eventData;
+    const raw = payload || eventData; // defensive: always prefer payload
     const event = new UserCreatedEvent(
-      payload.userId || eventData.aggregateId,
-      payload.email,
-      payload.fullName || "",
-      payload.role || payload.roleType,
-      payload.citizenId,
-      payload.phoneNumber,
+      raw.userId || eventData.aggregateId,
+      raw.email,
+      raw.fullName || "",
+      raw.role || raw.roleType,
+      raw.citizenId,
+      raw.phoneNumber,
+      raw.dateOfBirth,
+      raw.gender,
+      raw.address,
+      raw.department || raw.departmentCode,
+      raw.specializationCode || raw.specialization,
+      raw.specializationName,
+      raw.licenseNumber,
+      raw.education,
+      raw.yearsOfExperience,
+      raw.position,
+      raw.title,
+      raw.employmentType,
+      raw.workSchedule,
+      raw.consultationFee,
     );
 
     await this.userCreatedHandler.handle(event);

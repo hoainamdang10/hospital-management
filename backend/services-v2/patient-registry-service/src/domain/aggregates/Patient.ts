@@ -181,8 +181,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
   /**
    * Factory method: Reconstitute from persistence
    */
-  public static reconstitute(props: PatientProps): Patient {
-    return new Patient(props);
+  public static reconstitute(props: PatientProps, id?: string): Patient {
+    return new Patient(props, id);
   }
 
   private static buildRegisteredEventData(

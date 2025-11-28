@@ -17,7 +17,15 @@ export declare class UserCreatedEvent extends DomainEvent {
     readonly roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist";
     readonly citizenId?: string | undefined;
     readonly phoneNumber?: string | undefined;
-    constructor(userId: string, email: string, fullName: string, roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist", citizenId?: string | undefined, phoneNumber?: string | undefined);
+    readonly department?: string | undefined;
+    readonly specializationCode?: string | undefined;
+    readonly specializationName?: string | undefined;
+    readonly licenseNumber?: string | undefined;
+    readonly education?: string[] | undefined;
+    readonly yearsOfExperience?: number | undefined;
+    readonly position?: string | undefined;
+    readonly title?: string | undefined;
+    constructor(userId: string, email: string, fullName: string, roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist", citizenId?: string | undefined, phoneNumber?: string | undefined, department?: string | undefined, specializationCode?: string | undefined, specializationName?: string | undefined, licenseNumber?: string | undefined, education?: string[] | undefined, yearsOfExperience?: number | undefined, position?: string | undefined, title?: string | undefined);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;
@@ -203,6 +211,37 @@ export declare class AppointmentRescheduledEvent extends DomainEvent {
     readonly rescheduleReason?: string;
     readonly rescheduledBy?: string;
     constructor(appointmentId: string, patientId: string, doctorId: string, newStartTime: Date | string, newEndTime: Date | string, rescheduleReason?: string, rescheduledBy?: string, correlationId?: string, causationId?: string, userId?: string);
+    getEventData(): Record<string, unknown>;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
+ * PLACEHOLDER: AppointmentCheckedInEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+export declare class AppointmentCheckedInEvent extends DomainEvent {
+    readonly appointmentId: string;
+    readonly patientId: string;
+    readonly doctorId: string;
+    readonly checkedInAt: Date | string;
+    readonly priority: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, checkedInAt: Date | string, priority: string, correlationId?: string, causationId?: string, userId?: string);
+    getEventData(): Record<string, unknown>;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
+ * PLACEHOLDER: AppointmentStartedEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+export declare class AppointmentStartedEvent extends DomainEvent {
+    readonly appointmentId: string;
+    readonly patientId: string;
+    readonly doctorId: string;
+    readonly appointmentDate: string;
+    readonly appointmentTime: string;
+    readonly startedBy: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, appointmentDate: string, appointmentTime: string, startedBy: string, correlationId?: string, causationId?: string, userId?: string);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;

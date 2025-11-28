@@ -20,6 +20,7 @@ import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
 import { ProfessionalInfo } from "../../domain/value-objects/ProfessionalInfo";
 import { Specialization } from "../../domain/entities/Specialization";
 import { WorkSchedule } from "../../domain/value-objects/WorkSchedule";
+import { IStaffReadModelRepository } from "../repositories/StaffReadModelRepository";
 
 /**
  * Handler for UserCreated Event from Identity Service
@@ -30,6 +31,7 @@ export class UserCreatedEventHandler {
     private staffRepository: IProviderStaffRepository,
     private logger: ILogger,
     private auditService: IAuditService,
+    private staffReadModelRepository: IStaffReadModelRepository,
   ) {}
 
   /**
@@ -82,6 +84,15 @@ export class UserCreatedEventHandler {
           userId: event.userId,
           staffId: existingStaff.id,
         });
+
+        // Ensure read model stays in sync (idempotent)
+        await this.staffReadModelRepository.upsertProfile({
+          staffId: existingStaff.staffIdValue,
+          userId: event.userId,
+          fullName: event.fullName || existingStaff.personalInfo.fullName,
+          specialization: event.specializationName || undefined,
+          department: event.department || undefined,
+        });
         return;
       }
 
@@ -95,66 +106,168 @@ export class UserCreatedEventHandler {
       const fullName = event.fullName || event.email.split("@")[0];
 
       // Prefer real professional data from event (invitation data)
-      const department = event.department || "GENERAL";
-      const position = event.position || this.getDefaultPosition(staffType);
-      const title = event.title || this.getDefaultTitle(staffType);
+      const specializationCode =
+        typeof (event as any).specializationCode === "string"
+          ? (event as any).specializationCode.trim().toUpperCase()
+          : undefined;
+      const department =
+        typeof (event as any).department === "string" &&
+        (event as any).department.trim().length > 0
+          ? (event as any).department.trim().toUpperCase()
+          : specializationCode || "GENERAL";
+      const position =
+        typeof (event as any).position === "string" &&
+        (event as any).position.trim().length > 0
+          ? (event as any).position
+          : this.getDefaultPosition(staffType);
+      const title =
+        typeof (event as any).title === "string" &&
+        (event as any).title.trim().length > 0
+          ? (event as any).title
+          : this.getDefaultTitle(staffType);
+      const rawEducation = (event as any).education;
+      const normalizedEducation = Array.isArray(rawEducation)
+        ? rawEducation
+        : rawEducation
+          ? [String(rawEducation)]
+          : [];
       const education =
-        event.education && event.education.length > 0
-          ? event.education
+        normalizedEducation.length > 0
+          ? normalizedEducation
           : ["Pending verification"];
-      const licenseNumber = event.licenseNumber || `TEMP-${staffId.value}`;
+      // Ensure license number is unique to avoid violating the DB unique constraint.
+      // Prefer invitation payload; otherwise, fall back to a TEMP value.
+      let licenseNumber =
+        (typeof event.licenseNumber === "string"
+          ? event.licenseNumber.trim()
+          : "") || `TEMP-${staffId.value}`;
+
+      const existingLicenseOwner =
+        licenseNumber.length > 0
+          ? await this.staffRepository.findByLicenseNumber(licenseNumber)
+          : null;
+
+      if (
+        existingLicenseOwner &&
+        existingLicenseOwner.userId !== event.userId
+      ) {
+        // Collision detected -> generate a unique TEMP license number tied to this staffId
+        this.logger.warn(
+          "License number already in use, generating TEMP license",
+          {
+            licenseNumber,
+            userId: event.userId,
+            existingUserId: existingLicenseOwner.userId,
+          },
+        );
+        licenseNumber = `TEMP-${staffId.value}-${Date.now().toString().slice(-6)}`;
+      }
       const yearsOfExperience =
         typeof event.yearsOfExperience === "number" &&
         event.yearsOfExperience >= 0
           ? event.yearsOfExperience
           : 0;
+      // Consultation fee: prefer event payload, fallback to default (500k VND)
+      const consultationFee =
+        typeof (event as any).consultationFee === "number"
+          ? (event as any).consultationFee
+          : 500_000;
 
-      // Create PersonalInfo
+      // Create PersonalInfo (prefer event data, fallback to safe defaults)
+      const fallbackAddress = {
+        street: "Chưa cập nhật",
+        ward: "Chưa cập nhật",
+        district: "Chưa cập nhật",
+        city: "Chưa cập nhật",
+        province: "Chưa cập nhật",
+        country: "Vietnam",
+      };
+
+      const safeDateOfBirth = (() => {
+        const rawDob = (event as any).dateOfBirth;
+        if (rawDob) {
+          const parsed = new Date(rawDob);
+          if (!isNaN(parsed.getTime())) {
+            return parsed;
+          }
+        }
+        return new Date("1990-01-01");
+      })();
+
+      const address =
+        (event as any).address && typeof (event as any).address === "object"
+          ? ((event as any).address as any)
+          : fallbackAddress;
+
       const personalInfo = PersonalInfo.create({
         fullName: fullName,
-        dateOfBirth: new Date("1990-01-01"), // Default, should be updated later
-        gender: "other", // Default, should be updated later
-        nationalId: event.citizenId || "000000000", // Default 9-digit CMND for validation
+        dateOfBirth: safeDateOfBirth,
+        gender: (event.gender as any) || "other",
+        nationalId: event.citizenId || "000000000",
         nationality: "Vietnamese",
-        phoneNumber: event.phoneNumber || "0000000000", // Default phone number
+        phoneNumber: event.phoneNumber || "0000000000",
         email: event.email,
-        address: {
-          street: "Chưa cập nhật",
-          ward: "Chưa cập nhật",
-          district: "Chưa cập nhật",
-          city: "Chưa cập nhật",
-          province: "Chưa cập nhật",
-          country: "Vietnam",
-        },
+        address,
       });
 
-      // Create ProfessionalInfo
+      // Create ProfessionalInfo (use event data when available)
       const professionalInfo = ProfessionalInfo.create({
         title,
         department,
         position,
         education,
-        languages: ["Vietnamese", "English"],
+        languages:
+          Array.isArray((event as any).languages) &&
+          (event as any).languages.length > 0
+            ? (event as any).languages
+            : ["Vietnamese", "English"],
       });
 
-      // Create default WorkSchedule
-      const workSchedule = WorkSchedule.create({
-        workingDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
-        workingHours: {
-          start: "08:00",
-          end: "17:00",
-        },
-        timeZone: "Asia/Ho_Chi_Minh",
-        isFlexible: false,
-      });
+      // Create WorkSchedule (prefer event-provided)
+      const eventWorkSchedule = (event as any).workSchedule as any;
+      const workSchedule = eventWorkSchedule
+        ? WorkSchedule.create({
+            workingDays: eventWorkSchedule.workingDays || [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+            ],
+            workingHours: {
+              start: eventWorkSchedule?.workingHours?.start || "08:00",
+              end: eventWorkSchedule?.workingHours?.end || "17:00",
+            },
+            timeZone: eventWorkSchedule.timeZone || "Asia/Ho_Chi_Minh",
+            isFlexible: eventWorkSchedule.isFlexible ?? false,
+          })
+        : WorkSchedule.create({
+            workingDays: [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+            ],
+            workingHours: {
+              start: "08:00",
+              end: "17:00",
+            },
+            timeZone: "Asia/Ho_Chi_Minh",
+            isFlexible: false,
+          });
 
       // Create default specializations (required for doctors)
       const specializations =
         staffType === "doctor"
           ? [
               Specialization.create({
-                code: event.specializationCode || "GENMED",
-                name: event.specializationName || "General Medicine",
+                code: specializationCode || department || "GENMED",
+                name:
+                  typeof (event as any).specializationName === "string" &&
+                  (event as any).specializationName.trim().length > 0
+                    ? (event as any).specializationName
+                    : specializationCode || "General Medicine",
                 description: "Tổng quát - Cần cập nhật",
                 isActive: true,
               }),
@@ -169,14 +282,38 @@ export class UserCreatedEventHandler {
         professionalInfo,
         workSchedule,
         licenseNumber,
-        "full_time", // employmentType - Default
+        (event as any).employmentType || "full_time",
         new Date(), // hireDate
         yearsOfExperience,
         specializations, // Add specializations (required for doctors)
       );
 
+      // Set default consultation fee for doctors (persisted to staff_profiles)
+      if (staffType === "doctor") {
+        staff.updateConsultationFee(
+          (event as any).consultationFee ?? consultationFee,
+        );
+      }
+
       // Save staff profile
       await this.staffRepository.save(staff);
+
+      // Create read model entry (denormalized) for search/listing
+      try {
+        await this.staffReadModelRepository.upsertProfile({
+          staffId: staff.staffIdValue,
+          userId: event.userId,
+          fullName,
+          specialization: specializations[0]?.name || undefined,
+          department: department || undefined,
+        });
+      } catch (err) {
+        this.logger.error("Failed to create staff read model", {
+          userId: event.userId,
+          staffId: staff.id,
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
 
       this.logger.info(
         "Staff profile created successfully from UserCreated event",
@@ -198,6 +335,7 @@ export class UserCreatedEventHandler {
           eventId: event.eventId,
           eventType: "UserCreated",
           staffType,
+          consultationFee,
           source: "identity-service",
           autoCreated: true,
         },

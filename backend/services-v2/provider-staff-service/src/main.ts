@@ -62,6 +62,7 @@ import { createHealthRoutes } from "./presentation/routes/healthRoutes";
 
 // DI Container
 import { setupDependencies, ServiceTokens } from "./infrastructure/di/setup";
+import { OutboxPublisher } from "./infrastructure/outbox/OutboxPublisher";
 
 // Configuration
 const config = {
@@ -89,6 +90,7 @@ class ProviderStaffServiceApp {
   private eventBus!: HybridEventBus | null;
   private identityEventConsumer!: IdentityEventConsumer | null;
   private healthCheck!: ProviderStaffHealthCheck;
+  private outboxPublisher!: OutboxPublisher | null;
 
   // Use Cases
   private registerStaffUseCase!: RegisterStaffUseCase;
@@ -167,6 +169,10 @@ class ProviderStaffServiceApp {
         ServiceTokens.EVENT_BUS,
       );
       await this.eventBus.connect();
+      this.outboxPublisher = this.container.resolve<OutboxPublisher>(
+        ServiceTokens.OUTBOX_PUBLISHER,
+      );
+      await this.outboxPublisher.start();
 
       // Resolve dependencies from container
       this.registerStaffUseCase = this.container.resolve<RegisterStaffUseCase>(
@@ -328,7 +334,9 @@ class ProviderStaffServiceApp {
       const reviewHandler = this.container.resolve(
         ServiceTokens.REVIEW_EVENT_HANDLER,
       );
-      const eventBus = this.container.resolve(ServiceTokens.EVENT_BUS) as HybridEventBus;
+      const eventBus = this.container.resolve(
+        ServiceTokens.EVENT_BUS,
+      ) as HybridEventBus;
 
       // Subscribe to review events
       await eventBus.subscribe("review.created", reviewHandler);
@@ -360,7 +368,9 @@ class ProviderStaffServiceApp {
       const billingHandler = this.container.resolve(
         ServiceTokens.BILLING_EVENT_HANDLER,
       );
-      const eventBus = this.container.resolve(ServiceTokens.EVENT_BUS) as HybridEventBus;
+      const eventBus = this.container.resolve(
+        ServiceTokens.EVENT_BUS,
+      ) as HybridEventBus;
 
       // Subscribe to billing events
       await eventBus.subscribe("billing.payment.processed", billingHandler);
@@ -392,9 +402,10 @@ class ProviderStaffServiceApp {
    */
   private async initializeIdentityEventConsumer(): Promise<void> {
     try {
-      this.identityEventConsumer = this.container.resolve<IdentityEventConsumer>(
-        ServiceTokens.IDENTITY_EVENT_CONSUMER,
-      );
+      this.identityEventConsumer =
+        this.container.resolve<IdentityEventConsumer>(
+          ServiceTokens.IDENTITY_EVENT_CONSUMER,
+        );
       await this.identityEventConsumer.connect();
       logger.info("Identity Event Consumer connected successfully");
     } catch (error) {
@@ -411,9 +422,10 @@ class ProviderStaffServiceApp {
    */
   private async initializeEnhancedDepartmentEventConsumer(): Promise<void> {
     try {
-      const enhancedDepartmentConsumer = this.container.resolve<EnhancedDepartmentEventConsumer>(
-        ServiceTokens.ENHANCED_DEPARTMENT_EVENT_CONSUMER,
-      );
+      const enhancedDepartmentConsumer =
+        this.container.resolve<EnhancedDepartmentEventConsumer>(
+          ServiceTokens.ENHANCED_DEPARTMENT_EVENT_CONSUMER,
+        );
       await enhancedDepartmentConsumer.connect();
       logger.info("Enhanced Department Event Consumer connected successfully");
     } catch (error) {
@@ -447,7 +459,9 @@ class ProviderStaffServiceApp {
    * TODO: Re-enable when proper bounded context is established
    */
   private async initializeSchedulingEventConsumer(): Promise<void> {
-    logger.info("Scheduling Event Consumer disabled - bounded context violation");
+    logger.info(
+      "Scheduling Event Consumer disabled - bounded context violation",
+    );
     // Disabled: Provider Staff Service should not consume scheduling events
     // Scheduling belongs to Appointments Service bounded context
   }
@@ -585,7 +599,9 @@ class ProviderStaffServiceApp {
         ServiceTokens.REMOVE_STAFF_SPECIALIZATION_USE_CASE,
       );
     const setDepartmentHeadUseCase =
-      this.container.resolve<SetDepartmentHeadUseCase>(ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE);
+      this.container.resolve<SetDepartmentHeadUseCase>(
+        ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE,
+      );
 
     setupRoutes(
       this.app as Express,
@@ -626,9 +642,10 @@ class ProviderStaffServiceApp {
         res: express.Response,
         _next: express.NextFunction,
       ) => {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         const errorStack = error instanceof Error ? error.stack : undefined;
-        
+
         logger.error("Unhandled request error", {
           error: errorMessage,
           stack: errorStack,
@@ -642,7 +659,8 @@ class ProviderStaffServiceApp {
           error: "INTERNAL_SERVER_ERROR",
           message: "Lỗi hệ thống không xác định",
           timestamp: new Date().toISOString(),
-          requestId: (req as unknown as Record<string, unknown>).requestId || "unknown",
+          requestId:
+            (req as unknown as Record<string, unknown>).requestId || "unknown",
         });
       },
     );
@@ -704,6 +722,11 @@ class ProviderStaffServiceApp {
     logger.info(`${signal} received, shutting down gracefully...`);
 
     try {
+      if (this.outboxPublisher) {
+        await this.outboxPublisher.stop();
+        logger.info("Outbox publisher stopped");
+      }
+
       if (this.eventBus) {
         await this.eventBus.disconnect();
         logger.info("Hybrid event bus disconnected");

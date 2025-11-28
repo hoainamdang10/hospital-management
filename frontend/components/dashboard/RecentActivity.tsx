@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MoreVertical, UserCheck, UserPlus, Wrench, Pill, AlertCircle, Calendar, FileText, CreditCard } from 'lucide-react';
+import { MoreVertical, UserCheck, UserPlus, Wrench, Pill, AlertCircle, Calendar, FileText, CreditCard, Activity as ActivityIcon } from 'lucide-react';
 import { getRecentActivities, RecentActivity as Activity } from '@/lib/api/notifications.service';
+import { cn } from '@/lib/utils';
 
 interface RecentActivityProps {
   patientId?: string;
@@ -78,17 +79,17 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
+          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex gap-4 animate-pulse">
-              <div className="h-10 w-10 rounded-full bg-gray-200" />
+              <div className="h-10 w-10 rounded-full bg-gray-100" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4" />
-                <div className="h-3 bg-gray-200 rounded w-1/2" />
+                <div className="h-4 bg-gray-100 rounded w-3/4" />
+                <div className="h-3 bg-gray-100 rounded w-1/2" />
               </div>
             </div>
           ))}
@@ -122,32 +123,37 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
   const getActivityColor = (type: string) => {
     switch (type) {
       case 'discharge':
-        return 'bg-teal-100 text-teal-600';
+        return 'bg-teal-50 text-teal-600 ring-teal-100';
       case 'admission':
-        return 'bg-blue-100 text-blue-600';
+        return 'bg-blue-50 text-blue-600 ring-blue-100';
       case 'maintenance':
-        return 'bg-purple-100 text-purple-600';
+        return 'bg-purple-50 text-purple-600 ring-purple-100';
       case 'medication':
-        return 'bg-green-100 text-green-600';
+        return 'bg-green-50 text-green-600 ring-green-100';
       case 'emergency':
-        return 'bg-orange-100 text-orange-600';
+        return 'bg-orange-50 text-orange-600 ring-orange-100';
       case 'appointment':
-        return 'bg-blue-100 text-blue-600';
+        return 'bg-blue-50 text-blue-600 ring-blue-100';
       case 'test_result':
-        return 'bg-purple-100 text-purple-600';
+        return 'bg-purple-50 text-purple-600 ring-purple-100';
       case 'payment':
-        return 'bg-green-100 text-green-600';
+        return 'bg-green-50 text-green-600 ring-green-100';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-gray-50 text-gray-600 ring-gray-100';
     }
   };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="p-6">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-        <button 
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-100 rounded-xl">
+            <ActivityIcon className="w-6 h-6 text-purple-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
+        </div>
+        <button
           className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
           aria-label="More options"
         >
@@ -156,36 +162,37 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
       </div>
 
       {/* Activity Timeline */}
-      <div className="space-y-4">
+      <div className="space-y-0">
         {activities.map((activity, index) => {
           const Icon = getActivityIcon(activity.type);
           const isLast = index === activities.length - 1;
 
           return (
-            <div key={activity.id} className="relative flex gap-4">
+            <div key={activity.id} className="relative flex gap-4 pb-8 last:pb-0 group">
               {/* Timeline line */}
               {!isLast && (
-                <div className="absolute left-5 top-12 bottom-0 w-px bg-gray-200" />
+                <div className="absolute left-5 top-12 bottom-0 w-px bg-gray-200 group-hover:bg-gray-300 transition-colors" />
               )}
 
               {/* Icon */}
               <div
-                className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${getActivityColor(
-                  activity.type
-                )}`}
+                className={cn(
+                  "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-4 ring-white transition-all group-hover:scale-110",
+                  getActivityColor(activity.type)
+                )}
               >
                 <Icon className="h-5 w-5" />
               </div>
 
               {/* Content */}
               <div className="flex-1 pt-1">
-                <p className="text-sm font-medium text-gray-900 leading-relaxed">
+                <p className="text-sm font-medium text-gray-900 leading-relaxed group-hover:text-primary-700 transition-colors">
                   {activity.title}
                 </p>
                 {activity.description && (
-                  <p className="text-sm text-gray-600 mt-0.5">{activity.description}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{activity.description}</p>
                 )}
-                <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
+                <p className="text-xs text-gray-400 mt-1 font-medium">{activity.time}</p>
               </div>
             </div>
           );

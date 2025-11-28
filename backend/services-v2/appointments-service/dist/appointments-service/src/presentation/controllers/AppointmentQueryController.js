@@ -24,21 +24,21 @@ class AppointmentQueryController {
             const appointmentDetails = await this.getAppointmentDetailsQuery.execute(id);
             res.status(200).json({
                 success: true,
-                data: appointmentDetails
+                data: appointmentDetails,
             });
         }
         catch (error) {
-            console.error('[AppointmentQueryController] Failed to get appointment details:', error);
-            if (error.message.includes('not found')) {
+            console.error("[AppointmentQueryController] Failed to get appointment details:", error);
+            if (error.message.includes("not found")) {
                 res.status(404).json({
                     success: false,
-                    error: 'Appointment not found'
+                    error: "Appointment not found",
                 });
                 return;
             }
             res.status(500).json({
                 success: false,
-                error: 'Failed to get appointment details'
+                error: "Failed to get appointment details",
             });
         }
     }
@@ -60,7 +60,7 @@ class AppointmentQueryController {
      */
     async listAppointments(req, res) {
         try {
-            const { patientId, doctorId, startDate, endDate, status, type, priority, departmentId, page, pageSize } = req.query;
+            const { patientId, doctorId, startDate, endDate, status, type, priority, departmentId, page, pageSize, } = req.query;
             const result = await this.listAppointmentsQuery.execute({
                 patientId: patientId,
                 doctorId: doctorId,
@@ -71,18 +71,18 @@ class AppointmentQueryController {
                 priority: priority,
                 departmentId: departmentId,
                 page: page ? parseInt(page) : undefined,
-                pageSize: pageSize ? parseInt(pageSize) : undefined
+                pageSize: pageSize ? parseInt(pageSize) : undefined,
             });
             res.status(200).json({
                 success: true,
-                data: result
+                data: result,
             });
         }
         catch (error) {
-            console.error('[AppointmentQueryController] Failed to list appointments:', error);
+            console.error("[AppointmentQueryController] Failed to list appointments:", error);
             res.status(500).json({
                 success: false,
-                error: 'Failed to list appointments'
+                error: "Failed to list appointments",
             });
         }
     }
@@ -97,18 +97,18 @@ class AppointmentQueryController {
             const result = await this.listAppointmentsQuery.execute({
                 patientId,
                 page: page ? parseInt(page) : undefined,
-                pageSize: pageSize ? parseInt(pageSize) : undefined
+                pageSize: pageSize ? parseInt(pageSize) : undefined,
             });
             res.status(200).json({
                 success: true,
-                data: result
+                data: result,
             });
         }
         catch (error) {
-            console.error('[AppointmentQueryController] Failed to get patient appointments:', error);
+            console.error("[AppointmentQueryController] Failed to get patient appointments:", error);
             res.status(500).json({
                 success: false,
-                error: 'Failed to get patient appointments'
+                error: "Failed to get patient appointments",
             });
         }
     }
@@ -119,25 +119,38 @@ class AppointmentQueryController {
     async getDoctorAppointments(req, res) {
         try {
             const { doctorId } = req.params;
+            const authUser = req.user;
+            const effectiveDoctorId = authUser?.role === "doctor" && authUser?.userId
+                ? authUser.userId
+                : doctorId;
+            if (authUser?.role === "doctor" &&
+                authUser?.userId &&
+                authUser.userId !== doctorId) {
+                res.status(403).json({
+                    success: false,
+                    error: "Forbidden: doctor can only view own appointments",
+                });
+                return;
+            }
             const { page, pageSize, startDate, endDate, status } = req.query;
             const result = await this.listAppointmentsQuery.execute({
-                doctorId,
+                doctorId: effectiveDoctorId,
                 startDate: startDate ? new Date(startDate) : undefined,
                 endDate: endDate ? new Date(endDate) : undefined,
                 status: status,
                 page: page ? parseInt(page) : undefined,
-                pageSize: pageSize ? parseInt(pageSize) : undefined
+                pageSize: pageSize ? parseInt(pageSize) : undefined,
             });
             res.status(200).json({
                 success: true,
-                data: result
+                data: result,
             });
         }
         catch (error) {
-            console.error('[AppointmentQueryController] Failed to get doctor appointments:', error);
+            console.error("[AppointmentQueryController] Failed to get doctor appointments:", error);
             res.status(500).json({
                 success: false,
-                error: 'Failed to get doctor appointments'
+                error: "Failed to get doctor appointments",
             });
         }
     }

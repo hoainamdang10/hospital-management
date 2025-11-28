@@ -70,7 +70,7 @@ export class StaffController {
     private getStaffSpecializationsUseCase: GetStaffSpecializationsUseCase,
     private addStaffSpecializationUseCase: AddStaffSpecializationUseCase,
     private removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase,
-  ) { }
+  ) {}
 
   /**
    * Register new staff
@@ -226,6 +226,58 @@ export class StaffController {
   }
 
   /**
+   * Check license number availability (for invitation/registration forms)
+   * GET /api/v1/staff/license-check/:licenseNumber
+   * Returns exists=true if the license is already in use
+   */
+  async checkLicenseAvailability(req: Request, res: Response): Promise<void> {
+    try {
+      const { licenseNumber } = req.params;
+      const requestedBy = getUserId(req);
+      const requestedByRole = getUserRole(req);
+
+      this.logger.info("Checking license availability", {
+        licenseNumber,
+        requestedBy,
+      });
+
+      const query = {
+        queryId: `query_${Date.now()}`,
+        queryType: "GetStaffProfile" as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          licenseNumber,
+          requestedBy,
+          requestedByRole,
+          includeSensitiveInfo: false,
+        },
+      };
+
+      const result = await this.staffQueryHandlers.handleGetStaffProfile(query);
+
+      if (result.success && result.data?.staff) {
+        const staff: any = result.data.staff;
+        ResponseHelper.success(res, {
+          exists: true,
+          staffId: staff.staffId || staff.id,
+          userId: staff.userId,
+          licenseNumber,
+        });
+        return;
+      }
+
+      ResponseHelper.success(res, { exists: false });
+    } catch (error) {
+      this.logger.error("Error checking license availability", {
+        licenseNumber: req.params.licenseNumber,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Get all staff with pagination and filters
    * GET /api/v1/staff?staffType=...&departmentId=...&status=...&page=1&limit=20
    */
@@ -237,10 +289,7 @@ export class StaffController {
           return undefined;
         }
         const normalized = value.toLowerCase() as StaffType;
-        const allowed: StaffType[] = [
-          "doctor",
-          "receptionist",
-        ];
+        const allowed: StaffType[] = ["doctor", "receptionist"];
         return allowed.includes(normalized) ? normalized : undefined;
       };
       const toStaffStatus = (value?: string): StaffStatus | undefined => {
@@ -277,7 +326,8 @@ export class StaffController {
       const safePage = Number.parseInt(queryParams.page || "1", 10);
       const safeLimit = Number.parseInt(queryParams.limit || "20", 10);
       const pageNumber = Number.isNaN(safePage) || safePage < 1 ? 1 : safePage;
-      const limitNumber = Number.isNaN(safeLimit) || safeLimit < 1 ? 20 : safeLimit;
+      const limitNumber =
+        Number.isNaN(safeLimit) || safeLimit < 1 ? 20 : safeLimit;
       // Sorting not implemented for list endpoint yet
       // const sortField = queryParams.sortBy || undefined;
       // const sortDirection = queryParams.sortOrder || undefined;
@@ -346,10 +396,7 @@ export class StaffController {
           return undefined;
         }
         const normalized = value.toLowerCase() as StaffType;
-        const allowed: StaffType[] = [
-          "doctor",
-          "receptionist",
-        ];
+        const allowed: StaffType[] = ["doctor", "receptionist"];
         return allowed.includes(normalized) ? normalized : undefined;
       };
       const toStaffStatus = (value?: string): StaffStatus | undefined => {
@@ -433,9 +480,9 @@ export class StaffController {
           },
           sorting: sortField
             ? {
-              field: sortField,
-              direction: resolvedSortDirection,
-            }
+                field: sortField,
+                direction: resolvedSortDirection,
+              }
             : undefined,
           requestedBy,
           requestedByRole,
@@ -558,6 +605,91 @@ export class StaffController {
       );
     } catch (error) {
       this.logger.error("Error updating staff info", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Self update staff info (doctor / healthcare staff)
+   * PUT /api/v1/staff/me
+   * - Chỉ cho phép cập nhật các trường an toàn (personalInfo, professionalInfo)
+   * - Lấy staffId từ userId trong token, không cho client truyền vào
+   */
+  async selfUpdateStaffInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const requestedBy = getUserId(req);
+      const requestedByRole = getUserRole(req);
+      const staffIdFromBody =
+        (req.body as any)?.staffId || (req.body as any)?.staff_id;
+
+      if (!requestedBy) {
+        ResponseHelper.error(res, "Unauthorized", 401, "UNAUTHORIZED");
+        return;
+      }
+
+      // Tìm staff theo userId; fallback staffId từ body (dev/bypass mode)
+      const profileResult = await this.getStaffProfileUseCase.execute({
+        userId: requestedBy || undefined,
+        requestedBy,
+        requestedByRole,
+        includeFullSchedule: false,
+      });
+
+      let staffId: string | undefined;
+
+      if (profileResult.success && profileResult.data?.staff) {
+        const staff = profileResult.data.staff as any;
+        staffId =
+          staff?.staffIdValue ||
+          (staff?.staffId &&
+            staff?.staffId.toString &&
+            staff.staffId.toString()) ||
+          staff?.staffId ||
+          staff?.staff_id ||
+          staff?.id;
+      } else if (staffIdFromBody) {
+        staffId = staffIdFromBody;
+      }
+
+      if (!staffId) {
+        throw new NotFoundError("Nhân viên", requestedBy || staffIdFromBody);
+      }
+
+      const updates = {
+        personalInfo: (req.body as any).personalInfo,
+        professionalInfo: (req.body as any).professionalInfo,
+        // Không cho phép thay đổi consultationFee, department, status... ở self-update
+      };
+
+      const command = {
+        commandId: `cmd_${Date.now()}`,
+        commandType: "UpdateStaffInfo" as const,
+        timestamp: new Date(),
+        requestedBy,
+        data: {
+          staffId,
+          updates,
+          requestedBy,
+          requestedByRole,
+        },
+      };
+
+      const result =
+        await this.staffCommandHandlers.handleUpdateStaffInfo(command);
+
+      if (!result.success) {
+        throw new DomainError(result.message);
+      }
+
+      ResponseHelper.success(
+        res,
+        { staffId },
+        "Cập nhật hồ sơ bác sĩ thành công",
+      );
+    } catch (error) {
+      this.logger.error("Error self-updating staff info", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
@@ -1193,8 +1325,8 @@ export class StaffController {
       // TODO: In production, should validate JWT and reject if missing
       // const assignedBy = getUserId(req) || (process.env.NODE_ENV === 'development' ? 'dev-admin' : undefined);
       // const assignedByRole = getUserRole(req) || (process.env.NODE_ENV === 'development' ? 'admin' : undefined);
-      const assignedBy = getUserId(req) || 'dev-admin';
-      const assignedByRole = getUserRole(req) || 'admin';
+      const assignedBy = getUserId(req) || "dev-admin";
+      const assignedByRole = getUserRole(req) || "admin";
 
       this.logger.info("Setting department head", {
         staffId,
@@ -1258,9 +1390,12 @@ export class StaffController {
 
     try {
       // Try getter method first (domain object)
-      if (typeof staff.staffIdValue === 'string') {
+      if (typeof staff.staffIdValue === "string") {
         staffId = staff.staffIdValue;
-      } else if (staff.staffId && typeof staff.staffId.toString === 'function') {
+      } else if (
+        staff.staffId &&
+        typeof staff.staffId.toString === "function"
+      ) {
         staffId = staff.staffId.toString();
       } else if (staff.staffId && staff.staffId.value) {
         staffId = staff.staffId.value;
@@ -1268,7 +1403,7 @@ export class StaffController {
         staffId = staff.staff_id;
       }
     } catch (e) {
-      console.error('[StaffController] Failed to extract staffId:', e);
+      console.error("[StaffController] Failed to extract staffId:", e);
     }
 
     return {
@@ -1306,6 +1441,6 @@ export class StaffController {
    * Private helper: Map array of staff to API response
    */
   private mapStaffListToResponse(staffList: any[]): any[] {
-    return staffList.map(staff => this.mapStaffToResponse(staff));
+    return staffList.map((staff) => this.mapStaffToResponse(staff));
   }
 }

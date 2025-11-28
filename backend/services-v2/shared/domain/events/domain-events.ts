@@ -29,6 +29,9 @@ export class UserCreatedEvent extends DomainEvent {
       | "receptionist",
     public readonly citizenId?: string,
     public readonly phoneNumber?: string,
+    public readonly dateOfBirth?: string,
+    public readonly gender?: string,
+    public readonly address?: unknown,
     // Professional fields (optional to keep backward compatibility)
     public readonly department?: string,
     public readonly specializationCode?: string,
@@ -38,6 +41,9 @@ export class UserCreatedEvent extends DomainEvent {
     public readonly yearsOfExperience?: number,
     public readonly position?: string,
     public readonly title?: string,
+    public readonly employmentType?: string,
+    public readonly workSchedule?: unknown,
+    public readonly consultationFee?: number,
   ) {
     super(
       "UserCreated",
@@ -49,6 +55,9 @@ export class UserCreatedEvent extends DomainEvent {
         roleType,
         citizenId,
         phoneNumber,
+        dateOfBirth,
+        gender,
+        address,
         department,
         specializationCode,
         specializationName,
@@ -57,6 +66,9 @@ export class UserCreatedEvent extends DomainEvent {
         yearsOfExperience,
         position,
         title,
+        employmentType,
+        workSchedule,
+        consultationFee,
       },
       1,
       undefined,
@@ -73,6 +85,9 @@ export class UserCreatedEvent extends DomainEvent {
       roleType: this.roleType,
       citizenId: this.citizenId,
       phoneNumber: this.phoneNumber,
+      dateOfBirth: this.dateOfBirth,
+      gender: this.gender,
+      address: this.address,
       department: this.department,
       specializationCode: this.specializationCode,
       specializationName: this.specializationName,
@@ -81,6 +96,9 @@ export class UserCreatedEvent extends DomainEvent {
       yearsOfExperience: this.yearsOfExperience,
       position: this.position,
       title: this.title,
+      employmentType: this.employmentType,
+      workSchedule: this.workSchedule,
+      consultationFee: this.consultationFee,
     };
   }
 

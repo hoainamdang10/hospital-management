@@ -6,8 +6,8 @@
  * @version 1.0.0
  * @compliance Event-Driven Architecture, CQRS, Eventual Consistency
  */
-import { ProviderReadModelRepository } from '../repositories/ProviderReadModelRepository';
-import { InboxRepository } from '../inbox/InboxRepository';
+import { ProviderReadModelRepository } from "../repositories/ProviderReadModelRepository";
+import { InboxRepository } from "../inbox/InboxRepository";
 /**
  * Provider Event Consumer
  *
@@ -43,5 +43,10 @@ export declare class ProviderEventConsumer {
      * Handle staff deleted event
      */
     private handleStaffDeleted;
+    /**
+     * Map various payload shapes from provider-staff service into ProviderReadModel fields
+     * Handles both camelCase and snake_case, and ensures fullName is non-null.
+     */
+    private mapPayloadToProvider;
 }
 //# sourceMappingURL=ProviderEventConsumer.d.ts.map

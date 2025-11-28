@@ -328,7 +328,7 @@ export class PatientMapper {
         updatedBy: patientRecord.updated_by,
       };
 
-      return Patient.reconstitute(patientProps);
+      return Patient.reconstitute(patientProps, patientRecord.id);
     } catch (error) {
       throw new Error(
         `Failed to map patient to domain: ${error instanceof Error ? error.message : 'Unknown error'}`,

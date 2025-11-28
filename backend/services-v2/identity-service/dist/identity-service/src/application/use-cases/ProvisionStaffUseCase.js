@@ -127,17 +127,26 @@ class ProvisionStaffUseCase {
                 },
             };
             // Merge với dữ liệu admin nhập (ưu tiên request)
+            // Chấp nhận cả tên (departmentName/specializationName) nếu FE không gửi code,
+            // để tránh fallback GENERAL/GENMED.
+            const departmentValue = request.departmentCode ||
+                request.departmentName ||
+                defaultProfessionalData.departmentCode;
+            const specializationValue = request.specializationCode ||
+                request.specialization ||
+                request.specializationName ||
+                defaultProfessionalData.specializationCode;
+            const specializationDisplay = request.specializationName ||
+                request.specialization ||
+                request.specializationCode ||
+                defaultProfessionalData.specializationName;
             const mergedProfessionalData = {
-                departmentCode: request.departmentCode ?? defaultProfessionalData.departmentCode,
-                department: request.departmentCode ?? defaultProfessionalData.departmentCode, // compatibility key
-                specializationCode: request.specializationCode ??
-                    request.specialization ??
-                    defaultProfessionalData.specializationCode,
-                specialization: request.specialization ??
-                    request.specializationCode ??
-                    defaultProfessionalData.specialization,
-                specializationName: request.specializationName ??
-                    defaultProfessionalData.specializationName,
+                departmentCode: departmentValue,
+                departmentName: request.departmentName || request.departmentCode,
+                department: departmentValue, // compatibility key
+                specializationCode: specializationValue,
+                specialization: specializationValue,
+                specializationName: specializationDisplay,
                 title: request.title ?? defaultProfessionalData.title,
                 position: request.position ?? defaultProfessionalData.position,
                 licenseNumber: request.licenseNumber ?? defaultProfessionalData.licenseNumber,
@@ -146,6 +155,7 @@ class ProvisionStaffUseCase {
                 education: request.education && request.education.length > 0
                     ? request.education
                     : defaultProfessionalData.education,
+                bio: request.bio,
                 employmentType: request.employmentType ?? defaultProfessionalData.employmentType,
                 workSchedule: {
                     workingDays: request.workSchedule?.workingDays ??
