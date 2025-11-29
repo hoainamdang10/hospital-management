@@ -247,9 +247,15 @@ export const appointmentsService = {
       patientPhone: apt.patient_phone,
       patientEmail: apt.patient_email,
       doctorId: apt.doctor_id,
-      doctorName: apt.doctor_full_name, // Alias
-      doctorFullName: apt.doctor_full_name,
-      doctorSpecialization: apt.doctor_specialization,
+      doctorName:
+        apt.doctor_full_name ||
+        apt.doctor_name ||
+        apt.doctorName ||
+        apt.doctor?.fullName ||
+        apt.doctor_id,
+      doctorFullName:
+        apt.doctor_full_name || apt.doctor_name || apt.doctorName || apt.doctor?.fullName,
+      doctorSpecialization: apt.doctor_specialization || apt.doctor?.specialization,
       doctorDepartment: apt.doctor_department,
       consultationFee: apt.consultation_fee,
       paymentStatus: apt.payment_status,
