@@ -7,7 +7,7 @@
  * @compliance RESTful API, Clean Architecture
  */
 
-import { Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import { StaffController } from "../controllers/StaffController";
 import { ErrorHandlingMiddleware } from "../middleware/ErrorHandlingMiddleware";
 import { RateLimitMiddleware } from "../middleware/RateLimitMiddleware";
@@ -66,6 +66,33 @@ export function createStaffRoutes(controller: StaffController): Router {
         process.env.SUPABASE_SERVICE_ROLE_KEY || "",
       );
 
+  // Allow internal service-to-service token (Appointments -> Provider) to bypass Supabase auth
+  const serviceToken =
+    process.env.INTERNAL_SERVICE_TOKEN || process.env.PROVIDER_INTERNAL_TOKEN;
+  const serviceOrRequireAuth = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): void => {
+    const authHeader = req.headers.authorization;
+    if (
+      serviceToken &&
+      typeof authHeader === "string" &&
+      authHeader.startsWith("Bearer ") &&
+      authHeader.substring(7) === serviceToken
+    ) {
+      // Minimal service identity for downstream authorization
+      (req as any).user = {
+        id: "appointments-service",
+        role: "service",
+        roles: ["service", "appointments"],
+      };
+      next();
+      return;
+    }
+    return (requireAuth as any)(req, res, next);
+  };
+
   // Log auth bypass status
   if (bypassAuth) {
     console.warn(
@@ -87,6 +114,17 @@ export function createStaffRoutes(controller: StaffController): Router {
     healthcareStaffOnly,
     validateSelfUpdateStaffInfo,
     asyncHandler(controller.selfUpdateStaffInfo.bind(controller)),
+  );
+
+  /**
+   * Self update staff work schedule
+   * PUT /api/v1/staff/me/schedule
+   */
+  router.put(
+    "/me/schedule",
+    healthcareStaffOnly,
+    RateLimitMiddleware.writeOperations,
+    asyncHandler(controller.selfUpdateStaffSchedule.bind(controller)),
   );
 
   // ==================== PUBLIC ROUTES ====================
@@ -174,7 +212,7 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.get(
     "/:staffId",
-    requireAuth,
+    serviceOrRequireAuth,
     validateStaffId,
     asyncHandler(controller.getStaffById.bind(controller)),
   );
@@ -339,7 +377,7 @@ export function createStaffRoutes(controller: StaffController): Router {
    */
   router.get(
     "/:staffId/schedule",
-    requireAuth,
+    serviceOrRequireAuth,
     validateStaffId,
     asyncHandler(controller.getStaffSchedule.bind(controller)),
   );

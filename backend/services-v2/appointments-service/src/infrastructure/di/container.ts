@@ -447,6 +447,7 @@ export class DIContainer {
     // HTTP Provider Service for work schedule (simple MVP approach)
     this.httpProviderService = new HttpProviderService(
       this.config.services.providerServiceUrl,
+      this.config.services.providerInternalToken,
     );
     if (this.config.features.enableScheduler) {
       const remoteAdapter = new RemoteSchedulerAdapter({

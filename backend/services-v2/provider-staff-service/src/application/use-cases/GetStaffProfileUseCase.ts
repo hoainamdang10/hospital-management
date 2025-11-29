@@ -286,6 +286,11 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
       return { authorized: true, accessLevel: "full" };
     }
 
+    // Internal services (appointments/gateway) need full schedule access
+    if (requestedByRole === "service" || requestedByRole === "appointments") {
+      return { authorized: true, accessLevel: "full" };
+    }
+
     // Department head has full access to their department staff
     if (requestedByRole === "department_head") {
       return { authorized: true, accessLevel: "full" };
@@ -375,23 +380,26 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
           nationalId: staff.personalInfo.nationalId,
           phoneNumber: staff.personalInfo.phoneNumber,
           email: staff.personalInfo.email,
+          address: staff.personalInfo.address,
         },
         workSchedule: request.includeFullSchedule
           ? {
-            workingDays: staff.workSchedule.workingDays,
-            workingHours: staff.workSchedule.workingHours,
-            timeZone: staff.workSchedule.timeZone,
-            isFlexible: staff.workSchedule.isFlexible,
-          }
+              workingDays: staff.workSchedule.workingDays,
+              workingHours: staff.workSchedule.workingHours,
+              timeZone: staff.workSchedule.timeZone,
+              isFlexible: staff.workSchedule.isFlexible,
+              dailySchedules:
+                (staff.workSchedule as any)?.dailySchedules || undefined,
+            }
           : undefined,
         credentials: request.includeSensitiveInfo
           ? staff.getValidCredentials().map((cred) => ({
-            credentialNumber: this.maskString(cred.credentialNumber),
-            credentialType: cred.credentialType,
-            issuingAuthority: cred.issuingAuthority,
-            isValid: cred.isValid,
-            expiryDate: cred.expiryDate?.toISOString().split("T")[0],
-          }))
+              credentialNumber: this.maskString(cred.credentialNumber),
+              credentialType: cred.credentialType,
+              issuingAuthority: cred.issuingAuthority,
+              isValid: cred.isValid,
+              expiryDate: cred.expiryDate?.toISOString().split("T")[0],
+            }))
           : undefined,
         performanceInfo: {
           // REMOVED: rating, totalPatients, isAcceptingNewPatients - Belong to other services
@@ -418,6 +426,16 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
           phoneNumber: this.maskPhoneNumber(staff.personalInfo.phoneNumber),
           email: this.maskEmail(staff.personalInfo.email),
         },
+        workSchedule: request.includeFullSchedule
+          ? {
+              workingDays: staff.workSchedule.workingDays,
+              workingHours: staff.workSchedule.workingHours,
+              timeZone: staff.workSchedule.timeZone,
+              isFlexible: staff.workSchedule.isFlexible,
+              dailySchedules:
+                (staff.workSchedule as any)?.dailySchedules || undefined,
+            }
+          : undefined,
         performanceInfo: {
           // REMOVED: rating, isAcceptingNewPatients - Belong to other services
           consultationFee: staff.consultationFee,
@@ -426,7 +444,19 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
     }
 
     // Basic access level
-    return baseData;
+    return request.includeFullSchedule
+      ? {
+          ...baseData,
+          workSchedule: {
+            workingDays: staff.workSchedule.workingDays,
+            workingHours: staff.workSchedule.workingHours,
+            timeZone: staff.workSchedule.timeZone,
+            isFlexible: staff.workSchedule.isFlexible,
+            dailySchedules:
+              (staff.workSchedule as any)?.dailySchedules || undefined,
+          },
+        }
+      : baseData;
   }
 
   /**

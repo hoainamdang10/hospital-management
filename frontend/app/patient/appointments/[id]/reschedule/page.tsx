@@ -54,7 +54,16 @@ export default function RescheduleAppointmentPage() {
 
   useEffect(() => {
     if (appointment && selectedDate) {
-      loadAvailableSlots(appointment.doctorId, selectedDate);
+      const doctorId =
+        (appointment as any).doctorId ||
+        (appointment as any).doctor_id ||
+        (appointment as any).doctor?.doctorId ||
+        (appointment as any).doctor?.doctor_id;
+      if (doctorId) {
+        loadAvailableSlots(doctorId, selectedDate);
+      } else {
+        setAvailableSlots([]);
+      }
     }
   }, [appointment, selectedDate]);
 
@@ -71,8 +80,18 @@ export default function RescheduleAppointmentPage() {
       setLoading(true);
       const data = await appointmentsService.getById(appointmentId);
       setAppointment(data);
+
+      const doctorId =
+        (data as any).doctorId ||
+        (data as any).doctor_id ||
+        (data as any).doctor?.doctorId ||
+        (data as any).doctor?.doctor_id;
+
       try {
-        const schedule = await getProviderSchedule(data.doctorId);
+        if (!doctorId) {
+          throw new Error('Missing doctorId for schedule lookup');
+        }
+        const schedule = await getProviderSchedule(doctorId);
         if (schedule?.success) {
           const normalizedWorkingDays =
             schedule.data?.workingDays?.map((day) => day.toUpperCase?.() ?? day) ??
@@ -85,7 +104,7 @@ export default function RescheduleAppointmentPage() {
       } catch (err) {
         // Nếu API schedule chưa có, fallback Mon-Fri để ẩn slot cuối tuần
         setProviderSchedule({
-          providerId: data.doctorId,
+          providerId: doctorId || data.doctorId,
           workingDays: defaultWorkingDays,
           workingHours: { start: '08:00', end: '17:00' },
         });

@@ -52,8 +52,108 @@ export const appointmentsService = {
    */
   async getById(id: string): Promise<AppointmentReadModel> {
     const response = await apiClient.get<any>(`/v1/appointments/${id}`);
-    // Handle legacy response structure
-    return response.data.appointment;
+    // Normalize payload (backend may return snake_case and nested doctor/patient objects)
+    const raw = response.data?.appointment || response.data?.data || response.data;
+
+    const doctor = raw?.doctor || {};
+    const patient = raw?.patient || {};
+
+    return {
+      // Core IDs
+      id: raw.id || raw.appointmentId || raw.appointment_id || id,
+      appointmentId: raw.appointmentId || raw.appointment_id || raw.id || id,
+      patientId:
+        raw.patientId || raw.patient_id || patient.patientId || patient.patient_id || raw.patient,
+      doctorId:
+        raw.doctorId ||
+        raw.doctor_id ||
+        doctor.doctorId ||
+        doctor.doctor_id ||
+        raw.providerId ||
+        raw.provider_id,
+
+      // Date/Time
+      appointmentDate: raw.appointmentDate || raw.appointment_date || raw.date || raw.scheduledDate,
+      appointmentTime: raw.appointmentTime || raw.appointment_time || raw.time || raw.scheduledTime,
+      durationMinutes: raw.durationMinutes || raw.duration_minutes,
+
+      // Meta
+      type: raw.type,
+      priority: raw.priority,
+      status: raw.status,
+      roomId: raw.roomId || raw.room_id,
+      departmentId: raw.departmentId || raw.department_id,
+
+      // Patient info (flattened for UI)
+      patient: {
+        patientId:
+          patient.patientId || patient.patient_id || raw.patientId || raw.patient_id || raw.patient,
+        fullName: patient.fullName || patient.full_name || raw.patientFullName,
+        phone: patient.phone || patient.phoneNumber || raw.patientPhone,
+        email: patient.email || raw.patientEmail,
+        dateOfBirth: patient.dateOfBirth || patient.date_of_birth || raw.patientDateOfBirth,
+        gender: patient.gender || raw.patientGender,
+        nationalId: patient.nationalId || patient.national_id || raw.patientNationalId,
+        insuranceNumber: patient.insuranceNumber || raw.patientInsuranceNumber,
+        insuranceType: patient.insuranceType || raw.patientInsuranceType,
+        address: patient.address || raw.patientAddress,
+      },
+      doctor: {
+        doctorId:
+          doctor.doctorId ||
+          doctor.doctor_id ||
+          raw.doctorId ||
+          raw.doctor_id ||
+          raw.providerId ||
+          raw.provider_id,
+        fullName: doctor.fullName || doctor.full_name || raw.doctorFullName || raw.doctorName,
+        specialization: doctor.specialization || raw.doctorSpecialization,
+        department: doctor.department || raw.doctorDepartment,
+        licenseNumber: doctor.licenseNumber || raw.doctorLicenseNumber,
+        phone: doctor.phone || raw.doctorPhone,
+        email: doctor.email || raw.doctorEmail,
+      },
+
+      // Flat aliases for backward compatibility
+      doctorName: doctor.fullName || doctor.full_name || raw.doctorFullName || raw.doctorName,
+      doctorFullName: doctor.fullName || doctor.full_name || raw.doctorFullName || raw.doctorName,
+      doctorSpecialization: doctor.specialization || raw.doctorSpecialization,
+      doctorDepartment: doctor.department || raw.doctorDepartment,
+
+      patientFullName: patient.fullName || patient.full_name || raw.patientFullName,
+      patientPhone: patient.phone || patient.phoneNumber || raw.patientPhone,
+      patientEmail: patient.email || raw.patientEmail,
+      patientDateOfBirth: patient.dateOfBirth || patient.date_of_birth || raw.patientDateOfBirth,
+      patientGender: patient.gender || raw.patientGender,
+      patientNationalId: patient.nationalId || patient.national_id || raw.patientNationalId,
+      patientInsuranceNumber:
+        patient.insuranceNumber || raw.patientInsuranceNumber || raw.insuranceNumber,
+      patientInsuranceType: patient.insuranceType || raw.patientInsuranceType || raw.insuranceType,
+      patientAddress: patient.address || raw.patientAddress,
+
+      // Appointment details
+      reason: raw.reason,
+      chiefComplaint: raw.chiefComplaint,
+      symptoms: raw.symptoms,
+      notes: raw.notes,
+      specialInstructions: raw.specialInstructions,
+      requiredEquipment: raw.requiredEquipment,
+
+      // Financial
+      consultationFee: raw.consultationFee,
+      additionalFees: raw.additionalFees,
+      paymentStatus: raw.paymentStatus,
+
+      // Timestamps
+      checkedInAt: raw.checkedInAt,
+      startedAt: raw.startedAt,
+      completedAt: raw.completedAt,
+      cancelledAt: raw.cancelledAt,
+      cancellationReason: raw.cancellationReason,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+      syncedAt: raw.syncedAt,
+    } as AppointmentReadModel;
   },
 
   /**
@@ -128,11 +228,40 @@ export const appointmentsService = {
     const response = await apiClient.get<any>(`/v1/appointments`, {
       params: { patientId, ...(params || {}) },
     });
+
+    // Backend returns: { success, data: { appointments, total, page, pageSize, totalPages } }
+    const result = response.data.data || response.data; // Support both nested and flat structure
+
+    // Normalize snake_case to camelCase (ListAppointmentsQuery uses snake_case)
+    const normalizedAppointments = (result.appointments || []).map((apt: any) => ({
+      id: apt.id || apt.appointment_id,
+      appointmentId: apt.appointment_id,
+      appointmentDate: apt.appointment_date,
+      appointmentTime: apt.appointment_time,
+      durationMinutes: apt.duration_minutes,
+      type: apt.type,
+      priority: apt.priority,
+      status: apt.status,
+      patientId: apt.patient_id,
+      patientFullName: apt.patient_full_name,
+      patientPhone: apt.patient_phone,
+      patientEmail: apt.patient_email,
+      doctorId: apt.doctor_id,
+      doctorName: apt.doctor_full_name, // Alias
+      doctorFullName: apt.doctor_full_name,
+      doctorSpecialization: apt.doctor_specialization,
+      doctorDepartment: apt.doctor_department,
+      consultationFee: apt.consultation_fee,
+      paymentStatus: apt.payment_status,
+      reason: apt.reason,
+      createdAt: apt.created_at,
+    }));
+
     return {
       success: response.data.success,
-      appointments: response.data.appointments || [],
-      totalCount: response.data.total || 0,
-      hasMore: response.data.total > response.data.page * response.data.pageSize,
+      appointments: normalizedAppointments,
+      totalCount: result.total || 0,
+      hasMore: result.total > result.page * result.pageSize,
     };
   },
   /**

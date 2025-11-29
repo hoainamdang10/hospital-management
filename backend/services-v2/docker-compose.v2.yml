@@ -296,6 +296,9 @@ services:
       - IDENTITY_SERVICE_URL=http://identity-service:3001
       - BYPASS_AUTH=false
       - DISABLE_RATE_LIMIT=true
+      # Service-to-service auth token (shared with appointments-service)
+      - PROVIDER_INTERNAL_TOKEN=dev-provider-internal-token
+      - INTERNAL_SERVICE_TOKEN=dev-provider-internal-token
     depends_on:
       - redis-v2
       - rabbitmq-v2
@@ -339,6 +342,8 @@ services:
       - PATIENT_SERVICE_URL=http://patient-registry-service:3002
       - PROVIDER_SERVICE_URL=http://provider-staff-service:3003
       - ENABLE_SCHEDULER=true
+      # Service-to-service auth token (shared with provider-staff-service)
+      - PROVIDER_INTERNAL_TOKEN=dev-provider-internal-token
       # Scheduler Service - REMOVED (functionality moved to cron jobs in Notifications Service)
       # - SCHEDULER_SERVICE_URL=http://scheduler-service:3030
       # - SCHEDULER_API_KEY=${SCHEDULER_API_KEY}
