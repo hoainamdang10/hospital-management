@@ -9,6 +9,7 @@ import {
   markNotificationAsRead,
   type UserNotification,
 } from '@/lib/api/notifications.service';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase-client';
 import { useAuth } from './useAuth';
 
 interface UseNotificationsState {
@@ -21,9 +22,11 @@ interface UseNotificationsState {
   refresh: () => Promise<void>;
 }
 
-function resolveRecipientId(user: ReturnType<typeof useAuth>['user']) {
-  return user?.patientId || user?.staffId || user?.userId || null;
-}
+const getPlainText = (value?: string | null) =>
+  value ? value.replace(/<[^>]*>/g, '').trim() : '';
+
+const resolveRecipientId = (user: ReturnType<typeof useAuth>['user']) =>
+  user?.patientId || user?.staffId || user?.userId || null;
 
 export function useNotifications(): UseNotificationsState {
   const { user } = useAuth();
@@ -66,6 +69,54 @@ export function useNotifications(): UseNotificationsState {
     fetchNotifications();
   }, [fetchNotifications]);
 
+  useEffect(() => {
+    if (
+      !recipientId ||
+      !isSupabaseConfigured() ||
+      typeof window === 'undefined' ||
+      !supabase
+    ) {
+      return undefined;
+    }
+
+    const channel = supabase
+      .channel(`notifications:${recipientId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'notifications_schema',
+          table: 'notifications',
+          filter: `recipient_id=eq.${recipientId}`,
+        },
+        (payload) => {
+          const subject = payload.new?.subject || 'Th?ng b?o m?i';
+          const body = getPlainText(payload.new?.body);
+          toast.info(subject, {
+            description: body ? body.substring(0, 120) : undefined,
+          });
+          fetchNotifications();
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'notifications_schema',
+          table: 'notifications',
+          filter: `recipient_id=eq.${recipientId}`,
+        },
+        () => {
+          fetchNotifications();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [recipientId, fetchNotifications]);
+
   const markAsRead = useCallback(
     async (notificationId: string) => {
       if (!recipientId) return;
@@ -90,8 +141,8 @@ export function useNotifications(): UseNotificationsState {
           ),
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch (error) {
-        console.error('[useNotifications] Failed to mark as read:', error);
+      } catch (err) {
+        console.error('[useNotifications] Failed to mark as read:', err);
         toast.error('Kh?ng th? ??nh d?u th?ng b?o ?? ??c');
       }
     },
@@ -120,8 +171,8 @@ export function useNotifications(): UseNotificationsState {
         ),
       );
       setUnreadCount(0);
-    } catch (error) {
-      console.error('[useNotifications] Failed to mark all as read:', error);
+    } catch (err) {
+      console.error('[useNotifications] Failed to mark all as read:', err);
       toast.error('Kh?ng th? ??nh d?u t?t c? th?ng b?o');
     }
   }, [notifications, recipientId]);

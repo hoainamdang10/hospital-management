@@ -1,95 +1,134 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
-import { MoreVertical, UserCheck, UserPlus, Wrench, Pill, AlertCircle, Calendar, FileText, CreditCard, Activity as ActivityIcon } from 'lucide-react';
-import { getRecentActivities, RecentActivity as Activity } from '@/lib/api/notifications.service';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  MoreVertical,
+  UserCheck,
+  UserPlus,
+  Wrench,
+  Pill,
+  AlertCircle,
+  Calendar,
+  FileText,
+  CreditCard,
+  Activity as ActivityIcon,
+} from 'lucide-react';
+
+import {
+  getUserNotifications,
+  transformNotificationsToActivities,
+  type RecentActivity as Activity,
+} from '@/lib/api/notifications.service';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface RecentActivityProps {
   patientId?: string;
 }
 
-// Mock data fallback
-function getMockActivities(): Activity[] {
-  return [
-    {
-      id: '1',
-      type: 'discharge',
-      title: 'Bạn đã xuất viện từ Phòng 205',
-      description: 'sau khi điều trị thành công',
-      time: '08:30 AM',
-    },
-    {
-      id: '2',
-      type: 'appointment',
-      title: 'Lịch hẹn khám với BS. Nguyễn Văn A',
-      description: 'đã được xác nhận cho ngày mai',
-      time: '09:15 AM',
-    },
-    {
-      id: '3',
-      type: 'test_result',
-      title: 'Kết quả xét nghiệm máu đã sẵn sàng',
-      description: 'vui lòng xem trong hồ sơ bệnh án',
-      time: '10:00 AM',
-    },
-    {
-      id: '4',
-      type: 'medication',
-      title: 'Đơn thuốc mới đã được kê',
-      description: 'bởi BS. Trần Thị B',
-      time: '11:30 AM',
-    },
-    {
-      id: '5',
-      type: 'payment',
-      title: 'Hóa đơn thanh toán đã được tạo',
-      description: 'tổng số tiền: 1,500,000 VNĐ',
-      time: '01:15 PM',
-    },
-  ];
-}
+const MOCK_ACTIVITIES: Activity[] = [
+  {
+    id: '1',
+    type: 'discharge',
+    title: 'B?n ?? xu?t vi?n t? Ph?ng 205',
+    description: 'sau khi ?i?u tr? th?nh c?ng',
+    time: '08:30 AM',
+  },
+  {
+    id: '2',
+    type: 'appointment',
+    title: 'L?ch h?n kh?m v?i BS. Nguy?n V?n A',
+    description: '?? ???c x?c nh?n cho ng?y mai',
+    time: '09:15 AM',
+  },
+  {
+    id: '3',
+    type: 'test_result',
+    title: 'K?t qu? x?t nghi?m m?u ?? s?n s?ng',
+    description: 'vui l?ng xem trong h? s? b?nh ?n',
+    time: '10:00 AM',
+  },
+  {
+    id: '4',
+    type: 'medication',
+    title: '??n thu?c m?i ?? ???c k?',
+    description: 'b?i BS. Tr?n Th? B',
+    time: '11:30 AM',
+  },
+  {
+    id: '5',
+    type: 'payment',
+    title: 'H?a ??n thanh to?n ?? ???c t?o',
+    description: 't?ng s? ti?n: 1,500,000 VN?',
+    time: '01:15 PM',
+  },
+];
 
 export function RecentActivity({ patientId }: RecentActivityProps) {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { notifications, isLoading: hookLoading } = useNotifications();
+  const [fallbackActivities, setFallbackActivities] = useState<Activity[]>([]);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+
+  const shouldUseHook =
+    !patientId || (user?.patientId && user.patientId === patientId);
 
   useEffect(() => {
-    async function fetchActivities() {
-      if (!patientId) {
-        // Use mock data if no patientId
-        setActivities(getMockActivities());
-        setLoading(false);
-        return;
-      }
+    if (shouldUseHook || !patientId) {
+      return;
+    }
 
+    async function loadActivities() {
       try {
-        const data = await getRecentActivities(patientId);
-        setActivities(data.length > 0 ? data : getMockActivities());
+        setFallbackLoading(true);
+        const response = await getUserNotifications(patientId, { limit: 10 });
+
+        if (response.success) {
+          setFallbackActivities(
+            transformNotificationsToActivities(response.data.notifications),
+          );
+        } else {
+          setFallbackActivities(MOCK_ACTIVITIES);
+        }
       } catch (error) {
         console.error('Error loading activities:', error);
-        setActivities(getMockActivities());
+        setFallbackActivities(MOCK_ACTIVITIES);
       } finally {
-        setLoading(false);
+        setFallbackLoading(false);
       }
     }
 
-    fetchActivities();
-  }, [patientId]);
+    loadActivities();
+  }, [patientId, shouldUseHook]);
+
+  const activities = useMemo(() => {
+    if (shouldUseHook) {
+      const converted = transformNotificationsToActivities(notifications);
+      return converted.length > 0 ? converted : MOCK_ACTIVITIES;
+    }
+
+    return fallbackActivities.length > 0
+      ? fallbackActivities
+      : MOCK_ACTIVITIES;
+  }, [shouldUseHook, notifications, fallbackActivities]);
+
+  const loading = shouldUseHook ? hookLoading : fallbackLoading;
 
   if (loading) {
     return (
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
+          <h2 className="text-xl font-bold text-gray-900">Ho?t ??ng g?n ??y</h2>
         </div>
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex gap-4 animate-pulse">
               <div className="h-10 w-10 rounded-full bg-gray-100" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-100 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
+                <div className="h-4 rounded bg-gray-100" />
+                <div className="h-3 w-1/2 rounded bg-gray-100" />
               </div>
             </div>
           ))}
@@ -97,6 +136,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
       </div>
     );
   }
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'discharge':
@@ -145,54 +185,56 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-100 rounded-xl">
-            <ActivityIcon className="w-6 h-6 text-purple-600" />
+          <div className="rounded-xl bg-purple-100 p-2">
+            <ActivityIcon className="h-6 w-6 text-purple-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
+          <h2 className="text-xl font-bold text-gray-900">Ho?t ??ng g?n ??y</h2>
         </div>
         <button
-          className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
+          className="rounded-lg p-2 transition-colors hover:bg-gray-100"
           aria-label="More options"
         >
           <MoreVertical className="h-5 w-5 text-gray-600" />
         </button>
       </div>
 
-      {/* Activity Timeline */}
       <div className="space-y-0">
         {activities.map((activity, index) => {
           const Icon = getActivityIcon(activity.type);
           const isLast = index === activities.length - 1;
 
           return (
-            <div key={activity.id} className="relative flex gap-4 pb-8 last:pb-0 group">
-              {/* Timeline line */}
+            <div
+              key={activity.id}
+              className="group relative flex gap-4 pb-8 last:pb-0"
+            >
               {!isLast && (
-                <div className="absolute left-5 top-12 bottom-0 w-px bg-gray-200 group-hover:bg-gray-300 transition-colors" />
+                <div className="absolute left-5 top-12 bottom-0 w-px bg-gray-200 transition-colors group-hover:bg-gray-300" />
               )}
 
-              {/* Icon */}
               <div
                 className={cn(
-                  "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-4 ring-white transition-all group-hover:scale-110",
-                  getActivityColor(activity.type)
+                  'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-4 ring-white transition-all group-hover:scale-110',
+                  getActivityColor(activity.type),
                 )}
               >
                 <Icon className="h-5 w-5" />
               </div>
 
-              {/* Content */}
               <div className="flex-1 pt-1">
-                <p className="text-sm font-medium text-gray-900 leading-relaxed group-hover:text-primary-700 transition-colors">
+                <p className="text-sm font-medium leading-relaxed text-gray-900 transition-colors group-hover:text-primary-700">
                   {activity.title}
                 </p>
                 {activity.description && (
-                  <p className="text-sm text-gray-500 mt-0.5">{activity.description}</p>
+                  <p className="mt-0.5 text-sm text-gray-500">
+                    {activity.description}
+                  </p>
                 )}
-                <p className="text-xs text-gray-400 mt-1 font-medium">{activity.time}</p>
+                <p className="mt-1 text-xs font-medium text-gray-400">
+                  {activity.time}
+                </p>
               </div>
             </div>
           );
