@@ -1,48 +1,39 @@
-/**
- * Notifications Service
- * API service for fetching notifications and recent activities
- * 
- * MIGRATED TO SESSION-BASED AUTH
- * Uses axios.ts with HTTP-only cookies for authentication
- */
-
 import apiClient from './axios';
 
-export interface Notification {
-  id: string;
-  recipientId: string;
-  recipientType: string;
-  templateType: string;
-  status: string;
+export type NotificationStatusFilter = 'read' | 'unread' | 'all';
+
+export interface UserNotification {
+  notificationId: string;
+  templateType?: string;
+  subject: string;
+  body: string;
   priority: string;
+  status: string;
   channels: string[];
-  content: {
-    subject?: string;
-    body?: string;
-  };
-  metadata?: {
-    healthcareContext?: {
-      patientId?: string;
-      appointmentId?: string;
-      medicalRecordId?: string;
-      doctorId?: string;
-    };
-    tags?: string[];
-  };
+  readAt: string | null;
   createdAt: string;
-  sentAt?: string;
-  deliveredAt?: string;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  healthcareContext?: {
+    patientId?: string;
+    doctorId?: string;
+    appointmentId?: string;
+    medicalRecordId?: string;
+    invoiceId?: string;
+  };
+  metadata?: Record<string, unknown>;
 }
 
-export interface NotificationsResponse {
+export interface UserNotificationsResponse {
   success: boolean;
   data: {
-    notifications: Notification[];
+    notifications: UserNotification[];
+    total: number;
+    unreadCount: number;
+    hasMore: boolean;
     pagination: {
-      total: number;
-      page: number;
       limit: number;
-      totalPages: number;
+      offset: number;
     };
   };
   message?: string;
@@ -50,123 +41,151 @@ export interface NotificationsResponse {
 
 export interface RecentActivity {
   id: string;
-  type: 'discharge' | 'admission' | 'maintenance' | 'medication' | 'emergency' | 'appointment' | 'test_result' | 'payment';
+  type:
+    | 'discharge'
+    | 'admission'
+    | 'maintenance'
+    | 'medication'
+    | 'emergency'
+    | 'appointment'
+    | 'test_result'
+    | 'payment';
   title: string;
   description: string;
   time: string;
 }
 
-/**
- * Get notifications for a patient
- */
-export async function getPatientNotifications(
-  patientId: string,
-  limit: number = 10
-): Promise<NotificationsResponse> {
-  try {
-    const response = await apiClient.get(`/v1/notifications/patient/${patientId}`, {
-      params: { limit, sortBy: 'createdAt', sortOrder: 'DESC' }
-    });
-    return response.data;
-  } catch (error: any) {
-    return {
-      success: true,
-      data: {
-        notifications: [],
-        pagination: { total: 0, page: 1, limit, totalPages: 0 }
-      }
-    } as NotificationsResponse;
-  }
-}
-
-/**
- * Transform notifications to recent activities
- */
-export function transformNotificationsToActivities(notifications: Notification[]): RecentActivity[] {
-  return notifications.map(notification => {
-    const activity: RecentActivity = {
-      id: notification.id,
-      type: mapTemplateTypeToActivityType(notification.templateType),
-      title: notification.content.subject || 'Thông báo mới',
-      description: extractDescription(notification),
-      time: formatTime(notification.createdAt),
-    };
-    return activity;
+export async function getUserNotifications(
+  userId: string,
+  params?: {
+    limit?: number;
+    offset?: number;
+    status?: NotificationStatusFilter;
+    priority?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+): Promise<UserNotificationsResponse> {
+  const response = await apiClient.get(`/v1/notifications/user/${userId}`, {
+    params,
   });
+  return response.data;
 }
 
-/**
- * Map notification template type to activity type
- */
-function mapTemplateTypeToActivityType(templateType: string): RecentActivity['type'] {
-  const typeMap: Record<string, RecentActivity['type']> = {
-    'APPOINTMENT_REMINDER': 'appointment',
-    'APPOINTMENT_CONFIRMED': 'appointment',
-    'APPOINTMENT_CANCELLED': 'appointment',
-    'TEST_RESULTS_READY': 'test_result',
-    'PAYMENT_REMINDER': 'payment',
-    'PAYMENT_CONFIRMED': 'payment',
-    'ADMISSION_NOTICE': 'admission',
-    'DISCHARGE_NOTICE': 'discharge',
-    'MEDICATION_REMINDER': 'medication',
-    'EMERGENCY_ALERT': 'emergency',
+export async function getUnreadNotificationsCount(userId: string) {
+  const response = await apiClient.get(
+    `/v1/notifications/user/${userId}/unread-count`,
+  );
+  return response.data as {
+    success: boolean;
+    data: { userId: string; unreadCount: number };
   };
-  
-  return typeMap[templateType] || 'appointment';
 }
 
-/**
- * Extract description from notification
- */
-function extractDescription(notification: Notification): string {
-  // Try to get description from body
-  if (notification.content.body) {
-    // Remove HTML tags and get first 100 characters
-    const plainText = notification.content.body.replace(/<[^>]*>/g, '');
-    return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
+export async function markNotificationAsRead(
+  notificationId: string,
+  userId: string,
+  isRead: boolean = true,
+) {
+  const response = await apiClient.patch(
+    `/v1/notifications/${notificationId}/read`,
+    { userId, isRead },
+  );
+  return response.data;
+}
+
+export function transformNotificationsToActivities(
+  notifications: UserNotification[],
+): RecentActivity[] {
+  return notifications.map((notification) => ({
+    id: notification.notificationId,
+    type: mapNotificationToActivityType(notification),
+    title: notification.subject || 'Th?ng b?o m?i',
+    description: extractDescription(notification),
+    time: formatTime(notification.createdAt),
+  }));
+}
+
+function mapNotificationToActivityType(
+  notification: UserNotification,
+): RecentActivity['type'] {
+  const template = notification.templateType?.toUpperCase();
+  const typeMap: Record<string, RecentActivity['type']> = {
+    APPOINTMENT_REMINDER: 'appointment',
+    APPOINTMENT_CONFIRMATION: 'appointment',
+    APPOINTMENT_CANCELLED: 'appointment',
+    APPOINTMENT_UPDATED: 'appointment',
+    TEST_RESULTS_READY: 'test_result',
+    BILLING_PAYMENT_COMPLETED: 'payment',
+    PAYMENT_REMINDER: 'payment',
+    ADMISSION_NOTICE: 'admission',
+    DISCHARGE_NOTICE: 'discharge',
+    MEDICATION_REMINDER: 'medication',
+    EMERGENCY_ALERT: 'emergency',
+  };
+
+  if (template && typeMap[template]) {
+    return typeMap[template];
   }
-  
-  // Fallback to metadata
-  if (notification.metadata?.healthcareContext) {
-    const context = notification.metadata.healthcareContext;
-    if (context.appointmentId) return 'Liên quan đến lịch hẹn';
-    if (context.medicalRecordId) return 'Liên quan đến hồ sơ bệnh án';
+
+  if (notification.healthcareContext?.invoiceId) return 'payment';
+  if (notification.healthcareContext?.medicalRecordId) return 'test_result';
+
+  return 'appointment';
+}
+
+function extractDescription(notification: UserNotification): string {
+  const body = notification.body ?? '';
+  if (body.trim().length > 0) {
+    const plainText = body.replace(/<[^>]*>/g, '').trim();
+    return plainText.length > 100
+      ? `${plainText.substring(0, 100)}...`
+      : plainText;
   }
-  
+
+  if (notification.healthcareContext?.appointmentId) {
+    return 'Th?ng b?o li?n quan ??n l?ch h?n';
+  }
+  if (notification.healthcareContext?.invoiceId) {
+    return 'Th?ng b?o li?n quan ??n thanh to?n';
+  }
+  if (notification.healthcareContext?.medicalRecordId) {
+    return 'Th?ng b?o v? h? s? b?nh ?n';
+  }
+
   return '';
 }
 
-/**
- * Format time to relative time
- */
 function formatTime(dateString: string): string {
   const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+
+  const diffMinutes = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-  
-  if (diffMins < 1) return 'Vừa xong';
-  if (diffMins < 60) return `${diffMins} phút trước`;
-  if (diffHours < 24) return `${diffHours} giờ trước`;
-  if (diffDays < 7) return `${diffDays} ngày trước`;
-  
-  // Format as time
-  return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+  if (diffMinutes < 1) return 'V?a xong';
+  if (diffMinutes < 60) return `${diffMinutes} ph?t tr??c`;
+  if (diffHours < 24) return `${diffHours} gi? tr??c`;
+  if (diffDays < 7) return `${diffDays} ng?y tr??c`;
+
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-/**
- * Get recent activities for patient dashboard
- */
-export async function getRecentActivities(patientId: string): Promise<RecentActivity[]> {
+export async function getRecentActivities(
+  userId: string,
+): Promise<RecentActivity[]> {
   try {
-    const response = await getPatientNotifications(patientId, 10);
-    
-    if (response.success && response.data.notifications) {
+    const response = await getUserNotifications(userId, { limit: 10 });
+    if (response.success) {
       return transformNotificationsToActivities(response.data.notifications);
     }
-    
     return [];
   } catch (error) {
     console.error('Error fetching recent activities:', error);

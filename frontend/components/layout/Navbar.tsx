@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, User, LogOut, Settings, ChevronDown, Menu } from 'lucide-react';
+import { User, LogOut, Settings, ChevronDown, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/lib/constants';
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { NotificationCenter } from '@/components/shared';
 
 /**
  * Navbar Component
@@ -28,7 +29,7 @@ export function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   // DEV_MODE: Bypass authentication check
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
   const showAuthenticatedUI = isAuthenticated || isDevMode;
@@ -56,14 +57,18 @@ export function Navbar() {
   }, []);
 
   // Don't show navbar on auth pages
-  if (pathname?.startsWith('/auth/login') || pathname?.startsWith('/auth/register') || pathname?.startsWith('/auth/verify-email')) {
+  if (
+    pathname?.startsWith('/auth/login') ||
+    pathname?.startsWith('/auth/register') ||
+    pathname?.startsWith('/auth/verify-email')
+  ) {
     return null;
   }
 
   // In DEV_MODE, detect role from pathname
   let displayName = user?.fullName || user?.email || 'Bệnh nhân';
   let displayRole = user?.role || 'PATIENT';
-  
+
   if (isDevMode && !user) {
     if (pathname?.startsWith('/patient')) {
       displayName = 'Bệnh nhân';
@@ -98,7 +103,7 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href={ROUTES.HOME} className="flex items-center space-x-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white">
+            <div className="bg-primary flex h-10 w-10 items-center justify-center rounded-lg text-white">
               <span className="text-xl font-bold">H</span>
             </div>
             <span className="hidden text-lg font-semibold text-gray-900 sm:block">
@@ -111,34 +116,24 @@ export function Navbar() {
         <div className="flex items-center space-x-4">
           {showAuthenticatedUI ? (
             <>
-              {/* Notifications */}
-              <button 
-                className="relative rounded-full p-2 text-gray-600 hover:bg-gray-100"
-                aria-label="Thông báo"
-                title="Thông báo"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"></span>
-              </button>
+              <NotificationCenter />
 
               {/* User Menu with Dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-3 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors"
+                  className="flex items-center space-x-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-100"
                   aria-label="User menu"
                 >
                   <div className="hidden text-right sm:block">
-                    <p className="text-sm font-medium text-gray-900">
-                      {displayName}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">{displayName}</p>
                     <p className="text-xs text-gray-500 capitalize">
                       {displayRole?.toLowerCase().replace('_', ' ') || 'Guest'}
                     </p>
                   </div>
 
                   {/* Avatar */}
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700">
+                  <div className="bg-primary-100 text-primary-700 flex h-10 w-10 items-center justify-center rounded-full">
                     <User className="h-5 w-5" />
                   </div>
 
@@ -152,21 +147,19 @@ export function Navbar() {
 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div 
-                    className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50"
-                  >
+                  <div className="animate-in fade-in slide-in-from-top-2 absolute right-0 z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-xl duration-200">
                     <div className="py-1">
                       <Link
                         href="/settings"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                        className="flex items-center space-x-3 border-b border-gray-100 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                       >
                         <Settings className="h-5 w-5 text-gray-500" />
                         <span className="font-medium">Cài đặt</span>
                       </Link>
                       <button
                         onClick={handleLogoutClick}
-                        className="flex w-full items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex w-full items-center space-x-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                       >
                         <LogOut className="h-5 w-5 text-gray-500" />
                         <span className="font-medium">Đăng xuất</span>
@@ -179,17 +172,15 @@ export function Navbar() {
           ) : (
             <div className="flex items-center space-x-3">
               <Link href={ROUTES.LOGIN}>
-                <Button 
-                  variant="outline" 
-                  className="border-gray-300 bg-white/80 backdrop-blur-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 hover:shadow-md"
+                <Button
+                  variant="outline"
+                  className="border-gray-300 bg-white/80 backdrop-blur-sm transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 hover:shadow-md"
                 >
                   Đăng nhập
                 </Button>
               </Link>
               <Link href={ROUTES.REGISTER}>
-                <Button 
-                  className="bg-linear-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-                >
+                <Button className="from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 bg-linear-to-r text-white shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl">
                   Đăng ký
                 </Button>
               </Link>
@@ -203,21 +194,13 @@ export function Navbar() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Đăng xuất</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn đăng xuất?
-            </DialogDescription>
+            <DialogDescription>Bạn có chắc chắn muốn đăng xuất?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowLogoutModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowLogoutModal(false)}>
               Hủy
             </Button>
-            <Button
-              onClick={handleLogoutConfirm}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <Button onClick={handleLogoutConfirm} className="bg-red-600 hover:bg-red-700">
               Đăng xuất
             </Button>
           </DialogFooter>

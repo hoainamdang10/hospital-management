@@ -19,6 +19,7 @@ export interface GetUserNotificationsQuery {
 export interface GetUserNotificationsResult {
   notifications: Array<{
     notificationId: string;
+    templateType?: string;
     subject: string;
     body: string;
     priority: string;
@@ -126,6 +127,7 @@ export class GetUserNotificationsUseCase {
   private mapNotification(notification: Notification) {
     return {
       notificationId: notification.getId().value,
+      templateType: notification.templateType,
       subject: notification.getContent().getSubject() ?? "",
       body: notification.getContent().getBody(),
       priority: notification.getPriority(),

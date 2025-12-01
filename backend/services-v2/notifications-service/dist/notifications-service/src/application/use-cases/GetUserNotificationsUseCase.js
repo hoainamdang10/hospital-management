@@ -67,6 +67,7 @@ class GetUserNotificationsUseCase {
     mapNotification(notification) {
         return {
             notificationId: notification.getId().value,
+            templateType: notification.templateType,
             subject: notification.getContent().getSubject() ?? "",
             body: notification.getContent().getBody(),
             priority: notification.getPriority(),

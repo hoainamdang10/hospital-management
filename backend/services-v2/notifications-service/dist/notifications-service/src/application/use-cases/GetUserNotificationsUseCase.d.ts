@@ -15,6 +15,7 @@ export interface GetUserNotificationsQuery {
 export interface GetUserNotificationsResult {
     notifications: Array<{
         notificationId: string;
+        templateType?: string;
         subject: string;
         body: string;
         priority: string;
