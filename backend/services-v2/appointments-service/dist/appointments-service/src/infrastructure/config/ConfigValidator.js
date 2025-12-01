@@ -39,6 +39,9 @@ function loadConfig() {
         services: {
             patientServiceUrl: process.env.PATIENT_SERVICE_URL || "http://localhost:3002",
             providerServiceUrl: process.env.PROVIDER_SERVICE_URL || "http://localhost:3003",
+            providerInternalToken: process.env.PROVIDER_INTERNAL_TOKEN ||
+                process.env.INTERNAL_SERVICE_TOKEN ||
+                "",
             schedulerServiceUrl: process.env.SCHEDULER_SERVICE_URL || "http://localhost:3011", // Scheduler merged into notifications-service
             schedulerApiKey: process.env.SCHEDULER_API_KEY || "default-scheduler-key", // Optional now
             billingServiceUrl: process.env.BILLING_SERVICE_URL || "http://localhost:3009",

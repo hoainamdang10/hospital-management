@@ -120,49 +120,85 @@ export interface Appointment {
 
 export interface AppointmentReadModel {
   id: string;
-  appointment_id: string;
-  patient_id: string;
-  patient_full_name: string;
-  patient_phone: string | null;
-  patient_email: string;
-  patient_date_of_birth?: string;
-  patient_gender?: string;
-  patient_national_id?: string;
-  patient_insurance_number?: string | null;
-  patient_insurance_type?: string | null;
-  patient_address?: string;
-  doctor_id: string;
-  doctor_full_name: string;
-  doctor_specialization: string;
-  doctor_department?: string | null;
-  doctor_license_number?: string | null;
-  doctor_phone?: string | null;
-  doctor_email?: string | null;
-  appointment_date: string;
-  appointment_time: string;
-  duration_minutes: number;
+  appointmentId: string;
+  patientId: string;
+  doctorId: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  durationMinutes: number;
   type: AppointmentType;
   priority: AppointmentPriority;
   status: AppointmentStatus;
+  roomId?: string | null;
+  departmentId?: string | null;
+
+  // Patient Information (nested from backend but flattened here)
+  patient?: {
+    patientId: string;
+    fullName: string;
+    phone?: string;
+    email?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    nationalId?: string;
+    insuranceNumber?: string;
+    insuranceType?: string;
+    address?: any;
+  };
+
+  //Doctor Information (nested from backend but flattened here)
+  doctor?: {
+    doctorId: string;
+    fullName: string;
+    specialization?: string;
+    department?: string;
+    licenseNumber?: string;
+    phone?: string;
+    email?: string;
+  };
+
+  // Flat aliases for backward compatibility
+  patientFullName?: string;
+  patientName?: string;
+  patientPhone?: string | null;
+  patientEmail?: string;
+  patientDateOfBirth?: string;
+  patientGender?: string;
+  patientNationalId?: string;
+  patientInsuranceNumber?: string | null;
+  patientInsuranceType?: string | null;
+  patientAddress?: string;
+
+  doctorName?: string;
+  doctorFullName?: string;
+  doctorSpecialization?: string;
+  doctorDepartment?: string | null;
+  doctorLicenseNumber?: string | null;
+  doctorPhone?: string | null;
+  doctorEmail?: string | null;
+
+  // Appointment Details
   reason?: string | null;
-  chief_complaint?: string | null;
+  chiefComplaint?: string | null;
   symptoms?: string[];
   notes?: string | null;
-  special_instructions?: string | null;
-  required_equipment?: string[];
-  room_id?: string | null;
-  department_id?: string | null;
-  consultation_fee: string;
-  additional_fees?: string;
-  payment_status: PaymentStatus;
-  checked_in_at?: string | null;
-  started_at?: string | null;
-  completed_at?: string | null;
-  cancelled_at?: string | null;
-  cancellation_reason?: string | null;
-  created_at?: string;
-  updated_at?: string;
-  synced_at?: string;
+  specialInstructions?: string | null;
+  requiredEquipment?: string[];
+
+  // Financial
+  consultationFee?: string | number;
+  additionalFees?: string;
+  paymentStatus?: PaymentStatus;
+
+  // Timestamps
+  checkedInAt?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  syncedAt?: string;
 }
 
 export interface ScheduleAppointmentResponse {

@@ -345,7 +345,7 @@ export class EventSubscriptions {
     // 13. Subscribe to patient.patient.* events (from Patient Registry Service)
     // These events sync Patient data into local patient_read_model
     await this.eventBus.subscribe(
-      "patient.patient.registered",
+      "patient.registered",
       this.patientEventConsumer,
       `${this.config.serviceName}.patient.read.model.registered`,
     );
@@ -354,7 +354,7 @@ export class EventSubscriptions {
     );
 
     await this.eventBus.subscribe(
-      "patient.patient.updated",
+      "patient.updated",
       this.patientEventConsumer,
       `${this.config.serviceName}.patient.read.model.updated`,
     );
@@ -363,7 +363,7 @@ export class EventSubscriptions {
     );
 
     await this.eventBus.subscribe(
-      "patient.patient.deactivated",
+      "patient.deactivated",
       this.patientEventConsumer,
       `${this.config.serviceName}.patient.read.model.deactivated`,
     );
@@ -372,7 +372,7 @@ export class EventSubscriptions {
     );
 
     await this.eventBus.subscribe(
-      "patient.patient.deleted",
+      "patient.deleted",
       this.patientEventConsumer,
       `${this.config.serviceName}.patient.read.model.deleted`,
     );

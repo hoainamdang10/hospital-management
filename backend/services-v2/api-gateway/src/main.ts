@@ -268,7 +268,6 @@ class ApiGatewayApplication {
           process.env.IDENTITY_SERVICE_URL || "http://identity-service:3001",
         pathPrefix: "/api/v1/users",
         requiresAuth: true,
-        requiredPermissions: ["user:read"],
       }),
 
       // Identity Service - Permission Management
@@ -310,7 +309,7 @@ class ApiGatewayApplication {
         baseUrl:
           process.env.PROVIDER_STAFF_SERVICE_URL || "http://localhost:3003",
         pathPrefix: "/api/v1/staff",
-        requiresAuth: false, // Allow public access to /search endpoint
+        requiresAuth: true,
       }),
 
       // Department Management - Now integrated into Provider/Staff Service
@@ -335,6 +334,18 @@ class ApiGatewayApplication {
             ? "http://appointments-service:3004"
             : "http://localhost:3004"),
         pathPrefix: "/api/v1/appointments",
+        requiresAuth: true,
+      }),
+
+      // Appointments Service - Chat (per-appointment conversation)
+      ServiceRoute.create({
+        serviceName: "appointments-service",
+        baseUrl:
+          process.env.APPOINTMENTS_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://appointments-service:3004"
+            : "http://localhost:3004"),
+        pathPrefix: "/api/v1/chat",
         requiresAuth: true,
       }),
 
@@ -373,6 +384,18 @@ class ApiGatewayApplication {
             ? "http://appointments-service:3004"
             : "http://localhost:3004"),
         pathPrefix: "/api/v2/doctors",
+        requiresAuth: true,
+      }),
+
+      // Legacy prefix for doctor appointments (/api/v1/doctors/:id/appointments)
+      ServiceRoute.create({
+        serviceName: "appointments-service",
+        baseUrl:
+          process.env.APPOINTMENTS_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://appointments-service:3004"
+            : "http://localhost:3004"),
+        pathPrefix: "/api/v1/doctors",
         requiresAuth: true,
       }),
 

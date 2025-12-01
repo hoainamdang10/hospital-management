@@ -39,6 +39,17 @@ export class PaymentCompletedHandler {
    * Auto-confirms appointment after successful payment
    */
   async handle(data: PaymentCompletedEventData): Promise<void> {
+    // Normalize snake_case fields if present
+    if (!data.appointmentId && (data as any).appointment_id) {
+      data.appointmentId = (data as any).appointment_id;
+    }
+    if (!data.invoiceId && (data as any).invoice_id) {
+      data.invoiceId = (data as any).invoice_id;
+    }
+    if (!data.paymentId && (data as any).payment_id) {
+      data.paymentId = (data as any).payment_id;
+    }
+
     logger.info(
       `Processing payment completed event. PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}, AppointmentId: ${data.appointmentId}, Amount: ${data.amount}, Method: ${data.method}`,
     );

@@ -21,6 +21,8 @@ import { ProfessionalInfo } from "../../domain/value-objects/ProfessionalInfo";
 import { Specialization } from "../../domain/entities/Specialization";
 import { WorkSchedule } from "../../domain/value-objects/WorkSchedule";
 import { IStaffReadModelRepository } from "../repositories/StaffReadModelRepository";
+import { IDepartmentRepository } from "../../domain/repositories/IDepartmentRepository";
+import { DepartmentAssignment } from "../../domain/entities/DepartmentAssignment";
 
 /**
  * Handler for UserCreated Event from Identity Service
@@ -32,7 +34,8 @@ export class UserCreatedEventHandler {
     private logger: ILogger,
     private auditService: IAuditService,
     private staffReadModelRepository: IStaffReadModelRepository,
-  ) {}
+    private departmentRepository: IDepartmentRepository,
+  ) { }
 
   /**
    * Handle UserCreated event
@@ -112,17 +115,17 @@ export class UserCreatedEventHandler {
           : undefined;
       const department =
         typeof (event as any).department === "string" &&
-        (event as any).department.trim().length > 0
+          (event as any).department.trim().length > 0
           ? (event as any).department.trim().toUpperCase()
           : specializationCode || "GENERAL";
       const position =
         typeof (event as any).position === "string" &&
-        (event as any).position.trim().length > 0
+          (event as any).position.trim().length > 0
           ? (event as any).position
           : this.getDefaultPosition(staffType);
       const title =
         typeof (event as any).title === "string" &&
-        (event as any).title.trim().length > 0
+          (event as any).title.trim().length > 0
           ? (event as any).title
           : this.getDefaultTitle(staffType);
       const rawEducation = (event as any).education;
@@ -164,7 +167,7 @@ export class UserCreatedEventHandler {
       }
       const yearsOfExperience =
         typeof event.yearsOfExperience === "number" &&
-        event.yearsOfExperience >= 0
+          event.yearsOfExperience >= 0
           ? event.yearsOfExperience
           : 0;
       // Consultation fee: prefer event payload, fallback to default (500k VND)
@@ -218,7 +221,7 @@ export class UserCreatedEventHandler {
         education,
         languages:
           Array.isArray((event as any).languages) &&
-          (event as any).languages.length > 0
+            (event as any).languages.length > 0
             ? (event as any).languages
             : ["Vietnamese", "English"],
       });
@@ -227,51 +230,51 @@ export class UserCreatedEventHandler {
       const eventWorkSchedule = (event as any).workSchedule as any;
       const workSchedule = eventWorkSchedule
         ? WorkSchedule.create({
-            workingDays: eventWorkSchedule.workingDays || [
-              "monday",
-              "tuesday",
-              "wednesday",
-              "thursday",
-              "friday",
-            ],
-            workingHours: {
-              start: eventWorkSchedule?.workingHours?.start || "08:00",
-              end: eventWorkSchedule?.workingHours?.end || "17:00",
-            },
-            timeZone: eventWorkSchedule.timeZone || "Asia/Ho_Chi_Minh",
-            isFlexible: eventWorkSchedule.isFlexible ?? false,
-          })
+          workingDays: eventWorkSchedule.workingDays || [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+          ],
+          workingHours: {
+            start: eventWorkSchedule?.workingHours?.start || "08:00",
+            end: eventWorkSchedule?.workingHours?.end || "17:00",
+          },
+          timeZone: eventWorkSchedule.timeZone || "Asia/Ho_Chi_Minh",
+          isFlexible: eventWorkSchedule.isFlexible ?? false,
+        })
         : WorkSchedule.create({
-            workingDays: [
-              "monday",
-              "tuesday",
-              "wednesday",
-              "thursday",
-              "friday",
-            ],
-            workingHours: {
-              start: "08:00",
-              end: "17:00",
-            },
-            timeZone: "Asia/Ho_Chi_Minh",
-            isFlexible: false,
-          });
+          workingDays: [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+          ],
+          workingHours: {
+            start: "08:00",
+            end: "17:00",
+          },
+          timeZone: "Asia/Ho_Chi_Minh",
+          isFlexible: false,
+        });
 
       // Create default specializations (required for doctors)
       const specializations =
         staffType === "doctor"
           ? [
-              Specialization.create({
-                code: specializationCode || department || "GENMED",
-                name:
-                  typeof (event as any).specializationName === "string" &&
+            Specialization.create({
+              code: specializationCode || department || "GENMED",
+              name:
+                typeof (event as any).specializationName === "string" &&
                   (event as any).specializationName.trim().length > 0
-                    ? (event as any).specializationName
-                    : specializationCode || "General Medicine",
-                description: "Tổng quát - Cần cập nhật",
-                isActive: true,
-              }),
-            ]
+                  ? (event as any).specializationName
+                  : specializationCode || "General Medicine",
+              description: "Tổng quát - Cần cập nhật",
+              isActive: true,
+            }),
+          ]
           : [];
 
       // Create ProviderStaff aggregate
@@ -297,6 +300,48 @@ export class UserCreatedEventHandler {
 
       // Save staff profile
       await this.staffRepository.save(staff);
+
+      // 🔧 FIX: Assign staff to department based on departmentCode from event
+      // This populates department_assignments so staff appears in search results
+      try {
+        const departmentCode = department || "INTE"; // Fallback to INTE if no department
+        const foundDepartment = await this.departmentRepository.findByCode(departmentCode);
+
+        if (foundDepartment) {
+          const departmentAssignment = DepartmentAssignment.create({
+            departmentId: foundDepartment.id,
+            departmentCode: foundDepartment.code,
+            departmentNameEn: foundDepartment.nameEn,
+            departmentNameVi: foundDepartment.nameVi,
+            role: staffType === "doctor" ? "Doctor" : "Staff",
+            isPrimary: true,
+            isActive: true,
+            startDate: new Date(),
+          });
+
+          staff.assignToDepartment(departmentAssignment);
+          await this.staffRepository.save(staff); // Save again with department assignment
+
+          this.logger.info("Staff assigned to department successfully", {
+            userId: event.userId,
+            staffId: staff.staffIdValue,
+            departmentId: foundDepartment.id,
+            departmentCode: foundDepartment.code,
+          });
+        } else {
+          this.logger.warn("Department not found for code, skipping assignment", {
+            userId: event.userId,
+            departmentCode,
+          });
+        }
+      } catch (err) {
+        this.logger.error("Failed to assign staff to department", {
+          userId: event.userId,
+          staffId: staff.staffIdValue,
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+        // Don't fail the whole process if department assignment fails
+      }
 
       // Create read model entry (denormalized) for search/listing
       try {

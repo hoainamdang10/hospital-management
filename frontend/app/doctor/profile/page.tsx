@@ -18,6 +18,7 @@ import {
   Languages,
   FileText,
   Lock,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
@@ -25,6 +26,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { Staff, getStaffByUserId, updateMyStaffProfile } from '@/lib/api/staff.service';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChangePasswordDialog } from '@/components/profile/ChangePasswordDialog';
 
 type FormState = {
   fullName: string;
@@ -128,11 +130,20 @@ export default function DoctorProfilePage() {
     );
     const start = staff?.workSchedule?.workingHours?.start || '08:00';
     const end = staff?.workSchedule?.workingHours?.end || '17:00';
+    const daily = staff?.workSchedule?.dailySchedules;
     return daysOrder.map((d) => ({
       day: d.label,
       working: workingDays.has(d.key),
-      morning: workingDays.has(d.key) ? `${start} - ${end}` : 'Nghỉ',
-      afternoon: workingDays.has(d.key) ? `${start} - ${end}` : 'Nghỉ',
+      morning: workingDays.has(d.key)
+        ? `${daily?.find((x: any) => x.day?.toLowerCase() === d.key)?.start || start} - ${
+            daily?.find((x: any) => x.day?.toLowerCase() === d.key)?.end || end
+          }`
+        : 'Nghỉ',
+      afternoon: workingDays.has(d.key)
+        ? `${daily?.find((x: any) => x.day?.toLowerCase() === d.key)?.start || start} - ${
+            daily?.find((x: any) => x.day?.toLowerCase() === d.key)?.end || end
+          }`
+        : 'Nghỉ',
     }));
   }, [staff]);
 
@@ -156,22 +167,11 @@ export default function DoctorProfilePage() {
       const addressObj =
         form.address && form.address.trim().length > 0
           ? {
-              street: form.address,
-              ward: currentAddr.ward || 'Chưa cập nhật',
-              district: currentAddr.district || 'Chưa cập nhật',
-              city: currentAddr.city || 'Chưa cập nhật',
-              province: currentAddr.province || 'Chưa cập nhật',
-              country: currentAddr.country || 'Vietnam',
+              ...currentAddr,
+              street: form.address.trim(),
             }
           : currentAddr && Object.keys(currentAddr).length > 0
-            ? {
-                street: currentAddr.street || 'Chưa cập nhật',
-                ward: currentAddr.ward || 'Chưa cập nhật',
-                district: currentAddr.district || 'Chưa cập nhật',
-                city: currentAddr.city || 'Chưa cập nhật',
-                province: currentAddr.province || 'Chưa cập nhật',
-                country: currentAddr.country || 'Vietnam',
-              }
+            ? currentAddr
             : undefined;
 
       await updateMyStaffProfile({
@@ -309,34 +309,49 @@ export default function DoctorProfilePage() {
                 </p>
               </div>
             </div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={isEditing ? handleSave : () => setIsEditing(true)}
-                disabled={isSaving}
-                className="rounded-xl bg-white px-6 py-3 font-semibold text-blue-600 shadow-lg hover:bg-blue-50"
-              >
-                {isSaving ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      className="mr-2 h-4 w-4 rounded-full border-2 border-blue-600 border-t-transparent"
-                    />
-                    Đang lưu...
-                  </>
-                ) : isEditing ? (
-                  <>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Lưu
-                  </>
-                ) : (
-                  <>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Chỉnh sửa
-                  </>
-                )}
-              </Button>
-            </motion.div>
+            <div className="flex items-center gap-3">
+              <ChangePasswordDialog
+                userId={user?.userId}
+                trigger={
+                  <Button
+                    type="button"
+                    disabled={!user?.userId}
+                    className="rounded-xl border border-white/40 bg-white/20 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Đổi mật khẩu
+                  </Button>
+                }
+              />
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                  disabled={isSaving}
+                  className="rounded-xl bg-white px-6 py-3 font-semibold text-blue-600 shadow-lg hover:bg-blue-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="mr-2 h-4 w-4 rounded-full border-2 border-blue-600 border-t-transparent"
+                      />
+                      Đang lưu...
+                    </>
+                  ) : isEditing ? (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Lưu
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Chỉnh sửa
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            </div>
           </div>
         </motion.div>
 

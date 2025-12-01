@@ -14,6 +14,8 @@ import { RegisterUserUseCase } from "../../application/use-cases/RegisterUserUse
 import { VerifyEmailUseCase } from "../../application/use-cases/VerifyEmailUseCase";
 import { ResendVerificationEmailUseCase } from "../../application/use-cases/ResendVerificationEmailUseCase";
 import { LogoutUserUseCase } from "../../application/use-cases/LogoutUserUseCase";
+import { ForgotPasswordUseCase } from "../../application/use-cases/ForgotPasswordUseCase";
+import { ResetPasswordUseCase } from "../../application/use-cases/ResetPasswordUseCase";
 import { GetUserUseCase } from "../../application/use-cases/GetUserUseCase";
 import { UpdateUserUseCase } from "../../application/use-cases/UpdateUserUseCase";
 import { ListUsersUseCase } from "../../application/use-cases/ListUsersUseCase";
@@ -50,6 +52,8 @@ export interface RouteDependencies {
   verifyEmailUseCase: VerifyEmailUseCase;
   resendVerificationEmailUseCase: ResendVerificationEmailUseCase;
   logoutUserUseCase: LogoutUserUseCase;
+  forgotPasswordUseCase: ForgotPasswordUseCase;
+  resetPasswordUseCase: ResetPasswordUseCase;
 
   // User Management Use Cases
   getUserUseCase: GetUserUseCase;

@@ -23,10 +23,13 @@ export interface Insurance {
   provider: string;
   policyNumber: string;
   groupNumber?: string;
-  coverageType: 'BHYT' | 'BHTN' | 'COMMERCIAL';
+  coverageType: 'BHYT' | 'BHTN' | 'private' | 'self_pay';
   validFrom: string;
   validTo: string;
-  isActive: boolean;
+  bhytNumber?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
+  isVietnameseInsurance?: boolean;
 }
 
 export interface Consent {
@@ -190,9 +193,30 @@ class PatientService {
     return await this.request(`/${resolvedId}/insurance`);
   }
 
+  async addInsurance(patientId: string, insurance: Insurance): Promise<void> {
+    const resolvedId = await this.resolvePatientId(patientId);
+    const payload = {
+      provider: insurance.provider,
+      policyNumber: insurance.policyNumber,
+      groupNumber: insurance.groupNumber,
+      validFrom: insurance.validFrom,
+      validTo: insurance.validTo,
+      coverageType: insurance.coverageType,
+      isVietnameseInsurance: ['BHYT', 'BHTN'].includes(insurance.coverageType),
+      bhytNumber: insurance.bhytNumber,
+      isPrimary: insurance.isPrimary ?? true,
+      isActive: insurance.isActive ?? true,
+    };
+    await this.request(`/${resolvedId}/insurance`, 'POST', payload);
+  }
+
   async updateInsurance(patientId: string, insurance: Insurance): Promise<void> {
     const resolvedId = await this.resolvePatientId(patientId);
-    await this.request(`/${resolvedId}/insurance`, 'PUT', insurance);
+    const payload = {
+      isActive: insurance.isActive ?? true,
+      isPrimary: insurance.isPrimary ?? true,
+    };
+    await this.request(`/${resolvedId}/insurance`, 'PUT', payload);
   }
 
   async verifyInsurance(
@@ -272,37 +296,31 @@ class PatientService {
       response = await apiClient.get<{
         success: boolean;
         data: Patient[];
-        pagination: { total: number; page: number; limit: number; totalPages: number }
-      }>(
-        `${this.baseUrl}/search`,
-        {
-          params: {
-            searchTerm: params.keyword,
-            page,
-            limit
-          }
-        }
-      );
+        pagination: { total: number; page: number; limit: number; totalPages: number };
+      }>(`${this.baseUrl}/search`, {
+        params: {
+          searchTerm: params.keyword,
+          page,
+          limit,
+        },
+      });
     } else {
       // Otherwise use list endpoint (default view)
       response = await apiClient.get<{
         success: boolean;
         data: Patient[];
-        pagination: { total: number; page: number; limit: number; totalPages: number }
-      }>(
-        `${this.baseUrl}`,
-        {
-          params: {
-            page,
-            limit
-          }
-        }
-      );
+        pagination: { total: number; page: number; limit: number; totalPages: number };
+      }>(`${this.baseUrl}`, {
+        params: {
+          page,
+          limit,
+        },
+      });
     }
 
     return {
       patients: response.data.data,
-      total: response.data.pagination?.total || 0
+      total: response.data.pagination?.total || 0,
     };
   }
 }

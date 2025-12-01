@@ -16,36 +16,38 @@ const supabase_js_1 = require("@supabase/supabase-js");
  */
 class PatientReadModelRepository {
     constructor(supabaseUrl, supabaseKey) {
-        this.table = 'patient_read_model';
-        this.schema = 'appointments_schema';
-        this.fallbackSchema = 'patient_schema';
-        this.fallbackTable = 'patients';
+        this.table = "patient_read_model";
+        this.schema = "appointments_schema";
+        this.fallbackSchema = "patient_schema";
+        this.fallbackTable = "patients";
         // Create client without schema restriction for fallback queries
         this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
             auth: { autoRefreshToken: false, persistSession: false },
-            global: { headers: { 'X-Client-Info': 'appointments-patient-read' } }
+            global: { headers: { "X-Client-Info": "appointments-patient-read" } },
         });
+        this.schemaClient = this.supabase.schema(this.schema);
     }
     /**
      * Upsert patient read model (idempotent)
      */
     async upsert(patient) {
-        const { error } = await this.supabase.from(this.table).upsert({
+        const nowIso = new Date().toISOString();
+        const { error } = await this.schemaClient.from(this.table).upsert({
             patient_id: patient.patientId,
             tenant_id: patient.tenantId,
             full_name: patient.fullName,
             phone: patient.phone || null,
             email: patient.email || null,
-            date_of_birth: patient.dateOfBirth?.toISOString().split('T')[0] || null,
+            date_of_birth: patient.dateOfBirth?.toISOString().split("T")[0] || null,
             gender: patient.gender || null,
             national_id: patient.nationalId || null,
             insurance_number: patient.insuranceNumber || null,
             insurance_type: patient.insuranceType || null,
             address: patient.address || null,
-            synced_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            synced_at: nowIso,
+            updated_at: nowIso,
         }, {
-            onConflict: 'patient_id'
+            onConflict: "patient_id",
         });
         if (error) {
             throw new Error(`Failed to upsert patient read model: ${error.message}`);
@@ -58,13 +60,12 @@ class PatientReadModelRepository {
      */
     async findById(patientId) {
         // Try read model first
-        const { data, error } = await this.supabase
-            .schema(this.schema)
+        const { data, error } = await this.schemaClient
             .from(this.table)
-            .select('*')
-            .eq('patient_id', patientId)
+            .select("*")
+            .eq("patient_id", patientId)
             .maybeSingle();
-        if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
+        if (error && error.code !== "PGRST116" && error.code !== "42P01") {
             throw new Error(`Failed to fetch patient read model: ${error.message}`);
         }
         if (data) {
@@ -72,7 +73,19 @@ class PatientReadModelRepository {
         }
         // Fallback to patient_schema.patients
         console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in read model, trying fallback`);
-        return await this.findByIdFallback(patientId);
+        const fallback = await this.findByIdFallback(patientId);
+        if (fallback) {
+            try {
+                await this.upsert(fallback);
+            }
+            catch (error) {
+                console.error("[PatientReadModelRepo] Failed to upsert fallback patient", {
+                    patientId,
+                    error,
+                });
+            }
+        }
+        return fallback;
     }
     /**
      * Fallback: Query patient_schema.patients directly
@@ -82,8 +95,8 @@ class PatientReadModelRepository {
             const { data, error } = await this.supabase
                 .schema(this.fallbackSchema)
                 .from(this.fallbackTable)
-                .select('patient_id, personal_info, contact_info, basic_medical_info')
-                .eq('patient_id', patientId)
+                .select("patient_id, personal_info, contact_info, basic_medical_info")
+                .eq("patient_id", patientId)
                 .maybeSingle();
             if (error) {
                 console.error(`[PatientReadModelRepo] Fallback query failed: ${error.message}`);
@@ -97,18 +110,28 @@ class PatientReadModelRepository {
             const personalInfo = data.personal_info || {};
             const contactInfo = data.contact_info || {};
             const medicalInfo = data.basic_medical_info || {};
+            const resolvePhone = () => {
+                return (contactInfo.primaryPhone ||
+                    contactInfo.primary_phone ||
+                    contactInfo.phone ||
+                    contactInfo.phoneNumber ||
+                    contactInfo.phone_number ||
+                    undefined);
+            };
             return {
                 patientId: data.patient_id,
-                tenantId: 'hospital-1', // Default tenant
-                fullName: personalInfo.fullName || '',
-                phone: contactInfo.phone,
+                tenantId: "hospital-1", // Default tenant
+                fullName: personalInfo.fullName || "",
+                phone: resolvePhone(),
                 email: contactInfo.email,
-                dateOfBirth: personalInfo.dateOfBirth ? new Date(personalInfo.dateOfBirth) : undefined,
+                dateOfBirth: personalInfo.dateOfBirth
+                    ? new Date(personalInfo.dateOfBirth)
+                    : undefined,
                 gender: personalInfo.gender,
                 nationalId: personalInfo.nationalId,
                 insuranceNumber: medicalInfo.insuranceNumber,
                 insuranceType: medicalInfo.insuranceType,
-                address: contactInfo.address
+                address: contactInfo.address,
             };
         }
         catch (error) {
@@ -122,10 +145,10 @@ class PatientReadModelRepository {
     async findByIds(patientIds) {
         if (patientIds.length === 0)
             return [];
-        const { data, error } = await this.supabase
+        const { data, error } = await this.schemaClient
             .from(this.table)
-            .select('*')
-            .in('patient_id', patientIds);
+            .select("*")
+            .in("patient_id", patientIds);
         if (error) {
             throw new Error(`Failed to fetch patients read model: ${error.message}`);
         }
@@ -135,11 +158,11 @@ class PatientReadModelRepository {
      * Find patients by tenant
      */
     async findByTenant(tenantId, limit = 100) {
-        const { data, error } = await this.supabase
+        const { data, error } = await this.schemaClient
             .from(this.table)
-            .select('*')
-            .eq('tenant_id', tenantId)
-            .order('full_name', { ascending: true })
+            .select("*")
+            .eq("tenant_id", tenantId)
+            .order("full_name", { ascending: true })
             .limit(limit);
         if (error) {
             throw new Error(`Failed to fetch patients by tenant: ${error.message}`);
@@ -151,12 +174,12 @@ class PatientReadModelRepository {
      */
     async search(query, tenantId, limit = 20) {
         const searchPattern = `%${query}%`;
-        const { data, error } = await this.supabase
+        const { data, error } = await this.schemaClient
             .from(this.table)
-            .select('*')
-            .eq('tenant_id', tenantId)
+            .select("*")
+            .eq("tenant_id", tenantId)
             .or(`full_name.ilike.${searchPattern},phone.ilike.${searchPattern},email.ilike.${searchPattern}`)
-            .order('full_name', { ascending: true })
+            .order("full_name", { ascending: true })
             .limit(limit);
         if (error) {
             throw new Error(`Failed to search patients: ${error.message}`);
@@ -167,10 +190,10 @@ class PatientReadModelRepository {
      * Delete patient read model
      */
     async delete(patientId) {
-        const { error } = await this.supabase
+        const { error } = await this.schemaClient
             .from(this.table)
             .delete()
-            .eq('patient_id', patientId);
+            .eq("patient_id", patientId);
         if (error) {
             throw new Error(`Failed to delete patient read model: ${error.message}`);
         }
@@ -180,9 +203,9 @@ class PatientReadModelRepository {
      * Get sync statistics
      */
     async getSyncStats() {
-        const { data, error } = await this.supabase
+        const { data, error } = await this.schemaClient
             .from(this.table)
-            .select('synced_at');
+            .select("synced_at");
         if (error) {
             throw new Error(`Failed to get sync stats: ${error.message}`);
         }
@@ -191,10 +214,10 @@ class PatientReadModelRepository {
                 totalPatients: 0,
                 lastSyncedAt: null,
                 oldestSyncedAt: null,
-                syncLagSeconds: null
+                syncLagSeconds: null,
             };
         }
-        const syncTimes = data.map(row => new Date(row.synced_at).getTime());
+        const syncTimes = data.map((row) => new Date(row.synced_at).getTime());
         const lastSyncedAt = new Date(Math.max(...syncTimes));
         const oldestSyncedAt = new Date(Math.min(...syncTimes));
         const syncLagSeconds = (Date.now() - lastSyncedAt.getTime()) / 1000;
@@ -202,19 +225,19 @@ class PatientReadModelRepository {
             totalPatients: data.length,
             lastSyncedAt,
             oldestSyncedAt,
-            syncLagSeconds
+            syncLagSeconds,
         };
     }
     /**
      * Check if patient exists
      */
     async exists(patientId) {
-        const { data, error } = await this.supabase
+        const { data, error } = await this.schemaClient
             .from(this.table)
-            .select('patient_id')
-            .eq('patient_id', patientId)
+            .select("patient_id")
+            .eq("patient_id", patientId)
             .maybeSingle();
-        if (error && error.code !== 'PGRST116') {
+        if (error && error.code !== "PGRST116") {
             throw new Error(`Failed to check patient existence: ${error.message}`);
         }
         return data !== null;
@@ -223,10 +246,10 @@ class PatientReadModelRepository {
      * Count patients by tenant
      */
     async countByTenant(tenantId) {
-        const { count, error } = await this.supabase
+        const { count, error } = await this.schemaClient
             .from(this.table)
-            .select('patient_id', { count: 'exact', head: true })
-            .eq('tenant_id', tenantId);
+            .select("patient_id", { count: "exact", head: true })
+            .eq("tenant_id", tenantId);
         if (error) {
             throw new Error(`Failed to count patients: ${error.message}`);
         }
@@ -250,7 +273,7 @@ class PatientReadModelRepository {
             address: row.address || undefined,
             syncedAt: row.synced_at ? new Date(row.synced_at) : undefined,
             createdAt: row.created_at ? new Date(row.created_at) : undefined,
-            updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+            updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
         };
     }
 }

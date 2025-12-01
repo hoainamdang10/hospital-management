@@ -117,7 +117,7 @@ export const ROUTES = {
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/auth/verify-email',
-  
+
   // Patient routes
   PATIENT_DASHBOARD: '/patient/dashboard',
   PATIENT_APPOINTMENTS: '/patient/appointments',
@@ -127,7 +127,7 @@ export const ROUTES = {
   PATIENT_BILLING: '/patient/billing',
   PATIENT_INSURANCE: '/patient/insurance',
   PATIENT_EMERGENCY_CONTACTS: '/patient/emergency-contacts',
-  
+
   // Doctor routes
   DOCTOR_DASHBOARD: '/doctor/dashboard',
   DOCTOR_SCHEDULE: '/doctor/schedule',
@@ -136,13 +136,13 @@ export const ROUTES = {
   DOCTOR_PATIENTS: '/doctor/patients',
   DOCTOR_MEDICAL_RECORDS: '/doctor/medical-records',
   DOCTOR_PRESCRIPTIONS: '/doctor/prescriptions',
-  
+
   // Nurse routes
   NURSE_DASHBOARD: '/nurse/dashboard',
   NURSE_PATIENTS: '/nurse/patients',
   NURSE_CHECK_IN: '/nurse/check-in',
   NURSE_VITALS: '/nurse/vitals',
-  
+
   // Admin routes
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_USERS: '/admin/users',
@@ -153,7 +153,7 @@ export const ROUTES = {
   ADMIN_BILLING_REPORTS: '/admin/billing-reports',
   ADMIN_INVOICES: '/admin/invoices',
   ADMIN_AUDIT_LOGS: '/admin/audit-logs',
-  
+
   // Public routes
   ABOUT: '/about',
   SERVICES: '/services',

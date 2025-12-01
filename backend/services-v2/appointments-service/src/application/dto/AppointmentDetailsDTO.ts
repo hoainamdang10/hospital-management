@@ -1,7 +1,7 @@
 /**
  * Appointment Details DTO - Application Layer
  * Data Transfer Object for appointment details with patient/doctor info
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS
@@ -16,6 +16,7 @@ export interface AppointmentDetailsDTO {
   type: string;
   priority: string;
   status: string;
+  paymentStatus?: string;
   roomId?: string;
   departmentId?: string;
 
@@ -83,6 +84,7 @@ export interface AppointmentListItemDTO {
   doctor_specialization?: string;
 
   consultation_fee: number; // Billing reference only
+  payment_status?: string;
 
   created_at: string;
 }
@@ -94,4 +96,3 @@ export interface AppointmentListResponseDTO {
   pageSize: number;
   totalPages: number;
 }
-

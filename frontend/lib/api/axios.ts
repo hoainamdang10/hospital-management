@@ -34,14 +34,17 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       console.warn('[axios] 401 Unauthorized received', {
         url: error.config?.url,
-        hasSessionCookie: document.cookie.includes('session_token')
+        hasSessionCookie: document.cookie.includes('session_token'),
       });
-      
+
       // Only redirect if NOT already on auth pages
       if (typeof window !== 'undefined') {
         const currentPath = window.location.pathname;
-        const isAuthPage = currentPath.startsWith('/auth/');
-        if (!isAuthPage) {
+        const redirectExemptPaths = ['/auth', '/forgot-password', '/reset-password'];
+        const isExempt = redirectExemptPaths.some(
+          (path) => currentPath === path || currentPath.startsWith(`${path}/`)
+        );
+        if (!isExempt) {
           console.warn('[axios] Session expired, redirecting to login');
           window.location.href = '/auth/login?session=expired';
         }

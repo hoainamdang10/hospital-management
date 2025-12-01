@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Calendar as CalendarIcon,
@@ -42,6 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout';
 import { appointmentsService } from '@/lib/api/appointments.service';
+import { getStaffByUserId } from '@/lib/api/staff.service';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -64,18 +65,89 @@ export default function DoctorAppointmentsPage() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [doctorStaffId, setDoctorStaffId] = useState<string | null>(null);
+  const [isResolvingDoctor, setIsResolvingDoctor] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('TODAY');
 
-  const fetchAppointments = async () => {
-    const doctorId = user?.userId || user?.id;
-    if (!doctorId) return;
+  useEffect(() => {
+    if (!user) {
+      setDoctorStaffId(null);
+      setIsResolvingDoctor(false);
+      return;
+    }
+
+    if (user.staffId) {
+      if (doctorStaffId !== user.staffId) {
+        setDoctorStaffId(user.staffId);
+      }
+      setIsResolvingDoctor(false);
+      return;
+    }
+
+    if (user.role?.toUpperCase() !== 'DOCTOR') {
+      setDoctorStaffId(user.userId || user.id);
+      setIsResolvingDoctor(false);
+      return;
+    }
+
+    if (doctorStaffId) {
+      return;
+    }
+
+    if (!user.userId) {
+      setDoctorStaffId(null);
+      setIsResolvingDoctor(false);
+      return;
+    }
+
+    let isCancelled = false;
+    const resolveStaffId = async () => {
+      setIsResolvingDoctor(true);
+      try {
+        const profile = await getStaffByUserId(user.userId);
+        if (!isCancelled) {
+          if (profile?.staffId) {
+            setDoctorStaffId(profile.staffId);
+          } else {
+            console.warn('[DoctorAppointments] Không tìm thấy staffId cho bác sĩ', {
+              userId: user.userId,
+            });
+            toast.error('Không tìm thấy mã bác sĩ trong hồ sơ nhân sự');
+            setDoctorStaffId(null);
+          }
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Failed to resolve doctor staffId', error);
+          toast.error('Không thể xác định mã bác sĩ, vui lòng liên hệ quản trị viên');
+          setDoctorStaffId(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsResolvingDoctor(false);
+        }
+      }
+    };
+
+    resolveStaffId();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [doctorStaffId, user ? 1 : 0, user?.userId, user?.id, user?.staffId, user?.role]);
+
+  const fetchAppointments = useCallback(async () => {
+    const resolvedDoctorId = doctorStaffId || user?.staffId || user?.userId || user?.id;
+    if (!resolvedDoctorId) {
+      return;
+    }
 
     setIsLoading(true);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
 
-      const res = await appointmentsService.getDoctorAppointments(doctorId, {
+      const res = await appointmentsService.getDoctorAppointments(resolvedDoctorId, {
         startDate: statusFilter === 'TODAY' ? today : undefined,
         endDate: statusFilter === 'TODAY' ? today : undefined,
       });
@@ -103,11 +175,14 @@ export default function DoctorAppointmentsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [doctorStaffId, statusFilter, user?.id, user?.staffId, user?.userId]);
 
   useEffect(() => {
+    if (isResolvingDoctor) {
+      return;
+    }
     fetchAppointments();
-  }, [user, statusFilter]);
+  }, [fetchAppointments, isResolvingDoctor]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -120,7 +195,9 @@ export default function DoctorAppointmentsPage() {
       label: status,
       className: 'bg-gray-100 text-gray-700',
     };
-    return <Badge className={`${config.className} hover:${config.className}`}>{config.label}</Badge>;
+    return (
+      <Badge className={`${config.className} hover:${config.className}`}>{config.label}</Badge>
+    );
   };
 
   const getPaymentBadge = (payment?: string) => {
@@ -134,7 +211,9 @@ export default function DoctorAppointmentsPage() {
       label: payment || 'N/A',
       className: 'bg-gray-100 text-gray-700',
     };
-    return <Badge className={`${config.className} hover:${config.className}`}>{config.label}</Badge>;
+    return (
+      <Badge className={`${config.className} hover:${config.className}`}>{config.label}</Badge>
+    );
   };
 
   const handleStartExam = async (id: string) => {
@@ -214,7 +293,7 @@ export default function DoctorAppointmentsPage() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-xl shadow-2xl"
+                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 shadow-2xl backdrop-blur-xl"
               >
                 <ClipboardList className="h-10 w-10 text-white" />
               </motion.div>
@@ -223,7 +302,7 @@ export default function DoctorAppointmentsPage() {
                 <p className="text-blue-100">Quản lý lịch khám bệnh nhân</p>
               </div>
             </div>
-            <div className="rounded-xl bg-white/20 backdrop-blur-xl px-6 py-3 shadow-lg">
+            <div className="rounded-xl bg-white/20 px-6 py-3 shadow-lg backdrop-blur-xl">
               <p className="text-sm font-medium text-blue-100">Hôm nay</p>
               <p className="text-lg font-bold">
                 {format(new Date(), 'dd/MM/yyyy', { locale: vi })}
@@ -273,11 +352,11 @@ export default function DoctorAppointmentsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white/80 backdrop-blur-xl p-6 shadow-lg"
+          className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-lg backdrop-blur-xl"
         >
           <div className="flex flex-1 items-center gap-4">
             <div className="relative max-w-md flex-1">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+              <Search className="absolute top-3.5 left-4 h-5 w-5 text-gray-400" />
               <Input
                 placeholder="Tìm tên bệnh nhân..."
                 className="rounded-xl border-2 pl-12 focus:ring-4 focus:ring-blue-100"
@@ -299,9 +378,11 @@ export default function DoctorAppointmentsPage() {
             variant="outline"
             onClick={fetchAppointments}
             className="rounded-xl border-2"
-            disabled={isLoading}
+            disabled={isLoading || isResolvingDoctor}
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isLoading || isResolvingDoctor ? 'animate-spin' : ''}`}
+            />
             Làm mới
           </Button>
         </motion.div>
@@ -353,8 +434,9 @@ export default function DoctorAppointmentsPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ delay: index * 0.05 }}
-                      className={`cursor-pointer transition-colors hover:bg-blue-50/50 ${apt.status === 'IN_PROGRESS' ? 'bg-blue-50/30' : ''
-                        }`}
+                      className={`cursor-pointer transition-colors hover:bg-blue-50/50 ${
+                        apt.status === 'IN_PROGRESS' ? 'bg-blue-50/30' : ''
+                      }`}
                       onClick={() => router.push(`/doctor/appointments/${apt.id}`)}
                     >
                       <TableCell className="font-semibold text-gray-900">{index + 1}</TableCell>
@@ -363,7 +445,9 @@ export default function DoctorAppointmentsPage() {
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
                             <Clock className="h-5 w-5 text-blue-600" />
                           </div>
-                          <span className="font-semibold">{apt.appointmentTime.substring(0, 5)}</span>
+                          <span className="font-semibold">
+                            {apt.appointmentTime.substring(0, 5)}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>

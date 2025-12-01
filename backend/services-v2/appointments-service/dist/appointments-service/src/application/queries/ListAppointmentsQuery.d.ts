@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS
  */
-import { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';
-import { AppointmentListResponseDTO } from '../dto/AppointmentDetailsDTO';
+import { IAppointmentReadModelRepository } from "../../domain/repositories/IAppointmentReadModelRepository";
+import { AppointmentListResponseDTO } from "../dto/AppointmentDetailsDTO";
 export interface ListAppointmentsQueryParams {
     patientId?: string;
     doctorId?: string;

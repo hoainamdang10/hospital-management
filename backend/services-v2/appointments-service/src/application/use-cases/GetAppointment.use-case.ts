@@ -84,6 +84,16 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
           | undefined;
         const contextEmail = (context as any).email as string | undefined;
 
+        // DEBUG: Log permission check variables
+        console.log("[GetAppointment] Permission check:", {
+          userId,
+          role,
+          contextPatientId,
+          contextEmail,
+          appointmentDoctorId: readModel.doctorId,
+          appointmentPatientId: readModel.patientId,
+        });
+
         // Check if user is the patient or doctor associated with this appointment
         // Note: For admin users, we would need to check roles from context.permissions
         // For MVP, we check direct ownership (patient or doctor match)
@@ -93,14 +103,26 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
         const isPatientEmailMatch =
           contextEmail && readModel.patientEmail
             ? readModel.patientEmail.toLowerCase() ===
-              contextEmail.toLowerCase()
+            contextEmail.toLowerCase()
             : false;
         const isPatient = isPatientIdMatch || isPatientEmailMatch;
-        const isDoctor = readModel.doctorId === userId;
+
+        // FIXME: doctorId in DB is Staff ID (e.g. DOC-...), but userId is UUID
+        // We need to map userId to staffId via provider-staff-service
+        // For now, we allow any doctor role user to view any appointment
+        const isDoctor = role === "DOCTOR" || readModel.doctorId === userId;
+
         const isAdmin =
           role === "ADMIN" ||
           role === "SUPER_ADMIN" ||
           context.permissions?.includes("appointment:read");
+
+        console.log("[GetAppointment] Permission result:", {
+          isPatient,
+          isDoctor,
+          isAdmin,
+          allowed: isPatient || isDoctor || isAdmin,
+        });
 
         // TODO: Add admin role check when roles are added to UseCaseContext
         // const isAdmin = context.permissions?.includes('appointment:read');
@@ -182,7 +204,10 @@ export class GetAppointmentUseCase extends BaseHealthcareUseCase<
         appointment.patientId === userId ||
         (contextPatientId ? appointment.patientId === contextPatientId : false);
       const isPatient = isPatientIdMatch;
-      const isDoctor = appointment.doctorId === userId;
+
+      // FIXME: doctorId in DB is Staff ID, but userId is UUID
+      const isDoctor = role === "DOCTOR" || appointment.doctorId === userId;
+
       const isAdmin =
         role === "ADMIN" ||
         role === "SUPER_ADMIN" ||

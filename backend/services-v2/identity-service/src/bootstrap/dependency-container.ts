@@ -62,6 +62,8 @@ import { RegisterUserUseCase } from "../application/use-cases/RegisterUserUseCas
 import { VerifyEmailUseCase } from "../application/use-cases/VerifyEmailUseCase";
 import { ResendVerificationEmailUseCase } from "../application/use-cases/ResendVerificationEmailUseCase";
 import { LogoutUserUseCase } from "../application/use-cases/LogoutUserUseCase";
+import { ForgotPasswordUseCase } from "../application/use-cases/ForgotPasswordUseCase";
+import { ResetPasswordUseCase } from "../application/use-cases/ResetPasswordUseCase";
 
 // Use Cases - User Management
 import { GetUserUseCase } from "../application/use-cases/GetUserUseCase";
@@ -137,6 +139,8 @@ export class DependencyContainer {
   private verifyEmailUseCase!: VerifyEmailUseCase;
   private resendVerificationEmailUseCase!: ResendVerificationEmailUseCase;
   private logoutUserUseCase!: LogoutUserUseCase;
+  private forgotPasswordUseCase!: ForgotPasswordUseCase;
+  private resetPasswordUseCase!: ResetPasswordUseCase;
 
   // Use Cases - User Management
   private getUserUseCase!: GetUserUseCase;
@@ -527,6 +531,19 @@ export class DependencyContainer {
       this.eventPublisher,
     );
 
+    this.forgotPasswordUseCase = new ForgotPasswordUseCase(
+      this.authService,
+      this.userRepository,
+      this.logger,
+      CircuitBreakerFactory.getBreaker("forgot-password-use-case"),
+    );
+
+    this.resetPasswordUseCase = new ResetPasswordUseCase(
+      this.authService,
+      this.logger,
+      CircuitBreakerFactory.getBreaker("reset-password-use-case"),
+    );
+
     // User management use cases
     this.getUserUseCase = new GetUserUseCase(
       this.userRepository,
@@ -602,6 +619,8 @@ export class DependencyContainer {
       ["VerifyEmailUseCase", this.verifyEmailUseCase],
       ["ResendVerificationEmailUseCase", this.resendVerificationEmailUseCase],
       ["LogoutUserUseCase", this.logoutUserUseCase],
+      ["ForgotPasswordUseCase", this.forgotPasswordUseCase],
+      ["ResetPasswordUseCase", this.resetPasswordUseCase],
       ["GetUserUseCase", this.getUserUseCase],
       ["UpdateUserUseCase", this.updateUserUseCase],
       ["ListUsersUseCase", this.listUsersUseCase],
@@ -839,6 +858,8 @@ export class DependencyContainer {
       verifyEmailUseCase: this.verifyEmailUseCase,
       resendVerificationEmailUseCase: this.resendVerificationEmailUseCase,
       logoutUserUseCase: this.logoutUserUseCase,
+      forgotPasswordUseCase: this.forgotPasswordUseCase,
+      resetPasswordUseCase: this.resetPasswordUseCase,
 
       // User Management Use Cases
       getUserUseCase: this.getUserUseCase,

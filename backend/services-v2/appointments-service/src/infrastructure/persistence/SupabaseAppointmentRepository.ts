@@ -740,11 +740,13 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    */
   async findExpiredUnpaidAppointments(): Promise<Appointment[]> {
     const now = new Date().toISOString();
+    const cancellableStatuses = ["PENDING_PAYMENT", "SCHEDULED", "CONFIRMED"];
 
     const { data, error } = await this.supabase
       .from(this.tableName)
       .select("*")
       .eq("payment_status", "PENDING")
+      .in("status", cancellableStatuses)
       .not("payment_deadline", "is", null)
       .lt("payment_deadline", now)
       .order("payment_deadline", { ascending: true });

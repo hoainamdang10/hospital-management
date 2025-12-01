@@ -1,21 +1,21 @@
 /**
  * Change Password Use Case (Authenticated)
  * Allows authenticated users to change their password
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS Command Pattern
  */
 
-import { IUseCase } from '@shared/application/use-cases/base/use-case.interface';
-import { IAuthenticationService } from '../services/IAuthenticationService';
-import { IUserRepository } from '../repositories/IUserRepository';
-import { IPasswordPolicyRepository } from '../../domain/repositories/IPasswordPolicyRepository';
-import { ISessionRepository } from '../../domain/repositories/ISessionRepository';
-import { ICircuitBreaker } from '../services/ICircuitBreaker';
-import { UserId } from '../../domain/value-objects/UserId';
-import { ILogger } from '../services/ILogger';
-import { IEventPublisher } from '../services/IEventPublisher';
+import { IUseCase } from "@shared/application/use-cases/base/use-case.interface";
+import { IAuthenticationService } from "../services/IAuthenticationService";
+import { IUserRepository } from "../repositories/IUserRepository";
+import { IPasswordPolicyRepository } from "../../domain/repositories/IPasswordPolicyRepository";
+import { ISessionRepository } from "../../domain/repositories/ISessionRepository";
+import { ICircuitBreaker } from "../services/ICircuitBreaker";
+import { UserId } from "../../domain/value-objects/UserId";
+import { ILogger } from "../services/ILogger";
+import { IEventPublisher } from "../services/IEventPublisher";
 // import { PasswordChangedEvent } from '../../domain/events/PasswordChangedEvent'; // Event removed in scope reduction
 
 export interface ChangePasswordRequest {
@@ -48,27 +48,32 @@ export class ChangePasswordUseCase
     private sessionRepository: ISessionRepository,
     private logger: ILogger,
     private circuitBreaker: ICircuitBreaker,
-    private _eventPublisher?: IEventPublisher // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
+    private _eventPublisher?: IEventPublisher, // Prefixed with _ to indicate intentionally unused (removed in scope reduction)
   ) {}
 
-  async execute(request: ChangePasswordRequest): Promise<ChangePasswordResponse> {
+  async execute(
+    request: ChangePasswordRequest,
+  ): Promise<ChangePasswordResponse> {
     return await this.circuitBreaker.execute(
       async () => this.executeImpl(request),
       async () => {
-        this.logger.error('Circuit breaker open for ChangePasswordUseCase');
+        this.logger.error("Circuit breaker open for ChangePasswordUseCase");
         return {
           success: false,
-          message: 'Dịch vụ đổi mật khẩu tạm thời không khả dụng. Vui lòng thử lại sau.',
-          error: 'SERVICE_UNAVAILABLE'
+          message:
+            "Dịch vụ đổi mật khẩu tạm thời không khả dụng. Vui lòng thử lại sau.",
+          error: "SERVICE_UNAVAILABLE",
         };
-      }
+      },
     );
   }
 
-  private async executeImpl(request: ChangePasswordRequest): Promise<ChangePasswordResponse> {
+  private async executeImpl(
+    request: ChangePasswordRequest,
+  ): Promise<ChangePasswordResponse> {
     try {
-      this.logger.info('Processing password change request', {
-        userId: request.userId
+      this.logger.info("Processing password change request", {
+        userId: request.userId,
       });
 
       // 1. Validate input
@@ -77,7 +82,7 @@ export class ChangePasswordUseCase
         return {
           success: false,
           message: validationError,
-          error: 'VALIDATION_ERROR'
+          error: "VALIDATION_ERROR",
         };
       }
 
@@ -87,25 +92,25 @@ export class ChangePasswordUseCase
       if (!user) {
         return {
           success: false,
-          message: 'Người dùng không tồn tại',
-          error: 'USER_NOT_FOUND'
+          message: "Người dùng không tồn tại",
+          error: "USER_NOT_FOUND",
         };
       }
 
       // 3. Verify current password
       const authResult = await this.authService.signIn({
         email: user.email.value,
-        password: request.currentPassword
+        password: request.currentPassword,
       });
 
       if (!authResult.success) {
-        this.logger.warn('Current password verification failed', {
-          userId: request.userId
+        this.logger.warn("Current password verification failed", {
+          userId: request.userId,
         });
         return {
           success: false,
-          message: 'Mật khẩu hiện tại không đúng',
-          error: 'INVALID_CURRENT_PASSWORD'
+          message: "Mật khẩu hiện tại không đúng",
+          error: "INVALID_CURRENT_PASSWORD",
         };
       }
 
@@ -116,8 +121,8 @@ export class ChangePasswordUseCase
       if (!validationResult.isValid) {
         return {
           success: false,
-          message: `Mật khẩu mới không đáp ứng yêu cầu:\n${validationResult.errors.join('\n')}`,
-          error: 'PASSWORD_POLICY_VIOLATION'
+          message: `Mật khẩu mới không đáp ứng yêu cầu:\n${validationResult.errors.join("\n")}`,
+          error: "PASSWORD_POLICY_VIOLATION",
         };
       }
 
@@ -125,26 +130,29 @@ export class ChangePasswordUseCase
       if (request.currentPassword === request.newPassword) {
         return {
           success: false,
-          message: 'Mật khẩu mới phải khác mật khẩu hiện tại',
-          error: 'SAME_PASSWORD'
+          message: "Mật khẩu mới phải khác mật khẩu hiện tại",
+          error: "SAME_PASSWORD",
         };
       }
 
       // 6. Update password via Supabase Auth
-      await this.authService.updatePassword(request.userId, request.newPassword);
+      await this.authService.updatePassword(
+        request.userId,
+        request.newPassword,
+      );
 
       // 7. Invalidate other sessions if requested (default: true)
       const invalidateOtherSessions = request.invalidateOtherSessions !== false;
       if (invalidateOtherSessions) {
         await this.sessionRepository.deleteAllByUserId(request.userId);
-        this.logger.info('All sessions invalidated after password change', {
-          userId: request.userId
+        this.logger.info("All sessions invalidated after password change", {
+          userId: request.userId,
         });
       }
 
-      this.logger.info('Password changed successfully', {
+      this.logger.info("Password changed successfully", {
         userId: request.userId,
-        invalidatedSessions: invalidateOtherSessions
+        invalidatedSessions: invalidateOtherSessions,
       });
 
       // Publish PasswordChangedEvent - Disabled in scope reduction
@@ -176,46 +184,75 @@ export class ChangePasswordUseCase
       return {
         success: true,
         message: invalidateOtherSessions
-          ? 'Mật khẩu đã được thay đổi thành công. Tất cả các phiên đăng nhập khác đã bị hủy.'
-          : 'Mật khẩu đã được thay đổi thành công.'
+          ? "Mật khẩu đã được thay đổi thành công. Tất cả các phiên đăng nhập khác đã bị hủy."
+          : "Mật khẩu đã được thay đổi thành công.",
       };
     } catch (error: any) {
-      this.logger.error('Failed to change password', {
+      const errorMessage = error?.message || "UNKNOWN_ERROR";
+
+      this.logger.error("Failed to change password", {
         userId: request.userId,
-        error: error.message
+        error: errorMessage,
       });
+
+      let userMessage = "Không thể thay đổi mật khẩu. Vui lòng thử lại sau.";
+      let errorCode: string = "CHANGE_PASSWORD_FAILED";
+
+      if (typeof errorMessage === "string") {
+        if (errorMessage.includes("Password should be at least")) {
+          // Propagate Supabase policy requirement to user-facing message
+          const requiredLengthMatch = errorMessage.match(
+            /at least (\d+) characters/i,
+          );
+          const requiredLength = requiredLengthMatch
+            ? requiredLengthMatch[1]
+            : "12";
+          userMessage = `Mật khẩu mới phải có ít nhất ${requiredLength} ký tự theo chính sách bảo mật.`;
+          errorCode = "PASSWORD_POLICY_VIOLATION";
+        } else if (errorMessage.includes("Invalid login credentials")) {
+          // Safety net in case Supabase throws during verification step
+          userMessage = "Mật khẩu hiện tại không đúng.";
+          errorCode = "INVALID_CURRENT_PASSWORD";
+        }
+      }
 
       return {
         success: false,
-        message: 'Không thể thay đổi mật khẩu. Vui lòng thử lại sau.',
-        error: 'CHANGE_PASSWORD_FAILED'
+        message: userMessage,
+        error: errorCode,
       };
     }
   }
 
   private validateRequest(request: ChangePasswordRequest): string | null {
     if (!request.userId || request.userId.trim().length === 0) {
-      return 'User ID là bắt buộc';
+      return "User ID là bắt buộc";
     }
 
-    if (!request.currentPassword || request.currentPassword.trim().length === 0) {
-      return 'Mật khẩu hiện tại là bắt buộc';
+    if (
+      !request.currentPassword ||
+      request.currentPassword.trim().length === 0
+    ) {
+      return "Mật khẩu hiện tại là bắt buộc";
     }
 
     if (!request.newPassword || request.newPassword.trim().length === 0) {
-      return 'Mật khẩu mới là bắt buộc';
+      return "Mật khẩu mới là bắt buộc";
     }
 
-    if (!request.confirmPassword || request.confirmPassword.trim().length === 0) {
-      return 'Xác nhận mật khẩu là bắt buộc';
+    if (
+      !request.confirmPassword ||
+      request.confirmPassword.trim().length === 0
+    ) {
+      return "Xác nhận mật khẩu là bắt buộc";
     }
 
     if (request.newPassword !== request.confirmPassword) {
-      return 'Mật khẩu mới và xác nhận mật khẩu không khớp';
+      return "Mật khẩu mới và xác nhận mật khẩu không khớp";
     }
 
     if (request.newPassword.length < 8) {
-      return 'Mật khẩu mới phải có ít nhất 8 ký tự';
+      return "Mật khẩu mới phải có ít nhất 8 ký tự";
     }
 
     return null;

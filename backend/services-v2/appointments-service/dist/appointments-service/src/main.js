@@ -58,6 +58,7 @@ const availability_routes_1 = require("./presentation/routes/availability.routes
 const queue_routes_1 = require("./presentation/routes/queue.routes");
 // ===== ARCHIVED FOR POST-MVP: Waitlist Routes (removed import to prevent module resolution errors) =====
 const reminder_routes_1 = require("./presentation/routes/reminder.routes");
+const chat_routes_1 = require("./presentation/routes/chat.routes");
 const container_1 = require("./infrastructure/di/container");
 const RedisCacheService_1 = require("./infrastructure/cache/RedisCacheService");
 const ValidationMiddleware_1 = require("./presentation/middleware/ValidationMiddleware");
@@ -255,10 +256,16 @@ app.get("/api-docs/json", (req, res) => {
 });
 console.log("[Main] Swagger UI available at http://localhost:" + PORT + "/api-docs");
 // API Routes - Standardized to /api/v1/ prefix
-// Command routes (Write operations - CQRS Commands)
-app.use("/api/v1", (0, appointment_routes_1.createAppointmentRoutes)());
+// IMPORTANT: Query routes MUST be mounted BEFORE Command routes
+// Otherwise GET /appointments/:id from Command will block Query route
 // Query routes (Read operations - CQRS Queries with denormalized data)
+// Mounted FIRST to handle GET requests without permission checks
 app.use("/api/v1", (0, appointmentQueryRoutes_1.createAppointmentQueryRoutes)());
+// Command routes (Write operations - CQRS Commands)
+// Mounted AFTER queries so GET routes don't conflict
+app.use("/api/v1", (0, appointment_routes_1.createAppointmentRoutes)());
+// Chat routes (lightweight, scoped to appointments)
+app.use("/api/v1", (0, chat_routes_1.createChatRoutes)());
 // ✅ FIX: Removed duplicate /api/v2 mount
 // Gateway now correctly forwards full path with proper rewriting
 // Availability routes (Provider schedule & available slots)

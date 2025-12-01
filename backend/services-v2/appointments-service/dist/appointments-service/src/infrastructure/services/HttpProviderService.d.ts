@@ -20,6 +20,11 @@ export interface WorkScheduleDTO {
         start: string;
         end: string;
     };
+    dailySchedules?: Array<{
+        day: string;
+        start: string;
+        end: string;
+    }>;
     timeZone: string;
     isFlexible: boolean;
 }
@@ -40,7 +45,8 @@ export interface StaffDTO {
 }
 export declare class HttpProviderService {
     private httpClient;
-    constructor(providerServiceUrl: string);
+    private readonly serviceToken?;
+    constructor(providerServiceUrl: string, serviceToken?: string);
     /**
      * Get provider's work schedule from Provider/Staff Service
      *

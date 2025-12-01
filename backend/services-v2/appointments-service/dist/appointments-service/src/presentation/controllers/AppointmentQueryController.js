@@ -22,9 +22,13 @@ class AppointmentQueryController {
         try {
             const { id } = req.params;
             const appointmentDetails = await this.getAppointmentDetailsQuery.execute(id);
+            // Avoid stale caches on the client
+            res.setHeader("Cache-Control", "no-store");
+            // Return format compatible with UseCase response (frontend expects 'appointment' key)
             res.status(200).json({
                 success: true,
-                data: appointmentDetails,
+                message: "Lấy thông tin lịch hẹn thành công",
+                appointment: appointmentDetails,
             });
         }
         catch (error) {
@@ -73,6 +77,8 @@ class AppointmentQueryController {
                 page: page ? parseInt(page) : undefined,
                 pageSize: pageSize ? parseInt(pageSize) : undefined,
             });
+            // Avoid stale caches on the client
+            res.setHeader("Cache-Control", "no-store");
             res.status(200).json({
                 success: true,
                 data: result,
@@ -120,18 +126,32 @@ class AppointmentQueryController {
         try {
             const { doctorId } = req.params;
             const authUser = req.user;
-            const effectiveDoctorId = authUser?.role === "doctor" && authUser?.userId
+            // NOTE: The database uses Staff ID (e.g. CARD-DOC-...) for doctor_id, NOT User ID (UUID).
+            // The frontend must pass the correct Staff ID.
+            // We trust the frontend to pass the correct ID for now.
+            const effectiveDoctorId = doctorId;
+            /*
+            // OLD LOGIC: Incorrectly assumed doctor_id in DB is User ID
+            const effectiveDoctorId =
+              authUser?.role === "doctor" && authUser?.userId
                 ? authUser.userId
                 : doctorId;
-            if (authUser?.role === "doctor" &&
-                authUser?.userId &&
-                authUser.userId !== doctorId) {
-                res.status(403).json({
-                    success: false,
-                    error: "Forbidden: doctor can only view own appointments",
-                });
-                return;
+            */
+            /*
+            // TODO: Verify that this Staff ID belongs to the authenticated User ID.
+            // Currently we skip this check because we don't have access to Provider Service here.
+            if (
+              authUser?.role === "doctor" &&
+              authUser?.userId &&
+              authUser.userId !== doctorId
+            ) {
+              res.status(403).json({
+                success: false,
+                error: "Forbidden: doctor can only view own appointments",
+              });
+              return;
             }
+            */
             const { page, pageSize, startDate, endDate, status } = req.query;
             const result = await this.listAppointmentsQuery.execute({
                 doctorId: effectiveDoctorId,

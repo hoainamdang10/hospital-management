@@ -96,7 +96,7 @@ export class AppointmentReadModelEventHandler {
     private readModelRepo: IAppointmentReadModelRepository,
     private patientService: IPatientService,
     private providerService: IProviderService,
-  ) {}
+  ) { }
 
   /**
    * Handle AppointmentScheduledEvent
@@ -135,8 +135,14 @@ export class AppointmentReadModelEventHandler {
       // 1. Fetch patient data from Patient Service
       let patientData: PatientData | undefined;
       try {
+        console.log(`[ReadModel] Fetching patient data for: ${patientId}`);
         const patient = await this.patientService.getPatient(patientId);
         if (patient) {
+          console.log(`[ReadModel] Patient data fetched successfully:`, {
+            fullName: patient.fullName,
+            phone: patient.phone,
+            email: patient.email,
+          });
           patientData = {
             patientFullName: patient.fullName,
             patientPhone: patient.phone,
@@ -148,17 +154,29 @@ export class AppointmentReadModelEventHandler {
             patientInsuranceType: patient.insuranceType,
             patientAddress: patient.address,
           };
+        } else {
+          console.warn(`[ReadModel] Patient not found: ${patientId}`);
         }
       } catch (error) {
-        console.error(`[ReadModel] Failed to fetch patient data: ${error}`);
+        console.error(`[ReadModel] Failed to fetch patient data for ${patientId}:`, error);
+        console.error(`[ReadModel] Error details:`, {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         // Continue without patient data - will be synced later via PatientUpdatedEvent
       }
 
       // 2. Fetch doctor data from Provider Service
       let doctorData: DoctorData | undefined;
       try {
+        console.log(`[ReadModel] Fetching doctor data for: ${doctorId}`);
         const doctor = await this.providerService.getProvider(doctorId);
         if (doctor) {
+          console.log(`[ReadModel] Doctor data fetched successfully:`, {
+            fullName: doctor.fullName,
+            specialization: doctor.specialization,
+            department: doctor.department,
+          });
           doctorData = {
             doctorFullName: doctor.fullName,
             doctorSpecialization: doctor.specialization,
@@ -167,9 +185,15 @@ export class AppointmentReadModelEventHandler {
             doctorPhone: doctor.phone,
             doctorEmail: doctor.email,
           };
+        } else {
+          console.warn(`[ReadModel] Doctor not found: ${doctorId}`);
         }
       } catch (error) {
-        console.error(`[ReadModel] Failed to fetch doctor data: ${error}`);
+        console.error(`[ReadModel] Failed to fetch doctor data for ${doctorId}:`, error);
+        console.error(`[ReadModel] Error details:`, {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         // Continue without doctor data - will be synced later via DoctorUpdatedEvent
       }
 

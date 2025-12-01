@@ -85,8 +85,10 @@ class ProviderEventConsumer {
     async handleStaffCreated(event) {
         const payload = event.payload || event.data || event;
         const staffData = this.mapPayloadToProvider(payload);
+        const existing = await this.providerReadRepo.findById(staffData.providerId);
+        const merged = this.mergeProviderData(staffData, existing);
         await this.providerReadRepo.upsert({
-            ...staffData,
+            ...merged,
             syncedAt: new Date(),
             createdAt: payload.createdAt || new Date(),
             updatedAt: payload.updatedAt || new Date(),
@@ -99,8 +101,10 @@ class ProviderEventConsumer {
     async handleStaffUpdated(event) {
         const payload = event.payload || event.data || event;
         const staffData = this.mapPayloadToProvider(payload);
+        const existing = await this.providerReadRepo.findById(staffData.providerId);
+        const merged = this.mergeProviderData(staffData, existing);
         await this.providerReadRepo.upsert({
-            ...staffData,
+            ...merged,
             syncedAt: new Date(),
             updatedAt: new Date(),
         });
@@ -112,8 +116,10 @@ class ProviderEventConsumer {
     async handleStaffStatusChanged(event) {
         const payload = event.payload || event.data || event;
         const staffData = this.mapPayloadToProvider(payload);
+        const existing = await this.providerReadRepo.findById(staffData.providerId);
+        const merged = this.mergeProviderData(staffData, existing);
         await this.providerReadRepo.upsert({
-            ...staffData,
+            ...merged,
             syncedAt: new Date(),
             updatedAt: new Date(),
         });
@@ -140,9 +146,20 @@ class ProviderEventConsumer {
      * Handles both camelCase and snake_case, and ensures fullName is non-null.
      */
     mapPayloadToProvider(payload) {
-        // Unwrap GenericIntegrationEvent shape where actual payload is in `data`
-        const src = payload && typeof payload.data === "object" ? payload.data : payload;
-        const updated = src.updatedData || {};
+        const sources = this.collectPayloadSources(payload && typeof payload === "object" ? payload : {});
+        const primarySource = sources[0] || {};
+        const updated = this.findNestedField(sources, ["updatedData"]) ||
+            {};
+        const personal = this.findNestedField(sources, [
+            "personalInfo",
+            "personal_info",
+            "personal",
+        ]) || {};
+        const professional = this.findNestedField(sources, [
+            "professionalInfo",
+            "professional_info",
+            "professional",
+        ]) || {};
         const personalUpdated = updated.personalInfo || updated.personal_info || {};
         const professionalUpdated = updated.professionalInfo || updated.professional_info || {};
         const normalizeId = (value) => {
@@ -154,50 +171,56 @@ class ProviderEventConsumer {
                 return value.value;
             return `${value ?? "unknown"}`;
         };
-        const personal = src.personalInfo || src.personal_info || src.personal || {};
-        const professional = src.professionalInfo || src.professional_info || src.professional || {};
         const firstName = personal.firstName ||
             personal.first_name ||
             personalUpdated.firstName ||
             personalUpdated.first_name ||
-            src.firstName ||
-            src.first_name ||
+            primarySource.firstName ||
+            primarySource.first_name ||
             "";
         const lastName = personal.lastName ||
             personal.last_name ||
             personalUpdated.lastName ||
             personalUpdated.last_name ||
-            src.lastName ||
-            src.last_name ||
+            primarySource.lastName ||
+            primarySource.last_name ||
             "";
         const fullNameCandidates = [
-            src.fullName,
+            primarySource.fullName,
+            primarySource.full_name,
             personal.fullName,
             personal.full_name,
             personalUpdated.fullName,
             personalUpdated.full_name,
             `${firstName} ${lastName}`.trim(),
         ].filter((v) => typeof v === "string" && v.trim().length > 0);
-        const providerId = normalizeId(src.staffId || src.id || src.aggregateId || personal.staffId);
+        const providerId = normalizeId(this.findNestedField(sources, [
+            "staffId",
+            "providerId",
+            "id",
+            "aggregateId",
+        ]) || personal.staffId);
         const fullName = (fullNameCandidates[0] ||
             `${providerId}` ||
             "Unknown").trim();
-        const specialization = src.specialization ||
+        const specialization = primarySource.specialization ||
+            primarySource.specializationName ||
             professional.specialization ||
             professional.specializationName ||
             professional.title ||
             professionalUpdated.specialization ||
             professionalUpdated.specializationName ||
             professionalUpdated.title;
-        const department = src.department ||
-            src.departmentId ||
+        const department = primarySource.department ||
+            primarySource.departmentId ||
             professional.department ||
             professional.departmentName ||
             professional.department_name ||
             professionalUpdated.department ||
             professionalUpdated.departmentName ||
             professionalUpdated.department_name;
-        const licenseNumber = src.licenseNumber ||
+        const licenseNumber = primarySource.licenseNumber ||
+            primarySource.license_number ||
             professional.licenseNumber ||
             professional.license_number ||
             professionalUpdated.licenseNumber ||
@@ -207,10 +230,16 @@ class ProviderEventConsumer {
             personal.phone ||
             personalUpdated.phoneNumber ||
             personalUpdated.phone ||
-            src.phone ||
-            src.phoneNumber;
-        const email = personal.email || personalUpdated.email || src.email || updated.email;
-        const statusValue = src.status || src.newStatus || src.isActive || "active";
+            primarySource.phone ||
+            primarySource.phoneNumber;
+        const email = personal.email ||
+            personalUpdated.email ||
+            primarySource.email ||
+            updated.email;
+        const statusValue = primarySource.status ||
+            primarySource.newStatus ||
+            primarySource.isActive ||
+            "active";
         const isActive = typeof statusValue === "string"
             ? statusValue.toLowerCase() === "active"
             : !!statusValue;
@@ -225,6 +254,95 @@ class ProviderEventConsumer {
             email: email || null,
             isActive,
         };
+    }
+    mergeProviderData(incoming, existing) {
+        const tenantId = incoming.tenantId || existing?.tenantId || "hospital-1";
+        const fullName = this.isMeaningfulText(incoming.fullName, incoming.providerId)
+            ? incoming.fullName
+            : existing?.fullName || incoming.providerId;
+        const specialization = incoming.specialization !== undefined
+            ? incoming.specialization
+            : existing?.specialization;
+        const department = incoming.department !== undefined
+            ? incoming.department
+            : existing?.department;
+        const licenseNumber = incoming.licenseNumber !== undefined
+            ? incoming.licenseNumber
+            : existing?.licenseNumber;
+        const phone = incoming.phone !== undefined ? incoming.phone : existing?.phone;
+        const email = incoming.email !== undefined ? incoming.email : existing?.email;
+        const isActive = incoming.isActive !== undefined
+            ? incoming.isActive
+            : (existing?.isActive ?? true);
+        return {
+            providerId: incoming.providerId,
+            tenantId,
+            fullName,
+            specialization: specialization ?? undefined,
+            department: department ?? undefined,
+            licenseNumber: licenseNumber ?? undefined,
+            phone: phone ?? undefined,
+            email: email ?? undefined,
+            isActive,
+            syncedAt: incoming.syncedAt,
+            createdAt: incoming.createdAt || existing?.createdAt,
+            updatedAt: incoming.updatedAt || existing?.updatedAt,
+        };
+    }
+    collectPayloadSources(payload) {
+        const sources = [];
+        const queue = [payload];
+        while (queue.length) {
+            const current = queue.shift();
+            if (!current || typeof current !== "object") {
+                continue;
+            }
+            if (sources.includes(current)) {
+                continue;
+            }
+            sources.push(current);
+            const children = [
+                current.payload,
+                current.data,
+                current.eventData,
+                current.eventData?.payload,
+                current.eventData?.data,
+                current.eventData?.eventData,
+            ];
+            for (const child of children) {
+                if (child && typeof child === "object") {
+                    queue.push(child);
+                }
+            }
+        }
+        return sources;
+    }
+    findNestedField(sources, fieldNames) {
+        for (const source of sources) {
+            if (!source || typeof source !== "object")
+                continue;
+            for (const field of fieldNames) {
+                if (Object.prototype.hasOwnProperty.call(source, field) &&
+                    source[field] !== undefined &&
+                    source[field] !== null) {
+                    return source[field];
+                }
+            }
+        }
+        return undefined;
+    }
+    isMeaningfulText(value, fallback) {
+        if (!value) {
+            return false;
+        }
+        const normalized = value.trim().toLowerCase();
+        if (!normalized) {
+            return false;
+        }
+        if (normalized === fallback.toLowerCase()) {
+            return false;
+        }
+        return normalized !== "unknown";
     }
 }
 exports.ProviderEventConsumer = ProviderEventConsumer;

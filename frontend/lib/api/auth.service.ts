@@ -95,12 +95,16 @@ export const authService = {
 
   /**
    * Change password (authenticated)
-   * POST /auth/change-password
+   * POST /v1/users/:userId/change-password
    */
   async changePassword(
+    userId: string,
     data: ChangePasswordRequest
   ): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post('/auth/change-password', data);
+    const response = await apiClient.post(
+      `/v1/users/${encodeURIComponent(userId)}/change-password`,
+      data
+    );
     return response.data;
   },
 

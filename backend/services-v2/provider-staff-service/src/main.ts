@@ -169,6 +169,7 @@ class ProviderStaffServiceApp {
         ServiceTokens.EVENT_BUS,
       );
       await this.eventBus.connect();
+      await this.registerInternalEventHandlers();
       this.outboxPublisher = this.container.resolve<OutboxPublisher>(
         ServiceTokens.OUTBOX_PUBLISHER,
       );
@@ -745,6 +746,50 @@ class ProviderStaffServiceApp {
         error: error instanceof Error ? error.message : "Unknown error",
       });
       process.exit(1);
+    }
+  }
+
+  /**
+   * Subscribe internal domain event handlers (read models, audits, etc.)
+   */
+  private async registerInternalEventHandlers(): Promise<void> {
+    if (!this.eventBus) {
+      logger.warn("Event bus not initialized; skip handler registration");
+      return;
+    }
+
+    try {
+      const staffDomainEventHandler = this.container.resolve(
+        ServiceTokens.STAFF_DOMAIN_EVENT_HANDLER,
+      );
+      const staffReadModelHandler = this.container.resolve(
+        ServiceTokens.STAFF_READ_MODEL_PROJECTION_HANDLER,
+      );
+
+      const domainSubscriptions = [
+        "StaffRegistered",
+        "StaffCredentialVerified",
+        "StaffScheduleUpdated",
+        "StaffStatusChanged",
+        "StaffEmploymentStatusUpdated",
+        "StaffUpdated",
+      ];
+
+      for (const event of domainSubscriptions) {
+        await this.eventBus.subscribe(event, staffDomainEventHandler);
+      }
+
+      await this.eventBus.subscribe("StaffRegistered", staffReadModelHandler);
+      await this.eventBus.subscribe("StaffUpdated", staffReadModelHandler);
+
+      logger.info("Internal domain event handlers registered", {
+        domainHandlers: domainSubscriptions,
+        readModelHandlers: ["StaffRegistered", "StaffUpdated"],
+      });
+    } catch (error) {
+      logger.error("Failed to register internal event handlers", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 }

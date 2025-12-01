@@ -25,12 +25,7 @@ import { DashboardLayout } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -127,7 +122,7 @@ export default function PatientBillingPage() {
     const pendingCount =
       eligibleInvoices.length > 0
         ? eligibleInvoices.filter((inv) => isPendingStatus(inv.status) || inv.status === 'draft')
-          .length
+            .length
         : (summary?.pendingInvoiceCount ?? 0);
 
     const paidCount =
@@ -169,10 +164,7 @@ export default function PatientBillingPage() {
 
   const totalPages = Math.ceil(filteredInvoices.length / ITEMS_PER_PAGE);
   const paginatedInvoices = useMemo(() => {
-    return filteredInvoices.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE
-    );
+    return filteredInvoices.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   }, [filteredInvoices, currentPage]);
 
   const handlePayment = async (invoice: Invoice) => {
@@ -243,7 +235,9 @@ export default function PatientBillingPage() {
         {/* Header Section */}
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Thanh toán & Hóa đơn</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              Thanh toán & Hóa đơn
+            </h1>
             <p className="mt-1 text-gray-500">
               Quản lý tài chính cá nhân và lịch sử giao dịch y tế
             </p>
@@ -268,10 +262,14 @@ export default function PatientBillingPage() {
         ) : error ? (
           <Card className="border-red-100 bg-red-50/50">
             <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-              <AlertCircle className="h-10 w-10 text-red-500 mb-3" />
+              <AlertCircle className="mb-3 h-10 w-10 text-red-500" />
               <h3 className="text-lg font-medium text-red-900">Không thể tải dữ liệu</h3>
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={reload} variant="outline" className="border-red-200 hover:bg-red-100 text-red-700">
+              <p className="mb-4 text-red-600">{error}</p>
+              <Button
+                onClick={reload}
+                variant="outline"
+                className="border-red-200 text-red-700 hover:bg-red-100"
+              >
                 Thử lại
               </Button>
             </CardContent>
@@ -322,7 +320,7 @@ export default function PatientBillingPage() {
                     onValueChange={(v) => setStatusFilter(v as StatusFilterValue)}
                     className="w-full sm:w-auto"
                   >
-                    <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-flex">
+                    <TabsList className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto">
                       <TabsTrigger value="all">Tất cả</TabsTrigger>
                       <TabsTrigger value="pending">Chưa trả</TabsTrigger>
                       <TabsTrigger value="paid">Đã trả</TabsTrigger>
@@ -332,7 +330,7 @@ export default function PatientBillingPage() {
                   <div className="relative w-full sm:w-72">
                     <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <Input
-                      className="pl-9 bg-white"
+                      className="bg-white pl-9"
                       placeholder="Tìm kiếm hóa đơn..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -351,26 +349,24 @@ export default function PatientBillingPage() {
                         <EmptyState />
                       </motion.div>
                     ) : (
-                      <>
-                        {paginatedInvoices.map((invoice, index) => (
-                          <motion.div
-                            key={invoice.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                          >
-                            <InvoiceCard
-                              invoice={invoice}
-                              onPayment={handlePayment}
-                              onDownload={handleDownloadInvoice}
-                              onViewDetails={setSelectedInvoice}
-                              isProcessing={processingPayment === invoice.id}
-                              isDownloading={downloadingInvoice === invoice.id}
-                              formatDate={formatDate}
-                            />
-                          </motion.div>
-                        ))}
-                      </>
+                      paginatedInvoices.map((invoice, index) => (
+                        <motion.div
+                          key={invoice.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <InvoiceCard
+                            invoice={invoice}
+                            onPayment={handlePayment}
+                            onDownload={handleDownloadInvoice}
+                            onViewDetails={setSelectedInvoice}
+                            isProcessing={processingPayment === invoice.id}
+                            isDownloading={downloadingInvoice === invoice.id}
+                            formatDate={formatDate}
+                          />
+                        </motion.div>
+                      ))
                     )}
                   </AnimatePresence>
 
@@ -396,7 +392,7 @@ export default function PatientBillingPage() {
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
 
-                      <div className="flex items-center gap-1 mx-2">
+                      <div className="mx-2 flex items-center gap-1">
                         <span className="text-sm font-medium text-gray-700">
                           Trang {currentPage} / {totalPages}
                         </span>
@@ -492,7 +488,7 @@ function SummaryCard({
                 <Icon className="h-6 w-6" />
               </div>
               {tone === 'warning' && value > 0 && (
-                <Badge className="bg-white/20 text-white hover:bg-white/30 border-none">
+                <Badge className="border-none bg-white/20 text-white hover:bg-white/30">
                   Cần xử lý
                 </Badge>
               )}
@@ -557,12 +553,12 @@ function InvoiceCard({
       {/* Status Strip */}
       <div
         className={cn(
-          'absolute left-0 top-0 bottom-0 w-1.5',
+          'absolute top-0 bottom-0 left-0 w-1.5',
           isPaid ? 'bg-emerald-500' : isPending ? 'bg-orange-500' : 'bg-gray-300'
         )}
       />
 
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between pl-2">
+      <div className="flex flex-col gap-4 pl-2 md:flex-row md:items-center md:justify-between">
         {/* Left Info */}
         <div className="flex items-start gap-4">
           <div className="hidden rounded-lg bg-gray-50 p-3 md:block">
@@ -604,7 +600,7 @@ function InvoiceCard({
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="text-left md:text-right">
             <p className="text-sm text-gray-500">Tổng thanh toán</p>
-            <p className={cn("text-xl font-bold", isPending ? "text-orange-600" : "text-gray-900")}>
+            <p className={cn('text-xl font-bold', isPending ? 'text-orange-600' : 'text-gray-900')}>
               {formatCurrency(invoice.totalAmount)}
             </p>
             {outstanding > 0 && isPending && (
@@ -619,7 +615,7 @@ function InvoiceCard({
               <Button
                 onClick={() => onPayment(invoice)}
                 disabled={isProcessing}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-200"
+                className="bg-blue-600 text-white shadow-sm shadow-blue-200 hover:bg-blue-700"
               >
                 {isProcessing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -638,7 +634,7 @@ function InvoiceCard({
                 size="icon"
                 onClick={() => onDownload(invoice)}
                 disabled={isDownloading}
-                className="text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                className="text-gray-500 hover:bg-blue-50 hover:text-blue-600"
                 title="Tải hóa đơn"
               >
                 {isDownloading ? (
@@ -651,7 +647,7 @@ function InvoiceCard({
                 variant="ghost"
                 size="icon"
                 onClick={() => onViewDetails(invoice)}
-                className="text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                className="text-gray-500 hover:bg-blue-50 hover:text-blue-600"
                 title="Xem chi tiết"
               >
                 <FileText className="h-4 w-4" />
@@ -682,8 +678,8 @@ function InvoiceDetailsDialog({
 
   return (
     <Dialog open={!!invoice} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl overflow-hidden p-0 gap-0">
-        <div className="bg-gray-50 px-6 py-4 border-b flex items-center justify-between">
+      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
+        <div className="flex items-center justify-between border-b bg-gray-50 px-6 py-4">
           <div>
             <DialogTitle className="text-xl">Hóa đơn {getInvoiceLabel(invoice)}</DialogTitle>
             <DialogDescription className="mt-1">
@@ -703,11 +699,13 @@ function InvoiceDetailsDialog({
           </Badge>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto p-6 space-y-8">
+        <div className="max-h-[70vh] space-y-8 overflow-y-auto p-6">
           {/* Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Thông tin chung</h4>
+              <h4 className="text-sm font-semibold tracking-wider text-gray-500 uppercase">
+                Thông tin chung
+              </h4>
               <div className="space-y-3">
                 <InfoRow label="Mã hóa đơn" value={invoice.invoiceCode || invoice.invoiceNumber} />
                 <InfoRow label="Lịch hẹn" value={invoice.appointmentId} />
@@ -716,7 +714,9 @@ function InvoiceDetailsDialog({
               </div>
             </div>
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Thanh toán</h4>
+              <h4 className="text-sm font-semibold tracking-wider text-gray-500 uppercase">
+                Thanh toán
+              </h4>
               <div className="space-y-3">
                 <InfoRow label="Hạn thanh toán" value={formatDate(invoice.dueDate)} />
                 <InfoRow label="Ngày cập nhật" value={formatDate(invoice.updatedAt)} />
@@ -729,10 +729,10 @@ function InvoiceDetailsDialog({
 
           {/* Services */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Chi tiết dịch vụ</h4>
-            <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500 font-medium">
+            <h4 className="mb-4 text-sm font-semibold text-gray-900">Chi tiết dịch vụ</h4>
+            <div className="overflow-hidden rounded-lg border border-gray-200">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 font-medium text-gray-500">
                   <tr>
                     <th className="px-4 py-3">Dịch vụ</th>
                     <th className="px-4 py-3 text-right">Đơn giá</th>
@@ -745,7 +745,9 @@ function InvoiceDetailsDialog({
                     invoice.items.map((item) => (
                       <tr key={item.id}>
                         <td className="px-4 py-3 font-medium text-gray-900">{item.description}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(item.unitPrice)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">
+                          {formatCurrency(item.unitPrice)}
+                        </td>
                         <td className="px-4 py-3 text-right text-gray-600">{item.quantity}</td>
                         <td className="px-4 py-3 text-right font-medium text-gray-900">
                           {formatCurrency(item.totalPrice)}
@@ -766,7 +768,7 @@ function InvoiceDetailsDialog({
 
           {/* Totals */}
           <div className="flex justify-end">
-            <div className="w-full md:w-1/2 space-y-3 bg-gray-50 p-4 rounded-lg">
+            <div className="w-full space-y-3 rounded-lg bg-gray-50 p-4 md:w-1/2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tổng tiền hàng</span>
                 <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
@@ -777,7 +779,9 @@ function InvoiceDetailsDialog({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Bảo hiểm chi trả</span>
-                <span className="font-medium text-emerald-600">-{formatCurrency(invoice.insuranceCoverage)}</span>
+                <span className="font-medium text-emerald-600">
+                  -{formatCurrency(invoice.insuranceCoverage)}
+                </span>
               </div>
               <Separator />
               <div className="flex justify-between text-base font-bold text-gray-900">
@@ -804,11 +808,19 @@ function InvoiceDetailsDialog({
                     className="flex items-center justify-between rounded-lg border border-gray-100 bg-white p-3 shadow-sm"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "rounded-full p-2",
-                        payment.method === 'refund' ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
-                      )}>
-                        {payment.method === 'refund' ? <ArrowUpRight className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                      <div
+                        className={cn(
+                          'rounded-full p-2',
+                          payment.method === 'refund'
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'bg-emerald-100 text-emerald-600'
+                        )}
+                      >
+                        {payment.method === 'refund' ? (
+                          <ArrowUpRight className="h-4 w-4" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4" />
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">
@@ -819,11 +831,14 @@ function InvoiceDetailsDialog({
                         </p>
                       </div>
                     </div>
-                    <span className={cn(
-                      "font-semibold",
-                      payment.method === 'refund' ? "text-blue-600" : "text-emerald-600"
-                    )}>
-                      {payment.method === 'refund' ? '-' : '+'}{formatCurrency(Math.abs(payment.amount))}
+                    <span
+                      className={cn(
+                        'font-semibold',
+                        payment.method === 'refund' ? 'text-blue-600' : 'text-emerald-600'
+                      )}
+                    >
+                      {payment.method === 'refund' ? '-' : '+'}
+                      {formatCurrency(Math.abs(payment.amount))}
                     </span>
                   </div>
                 ))}
@@ -853,7 +868,7 @@ function EmptyState() {
         <FileText className="h-8 w-8 text-gray-400" />
       </div>
       <h3 className="mt-4 text-lg font-semibold text-gray-900">Chưa có hóa đơn nào</h3>
-      <p className="mt-2 text-sm text-gray-500 max-w-sm">
+      <p className="mt-2 max-w-sm text-sm text-gray-500">
         Hiện tại bạn không có hóa đơn nào phù hợp với bộ lọc. Hãy thử thay đổi điều kiện tìm kiếm.
       </p>
     </div>

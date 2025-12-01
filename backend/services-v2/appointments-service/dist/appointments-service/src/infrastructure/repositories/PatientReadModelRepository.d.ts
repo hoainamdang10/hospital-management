@@ -28,6 +28,7 @@ export interface PatientReadModel {
  */
 export declare class PatientReadModelRepository {
     private supabase;
+    private schemaClient;
     private readonly table;
     private readonly schema;
     private readonly fallbackSchema;

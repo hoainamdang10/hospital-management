@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS
  */
-import { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';
-import { AppointmentDetailsDTO } from '../dto/AppointmentDetailsDTO';
+import { IAppointmentReadModelRepository } from "../../domain/repositories/IAppointmentReadModelRepository";
+import { AppointmentDetailsDTO } from "../dto/AppointmentDetailsDTO";
 export declare class GetAppointmentDetailsQuery {
     private readModelRepo;
     constructor(readModelRepo: IAppointmentReadModelRepository);

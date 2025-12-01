@@ -60,7 +60,7 @@ export class FindAvailableTimeSlotsUseCase {
     private readonly providerScheduleRepository: IProviderScheduleRepository,
     private readonly appointmentRepository: IAppointmentRepository,
     private readonly httpProviderService: HttpProviderService
-  ) {}
+  ) { }
 
   /**
    * Execute use case
@@ -78,7 +78,7 @@ export class FindAvailableTimeSlotsUseCase {
     // 1. Get work schedule from Provider/Staff Service (HTTP call)
     // Simple approach for MVP: direct API call instead of event-driven read model
     const providerSchedule = await this.httpProviderService.getWorkSchedule(providerId);
-    
+
     if (!providerSchedule) {
       throw new Error(`Provider schedule not found for provider: ${providerId}`);
     }
@@ -93,7 +93,7 @@ export class FindAvailableTimeSlotsUseCase {
     // 3. Get booked appointments for the date
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -103,19 +103,50 @@ export class FindAvailableTimeSlotsUseCase {
       endOfDay
     );
 
-    // 4. Generate all possible time slots from work schedule (support multiple time ranges)
-    const workingHourRanges = providerSchedule.getWorkingHourRanges();
+    // 4. Generate all possible time slots from work schedule
     const allPossibleSlots: { startTime: Date; endTime: Date }[] = [];
-    
-    // Generate slots for each time range (e.g., morning shift + afternoon shift)
-    for (const timeRange of workingHourRanges) {
-      const slotsForRange = this.generateTimeSlotsFromSchedule(
-        date,
-        timeRange.start,
-        timeRange.end,
-        durationMinutes
-      );
-      allPossibleSlots.push(...slotsForRange);
+
+    // Check if provider has dailySchedules (different hours for each day)
+    const dailySchedules = (providerSchedule as any).dailySchedules as Array<{ day: string; start: string; end: string }> | undefined;
+
+    if (dailySchedules && dailySchedules.length > 0) {
+      // Find the schedule for this specific day
+      const daySchedule = dailySchedules.find(ds => ds.day.toLowerCase() === dayOfWeek);
+
+      if (daySchedule) {
+        console.log('[FindAvailableTimeSlotsUseCase] Using dailySchedule for day', {
+          dayOfWeek,
+          schedule: daySchedule,
+        });
+
+        const slotsForDay = this.generateTimeSlotsFromSchedule(
+          date,
+          daySchedule.start,
+          daySchedule.end,
+          durationMinutes
+        );
+        allPossibleSlots.push(...slotsForDay);
+      } else {
+        // No schedule found for this day - return empty
+        console.warn('[FindAvailableTimeSlotsUseCase] No dailySchedule found for day', {
+          dayOfWeek,
+          availableDays: dailySchedules.map(ds => ds.day),
+        });
+      }
+    } else {
+      // Fallback to generic working hour ranges (support multiple time ranges)
+      const workingHourRanges = providerSchedule.getWorkingHourRanges();
+
+      // Generate slots for each time range (e.g., morning shift + afternoon shift)
+      for (const timeRange of workingHourRanges) {
+        const slotsForRange = this.generateTimeSlotsFromSchedule(
+          date,
+          timeRange.start,
+          timeRange.end,
+          durationMinutes
+        );
+        allPossibleSlots.push(...slotsForRange);
+      }
     }
 
     // 5. Filter out booked slots

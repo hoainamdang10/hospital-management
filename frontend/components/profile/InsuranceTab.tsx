@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Shield, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InsuranceInfo } from '@/lib/types/profile';
-import { format, parseISO, isAfter } from 'date-fns';
+import { format, parseISO, isAfter, isValid } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
 interface InsuranceTabProps {
@@ -12,21 +12,55 @@ interface InsuranceTabProps {
   onUpdate: (insurance: InsuranceInfo) => Promise<void>;
 }
 
+const coverageOptions = [
+  { value: 'BHYT', label: 'BHYT - Bảo hiểm y tế bắt buộc' },
+  { value: 'BHTN', label: 'BHTN - Bảo hiểm thất nghiệp' },
+  { value: 'private', label: 'Bảo hiểm tư nhân' },
+  { value: 'self_pay', label: 'Tự chi trả' },
+];
+
+const coverageLabels = coverageOptions.reduce<Record<string, string>>((acc, option) => {
+  acc[option.value] = option.label;
+  return acc;
+}, {});
+
+const defaultInsurance: InsuranceInfo = {
+  provider: '',
+  policyNumber: '',
+  groupNumber: '',
+  validFrom: '',
+  validTo: '',
+  coverageType: 'BHYT',
+  bhytNumber: '',
+  isPrimary: true,
+  isActive: true,
+  notes: '',
+};
+
+function formatDate(dateString?: string): string {
+  if (!dateString) return '-';
+  const parsed = parseISO(dateString);
+  return isValid(parsed) ? format(parsed, 'dd/MM/yyyy', { locale: vi }) : '-';
+}
+
 export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<InsuranceInfo>(
-    insurance || {
-      provider: '',
-      policyNumber: '',
-      groupNumber: '',
-      validFrom: '',
-      validTo: '',
-      status: 'pending',
-      coverageType: '',
-      notes: '',
-    }
-  );
+  const [formData, setFormData] = useState<InsuranceInfo>(insurance || defaultInsurance);
   const [saving, setSaving] = useState(false);
+  const requiresBhytNumber = useMemo(
+    () => ['BHYT', 'BHTN'].includes(formData.coverageType),
+    [formData.coverageType]
+  );
+
+  useEffect(() => {
+    setFormData(insurance || defaultInsurance);
+  }, [insurance]);
+
+  const isActive =
+    insurance?.isActive ??
+    (insurance?.validTo ? isAfter(parseISO(insurance.validTo), new Date()) : false);
+  const coverageDisplay =
+    coverageLabels[insurance?.coverageType || ''] || insurance?.coverageType || '-';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,11 +75,8 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
     }
   }
 
-  const isActive = insurance && isAfter(parseISO(insurance.validTo), new Date());
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Bảo hiểm y tế</h3>
@@ -59,11 +90,11 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
       </div>
 
       {insurance && !isEditing && (
-        <div className={`rounded-xl border-2 p-4 ${
-          isActive 
-            ? 'bg-green-50 border-green-200' 
-            : 'bg-red-50 border-red-200'
-        }`}>
+        <div
+          className={`rounded-xl border-2 p-4 ${
+            isActive ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+          }`}
+        >
           <div className="flex items-center gap-3">
             {isActive ? (
               <CheckCircle className="h-5 w-5 text-green-600" />
@@ -71,18 +102,13 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
               <AlertCircle className="h-5 w-5 text-red-600" />
             )}
             <div>
-              <p className={`font-semibold ${
-                isActive ? 'text-green-900' : 'text-red-900'
-              }`}>
+              <p className={`font-semibold ${isActive ? 'text-green-900' : 'text-red-900'}`}>
                 {isActive ? 'Bảo hiểm đang hoạt động' : 'Bảo hiểm đã hết hạn'}
               </p>
-              <p className={`text-sm ${
-                isActive ? 'text-green-700' : 'text-red-700'
-              }`}>
-                {isActive 
-                  ? `Có hiệu lực đến ${format(parseISO(insurance.validTo), 'dd/MM/yyyy')}`
-                  : `Đã hết hạn từ ${format(parseISO(insurance.validTo), 'dd/MM/yyyy')}`
-                }
+              <p className={`text-sm ${isActive ? 'text-green-700' : 'text-red-700'}`}>
+                {isActive
+                  ? `Có hiệu lực đến ${formatDate(insurance.validTo)}`
+                  : `Đã hết hạn từ ${formatDate(insurance.validTo)}`}
               </p>
             </div>
           </div>
@@ -98,9 +124,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nhà cung cấp
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nhà cung cấp</label>
               {isEditing ? (
                 <input
                   type="text"
@@ -134,9 +158,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mã nhóm (tùy chọn)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mã nhóm (tùy chọn)</label>
               {isEditing ? (
                 <input
                   type="text"
@@ -150,30 +172,45 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Loại bảo hiểm
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Loại bảo hiểm</label>
               {isEditing ? (
                 <select
                   value={formData.coverageType}
-                  onChange={(e) => setFormData({ ...formData, coverageType: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, coverageType: e.target.value as InsuranceInfo['coverageType'] })
+                  }
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   required
                 >
-                  <option value="">Chọn loại bảo hiểm</option>
-                  <option value="Bảo hiểm y tế bắt buộc">Bảo hiểm y tế bắt buộc</option>
-                  <option value="Bảo hiểm y tế tự nguyện">Bảo hiểm y tế tự nguyện</option>
-                  <option value="Bảo hiểm thương mại">Bảo hiểm thương mại</option>
+                  {coverageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               ) : (
-                <p className="text-gray-900 py-2">{insurance?.coverageType || '-'}</p>
+                <p className="text-gray-900 py-2">{coverageDisplay}</p>
               )}
             </div>
 
+            {requiresBhytNumber && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Mã BHYT</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.bhytNumber || ''}
+                    onChange={(e) => setFormData({ ...formData, bhytNumber: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900 py-2">{insurance?.bhytNumber || '-'}</p>
+                )}
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ngày bắt đầu
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ngày bắt đầu</label>
               {isEditing ? (
                 <input
                   type="date"
@@ -185,15 +222,13 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
               ) : (
                 <p className="text-gray-900 py-2 flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
-                  {insurance ? format(parseISO(insurance.validFrom), 'dd/MM/yyyy', { locale: vi }) : '-'}
+                  {formatDate(insurance?.validFrom)}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ngày hết hạn
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ngày hết hạn</label>
               {isEditing ? (
                 <input
                   type="date"
@@ -205,15 +240,13 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
               ) : (
                 <p className="text-gray-900 py-2 flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
-                  {insurance ? format(parseISO(insurance.validTo), 'dd/MM/yyyy', { locale: vi }) : '-'}
+                  {formatDate(insurance?.validTo)}
                 </p>
               )}
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ghi chú (tùy chọn)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú (tùy chọn)</label>
               {isEditing ? (
                 <textarea
                   value={formData.notes || ''}
@@ -229,13 +262,15 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
           </div>
         </div>
 
-        {/* Action Buttons */}
         {isEditing && (
           <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setFormData(insurance || defaultInsurance);
+                setIsEditing(false);
+              }}
               disabled={saving}
             >
               Hủy

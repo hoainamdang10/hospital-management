@@ -60,23 +60,136 @@ export class PatientUpdatedEventHandler implements EventHandler<DomainEvent> {
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
+    const raw = event as any;
+    const payload = raw.payload || raw.data || raw.newValues || raw || {};
+    const personalInfo = payload.personalInfo || raw.personalInfo || {};
+    const contactInfo = payload.contactInfo || raw.contactInfo || {};
+    const insurance =
+      payload.insurance ||
+      payload.insuranceInfo ||
+      raw.insurance ||
+      raw.insuranceInfo ||
+      {};
+
+    const parseDateValue = (value?: string | Date): Date | undefined => {
+      if (!value) {
+        return undefined;
+      }
+      const normalized = value instanceof Date ? value : new Date(value);
+      return Number.isNaN(normalized.getTime()) ? undefined : normalized;
+    };
+
+    const resolveFullName = (): string | undefined => {
+      const direct =
+        raw.fullName ||
+        payload.fullName ||
+        raw.newValues?.fullName ||
+        personalInfo.fullName;
+      if (direct) {
+        return direct;
+      }
+      const fallbackPieces = [
+        payload.firstName || raw.firstName,
+        payload.lastName || raw.lastName,
+      ].filter(Boolean);
+      return fallbackPieces.length > 0 ? fallbackPieces.join(" ") : undefined;
+    };
+
+    const resolvePhone = (): string | undefined => {
+      return (
+        raw.phone ||
+        raw.newValues?.phone ||
+        payload.phone ||
+        contactInfo.primaryPhone ||
+        contactInfo.phone
+      );
+    };
+
+    const resolveEmail = (): string | undefined => {
+      return (
+        raw.email || raw.newValues?.email || payload.email || contactInfo.email
+      );
+    };
+
+    const resolveNationalId = (): string | undefined => {
+      return (
+        raw.nationalId ||
+        raw.newValues?.nationalId ||
+        payload.nationalId ||
+        personalInfo.nationalId
+      );
+    };
+
+    const resolveGender = (): string | undefined => {
+      return (
+        raw.gender ||
+        raw.newValues?.gender ||
+        payload.gender ||
+        personalInfo.gender
+      );
+    };
+
+    const resolveInsuranceNumber = (): string | undefined => {
+      return (
+        raw.insuranceNumber ||
+        raw.newValues?.insuranceNumber ||
+        payload.insuranceNumber ||
+        insurance.policyNumber ||
+        insurance.bhytNumber
+      );
+    };
+
+    const resolveInsuranceType = (): string | undefined => {
+      return (
+        raw.insuranceType ||
+        raw.newValues?.insuranceType ||
+        payload.insuranceType ||
+        insurance.coverageType ||
+        insurance.type
+      );
+    };
+
+    const resolveAddress = (): any => {
+      return (
+        raw.address ||
+        raw.newValues?.address ||
+        payload.address ||
+        contactInfo.address
+      );
+    };
+
+    const resolveDateOfBirth = (): Date | undefined => {
+      return (
+        parseDateValue(
+          raw.dateOfBirth ||
+            raw.newValues?.dateOfBirth ||
+            payload.dateOfBirth ||
+            personalInfo.dateOfBirth,
+        ) || undefined
+      );
+    };
+
+    const patientId =
+      raw.patientId ||
+      payload.patientId ||
+      raw.aggregateId ||
+      (event as any).aggregateId;
+
     const patientEvent: PatientUpdatedEvent = {
       eventId: event.eventId,
       eventType: "patient.updated",
-      patientId: (event as any).patientId,
-      updatedFields: (event as any).updatedFields || [],
+      patientId,
+      updatedFields: raw.updatedFields || payload.updatedFields || [],
       newValues: {
-        fullName: (event as any).fullName,
-        phone: (event as any).phone,
-        email: (event as any).email,
-        dateOfBirth: (event as any).dateOfBirth
-          ? new Date((event as any).dateOfBirth)
-          : undefined,
-        gender: (event as any).gender,
-        nationalId: (event as any).nationalId,
-        insuranceNumber: (event as any).insuranceNumber,
-        insuranceType: (event as any).insuranceType,
-        address: (event as any).address,
+        fullName: resolveFullName(),
+        phone: resolvePhone(),
+        email: resolveEmail(),
+        dateOfBirth: resolveDateOfBirth(),
+        gender: resolveGender(),
+        nationalId: resolveNationalId(),
+        insuranceNumber: resolveInsuranceNumber(),
+        insuranceType: resolveInsuranceType(),
+        address: resolveAddress(),
       },
       occurredAt: event.occurredAt,
     };

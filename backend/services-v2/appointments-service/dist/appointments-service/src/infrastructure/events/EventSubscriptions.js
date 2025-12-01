@@ -161,13 +161,13 @@ class EventSubscriptions {
         // ========================================================================
         // 13. Subscribe to patient.patient.* events (from Patient Registry Service)
         // These events sync Patient data into local patient_read_model
-        await this.eventBus.subscribe("patient.patient.registered", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.registered`);
+        await this.eventBus.subscribe("patient.registered", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.registered`);
         console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.registered (Pure Outbox)");
-        await this.eventBus.subscribe("patient.patient.updated", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.updated`);
+        await this.eventBus.subscribe("patient.updated", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.updated`);
         console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.updated (Pure Outbox)");
-        await this.eventBus.subscribe("patient.patient.deactivated", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.deactivated`);
+        await this.eventBus.subscribe("patient.deactivated", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.deactivated`);
         console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.deactivated (Pure Outbox)");
-        await this.eventBus.subscribe("patient.patient.deleted", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.deleted`);
+        await this.eventBus.subscribe("patient.deleted", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.deleted`);
         console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.deleted (Pure Outbox)");
         // 14. Subscribe to provider.staff.* events (from Provider Staff Service)
         // These events sync Provider/Staff data into local provider_read_model

@@ -17,15 +17,18 @@ const domain_event_1 = require("../base/domain-event");
  * Subscribers: Patient Service, Doctor Service, Notification Service
  */
 class UserCreatedEvent extends domain_event_1.DomainEvent {
-    constructor(userId, email, fullName, roleType, citizenId, phoneNumber, 
+    constructor(userId, email, fullName, roleType, citizenId, phoneNumber, dateOfBirth, gender, address, 
     // Professional fields (optional to keep backward compatibility)
-    department, specializationCode, specializationName, licenseNumber, education, yearsOfExperience, position, title) {
+    department, specializationCode, specializationName, licenseNumber, education, yearsOfExperience, position, title, employmentType, workSchedule, consultationFee) {
         super("UserCreated", userId, "User", {
             email,
             fullName,
             roleType,
             citizenId,
             phoneNumber,
+            dateOfBirth,
+            gender,
+            address,
             department,
             specializationCode,
             specializationName,
@@ -34,6 +37,9 @@ class UserCreatedEvent extends domain_event_1.DomainEvent {
             yearsOfExperience,
             position,
             title,
+            employmentType,
+            workSchedule,
+            consultationFee,
         }, 1, undefined, undefined, userId);
         this.userId = userId;
         this.email = email;
@@ -41,6 +47,9 @@ class UserCreatedEvent extends domain_event_1.DomainEvent {
         this.roleType = roleType;
         this.citizenId = citizenId;
         this.phoneNumber = phoneNumber;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+        this.address = address;
         this.department = department;
         this.specializationCode = specializationCode;
         this.specializationName = specializationName;
@@ -49,6 +58,9 @@ class UserCreatedEvent extends domain_event_1.DomainEvent {
         this.yearsOfExperience = yearsOfExperience;
         this.position = position;
         this.title = title;
+        this.employmentType = employmentType;
+        this.workSchedule = workSchedule;
+        this.consultationFee = consultationFee;
     }
     getEventData() {
         return {
@@ -58,6 +70,9 @@ class UserCreatedEvent extends domain_event_1.DomainEvent {
             roleType: this.roleType,
             citizenId: this.citizenId,
             phoneNumber: this.phoneNumber,
+            dateOfBirth: this.dateOfBirth,
+            gender: this.gender,
+            address: this.address,
             department: this.department,
             specializationCode: this.specializationCode,
             specializationName: this.specializationName,
@@ -66,6 +81,9 @@ class UserCreatedEvent extends domain_event_1.DomainEvent {
             yearsOfExperience: this.yearsOfExperience,
             position: this.position,
             title: this.title,
+            employmentType: this.employmentType,
+            workSchedule: this.workSchedule,
+            consultationFee: this.consultationFee,
         };
     }
     containsPHI() {

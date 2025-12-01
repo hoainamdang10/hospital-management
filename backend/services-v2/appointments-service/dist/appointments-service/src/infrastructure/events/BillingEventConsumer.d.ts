@@ -7,12 +7,12 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { InboxRepository } from '../inbox/InboxRepository';
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { IQueueRepository } from '../../domain/repositories/IQueueRepository';
-import { IConflictResolutionService } from '../../application/services/IConflictResolutionService';
-import { IReminderService } from '../../application/services/IReminderService';
-import { PaymentCompletedHandler } from './handlers/PaymentCompletedHandler';
+import { InboxRepository } from "../inbox/InboxRepository";
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
+import { IQueueRepository } from "../../domain/repositories/IQueueRepository";
+import { IConflictResolutionService } from "../../application/services/IConflictResolutionService";
+import { IReminderService } from "../../application/services/IReminderService";
+import { PaymentCompletedHandler } from "./handlers/PaymentCompletedHandler";
 export interface BillingEventConsumerConfig {
     rabbitmqUrl: string;
     queueName: string;

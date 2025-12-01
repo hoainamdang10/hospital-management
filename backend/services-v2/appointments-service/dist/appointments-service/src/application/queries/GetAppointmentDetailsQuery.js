@@ -26,12 +26,13 @@ class GetAppointmentDetailsQuery {
         return {
             // Appointment Core
             appointmentId: readModel.appointmentId,
-            appointmentDate: readModel.appointmentDate.toISOString().split('T')[0],
+            appointmentDate: readModel.appointmentDate.toISOString().split("T")[0],
             appointmentTime: readModel.appointmentTime,
             durationMinutes: readModel.durationMinutes,
             type: readModel.type,
             priority: readModel.priority,
             status: readModel.status,
+            paymentStatus: readModel.paymentStatus,
             roomId: readModel.roomId,
             departmentId: readModel.departmentId,
             // Patient Information
@@ -40,12 +41,12 @@ class GetAppointmentDetailsQuery {
                 fullName: readModel.patientFullName,
                 phone: readModel.patientPhone,
                 email: readModel.patientEmail,
-                dateOfBirth: readModel.patientDateOfBirth?.toISOString().split('T')[0],
+                dateOfBirth: readModel.patientDateOfBirth?.toISOString().split("T")[0],
                 gender: readModel.patientGender,
                 nationalId: readModel.patientNationalId,
                 insuranceNumber: readModel.patientInsuranceNumber,
                 insuranceType: readModel.patientInsuranceType,
-                address: readModel.patientAddress
+                address: readModel.patientAddress,
             },
             // Doctor Information
             doctor: {
@@ -55,7 +56,7 @@ class GetAppointmentDetailsQuery {
                 department: readModel.doctorDepartment,
                 licenseNumber: readModel.doctorLicenseNumber,
                 phone: readModel.doctorPhone,
-                email: readModel.doctorEmail
+                email: readModel.doctorEmail,
             },
             // Appointment Details
             reason: readModel.reason,
@@ -73,7 +74,7 @@ class GetAppointmentDetailsQuery {
             cancelledAt: readModel.cancelledAt?.toISOString(),
             cancellationReason: readModel.cancellationReason,
             createdAt: readModel.createdAt.toISOString(),
-            updatedAt: readModel.updatedAt.toISOString()
+            updatedAt: readModel.updatedAt.toISOString(),
         };
     }
 }

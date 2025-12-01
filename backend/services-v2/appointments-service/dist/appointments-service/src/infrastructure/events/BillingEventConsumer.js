@@ -63,12 +63,16 @@ class BillingEventConsumer {
      */
     async connect() {
         try {
-            const amqp = await Promise.resolve().then(() => __importStar(require('amqplib')));
+            const amqp = await Promise.resolve().then(() => __importStar(require("amqplib")));
             this.connection = await amqp.connect(this.config.rabbitmqUrl);
             this.channel = await this.connection.createChannel();
             // Declare exchange and queue
-            await this.channel.assertExchange(this.config.exchangeName, 'topic', { durable: true });
-            const queue = await this.channel.assertQueue(this.config.queueName, { durable: true });
+            await this.channel.assertExchange(this.config.exchangeName, "topic", {
+                durable: true,
+            });
+            const queue = await this.channel.assertQueue(this.config.queueName, {
+                durable: true,
+            });
             // Bind queue to routing keys (support multiple keys)
             const routingKeys = this.config.routingKeys || [this.config.routingKey];
             for (const key of routingKeys) {
@@ -78,17 +82,17 @@ class BillingEventConsumer {
             // Start consuming
             await this.channel.consume(queue.queue, (msg) => {
                 if (msg) {
-                    this.handleMessage(msg).catch(err => {
-                        console.error('Error handling billing event:', err);
+                    this.handleMessage(msg).catch((err) => {
+                        console.error("Error handling billing event:", err);
                         this.channel.nack(msg, false, true); // Requeue on error
                     });
                 }
             });
             this.isConnected = true;
-            console.log('Billing event consumer connected');
+            console.log("Billing event consumer connected");
         }
         catch (error) {
-            console.error('Failed to connect billing event consumer:', error);
+            console.error("Failed to connect billing event consumer:", error);
             throw error;
         }
     }
@@ -103,33 +107,51 @@ class BillingEventConsumer {
             // Not { type, data, ... }
             const eventType = event.eventType || event.type;
             const eventData = event.eventData || event.data;
+            // Normalize common billing payload shapes (snake_case -> camelCase)
+            if (eventData) {
+                // appointment_id -> appointmentId
+                if (!eventData.appointmentId && eventData.appointment_id) {
+                    eventData.appointmentId = eventData.appointment_id;
+                }
+                // invoice_id -> invoiceId
+                if (!eventData.invoiceId && eventData.invoice_id) {
+                    eventData.invoiceId = eventData.invoice_id;
+                }
+                // payment_id -> paymentId
+                if (!eventData.paymentId && eventData.payment_id) {
+                    eventData.paymentId = eventData.payment_id;
+                }
+            }
             // Inbox pattern for idempotency
             const eventId = event.eventId || event.id || `${eventType}-${Date.now()}`;
             const exists = await this.inboxRepository.exists(eventId);
             if (exists) {
-                console.log('Event already processed (idempotent)', { eventId, eventType });
+                console.log("Event already processed (idempotent)", {
+                    eventId,
+                    eventType,
+                });
                 this.channel.ack(msg);
                 return;
             }
             // Route to appropriate handler
             switch (eventType) {
-                case 'PaymentCompleted':
-                case 'billing.payment.completed':
+                case "PaymentCompleted":
+                case "billing.payment.completed":
                     await this.paymentCompletedHandler.handle(eventData);
                     break;
-                case 'PreAuthorizationRequested':
+                case "PreAuthorizationRequested":
                     await this.handlePreAuthorizationRequested(eventData);
                     break;
-                case 'PreAuthorizationApproved':
+                case "PreAuthorizationApproved":
                     await this.handlePreAuthorizationApproved(eventData);
                     break;
-                case 'PreAuthorizationDenied':
+                case "PreAuthorizationDenied":
                     await this.handlePreAuthorizationDenied(eventData);
                     break;
-                case 'BillingRateUpdated':
+                case "BillingRateUpdated":
                     await this.handleBillingRateUpdated(eventData);
                     break;
-                case 'InsuranceCoverageVerified':
+                case "InsuranceCoverageVerified":
                     await this.handleInsuranceCoverageVerified(eventData);
                     break;
                 default:
@@ -139,14 +161,14 @@ class BillingEventConsumer {
             await this.inboxRepository.save({
                 eventId,
                 eventType,
-                sourceService: 'billing-service',
+                sourceService: "billing-service",
                 payloadJson: eventData,
-                processedAt: new Date()
+                processedAt: new Date(),
             });
             this.channel.ack(msg);
         }
         catch (error) {
-            console.error('Error processing billing event:', error);
+            console.error("Error processing billing event:", error);
             throw error;
         }
     }
@@ -155,7 +177,7 @@ class BillingEventConsumer {
      */
     async handlePreAuthorizationRequested(data) {
         try {
-            console.log('Processing pre-authorization request', {
+            console.log("Processing pre-authorization request", {
                 authorizationId: data.authorizationId,
                 patientId: data.patientId,
                 appointmentId: data.appointmentId,
@@ -176,11 +198,11 @@ class BillingEventConsumer {
                 procedureCode: data.procedureCode,
                 urgencyLevel: data.urgencyLevel,
                 requestedAt: data.requestedAt,
-                status: 'pending',
+                status: "pending",
             });
         }
         catch (error) {
-            console.error('Failed to handle pre-authorization request:', error);
+            console.error("Failed to handle pre-authorization request:", error);
             throw error;
         }
     }
@@ -189,7 +211,7 @@ class BillingEventConsumer {
      */
     async handlePreAuthorizationApproved(data) {
         try {
-            console.log('Processing pre-authorization approval', {
+            console.log("Processing pre-authorization approval", {
                 authorizationId: data.authorizationId,
                 appointmentId: data.appointmentId,
             });
@@ -204,14 +226,14 @@ class BillingEventConsumer {
             // Update tracking queue
             await this.queueRepository.updatePreAuthTracking({
                 authorizationId: data.authorizationId,
-                status: 'approved',
+                status: "approved",
                 approvedAt: data.approvedAt,
                 approvedBy: data.approvedBy,
                 validUntil: data.validUntil,
             });
         }
         catch (error) {
-            console.error('Failed to handle pre-authorization approval:', error);
+            console.error("Failed to handle pre-authorization approval:", error);
             throw error;
         }
     }
@@ -220,7 +242,7 @@ class BillingEventConsumer {
      */
     async handlePreAuthorizationDenied(data) {
         try {
-            console.log('Processing pre-authorization denial', {
+            console.log("Processing pre-authorization denial", {
                 authorizationId: data.authorizationId,
                 appointmentId: data.appointmentId,
             });
@@ -235,13 +257,13 @@ class BillingEventConsumer {
             // Update tracking queue
             await this.queueRepository.updatePreAuthTracking({
                 authorizationId: data.authorizationId,
-                status: 'denied',
+                status: "denied",
                 deniedAt: data.deniedAt,
                 denialReason: data.denialReason,
             });
         }
         catch (error) {
-            console.error('Failed to handle pre-authorization denial:', error);
+            console.error("Failed to handle pre-authorization denial:", error);
             throw error;
         }
     }
@@ -250,7 +272,7 @@ class BillingEventConsumer {
      */
     async handleBillingRateUpdated(data) {
         try {
-            console.log('Processing billing rate update', {
+            console.log("Processing billing rate update", {
                 rateId: data.rateId,
                 serviceType: data.serviceType,
                 newRate: data.newRate,
@@ -264,7 +286,7 @@ class BillingEventConsumer {
             console.log(`Successfully updated billing rates for ${data.serviceType}`);
         }
         catch (error) {
-            console.error('Failed to handle billing rate update:', error);
+            console.error("Failed to handle billing rate update:", error);
             throw error;
         }
     }
@@ -273,7 +295,7 @@ class BillingEventConsumer {
      */
     async handleInsuranceCoverageVerified(data) {
         try {
-            console.log('Processing insurance coverage verification', {
+            console.log("Processing insurance coverage verification", {
                 patientId: data.patientId,
                 insuranceProvider: data.insuranceProvider,
             });
@@ -289,7 +311,7 @@ class BillingEventConsumer {
             console.log(`Successfully updated insurance coverage for patient ${data.patientId}`);
         }
         catch (error) {
-            console.error('Failed to handle insurance coverage verification:', error);
+            console.error("Failed to handle insurance coverage verification:", error);
             throw error;
         }
     }
@@ -305,10 +327,10 @@ class BillingEventConsumer {
                 await this.connection.close();
             }
             this.isConnected = false;
-            console.log('Billing event consumer disconnected');
+            console.log("Billing event consumer disconnected");
         }
         catch (error) {
-            console.error('Error disconnecting billing event consumer:', error);
+            console.error("Error disconnecting billing event consumer:", error);
         }
     }
     /**

@@ -14,6 +14,7 @@ export interface AppointmentDetailsDTO {
     type: string;
     priority: string;
     status: string;
+    paymentStatus?: string;
     roomId?: string;
     departmentId?: string;
     patient: {
@@ -67,6 +68,7 @@ export interface AppointmentListItemDTO {
     doctor_full_name?: string;
     doctor_specialization?: string;
     consultation_fee: number;
+    payment_status?: string;
     created_at: string;
 }
 export interface AppointmentListResponseDTO {

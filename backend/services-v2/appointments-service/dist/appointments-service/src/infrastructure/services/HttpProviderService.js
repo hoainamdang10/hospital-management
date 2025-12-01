@@ -22,13 +22,19 @@ exports.HttpProviderService = void 0;
 const axios_1 = __importDefault(require("axios"));
 const ProviderSchedule_vo_1 = require("../../domain/value-objects/ProviderSchedule.vo");
 class HttpProviderService {
-    constructor(providerServiceUrl) {
+    constructor(providerServiceUrl, serviceToken) {
+        this.serviceToken = serviceToken;
+        const defaultHeaders = {
+            'Content-Type': 'application/json',
+        };
+        // Service-to-service auth header if configured
+        if (serviceToken) {
+            defaultHeaders.Authorization = `Bearer ${serviceToken}`;
+        }
         this.httpClient = axios_1.default.create({
             baseURL: providerServiceUrl,
             timeout: 5000, // 5 second timeout
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: defaultHeaders,
         });
     }
     /**
@@ -61,21 +67,51 @@ class HttpProviderService {
             }
             // Map work schedule to ProviderSchedule domain object
             const schedule = staff.workSchedule;
+            // If dailySchedules exist, we need to handle them differently
+            // ProviderSchedule doesn't directly support dailySchedules, but we can:
+            // 1. Use dailySchedules to create multiple WorkingHours entries
+            // 2. Or convert to workingHours array format
+            let workingHoursToUse;
+            if (schedule.dailySchedules && schedule.dailySchedules.length > 0) {
+                // Convert dailySchedules to array of working hours (one per day)
+                // But ProviderSchedule expects unified workingHours, so merge them
+                // For now, we'll use the first dailySchedule as default and log the rest
+                console.log('[HttpProviderService] dailySchedules detected', {
+                    providerId,
+                    dailySchedules: schedule.dailySchedules,
+                });
+                // Create array of working hours from dailySchedules
+                workingHoursToUse = schedule.dailySchedules.map(ds => ({
+                    start: ds.start,
+                    end: ds.end
+                }));
+                // Store dailySchedules for later use (we'll access it directly from staff DTO)
+                schedule._dailySchedules = schedule.dailySchedules;
+            }
+            else {
+                workingHoursToUse = {
+                    start: schedule.workingHours.start,
+                    end: schedule.workingHours.end,
+                };
+            }
             const providerSchedule = ProviderSchedule_vo_1.ProviderSchedule.create({
                 providerId, // Use staffId from parameter (e.g., LABO-DOC-202502-007)
                 workingDays: schedule.workingDays,
-                workingHours: {
-                    start: schedule.workingHours.start,
-                    end: schedule.workingHours.end,
-                },
+                workingHours: workingHoursToUse,
                 timeZone: schedule.timeZone || 'Asia/Ho_Chi_Minh',
                 isFlexible: schedule.isFlexible,
                 effectiveDate: new Date(), // Current date
             });
+            // Attach dailySchedules to the schedule object for use case access
+            if (schedule.dailySchedules) {
+                providerSchedule.dailySchedules = schedule.dailySchedules;
+            }
             console.log('[HttpProviderService] Work schedule fetched successfully', {
                 providerId,
                 workingDays: schedule.workingDays,
                 workingHours: schedule.workingHours,
+                hasDailySchedules: !!schedule.dailySchedules,
+                dailySchedulesCount: schedule.dailySchedules?.length || 0,
             });
             return providerSchedule;
         }

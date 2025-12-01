@@ -55,6 +55,8 @@ class SupabaseAppointmentReadModelRepository {
             .select("*")
             .eq("appointment_id", data.appointmentId)
             .maybeSingle();
+        const normalizedStatus = data.status?.toUpperCase();
+        const normalizedPayment = data.paymentStatus?.toUpperCase();
         const record = {
             appointment_id: data.appointmentId,
             patient_id: data.patientId,
@@ -64,12 +66,14 @@ class SupabaseAppointmentReadModelRepository {
             duration_minutes: data.durationMinutes,
             type: data.type,
             priority: data.priority,
-            status: statusRank(existing?.status) > statusRank(data.status)
-                ? existing?.status
-                : data.status,
-            payment_status: paymentRank(existing?.payment_status) > paymentRank(data.paymentStatus)
-                ? existing?.payment_status
-                : data.paymentStatus,
+            status: statusRank(existing?.status?.toUpperCase()) >
+                statusRank(normalizedStatus)
+                ? existing?.status?.toUpperCase()
+                : normalizedStatus,
+            payment_status: paymentRank(existing?.payment_status?.toUpperCase()) >
+                paymentRank(normalizedPayment)
+                ? existing?.payment_status?.toUpperCase()
+                : normalizedPayment,
             room_id: data.roomId,
             department_id: data.departmentId,
             consultation_fee: data.consultationFee, // Billing reference only

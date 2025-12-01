@@ -690,6 +690,10 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
   /**
    * Get event processing statistics
    */
+  getHandlerName(): string {
+    return "StaffDomainEventHandler";
+  }
+
   getStatistics(): any {
     return {
       handlerName: "StaffDomainEventHandler",

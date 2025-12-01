@@ -32,22 +32,23 @@ class ListAppointmentsQuery {
             priority: params.priority,
             departmentId: params.departmentId,
             limit: pageSize,
-            offset
+            offset,
         };
         // Query read model
         const [appointments, total] = await Promise.all([
             this.readModelRepo.findWithFilters(filters),
-            this.readModelRepo.countWithFilters(filters)
+            this.readModelRepo.countWithFilters(filters),
         ]);
         // Map to DTOs with snake_case field names (REST API convention)
-        const appointmentDTOs = appointments.map(readModel => ({
+        const appointmentDTOs = appointments.map((readModel) => ({
             appointment_id: readModel.appointmentId,
-            appointment_date: readModel.appointmentDate.toISOString().split('T')[0],
+            appointment_date: readModel.appointmentDate.toISOString().split("T")[0],
             appointment_time: readModel.appointmentTime,
             duration_minutes: readModel.durationMinutes,
             type: readModel.type,
             priority: readModel.priority,
             status: readModel.status,
+            payment_status: readModel.paymentStatus,
             patient_id: readModel.patientId,
             patient_full_name: readModel.patientFullName,
             patient_phone: readModel.patientPhone,
@@ -55,7 +56,7 @@ class ListAppointmentsQuery {
             doctor_full_name: readModel.doctorFullName,
             doctor_specialization: readModel.doctorSpecialization,
             consultation_fee: readModel.consultationFee, // Billing reference only
-            created_at: readModel.createdAt.toISOString()
+            created_at: readModel.createdAt.toISOString(),
         }));
         // Calculate total pages
         const totalPages = Math.ceil(total / pageSize);
@@ -64,7 +65,7 @@ class ListAppointmentsQuery {
             total,
             page,
             pageSize,
-            totalPages
+            totalPages,
         };
     }
 }

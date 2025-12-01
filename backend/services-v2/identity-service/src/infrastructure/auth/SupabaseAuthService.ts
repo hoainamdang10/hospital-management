@@ -14,16 +14,16 @@
  * @compliance Clean Architecture, Dependency Inversion Principle
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { getErrorMessage } from '../../utils/error-helper';
-import { ILogger } from '../../application/services/ILogger';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { getErrorMessage } from "../../utils/error-helper";
+import { ILogger } from "../../application/services/ILogger";
 import type {
   IAuthenticationService,
   AuthResult,
   UserCredentials,
   UserRegistrationData,
-  TokenPayload
-} from '../../application/services/IAuthenticationService';
+  TokenPayload,
+} from "../../application/services/IAuthenticationService";
 
 // Re-export interface and types from application layer
 export {
@@ -31,8 +31,8 @@ export {
   AuthResult,
   UserCredentials,
   TokenPayload,
-  UserRegistrationData
-} from '../../application/services/IAuthenticationService';
+  UserRegistrationData,
+} from "../../application/services/IAuthenticationService";
 
 /**
  * Supabase Auth Service Implementation
@@ -47,7 +47,7 @@ export class SupabaseAuthService implements IAuthenticationService {
     supabaseUrl: string,
     supabaseKey: string,
     private logger: ILogger,
-    defaultUserRole: string = 'patient' // Configurable default role
+    defaultUserRole: string = "patient", // Configurable default role
   ) {
     this.supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
@@ -80,18 +80,21 @@ export class SupabaseAuthService implements IAuthenticationService {
    */
   async signUp(_data: UserRegistrationData): Promise<AuthResult> {
     // Log error and throw immediately
-    this.logger.error('DISABLED: SupabaseAuthService.signUp() is disabled. Use RegisterUserUseCase instead.', {
-      email: _data.email,
-      disabledSince: '2.1.0',
-      removedIn: '3.0.0',
-      reason: 'Trigger dependency removed from system'
-    });
+    this.logger.error(
+      "DISABLED: SupabaseAuthService.signUp() is disabled. Use RegisterUserUseCase instead.",
+      {
+        email: _data.email,
+        disabledSince: "2.1.0",
+        removedIn: "3.0.0",
+        reason: "Trigger dependency removed from system",
+      },
+    );
 
     throw new Error(
-      'SupabaseAuthService.signUp() is DISABLED. ' +
-      'This method relied on database triggers which have been removed. ' +
-      'Please use RegisterUserUseCase instead. ' +
-      'See documentation: TRIGGER_ANALYSIS.md'
+      "SupabaseAuthService.signUp() is DISABLED. " +
+        "This method relied on database triggers which have been removed. " +
+        "Please use RegisterUserUseCase instead. " +
+        "See documentation: TRIGGER_ANALYSIS.md",
     );
   }
 
@@ -106,59 +109,64 @@ export class SupabaseAuthService implements IAuthenticationService {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        this.logger.info('Signing in user with Supabase Auth', {
+        this.logger.info("Signing in user with Supabase Auth", {
           email: credentials.email,
-          attempt: attempt > 1 ? `${attempt}/${maxRetries}` : undefined
+          attempt: attempt > 1 ? `${attempt}/${maxRetries}` : undefined,
         });
 
-        const { data, error } = await this.supabaseClient.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password
-        });
+        const { data, error } =
+          await this.supabaseClient.auth.signInWithPassword({
+            email: credentials.email,
+            password: credentials.password,
+          });
 
         if (error) {
           const errorMessage = getErrorMessage(error);
 
           // Check if it's a network error that should be retried
-          const isNetworkError = errorMessage.includes('fetch failed') ||
-                                errorMessage.includes('ECONNRESET') ||
-                                errorMessage.includes('ETIMEDOUT') ||
-                                errorMessage.includes('network');
+          const isNetworkError =
+            errorMessage.includes("fetch failed") ||
+            errorMessage.includes("ECONNRESET") ||
+            errorMessage.includes("ETIMEDOUT") ||
+            errorMessage.includes("network");
 
           if (isNetworkError && attempt < maxRetries) {
             lastError = error;
-            this.logger.warn('Network error during sign in, retrying...', {
+            this.logger.warn("Network error during sign in, retrying...", {
               email: credentials.email,
               error: errorMessage,
-              attempt: `${attempt}/${maxRetries}`
+              attempt: `${attempt}/${maxRetries}`,
             });
 
             // Wait before retry (exponential backoff: 1s, 2s, 3s)
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
             continue;
           }
 
           // Non-network error or max retries reached
-          this.logger.warn('Supabase Auth signIn failed', { email: credentials.email, error: errorMessage });
+          this.logger.warn("Supabase Auth signIn failed", {
+            email: credentials.email,
+            error: errorMessage,
+          });
           return {
             success: false,
             error: errorMessage,
-            message: `Đăng nhập thất bại: ${errorMessage}`
+            message: `Đăng nhập thất bại: ${errorMessage}`,
           };
         }
 
         if (!data.user || !data.session) {
           return {
             success: false,
-            error: 'No user or session returned',
-            message: 'Đăng nhập thất bại: Không nhận được thông tin người dùng'
+            error: "No user or session returned",
+            message: "Đăng nhập thất bại: Không nhận được thông tin người dùng",
           };
         }
 
-        this.logger.info('User signed in successfully', {
+        this.logger.info("User signed in successfully", {
           userId: data.user.id,
           email: credentials.email,
-          retriedAttempts: attempt > 1 ? attempt - 1 : 0
+          retriedAttempts: attempt > 1 ? attempt - 1 : 0,
         });
 
         return {
@@ -166,55 +174,59 @@ export class SupabaseAuthService implements IAuthenticationService {
           user: {
             id: data.user.id,
             email: data.user.email!,
-            role: data.user.user_metadata?.role_type || this.defaultUserRole
+            role: data.user.user_metadata?.role_type || this.defaultUserRole,
           },
           accessToken: data.session.access_token,
           refreshToken: data.session.refresh_token,
-          expiresIn: data.session.expires_in
+          expiresIn: data.session.expires_in,
         };
       } catch (error) {
         lastError = error;
         const errorMessage = getErrorMessage(error);
 
         // Check if it's a network error
-        const isNetworkError = errorMessage.includes('fetch failed') ||
-                              errorMessage.includes('ECONNRESET') ||
-                              errorMessage.includes('ETIMEDOUT');
+        const isNetworkError =
+          errorMessage.includes("fetch failed") ||
+          errorMessage.includes("ECONNRESET") ||
+          errorMessage.includes("ETIMEDOUT");
 
         if (isNetworkError && attempt < maxRetries) {
-          this.logger.warn('Network exception during sign in, retrying...', {
+          this.logger.warn("Network exception during sign in, retrying...", {
             email: credentials.email,
             error: errorMessage,
-            attempt: `${attempt}/${maxRetries}`
+            attempt: `${attempt}/${maxRetries}`,
           });
 
           // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
         }
 
         // Non-network error or max retries reached
-        this.logger.error('Sign in error', { email: credentials.email, error: errorMessage });
+        this.logger.error("Sign in error", {
+          email: credentials.email,
+          error: errorMessage,
+        });
         return {
           success: false,
           error: errorMessage,
-          message: `Đăng nhập thất bại: ${errorMessage}`
+          message: `Đăng nhập thất bại: ${errorMessage}`,
         };
       }
     }
 
     // All retries failed
     const finalErrorMessage = getErrorMessage(lastError);
-    this.logger.error('Sign in failed after all retries', {
+    this.logger.error("Sign in failed after all retries", {
       email: credentials.email,
       error: finalErrorMessage,
-      attempts: maxRetries
+      attempts: maxRetries,
     });
 
     return {
       success: false,
       error: finalErrorMessage,
-      message: `Đăng nhập thất bại sau ${maxRetries} lần thử: ${finalErrorMessage}`
+      message: `Đăng nhập thất bại sau ${maxRetries} lần thử: ${finalErrorMessage}`,
     };
   }
 
@@ -223,29 +235,34 @@ export class SupabaseAuthService implements IAuthenticationService {
    */
   async signOut(accessToken: string): Promise<void> {
     try {
-      this.logger.info('Signing out user');
+      this.logger.info("Signing out user");
 
       // Set session using access token if provided
       if (accessToken) {
-        const { error: sessionError } = await this.supabaseClient.auth.setSession({
-          access_token: accessToken,
-          refresh_token: ''
-        });
+        const { error: sessionError } =
+          await this.supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: "",
+          });
         if (sessionError) {
-          this.logger.warn('Set session before signOut failed', { error: getErrorMessage(sessionError) });
+          this.logger.warn("Set session before signOut failed", {
+            error: getErrorMessage(sessionError),
+          });
         }
       }
 
       const { error } = await this.supabaseClient.auth.signOut();
 
       if (error) {
-        this.logger.error('Supabase Auth signOut failed', { error: getErrorMessage(error) });
+        this.logger.error("Supabase Auth signOut failed", {
+          error: getErrorMessage(error),
+        });
         throw new Error(`Đăng xuất thất bại: ${getErrorMessage(error)}`);
       }
 
-      this.logger.info('User signed out successfully');
+      this.logger.info("User signed out successfully");
     } catch (error) {
-      this.logger.error('Sign out error', { error: getErrorMessage(error) });
+      this.logger.error("Sign out error", { error: getErrorMessage(error) });
       throw error as any;
     }
   }
@@ -255,20 +272,31 @@ export class SupabaseAuthService implements IAuthenticationService {
    */
   async resetPasswordForEmail(email: string): Promise<void> {
     try {
-      this.logger.info('Sending password reset email', { email });
+      this.logger.info("Sending password reset email", { email });
 
-      const { error } = await this.supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password`
-      });
+      const { error } = await this.supabaseClient.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password`,
+        },
+      );
 
       if (error) {
-        this.logger.error('Supabase Auth resetPasswordForEmail failed', { email, error: getErrorMessage(error) });
-        throw new Error(`Gửi email đặt lại mật khẩu thất bại: ${getErrorMessage(error)}`);
+        this.logger.error("Supabase Auth resetPasswordForEmail failed", {
+          email,
+          error: getErrorMessage(error),
+        });
+        throw new Error(
+          `Gửi email đặt lại mật khẩu thất bại: ${getErrorMessage(error)}`,
+        );
       }
 
-      this.logger.info('Password reset email sent successfully', { email });
+      this.logger.info("Password reset email sent successfully", { email });
     } catch (error) {
-      this.logger.error('Reset password error', { email, error: getErrorMessage(error) });
+      this.logger.error("Reset password error", {
+        email,
+        error: getErrorMessage(error),
+      });
       throw error as any;
     }
   }
@@ -276,44 +304,61 @@ export class SupabaseAuthService implements IAuthenticationService {
   /**
    * Verify OTP (for email verification or password reset)
    */
-  async verifyOtp(email: string, token: string, type: 'signup' | 'recovery'): Promise<AuthResult> {
+  async verifyOtp(
+    email: string,
+    token: string,
+    type: "signup" | "recovery",
+  ): Promise<AuthResult> {
     try {
-      this.logger.info('Verifying OTP', { email, type });
+      this.logger.info("Verifying OTP", { email, type });
 
       const { data, error } = await this.supabaseClient.auth.verifyOtp({
         email,
         token,
-        type
+        type,
       });
 
       if (error) {
-        this.logger.error('Supabase Auth verifyOtp failed', { email, type, error: getErrorMessage(error) });
+        this.logger.error("Supabase Auth verifyOtp failed", {
+          email,
+          type,
+          error: getErrorMessage(error),
+        });
         throw new Error(`Xác thực OTP thất bại: ${getErrorMessage(error)}`);
       }
 
       if (!data.user || !data.session) {
-        throw new Error('Xác thực OTP thất bại: Không nhận được thông tin người dùng');
+        throw new Error(
+          "Xác thực OTP thất bại: Không nhận được thông tin người dùng",
+        );
       }
 
-      this.logger.info('OTP verified successfully', { userId: data.user.id, email });
+      this.logger.info("OTP verified successfully", {
+        userId: data.user.id,
+        email,
+      });
 
       return {
         success: true,
         user: {
           id: data.user.id,
           email: data.user.email!,
-          role: data.user.user_metadata?.role_type || this.defaultUserRole
+          role: data.user.user_metadata?.role_type || this.defaultUserRole,
         },
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
-        expiresIn: data.session.expires_in
+        expiresIn: data.session.expires_in,
       };
     } catch (error) {
-      this.logger.error('Verify OTP error', { email, type, error: getErrorMessage(error) });
+      this.logger.error("Verify OTP error", {
+        email,
+        type,
+        error: getErrorMessage(error),
+      });
       return {
         success: false,
         error: getErrorMessage(error),
-        message: `Xác thực OTP thất bại: ${getErrorMessage(error)}`
+        message: `Xác thực OTP thất bại: ${getErrorMessage(error)}`,
       };
     }
   }
@@ -324,33 +369,35 @@ export class SupabaseAuthService implements IAuthenticationService {
   async refreshSession(refreshToken: string): Promise<AuthResult> {
     try {
       const { data, error } = await this.supabaseClient.auth.refreshSession({
-        refresh_token: refreshToken
+        refresh_token: refreshToken,
       });
 
       if (error || !data.session) {
         return {
           success: false,
           error: getErrorMessage(error),
-          message: 'Refresh session thất bại'
+          message: "Refresh session thất bại",
         };
       }
 
       return {
         success: true,
-        user: data.user ? {
-          id: data.user.id,
-          email: data.user.email!,
-          role: data.user.user_metadata?.role_type || this.defaultUserRole
-        } : undefined,
+        user: data.user
+          ? {
+              id: data.user.id,
+              email: data.user.email!,
+              role: data.user.user_metadata?.role_type || this.defaultUserRole,
+            }
+          : undefined,
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
-        expiresIn: data.session.expires_in
+        expiresIn: data.session.expires_in,
       };
     } catch (error) {
       return {
         success: false,
         error: getErrorMessage(error),
-        message: 'Refresh session thất bại'
+        message: "Refresh session thất bại",
       };
     }
   }
@@ -362,7 +409,7 @@ export class SupabaseAuthService implements IAuthenticationService {
     const { data, error } = await this.supabaseClient.auth.getUser(token);
 
     if (error || !data.user) {
-      throw new Error('Invalid token');
+      throw new Error("Invalid token");
     }
 
     return {
@@ -370,7 +417,7 @@ export class SupabaseAuthService implements IAuthenticationService {
       email: data.user.email!,
       role: data.user.user_metadata?.role_type || this.defaultUserRole,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
+      exp: Math.floor(Date.now() / 1000) + 3600,
     };
   }
 
@@ -385,21 +432,29 @@ export class SupabaseAuthService implements IAuthenticationService {
    * Reset password with token
    * Requires both access_token and refresh_token from Supabase password reset email
    */
-  async resetPassword(accessToken: string, refreshToken: string, newPassword: string): Promise<void> {
+  async resetPassword(
+    accessToken: string,
+    refreshToken: string,
+    newPassword: string,
+  ): Promise<void> {
     try {
       // Set session with recovery tokens from email
-      const { error: sessionError } = await this.supabaseClient.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      });
+      const { error: sessionError } = await this.supabaseClient.auth.setSession(
+        {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        },
+      );
 
       if (sessionError) {
-        throw new Error(`Failed to set session: ${getErrorMessage(sessionError)}`);
+        throw new Error(
+          `Failed to set session: ${getErrorMessage(sessionError)}`,
+        );
       }
 
       // Update password
       const { error } = await this.supabaseClient.auth.updateUser({
-        password: newPassword
+        password: newPassword,
       });
 
       if (error) {
@@ -415,21 +470,30 @@ export class SupabaseAuthService implements IAuthenticationService {
    */
   async updatePassword(userId: string, newPassword: string): Promise<void> {
     try {
-      this.logger.info('Updating user password', { userId });
+      this.logger.info("Updating user password", { userId });
 
       // Update password using Supabase Admin API
-      const { error } = await this.supabaseClient.auth.admin.updateUserById(userId, {
-        password: newPassword
-      });
+      const { error } = await this.supabaseClient.auth.admin.updateUserById(
+        userId,
+        {
+          password: newPassword,
+        },
+      );
 
       if (error) {
-        this.logger.error('Supabase Auth updatePassword failed', { error: getErrorMessage(error) });
-        throw new Error(`Cập nhật mật khẩu thất bại: ${getErrorMessage(error)}`);
+        this.logger.error("Supabase Auth updatePassword failed", {
+          error: getErrorMessage(error),
+        });
+        throw new Error(
+          `Cập nhật mật khẩu thất bại: ${getErrorMessage(error)}`,
+        );
       }
 
-      this.logger.info('Password updated successfully', { userId });
+      this.logger.info("Password updated successfully", { userId });
     } catch (error) {
-      this.logger.error('Update password error', { error: getErrorMessage(error) });
+      this.logger.error("Update password error", {
+        error: getErrorMessage(error),
+      });
       throw error as any;
     }
   }
@@ -438,23 +502,35 @@ export class SupabaseAuthService implements IAuthenticationService {
    * Update user metadata
    * Updates user metadata in Supabase Auth
    */
-  async updateUserMetadata(userId: string, metadata: Record<string, any>): Promise<void> {
+  async updateUserMetadata(
+    userId: string,
+    metadata: Record<string, any>,
+  ): Promise<void> {
     try {
-      this.logger.info('Updating user metadata', { userId, metadata });
+      this.logger.info("Updating user metadata", { userId, metadata });
 
       // Update user metadata using Supabase Admin API
-      const { error } = await this.supabaseClient.auth.admin.updateUserById(userId, {
-        user_metadata: metadata
-      });
+      const { error } = await this.supabaseClient.auth.admin.updateUserById(
+        userId,
+        {
+          user_metadata: metadata,
+        },
+      );
 
       if (error) {
-        this.logger.error('Supabase Auth updateUserMetadata failed', { error: getErrorMessage(error) });
-        throw new Error(`Cập nhật user metadata thất bại: ${getErrorMessage(error)}`);
+        this.logger.error("Supabase Auth updateUserMetadata failed", {
+          error: getErrorMessage(error),
+        });
+        throw new Error(
+          `Cập nhật user metadata thất bại: ${getErrorMessage(error)}`,
+        );
       }
 
-      this.logger.info('User metadata updated successfully', { userId });
+      this.logger.info("User metadata updated successfully", { userId });
     } catch (error) {
-      this.logger.error('Update user metadata error', { error: getErrorMessage(error) });
+      this.logger.error("Update user metadata error", {
+        error: getErrorMessage(error),
+      });
       throw error as any;
     }
   }
@@ -467,7 +543,7 @@ export class SupabaseAuthService implements IAuthenticationService {
       const { error } = await this.supabaseClient.auth.verifyOtp({
         email,
         token,
-        type: 'signup'
+        type: "signup",
       });
 
       if (error) {
@@ -484,15 +560,19 @@ export class SupabaseAuthService implements IAuthenticationService {
   async sendEmailVerification(email: string): Promise<void> {
     try {
       const { error } = await this.supabaseClient.auth.resend({
-        type: 'signup',
-        email
+        type: "signup",
+        email,
       });
 
       if (error) {
-        throw new Error(`Failed to send verification email: ${getErrorMessage(error)}`);
+        throw new Error(
+          `Failed to send verification email: ${getErrorMessage(error)}`,
+        );
       }
     } catch (error) {
-      throw new Error(`Failed to send verification email: ${getErrorMessage(error)}`);
+      throw new Error(
+        `Failed to send verification email: ${getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -514,7 +594,8 @@ export class SupabaseAuthService implements IAuthenticationService {
     role: string;
   } | null> {
     try {
-      const { data, error } = await this.supabaseClient.auth.getUser(accessToken);
+      const { data, error } =
+        await this.supabaseClient.auth.getUser(accessToken);
 
       if (error || !data.user) {
         return null;
@@ -523,13 +604,12 @@ export class SupabaseAuthService implements IAuthenticationService {
       return {
         id: data.user.id,
         email: data.user.email!,
-        role: data.user.user_metadata?.role_type || this.defaultUserRole
+        role: data.user.user_metadata?.role_type || this.defaultUserRole,
       };
     } catch {
       return null;
     }
   }
-
 }
 
 // Note: getErrorMessage is imported from '../../utils/error-helper'

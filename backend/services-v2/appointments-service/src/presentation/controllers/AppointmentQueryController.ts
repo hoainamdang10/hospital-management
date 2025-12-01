@@ -28,9 +28,14 @@ export class AppointmentQueryController {
       const appointmentDetails =
         await this.getAppointmentDetailsQuery.execute(id);
 
+      // Avoid stale caches on the client
+      res.setHeader("Cache-Control", "no-store");
+
+      // Return format compatible with UseCase response (frontend expects 'appointment' key)
       res.status(200).json({
         success: true,
-        data: appointmentDetails,
+        message: "Lấy thông tin lịch hẹn thành công",
+        appointment: appointmentDetails,
       });
     } catch (error: any) {
       console.error(
@@ -97,6 +102,9 @@ export class AppointmentQueryController {
         pageSize: pageSize ? parseInt(pageSize as string) : undefined,
       });
 
+      // Avoid stale caches on the client
+      res.setHeader("Cache-Control", "no-store");
+
       res.status(200).json({
         success: true,
         data: result,
@@ -154,10 +162,22 @@ export class AppointmentQueryController {
     try {
       const { doctorId } = req.params;
       const authUser = (req as any).user;
+      // NOTE: The database uses Staff ID (e.g. CARD-DOC-...) for doctor_id, NOT User ID (UUID).
+      // The frontend must pass the correct Staff ID.
+      // We trust the frontend to pass the correct ID for now.
+      const effectiveDoctorId = doctorId;
+
+      /*
+      // OLD LOGIC: Incorrectly assumed doctor_id in DB is User ID
       const effectiveDoctorId =
         authUser?.role === "doctor" && authUser?.userId
           ? authUser.userId
           : doctorId;
+      */
+
+      /*
+      // TODO: Verify that this Staff ID belongs to the authenticated User ID.
+      // Currently we skip this check because we don't have access to Provider Service here.
       if (
         authUser?.role === "doctor" &&
         authUser?.userId &&
@@ -169,6 +189,7 @@ export class AppointmentQueryController {
         });
         return;
       }
+      */
       const { page, pageSize, startDate, endDate, status } = req.query;
 
       const result = await this.listAppointmentsQuery.execute({

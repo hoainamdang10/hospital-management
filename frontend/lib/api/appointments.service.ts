@@ -119,7 +119,11 @@ export const appointmentsService = {
       doctorFullName: doctor.fullName || doctor.full_name || raw.doctorFullName || raw.doctorName,
       doctorSpecialization: doctor.specialization || raw.doctorSpecialization,
       doctorDepartment: doctor.department || raw.doctorDepartment,
+      doctorLicenseNumber: doctor.licenseNumber || raw.doctorLicenseNumber,
+      doctorPhone: doctor.phone || raw.doctorPhone,
+      doctorEmail: doctor.email || raw.doctorEmail,
 
+      patientName: patient.fullName || patient.full_name || raw.patientFullName,
       patientFullName: patient.fullName || patient.full_name || raw.patientFullName,
       patientPhone: patient.phone || patient.phoneNumber || raw.patientPhone,
       patientEmail: patient.email || raw.patientEmail,

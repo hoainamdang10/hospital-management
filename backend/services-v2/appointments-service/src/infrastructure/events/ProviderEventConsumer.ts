@@ -7,7 +7,10 @@
  * @compliance Event-Driven Architecture, CQRS, Eventual Consistency
  */
 
-import { ProviderReadModelRepository } from "../repositories/ProviderReadModelRepository";
+import {
+  ProviderReadModel,
+  ProviderReadModelRepository,
+} from "../repositories/ProviderReadModelRepository";
 import { InboxRepository } from "../inbox/InboxRepository";
 
 /**
@@ -111,9 +114,11 @@ export class ProviderEventConsumer {
   private async handleStaffCreated(event: any): Promise<void> {
     const payload = event.payload || event.data || event;
     const staffData = this.mapPayloadToProvider(payload);
+    const existing = await this.providerReadRepo.findById(staffData.providerId);
+    const merged = this.mergeProviderData(staffData, existing);
 
     await this.providerReadRepo.upsert({
-      ...staffData,
+      ...merged,
       syncedAt: new Date(),
       createdAt: payload.createdAt || new Date(),
       updatedAt: payload.updatedAt || new Date(),
@@ -130,9 +135,11 @@ export class ProviderEventConsumer {
     const payload = event.payload || event.data || event;
 
     const staffData = this.mapPayloadToProvider(payload);
+    const existing = await this.providerReadRepo.findById(staffData.providerId);
+    const merged = this.mergeProviderData(staffData, existing);
 
     await this.providerReadRepo.upsert({
-      ...staffData,
+      ...merged,
       syncedAt: new Date(),
       updatedAt: new Date(),
     });
@@ -148,9 +155,11 @@ export class ProviderEventConsumer {
     const payload = event.payload || event.data || event;
 
     const staffData = this.mapPayloadToProvider(payload);
+    const existing = await this.providerReadRepo.findById(staffData.providerId);
+    const merged = this.mergeProviderData(staffData, existing);
 
     await this.providerReadRepo.upsert({
-      ...staffData,
+      ...merged,
       syncedAt: new Date(),
       updatedAt: new Date(),
     });
@@ -191,11 +200,27 @@ export class ProviderEventConsumer {
    * Map various payload shapes from provider-staff service into ProviderReadModel fields
    * Handles both camelCase and snake_case, and ensures fullName is non-null.
    */
-  private mapPayloadToProvider(payload: any) {
-    // Unwrap GenericIntegrationEvent shape where actual payload is in `data`
-    const src =
-      payload && typeof payload.data === "object" ? payload.data : payload;
-    const updated = src.updatedData || {};
+  private mapPayloadToProvider(payload: any): ProviderReadModel {
+    const sources = this.collectPayloadSources(
+      payload && typeof payload === "object" ? payload : {},
+    );
+    const primarySource = sources[0] || {};
+
+    const updated =
+      (this.findNestedField(sources, ["updatedData"]) as Record<string, any>) ||
+      {};
+    const personal =
+      (this.findNestedField(sources, [
+        "personalInfo",
+        "personal_info",
+        "personal",
+      ]) as Record<string, any>) || {};
+    const professional =
+      (this.findNestedField(sources, [
+        "professionalInfo",
+        "professional_info",
+        "professional",
+      ]) as Record<string, any>) || {};
     const personalUpdated = updated.personalInfo || updated.personal_info || {};
     const professionalUpdated =
       updated.professionalInfo || updated.professional_info || {};
@@ -207,30 +232,26 @@ export class ProviderEventConsumer {
       return `${value ?? "unknown"}`;
     };
 
-    const personal =
-      src.personalInfo || src.personal_info || src.personal || {};
-    const professional =
-      src.professionalInfo || src.professional_info || src.professional || {};
-
     const firstName =
       personal.firstName ||
       personal.first_name ||
       personalUpdated.firstName ||
       personalUpdated.first_name ||
-      src.firstName ||
-      src.first_name ||
+      primarySource.firstName ||
+      primarySource.first_name ||
       "";
     const lastName =
       personal.lastName ||
       personal.last_name ||
       personalUpdated.lastName ||
       personalUpdated.last_name ||
-      src.lastName ||
-      src.last_name ||
+      primarySource.lastName ||
+      primarySource.last_name ||
       "";
 
     const fullNameCandidates = [
-      src.fullName,
+      primarySource.fullName,
+      primarySource.full_name,
       personal.fullName,
       personal.full_name,
       personalUpdated.fullName,
@@ -239,7 +260,12 @@ export class ProviderEventConsumer {
     ].filter((v) => typeof v === "string" && v.trim().length > 0);
 
     const providerId = normalizeId(
-      src.staffId || src.id || src.aggregateId || personal.staffId,
+      this.findNestedField(sources, [
+        "staffId",
+        "providerId",
+        "id",
+        "aggregateId",
+      ]) || personal.staffId,
     );
 
     const fullName = (
@@ -249,7 +275,8 @@ export class ProviderEventConsumer {
     ).trim();
 
     const specialization =
-      src.specialization ||
+      primarySource.specialization ||
+      primarySource.specializationName ||
       professional.specialization ||
       professional.specializationName ||
       professional.title ||
@@ -258,8 +285,8 @@ export class ProviderEventConsumer {
       professionalUpdated.title;
 
     const department =
-      src.department ||
-      src.departmentId ||
+      primarySource.department ||
+      primarySource.departmentId ||
       professional.department ||
       professional.departmentName ||
       professional.department_name ||
@@ -268,7 +295,8 @@ export class ProviderEventConsumer {
       professionalUpdated.department_name;
 
     const licenseNumber =
-      src.licenseNumber ||
+      primarySource.licenseNumber ||
+      primarySource.license_number ||
       professional.licenseNumber ||
       professional.license_number ||
       professionalUpdated.licenseNumber ||
@@ -280,13 +308,20 @@ export class ProviderEventConsumer {
       personal.phone ||
       personalUpdated.phoneNumber ||
       personalUpdated.phone ||
-      src.phone ||
-      src.phoneNumber;
+      primarySource.phone ||
+      primarySource.phoneNumber;
 
     const email =
-      personal.email || personalUpdated.email || src.email || updated.email;
+      personal.email ||
+      personalUpdated.email ||
+      primarySource.email ||
+      updated.email;
 
-    const statusValue = src.status || src.newStatus || src.isActive || "active";
+    const statusValue =
+      primarySource.status ||
+      primarySource.newStatus ||
+      primarySource.isActive ||
+      "active";
     const isActive =
       typeof statusValue === "string"
         ? statusValue.toLowerCase() === "active"
@@ -303,5 +338,133 @@ export class ProviderEventConsumer {
       email: email || null,
       isActive,
     };
+  }
+
+  private mergeProviderData(
+    incoming: ProviderReadModel,
+    existing?: ProviderReadModel | null,
+  ): ProviderReadModel {
+    const tenantId = incoming.tenantId || existing?.tenantId || "hospital-1";
+    const fullName = this.isMeaningfulText(
+      incoming.fullName,
+      incoming.providerId,
+    )
+      ? incoming.fullName
+      : existing?.fullName || incoming.providerId;
+
+    const specialization =
+      incoming.specialization !== undefined
+        ? incoming.specialization
+        : existing?.specialization;
+
+    const department =
+      incoming.department !== undefined
+        ? incoming.department
+        : existing?.department;
+
+    const licenseNumber =
+      incoming.licenseNumber !== undefined
+        ? incoming.licenseNumber
+        : existing?.licenseNumber;
+
+    const phone =
+      incoming.phone !== undefined ? incoming.phone : existing?.phone;
+
+    const email =
+      incoming.email !== undefined ? incoming.email : existing?.email;
+
+    const isActive =
+      incoming.isActive !== undefined
+        ? incoming.isActive
+        : (existing?.isActive ?? true);
+
+    return {
+      providerId: incoming.providerId,
+      tenantId,
+      fullName,
+      specialization: specialization ?? undefined,
+      department: department ?? undefined,
+      licenseNumber: licenseNumber ?? undefined,
+      phone: phone ?? undefined,
+      email: email ?? undefined,
+      isActive,
+      syncedAt: incoming.syncedAt,
+      createdAt: incoming.createdAt || existing?.createdAt,
+      updatedAt: incoming.updatedAt || existing?.updatedAt,
+    };
+  }
+
+  private collectPayloadSources(payload: any): any[] {
+    const sources: any[] = [];
+    const queue: any[] = [payload];
+
+    while (queue.length) {
+      const current = queue.shift();
+      if (!current || typeof current !== "object") {
+        continue;
+      }
+
+      if (sources.includes(current)) {
+        continue;
+      }
+
+      sources.push(current);
+
+      const children = [
+        current.payload,
+        current.data,
+        current.eventData,
+        current.eventData?.payload,
+        current.eventData?.data,
+        current.eventData?.eventData,
+      ];
+
+      for (const child of children) {
+        if (child && typeof child === "object") {
+          queue.push(child);
+        }
+      }
+    }
+
+    return sources;
+  }
+
+  private findNestedField(
+    sources: any[],
+    fieldNames: string[],
+  ): any | undefined {
+    for (const source of sources) {
+      if (!source || typeof source !== "object") continue;
+      for (const field of fieldNames) {
+        if (
+          Object.prototype.hasOwnProperty.call(source, field) &&
+          source[field] !== undefined &&
+          source[field] !== null
+        ) {
+          return source[field];
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private isMeaningfulText(
+    value: string | undefined,
+    fallback: string,
+  ): boolean {
+    if (!value) {
+      return false;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+
+    if (normalized === fallback.toLowerCase()) {
+      return false;
+    }
+
+    return normalized !== "unknown";
   }
 }

@@ -51,23 +51,103 @@ class PatientUpdatedEventHandler {
         this.readModelHandler = readModelHandler;
     }
     async handle(event) {
+        const raw = event;
+        const payload = raw.payload || raw.data || raw.newValues || raw || {};
+        const personalInfo = payload.personalInfo || raw.personalInfo || {};
+        const contactInfo = payload.contactInfo || raw.contactInfo || {};
+        const insurance = payload.insurance ||
+            payload.insuranceInfo ||
+            raw.insurance ||
+            raw.insuranceInfo ||
+            {};
+        const parseDateValue = (value) => {
+            if (!value) {
+                return undefined;
+            }
+            const normalized = value instanceof Date ? value : new Date(value);
+            return Number.isNaN(normalized.getTime()) ? undefined : normalized;
+        };
+        const resolveFullName = () => {
+            const direct = raw.fullName ||
+                payload.fullName ||
+                raw.newValues?.fullName ||
+                personalInfo.fullName;
+            if (direct) {
+                return direct;
+            }
+            const fallbackPieces = [
+                payload.firstName || raw.firstName,
+                payload.lastName || raw.lastName,
+            ].filter(Boolean);
+            return fallbackPieces.length > 0 ? fallbackPieces.join(" ") : undefined;
+        };
+        const resolvePhone = () => {
+            return (raw.phone ||
+                raw.newValues?.phone ||
+                payload.phone ||
+                contactInfo.primaryPhone ||
+                contactInfo.phone);
+        };
+        const resolveEmail = () => {
+            return (raw.email || raw.newValues?.email || payload.email || contactInfo.email);
+        };
+        const resolveNationalId = () => {
+            return (raw.nationalId ||
+                raw.newValues?.nationalId ||
+                payload.nationalId ||
+                personalInfo.nationalId);
+        };
+        const resolveGender = () => {
+            return (raw.gender ||
+                raw.newValues?.gender ||
+                payload.gender ||
+                personalInfo.gender);
+        };
+        const resolveInsuranceNumber = () => {
+            return (raw.insuranceNumber ||
+                raw.newValues?.insuranceNumber ||
+                payload.insuranceNumber ||
+                insurance.policyNumber ||
+                insurance.bhytNumber);
+        };
+        const resolveInsuranceType = () => {
+            return (raw.insuranceType ||
+                raw.newValues?.insuranceType ||
+                payload.insuranceType ||
+                insurance.coverageType ||
+                insurance.type);
+        };
+        const resolveAddress = () => {
+            return (raw.address ||
+                raw.newValues?.address ||
+                payload.address ||
+                contactInfo.address);
+        };
+        const resolveDateOfBirth = () => {
+            return (parseDateValue(raw.dateOfBirth ||
+                raw.newValues?.dateOfBirth ||
+                payload.dateOfBirth ||
+                personalInfo.dateOfBirth) || undefined);
+        };
+        const patientId = raw.patientId ||
+            payload.patientId ||
+            raw.aggregateId ||
+            event.aggregateId;
         const patientEvent = {
             eventId: event.eventId,
             eventType: "patient.updated",
-            patientId: event.patientId,
-            updatedFields: event.updatedFields || [],
+            patientId,
+            updatedFields: raw.updatedFields || payload.updatedFields || [],
             newValues: {
-                fullName: event.fullName,
-                phone: event.phone,
-                email: event.email,
-                dateOfBirth: event.dateOfBirth
-                    ? new Date(event.dateOfBirth)
-                    : undefined,
-                gender: event.gender,
-                nationalId: event.nationalId,
-                insuranceNumber: event.insuranceNumber,
-                insuranceType: event.insuranceType,
-                address: event.address,
+                fullName: resolveFullName(),
+                phone: resolvePhone(),
+                email: resolveEmail(),
+                dateOfBirth: resolveDateOfBirth(),
+                gender: resolveGender(),
+                nationalId: resolveNationalId(),
+                insuranceNumber: resolveInsuranceNumber(),
+                insuranceType: resolveInsuranceType(),
+                address: resolveAddress(),
             },
             occurredAt: event.occurredAt,
         };

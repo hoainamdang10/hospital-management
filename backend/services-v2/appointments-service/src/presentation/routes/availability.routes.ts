@@ -39,14 +39,11 @@ const availableSlotsSchema = Joi.object({
 });
 
 const providerIdSchema = Joi.object({
-  providerId: Joi.alternatives()
-    .try(
-      Joi.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
-      Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/)          // e.g., DOC-GEN-202511-955
-    )
+  providerId: Joi.string()
+    .pattern(/^[A-Z]{2,4}-[A-Z]{2,4}-\d{6}-\d{3}$/) // Matches: DOC-INTE-202511-940, HAL-INTE-202511-948, CARD-DOC-202511-001, etc.
     .required()
     .messages({
-      'string.pattern.base': 'Mã bác sĩ không đúng định dạng',
+      'string.pattern.base': 'Mã bác sĩ không đúng định dạng (XXXX-YYYY-YYYYMM-NNN)',
       'any.required': 'Mã bác sĩ là bắt buộc'
     })
 });

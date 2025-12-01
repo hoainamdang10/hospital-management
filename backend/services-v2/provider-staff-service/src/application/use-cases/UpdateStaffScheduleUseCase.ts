@@ -2,19 +2,22 @@
  * UpdateStaffScheduleUseCase - Application Use Case
  * V2 Clean Architecture + DDD Implementation
  * Updates staff work schedule with validation
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { BaseHealthcareUseCase, ValidationResult } from '@shared/application/base/base-healthcare-use-case';
-import { IProviderStaffRepository } from '../../domain/repositories/IProviderStaffRepository';
-import { ProviderStaff } from '../../domain/aggregates/ProviderStaff';
-import { StaffId } from '../../domain/value-objects/StaffId';
-import { WorkSchedule } from '../../domain/value-objects/WorkSchedule';
-import { IEventBus } from '@shared/events/event-bus.interface';
-import { ILogger } from '../interfaces/ILogger';
+import {
+  BaseHealthcareUseCase,
+  ValidationResult,
+} from "@shared/application/base/base-healthcare-use-case";
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
+import { ProviderStaff } from "../../domain/aggregates/ProviderStaff";
+import { StaffId } from "../../domain/value-objects/StaffId";
+import { WorkSchedule } from "../../domain/value-objects/WorkSchedule";
+import { IEventBus } from "@shared/events/event-bus.interface";
+import { ILogger } from "../interfaces/ILogger";
 
 export interface UpdateStaffScheduleRequest {
   staffId: string;
@@ -26,6 +29,11 @@ export interface UpdateStaffScheduleRequest {
     };
     timeZone: string;
     isFlexible: boolean;
+    dailySchedules?: Array<{
+      day: string;
+      start: string;
+      end: string;
+    }>;
   };
   effectiveDate?: string; // When the new schedule takes effect
   updatedBy: string;
@@ -52,11 +60,14 @@ export interface UpdateStaffScheduleResponse {
  * Update Staff Schedule Use Case
  * Handles staff work schedule updates with validation
  */
-export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaffScheduleRequest, UpdateStaffScheduleResponse> {
+export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<
+  UpdateStaffScheduleRequest,
+  UpdateStaffScheduleResponse
+> {
   constructor(
     private readonly staffRepository: IProviderStaffRepository,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
   ) {
     super();
   }
@@ -64,12 +75,14 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
   /**
    * Execute update staff schedule
    */
-  protected async executeImpl(request: UpdateStaffScheduleRequest): Promise<UpdateStaffScheduleResponse> {
+  protected async executeImpl(
+    request: UpdateStaffScheduleRequest,
+  ): Promise<UpdateStaffScheduleResponse> {
     try {
-      this.logger.info('Updating staff schedule', {
+      this.logger.info("Updating staff schedule", {
         staffId: request.staffId,
         updatedBy: request.updatedBy,
-        updatedByRole: request.updatedByRole
+        updatedByRole: request.updatedByRole,
       });
 
       // 1. Validate request
@@ -77,8 +90,8 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       if (!validationResult.isValid) {
         return {
           success: false,
-          message: 'Yêu cầu không hợp lệ',
-          errors: validationResult.errors
+          message: "Yêu cầu không hợp lệ",
+          errors: validationResult.errors,
         };
       }
 
@@ -89,23 +102,23 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       if (!staff) {
         return {
           success: false,
-          message: 'Không tìm thấy thông tin nhân viên'
+          message: "Không tìm thấy thông tin nhân viên",
         };
       }
 
       // 3. Check authorization
       const authResult = this.checkAuthorization(staff, request);
       if (!authResult.authorized) {
-        this.logger.warn('Unauthorized staff schedule update attempt', {
+        this.logger.warn("Unauthorized staff schedule update attempt", {
           staffId: staff.id,
           updatedBy: request.updatedBy,
           updatedByRole: request.updatedByRole,
-          reason: authResult.reason
+          reason: authResult.reason,
         });
 
         return {
           success: false,
-          message: 'Không có quyền cập nhật lịch làm việc của nhân viên này'
+          message: "Không có quyền cập nhật lịch làm việc của nhân viên này",
         };
       }
 
@@ -114,7 +127,8 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
         workingDays: request.workSchedule.workingDays,
         workingHours: request.workSchedule.workingHours,
         timeZone: request.workSchedule.timeZone,
-        isFlexible: request.workSchedule.isFlexible
+        isFlexible: request.workSchedule.isFlexible,
+        dailySchedules: request.workSchedule.dailySchedules,
       });
 
       // 5. Update staff schedule
@@ -129,10 +143,11 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       try {
         await this.publishDomainEvents(staff);
       } catch (eventError) {
-        const errorMessage = eventError instanceof Error ? eventError.message : 'Unknown error';
-        this.logger.warn('Failed to publish schedule update events', {
+        const errorMessage =
+          eventError instanceof Error ? eventError.message : "Unknown error";
+        this.logger.warn("Failed to publish schedule update events", {
           staffId: staff.id,
-          error: errorMessage
+          error: errorMessage,
         });
         // Don't fail the update if event publishing fails
       }
@@ -140,31 +155,30 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
       // 9. HIPAA audit logging
       await this.auditScheduleUpdate(staff, request);
 
-      this.logger.info('Staff schedule updated successfully', {
+      this.logger.info("Staff schedule updated successfully", {
         staffId: staff.id,
-        updatedBy: request.updatedBy
+        updatedBy: request.updatedBy,
       });
 
       return {
         success: true,
-        message: 'Cập nhật lịch làm việc thành công',
+        message: "Cập nhật lịch làm việc thành công",
         data: {
           staffId: staff.id,
           updatedAt: staff.updatedAt.toISOString(),
-          effectiveDate: request.effectiveDate
-        }
+          effectiveDate: request.effectiveDate,
+        },
       };
-
     } catch (error) {
-      this.logger.error('Error updating staff schedule', {
+      this.logger.error("Error updating staff schedule", {
         staffId: request.staffId,
         updatedBy: request.updatedBy,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
       return {
         success: false,
-        message: 'Lỗi hệ thống khi cập nhật lịch làm việc'
+        message: "Lỗi hệ thống khi cập nhật lịch làm việc",
       };
     }
   }
@@ -172,72 +186,96 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
   /**
    * Validate request
    */
-  protected override async validateRequest(request: UpdateStaffScheduleRequest): Promise<ValidationResult> {
+  protected override async validateRequest(
+    request: UpdateStaffScheduleRequest,
+  ): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Staff ID validation
     if (!request.staffId || request.staffId.trim().length === 0) {
-      errors.push('ID nhân viên không được để trống');
+      errors.push("ID nhân viên không được để trống");
     }
 
     // Work schedule validation
     if (!request.workSchedule) {
-      errors.push('Thông tin lịch làm việc không được để trống');
+      errors.push("Thông tin lịch làm việc không được để trống");
     } else {
-      if (!request.workSchedule.workingDays || request.workSchedule.workingDays.length === 0) {
-        errors.push('Ngày làm việc không được để trống');
-      }
+      const hasDaily =
+        Array.isArray(request.workSchedule.dailySchedules) &&
+        request.workSchedule.dailySchedules.length > 0;
 
-      if (!request.workSchedule.workingHours) {
-        errors.push('Giờ làm việc không được để trống');
+      if (hasDaily) {
+        for (const item of request.workSchedule.dailySchedules ?? []) {
+          if (!item.day) errors.push("Thiếu ngày trong dailySchedules");
+          if (!item.start || !item.end) {
+            errors.push(`Thiếu giờ cho ${item.day || "ngày"}`);
+          }
+        }
       } else {
-        if (!request.workSchedule.workingHours.start || !request.workSchedule.workingHours.end) {
-          errors.push('Giờ bắt đầu và kết thúc không được để trống');
+        if (
+          !request.workSchedule.workingDays ||
+          request.workSchedule.workingDays.length === 0
+        ) {
+          errors.push("Ngày làm việc không được để trống");
+        }
+
+        if (!request.workSchedule.workingHours) {
+          errors.push("Giờ làm việc không được để trống");
+        } else {
+          if (
+            !request.workSchedule.workingHours.start ||
+            !request.workSchedule.workingHours.end
+          ) {
+            errors.push("Giờ bắt đầu và kết thúc không được để trống");
+          }
         }
       }
 
       if (!request.workSchedule.timeZone) {
-        errors.push('Múi giờ không được để trống');
+        errors.push("Múi giờ không được để trống");
       }
     }
 
     // Updated by validation
     if (!request.updatedBy || request.updatedBy.trim().length === 0) {
-      errors.push('Thông tin người cập nhật không được để trống');
+      errors.push("Thông tin người cập nhật không được để trống");
     }
 
     // Role validation
     if (!request.updatedByRole || request.updatedByRole.trim().length === 0) {
-      errors.push('Vai trò người cập nhật không được để trống');
+      errors.push("Vai trò người cập nhật không được để trống");
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   /**
    * Check authorization for schedule update
    */
-  private checkAuthorization(staff: ProviderStaff, request: UpdateStaffScheduleRequest): {
+  private checkAuthorization(
+    staff: ProviderStaff,
+    request: UpdateStaffScheduleRequest,
+  ): {
     authorized: boolean;
     reason?: string;
   } {
     const { updatedBy, updatedByRole } = request;
 
     // Admin has full access
-    if (updatedByRole === 'admin') {
+    if (updatedByRole === "admin") {
       return { authorized: true };
     }
 
     // Department head can update their department staff schedules
-    if (updatedByRole === 'department_head') {
+    if (updatedByRole === "department_head") {
       return { authorized: true };
     }
 
     // HR can update staff schedules
-    if (updatedByRole === 'hr') {
+    if (updatedByRole === "hr") {
       return { authorized: true };
     }
 
@@ -247,9 +285,9 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
     }
 
     // Default: no access
-    return { 
-      authorized: false, 
-      reason: `Role ${updatedByRole} not authorized for schedule updates` 
+    return {
+      authorized: false,
+      reason: `Role ${updatedByRole} not authorized for schedule updates`,
     };
   }
 
@@ -272,23 +310,22 @@ export class UpdateStaffScheduleUseCase extends BaseHealthcareUseCase<UpdateStaf
    */
   private async auditScheduleUpdate(
     staff: ProviderStaff,
-    request: UpdateStaffScheduleRequest
+    request: UpdateStaffScheduleRequest,
   ): Promise<void> {
-    this.logger.info('HIPAA Audit: Staff schedule update', {
-      action: 'STAFF_SCHEDULE_UPDATE',
+    this.logger.info("HIPAA Audit: Staff schedule update", {
+      action: "STAFF_SCHEDULE_UPDATE",
       staffId: staff.id,
       staffType: staff.staffType,
       updatedBy: request.updatedBy,
       updatedByRole: request.updatedByRole,
-      workingDays: request.workSchedule.workingDays.join(','),
+      workingDays: request.workSchedule.workingDays.join(","),
       workingHours: `${request.workSchedule.workingHours.start}-${request.workSchedule.workingHours.end}`,
       effectiveDate: request.effectiveDate,
       timestamp: new Date().toISOString(),
       ipAddress: request.requestMetadata?.ipAddress,
       userAgent: request.requestMetadata?.userAgent,
       sessionId: request.requestMetadata?.sessionId,
-      complianceLevel: 'hipaa'
+      complianceLevel: "hipaa",
     });
   }
 }
-

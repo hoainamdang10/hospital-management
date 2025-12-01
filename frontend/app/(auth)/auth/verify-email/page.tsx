@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/lib/constants';
@@ -57,44 +58,60 @@ function VerifyEmailPageContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl shadow-2xl border border-white/20"
+    >
+      <div className="p-8 sm:p-10">
         {/* Loading State */}
         {status === 'loading' && (
-          <div className="rounded-lg bg-white p-8 text-center shadow">
-            <Loader2 className="text-primary mx-auto h-16 w-16 animate-spin" />
-            <h2 className="mt-4 text-2xl font-bold text-gray-900">Đang xác thực email...</h2>
+          <div className="text-center py-8">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50"
+            >
+              <Loader2 className="h-8 w-8 text-blue-600" />
+            </motion.div>
+            <h2 className="text-2xl font-bold text-gray-900">Đang xác thực email...</h2>
             <p className="mt-2 text-gray-600">Vui lòng đợi trong giây lát</p>
           </div>
         )}
 
         {/* Pending State - Just Registered */}
         {status === 'pending' && (
-          <div className="rounded-lg bg-white p-8 shadow">
-            <div className="text-center">
-              <Mail className="text-primary mx-auto h-16 w-16" />
-              <h2 className="mt-4 text-2xl font-bold text-gray-900">Kiểm tra email của bạn</h2>
-              <p className="mt-2 text-gray-600">Chúng tôi đã gửi email xác thực đến</p>
-              <p className="mt-1 font-semibold text-gray-900">{email}</p>
-            </div>
+          <div className="text-center">
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 shadow-inner"
+            >
+              <Mail className="h-10 w-10 text-blue-600" />
+            </motion.div>
+            <h2 className="mb-2 text-2xl font-bold text-gray-900">Kiểm tra email của bạn</h2>
+            <p className="text-gray-600">Chúng tôi đã gửi email xác thực đến</p>
+            <p className="mt-1 mb-6 font-bold text-gray-900 bg-blue-50 py-2 px-4 rounded-lg inline-block">{email}</p>
 
-            <div className="mt-6 rounded-lg bg-blue-50 p-4">
-              <p className="text-sm text-blue-800">
-                <strong>📧 Hướng dẫn:</strong>
+            <div className="mb-8 rounded-xl bg-blue-50/50 border border-blue-100 p-5 text-left">
+              <p className="text-sm font-semibold text-blue-900 mb-2">
+                📧 Hướng dẫn:
               </p>
-              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-blue-700">
+              <ul className="list-inside list-disc space-y-1.5 text-sm text-blue-800">
                 <li>Mở email và nhấn vào link xác thực</li>
                 <li>Link có hiệu lực trong 24 giờ</li>
                 <li>Kiểm tra cả thư mục spam nếu không thấy email</li>
               </ul>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="space-y-4">
               <Button
                 onClick={handleResend}
                 disabled={resending}
                 variant="outline"
-                className="w-full"
+                className="w-full rounded-xl py-6 border-2 border-gray-200 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
               >
                 {resending ? (
                   <>
@@ -106,11 +123,11 @@ function VerifyEmailPageContent() {
                 )}
               </Button>
 
-              <p className="text-center text-sm text-gray-600">
+              <p className="text-sm text-gray-600">
                 Đã xác thực email?{' '}
                 <Link
                   href={ROUTES.LOGIN}
-                  className="text-primary hover:text-primary/80 font-medium"
+                  className="font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all"
                 >
                   Đăng nhập ngay
                 </Link>
@@ -121,56 +138,82 @@ function VerifyEmailPageContent() {
 
         {/* Success State */}
         {status === 'success' && (
-          <div className="rounded-lg bg-white p-8 text-center shadow">
-            <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-            <h2 className="mt-4 text-2xl font-bold text-gray-900">Xác thực email thành công!</h2>
-            <p className="mt-2 text-gray-600">
-              Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ.
+          <div className="text-center py-4">
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 shadow-inner"
+            >
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </motion.div>
+            <h2 className="mb-3 text-2xl font-bold text-gray-900">Xác thực email thành công!</h2>
+            <p className="mb-8 text-gray-600 leading-relaxed">
+              Tài khoản của bạn đã được kích hoạt.<br />Bạn có thể đăng nhập ngay bây giờ.
             </p>
-            <div className="mt-6">
-              <Link href={ROUTES.LOGIN}>
-                <Button className="w-full">Đăng nhập</Button>
-              </Link>
-            </div>
+            <Link href={ROUTES.LOGIN}>
+              <Button className="w-full rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 py-6 text-base font-bold shadow-lg shadow-green-500/30 hover:shadow-green-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                Đăng nhập ngay
+              </Button>
+            </Link>
           </div>
         )}
 
         {/* Error State / Resend Form */}
         {status === 'error' && (
-          <div className="rounded-lg bg-white p-8 shadow">
-            <div className="text-center">
-              {token ? (
-                <>
-                  <XCircle className="mx-auto h-16 w-16 text-red-500" />
-                  <h2 className="mt-4 text-2xl font-bold text-gray-900">Xác thực thất bại</h2>
-                  <p className="mt-2 text-gray-600">Link xác thực không hợp lệ hoặc đã hết hạn.</p>
-                </>
-              ) : (
-                <>
-                  <Mail className="text-primary mx-auto h-16 w-16" />
-                  <h2 className="mt-4 text-2xl font-bold text-gray-900">Xác thực email</h2>
-                  <p className="mt-2 text-gray-600">Nhập email của bạn để nhận lại link xác thực</p>
-                </>
-              )}
-            </div>
+          <div className="text-center">
+            {token ? (
+              <div className="mb-8">
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-100 shadow-inner"
+                >
+                  <XCircle className="h-10 w-10 text-red-600" />
+                </motion.div>
+                <h2 className="mb-2 text-2xl font-bold text-gray-900">Xác thực thất bại</h2>
+                <p className="text-gray-600">Link xác thực không hợp lệ hoặc đã hết hạn.</p>
+              </div>
+            ) : (
+              <div className="mb-8">
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 shadow-inner"
+                >
+                  <Mail className="h-10 w-10 text-blue-600" />
+                </motion.div>
+                <h2 className="mb-2 text-2xl font-bold text-gray-900">Xác thực email</h2>
+                <p className="text-gray-600">Nhập email của bạn để nhận lại link xác thực</p>
+              </div>
+            )}
 
             {/* Resend Form */}
-            <div className="mt-6 space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <div className="space-y-6 text-left">
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-xs font-semibold text-gray-700 uppercase tracking-wider ml-1">
                   Email
                 </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
-                  placeholder="example@email.com"
-                />
+                <div className="relative group">
+                  <Mail className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-5 py-3.5 pl-12 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all duration-200"
+                    placeholder="example@email.com"
+                  />
+                </div>
               </div>
 
-              <Button onClick={handleResend} disabled={!email || resending} className="w-full">
+              <Button
+                onClick={handleResend}
+                disabled={!email || resending}
+                className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 py-6 text-base font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              >
                 {resending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -185,7 +228,7 @@ function VerifyEmailPageContent() {
                 Đã có tài khoản?{' '}
                 <Link
                   href={ROUTES.LOGIN}
-                  className="text-primary hover:text-primary/80 font-medium"
+                  className="font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all"
                 >
                   Đăng nhập
                 </Link>
@@ -195,13 +238,13 @@ function VerifyEmailPageContent() {
         )}
 
         {/* Back to Home */}
-        <div className="text-center">
-          <Link href={ROUTES.HOME} className="text-sm text-gray-600 hover:text-gray-900">
+        <div className="mt-8 text-center">
+          <Link href={ROUTES.HOME} className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
             ← Quay lại trang chủ
           </Link>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

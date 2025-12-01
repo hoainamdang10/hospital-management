@@ -227,7 +227,7 @@ class DIContainer {
         this.patientService = new LocalPatientReadModelService_1.LocalPatientReadModelService(this.patientReadModelRepository);
         this.providerService = new LocalProviderReadModelService_1.LocalProviderReadModelService(this.providerReadModelRepository);
         // HTTP Provider Service for work schedule (simple MVP approach)
-        this.httpProviderService = new HttpProviderService_1.HttpProviderService(this.config.services.providerServiceUrl);
+        this.httpProviderService = new HttpProviderService_1.HttpProviderService(this.config.services.providerServiceUrl, this.config.services.providerInternalToken);
         if (this.config.features.enableScheduler) {
             const remoteAdapter = new RemoteSchedulerAdapter_1.RemoteSchedulerAdapter({
                 baseUrl: this.config.services.schedulerServiceUrl,

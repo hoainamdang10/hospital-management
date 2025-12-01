@@ -12,7 +12,7 @@ export interface PatientProfile {
   dateOfBirth: string;
   gender: 'male' | 'female' | 'other';
   bloodType?: string;
-  
+
   // Contact Info
   email: string;
   phone: string;
@@ -21,16 +21,17 @@ export interface PatientProfile {
   district?: string;
   ward?: string;
   postalCode?: string;
-  
+  preferredContactMethod?: 'phone' | 'email' | 'sms';
+
   // Emergency Contact
   emergencyContacts: EmergencyContact[];
-  
+
   // Insurance
   insurance?: InsuranceInfo;
-  
+
   // Avatar
   avatar?: string;
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -52,8 +53,11 @@ export interface InsuranceInfo {
   groupNumber?: string;
   validFrom: string;
   validTo: string;
-  status: 'active' | 'expired' | 'pending';
   coverageType: string;
+  bhytNumber?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
+  status?: 'active' | 'expired' | 'pending';
   notes?: string;
 }
 

@@ -22,6 +22,7 @@ import { createAvailabilityRoutes } from "./presentation/routes/availability.rou
 import { createQueueRoutes } from "./presentation/routes/queue.routes";
 // ===== ARCHIVED FOR POST-MVP: Waitlist Routes (removed import to prevent module resolution errors) =====
 import { createReminderRoutes } from "./presentation/routes/reminder.routes";
+import { createChatRoutes } from "./presentation/routes/chat.routes";
 import { getContainer } from "./infrastructure/di/container";
 import { idempotencyMiddleware } from "./presentation/middleware/IdempotencyMiddleware";
 import { redisCacheService } from "./infrastructure/cache/RedisCacheService";
@@ -281,11 +282,19 @@ console.log(
 );
 
 // API Routes - Standardized to /api/v1/ prefix
-// Command routes (Write operations - CQRS Commands)
-app.use("/api/v1", createAppointmentRoutes());
+// IMPORTANT: Query routes MUST be mounted BEFORE Command routes
+// Otherwise GET /appointments/:id from Command will block Query route
 
 // Query routes (Read operations - CQRS Queries with denormalized data)
+// Mounted FIRST to handle GET requests without permission checks
 app.use("/api/v1", createAppointmentQueryRoutes());
+
+// Command routes (Write operations - CQRS Commands)
+// Mounted AFTER queries so GET routes don't conflict
+app.use("/api/v1", createAppointmentRoutes());
+// Chat routes (lightweight, scoped to appointments)
+app.use("/api/v1", createChatRoutes());
+
 // ✅ FIX: Removed duplicate /api/v2 mount
 // Gateway now correctly forwards full path with proper rewriting
 

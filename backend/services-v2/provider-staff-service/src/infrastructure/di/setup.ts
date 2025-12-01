@@ -84,6 +84,7 @@ export const ServiceTokens = {
 
   // Repositories
   PROVIDER_STAFF_REPOSITORY: "ProviderStaffRepository",
+  DEPARTMENT_REPOSITORY: "DepartmentRepository",
 
   // External Service Clients
   DEPARTMENT_SERVICE_CLIENT: "DepartmentServiceClient",
@@ -325,6 +326,18 @@ export function setupDependencies(): DIContainer {
         "staff_profiles",
         outboxService,
       );
+    },
+    ServiceLifetime.SINGLETON,
+  );
+
+  // Register Department Repository
+  container.registerFactory(
+    ServiceTokens.DEPARTMENT_REPOSITORY,
+    (container) => {
+      const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
+      const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
+      const { SupabaseDepartmentRepository } = require("../repositories/SupabaseDepartmentRepository");
+      return new SupabaseDepartmentRepository(supabaseUrl, supabaseKey);
     },
     ServiceLifetime.SINGLETON,
   );
@@ -815,12 +828,16 @@ export function setupDependencies(): DIContainer {
       const staffReadModelRepository = container.resolve(
         ServiceTokens.STAFF_READ_MODEL_REPOSITORY,
       );
+      const departmentRepository = container.resolve(
+        ServiceTokens.DEPARTMENT_REPOSITORY,
+      );
 
       return new UserCreatedEventHandler(
         staffRepository,
         logger,
         auditService,
         staffReadModelRepository,
+        departmentRepository,
       );
     },
     ServiceLifetime.SINGLETON,

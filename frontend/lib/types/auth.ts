@@ -14,6 +14,7 @@ export interface User {
   avatar?: string;
   isActive: boolean;
   isEmailVerified: boolean;
+  staffId?: string;
   patientId?: string; // PAT-202511-XXX format
   createdAt: string;
   updatedAt: string;
@@ -81,8 +82,9 @@ export interface ForgotPasswordRequest {
 }
 
 export interface ResetPasswordRequest {
-  token: string;
-  password: string;
+  accessToken: string;
+  refreshToken: string;
+  newPassword: string;
   confirmPassword: string;
 }
 
@@ -90,6 +92,7 @@ export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
+  invalidateOtherSessions?: boolean;
 }
 
 export interface AuthState {

@@ -10,13 +10,13 @@ export interface Staff {
   staffId: string;
   userId: string;
   staffType:
-    | 'doctor'
-    | 'nurse'
-    | 'admin'
-    | 'receptionist'
-    | 'technician'
-    | 'pharmacist'
-    | 'therapist';
+  | 'doctor'
+  | 'nurse'
+  | 'admin'
+  | 'receptionist'
+  | 'technician'
+  | 'pharmacist'
+  | 'therapist';
   personalInfo: {
     fullName: string;
     email: string;
@@ -49,6 +49,11 @@ export interface Staff {
     };
     timeZone: string;
     isFlexible: boolean;
+    dailySchedules?: Array<{
+      day: string;
+      start: string;
+      end: string;
+    }>;
   };
   specializations: Array<{
     code: string;
@@ -186,6 +191,9 @@ export async function getStaffById(staffId: string): Promise<Staff> {
   if (data.work_schedule !== undefined && !mapped.workSchedule) {
     mapped.workSchedule = data.work_schedule;
   }
+  if (mapped.workSchedule?.daily_schedules && !mapped.workSchedule.dailySchedules) {
+    (mapped.workSchedule as any).dailySchedules = (mapped.workSchedule as any).daily_schedules;
+  }
 
   if (data.is_active !== undefined && !mapped.isActive) {
     mapped.isActive = data.is_active;
@@ -221,6 +229,9 @@ export async function getStaffByUserId(userId: string): Promise<Staff | null> {
     }
     if (data.work_schedule !== undefined && !mapped.workSchedule) {
       mapped.workSchedule = data.work_schedule;
+    }
+    if (mapped.workSchedule?.daily_schedules && !mapped.workSchedule.dailySchedules) {
+      (mapped.workSchedule as any).dailySchedules = (mapped.workSchedule as any).daily_schedules;
     }
     if (data.is_active !== undefined && mapped.isActive === undefined) {
       mapped.isActive = data.is_active;
@@ -281,6 +292,27 @@ export async function updateMyStaffProfile(payload: {
 }): Promise<{ success: boolean; data: Staff }> {
   // Use apiClient base (/api) so session cookie is sent via gateway
   const response = await apiClient.put('/v1/staff/me', payload);
+  return response.data;
+}
+
+/**
+ * Self update work schedule for current staff (doctor/nurse)
+ */
+export async function updateMySchedule(payload: {
+  workSchedule: {
+    workingDays: string[];
+    workingHours: { start: string; end: string };
+    timeZone: string;
+    isFlexible: boolean;
+    dailySchedules?: Array<{
+      day: string;
+      start: string;
+      end: string;
+    }>;
+  };
+  effectiveDate?: string;
+}): Promise<{ success: boolean; data: any; message?: string }> {
+  const response = await apiClient.put('/v1/staff/me/schedule', payload);
   return response.data;
 }
 

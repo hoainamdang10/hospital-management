@@ -1,15 +1,18 @@
 /**
  * List Appointments Query - Application Layer
  * CQRS Query to list appointments with filters and pagination
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS
  */
 
-import { IAppointmentReadModelRepository } from '../../domain/repositories/IAppointmentReadModelRepository';
-import { AppointmentReadModelFilters } from '../../domain/read-models/AppointmentReadModel';
-import { AppointmentListItemDTO, AppointmentListResponseDTO } from '../dto/AppointmentDetailsDTO';
+import { IAppointmentReadModelRepository } from "../../domain/repositories/IAppointmentReadModelRepository";
+import { AppointmentReadModelFilters } from "../../domain/read-models/AppointmentReadModel";
+import {
+  AppointmentListItemDTO,
+  AppointmentListResponseDTO,
+} from "../dto/AppointmentDetailsDTO";
 
 export interface ListAppointmentsQueryParams {
   patientId?: string;
@@ -25,14 +28,14 @@ export interface ListAppointmentsQueryParams {
 }
 
 export class ListAppointmentsQuery {
-  constructor(
-    private readModelRepo: IAppointmentReadModelRepository
-  ) { }
+  constructor(private readModelRepo: IAppointmentReadModelRepository) {}
 
   /**
    * Execute query to list appointments
    */
-  async execute(params: ListAppointmentsQueryParams): Promise<AppointmentListResponseDTO> {
+  async execute(
+    params: ListAppointmentsQueryParams,
+  ): Promise<AppointmentListResponseDTO> {
     // Default pagination
     const page = params.page || 1;
     const pageSize = params.pageSize || 20;
@@ -49,37 +52,40 @@ export class ListAppointmentsQuery {
       priority: params.priority,
       departmentId: params.departmentId,
       limit: pageSize,
-      offset
+      offset,
     };
 
     // Query read model
     const [appointments, total] = await Promise.all([
       this.readModelRepo.findWithFilters(filters),
-      this.readModelRepo.countWithFilters(filters)
+      this.readModelRepo.countWithFilters(filters),
     ]);
 
     // Map to DTOs with snake_case field names (REST API convention)
-    const appointmentDTOs: AppointmentListItemDTO[] = appointments.map(readModel => ({
-      appointment_id: readModel.appointmentId,
-      appointment_date: readModel.appointmentDate.toISOString().split('T')[0],
-      appointment_time: readModel.appointmentTime,
-      duration_minutes: readModel.durationMinutes,
-      type: readModel.type,
-      priority: readModel.priority,
-      status: readModel.status,
+    const appointmentDTOs: AppointmentListItemDTO[] = appointments.map(
+      (readModel) => ({
+        appointment_id: readModel.appointmentId,
+        appointment_date: readModel.appointmentDate.toISOString().split("T")[0],
+        appointment_time: readModel.appointmentTime,
+        duration_minutes: readModel.durationMinutes,
+        type: readModel.type,
+        priority: readModel.priority,
+        status: readModel.status,
+        payment_status: readModel.paymentStatus,
 
-      patient_id: readModel.patientId,
-      patient_full_name: readModel.patientFullName,
-      patient_phone: readModel.patientPhone,
+        patient_id: readModel.patientId,
+        patient_full_name: readModel.patientFullName,
+        patient_phone: readModel.patientPhone,
 
-      doctor_id: readModel.doctorId,
-      doctor_full_name: readModel.doctorFullName,
-      doctor_specialization: readModel.doctorSpecialization,
+        doctor_id: readModel.doctorId,
+        doctor_full_name: readModel.doctorFullName,
+        doctor_specialization: readModel.doctorSpecialization,
 
-      consultation_fee: readModel.consultationFee, // Billing reference only
+        consultation_fee: readModel.consultationFee, // Billing reference only
 
-      created_at: readModel.createdAt.toISOString()
-    }));
+        created_at: readModel.createdAt.toISOString(),
+      }),
+    );
 
     // Calculate total pages
     const totalPages = Math.ceil(total / pageSize);
@@ -89,8 +95,7 @@ export class ListAppointmentsQuery {
       total,
       page,
       pageSize,
-      totalPages
+      totalPages,
     };
   }
 }
-

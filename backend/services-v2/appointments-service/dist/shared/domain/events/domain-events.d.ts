@@ -17,6 +17,9 @@ export declare class UserCreatedEvent extends DomainEvent {
     readonly roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist";
     readonly citizenId?: string | undefined;
     readonly phoneNumber?: string | undefined;
+    readonly dateOfBirth?: string | undefined;
+    readonly gender?: string | undefined;
+    readonly address?: unknown | undefined;
     readonly department?: string | undefined;
     readonly specializationCode?: string | undefined;
     readonly specializationName?: string | undefined;
@@ -25,7 +28,10 @@ export declare class UserCreatedEvent extends DomainEvent {
     readonly yearsOfExperience?: number | undefined;
     readonly position?: string | undefined;
     readonly title?: string | undefined;
-    constructor(userId: string, email: string, fullName: string, roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist", citizenId?: string | undefined, phoneNumber?: string | undefined, department?: string | undefined, specializationCode?: string | undefined, specializationName?: string | undefined, licenseNumber?: string | undefined, education?: string[] | undefined, yearsOfExperience?: number | undefined, position?: string | undefined, title?: string | undefined);
+    readonly employmentType?: string | undefined;
+    readonly workSchedule?: unknown | undefined;
+    readonly consultationFee?: number | undefined;
+    constructor(userId: string, email: string, fullName: string, roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist", citizenId?: string | undefined, phoneNumber?: string | undefined, dateOfBirth?: string | undefined, gender?: string | undefined, address?: unknown | undefined, department?: string | undefined, specializationCode?: string | undefined, specializationName?: string | undefined, licenseNumber?: string | undefined, education?: string[] | undefined, yearsOfExperience?: number | undefined, position?: string | undefined, title?: string | undefined, employmentType?: string | undefined, workSchedule?: unknown | undefined, consultationFee?: number | undefined);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;

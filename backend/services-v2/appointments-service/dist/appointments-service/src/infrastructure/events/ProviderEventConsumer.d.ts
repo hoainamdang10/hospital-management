@@ -48,5 +48,9 @@ export declare class ProviderEventConsumer {
      * Handles both camelCase and snake_case, and ensures fullName is non-null.
      */
     private mapPayloadToProvider;
+    private mergeProviderData;
+    private collectPayloadSources;
+    private findNestedField;
+    private isMeaningfulText;
 }
 //# sourceMappingURL=ProviderEventConsumer.d.ts.map

@@ -19,6 +19,11 @@ interface WorkScheduleProps {
   workingHours: WorkingHours;
   timeZone: string;
   isFlexible: boolean;
+  dailySchedules?: Array<{
+    day: string;
+    start: string;
+    end: string;
+  }>;
 }
 
 export class WorkSchedule extends ValueObject<WorkScheduleProps> {
@@ -39,38 +44,68 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
   }
 
   protected validateFormat(): void {
-    // Working days validation
-    if (!this.props.workingDays || this.props.workingDays.length === 0) {
-      throw new Error("Ngày làm việc không được để trống");
-    }
+    const hasDaily =
+      Array.isArray(this.props.dailySchedules) &&
+      this.props.dailySchedules.length > 0;
 
-    for (const day of this.props.workingDays) {
-      if (!WorkSchedule.VALID_DAYS.includes(day.toLowerCase())) {
-        throw new Error(`Ngày làm việc không hợp lệ: ${day}`);
+    if (hasDaily) {
+      for (const item of this.props.dailySchedules ?? []) {
+        if (
+          !item.day ||
+          !WorkSchedule.VALID_DAYS.includes(item.day.toLowerCase())
+        ) {
+          throw new Error(`Ngày làm việc không hợp lệ: ${item.day}`);
+        }
+        if (!WorkSchedule.TIME_REGEX.test(item.start)) {
+          throw new Error(
+            `Giờ bắt đầu không đúng định dạng (HH:MM) cho ${item.day}`,
+          );
+        }
+        if (!WorkSchedule.TIME_REGEX.test(item.end)) {
+          throw new Error(
+            `Giờ kết thúc không đúng định dạng (HH:MM) cho ${item.day}`,
+          );
+        }
+        if (!this.isValidTimeRange(item.start, item.end)) {
+          throw new Error(
+            `Giờ bắt đầu phải trước giờ kết thúc cho ${item.day}`,
+          );
+        }
       }
-    }
+    } else {
+      // Working days validation
+      if (!this.props.workingDays || this.props.workingDays.length === 0) {
+        throw new Error("Ngày làm việc không được để trống");
+      }
 
-    // Working hours validation
-    if (!this.props.workingHours) {
-      throw new Error("Giờ làm việc không được để trống");
-    }
+      for (const day of this.props.workingDays) {
+        if (!WorkSchedule.VALID_DAYS.includes(day.toLowerCase())) {
+          throw new Error(`Ngày làm việc không hợp lệ: ${day}`);
+        }
+      }
 
-    if (!WorkSchedule.TIME_REGEX.test(this.props.workingHours.start)) {
-      throw new Error("Giờ bắt đầu không đúng định dạng (HH:MM)");
-    }
+      // Working hours validation
+      if (!this.props.workingHours) {
+        throw new Error("Giờ làm việc không được để trống");
+      }
 
-    if (!WorkSchedule.TIME_REGEX.test(this.props.workingHours.end)) {
-      throw new Error("Giờ kết thúc không đúng định dạng (HH:MM)");
-    }
+      if (!WorkSchedule.TIME_REGEX.test(this.props.workingHours.start)) {
+        throw new Error("Giờ bắt đầu không đúng định dạng (HH:MM)");
+      }
 
-    // Validate start time is before end time
-    if (
-      !this.isValidTimeRange(
-        this.props.workingHours.start,
-        this.props.workingHours.end,
-      )
-    ) {
-      throw new Error("Giờ bắt đầu phải trước giờ kết thúc");
+      if (!WorkSchedule.TIME_REGEX.test(this.props.workingHours.end)) {
+        throw new Error("Giờ kết thúc không đúng định dạng (HH:MM)");
+      }
+
+      // Validate start time is before end time
+      if (
+        !this.isValidTimeRange(
+          this.props.workingHours.start,
+          this.props.workingHours.end,
+        )
+      ) {
+        throw new Error("Giờ bắt đầu phải trước giờ kết thúc");
+      }
     }
 
     // Time zone validation
@@ -80,9 +115,20 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
   }
 
   public static create(props: WorkScheduleProps): WorkSchedule {
+    let workingDays = props.workingDays || [];
+    let workingHours = props.workingHours || { start: "08:00", end: "17:00" };
+
+    // If dailySchedules được cung cấp, tự động suy ra workingDays và workingHours (dùng giờ đầu tiên làm mặc định)
+    if (props.dailySchedules && props.dailySchedules.length > 0) {
+      workingDays = props.dailySchedules.map((d) => d.day.toLowerCase());
+      const first = props.dailySchedules[0];
+      workingHours = { start: first.start, end: first.end };
+    }
+
     return new WorkSchedule({
       ...props,
-      workingDays: props.workingDays.map((d) => d.toLowerCase()),
+      workingDays: workingDays.map((d) => d.toLowerCase()),
+      workingHours,
       timeZone: props.timeZone.trim(),
     });
   }
@@ -100,12 +146,14 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
       data.workingHours || { start: "08:00", end: "17:00" };
     const timeZone = data.time_zone || data.timeZone || "Asia/Ho_Chi_Minh";
     const isFlexible = data.is_flexible ?? data.isFlexible ?? false;
+    const dailySchedules = data.daily_schedules || data.dailySchedules;
 
     return WorkSchedule.create({
       workingDays,
       workingHours,
       timeZone,
       isFlexible,
+      dailySchedules,
     });
   }
 
@@ -124,6 +172,10 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
 
   public get isFlexible(): boolean {
     return this.props.isFlexible;
+  }
+
+  public get dailySchedules(): Array<{ day: string; start: string; end: string }> | undefined {
+    return this.props.dailySchedules ? [...this.props.dailySchedules] : undefined;
   }
 
   // Business methods
@@ -258,6 +310,7 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
       working_hours: this.props.workingHours,
       time_zone: this.props.timeZone,
       is_flexible: this.props.isFlexible,
+      daily_schedules: this.props.dailySchedules,
     };
   }
 
@@ -266,7 +319,7 @@ export class WorkSchedule extends ValueObject<WorkScheduleProps> {
 
     return (
       JSON.stringify(this.props.workingDays) ===
-        JSON.stringify(other.props.workingDays) &&
+      JSON.stringify(other.props.workingDays) &&
       this.props.workingHours.start === other.props.workingHours.start &&
       this.props.workingHours.end === other.props.workingHours.end &&
       this.props.timeZone === other.props.timeZone &&

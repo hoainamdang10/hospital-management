@@ -697,6 +697,115 @@ export class StaffController {
   }
 
   /**
+   * Self update staff work schedule
+   * PUT /api/v1/staff/me/schedule
+   */
+  async selfUpdateStaffSchedule(req: Request, res: Response): Promise<void> {
+    try {
+      const requestedBy = getUserId(req);
+      const requestedByRole = getUserRole(req);
+
+      if (!requestedBy) {
+        ResponseHelper.error(res, "Unauthorized", 401, "UNAUTHORIZED");
+        return;
+      }
+
+      // 1. Lấy staffId từ userId (tương tự selfUpdateStaffInfo)
+      const profileResult = await this.getStaffProfileUseCase.execute({
+        userId: requestedBy,
+        requestedBy,
+        requestedByRole,
+        includeFullSchedule: true,
+      });
+
+      const staff = profileResult.data?.staff as any;
+      const staffId =
+        staff?.staffIdValue ||
+        (staff?.staffId &&
+          staff.staffId.toString &&
+          staff.staffId.toString()) ||
+        staff?.staffId ||
+        staff?.staff_id ||
+        staff?.id;
+
+      if (!staffId) {
+        throw new NotFoundError("Nhân viên", requestedBy);
+      }
+
+      // 2. Validate dữ liệu đầu vào (nới lỏng nhưng đảm bảo tối thiểu)
+      const { workSchedule, effectiveDate } = req.body as any;
+      const errors: string[] = [];
+      if (!workSchedule) {
+        errors.push("Thiếu workSchedule");
+      } else {
+        if (
+          !Array.isArray(workSchedule.workingDays) ||
+          workSchedule.workingDays.length === 0
+        ) {
+          errors.push("workingDays phải là mảng và có ít nhất 1 ngày");
+        }
+        if (
+          !workSchedule.workingHours ||
+          !workSchedule.workingHours.start ||
+          !workSchedule.workingHours.end
+        ) {
+          errors.push("workingHours.start và workingHours.end là bắt buộc");
+        }
+        if (!workSchedule.timeZone) {
+          errors.push("timeZone là bắt buộc");
+        }
+      }
+
+      if (errors.length > 0) {
+        ResponseHelper.error(
+          res,
+          "Dữ liệu không hợp lệ",
+          400,
+          "VALIDATION_ERROR",
+          errors,
+        );
+        return;
+      }
+
+      // 3. Gọi use case cập nhật lịch
+      const result = await this.updateStaffScheduleUseCase.execute({
+        staffId,
+        workSchedule,
+        effectiveDate,
+        updatedBy: requestedBy,
+        updatedByRole: requestedByRole,
+        requestMetadata: {
+          ipAddress: req.ip,
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
+      });
+
+      if (!result.success) {
+        ResponseHelper.error(
+          res,
+          result.message,
+          400,
+          "UPDATE_SCHEDULE_FAILED",
+          result.errors,
+        );
+        return;
+      }
+
+      ResponseHelper.success(
+        res,
+        result.data,
+        "Cập nhật lịch làm việc thành công",
+      );
+    } catch (error) {
+      this.logger.error("Error self-updating staff schedule", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Add staff credential
    * POST /api/v1/staff/:staffId/credentials
    */
@@ -1413,7 +1522,7 @@ export class StaffController {
       staffType: staff.staffType,
       personalInfo: staff.personalInfo,
       professionalInfo: staff.professionalInfo,
-      workSchedule: staff.workSchedule,
+      workSchedule: staff.workSchedule?.toPersistence?.() || staff.workSchedule,
       specializations: staff.specializations,
       credentials: staff.credentials,
       certifications: staff.certifications,

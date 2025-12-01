@@ -17,6 +17,7 @@ export interface AppConfig {
     services: {
         patientServiceUrl: string;
         providerServiceUrl: string;
+        providerInternalToken?: string;
         schedulerServiceUrl: string;
         schedulerApiKey: string;
         billingServiceUrl: string;

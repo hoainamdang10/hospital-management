@@ -45,10 +45,7 @@ export class StaffReadModelProjectionHandler
   }
 
   private async handleStaffRegistered(event: DomainEvent): Promise<void> {
-    const staffIdValue =
-      (event as any)?.staffId?.value ||
-      (event as any)?.staffId ||
-      event.aggregateId;
+    const staffIdValue = this.extractStaffId(event);
 
     if (!staffIdValue) {
       this.logger.warn("StaffRegistered event thiếu staffId", {
@@ -84,10 +81,7 @@ export class StaffReadModelProjectionHandler
   }
 
   private async handleStaffUpdated(event: DomainEvent): Promise<void> {
-    const staffIdValue =
-      (event as any)?.staffId?.value ||
-      (event as any)?.staffId ||
-      event.aggregateId;
+    const staffIdValue = this.extractStaffId(event);
 
     if (!staffIdValue) {
       this.logger.warn("StaffUpdated event thiếu staffId", {
@@ -146,5 +140,39 @@ export class StaffReadModelProjectionHandler
     };
 
     await this.readModelRepository.upsertProfile(payload);
+  }
+
+  /**
+   * Extract staffId string from domain event payload (handles serialized value objects)
+   */
+  private extractStaffId(event: DomainEvent): string | null {
+    const rawStaffId = (event as any)?.staffId;
+
+    if (typeof rawStaffId === "string" && rawStaffId.trim().length > 0) {
+      return rawStaffId;
+    }
+
+    if (
+      rawStaffId &&
+      typeof rawStaffId === "object" &&
+      typeof rawStaffId.value === "string"
+    ) {
+      return rawStaffId.value;
+    }
+
+    if (
+      rawStaffId &&
+      typeof rawStaffId === "object" &&
+      rawStaffId.props &&
+      typeof rawStaffId.props.value === "string"
+    ) {
+      return rawStaffId.props.value;
+    }
+
+    if (typeof event.aggregateId === "string") {
+      return event.aggregateId;
+    }
+
+    return null;
   }
 }
