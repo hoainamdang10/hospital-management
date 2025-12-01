@@ -32,10 +32,12 @@ const GetNotificationPreferencesUseCase_1 = require("../../application/use-cases
 // import { UpdateTemplateUseCase } from "../../application/use-cases/UpdateTemplateUseCase";
 // import { DeleteTemplateUseCase } from "../../application/use-cases/DeleteTemplateUseCase";
 const MarkNotificationAsReadUseCase_1 = require("../../application/use-cases/MarkNotificationAsReadUseCase");
-// OUT OF SCOPE - Archived for thesis
-// import { GetUserNotificationsUseCase } from "../../application/use-cases/GetUserNotificationsUseCase";
+const GetUserNotificationsUseCase_1 = require("../../application/use-cases/GetUserNotificationsUseCase");
+const GetUnreadNotificationsCountUseCase_1 = require("../../application/use-cases/GetUnreadNotificationsCountUseCase");
 // import { UpdateNotificationPreferencesUseCase } from "../../application/use-cases/UpdateNotificationPreferencesUseCase";
 const CreateAppointmentRemindersUseCase_1 = require("../../application/use-cases/CreateAppointmentRemindersUseCase");
+const GetNotificationsByRecipientUseCase_1 = require("../../application/use-cases/GetNotificationsByRecipientUseCase");
+const NotificationController_1 = require("../../presentation/controllers/NotificationController");
 // Infrastructure Layer
 const SupabaseNotificationRepository_1 = require("../persistence/SupabaseNotificationRepository");
 const SupabaseInboxRepository_1 = require("../persistence/SupabaseInboxRepository");
@@ -82,8 +84,10 @@ exports.ServiceTokens = {
     // DELETE_TEMPLATE_USE_CASE: "DeleteTemplateUseCase",
     MARK_AS_READ_USE_CASE: "MarkNotificationAsReadUseCase",
     GET_USER_NOTIFICATIONS_USE_CASE: "GetUserNotificationsUseCase",
+    GET_UNREAD_NOTIFICATIONS_COUNT_USE_CASE: "GetUnreadNotificationsCountUseCase",
     UPDATE_PREFERENCES_USE_CASE: "UpdateNotificationPreferencesUseCase",
     CREATE_APPOINTMENT_REMINDERS_USE_CASE: "CreateAppointmentRemindersUseCase",
+    GET_NOTIFICATIONS_BY_RECIPIENT_USE_CASE: "GetNotificationsByRecipientUseCase",
     // Handlers
     NOTIFICATION_COMMAND_HANDLERS: "NotificationCommandHandlers",
     NOTIFICATION_QUERY_HANDLERS: "NotificationQueryHandlers",
@@ -421,15 +425,14 @@ function setupDependencies(container) {
         const notificationRepository = container.resolve(exports.ServiceTokens.NOTIFICATION_REPOSITORY);
         return new MarkNotificationAsReadUseCase_1.MarkNotificationAsReadUseCase(notificationRepository);
     }, container_1.ServiceLifetime.TRANSIENT);
-    // OUT OF SCOPE - User notifications archived for thesis
-    // container.registerFactory(
-    //   ServiceTokens.GET_USER_NOTIFICATIONS_USE_CASE,
-    //   (container) => {
-    //     const notificationRepository = container.resolve(ServiceTokens.NOTIFICATION_REPOSITORY);
-    //     return new GetUserNotificationsUseCase(notificationRepository);
-    //   },
-    //   ServiceLifetime.TRANSIENT
-    // );
+    container.registerFactory(exports.ServiceTokens.GET_USER_NOTIFICATIONS_USE_CASE, (container) => {
+        const notificationRepository = container.resolve(exports.ServiceTokens.NOTIFICATION_REPOSITORY);
+        return new GetUserNotificationsUseCase_1.GetUserNotificationsUseCase(notificationRepository);
+    }, container_1.ServiceLifetime.TRANSIENT);
+    container.registerFactory(exports.ServiceTokens.GET_UNREAD_NOTIFICATIONS_COUNT_USE_CASE, (container) => {
+        const notificationRepository = container.resolve(exports.ServiceTokens.NOTIFICATION_REPOSITORY);
+        return new GetUnreadNotificationsCountUseCase_1.GetUnreadNotificationsCountUseCase(notificationRepository);
+    }, container_1.ServiceLifetime.TRANSIENT);
     // OUT OF SCOPE - Preferences archived for thesis
     // container.registerFactory(
     //   ServiceTokens.UPDATE_PREFERENCES_USE_CASE,
@@ -442,6 +445,10 @@ function setupDependencies(container) {
     container.registerFactory(exports.ServiceTokens.CREATE_APPOINTMENT_REMINDERS_USE_CASE, (container) => {
         const reminderRepo = container.resolve(exports.ServiceTokens.APPOINTMENT_REMINDER_REPOSITORY);
         return new CreateAppointmentRemindersUseCase_1.CreateAppointmentRemindersUseCase(reminderRepo);
+    }, container_1.ServiceLifetime.TRANSIENT);
+    container.registerFactory(exports.ServiceTokens.GET_NOTIFICATIONS_BY_RECIPIENT_USE_CASE, (container) => {
+        const notificationRepository = container.resolve(exports.ServiceTokens.NOTIFICATION_REPOSITORY);
+        return new GetNotificationsByRecipientUseCase_1.GetNotificationsByRecipientUseCase(notificationRepository);
     }, container_1.ServiceLifetime.TRANSIENT);
     // Register Cron Jobs
     container.registerFactory(exports.ServiceTokens.REMINDER_CRON_JOB, (container) => {
@@ -456,21 +463,12 @@ function setupDependencies(container) {
     }, container_1.ServiceLifetime.SINGLETON);
     // Register Controllers
     // OUT OF SCOPE - NotificationController archived for thesis
-    // container.registerFactory(
-    //   ServiceTokens.NOTIFICATION_CONTROLLER,
-    //   (container) => {
-    //     const notificationApplicationService = container.resolve(ServiceTokens.NOTIFICATION_APPLICATION_SERVICE);
-    //     const markAsReadUseCase = container.resolve(ServiceTokens.MARK_AS_READ_USE_CASE);
-    //     const getUserNotificationsUseCase = container.resolve(ServiceTokens.GET_USER_NOTIFICATIONS_USE_CASE);
-    //     const updatePreferencesUseCase = container.resolve(ServiceTokens.UPDATE_PREFERENCES_USE_CASE);
-    //     return new NotificationController(
-    //       notificationApplicationService,
-    //       markAsReadUseCase,
-    //       getUserNotificationsUseCase,
-    //       updatePreferencesUseCase
-    //     );
-    //   },
-    //   ServiceLifetime.SCOPED
-    // );
+    container.registerFactory(exports.ServiceTokens.NOTIFICATION_CONTROLLER, (container) => {
+        const getNotificationsByRecipientUseCase = container.resolve(exports.ServiceTokens.GET_NOTIFICATIONS_BY_RECIPIENT_USE_CASE);
+        const getUserNotificationsUseCase = container.resolve(exports.ServiceTokens.GET_USER_NOTIFICATIONS_USE_CASE);
+        const markNotificationAsReadUseCase = container.resolve(exports.ServiceTokens.MARK_AS_READ_USE_CASE);
+        const getUnreadNotificationsCountUseCase = container.resolve(exports.ServiceTokens.GET_UNREAD_NOTIFICATIONS_COUNT_USE_CASE);
+        return new NotificationController_1.NotificationController(getNotificationsByRecipientUseCase, getUserNotificationsUseCase, markNotificationAsReadUseCase, getUnreadNotificationsCountUseCase);
+    }, container_1.ServiceLifetime.SCOPED);
 }
 //# sourceMappingURL=setup.js.map

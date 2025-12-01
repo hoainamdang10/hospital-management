@@ -1,21 +1,17 @@
 /**
  * GetUserNotificationsUseCase - Query Use Case
- * Get user notifications with pagination and filters
- * 
- * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, CQRS
+ * Lấy danh sách thông báo cho người dùng với phân trang và filter cơ bản
  */
 
-import { INotificationRepository } from '../../domain/repositories/INotificationRepository';
-import { Notification } from '../../domain/aggregates/Notification';
+import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
+import { Notification } from "../../domain/aggregates/Notification";
 
 export interface GetUserNotificationsQuery {
   userId: string;
   limit?: number;
   offset?: number;
-  status?: 'read' | 'unread' | 'all';
-  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  status?: "read" | "unread" | "all";
+  priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
   startDate?: Date;
   endDate?: Date;
 }
@@ -51,34 +47,36 @@ export interface GetUserNotificationsResult {
 
 export class GetUserNotificationsUseCase {
   constructor(
-    private readonly notificationRepository: INotificationRepository
+    private readonly notificationRepository: INotificationRepository,
   ) {}
 
-  async execute(query: GetUserNotificationsQuery): Promise<GetUserNotificationsResult> {
-    try {
-      const limit = query.limit || 20;
-      const offset = query.offset || 0;
+  async execute(
+    query: GetUserNotificationsQuery,
+  ): Promise<GetUserNotificationsResult> {
+    const limit = query.limit && query.limit > 0 ? query.limit : 20;
+    const offset = query.offset && query.offset >= 0 ? query.offset : 0;
 
-      // Build search criteria
+    if (!query.userId) {
+      throw new Error("userId is required");
+    }
+
+    try {
       const criteria: any = {
         recipientId: query.userId,
-        limit: limit + 1, // Fetch one extra to check hasMore
-        offset
+        limit: limit + 1,
+        offset,
       };
 
-      // Filter by read status
-      if (query.status === 'read') {
+      if (query.status === "read") {
         criteria.isRead = true;
-      } else if (query.status === 'unread') {
+      } else if (query.status === "unread") {
         criteria.isRead = false;
       }
 
-      // Filter by priority
       if (query.priority) {
         criteria.priority = query.priority;
       }
 
-      // Filter by date range
       if (query.startDate) {
         criteria.createdAfter = query.startDate;
       }
@@ -86,55 +84,58 @@ export class GetUserNotificationsUseCase {
         criteria.createdBefore = query.endDate;
       }
 
-      // Fetch notifications
-      const notifications = await this.notificationRepository.findByCriteria(criteria);
-      
-      // Check if there are more results
+      const notifications =
+        await this.notificationRepository.findByCriteria(criteria);
       const hasMore = notifications.length > limit;
       const results = notifications.slice(0, limit);
 
-      // Get total count
       const total = await this.notificationRepository.countByCriteria({
         recipientId: query.userId,
-        isRead: query.status === 'read' ? true : query.status === 'unread' ? false : undefined,
-        priority: query.priority
+        isRead:
+          query.status === "read"
+            ? true
+            : query.status === "unread"
+              ? false
+              : undefined,
+        priority: query.priority,
       });
 
-      // Get unread count
       const unreadCount = await this.notificationRepository.countByCriteria({
         recipientId: query.userId,
-        isRead: false
+        isRead: false,
       });
 
       return {
-        notifications: results.map(n => this.mapNotification(n)),
+        notifications: results.map((notification) =>
+          this.mapNotification(notification),
+        ),
         total,
         unreadCount,
         hasMore,
-        pagination: { limit, offset }
+        pagination: { limit, offset },
       };
     } catch (error) {
       throw new Error(
         `Failed to get user notifications: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       );
     }
   }
 
-  private mapNotification(notification: Notification): any {
+  private mapNotification(notification: Notification) {
     return {
       notificationId: notification.getId().value,
-      subject: notification.getContent().getSubject(),
+      subject: notification.getContent().getSubject() ?? "",
       body: notification.getContent().getBody(),
       priority: notification.getPriority(),
       status: notification.getStatus(),
-      channels: notification.getChannels().map(c => c.getChannelType()),
-      readAt: notification.getReadAt ? notification.getReadAt() : null,
+      channels: notification.getChannels().map((channel) => channel.getType()),
+      readAt: notification.getReadAt() ?? null,
       createdAt: notification.getCreatedAt(),
-      sentAt: notification.getSentAt ? notification.getSentAt() : null,
-      deliveredAt: notification.getDeliveredAt ? notification.getDeliveredAt() : null,
-      healthcareContext: notification.getHealthcareContext()
+      sentAt: notification.getSentAt() ?? null,
+      deliveredAt: notification.getDeliveredAt() ?? null,
+      healthcareContext: notification.getHealthcareContext(),
     };
   }
 }

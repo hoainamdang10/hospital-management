@@ -19,8 +19,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const container_1 = require("../../shared/infrastructure/di/container");
 const setup_1 = require("./infrastructure/di/setup");
-// import { createNotificationRoutes } from './presentation/routes/notificationRoutes'; // OUT OF SCOPE
-// import { NotificationController } from './presentation/controllers/NotificationController'; // OUT OF SCOPE
+const notificationRoutes_1 = require("./presentation/routes/notificationRoutes");
 const swagger_config_1 = require("./infrastructure/swagger/swagger.config");
 // Load environment variables
 dotenv_1.default.config();
@@ -168,10 +167,8 @@ async function bootstrap() {
         console.log('✅ DI container initialized');
         // OUT OF SCOPE - Controllers and API routes archived for thesis
         // Only event consumers + cron job active
-        // const notificationController = container.resolve<NotificationController>(
-        //   ServiceTokens.NOTIFICATION_CONTROLLER
-        // );
-        // console.log('✅ Controllers resolved');
+        const notificationController = container.resolve(setup_1.ServiceTokens.NOTIFICATION_CONTROLLER);
+        console.log('✅ Controllers resolved');
         // Connect EventBus
         const eventBus = container.resolve(setup_1.ServiceTokens.EVENT_BUS);
         await eventBus.connect();
@@ -183,9 +180,9 @@ async function bootstrap() {
         await initializeReminderCronJob(container);
         console.log('✅ Reminder Cron Job initialized');
         // OUT OF SCOPE - API routes disabled
-        // const notificationRoutes = createNotificationRoutes(notificationController);
-        // app.use('/api/v1/notifications', notificationRoutes);
-        // console.log('✅ Routes mounted at /api/v1/notifications');
+        const notificationRoutes = (0, notificationRoutes_1.createNotificationRoutes)(notificationController);
+        app.use('/api/v1/notifications', notificationRoutes);
+        console.log('✅ Routes mounted at /api/v1/notifications');
         // Swagger API Documentation
         app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_config_1.swaggerSpec, {
             explorer: true,
