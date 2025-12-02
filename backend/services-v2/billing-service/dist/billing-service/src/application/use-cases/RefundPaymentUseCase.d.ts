@@ -45,6 +45,7 @@ export declare class RefundPaymentUseCase extends BaseHealthcareUseCase<RefundPa
     authorize(request: RefundPaymentRequest, userId: string): Promise<boolean>;
     involvesPHI(request: RefundPaymentRequest): boolean;
     getPatientId(request: RefundPaymentRequest): string | null;
+    private selectPrimaryInvoice;
     private refundWallet;
 }
 //# sourceMappingURL=RefundPaymentUseCase.d.ts.map

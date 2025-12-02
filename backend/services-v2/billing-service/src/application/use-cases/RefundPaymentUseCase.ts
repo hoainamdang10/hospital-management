@@ -80,11 +80,23 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
         };
       }
 
-      // 2. Find invoice by appointmentId using dedicated repository method
-      const invoice = await this.invoiceRepository.findByAppointmentId(
+      // 2. Find invoice(s) by appointmentId (there may be multiple fee invoices)
+      const invoices = await this.invoiceRepository.findAllByAppointmentId(
         request.appointmentId,
       );
 
+      if (!invoices || invoices.length === 0) {
+        this.logger.warn("No invoices found for appointment", {
+          appointmentId: request.appointmentId,
+        });
+        return {
+          success: false,
+          message: "Không tìm thấy hóa đơn cho lịch hẹn này",
+          errors: ["Invoice not found for appointment"],
+        };
+      }
+
+      const invoice = this.selectPrimaryInvoice(invoices);
       if (!invoice) {
         this.logger.warn("Invoice not found for appointment", {
           appointmentId: request.appointmentId,
@@ -256,6 +268,34 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
 
   getPatientId(request: RefundPaymentRequest): string | null {
     return request.patientId;
+  }
+
+  private selectPrimaryInvoice(invoices: Invoice[]): Invoice | null {
+    if (!invoices || invoices.length === 0) {
+      return null;
+    }
+
+    const primary = invoices.find((inv) => {
+      const invoiceType = (inv.metadata?.invoiceType ||
+        inv.metadata?.invoice_type ||
+        "") as string | undefined;
+      return invoiceType?.toString().toLowerCase() === "appointment_booking";
+    });
+    if (primary) {
+      return primary;
+    }
+
+    const serviceNameMatch = invoices.find((inv) => {
+      const serviceName = (inv.metadata?.serviceName ||
+        inv.metadata?.service_name ||
+        "") as string;
+      return serviceName.toLowerCase().includes("đặt lịch");
+    });
+    if (serviceNameMatch) {
+      return serviceNameMatch;
+    }
+
+    return invoices[0];
   }
 
   private async refundWallet(
