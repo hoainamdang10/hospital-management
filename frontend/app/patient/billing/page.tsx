@@ -6,6 +6,9 @@ import {
   CreditCard,
   Download,
   FileText,
+  Clock,
+  Tag,
+  Hash,
   Loader2,
   Search,
   AlertCircle,
@@ -13,6 +16,8 @@ import {
   Wallet,
   Receipt,
   Calendar,
+  Stethoscope,
+  Building2,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -74,6 +79,17 @@ const STATUS_FILTERS: { value: StatusFilterValue; label: string }[] = [
 
 const PENDING_STATUSES: Invoice['status'][] = ['pending', 'partially_paid', 'overdue', 'draft'];
 const ITEMS_PER_PAGE = 5;
+
+const APPOINTMENT_DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
+  weekday: 'short',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+const APPOINTMENT_TIME_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 export default function PatientBillingPage() {
   const { patient } = usePatient();
@@ -967,6 +983,21 @@ function InvoiceCard({
   const invoiceCodeLabel = getInvoiceLabel(invoice);
   const serviceSummary = getPrimaryServiceName(invoice);
   const department = invoice.doctorDepartment || invoice.metadata?.departmentName;
+  const invoiceTypeLabel = getInvoiceTypeLabel(invoice);
+  const appointmentId =
+    invoice.appointmentId ||
+    (invoice.metadata?.appointmentId as string) ||
+    (invoice.metadata?.appointment_id as string) ||
+    null;
+  const doctorName = invoice.doctorName || (invoice.metadata?.doctorName as string) || null;
+  const appointmentDateTime = getInvoiceAppointmentDate(invoice);
+  const appointmentDisplay = formatAppointmentDateTimeDisplay(appointmentDateTime);
+  const hasAppointmentMeta =
+    Boolean(invoiceTypeLabel) ||
+    Boolean(appointmentDisplay) ||
+    Boolean(doctorName) ||
+    Boolean(department) ||
+    Boolean(appointmentId);
   const canUseWallet =
     Boolean(onWalletPayment) &&
     Boolean(canPayWithWallet) &&
@@ -1014,14 +1045,41 @@ function InvoiceCard({
                 <Calendar className="h-3.5 w-3.5" />
                 {formatDate(issuedDate)}
               </span>
-              {invoice.doctorName && (
-                <span>
-                  BS. <span className="font-medium text-gray-700">{invoice.doctorName}</span>
-                </span>
-              )}
-              {department && <span>Khoa: {department}</span>}
-              {invoice.appointmentId && <span>Lịch hẹn: {invoice.appointmentId}</span>}
             </div>
+            {hasAppointmentMeta && (
+              <div className="mt-3 flex flex-wrap gap-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:text-sm">
+                {invoiceTypeLabel && (
+                  <span className="flex items-center gap-1 font-semibold text-blue-700">
+                    <Tag className="h-3.5 w-3.5" />
+                    {invoiceTypeLabel}
+                  </span>
+                )}
+                {appointmentDisplay && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-gray-500" />
+                    {appointmentDisplay}
+                  </span>
+                )}
+                {doctorName && (
+                  <span className="flex items-center gap-1">
+                    <Stethoscope className="h-3.5 w-3.5 text-gray-500" />
+                    <span className="font-semibold text-gray-800">BS. {doctorName}</span>
+                  </span>
+                )}
+                {department && (
+                  <span className="flex items-center gap-1">
+                    <Building2 className="h-3.5 w-3.5 text-gray-500" />
+                    {department}
+                  </span>
+                )}
+                {appointmentId && (
+                  <span className="flex items-center gap-1">
+                    <Hash className="h-3.5 w-3.5 text-gray-500" />
+                    {appointmentId}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1350,23 +1408,24 @@ function getInvoiceLabel(invoice: Invoice) {
   return invoice.invoiceNumber || invoice.invoiceCode || invoice.id;
 }
 
+const INVOICE_TYPE_LABELS: Record<string, string> = {
+  appointment_booking: 'Đặt lịch khám',
+  wallet_topup: 'Nạp ví tài khoản',
+  late_cancellation_fee: 'Phí hủy lịch muộn',
+  reschedule_fee: 'Phí đổi lịch hẹn',
+  no_show_fee: 'Phí bỏ khám',
+  prescription: 'Thanh toán đơn thuốc',
+  lab_test: 'Thanh toán xét nghiệm',
+  treatment_plan: 'Thanh toán kế hoạch điều trị',
+  medical_record: 'Thanh toán hồ sơ y tế',
+  refund: 'Hoàn tiền',
+  medical_service: 'Dịch vụ y tế',
+};
+
 function getInvoiceTitle(invoice: Invoice) {
-  const type = invoice.metadata?.invoiceType as string | undefined;
-  const mapping: Record<string, string> = {
-    appointment_booking: 'Đặt lịch khám',
-    wallet_topup: 'Nạp ví tài khoản',
-    late_cancellation_fee: 'Phí hủy lịch muộn',
-    reschedule_fee: 'Phí đổi lịch hẹn',
-    no_show_fee: 'Phí bỏ khám',
-    prescription: 'Thanh toán đơn thuốc',
-    lab_test: 'Thanh toán xét nghiệm',
-    treatment_plan: 'Thanh toán kế hoạch điều trị',
-    medical_record: 'Thanh toán hồ sơ y tế',
-    refund: 'Hoàn tiền',
-    medical_service: 'Dịch vụ y tế',
-  };
-  if (type && mapping[type]) {
-    return mapping[type];
+  const typeLabel = getInvoiceTypeLabel(invoice);
+  if (typeLabel) {
+    return typeLabel;
   }
   if (invoice.metadata?.serviceName) {
     return invoice.metadata.serviceName;
@@ -1425,6 +1484,56 @@ function getRefundAmount(invoice: Invoice): number {
   return invoice.payments
     .filter((p) => p.method === 'refund' || p.amount < 0)
     .reduce((sum, p) => sum + Math.abs(p.amount), 0);
+}
+
+function getInvoiceTypeLabel(invoice: Invoice): string | null {
+  const type = (
+    (invoice.metadata?.invoiceType as string | undefined) ||
+    (invoice.metadata?.invoice_type as string | undefined)
+  )?.toLowerCase();
+  if (type && INVOICE_TYPE_LABELS[type]) {
+    return INVOICE_TYPE_LABELS[type];
+  }
+  return null;
+}
+
+function getInvoiceAppointmentDate(invoice: Invoice): Date | null {
+  const metadata = (invoice.metadata || {}) as Record<string, any>;
+  const candidates = [
+    metadata.appointmentDateTime,
+    metadata.appointment_datetime,
+    metadata.appointmentTime,
+    metadata.appointment_time,
+    metadata.appointmentStartAt,
+    metadata.appointment_start_at,
+  ];
+
+  for (const value of candidates) {
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+  }
+
+  const datePart = metadata.appointmentDate || metadata.appointment_date;
+  const timePart = metadata.appointmentTime || metadata.appointment_time;
+  if (datePart && timePart) {
+    const parsed = new Date(`${datePart}T${timePart}`);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function formatAppointmentDateTimeDisplay(date: Date | null): string | null {
+  if (!date) return null;
+  const dateLabel = APPOINTMENT_DATE_FORMATTER.format(date);
+  const timeLabel = APPOINTMENT_TIME_FORMATTER.format(date);
+  return `${dateLabel} • ${timeLabel}`;
 }
 
 function getOutstandingAmount(invoice: Invoice): number {
