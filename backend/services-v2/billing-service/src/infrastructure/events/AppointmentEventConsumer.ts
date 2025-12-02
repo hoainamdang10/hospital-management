@@ -49,6 +49,8 @@ export interface AppointmentScheduledEventData {
   serviceType: "consultation" | "procedure" | "follow_up";
   consultationFee?: number;
   notes?: string;
+  appointmentDateLocal?: string;
+  appointmentTimeLocal?: string;
 }
 
 export interface AppointmentCancelledLateEventData {
@@ -336,6 +338,16 @@ export class AppointmentEventConsumer {
       payload?.appointment?.consultationFee ||
       payload?.billing?.consultationFee;
     const consultationFee = this.toNumber(consultationFeeRaw, NaN);
+    const appointmentDateRaw =
+      payload?.appointmentDate ||
+      payload?.appointment_date ||
+      payload?.timeSlot?.appointmentDate ||
+      undefined;
+    const appointmentTimeRaw =
+      payload?.appointmentTime ||
+      payload?.appointment_time ||
+      payload?.timeSlot?.appointmentTime ||
+      undefined;
 
     return {
       appointmentId: common.appointmentId,
@@ -360,6 +372,8 @@ export class AppointmentEventConsumer {
           ? consultationFee
           : undefined,
       notes: payload?.notes || payload?.reason || undefined,
+      appointmentDateLocal: appointmentDateRaw,
+      appointmentTimeLocal: appointmentTimeRaw,
     };
   }
 
@@ -557,16 +571,27 @@ export class AppointmentEventConsumer {
   }
 
   private resolveScheduledAt(payload: any): Date {
-    if (payload?.scheduledAt) {
-      return new Date(payload.scheduledAt);
-    }
-
     if (payload?.appointmentDate && payload?.appointmentTime) {
-      return new Date(`${payload.appointmentDate}T${payload.appointmentTime}`);
+      const combined = new Date(
+        `${payload.appointmentDate}T${payload.appointmentTime}`,
+      );
+      if (!isNaN(combined.getTime())) {
+        return combined;
+      }
     }
 
     if (payload?.appointmentDate) {
-      return new Date(payload.appointmentDate);
+      const dateOnly = new Date(payload.appointmentDate);
+      if (!isNaN(dateOnly.getTime())) {
+        return dateOnly;
+      }
+    }
+
+    if (payload?.scheduledAt) {
+      const scheduled = new Date(payload.scheduledAt);
+      if (!isNaN(scheduled.getTime())) {
+        return scheduled;
+      }
     }
 
     return new Date();
@@ -751,6 +776,8 @@ export class AppointmentEventConsumer {
         scheduledAt: enrichedData.scheduledAt,
         duration: enrichedData.duration,
         consultationFee: enrichedData.consultationFee,
+        appointmentDateLocal: enrichedData.appointmentDateLocal,
+        appointmentTimeLocal: enrichedData.appointmentTimeLocal,
         insuranceInfo: patient.insuranceInfo,
       });
 

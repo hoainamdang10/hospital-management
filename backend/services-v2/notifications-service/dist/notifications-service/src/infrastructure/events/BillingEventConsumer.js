@@ -412,19 +412,30 @@ class BillingEventConsumer {
      * - Skip failed/refunded in MVP (future work)
      */
     async handlePaymentProcessed(data) {
+        const resolvedAmount = typeof data.amount === "number"
+            ? data.amount
+            : Number(data.totalAmount ?? 0);
+        const resolvedMethod = data.paymentMethod || data.method || "online_payment";
+        const resolvedStatus = (data.paymentStatus ||
+            data.status ||
+            "completed").toString();
+        const resolvedProcessedAt = data.processedAt
+            ? new Date(data.processedAt)
+            : new Date();
+        const resolvedPatientName = data.patientName || "Bệnh nhân";
         console.log("[BillingEventConsumer] Processing payment processed for notifications", {
             paymentId: data.paymentId,
             patientId: data.patientId,
-            amount: data.amount,
-            paymentStatus: data.paymentStatus,
-            paymentMethod: data.paymentMethod,
+            amount: resolvedAmount,
+            paymentStatus: resolvedStatus,
+            paymentMethod: resolvedMethod,
         });
         try {
             // ===== GUARD: Only process completed payments in MVP =====
-            if (data.paymentStatus !== "completed") {
+            if (resolvedStatus !== "completed") {
                 console.log("[BillingEventConsumer] Ignoring non-completed payment (MVP scope)", {
                     paymentId: data.paymentId,
-                    paymentStatus: data.paymentStatus,
+                    paymentStatus: resolvedStatus,
                 });
                 return;
             }
@@ -437,20 +448,20 @@ class BillingEventConsumer {
             await this.dispatchNotification({
                 recipientId: data.patientId,
                 recipientType: "PATIENT",
-                recipientName: data.patientName,
+                recipientName: resolvedPatientName,
                 recipientEmail: patientPreferences?.preferences?.email,
                 recipientPhone: patientPreferences?.preferences?.phoneNumber,
                 templateType: "PAYMENT_COMPLETED", // ✅ NEW template
                 channels: ["EMAIL"],
                 priority: "NORMAL",
                 data: {
-                    patientName: data.patientName,
+                    patientName: resolvedPatientName,
                     paymentId: data.paymentId,
                     appointmentId: data.appointmentId || "N/A",
-                    amount: data.amount,
-                    paymentMethod: data.paymentMethod,
+                    amount: resolvedAmount,
+                    paymentMethod: resolvedMethod,
                     transactionId: data.transactionId || data.paymentId,
-                    completedAt: data.processedAt,
+                    completedAt: resolvedProcessedAt,
                     statusMessage: "Thanh toán thành công. Lịch hẹn của bạn đã được xác nhận.",
                 },
                 scheduledAt: new Date(),
@@ -520,33 +531,43 @@ class BillingEventConsumer {
      * Handle invoice generated event
      */
     async handleInvoiceGenerated(data) {
+        const normalizedData = this.normalizeInvoiceData(data);
+        const invoiceTotal = normalizedData.totalAmount ?? 0;
+        const patientResponsibility = typeof normalizedData.patientResponsibility === "number"
+            ? normalizedData.patientResponsibility
+            : Math.max(0, invoiceTotal - (normalizedData.insuranceCoverage ?? 0));
+        const enrichedData = {
+            ...normalizedData,
+            totalAmount: invoiceTotal,
+            patientResponsibility,
+        };
         console.log("Processing invoice generation for notifications", {
-            invoiceId: data.invoiceId,
-            patientId: data.patientId,
-            totalAmount: data.totalAmount,
-            dueDate: data.dueDate,
-            patientResponsibility: data.patientResponsibility,
+            invoiceId: enrichedData.invoiceId,
+            patientId: enrichedData.patientId,
+            totalAmount: invoiceTotal,
+            dueDate: enrichedData.dueDate,
+            patientResponsibility,
         });
         try {
             // Get patient notification preferences
             const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-                userId: data.patientId,
+                userId: enrichedData.patientId,
                 userType: "patient",
             });
             // Send invoice notification to patient
-            await this.sendInvoiceNotification(data, patientPreferences);
+            await this.sendInvoiceNotification(enrichedData, patientPreferences);
             // Send high-value invoice notification to billing department
-            if (data.totalAmount > 5000000) {
+            if (invoiceTotal > 5000000) {
                 // 5 million VND
-                await this.sendHighValueInvoiceNotification(data);
+                await this.sendHighValueInvoiceNotification(enrichedData);
             }
             // Schedule payment reminders
-            await this.schedulePaymentReminders(data, patientPreferences);
+            await this.schedulePaymentReminders(enrichedData, patientPreferences);
         }
         catch (error) {
             console.error("Failed to process invoice generation", {
-                invoiceId: data.invoiceId,
-                patientId: data.patientId,
+                invoiceId: enrichedData.invoiceId,
+                patientId: enrichedData.patientId,
                 error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
@@ -1212,13 +1233,18 @@ class BillingEventConsumer {
      */
     async sendPaymentNotification(data, preferences) {
         try {
+            const statusKey = (data.paymentStatus || "completed");
             const statusText = {
                 completed: "hoàn thành",
                 failed: "thất bại",
                 refunded: "đã hoàn tiền",
                 partial_refund: "hoàn tiền một phần",
-            }[data.paymentStatus] || data.paymentStatus;
-            let content = `Thanh toán ${data.amount.toLocaleString("vi-VN")} VNĐ bằng ${data.paymentMethod} đã ${statusText}.`;
+            }[statusKey] || statusKey;
+            const amount = typeof data.amount === "number"
+                ? data.amount
+                : Number(data?.totalAmount ?? 0);
+            const method = data.paymentMethod || data.method || "online_payment";
+            let content = `Thanh toán ${amount.toLocaleString("vi-VN")} VNĐ bằng ${method} đã ${statusText}.`;
             if (data.dueAmount && data.dueAmount > 0) {
                 content += ` Số tiền còn lại: ${data.dueAmount.toLocaleString("vi-VN")} VNĐ.`;
             }
@@ -1229,13 +1255,13 @@ class BillingEventConsumer {
                 title: "Xác nhận thanh toán",
                 content,
                 channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
-                priority: data.paymentStatus === "failed" ? "high" : "normal",
+                priority: statusKey === "failed" ? "high" : "normal",
                 scheduledAt: new Date(),
                 metadata: {
                     patientId: data.patientId,
                     paymentId: data.paymentId,
-                    paymentStatus: data.paymentStatus,
-                    amount: data.amount,
+                    paymentStatus: statusKey,
+                    amount,
                 },
             };
             await this.dispatchNotification(notificationData);
@@ -1257,19 +1283,22 @@ class BillingEventConsumer {
      */
     async sendPaymentFailureNotification(data, preferences) {
         try {
+            const amount = typeof data.amount === "number"
+                ? data.amount
+                : Number(data?.totalAmount ?? 0);
             const notificationData = {
                 recipientId: data.patientId,
                 recipientType: "patient",
                 type: "payment_failed",
                 title: "Thanh toán thất bại",
-                content: `Thanh toán ${data.amount.toLocaleString("vi-VN")} VNĐ đã thất bại. Vui lòng kiểm tra thông tin thanh toán và thử lại hoặc liên hệ phòng kế toán.`,
+                content: `Thanh toán ${amount.toLocaleString("vi-VN")} VNĐ đã thất bại. Vui lòng kiểm tra thông tin thanh toán và thử lại hoặc liên hệ phòng kế toán.`,
                 channels: this.getEnabledChannels(preferences, ["email", "sms"]),
                 priority: "high",
                 scheduledAt: new Date(),
                 metadata: {
                     patientId: data.patientId,
                     paymentId: data.paymentId,
-                    amount: data.amount,
+                    amount,
                 },
             };
             await this.dispatchNotification(notificationData);
@@ -1286,19 +1315,20 @@ class BillingEventConsumer {
      */
     async sendRefundNotification(data, preferences) {
         try {
+            const refundAmount = typeof data.refundAmount === "number" ? data.refundAmount : 0;
             const notificationData = {
                 recipientId: data.patientId,
                 recipientType: "patient",
                 type: "refund_processed",
                 title: "Hoàn tiền đã được xử lý",
-                content: `Hoàn tiền ${data.refundAmount?.toLocaleString("vi-VN")} VNĐ đã được xử lý cho thanh toán #${data.paymentId}.`,
+                content: `Hoàn tiền ${refundAmount.toLocaleString("vi-VN")} VNĐ đã được xử lý cho thanh toán #${data.paymentId}.`,
                 channels: this.getEnabledChannels(preferences, ["email", "in_app"]),
                 priority: "normal",
                 scheduledAt: new Date(),
                 metadata: {
                     patientId: data.patientId,
                     paymentId: data.paymentId,
-                    refundAmount: data.refundAmount,
+                    refundAmount,
                 },
             };
             await this.dispatchNotification(notificationData);
@@ -1315,21 +1345,34 @@ class BillingEventConsumer {
      */
     async sendInvoiceNotification(data, preferences) {
         try {
+            const totalAmount = typeof data.totalAmount === "number"
+                ? data.totalAmount
+                : Number(data.amount ?? 0);
+            const patientResponsibility = typeof data.patientResponsibility === "number"
+                ? data.patientResponsibility
+                : Math.max(0, totalAmount - (data.insuranceCoverage ?? 0));
+            const dueDateRaw = data.dueDate ?? data.generatedAt;
+            const dueDate = dueDateRaw instanceof Date
+                ? dueDateRaw
+                : new Date(dueDateRaw || Date.now());
+            const safeDueDate = Number.isNaN(dueDate.getTime())
+                ? new Date()
+                : dueDate;
             const notificationData = {
                 recipientId: data.patientId,
                 recipientType: "patient",
                 type: "invoice_generated",
                 title: "Hóa đơn mới",
-                content: `Hóa đơn #${data.invoiceId} đã được tạo. Tổng cộng: ${data.totalAmount.toLocaleString("vi-VN")} VNĐ. Số tiền bạn cần thanh toán: ${data.patientResponsibility.toLocaleString("vi-VN")} VNĐ. Hạn thanh toán: ${this.formatDate(data.dueDate)}.`,
+                content: `Hóa đơn #${data.invoiceId} đã được tạo. Tổng cộng: ${totalAmount.toLocaleString("vi-VN")} VNĐ. Số tiền bạn cần thanh toán: ${patientResponsibility.toLocaleString("vi-VN")} VNĐ. Hạn thanh toán: ${this.formatDate(safeDueDate)}.`,
                 channels: this.getEnabledChannels(preferences, ["email", "in_app"]),
-                priority: data.patientResponsibility > 10000000 ? "high" : "normal", // High if > 10M VND
+                priority: patientResponsibility > 10000000 ? "high" : "normal", // High if > 10M VND
                 scheduledAt: new Date(),
                 metadata: {
                     patientId: data.patientId,
                     invoiceId: data.invoiceId,
-                    totalAmount: data.totalAmount,
-                    dueDate: data.dueDate,
-                    patientResponsibility: data.patientResponsibility,
+                    totalAmount,
+                    dueDate: safeDueDate,
+                    patientResponsibility,
                 },
             };
             await this.dispatchNotification(notificationData);
@@ -1350,19 +1393,20 @@ class BillingEventConsumer {
      */
     async sendHighValueInvoiceNotification(data) {
         try {
+            const totalAmount = typeof data.totalAmount === "number" ? data.totalAmount : 0;
             const notificationData = {
                 recipientId: "billing_department",
                 recipientType: "department",
                 type: "high_value_invoice",
                 title: "Hóa đơn giá trị cao",
-                content: `Hóa đơn giá trị cao đã được tạo cho bệnh nhân ${data.patientName}: ${data.totalAmount.toLocaleString("vi-VN")} VNĐ. Cần xem xét phương thức thanh toán.`,
+                content: `Hóa đơn giá trị cao đã được tạo cho bệnh nhân ${data.patientName || "Bệnh nhân"}: ${totalAmount.toLocaleString("vi-VN")} VNĐ. Cần xem xét phương thức thanh toán.`,
                 channels: ["in_app", "email"],
                 priority: "high",
                 scheduledAt: new Date(),
                 metadata: {
                     patientId: data.patientId,
                     invoiceId: data.invoiceId,
-                    totalAmount: data.totalAmount,
+                    totalAmount,
                 },
             };
             await this.dispatchNotification(notificationData);
@@ -1379,15 +1423,28 @@ class BillingEventConsumer {
      */
     async schedulePaymentReminders(data, preferences) {
         try {
+            const dueDateRaw = data.dueDate ?? data.generatedAt ?? new Date();
+            const dueDate = dueDateRaw instanceof Date ? dueDateRaw : new Date(dueDateRaw);
+            if (Number.isNaN(dueDate.getTime())) {
+                console.warn("Skipping reminder scheduling due to invalid due date", {
+                    invoiceId: data.invoiceId,
+                    patientId: data.patientId,
+                    dueDate: data.dueDate,
+                });
+                return;
+            }
+            const patientResponsibility = typeof data.patientResponsibility === "number"
+                ? data.patientResponsibility
+                : Math.max(0, Number(data.totalAmount ?? 0));
             const reminderSchedule = [
                 { type: "first_notice", daysBefore: 7 },
                 { type: "second_notice", daysBefore: 3 },
                 { type: "final_notice", daysBefore: 1 },
             ];
             for (const reminder of reminderSchedule) {
-                const reminderDate = new Date(data.dueDate.getTime() - reminder.daysBefore * 24 * 60 * 60 * 1000);
+                const reminderDate = new Date(dueDate.getTime() - reminder.daysBefore * 24 * 60 * 60 * 1000);
                 if (reminderDate > new Date()) {
-                    const message = this.getReminderMessage(reminder.type, data.dueDate, data.patientResponsibility);
+                    const message = this.getReminderMessage(reminder.type, dueDate, patientResponsibility);
                     const notificationData = {
                         recipientId: data.patientId,
                         recipientType: "patient",
@@ -1405,7 +1462,7 @@ class BillingEventConsumer {
                             patientId: data.patientId,
                             invoiceId: data.invoiceId,
                             reminderType: reminder.type,
-                            dueDate: data.dueDate,
+                            dueDate,
                         },
                     };
                     await this.dispatchNotification(notificationData);
@@ -1580,6 +1637,28 @@ class BillingEventConsumer {
             final_notice: `CẢNH BÁO: Hóa đơn của bạn sẽ đến hạn vào ${dueDateStr}. Số tiền cần thanh toán: ${amountStr} VNĐ. Vui lòng thanh toán ngay để tránh phí trễ hạn.`,
         };
         return messages[type] || messages["first_notice"];
+    }
+    normalizeInvoiceData(data) {
+        const totalAmount = typeof data.totalAmount === "number"
+            ? data.totalAmount
+            : typeof data.amount === "number"
+                ? data.amount
+                : 0;
+        const dueSource = data.dueDate ||
+            data.invoiceDate ||
+            data.issuedAt ||
+            data.generatedAt ||
+            new Date();
+        const dueDate = dueSource instanceof Date ? dueSource : new Date(dueSource);
+        const patientResponsibility = typeof data.patientResponsibility === "number"
+            ? data.patientResponsibility
+            : Math.max(0, totalAmount - (data.insuranceCoverage ?? 0));
+        return {
+            ...data,
+            totalAmount,
+            patientResponsibility,
+            dueDate,
+        };
     }
     formatDate(date) {
         return date.toLocaleDateString("vi-VN", {

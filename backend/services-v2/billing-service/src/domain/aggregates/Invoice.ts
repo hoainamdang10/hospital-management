@@ -69,6 +69,8 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     // Generate invoice number automatically
     const invoiceNumber = Invoice.generateInvoiceNumber();
 
+    const invoiceDueDate = new Date(now.getTime() + 30 * 60 * 1000);
+
     const invoice = new Invoice({
       id: invoiceId,
       patientId,
@@ -89,10 +91,13 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     invoice.addDomainEvent(
       new InvoiceCreatedEvent(
         invoiceId.value,
+        invoiceNumber,
         patientId,
         totalAmount.amount,
         totalAmount.currency,
-        "draft",
+        invoice.status.value,
+        now,
+        invoiceDueDate,
       ),
     );
 
@@ -321,6 +326,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       new PaymentProcessedEvent(
         this.props.id.value,
         payment.id,
+        this.props.patientId,
         payment.amount.amount,
         payment.amount.currency,
         payment.method,

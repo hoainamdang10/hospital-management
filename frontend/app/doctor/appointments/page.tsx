@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Calendar as CalendarIcon,
@@ -18,6 +18,13 @@ import {
   Users,
   Activity,
   Loader2,
+  CalendarDays,
+  Stethoscope,
+  AlertCircle,
+  MoreVertical,
+  Phone,
+  Mail,
+  MapPin
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -30,14 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout';
@@ -46,6 +45,17 @@ import { getStaffByUserId } from '@/lib/api/staff.service';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Appointment {
   id: string;
@@ -58,6 +68,8 @@ interface Appointment {
   reason: string;
   priority: string;
   paymentStatus?: string;
+  patientGender?: string;
+  patientAge?: number;
 }
 
 export default function DoctorAppointmentsPage() {
@@ -68,8 +80,10 @@ export default function DoctorAppointmentsPage() {
   const [doctorStaffId, setDoctorStaffId] = useState<string | null>(null);
   const [isResolvingDoctor, setIsResolvingDoctor] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('TODAY');
+  const [dateFilter, setDateFilter] = useState('TODAY');
+  const [activeTab, setActiveTab] = useState('ALL');
 
+  // Resolve Doctor ID Logic
   useEffect(() => {
     if (!user) {
       setDoctorStaffId(null);
@@ -91,9 +105,7 @@ export default function DoctorAppointmentsPage() {
       return;
     }
 
-    if (doctorStaffId) {
-      return;
-    }
+    if (doctorStaffId) return;
 
     if (!user.userId) {
       setDoctorStaffId(null);
@@ -110,9 +122,7 @@ export default function DoctorAppointmentsPage() {
           if (profile?.staffId) {
             setDoctorStaffId(profile.staffId);
           } else {
-            console.warn('[DoctorAppointments] Không tìm thấy staffId cho bác sĩ', {
-              userId: user.userId,
-            });
+            console.warn('[DoctorAppointments] Không tìm thấy staffId cho bác sĩ', { userId: user.userId });
             toast.error('Không tìm thấy mã bác sĩ trong hồ sơ nhân sự');
             setDoctorStaffId(null);
           }
@@ -120,51 +130,61 @@ export default function DoctorAppointmentsPage() {
       } catch (error) {
         if (!isCancelled) {
           console.error('Failed to resolve doctor staffId', error);
-          toast.error('Không thể xác định mã bác sĩ, vui lòng liên hệ quản trị viên');
+          toast.error('Không thể xác định mã bác sĩ');
           setDoctorStaffId(null);
         }
       } finally {
-        if (!isCancelled) {
-          setIsResolvingDoctor(false);
-        }
+        if (!isCancelled) setIsResolvingDoctor(false);
       }
     };
 
     resolveStaffId();
+    return () => { isCancelled = true; };
+  }, [doctorStaffId, user]);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [doctorStaffId, user ? 1 : 0, user?.userId, user?.id, user?.staffId, user?.role]);
-
+  // Fetch Appointments
   const fetchAppointments = useCallback(async () => {
     const resolvedDoctorId = doctorStaffId || user?.staffId || user?.userId || user?.id;
-    if (!resolvedDoctorId) {
-      return;
-    }
+    if (!resolvedDoctorId) return;
 
     setIsLoading(true);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-
       const res = await appointmentsService.getDoctorAppointments(resolvedDoctorId, {
-        startDate: statusFilter === 'TODAY' ? today : undefined,
-        endDate: statusFilter === 'TODAY' ? today : undefined,
+        startDate: dateFilter === 'TODAY' ? today : undefined,
+        endDate: dateFilter === 'TODAY' ? today : undefined,
       });
 
       if (res.appointments) {
-        const mapped = res.appointments.map((apt: any) => ({
-          id: apt.id || apt.appointment_id,
-          appointmentId: apt.appointment_id || apt.id,
-          patientName: apt.patient_full_name || apt.patientName || 'N/A',
-          patientId: apt.patient_id || apt.patientId,
-          appointmentTime: apt.appointment_time || apt.appointmentTime,
-          status: (apt.status || '').toString().toUpperCase(),
-          paymentStatus: apt.payment_status || apt.paymentStatus,
-          type: apt.type,
-          reason: apt.reason,
-          priority: apt.priority || 'NORMAL',
-        }));
+        const mapped = res.appointments.map((apt: any) => {
+          // Calculate age if DOB is available
+          let age = undefined;
+          const dob = apt.patient_date_of_birth || apt.patientDateOfBirth || apt.patient_dob;
+          if (dob) {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+              age--;
+            }
+          }
+
+          return {
+            id: apt.id || apt.appointment_id,
+            appointmentId: apt.appointment_id || apt.id,
+            patientName: apt.patient_full_name || apt.patientName || 'N/A',
+            patientId: apt.patient_id || apt.patientId,
+            appointmentTime: apt.appointment_time || apt.appointmentTime,
+            status: (apt.status || '').toString().toUpperCase(),
+            paymentStatus: apt.payment_status || apt.paymentStatus,
+            type: apt.type,
+            reason: apt.reason,
+            priority: apt.priority || 'NORMAL',
+            patientGender: apt.patient_gender || apt.patientGender || apt.gender,
+            patientAge: age,
+          };
+        });
 
         mapped.sort((a: any, b: any) => a.appointmentTime.localeCompare(b.appointmentTime));
         setAppointments(mapped);
@@ -175,46 +195,12 @@ export default function DoctorAppointmentsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [doctorStaffId, statusFilter, user?.id, user?.staffId, user?.userId]);
+  }, [doctorStaffId, dateFilter, user]);
 
   useEffect(() => {
-    if (isResolvingDoctor) {
-      return;
-    }
+    if (isResolvingDoctor) return;
     fetchAppointments();
   }, [fetchAppointments, isResolvingDoctor]);
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      CHECKED_IN: { label: 'Đã đến', className: 'bg-green-100 text-green-700' },
-      IN_PROGRESS: { label: 'Đang khám', className: 'bg-blue-100 text-blue-700' },
-      COMPLETED: { label: 'Đã xong', className: 'bg-gray-100 text-gray-700' },
-      CONFIRMED: { label: 'Chờ đến', className: 'bg-yellow-100 text-yellow-700' },
-    };
-    const config = statusConfig[status as keyof typeof statusConfig] || {
-      label: status,
-      className: 'bg-gray-100 text-gray-700',
-    };
-    return (
-      <Badge className={`${config.className} hover:${config.className}`}>{config.label}</Badge>
-    );
-  };
-
-  const getPaymentBadge = (payment?: string) => {
-    const value = (payment || '').toUpperCase();
-    const paymentConfig = {
-      PAID: { label: 'Đã thanh toán', className: 'bg-emerald-100 text-emerald-700' },
-      PENDING_PAYMENT: { label: 'Chờ thanh toán', className: 'bg-amber-100 text-amber-700' },
-      REFUNDED: { label: 'Đã hoàn', className: 'bg-blue-100 text-blue-700' },
-    };
-    const config = paymentConfig[value as keyof typeof paymentConfig] || {
-      label: payment || 'N/A',
-      className: 'bg-gray-100 text-gray-700',
-    };
-    return (
-      <Badge className={`${config.className} hover:${config.className}`}>{config.label}</Badge>
-    );
-  };
 
   const handleStartExam = async (id: string) => {
     try {
@@ -225,280 +211,324 @@ export default function DoctorAppointmentsPage() {
     }
   };
 
-  const stats = [
+  // Helper: Translate gender to Vietnamese
+  const translateGender = (gender?: string): string => {
+    if (!gender) return 'Chưa cập nhật';
+    const normalized = gender.toLowerCase();
+    if (normalized === 'male' || normalized === 'm') return 'Nam';
+    if (normalized === 'female' || normalized === 'f') return 'Nữ';
+    return gender; // Return as-is if already in Vietnamese or unknown
+  };
+
+  // Filter Logic
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((apt) => {
+      const matchesSearch = apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        apt.patientId.toLowerCase().includes(searchTerm.toLowerCase());
+
+      let matchesTab = true;
+      if (activeTab === 'WAITING') {
+        matchesTab = ['CHECKED_IN', 'CONFIRMED', 'PENDING'].includes(apt.status);
+      } else if (activeTab === 'IN_PROGRESS') {
+        matchesTab = apt.status === 'IN_PROGRESS';
+      } else if (activeTab === 'COMPLETED') {
+        matchesTab = apt.status === 'COMPLETED';
+      } else if (activeTab === 'CANCELLED') {
+        matchesTab = ['CANCELLED', 'NO_SHOW'].includes(apt.status);
+      }
+
+      return matchesSearch && matchesTab;
+    });
+  }, [appointments, searchTerm, activeTab]);
+
+  // Stats Logic
+  const stats = useMemo(() => [
     {
       title: 'Tổng bệnh nhân',
       value: appointments.length,
-      icon: ClipboardList,
-      gradient: 'from-blue-500 to-indigo-500',
-      bgGradient: 'from-blue-50 to-indigo-50',
-    },
-    {
-      title: 'Đang chờ khám',
-      value: appointments.filter((a) => ['CHECKED_IN', 'CONFIRMED'].includes(a.status)).length,
       icon: Users,
-      gradient: 'from-green-500 to-emerald-500',
-      bgGradient: 'from-green-50 to-emerald-50',
+      color: 'text-blue-600',
+      bg: 'bg-blue-100',
     },
     {
-      title: 'Đã hoàn thành',
+      title: 'Đang chờ',
+      value: appointments.filter((a) => ['CHECKED_IN', 'CONFIRMED'].includes(a.status)).length,
+      icon: Clock,
+      color: 'text-amber-600',
+      bg: 'bg-amber-100',
+    },
+    {
+      title: 'Hoàn thành',
       value: appointments.filter((a) => a.status === 'COMPLETED').length,
       icon: CheckCircle2,
-      gradient: 'from-purple-500 to-pink-500',
-      bgGradient: 'from-purple-50 to-pink-50',
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-100',
     },
-  ];
+  ], [appointments]);
 
-  const filteredAppointments = appointments.filter((apt) =>
-    apt.patientName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'CHECKED_IN': return { label: 'Đã đến', color: 'text-green-600 bg-green-100', icon: MapPin };
+      case 'IN_PROGRESS': return { label: 'Đang khám', color: 'text-blue-600 bg-blue-100', icon: Activity };
+      case 'COMPLETED': return { label: 'Đã xong', color: 'text-gray-600 bg-gray-100', icon: CheckCircle2 };
+      case 'CONFIRMED': return { label: 'Chờ đến', color: 'text-amber-600 bg-amber-100', icon: Clock };
+      case 'CANCELLED': return { label: 'Đã hủy', color: 'text-red-600 bg-red-100', icon: AlertCircle };
+      default: return { label: status, color: 'text-gray-600 bg-gray-100', icon: AlertCircle };
+    }
+  };
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Premium Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-8 text-white shadow-xl"
-        >
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            {[...Array(3)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full bg-white/10 blur-3xl"
-                style={{
-                  width: `${200 + i * 100}px`,
-                  height: `${200 + i * 100}px`,
-                  left: `${10 + i * 30}%`,
-                  top: `${-20 + i * 20}%`,
-                }}
-                animate={{
-                  x: [0, 20, 0],
-                  y: [0, 30, 0],
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  duration: 8 + i * 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-            ))}
-          </div>
+      <div className="min-h-screen space-y-8 pb-10">
+        {/* Header Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white shadow-2xl">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
-          <div className="relative z-10 flex items-center justify-between">
+          <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-6">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 shadow-2xl backdrop-blur-xl"
-              >
-                <ClipboardList className="h-10 w-10 text-white" />
-              </motion.div>
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 shadow-inner backdrop-blur-md">
+                <CalendarDays className="h-10 w-10 text-white" />
+              </div>
               <div>
-                <h1 className="mb-2 text-4xl font-bold">Danh sách khám bệnh</h1>
-                <p className="text-blue-100">Quản lý lịch khám bệnh nhân</p>
+                <h1 className="text-3xl font-bold tracking-tight">Lịch khám bệnh</h1>
+                <p className="mt-1 text-blue-100">Quản lý danh sách bệnh nhân và lịch hẹn hôm nay</p>
               </div>
             </div>
-            <div className="rounded-xl bg-white/20 px-6 py-3 shadow-lg backdrop-blur-xl">
-              <p className="text-sm font-medium text-blue-100">Hôm nay</p>
-              <p className="text-lg font-bold">
-                {format(new Date(), 'dd/MM/yyyy', { locale: vi })}
-              </p>
+
+            <div className="flex items-center gap-4 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+              <div className="text-right">
+                <p className="text-sm font-medium text-blue-100">Hôm nay</p>
+                <p className="text-xl font-bold">{format(new Date(), 'EEEE, dd/MM/yyyy', { locale: vi })}</p>
+              </div>
+              <div className="h-10 w-[1px] bg-white/20" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full bg-white/20 text-white hover:bg-white/30"
+                onClick={fetchAppointments}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Stats Cards */}
+        {/* Stats Grid */}
         <div className="grid gap-6 md:grid-cols-3">
-          {stats.map((stat, index) => (
+          {stats.map((stat, i) => (
             <motion.div
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: i * 0.1 }}
             >
-              <Card className="overflow-hidden border-none shadow-lg">
-                <div className={`h-2 bg-gradient-to-r ${stat.gradient}`} />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-700">
-                    {stat.title}
-                  </CardTitle>
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${stat.gradient} shadow-md`}
-                  >
-                    <stat.icon className="h-5 w-5 text-white" />
+              <Card className="border-none shadow-lg transition-all hover:shadow-xl">
+                <CardContent className="flex items-center p-6">
+                  <div className={`mr-4 flex h-14 w-14 items-center justify-center rounded-full ${stat.bg}`}>
+                    <stat.icon className={`h-7 w-7 ${stat.color}`} />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: index * 0.1 + 0.2, type: 'spring' }}
-                    className="text-3xl font-bold text-gray-900"
-                  >
-                    {stat.value}
-                  </motion.div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">{stat.title}</p>
+                    <h3 className="text-3xl font-bold text-gray-900">{stat.value}</h3>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
 
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-lg backdrop-blur-xl"
-        >
-          <div className="flex flex-1 items-center gap-4">
-            <div className="relative max-w-md flex-1">
-              <Search className="absolute top-3.5 left-4 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="Tìm tên bệnh nhân..."
-                className="rounded-xl border-2 pl-12 focus:ring-4 focus:ring-blue-100"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] rounded-xl border-2">
-                <SelectValue placeholder="Thời gian" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TODAY">Hôm nay</SelectItem>
-                <SelectItem value="ALL">Tất cả</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            variant="outline"
-            onClick={fetchAppointments}
-            className="rounded-xl border-2"
-            disabled={isLoading || isResolvingDoctor}
-          >
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${isLoading || isResolvingDoctor ? 'animate-spin' : ''}`}
-            />
-            Làm mới
-          </Button>
-        </motion.div>
+        {/* Main Content Area */}
+        <div className="grid gap-8 lg:grid-cols-12">
+          {/* Left Column: Filters & List */}
+          <div className="lg:col-span-12 space-y-6">
+            <div className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+              <Tabs defaultValue="ALL" value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+                <TabsList className="grid w-full grid-cols-4 md:w-[400px]">
+                  <TabsTrigger value="ALL">Tất cả</TabsTrigger>
+                  <TabsTrigger value="WAITING">Chờ khám</TabsTrigger>
+                  <TabsTrigger value="CANCELLED">Đã hủy</TabsTrigger>
+                  <TabsTrigger value="COMPLETED">Đã xong</TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-        {/* Appointments Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
-        >
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50">
-                <TableHead className="font-bold">STT</TableHead>
-                <TableHead className="font-bold">Giờ hẹn</TableHead>
-                <TableHead className="font-bold">Bệnh nhân</TableHead>
-                <TableHead className="font-bold">Lý do khám</TableHead>
-                <TableHead className="font-bold">Trạng thái</TableHead>
-                <TableHead className="font-bold">Thanh toán</TableHead>
-                <TableHead className="text-right font-bold">Hành động</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+              <div className="flex items-center gap-3">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    placeholder="Tìm tên hoặc mã BN..."
+                    className="pl-9 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="w-[140px] rounded-xl border-gray-200 bg-gray-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TODAY">Hôm nay</SelectItem>
+                    <SelectItem value="ALL">Tất cả</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Appointment List - Timeline Style */}
+            <div className="rounded-3xl bg-white p-6 shadow-xl min-h-[500px]">
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-32">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                      <p className="text-sm text-gray-600">Đang tải dữ liệu...</p>
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex gap-4">
+                      <Skeleton className="h-24 w-24 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-16 w-full rounded-xl" />
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredAppointments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-32">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <ClipboardList className="h-12 w-12 text-gray-300" />
-                      <p className="text-gray-600">Không có lịch khám nào</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <AnimatePresence mode="popLayout">
-                  {filteredAppointments.map((apt, index) => (
-                    <motion.tr
-                      key={apt.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`cursor-pointer transition-colors hover:bg-blue-50/50 ${
-                        apt.status === 'IN_PROGRESS' ? 'bg-blue-50/30' : ''
-                      }`}
-                      onClick={() => router.push(`/doctor/appointments/${apt.id}`)}
-                    >
-                      <TableCell className="font-semibold text-gray-900">{index + 1}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                            <Clock className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <span className="font-semibold">
-                            {apt.appointmentTime.substring(0, 5)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-gray-900">{apt.patientName}</span>
-                          <span className="text-xs text-gray-500">{apt.patientId}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[250px]">
-                        <p className="truncate text-gray-700" title={apt.reason}>
-                          {apt.reason}
-                        </p>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(apt.status)}</TableCell>
-                      <TableCell>{getPaymentBadge(apt.paymentStatus)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {apt.status === 'CHECKED_IN' && (
-                            <Button
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStartExam(apt.id);
-                              }}
-                              className="rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                            >
-                              <PlayCircle className="mr-2 h-4 w-4" />
-                              Bắt đầu
-                            </Button>
-                          )}
-                          {apt.status === 'IN_PROGRESS' && (
-                            <Button size="sm" variant="secondary" className="rounded-lg">
-                              <Activity className="mr-2 h-4 w-4" />
-                              Tiếp tục
-                            </Button>
-                          )}
-                          {apt.status === 'COMPLETED' && (
-                            <Button size="sm" variant="ghost" className="rounded-lg">
-                              Xem chi tiết
-                              <ChevronRight className="ml-2 h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </motion.tr>
                   ))}
-                </AnimatePresence>
+                </div>
+              ) : filteredAppointments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="mb-4 rounded-full bg-blue-50 p-6">
+                    <ClipboardList className="h-12 w-12 text-blue-200" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">Không có lịch hẹn</h3>
+                  <p className="text-gray-500">Không tìm thấy lịch hẹn nào phù hợp với bộ lọc hiện tại.</p>
+                </div>
+              ) : (
+                <div className="relative space-y-0">
+                  {/* Timeline Line */}
+                  <div className="absolute left-8 top-4 bottom-4 w-[2px] bg-gray-100" />
+
+                  <AnimatePresence mode="popLayout">
+                    {filteredAppointments.map((apt, index) => {
+                      const statusConfig = getStatusConfig(apt.status);
+                      const StatusIcon = statusConfig.icon;
+
+                      return (
+                        <motion.div
+                          key={apt.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="group relative flex gap-6 pb-8 last:pb-0"
+                        >
+                          {/* Time Column */}
+                          <div className="relative z-10 flex flex-col items-center">
+                            <div className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl border-2 bg-white shadow-sm transition-colors group-hover:border-blue-500 group-hover:shadow-md ${apt.status === 'IN_PROGRESS' ? 'border-blue-500 bg-blue-50' : 'border-gray-100'
+                              }`}>
+                              <span className="text-lg font-bold text-gray-900">
+                                {apt.appointmentTime.substring(0, 5)}
+                              </span>
+                              <span className="text-[10px] font-medium text-gray-500 uppercase">
+                                {parseInt(apt.appointmentTime.substring(0, 2)) >= 12 ? 'PM' : 'AM'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Card Content */}
+                          <div
+                            className={`flex-1 cursor-pointer rounded-2xl border bg-white p-5 transition-all hover:shadow-lg hover:border-blue-200 ${apt.status === 'IN_PROGRESS' ? 'ring-2 ring-blue-500 ring-offset-2 border-blue-200' : 'border-gray-100 shadow-sm'
+                              }`}
+                            onClick={() => router.push(`/doctor/appointments/${apt.id}`)}
+                          >
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                              {/* Patient Info */}
+                              <div className="flex items-center gap-4">
+                                <Avatar className="h-14 w-14 border-2 border-white shadow-sm">
+                                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${apt.patientName}`} />
+                                  <AvatarFallback>{apt.patientName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                      {apt.patientName}
+                                    </h3>
+                                    <Badge variant="outline" className="text-xs font-normal text-gray-500">
+                                      {apt.patientId}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                    <span className="flex items-center gap-1">
+                                      <User className="h-3.5 w-3.5" />
+                                      {translateGender(apt.patientGender)}
+                                      {apt.patientAge ? `, ${apt.patientAge} tuổi` : ''}
+                                    </span>
+                                    <span className="h-1 w-1 rounded-full bg-gray-300" />
+                                    <span className="flex items-center gap-1 text-blue-600 font-medium">
+                                      {apt.type === 'FOLLOW_UP' ? 'Tái khám' : 'Khám mới'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Reason & Status */}
+                              <div className="flex flex-1 items-center justify-between gap-4 md:justify-end">
+                                <div className="hidden md:block text-right mr-4">
+                                  <p className="text-xs text-gray-400 mb-1">Lý do khám</p>
+                                  <p className="text-sm font-medium text-gray-700 max-w-[200px] truncate" title={apt.reason}>
+                                    {apt.reason || 'Không có lý do'}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                  <Badge className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 ${statusConfig.color} border-none`}>
+                                    <StatusIcon className="h-3.5 w-3.5" />
+                                    {statusConfig.label}
+                                  </Badge>
+
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-gray-100" onClick={(e) => e.stopPropagation()}>
+                                        <MoreVertical className="h-4 w-4 text-gray-500" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                      <DropdownMenuLabel>Hành động</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/doctor/appointments/${apt.id}`); }}>
+                                        <Stethoscope className="mr-2 h-4 w-4" /> Xem chi tiết
+                                      </DropdownMenuItem>
+                                      {apt.status === 'CHECKED_IN' && (
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStartExam(apt.id); }} className="text-green-600 focus:text-green-700">
+                                          <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                                        <Phone className="mr-2 h-4 w-4" /> Gọi điện
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Quick Actions Footer (Optional - visible on hover or always) */}
+                            {apt.status === 'CHECKED_IN' && (
+                              <div className="mt-4 flex justify-end border-t border-gray-50 pt-3 md:hidden">
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={(e) => { e.stopPropagation(); handleStartExam(apt.id); }}
+                                >
+                                  <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám ngay
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
               )}
-            </TableBody>
-          </Table>
-        </motion.div>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

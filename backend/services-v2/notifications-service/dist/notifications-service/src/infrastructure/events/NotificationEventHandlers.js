@@ -259,7 +259,17 @@ class NotificationEventHandlers {
      */
     async handleInvoiceGenerated(event) {
         try {
-            const { invoiceId, patientId, amount, dueDate, services, insuranceCoverage, } = event.eventData;
+            const { invoiceId, patientId, totalAmount, amount, dueDate, services, insuranceCoverage, } = event.eventData;
+            const normalizedAmount = typeof totalAmount === "number"
+                ? totalAmount
+                : typeof amount === "number"
+                    ? amount
+                    : 0;
+            const normalizedDueDate = dueDate ??
+                event.eventData.invoiceDate ??
+                event.eventData.issuedAt ??
+                event.eventData.createdAt ??
+                new Date().toISOString();
             // Send invoice notification ONLY
             // Payment reminder scheduling is handled by Billing Service calling Scheduler Service
             await this.notificationService.sendNotification({
@@ -269,12 +279,12 @@ class NotificationEventHandlers {
                 templateData: {
                     patientName: event.eventData.patientName || "Quý khách",
                     invoiceNumber: invoiceId,
-                    amount: amount.toLocaleString("vi-VN"),
+                    amount: normalizedAmount.toLocaleString("vi-VN"),
                     serviceDate: event.eventData.serviceDate
                         ? new Date(event.eventData.serviceDate).toLocaleDateString("vi-VN")
                         : new Date().toLocaleDateString("vi-VN"),
-                    dueDate: new Date(dueDate).toLocaleDateString("vi-VN"),
-                    services: services || [],
+                    dueDate: new Date(normalizedDueDate).toLocaleDateString("vi-VN"),
+                    services: services || event.eventData.items || [],
                     insuranceCoverage: insuranceCoverage || false,
                     insuranceAmount: event.eventData.insuranceAmount
                         ? event.eventData.insuranceAmount.toLocaleString("vi-VN")

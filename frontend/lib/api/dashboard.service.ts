@@ -34,7 +34,6 @@ export async function getPatientDashboardStats(
   options?: { billingIdentifier?: string }
 ): Promise<DashboardStats> {
   try {
-    const billingIdentifier = options?.billingIdentifier || patientId;
     const [
       confirmedApts,
       scheduledApts,
@@ -73,14 +72,28 @@ export async function getPatientDashboardStats(
           pageSize: 100,
         })
         .catch(() => ({ success: true, appointments: [] })),
-      billingService.getPatientBillingSummary(billingIdentifier).catch(() => ({
-        totalAmount: 0,
-        paidAmount: 0,
-        outstandingAmount: 0,
-        invoiceCount: 0,
-        paidInvoiceCount: 0,
-        pendingInvoiceCount: 0,
-      })),
+      // FIX: Use patientId (PAT-XXXXXX-XXX) instead of UUID for billing
+      // Backend billing service stores patient_id as string format in invoices table
+      billingService.getPatientBillingSummary(patientId).catch(async (error) => {
+        console.warn('[DashboardService] Billing API failed with patientId, trying with UUID...', error.message);
+        // Fallback: Try with UUID if string patient_id fails
+        if (options?.billingIdentifier && options.billingIdentifier !== patientId) {
+          try {
+            return await billingService.getPatientBillingSummary(options.billingIdentifier);
+          } catch (fallbackError) {
+            console.error('[DashboardService] Billing API failed with both IDs:', fallbackError);
+          }
+        }
+        // Return empty summary if both fail
+        return {
+          totalAmount: 0,
+          paidAmount: 0,
+          outstandingAmount: 0,
+          invoiceCount: 0,
+          paidInvoiceCount: 0,
+          pendingInvoiceCount: 0,
+        };
+      }),
       patientService.getPatientProfile(patientId).catch(() => null),
       patientService.getInsurance(patientId).catch(() => ({ insuranceInfo: null })),
       patientService.getEmergencyContacts(patientId).catch(() => ({ contacts: [] })),
@@ -95,6 +108,38 @@ export async function getPatientDashboardStats(
     sevenDaysAhead.setDate(today.getDate() + 7);
     sevenDaysAhead.setHours(23, 59, 59, 999); // End of the 7th day
 
+    // Helper function to parse appointment date/time properly
+    const parseAppointmentDateTime = (apt: any): Date | null => {
+      try {
+        const dateStr = apt.appointmentDate || apt.appointment_date || apt.date;
+        const timeStr = apt.appointmentTime || apt.appointment_time || apt.time || '00:00:00';
+
+        if (!dateStr) return null;
+
+        // Handle different date formats
+        // Format: YYYY-MM-DD or ISO string
+        let dateOnly = dateStr;
+        if (dateStr.includes('T')) {
+          dateOnly = dateStr.split('T')[0];
+        }
+
+        // Combine date and time, parse as local time (Vietnam timezone)
+        const dateTimeStr = `${dateOnly}T${timeStr}`;
+        const dt = new Date(dateTimeStr);
+
+        // Check if date is valid
+        if (isNaN(dt.getTime())) {
+          console.warn('[DashboardService] Invalid date for appointment:', apt.appointmentId, dateTimeStr);
+          return null;
+        }
+
+        return dt;
+      } catch (error) {
+        console.error('[DashboardService] Error parsing appointment date:', error, apt);
+        return null;
+      }
+    };
+
     // Count upcoming appointments (including today through next 7 days)
     // Explicitly filter by status to ensure accuracy even if backend ignores status param
     const upcomingConfirmed7DaysCount = [
@@ -105,12 +150,20 @@ export async function getPatientDashboardStats(
         (a: any) => a.status === 'SCHEDULED'
       ),
     ].filter((apt: any) => {
-      const dateStr = apt.appointmentDate || apt.date;
-      const timeStr = apt.appointmentTime || apt.time || '00:00:00';
-      const dt = new Date(`${dateStr}T${timeStr}`);
-      // Include from NOW to 7 days ahead
-      return dt >= now && dt <= sevenDaysAhead;
+      const dt = parseAppointmentDateTime(apt);
+      if (!dt) return false;
+
+      // Include from START OF TODAY to END OF 7 days ahead
+      // This ensures we count all appointments from today onwards
+      return dt >= today && dt <= sevenDaysAhead;
     }).length;
+
+    console.log('[DashboardService] Upcoming appointments count:', upcomingConfirmed7DaysCount, {
+      today: today.toISOString(),
+      sevenDaysAhead: sevenDaysAhead.toISOString(),
+      confirmedCount: ((confirmedApts as any).appointments || []).length,
+      scheduledCount: ((scheduledApts as any).appointments || []).length,
+    });
 
     // Count RECENTLY completed/cancelled (last 30 days)
     const thirtyDaysAgo = new Date(today);

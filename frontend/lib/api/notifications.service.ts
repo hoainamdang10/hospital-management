@@ -22,6 +22,7 @@ export interface UserNotification {
     invoiceId?: string;
   };
   metadata?: Record<string, unknown>;
+  recipientKey?: string;
 }
 
 export interface UserNotificationsResponse {
@@ -109,6 +110,13 @@ export interface NotificationPreview {
   description: string;
 }
 
+const formatCurrency = (value?: number | null): string | null => {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return null;
+  }
+  return `${value.toLocaleString('vi-VN')} đ`;
+};
+
 type AppointmentNotificationPayload = {
   patientName?: string;
   doctorName?: string;
@@ -126,8 +134,57 @@ export function formatNotificationPreview(notification: UserNotification): Notif
   const template = (notification.templateType || notification.subject || '').toUpperCase();
   const payload = parseStructuredBody(notification.body);
   const fallbackDescription = extractDescription(notification);
+  const metadata = notification.metadata || {};
+  const invoiceId =
+    notification.healthcareContext?.invoiceId || (metadata.invoiceId as string | undefined);
+  const amount =
+    (metadata.amount as number | undefined) ??
+    (metadata.totalAmount as number | undefined) ??
+    (payload as any)?.amount;
+  const dueDate =
+    (metadata.dueDate as string | undefined) ||
+    (payload as any)?.dueDate ||
+    (metadata.due_at as string | undefined);
 
   switch (template) {
+    case 'PAYMENT_COMPLETED': {
+      const amountText = formatCurrency(amount);
+      return {
+        title: 'Thanh toán thành công',
+        description: amountText
+          ? `Bạn đã thanh toán ${amountText} cho lịch hẹn/hoá đơn này.`
+          : fallbackDescription || 'Thanh toán đã được xử lý thành công.',
+      };
+    }
+    case 'PAYMENT_REMINDER': {
+      const amountText = formatCurrency(amount);
+      const dueText = dueDate
+        ? new Date(dueDate).toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null;
+      return {
+        title: 'Nhắc nhở thanh toán',
+        description:
+          amountText && dueText
+            ? `Vui lòng thanh toán ${amountText} trước ${dueText}.`
+            : fallbackDescription || 'Hóa đơn của bạn sắp tới hạn.',
+      };
+    }
+    case 'REFUND_PROCESSED': {
+      const amountText = formatCurrency(amount || (metadata.refundAmount as number | undefined));
+      return {
+        title: 'Hoàn tiền đã được xử lý',
+        description:
+          amountText || fallbackDescription
+            ? `${amountText || ''} ${fallbackDescription || ''}`.trim()
+            : 'Khoản hoàn tiền đã được chuyển về phương thức thanh toán ban đầu.',
+      };
+    }
     case 'APPOINTMENT_CONFIRMED': {
       const dateText = formatAppointmentDate(payload?.appointmentDate, payload?.appointmentTime);
       return {
@@ -176,6 +233,17 @@ export function formatNotificationPreview(notification: UserNotification): Notif
       };
     }
     default:
+      if (invoiceId) {
+        const amountText =
+          formatCurrency(amount) ||
+          formatCurrency(metadata.patientResponsibility as number | undefined);
+        return {
+          title: notification.subject || 'Hóa đơn mới',
+          description: amountText
+            ? `Hóa đơn ${invoiceId} có số tiền ${amountText}.`
+            : fallbackDescription || 'Vui lòng kiểm tra chi tiết hóa đơn.',
+        };
+      }
       return {
         title: notification.subject || 'Thông báo mới',
         description: fallbackDescription,

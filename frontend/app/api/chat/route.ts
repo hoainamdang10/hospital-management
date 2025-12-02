@@ -50,7 +50,7 @@ const SYSTEM_PROMPT = `Bạn là AI Assistant của hệ thống quản lý bệ
 const functionDeclarations = [
     {
         name: 'searchAvailableDoctors',
-        description: 'Tìm kiếm bác sĩ có sẵn theo chuyên khoa và thời gian mong muốn',
+        description: 'Tìm kiếm bác sĩ theo chuyên khoa. Không cần ngày để tìm danh sách bác sĩ.',
         parameters: {
             type: 'object',
             properties: {
@@ -58,17 +58,8 @@ const functionDeclarations = [
                     type: 'string',
                     description: 'Tên chuyên khoa (VD: Cardiology, Dermatology, Internal Medicine)',
                 },
-                date: {
-                    type: 'string',
-                    description: 'Ngày hẹn mong muốn (định dạng YYYY-MM-DD)',
-                },
-                timePreference: {
-                    type: 'string',
-                    enum: ['morning', 'afternoon', 'evening', 'any'],
-                    description: 'Khung giờ ưa thích',
-                },
             },
-            required: ['date'],
+            required: [],  // FIX: No required params - can search without date
         },
     },
     {
@@ -184,8 +175,15 @@ async function handleFunctionCall(
                 const staffResponse = await fetch(staffUrl.toString());
                 const staffData = await staffResponse.json();
 
-                // FIX: Handle { data: [...] } response
-                const doctors = Array.isArray(staffData) ? staffData : (staffData.data || []);
+                // Response structure: { success, data: { items: [], pagination: {} } }
+                let doctors = [];
+                if (Array.isArray(staffData)) {
+                    doctors = staffData;
+                } else if (staffData.data?.items && Array.isArray(staffData.data.items)) {
+                    doctors = staffData.data.items;  // Correct path!
+                } else if (Array.isArray(staffData.data)) {
+                    doctors = staffData.data;  // Fallback
+                }
 
                 return {
                     success: true,

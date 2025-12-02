@@ -5,19 +5,16 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { usePatient } from '@/hooks/usePatient';
 import {
   billingService,
   type Invoice,
   type BillingSummary,
 } from '@/modules/billing/services/billing.service';
 
-export function useBilling() {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const { patientId, internalId } = usePatient();
-  // Use internalId (UUID) if available, otherwise fallback to patientId (PAT-...)
-  // Backend likely expects UUID for authorization checks
-  const patientIdentifier = internalId || patientId || user?.id || user?.userId || null;
+export function useBilling(providedPatientId?: string | null) {
+  const { isLoading: isAuthLoading } = useAuth();
+  // Ưu tiên UUID được truyền từ ngoài (patient.id). Chỉ fallback khi thật sự cần.
+  const patientIdentifier = providedPatientId ?? null; // Không tự fallback sang PAT-* để tránh gọi sai endpoint
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);

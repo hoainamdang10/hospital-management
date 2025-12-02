@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Calendar,
   Clock,
@@ -18,20 +18,18 @@ import {
   Send,
   ArrowLeft,
   MapPin,
-  Stethoscope,
   Activity,
-  Banknote,
-  UserCircle2,
+  CreditCard,
+  Globe,
   MoreVertical,
-  X,
-  ChevronRight,
-  ShieldCheck,
   Sparkles,
+  Stethoscope,
+  Banknote,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import { AppointmentReadModel } from '@/lib/types/appointments';
@@ -39,6 +37,10 @@ import { toast } from 'sonner';
 import { chatService, ChatMessage } from '@/lib/api/chat.service';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
+import { DashboardLayout } from '@/components/layout';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -55,40 +57,41 @@ const statusConfig = (status?: string) => {
   const value = (status || '').toUpperCase();
   switch (value) {
     case 'ARRIVED':
+    case 'CHECKED_IN':
       return {
         label: 'Đã check-in',
-        color: 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
+        color: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10',
         icon: MapPin,
       };
     case 'IN_PROGRESS':
       return {
         label: 'Đang khám',
-        color: 'bg-blue-500/10 text-blue-600 border-blue-200',
+        color: 'bg-blue-50 text-blue-700 border-blue-200 ring-blue-500/10',
         icon: Activity,
       };
     case 'COMPLETED':
       return {
         label: 'Hoàn thành',
-        color: 'bg-gray-500/10 text-gray-600 border-gray-200',
+        color: 'bg-slate-50 text-slate-700 border-slate-200 ring-slate-500/10',
         icon: CheckCircle,
       };
     case 'CONFIRMED':
     case 'SCHEDULED':
       return {
         label: 'Chờ khám',
-        color: 'bg-amber-500/10 text-amber-600 border-amber-200',
+        color: 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/10',
         icon: Clock,
       };
     case 'CANCELLED':
       return {
         label: 'Đã hủy',
-        color: 'bg-red-500/10 text-red-600 border-red-200',
+        color: 'bg-red-50 text-red-700 border-red-200 ring-red-500/10',
         icon: AlertCircle,
       };
     default:
       return {
         label: value || 'N/A',
-        color: 'bg-gray-500/10 text-gray-600 border-gray-200',
+        color: 'bg-slate-50 text-slate-700 border-slate-200',
         icon: AlertCircle,
       };
   }
@@ -98,14 +101,12 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.1 },
   },
 };
 
 const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
+  hidden: { y: 10, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
@@ -125,7 +126,6 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [isChatExpanded, setIsChatExpanded] = useState(true);
 
   useEffect(() => {
     params.then(({ id }) => setAppointmentId(id));
@@ -222,10 +222,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
 
   function setupRealtime(convoId: string) {
     const client = supabase;
-
-    if (!isSupabaseConfigured() || !client) {
-      return;
-    }
+    if (!isSupabaseConfigured() || !client) return;
 
     const channel = client
       .channel(`chat-${convoId}`)
@@ -238,17 +235,10 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
           filter: `conversation_id=eq.${convoId}`,
         },
         (payload: { new: ChatMessage }) => {
-          const newMsg = payload.new;
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => [...prev, payload.new]);
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] Chat connected ✓');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Realtime] Connection error');
-        }
-      });
+      .subscribe();
 
     return () => {
       if (client) client.removeChannel(channel);
@@ -276,7 +266,50 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
     }
   }
 
-  // Memoize rendered messages to prevent re-render on every keystroke
+  const translateGender = (gender?: string): string => {
+    if (!gender) return 'Chưa cập nhật';
+    const normalized = gender.toLowerCase();
+    if (normalized === 'male' || normalized === 'm') return 'Nam';
+    if (normalized === 'female' || normalized === 'f') return 'Nữ';
+    return gender;
+  };
+
+  const calculateAge = (dob?: string | Date): string => {
+    if (!dob) return '';
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return `${age} tuổi`;
+  };
+
+  const translateAppointmentType = (type?: string): string => {
+    const t = (type || '').toUpperCase();
+    switch (t) {
+      case 'CONSULTATION': return 'Khám tư vấn';
+      case 'FOLLOW_UP': return 'Tái khám';
+      case 'EMERGENCY': return 'Cấp cứu';
+      case 'ROUTINE': return 'Khám định kỳ';
+      case 'TELEMEDICINE': return 'Khám từ xa';
+      default: return type || 'Khám thường';
+    }
+  };
+
+  const translatePaymentStatus = (status?: string): string => {
+    const s = (status || '').toUpperCase();
+    switch (s) {
+      case 'PAID': return 'Đã thanh toán';
+      case 'PENDING': return 'Chờ thanh toán';
+      case 'UNPAID': return 'Chưa thanh toán';
+      case 'REFUNDED': return 'Đã hoàn tiền';
+      case 'FAILED': return 'Thanh toán lỗi';
+      default: return status || 'Chưa thanh toán';
+    }
+  };
+
   const renderedMessages = useMemo(() => {
     return messages.map((msg, index) => {
       const role = msg.sender_role?.toLowerCase();
@@ -285,8 +318,8 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
 
       if (isSystem) {
         return (
-          <div key={`${msg.id}-${index}`} className="flex justify-center">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+          <div key={`${msg.id}-${index}`} className="flex justify-center my-3">
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
               {msg.content}
             </span>
           </div>
@@ -299,22 +332,15 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
           animate={{ opacity: 1, y: 0 }}
           key={`${msg.id}-${index}`}
           className={cn(
-            'flex w-full gap-3',
+            'flex w-full gap-2.5',
             isDoctor ? 'flex-row-reverse' : 'flex-row'
           )}
         >
-          <div
-            className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ring-2 ring-white',
-              isDoctor ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'
-            )}
-          >
-            {isDoctor ? (
-              <Stethoscope className="h-4 w-4" />
-            ) : (
-              <User className="h-4 w-4" />
-            )}
-          </div>
+          <Avatar className="h-8 w-8 border border-slate-200 shadow-sm">
+            <AvatarFallback className={cn("text-xs font-bold", isDoctor ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600')}>
+              {isDoctor ? 'BS' : 'BN'}
+            </AvatarFallback>
+          </Avatar>
 
           <div
             className={cn(
@@ -327,10 +353,10 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                 'relative rounded-2xl px-4 py-2.5 text-sm shadow-sm',
                 isDoctor
                   ? 'rounded-tr-none bg-blue-600 text-white'
-                  : 'rounded-tl-none bg-white text-slate-700'
+                  : 'rounded-tl-none bg-white text-slate-800 border border-slate-100'
               )}
             >
-              <p className="leading-relaxed">{msg.content}</p>
+              <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
             </div>
             <span className="mt-1 text-[10px] font-medium text-slate-400">
               {new Date(msg.sent_at).toLocaleTimeString('vi-VN', {
@@ -346,322 +372,296 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative h-16 w-16">
-            <div className="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-20"></div>
-            <div className="relative flex h-full w-full items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-gray-900/5">
-              <Activity className="h-8 w-8 text-blue-600" />
-            </div>
+      <DashboardLayout>
+        <div className="flex h-[80vh] items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            <p className="text-sm font-medium text-slate-500">Đang tải thông tin...</p>
           </div>
-          <p className="animate-pulse text-sm font-medium text-gray-500">Đang tải dữ liệu...</p>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 font-sans text-slate-900">
-      <motion.div
-        className="mx-auto max-w-7xl space-y-8"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Header Section */}
+    <DashboardLayout>
+      <div className="min-h-screen bg-slate-50/50 pb-10">
         <motion.div
-          variants={itemVariants}
-          className="flex flex-col justify-between gap-6 md:flex-row md:items-center"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="mx-auto max-w-7xl space-y-6 p-6"
         >
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              className="group -ml-3 h-auto p-2 text-slate-500 hover:bg-transparent hover:text-blue-600"
-              onClick={() => router.back()}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              <span className="text-sm font-medium">Quay lại danh sách</span>
-            </Button>
+          {/* Header Bar */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <Button
+                variant="ghost"
+                className="group -ml-2 h-auto p-0 text-slate-500 hover:bg-transparent hover:text-blue-600"
+                onClick={() => router.back()}
+              >
+                <ArrowLeft className="mr-1 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                <span className="text-sm font-medium">Quay lại danh sách</span>
+              </Button>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Chi tiết lịch hẹn
+                </h1>
+                <Badge
+                  variant="outline"
+                  className={cn('px-2.5 py-0.5 text-xs font-semibold shadow-sm', statusInfo.color)}
+                >
+                  <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
+                  {statusInfo.label}
+                </Badge>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                Chi tiết lịch hẹn
-              </h1>
-              <Badge
-                variant="outline"
-                className={cn(
-                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium shadow-sm backdrop-blur-sm',
-                  statusInfo.color
-                )}
-              >
-                <StatusIcon className="h-4 w-4" />
-                {statusInfo.label}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="font-medium">Mã hồ sơ:</span>
-              <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-700">
-                {appointment?.appointment_id || appointmentId}
-              </code>
+              {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
+                  disabled={actionLoading}
+                  onClick={() => doAction('start')}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
+                </Button>
+              )}
+              {(status === 'ARRIVED' || status === 'CHECKED_IN') && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
+                  disabled={actionLoading}
+                  onClick={() => doAction('start')}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
+                </Button>
+              )}
+              {status === 'IN_PROGRESS' && (
+                <Button
+                  className="bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 transition-all hover:scale-105"
+                  disabled={actionLoading}
+                  onClick={() => doAction('complete')}
+                >
+                  <CheckSquare className="mr-2 h-4 w-4" /> Hoàn thành
+                </Button>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
-              <Button
-                size="lg"
-                className="bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 transition-all hover:scale-105 hover:bg-emerald-700 hover:shadow-emerald-600/30"
-                disabled={actionLoading}
-                onClick={() => doAction('checkin')}
-              >
-                <MapPin className="mr-2 h-5 w-5" /> Check-in
-              </Button>
-            )}
-            {status === 'ARRIVED' && (
-              <Button
-                size="lg"
-                className="bg-blue-600 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105 hover:bg-blue-700 hover:shadow-blue-600/30"
-                disabled={actionLoading}
-                onClick={() => doAction('start')}
-              >
-                <PlayCircle className="mr-2 h-5 w-5" /> Bắt đầu khám
-              </Button>
-            )}
-            {status === 'IN_PROGRESS' && (
-              <Button
-                size="lg"
-                className="bg-slate-900 text-white shadow-lg shadow-slate-900/20 transition-all hover:scale-105 hover:bg-slate-800 hover:shadow-slate-900/30"
-                disabled={actionLoading}
-                onClick={() => doAction('complete')}
-              >
-                <CheckSquare className="mr-2 h-5 w-5" /> Hoàn thành
-              </Button>
-            )}
-          </div>
-        </motion.div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            {/* LEFT COLUMN: Main Info (8 cols) */}
+            <motion.div variants={itemVariants} className="space-y-6 lg:col-span-8">
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          {/* Main Content (8 cols) */}
-          <motion.div variants={itemVariants} className="space-y-6 lg:col-span-8">
-            {/* Patient Hero Card */}
-            <Card className="group relative overflow-hidden border-none bg-white shadow-xl shadow-slate-200/50 transition-all hover:shadow-2xl hover:shadow-slate-200/60">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 opacity-[0.03] transition-opacity group-hover:opacity-[0.05]"></div>
-              <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl transition-all group-hover:bg-blue-500/20"></div>
-
-              <CardContent className="relative p-8">
-                <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                  <div className="relative">
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 shadow-inner">
-                      <User className="h-10 w-10 text-blue-600" />
-                    </div>
-                    <div className="absolute right-1 bottom-1 h-5 w-5 rounded-full border-2 border-white bg-emerald-500 shadow-sm"></div>
-                  </div>
-
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center justify-between">
+              {/* 1. Patient Info Card (Compact) */}
+              <Card className="border-slate-200 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-14 w-14 border-2 border-white shadow-md ring-2 ring-slate-100">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`} />
+                        <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
+                          {appointment?.patient?.fullName?.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
-                        <h2 className="text-2xl font-bold text-slate-900">
-                          {appointment?.patient?.fullName || 'Bệnh nhân'}
-                        </h2>
-                        <p className="text-sm font-medium text-slate-500">Bệnh nhân thường xuyên</p>
+                        <h2 className="text-lg font-bold text-slate-900">{appointment?.patient?.fullName}</h2>
+                        <div className="flex items-center gap-2 text-sm text-slate-500 mt-0.5">
+                          <span className="font-medium text-slate-700">
+                            {translateGender(appointment?.patient?.gender)}
+                          </span>
+                          <span className="h-1 w-1 rounded-full bg-slate-300"></span>
+                          <span>
+                            {appointment?.patient?.dateOfBirth && calculateAge(appointment?.patient?.dateOfBirth)}
+                          </span>
+                          <span className="h-1 w-1 rounded-full bg-slate-300"></span>
+                          <span className="font-mono text-xs text-slate-400">#{appointment?.patient?.patientId || 'ID'}</span>
+                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        className="hidden gap-2 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 sm:flex"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Hồ sơ bệnh án
-                      </Button>
                     </div>
 
-                    <div className="flex flex-wrap gap-3 pt-2">
-                      <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-200">
-                        <Phone className="h-3.5 w-3.5" />
+                    <div className="flex flex-col gap-2 sm:items-end">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Phone className="h-4 w-4 text-slate-400" />
                         {appointment?.patient?.phone || 'Chưa cập nhật'}
                       </div>
-                      <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-200">
-                        <Mail className="h-3.5 w-3.5" />
-                        {appointment?.patient?.email || 'Chưa cập nhật'}
-                      </div>
+                      {appointment?.patient?.email && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Mail className="h-4 w-4 text-slate-400" />
+                          {appointment?.patient?.email}
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <Separator className="my-8 opacity-50" />
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-3 rounded-2xl bg-orange-50/50 p-5 ring-1 ring-orange-100">
-                    <div className="flex items-center gap-2 text-orange-700">
-                      <AlertCircle className="h-5 w-5" />
-                      <h3 className="font-semibold">Lý do khám</h3>
-                    </div>
-                    <p className="leading-relaxed text-slate-700">
+              {/* 2. Clinical Context (Highlight) */}
+              <Card className="border-blue-100 bg-blue-50/30 shadow-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-600">
+                    <Stethoscope className="h-4 w-4" />
+                    Thông tin lâm sàng
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Lý do khám</label>
+                    <p className="text-base font-semibold text-slate-900 leading-relaxed">
                       {appointment?.reason || 'Không có lý do cụ thể'}
                     </p>
                   </div>
-
-                  <div className="space-y-3 rounded-2xl bg-blue-50/50 p-5 ring-1 ring-blue-100">
-                    <div className="flex items-center gap-2 text-blue-700">
-                      <FileText className="h-5 w-5" />
-                      <h3 className="font-semibold">Ghi chú</h3>
-                    </div>
-                    <p className="leading-relaxed text-slate-700">
-                      {appointment?.notes || 'Không có ghi chú thêm'}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Ghi chú thêm</label>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      {appointment?.notes || 'Không có ghi chú'}
                     </p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Info Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {[
-                {
-                  label: 'Thời gian',
-                  value: appointment?.appointmentDate,
-                  sub: appointment?.appointmentTime,
-                  icon: Calendar,
-                  color: 'text-indigo-600',
-                  bg: 'bg-indigo-50',
-                },
-                {
-                  label: 'Bác sĩ',
-                  value: appointment?.doctor?.fullName,
-                  sub: appointment?.doctor?.department,
-                  icon: Stethoscope,
-                  color: 'text-purple-600',
-                  bg: 'bg-purple-50',
-                },
-                {
-                  label: 'Thanh toán',
-                  value: appointment?.paymentStatus,
-                  sub: 'Trạng thái',
-                  icon: Banknote,
-                  color: 'text-emerald-600',
-                  bg: 'bg-emerald-50',
-                },
-                {
-                  label: 'Mức độ ưu tiên',
-                  value: appointment?.priority,
-                  sub: 'Đánh giá',
-                  icon: ShieldCheck,
-                  color: 'text-rose-600',
-                  bg: 'bg-rose-50',
-                },
-              ].map((item, i) => (
-                <Card
-                  key={i}
-                  className="group overflow-hidden border-none bg-white shadow-md shadow-slate-200/50 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60"
-                >
-                  <CardContent className="flex items-center gap-4 p-6">
-                    <div
-                      className={cn(
-                        'flex h-12 w-12 items-center justify-center rounded-2xl transition-transform group-hover:scale-110',
-                        item.bg,
-                        item.color
-                      )}
-                    >
-                      <item.icon className="h-6 w-6" />
+              {/* 3. Logistics Grid */}
+              <div className="grid gap-6 sm:grid-cols-2">
+                {/* Appointment Details */}
+                <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-slate-500 mb-2">
+                      <Calendar className="h-4 w-4" />
+                      <span className="text-xs font-bold uppercase tracking-wide">Thời gian & Loại</span>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                        {item.label}
-                      </p>
-                      <p className="font-bold text-slate-900">{item.value}</p>
-                      <p className="text-sm font-medium text-slate-500">{item.sub}</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-slate-900">
+                          {appointment?.appointmentTime?.substring(0, 5)}
+                        </span>
+                        <span className="text-sm font-medium text-slate-500">
+                          {appointment?.appointmentDate && format(new Date(appointment.appointmentDate), 'dd/MM/yyyy', { locale: vi })}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100">
+                          <Globe className="mr-1 h-3 w-3" /> Đặt trực tuyến
+                        </Badge>
+                        <Badge variant="outline" className="text-slate-600 border-slate-200">
+                          {translateAppointmentType(appointment?.type)}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </motion.div>
 
-          {/* Right Column - Chat (4 cols) */}
-          <motion.div variants={itemVariants} className="lg:col-span-4">
-            <Card className="flex h-[calc(100vh-140px)] flex-col overflow-hidden border-none bg-white shadow-xl ring-1 shadow-slate-200/50 ring-slate-200/50">
-              <CardHeader className="border-b border-slate-100 bg-white/80 p-4 backdrop-blur-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30">
-                        <MessageSquare className="h-5 w-5" />
-                      </div>
-                      <span className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 ring-1 ring-white"></span>
+                {/* Payment Details */}
+                <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-slate-500 mb-2">
+                      <CreditCard className="h-4 w-4" />
+                      <span className="text-xs font-bold uppercase tracking-wide">Thanh toán</span>
                     </div>
                     <div>
-                      <CardTitle className="text-base font-bold text-slate-900">Trao đổi</CardTitle>
-                      <div className="flex items-center gap-1.5">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-mono font-bold text-emerald-600">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(appointment?.consultationFee || 0)}
                         </span>
-                        <p className="text-xs font-medium text-slate-500">Trực tuyến</p>
+                        {(appointment?.paymentStatus || '').toUpperCase() === 'PAID' ? (
+                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200 shadow-none">
+                            Đã thanh toán
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+                            {translatePaymentStatus(appointment?.paymentStatus)}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="mt-2 text-xs text-slate-400">Phí khám bệnh (Trả trước)</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+            </motion.div>
+
+            {/* RIGHT COLUMN: Chat (4 cols) */}
+            <motion.div variants={itemVariants} className="lg:col-span-4">
+              <Card className="flex h-[calc(100vh-140px)] flex-col overflow-hidden border-slate-200 shadow-lg">
+                <CardHeader className="border-b border-slate-100 bg-white p-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="h-9 w-9 border border-slate-100">
+                          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`} />
+                          <AvatarFallback>BN</AvatarFallback>
+                        </Avatar>
+                        <span className="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500"></span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">Trao đổi trực tiếp</h3>
+                        <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                          Đang trực tuyến
+                        </p>
                       </div>
                     </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-400 hover:text-slate-600"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
+                </CardHeader>
+
+                <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 space-y-4">
+                  {chatLoading ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-3">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                      <p className="text-xs text-slate-500 font-medium">Đang kết nối...</p>
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-4 text-center opacity-60">
+                      <div className="bg-white p-4 rounded-full shadow-sm ring-1 ring-slate-100">
+                        <MessageSquare className="h-6 w-6 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900 text-sm">Chưa có tin nhắn</p>
+                        <p className="text-xs text-slate-500 mt-1">Bắt đầu trao đổi với bệnh nhân</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {renderedMessages}
+                      <div ref={chatEndRef} />
+                    </>
+                  )}
                 </div>
-              </CardHeader>
 
-              <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4">
-                {chatLoading ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-3">
-                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                    <p className="text-sm font-medium text-slate-500">Đang kết nối...</p>
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-200">
-                      <Sparkles className="h-8 w-8" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">Chưa có tin nhắn</p>
-                      <p className="text-sm text-slate-500">
-                        Bắt đầu cuộc trò chuyện với bệnh nhân
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {renderedMessages}
-                    <div ref={chatEndRef} />
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-slate-100 bg-white p-4">
-                <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
-                  <Input
-                    className="flex-1 rounded-full border-slate-200 bg-slate-50 pr-12 shadow-inner transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-                    placeholder="Nhập tin nhắn..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    disabled={!conversationId || chatSending}
-                  />
-                  <Button
-                    type="submit"
-                    size="icon"
-                    disabled={!conversationId || chatSending || !chatInput.trim()}
-                    className={cn(
-                      'absolute right-1 h-8 w-8 rounded-full shadow-md transition-all hover:scale-105 active:scale-95',
-                      chatInput.trim()
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-slate-200 text-slate-400 hover:bg-slate-300'
-                    )}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </form>
-              </div>
-            </Card>
-          </motion.div>
-        </div>
-      </motion.div>
-    </div>
+                <div className="p-3 bg-white border-t border-slate-100">
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                    <Input
+                      className="flex-1 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-full px-4 h-10 text-sm transition-all"
+                      placeholder="Nhập tin nhắn..."
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      disabled={!conversationId || chatSending}
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className={cn(
+                        "rounded-full h-10 w-10 shrink-0 transition-all shadow-sm",
+                        chatInput.trim()
+                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                          : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                      )}
+                      disabled={!conversationId || chatSending || !chatInput.trim()}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+    </DashboardLayout>
   );
 }

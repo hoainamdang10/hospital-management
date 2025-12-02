@@ -78,6 +78,7 @@ const STATUS_FILTERS: { value: StatusFilterValue; label: string }[] = [
 ];
 
 const PENDING_STATUSES: Invoice['status'][] = ['pending', 'partially_paid', 'overdue', 'draft'];
+const NON_PAYABLE_STATUSES: Invoice['status'][] = ['cancelled', 'refunded'];
 const ITEMS_PER_PAGE = 5;
 
 const APPOINTMENT_DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
@@ -93,7 +94,8 @@ const APPOINTMENT_TIME_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
 
 export default function PatientBillingPage() {
   const { patient } = usePatient();
-  const { summary, invoices = [], isLoading, error, reload } = useBilling();
+  const canonicalPatientId = patient?.id || patient?.patientId || null;
+  const { summary, invoices = [], isLoading, error, reload } = useBilling(canonicalPatientId);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -991,10 +993,16 @@ function InvoiceCard({
     null;
   const doctorName = invoice.doctorName || (invoice.metadata?.doctorName as string) || null;
   const appointmentDateTime = getInvoiceAppointmentDate(invoice);
-  const appointmentDisplay = formatAppointmentDateTimeDisplay(appointmentDateTime);
+  const appointmentDateLabel = appointmentDateTime
+    ? APPOINTMENT_DATE_FORMATTER.format(appointmentDateTime)
+    : null;
+  const appointmentTimeLabel = appointmentDateTime
+    ? APPOINTMENT_TIME_FORMATTER.format(appointmentDateTime)
+    : null;
   const hasAppointmentMeta =
     Boolean(invoiceTypeLabel) ||
-    Boolean(appointmentDisplay) ||
+    Boolean(appointmentDateLabel) ||
+    Boolean(appointmentTimeLabel) ||
     Boolean(doctorName) ||
     Boolean(department) ||
     Boolean(appointmentId);
@@ -1004,6 +1012,8 @@ function InvoiceCard({
     !isPaid &&
     isPending &&
     outstanding > 0;
+  const isNonPayableStatus = NON_PAYABLE_STATUSES.includes(invoice.status);
+  const canAttemptPayment = !isPaid && !isNonPayableStatus;
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md">
@@ -1054,10 +1064,17 @@ function InvoiceCard({
                     {invoiceTypeLabel}
                   </span>
                 )}
-                {appointmentDisplay && (
+                {appointmentDateLabel && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                    {appointmentDateLabel}
+                  </span>
+                )}
+                {appointmentTimeLabel && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5 text-gray-500" />
-                    {appointmentDisplay}
+                    <span className="font-medium text-gray-700">Giờ khám:</span>
+                    {appointmentTimeLabel}
                   </span>
                 )}
                 {doctorName && (
@@ -1116,7 +1133,7 @@ function InvoiceCard({
               </Button>
             )}
 
-            {!isPaid && (
+            {canAttemptPayment && (
               <Button
                 onClick={() => onPayment(invoice)}
                 disabled={isProcessing}
@@ -1518,10 +1535,13 @@ function getInvoiceAppointmentDate(invoice: Invoice): Date | null {
   const candidates = [
     metadata.appointmentDateTime,
     metadata.appointment_datetime,
+    metadata.appointmentDateTimeLocal,
+    metadata.appointment_datetime_local,
     metadata.appointmentTime,
     metadata.appointment_time,
     metadata.appointmentStartAt,
     metadata.appointment_start_at,
+    metadata.appointmentStartAtUtc,
   ];
 
   for (const value of candidates) {
@@ -1533,8 +1553,16 @@ function getInvoiceAppointmentDate(invoice: Invoice): Date | null {
     }
   }
 
-  const datePart = metadata.appointmentDate || metadata.appointment_date;
-  const timePart = metadata.appointmentTime || metadata.appointment_time;
+  const datePart =
+    metadata.appointmentDate ||
+    metadata.appointment_date ||
+    metadata.appointmentDateLocal ||
+    metadata.appointment_date_local;
+  const timePart =
+    metadata.appointmentTimeLocal ||
+    metadata.appointment_time_local ||
+    metadata.appointmentTime ||
+    metadata.appointment_time;
   if (datePart && timePart) {
     const parsed = new Date(`${datePart}T${timePart}`);
     if (!isNaN(parsed.getTime())) {

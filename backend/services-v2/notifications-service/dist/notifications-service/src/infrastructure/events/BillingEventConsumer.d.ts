@@ -96,13 +96,16 @@ export interface RateUpdatedEventData {
 export interface PaymentProcessedEventData {
     paymentId: string;
     patientId: string;
-    patientName: string;
-    amount: number;
-    paymentMethod: string;
-    paymentStatus: "completed" | "failed" | "refunded" | "partial_refund";
-    processedAt: Date;
-    processedBy: string;
     invoiceId: string;
+    patientName?: string;
+    amount?: number;
+    currency?: string;
+    paymentMethod?: string;
+    method?: string;
+    paymentStatus?: "completed" | "failed" | "refunded" | "partial_refund" | string;
+    status?: "completed" | "failed" | "refunded" | "partial_refund" | string;
+    processedAt?: Date | string;
+    processedBy?: string;
     appointmentId?: string;
     transactionId?: string;
     dueAmount?: number;
@@ -111,11 +114,11 @@ export interface PaymentProcessedEventData {
 export interface InvoiceGeneratedEventData {
     invoiceId: string;
     patientId: string;
-    patientName: string;
-    totalAmount: number;
-    dueDate: Date;
-    generatedAt: Date;
-    generatedBy: string;
+    patientName?: string;
+    totalAmount?: number;
+    dueDate?: Date | string;
+    generatedAt?: Date | string;
+    generatedBy?: string;
     items: {
         description: string;
         quantity: number;
@@ -123,7 +126,7 @@ export interface InvoiceGeneratedEventData {
         total: number;
     }[];
     insuranceCoverage?: number;
-    patientResponsibility: number;
+    patientResponsibility?: number;
 }
 export interface PaymentReminderScheduledEventData {
     reminderId: string;
@@ -337,6 +340,7 @@ export declare class BillingEventConsumer {
      */
     private getEnabledChannels;
     private getReminderMessage;
+    private normalizeInvoiceData;
     private formatDate;
     private dispatchNotification;
     /**

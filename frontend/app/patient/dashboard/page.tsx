@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, CreditCard, User, Loader2, ArrowRight, Activity, ShieldCheck } from 'lucide-react';
+import {
+  Calendar,
+  FileText,
+  CreditCard,
+  User,
+  Loader2,
+  ArrowRight,
+  Activity,
+  ShieldCheck,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
@@ -21,12 +30,13 @@ import { cn } from '@/lib/utils';
 export default function PatientDashboardPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { patient, patientId, internalId } = usePatient();
+  const billingPatientId = internalId || patient?.id || patientId || null;
   const {
     summary,
     invoices,
     pendingInvoices,
     isLoading: isBillingLoading,
-  } = useBilling();
+  } = useBilling(billingPatientId);
   const [hasInsurance, setHasInsurance] = useState<boolean>(false);
   const [hasEmergencyContact, setHasEmergencyContact] = useState<boolean>(false);
 
@@ -60,8 +70,8 @@ export default function PatientDashboardPage() {
 
     try {
       setIsLoadingStats(true);
-      // Use internalId (UUID) for billing if available, as backend might require it
-      const billingIdentifier = internalId || patientId || user?.id || user?.userId;
+      // Dùng UUID nếu có, tránh gọi bằng mã PAT gây lỗi
+      const billingIdentifier = billingPatientId;
       const data = await getPatientDashboardStats(patientId, { billingIdentifier });
       setStats(data);
     } catch (error) {
@@ -94,24 +104,19 @@ export default function PatientDashboardPage() {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const item = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    show: { opacity: 1, y: 0 },
   };
 
   return (
     <DashboardLayout>
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="space-y-8 pb-8"
-      >
+      <motion.div variants={container} initial="hidden" animate="show" className="space-y-8 pb-8">
         {/* Welcome Header */}
         <motion.div variants={item}>
           <WelcomeHeader userName={user?.fullName || user?.email || 'Bệnh nhân'} />
@@ -157,7 +162,7 @@ export default function PatientDashboardPage() {
         {/* Main Content Grid */}
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Left Column (Main Content) */}
-          <motion.div variants={item} className="lg:col-span-2 space-y-8">
+          <motion.div variants={item} className="space-y-8 lg:col-span-2">
             {/* Upcoming Appointments */}
             <div className="rounded-3xl border border-white/50 bg-white/60 p-1 shadow-xl backdrop-blur-xl">
               <UpcomingAppointments patientId={patientId || undefined} />
@@ -170,30 +175,35 @@ export default function PatientDashboardPage() {
           </motion.div>
 
           {/* Right Column (Sidebar Widgets) */}
-          <motion.div variants={item} className="lg:col-span-1 space-y-8">
+          <motion.div variants={item} className="space-y-8 lg:col-span-1">
             {/* Profile Summary (Priority 1) */}
             <GlassCard className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-xl">
-                    <User className="w-6 h-6 text-blue-600" />
+                  <div className="rounded-xl bg-blue-100 p-2">
+                    <User className="h-6 w-6 text-blue-600" />
                   </div>
                   <h2 className="text-xl font-bold text-gray-900">Hồ sơ cá nhân</h2>
                 </div>
-                <a href="/patient/profile" className="group flex items-center text-sm font-medium text-primary-600 hover:text-primary-700">
+                <a
+                  href="/patient/profile"
+                  className="group text-primary-600 hover:text-primary-700 flex items-center text-sm font-medium"
+                >
                   Cập nhật
                   <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between rounded-xl bg-gray-50/50 p-3 transition-colors hover:bg-gray-50">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 font-bold text-white">
                       {user?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{user?.fullName || 'Chưa cập nhật'}</p>
+                      <p className="font-medium text-gray-900">
+                        {user?.fullName || 'Chưa cập nhật'}
+                      </p>
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                   </div>
@@ -240,14 +250,17 @@ export default function PatientDashboardPage() {
 
             {/* Billing Summary (Priority 3) */}
             <GlassCard className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-100 rounded-xl">
-                    <CreditCard className="w-6 h-6 text-orange-600" />
+                  <div className="rounded-xl bg-orange-100 p-2">
+                    <CreditCard className="h-6 w-6 text-orange-600" />
                   </div>
                   <h2 className="text-xl font-bold text-gray-900">Thanh toán</h2>
                 </div>
-                <a href="/patient/billing" className="group flex items-center text-sm font-medium text-primary-600 hover:text-primary-700">
+                <a
+                  href="/patient/billing"
+                  className="group text-primary-600 hover:text-primary-700 flex items-center text-sm font-medium"
+                >
                   Xem chi tiết
                   <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
@@ -256,13 +269,27 @@ export default function PatientDashboardPage() {
               <div className="space-y-4">
                 <BillingStat
                   label="Tổng tiền chưa thanh toán"
-                  value={isBillingLoading ? '...' : (summary?.outstandingAmount ?? 0).toLocaleString('vi-VN') + ' ₫'}
+                  value={
+                    isBillingLoading
+                      ? '...'
+                      : (summary?.outstandingAmount ?? 0).toLocaleString('vi-VN') + ' ₫'
+                  }
                   color="text-orange-600"
                 />
                 <div className="grid grid-cols-2 gap-4">
                   <BillingStat
                     label="Đã thanh toán"
-                    value={isBillingLoading ? '...' : invoices.filter(i => i.status === 'paid' && new Date(i.updatedAt).getMonth() === new Date().getMonth()).length.toString()}
+                    value={
+                      isBillingLoading
+                        ? '...'
+                        : invoices
+                            .filter(
+                              (i) =>
+                                i.status === 'paid' &&
+                                new Date(i.updatedAt).getMonth() === new Date().getMonth()
+                            )
+                            .length.toString()
+                    }
                     color="text-green-600"
                   />
                   <BillingStat
@@ -284,10 +311,12 @@ export default function PatientDashboardPage() {
 
 function GlassCard({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-3xl border border-white/60 bg-white/70 shadow-xl backdrop-blur-2xl transition-all hover:shadow-2xl hover:bg-white/80",
-      className
-    )}>
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-3xl border border-white/60 bg-white/70 shadow-xl backdrop-blur-2xl transition-all hover:bg-white/80 hover:shadow-2xl',
+        className
+      )}
+    >
       {children}
     </div>
   );
@@ -311,10 +340,30 @@ function PremiumStatCard({
   isProgress?: boolean;
 }) {
   const colors = {
-    blue: { bg: 'bg-blue-50', text: 'text-blue-600', ring: 'ring-blue-100', gradient: 'from-blue-500 to-blue-600' },
-    green: { bg: 'bg-green-50', text: 'text-green-600', ring: 'ring-green-100', gradient: 'from-green-500 to-green-600' },
-    orange: { bg: 'bg-orange-50', text: 'text-orange-600', ring: 'ring-orange-100', gradient: 'from-orange-500 to-orange-600' },
-    purple: { bg: 'bg-purple-50', text: 'text-purple-600', ring: 'ring-purple-100', gradient: 'from-purple-500 to-purple-600' },
+    blue: {
+      bg: 'bg-blue-50',
+      text: 'text-blue-600',
+      ring: 'ring-blue-100',
+      gradient: 'from-blue-500 to-blue-600',
+    },
+    green: {
+      bg: 'bg-green-50',
+      text: 'text-green-600',
+      ring: 'ring-green-100',
+      gradient: 'from-green-500 to-green-600',
+    },
+    orange: {
+      bg: 'bg-orange-50',
+      text: 'text-orange-600',
+      ring: 'ring-orange-100',
+      gradient: 'from-orange-500 to-orange-600',
+    },
+    purple: {
+      bg: 'bg-purple-50',
+      text: 'text-purple-600',
+      ring: 'ring-purple-100',
+      gradient: 'from-purple-500 to-purple-600',
+    },
   };
 
   const current = colors[color];
@@ -331,13 +380,22 @@ function PremiumStatCard({
             <Loader2 className="mt-2 h-8 w-8 animate-spin text-gray-300" />
           ) : (
             <div className="mt-2">
-              <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{value}</h3>
+              <h3 className="text-3xl font-bold tracking-tight text-gray-900">{value}</h3>
               {subtitle && <p className="mt-1 text-xs text-gray-400">{subtitle}</p>}
             </div>
           )}
         </div>
-        <div className={cn("rounded-2xl p-3 transition-colors group-hover:text-white", current.bg, "group-hover:bg-gradient-to-br", current.gradient)}>
-          <Icon className={cn("h-6 w-6 transition-colors", current.text, "group-hover:text-white")} />
+        <div
+          className={cn(
+            'rounded-2xl p-3 transition-colors group-hover:text-white',
+            current.bg,
+            'group-hover:bg-gradient-to-br',
+            current.gradient
+          )}
+        >
+          <Icon
+            className={cn('h-6 w-6 transition-colors', current.text, 'group-hover:text-white')}
+          />
         </div>
       </div>
 
@@ -347,7 +405,7 @@ function PremiumStatCard({
             initial={{ width: 0 }}
             animate={{ width: value }}
             transition={{ duration: 1, delay: 0.5 }}
-            className={cn("h-full rounded-full bg-gradient-to-r", current.gradient)}
+            className={cn('h-full rounded-full bg-gradient-to-r', current.gradient)}
           />
         </div>
       )}
@@ -357,9 +415,9 @@ function PremiumStatCard({
 
 function BillingStat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="rounded-2xl bg-gray-50/50 p-4 border border-gray-100 hover:border-gray-200 transition-colors">
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <p className={cn("text-lg font-bold", color)}>{value}</p>
+    <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 transition-colors hover:border-gray-200">
+      <p className="mb-1 text-sm text-gray-500">{label}</p>
+      <p className={cn('text-lg font-bold', color)}>{value}</p>
     </div>
   );
 }
@@ -370,7 +428,7 @@ function ProfileBadge({
   active,
   activeText,
   inactiveText,
-  color
+  color,
 }: {
   icon: any;
   label: string;
@@ -380,17 +438,21 @@ function ProfileBadge({
   color: 'blue' | 'green';
 }) {
   const colors = {
-    blue: active ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-gray-50 text-gray-500 border-gray-100',
-    green: active ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-50 text-gray-500 border-gray-100',
+    blue: active
+      ? 'bg-blue-50 text-blue-700 border-blue-100'
+      : 'bg-gray-50 text-gray-500 border-gray-100',
+    green: active
+      ? 'bg-green-50 text-green-700 border-green-100'
+      : 'bg-gray-50 text-gray-500 border-gray-100',
   };
 
   return (
-    <div className={cn("flex items-center justify-between p-3 rounded-xl border", colors[color])}>
+    <div className={cn('flex items-center justify-between rounded-xl border p-3', colors[color])}>
       <div className="flex items-center gap-3">
-        <Icon className="w-4 h-4" />
+        <Icon className="h-4 w-4" />
         <span className="text-sm font-medium">{label}</span>
       </div>
-      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white/50">
+      <span className="rounded-full bg-white/50 px-2 py-1 text-xs font-semibold">
         {active ? activeText : inactiveText}
       </span>
     </div>
@@ -411,21 +473,24 @@ function PremiumActionCard({
   gradient: string;
 }) {
   return (
-    <a href={href} className="block group">
-      <div className={cn(
-        "relative overflow-hidden rounded-3xl p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
-        "bg-gradient-to-br", gradient
-      )}>
+    <a href={href} className="group block">
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
+          'bg-gradient-to-br',
+          gradient
+        )}
+      >
         {/* Decorative circles */}
-        <div className="absolute top-0 right-0 -mr-8 -mt-8 h-32 w-32 rounded-full bg-white/10 blur-2xl transition-all group-hover:scale-150" />
-        <div className="absolute bottom-0 left-0 -ml-8 -mb-8 h-32 w-32 rounded-full bg-black/5 blur-2xl transition-all group-hover:scale-150" />
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 rounded-full bg-white/10 blur-2xl transition-all group-hover:scale-150" />
+        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-black/5 blur-2xl transition-all group-hover:scale-150" />
 
         <div className="relative flex items-center justify-between text-white">
           <div>
-            <h3 className="text-lg font-bold mb-1">{title}</h3>
-            <p className="text-white/80 text-sm">{description}</p>
+            <h3 className="mb-1 text-lg font-bold">{title}</h3>
+            <p className="text-sm text-white/80">{description}</p>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:scale-110 transition-transform">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md transition-transform group-hover:scale-110">
             <Icon className="h-6 w-6 text-white" />
           </div>
         </div>
