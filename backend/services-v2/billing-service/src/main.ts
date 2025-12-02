@@ -206,6 +206,12 @@ class BillingServiceApp {
       loggerInstance,
     );
 
+    // Initialize Wallet service early so that use cases can consume it
+    this.walletService = new WalletService(
+      this.walletRepository,
+      loggerInstance,
+    );
+
     // Initialize Use Cases
     this.createInvoiceUseCase = new CreateInvoiceUseCase(
       this.invoiceRepository,
@@ -241,6 +247,7 @@ class BillingServiceApp {
         useGatewayRefund:
           (process.env.USE_GATEWAY_REFUND || "").toLowerCase() === "true",
       },
+      this.walletService,
     );
 
     this.completeRefundUseCase = new CompleteRefundUseCase(
@@ -290,10 +297,6 @@ class BillingServiceApp {
       this.patientRepository,
       this.createInvoiceUseCase,
       this.processPaymentUseCase,
-      loggerInstance,
-    );
-    this.walletService = new WalletService(
-      this.walletRepository,
       loggerInstance,
     );
 

@@ -953,6 +953,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       .from(this.tableName)
       .select("*")
       .eq("doctor_id", providerId)
+      .not("status", "in", "(CANCELLED,RESCHEDULED,NO_SHOW)")
       .gte("start_at_utc", startUtc)
       .lte("end_at_utc", endUtc)
       .order("start_at_utc", { ascending: true });

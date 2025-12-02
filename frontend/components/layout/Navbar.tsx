@@ -3,11 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, LogOut, Settings, ChevronDown, Menu } from 'lucide-react';
+import { User, LogOut, Settings, ChevronDown, Menu, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/lib/constants';
 import { useSidebar } from '@/lib/contexts/SidebarContext';
+import { useWallet } from '@/hooks/useWallet';
+import { formatCurrency } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +31,9 @@ export function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isPatientRole = user?.role?.toUpperCase() === 'PATIENT';
+  const patientId = isPatientRole ? user?.patientId : undefined;
+  const { account, isLoading: walletLoading } = useWallet(patientId);
 
   // DEV_MODE: Bypass authentication check
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -116,6 +121,16 @@ export function Navbar() {
         <div className="flex items-center space-x-4">
           {showAuthenticatedUI ? (
             <>
+              {isPatientRole && patientId && (
+                <Link
+                  href="/patient/billing"
+                  className="ring-primary/20 hover:ring-primary/40 flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 hover:shadow-sm hover:ring"
+                >
+                  <Wallet className="mr-1.5 h-4 w-4" />
+                  {walletLoading ? 'Đang tải...' : formatCurrency(account?.balance ?? 0)}
+                </Link>
+              )}
+
               <NotificationCenter />
 
               {/* User Menu with Dropdown */}
