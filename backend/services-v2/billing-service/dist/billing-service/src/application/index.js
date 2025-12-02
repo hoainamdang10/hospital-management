@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BillingService = exports.HandlePayOSWebhookUseCase = exports.CreateVnpayPaymentLinkUseCase = exports.GetRevenueReportUseCase = exports.GetPatientBillingSummaryUseCase = exports.GetOverdueInvoicesUseCase = exports.SearchInvoicesUseCase = exports.GetPatientInvoicesUseCase = exports.ProcessPaymentUseCase = exports.GetInvoiceUseCase = exports.CreateInvoiceUseCase = void 0;
+exports.BillingService = exports.PayInvoiceWithWalletUseCase = exports.HandlePayOSWebhookUseCase = exports.CreateVnpayPaymentLinkUseCase = exports.GetRevenueReportUseCase = exports.GetPatientBillingSummaryUseCase = exports.GetOverdueInvoicesUseCase = exports.SearchInvoicesUseCase = exports.GetPatientInvoicesUseCase = exports.ProcessPaymentUseCase = exports.GetInvoiceUseCase = exports.CreateInvoiceUseCase = void 0;
 // Use Cases - Phase 1 (Prepaid Model)
 var CreateInvoiceUseCase_1 = require("./use-cases/CreateInvoiceUseCase");
 Object.defineProperty(exports, "CreateInvoiceUseCase", { enumerable: true, get: function () { return CreateInvoiceUseCase_1.CreateInvoiceUseCase; } });
@@ -28,6 +28,8 @@ var CreateVnpayPaymentLinkUseCase_1 = require("./use-cases/CreateVnpayPaymentLin
 Object.defineProperty(exports, "CreateVnpayPaymentLinkUseCase", { enumerable: true, get: function () { return CreateVnpayPaymentLinkUseCase_1.CreateVnpayPaymentLinkUseCase; } });
 var HandlePayOSWebhookUseCase_1 = require("./use-cases/HandlePayOSWebhookUseCase");
 Object.defineProperty(exports, "HandlePayOSWebhookUseCase", { enumerable: true, get: function () { return HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase; } });
+var PayInvoiceWithWalletUseCase_1 = require("./use-cases/PayInvoiceWithWalletUseCase");
+Object.defineProperty(exports, "PayInvoiceWithWalletUseCase", { enumerable: true, get: function () { return PayInvoiceWithWalletUseCase_1.PayInvoiceWithWalletUseCase; } });
 // REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase, ProcessInsuranceClaimUseCase, RefundPaymentUseCase
 // Services
 var BillingService_1 = require("./services/BillingService");

@@ -11,6 +11,7 @@ import { GetPatientBillingSummaryUseCase } from "../../application/use-cases/Get
 import { GetRevenueReportUseCase } from "../../application/use-cases/GetRevenueReportUseCase";
 import { CreatePayOSPaymentLinkUseCase } from "../../application/use-cases/CreatePayOSPaymentLinkUseCase";
 import { HandlePayOSWebhookUseCase } from "../../application/use-cases/HandlePayOSWebhookUseCase";
+import { PayInvoiceWithWalletUseCase } from "../../application/use-cases/PayInvoiceWithWalletUseCase";
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 import { AuthenticatedRequest } from "../middleware/AuthenticationMiddleware";
 
@@ -26,6 +27,7 @@ export class InvoiceController {
     private readonly getRevenueReportUseCase: GetRevenueReportUseCase,
     private readonly createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase,
     private readonly handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase,
+    private readonly payInvoiceWithWalletUseCase: PayInvoiceWithWalletUseCase,
     // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
   ) {}
 
@@ -66,6 +68,29 @@ export class InvoiceController {
         method,
         transactionId,
       });
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  public payWithWallet = async (
+    req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const result = await this.payInvoiceWithWalletUseCase.execute({
+        invoiceId: req.params.id,
+        patientId: req.authenticatedUser?.patientId,
+        initiatedBy: req.authenticatedUser?.userId,
+        description: req.body?.description,
+      });
+
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -176,18 +201,18 @@ export class InvoiceController {
         (rawPayload["signature"] as string | undefined);
 
       // LOG RAW WEBHOOK DATA FOR DEBUGGING
-      console.log('\n========================================');
-      console.log('VNPAY WEBHOOK RAW DATA (Production Endpoint)');
-      console.log('========================================');
-      console.log('Timestamp:', new Date().toISOString());
-      console.log('Method:', req.method);
-      console.log('\nHeaders:');
+      console.log("\n========================================");
+      console.log("VNPAY WEBHOOK RAW DATA (Production Endpoint)");
+      console.log("========================================");
+      console.log("Timestamp:", new Date().toISOString());
+      console.log("Method:", req.method);
+      console.log("\nHeaders:");
       console.log(JSON.stringify(req.headers, null, 2));
-      console.log('\nQuery Parameters:');
+      console.log("\nQuery Parameters:");
       console.log(JSON.stringify(req.query, null, 2));
-      console.log('\nBody:');
+      console.log("\nBody:");
       console.log(JSON.stringify(req.body, null, 2));
-      console.log('\nExtracted Signature:');
+      console.log("\nExtracted Signature:");
       console.log(payloadSignature);
 
       // Build query string for signature verification
@@ -196,11 +221,13 @@ export class InvoiceController {
       delete params.vnp_SecureHashType;
       const sortedKeys = Object.keys(params).sort();
       const queryString = sortedKeys
-        .map(key => `${key}=${params[key]}`)
-        .join('&');
-      console.log('\nQuery String for Signature (sorted, excluding vnp_SecureHash & vnp_SecureHashType):');
+        .map((key) => `${key}=${params[key]}`)
+        .join("&");
+      console.log(
+        "\nQuery String for Signature (sorted, excluding vnp_SecureHash & vnp_SecureHashType):",
+      );
       console.log(queryString);
-      console.log('========================================\n');
+      console.log("========================================\n");
 
       const normalizedPayload =
         this.normalizeWebhookPayload(rawPayload) || rawPayload;
@@ -212,7 +239,7 @@ export class InvoiceController {
       });
       res.status(200).json(result);
     } catch (error: any) {
-      console.error('Webhook processing error:', error.message);
+      console.error("Webhook processing error:", error.message);
       res.status(400).json({ error: error.message });
     }
   };
@@ -233,23 +260,23 @@ export class InvoiceController {
       const body = req.body;
 
       // Log everything
-      console.log('\n========================================');
-      console.log('VNPAY WEBHOOK RAW DATA');
-      console.log('========================================');
-      console.log('Timestamp:', timestamp);
-      console.log('Method:', method);
-      console.log('\nHeaders:');
+      console.log("\n========================================");
+      console.log("VNPAY WEBHOOK RAW DATA");
+      console.log("========================================");
+      console.log("Timestamp:", timestamp);
+      console.log("Method:", method);
+      console.log("\nHeaders:");
       console.log(JSON.stringify(headers, null, 2));
-      console.log('\nQuery Parameters:');
+      console.log("\nQuery Parameters:");
       console.log(JSON.stringify(query, null, 2));
-      console.log('\nBody:');
+      console.log("\nBody:");
       console.log(JSON.stringify(body, null, 2));
-      console.log('\nQuery String (raw):');
+      console.log("\nQuery String (raw):");
       console.log(req.url);
 
       // Extract signature
       const vnpSecureHash = query.vnp_SecureHash || body.vnp_SecureHash;
-      console.log('\nExtracted Signature:');
+      console.log("\nExtracted Signature:");
       console.log(vnpSecureHash);
 
       // Build query string for signature verification (excluding vnp_SecureHash and vnp_SecureHashType)
@@ -259,17 +286,19 @@ export class InvoiceController {
 
       const sortedKeys = Object.keys(params).sort();
       const queryString = sortedKeys
-        .map(key => `${key}=${params[key]}`)
-        .join('&');
+        .map((key) => `${key}=${params[key]}`)
+        .join("&");
 
-      console.log('\nQuery String for Signature (sorted, excluding vnp_SecureHash):');
+      console.log(
+        "\nQuery String for Signature (sorted, excluding vnp_SecureHash):",
+      );
       console.log(queryString);
 
-      console.log('========================================\n');
+      console.log("========================================\n");
 
       res.status(200).json({
         success: true,
-        message: 'Webhook data logged successfully',
+        message: "Webhook data logged successfully",
         timestamp,
         method,
         hasQuery: Object.keys(query).length > 0,
@@ -278,7 +307,7 @@ export class InvoiceController {
         queryString,
       });
     } catch (error: any) {
-      console.error('Error logging webhook data:', error);
+      console.error("Error logging webhook data:", error);
       res.status(500).json({ error: error.message });
     }
   };

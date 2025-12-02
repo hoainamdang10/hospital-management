@@ -8,7 +8,10 @@
  */
 
 import { Notification } from "../../domain/aggregates/Notification";
-import { RecipientInfo } from "../../domain/value-objects/RecipientInfo";
+import {
+  RecipientInfo,
+  RecipientType,
+} from "../../domain/value-objects/RecipientInfo";
 import { NotificationChannel } from "../../domain/value-objects/NotificationChannel";
 import { NotificationContent } from "../../domain/value-objects/NotificationContent";
 import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
@@ -20,10 +23,19 @@ import {
   IDeliveryService,
   DeliveryResult,
 } from "../../domain/services/IDeliveryService";
+import { normalizePriority } from "../../domain/services/priority-normalizer";
+import { normalizeRecipientType } from "../../domain/services/recipient-type-normalizer";
 
 export interface SendNotificationCommand {
   recipientId: string;
-  recipientType: "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | string;
+  recipientType:
+    | "PATIENT"
+    | "DOCTOR"
+    | "NURSE"
+    | "ADMIN"
+    | "STAFF"
+    | "DEPARTMENT"
+    | string;
   recipientName?: string; // ✅ ADDED for personalization
   recipientEmail?: string; // ✅ ADDED for delivery
   recipientPhone?: string; // ✅ ADDED for SMS delivery
@@ -64,6 +76,10 @@ export class SendNotificationUseCase {
       throw new Error("Invalid notification command: missing required fields");
     }
 
+    const normalizedRecipientType: RecipientType = normalizeRecipientType(
+      command.recipientType,
+    );
+
     const candidateName = (
       command.recipientName ||
       command.metadata?.recipientName ||
@@ -80,11 +96,7 @@ export class SendNotificationUseCase {
 
     const recipient = RecipientInfo.create({
       recipientId: command.recipientId,
-      recipientType: command.recipientType as
-        | "PATIENT"
-        | "DOCTOR"
-        | "NURSE"
-        | "ADMIN",
+      recipientType: normalizedRecipientType,
       fullName: normalizedName || fallbackName,
       contactInfo: {
         email: contactEmail || `${command.recipientId}@example.com`,
@@ -145,13 +157,14 @@ export class SendNotificationUseCase {
 
     const channels = this.determineChannels(command.channels, recipient);
 
+    const normalizedPriority = normalizePriority(command.priority);
+
     const notification = Notification.create({
       recipient,
       templateType: command.templateType || "NOTIFICATION",
       content,
       channels,
-      priority:
-        (command.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT") || "NORMAL",
+      priority: normalizedPriority,
       metadata: command.metadata || {
         source: "event-consumer",
       },

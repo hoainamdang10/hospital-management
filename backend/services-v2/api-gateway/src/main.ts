@@ -416,7 +416,8 @@ class ApiGatewayApplication {
         // Ownership/authorization handled downstream (patient/staff specific checks)
       }),
 
-      // Billing Service - Admin dashboards (requires billing permissions)
+      // Billing Service - General billing operations
+      // Authorization handled by billing service per endpoint
       ServiceRoute.create({
         serviceName: "billing-service",
         baseUrl:
@@ -426,7 +427,7 @@ class ApiGatewayApplication {
             : "http://localhost:3009"),
         pathPrefix: "/api/v1/billing",
         requiresAuth: true,
-        requiredPermissions: ["billing:read"],
+        // No requiredPermissions - let billing service handle authorization
       }),
 
       // Billing Service - Patient Self-Service Invoices (port 3009)
@@ -443,6 +444,18 @@ class ApiGatewayApplication {
         requiresAuth: true,
         requiredRoles: ["patient"],
         // No requiredPermissions - authorization handled by downstream service
+      }),
+
+      // Billing Service - Wallet APIs (patients + internal staff)
+      ServiceRoute.create({
+        serviceName: "billing-service",
+        baseUrl:
+          process.env.BILLING_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://billing-service:3009"
+            : "http://localhost:3009"),
+        pathPrefix: "/api/v1/billing/wallet",
+        requiresAuth: true,
       }),
 
       // Notifications Service - Multi-channel Notifications (port 3011)

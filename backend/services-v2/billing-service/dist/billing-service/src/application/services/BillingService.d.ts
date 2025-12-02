@@ -154,6 +154,7 @@ export declare class BillingService {
     private calculateConsultationFee;
     private getServiceTypeDescription;
     private getServiceTypeCode;
+    private getAppointmentServiceName;
     private calculateInsuranceCoverage;
 }
 //# sourceMappingURL=BillingService.d.ts.map

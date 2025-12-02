@@ -17,6 +17,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  PlusCircle,
+  RefreshCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,13 +27,37 @@ import { DashboardLayout } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBilling } from '@/hooks/useBilling';
 import { usePatient } from '@/hooks/usePatient';
+import { useWallet } from '@/hooks/useWallet';
 import { billingService, type Invoice } from '@/modules/billing/services/billing.service';
+import {
+  walletService,
+  type WalletAccount,
+  type WalletTransaction,
+} from '@/modules/billing/services/wallet.service';
 import { cn, formatCurrency } from '@/lib/utils';
 
 type SummaryTone = 'primary' | 'warning' | 'success' | 'info';
@@ -56,9 +82,30 @@ export default function PatientBillingPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [processingPayment, setProcessingPayment] = useState<string | null>(null);
+  const [walletPayingInvoice, setWalletPayingInvoice] = useState<string | null>(null);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpDescription, setTopUpDescription] = useState('');
+  const [isCreatingTopUpLink, setIsCreatingTopUpLink] = useState(false);
+
+  // Ưu tiên dùng patient UUID cho các API nội bộ; fallback sang mã PAT nếu thiếu
+  const walletPatientId = patient?.id || patient?.patientId || null;
+  const {
+    account: walletAccount,
+    transactions: walletTransactions,
+    isLoading: isWalletLoading,
+    error: walletError,
+    reload: reloadWallet,
+  } = useWallet(walletPatientId);
+  const walletBalance = walletAccount?.balance ?? 0;
+  const canWalletCoverInvoice = (invoice: Invoice) => {
+    if (!walletAccount) return false;
+    const outstanding = getOutstandingAmount(invoice);
+    return outstanding > 0 && walletBalance >= outstanding;
+  };
 
   // Reset page when filters change
   useEffect(() => {
@@ -197,6 +244,52 @@ export default function PatientBillingPage() {
     }
   };
 
+  const handleWalletPayment = async (invoice: Invoice) => {
+    if (!walletPatientId || !walletAccount) {
+      toast.error('Ví chưa sẵn sàng, vui lòng thử lại sau');
+      return;
+    }
+
+    const outstanding = getOutstandingAmount(invoice);
+    if (outstanding <= 0) {
+      toast.success('Hóa đơn này đã thanh toán xong');
+      return;
+    }
+
+    if (walletBalance < outstanding) {
+      toast.error('Số dư ví không đủ để thanh toán hóa đơn này');
+      return;
+    }
+
+    const toastId = `wallet-pay-${invoice.id}`;
+
+    try {
+      setWalletPayingInvoice(invoice.id);
+      toast.loading('Đang thanh toán bằng ví...', { id: toastId });
+      const result = await billingService.payInvoiceWithWallet(invoice.id, {
+        description: `Thanh toán hóa đơn ${getInvoiceLabel(invoice)} bằng ví`,
+      });
+
+      if (!result.success) {
+        throw new Error(result.message || 'Thanh toán bằng ví thất bại');
+      }
+
+      toast.dismiss(toastId);
+      toast.success('Đã thanh toán bằng ví');
+      await Promise.all([reload(), reloadWallet()]);
+    } catch (err: any) {
+      toast.dismiss(toastId);
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        err?.response?.data?.errors?.[0] ||
+        'Không thể thanh toán bằng ví';
+      toast.error(message);
+    } finally {
+      setWalletPayingInvoice(null);
+    }
+  };
+
   const handleDownloadInvoice = async (invoice: Invoice) => {
     try {
       setDownloadingInvoice(invoice.id);
@@ -212,6 +305,45 @@ export default function PatientBillingPage() {
       toast.error(err?.message || 'Không thể tải hóa đơn');
     } finally {
       setDownloadingInvoice(null);
+    }
+  };
+
+  const handleCreateWalletTopUp = async () => {
+    if (!walletPatientId) {
+      toast.error('Không thể xác định bệnh nhân để nạp ví');
+      return;
+    }
+
+    const numericAmount = Number(topUpAmount);
+    if (Number.isNaN(numericAmount) || numericAmount <= 0) {
+      toast.error('Số tiền nạp phải lớn hơn 0');
+      return;
+    }
+
+    try {
+      setIsCreatingTopUpLink(true);
+      toast.loading('Đang tạo link nạp ví...', { id: 'wallet-topup' });
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const response = await walletService.createTopUpLink(walletPatientId, {
+        amount: numericAmount,
+        description: topUpDescription || undefined,
+        returnUrl: baseUrl ? `${baseUrl}/patient/billing?wallet=success` : undefined,
+        cancelUrl: baseUrl ? `${baseUrl}/patient/billing?wallet=cancelled` : undefined,
+      });
+      toast.dismiss('wallet-topup');
+      toast.success('Đã tạo link thanh toán ví');
+      setIsTopUpDialogOpen(false);
+      setTopUpAmount('');
+      setTopUpDescription('');
+      if (typeof window !== 'undefined') {
+        window.location.href = response.checkoutUrl;
+      }
+    } catch (err: any) {
+      console.error('[Wallet] Failed to create top-up link:', err);
+      toast.dismiss('wallet-topup');
+      toast.error(err?.message || 'Không thể tạo link nạp ví');
+    } finally {
+      setIsCreatingTopUpLink(false);
     }
   };
 
@@ -251,6 +383,17 @@ export default function PatientBillingPage() {
             </div>
           )}
         </div>
+
+        {walletPatientId && (
+          <WalletSection
+            account={walletAccount}
+            transactions={walletTransactions}
+            isLoading={isWalletLoading}
+            error={walletError}
+            onReload={reloadWallet}
+            onTopUp={() => setIsTopUpDialogOpen(true)}
+          />
+        )}
 
         {isLoading ? (
           <div className="flex h-64 items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -320,10 +463,11 @@ export default function PatientBillingPage() {
                     onValueChange={(v) => setStatusFilter(v as StatusFilterValue)}
                     className="w-full sm:w-auto"
                   >
-                    <TabsList className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto">
+                    <TabsList className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto">
                       <TabsTrigger value="all">Tất cả</TabsTrigger>
                       <TabsTrigger value="pending">Chưa trả</TabsTrigger>
                       <TabsTrigger value="paid">Đã trả</TabsTrigger>
+                      <TabsTrigger value="refunded">Hoàn tiền</TabsTrigger>
                     </TabsList>
                   </Tabs>
 
@@ -359,9 +503,12 @@ export default function PatientBillingPage() {
                           <InvoiceCard
                             invoice={invoice}
                             onPayment={handlePayment}
+                            onWalletPayment={handleWalletPayment}
+                            canPayWithWallet={canWalletCoverInvoice(invoice)}
                             onDownload={handleDownloadInvoice}
                             onViewDetails={setSelectedInvoice}
                             isProcessing={processingPayment === invoice.id}
+                            isWalletProcessing={walletPayingInvoice === invoice.id}
                             isDownloading={downloadingInvoice === invoice.id}
                             formatDate={formatDate}
                           />
@@ -429,8 +576,272 @@ export default function PatientBillingPage() {
           onClose={() => setSelectedInvoice(null)}
           formatDate={formatDate}
         />
+        {walletPatientId && (
+          <WalletTopUpDialog
+            open={isTopUpDialogOpen}
+            onOpenChange={(open) => {
+              setIsTopUpDialogOpen(open);
+              if (!open) {
+                setTopUpAmount('');
+                setTopUpDescription('');
+              }
+            }}
+            amount={topUpAmount}
+            onAmountChange={setTopUpAmount}
+            description={topUpDescription}
+            onDescriptionChange={setTopUpDescription}
+            onSubmit={handleCreateWalletTopUp}
+            isSubmitting={isCreatingTopUpLink}
+            currency={walletAccount?.currency || 'VND'}
+          />
+        )}
       </motion.div>
     </DashboardLayout>
+  );
+}
+
+function WalletSection({
+  account,
+  transactions,
+  isLoading,
+  error,
+  onReload,
+  onTopUp,
+}: {
+  account: WalletAccount | null;
+  transactions: WalletTransaction[];
+  isLoading: boolean;
+  error: string | null;
+  onReload: () => void;
+  onTopUp: () => void;
+}) {
+  const balance = account?.balance ?? 0;
+  const currency = account?.currency ?? 'VND';
+  const updatedAt = account?.updatedAt ? formatWalletDate(account.updatedAt) : null;
+  const statusLabel = account?.status === 'frozen' ? 'Đang khóa' : 'Đang hoạt động';
+  const statusTone =
+    account?.status === 'frozen'
+      ? 'bg-red-100 text-red-700 border-red-200'
+      : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  const recentTransactions = transactions.slice(0, 6);
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <Card className="border-blue-100 shadow-sm">
+        <CardContent className="flex h-full flex-col gap-4 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Số dư ví</p>
+              {isLoading ? (
+                <Skeleton className="mt-2 h-8 w-32" />
+              ) : (
+                <p className="text-3xl font-bold text-gray-900">{formatCurrency(balance)}</p>
+              )}
+            </div>
+            <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={onTopUp}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Nạp ví
+            </Button>
+          </div>
+
+          <div className="grid gap-4 text-sm text-gray-600">
+            <div className="flex items-center justify-between">
+              <span>Trạng thái</span>
+              <Badge className={cn('border px-3 py-1 text-xs font-semibold', statusTone)}>
+                {statusLabel}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Cập nhật lúc</span>
+              <span className="font-medium text-gray-900">
+                {updatedAt || (isLoading ? 'Đang tải...' : 'Chưa có dữ liệu')}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Số giao dịch gần nhất</span>
+              <span className="font-medium text-gray-900">{transactions.length}</span>
+            </div>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+              <p>{error}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 h-8 px-2 text-red-600 hover:bg-red-100"
+                onClick={onReload}
+              >
+                Thử lại
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="lg:col-span-2">
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Giao dịch ví gần đây</h3>
+            <p className="text-sm text-gray-500">Theo dõi lịch sử nạp và sử dụng ví của bạn</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onReload} disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="mr-2 h-4 w-4" />
+            )}
+            Làm mới
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          <Table className="min-w-full">
+            <TableHeader>
+              <TableRow className="border-gray-100">
+                <TableHead>Loại</TableHead>
+                <TableHead>Mô tả</TableHead>
+                <TableHead>Thời gian</TableHead>
+                <TableHead className="text-right">Số tiền</TableHead>
+                <TableHead className="text-right">Số dư sau</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading &&
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <TableRow key={`wallet-skel-${idx}`}>
+                    <TableCell colSpan={5}>
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+              {!isLoading && recentTransactions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-gray-500">
+                      <Receipt className="h-5 w-5 text-gray-400" />
+                      <span>Chưa có giao dịch ví nào</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoading &&
+                recentTransactions.map((tx) => {
+                  const meta = getTransactionMeta(tx.type);
+                  const amount = formatCurrency(Math.abs(tx.amount));
+                  const prefix = tx.amount >= 0 ? '+' : '-';
+                  return (
+                    <TableRow key={tx.id}>
+                      <TableCell className="font-medium">
+                        <Badge className={cn('capitalize', meta.badgeClass)}>{meta.label}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-gray-900">
+                          {tx.description || 'Không có mô tả'}
+                        </p>
+                        {tx.referenceId && (
+                          <p className="text-xs text-gray-500">Ref: {tx.referenceId}</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {formatWalletDate(tx.createdAt)}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          'text-right text-sm font-semibold',
+                          tx.amount >= 0 ? 'text-emerald-600' : 'text-red-600'
+                        )}
+                      >
+                        {prefix}
+                        {amount}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-gray-700">
+                        {formatCurrency(tx.balanceAfter)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="px-6 py-3 text-xs text-gray-500">
+          * Ví hỗ trợ thanh toán các dịch vụ đặt lịch trực tuyến và phí phát sinh
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+function WalletTopUpDialog({
+  open,
+  onOpenChange,
+  amount,
+  onAmountChange,
+  description,
+  onDescriptionChange,
+  onSubmit,
+  isSubmitting,
+  currency,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  amount: string;
+  onAmountChange: (value: string) => void;
+  description: string;
+  onDescriptionChange: (value: string) => void;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+  currency: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nạp tiền vào ví bệnh nhân</DialogTitle>
+          <DialogDescription>
+            Tạo link thanh toán VNPAY để nạp tiền vào ví. Số dư sẽ được cập nhật sau khi thanh toán
+            thành công.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="topup-amount">Số tiền ({currency})</Label>
+            <Input
+              id="topup-amount"
+              type="number"
+              min="0"
+              placeholder="Ví dụ: 500000"
+              value={amount}
+              onChange={(e) => onAmountChange(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="topup-description">Ghi chú (tuỳ chọn)</Label>
+            <Textarea
+              id="topup-description"
+              rows={3}
+              placeholder="Ví dụ: Nạp tiền khám tổng quát tháng 12"
+              value={description}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Hủy
+          </Button>
+          <Button onClick={onSubmit} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <PlusCircle className="mr-2 h-4 w-4" />
+            )}
+            Nạp qua VNPAY
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -527,26 +938,41 @@ function SummaryCard({
 function InvoiceCard({
   invoice,
   onPayment,
+  onWalletPayment,
+  canPayWithWallet,
   onDownload,
   onViewDetails,
   isProcessing,
+  isWalletProcessing,
   isDownloading,
   formatDate,
 }: {
   invoice: Invoice;
   onPayment: (invoice: Invoice) => void;
+  onWalletPayment?: (invoice: Invoice) => void;
+  canPayWithWallet?: boolean;
   onDownload: (invoice: Invoice) => void;
   onViewDetails: (invoice: Invoice) => void;
   isProcessing: boolean;
+  isWalletProcessing?: boolean;
   isDownloading: boolean;
   formatDate: (value?: string) => string;
 }) {
   const isPaid = invoice.status === 'paid';
   const isPending = isPendingStatus(invoice.status);
   const badge = getStatusBadge(invoice.status);
-  const patientShare = Math.max(0, (invoice.totalAmount ?? 0) - (invoice.insuranceCoverage ?? 0));
-  const outstanding = invoice.outstandingAmount ?? patientShare;
+  const outstanding = getOutstandingAmount(invoice);
   const issuedDate = invoice.issueDate ?? invoice.issuedAt ?? invoice.createdAt;
+  const invoiceTitle = getInvoiceTitle(invoice);
+  const invoiceCodeLabel = getInvoiceLabel(invoice);
+  const serviceSummary = getPrimaryServiceName(invoice);
+  const department = invoice.doctorDepartment || invoice.metadata?.departmentName;
+  const canUseWallet =
+    Boolean(onWalletPayment) &&
+    Boolean(canPayWithWallet) &&
+    !isPaid &&
+    isPending &&
+    outstanding > 0;
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md">
@@ -565,8 +991,8 @@ function InvoiceCard({
             <Receipt className="h-6 w-6 text-gray-500" />
           </div>
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-gray-900">{getInvoiceLabel(invoice)}</span>
+            <div className="flex flex-wrap items-center gap-2" title={invoiceCodeLabel}>
+              <span className="text-lg font-bold text-gray-900">{invoiceTitle}</span>
               <Badge
                 variant="secondary"
                 className={cn(
@@ -581,6 +1007,8 @@ function InvoiceCard({
                 {badge.label}
               </Badge>
             </div>
+            <p className="text-xs text-gray-400">{invoiceCodeLabel}</p>
+            <p className="text-sm font-medium text-gray-700">{serviceSummary}</p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
@@ -591,6 +1019,7 @@ function InvoiceCard({
                   BS. <span className="font-medium text-gray-700">{invoice.doctorName}</span>
                 </span>
               )}
+              {department && <span>Khoa: {department}</span>}
               {invoice.appointmentId && <span>Lịch hẹn: {invoice.appointmentId}</span>}
             </div>
           </div>
@@ -610,7 +1039,25 @@ function InvoiceCard({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {canUseWallet && (
+              <Button
+                variant="outline"
+                onClick={() => onWalletPayment?.(invoice)}
+                disabled={isWalletProcessing}
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              >
+                {isWalletProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Wallet className="mr-2 h-4 w-4" />
+                    Ví của tôi
+                  </>
+                )}
+              </Button>
+            )}
+
             {!isPaid && (
               <Button
                 onClick={() => onPayment(invoice)}
@@ -875,8 +1322,73 @@ function EmptyState() {
   );
 }
 
+function formatWalletDate(value?: string) {
+  if (!value) return 'Không rõ thời gian';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function getTransactionMeta(type: WalletTransaction['type']) {
+  switch (type) {
+    case 'topup':
+      return { label: 'Nạp tiền', badgeClass: 'bg-emerald-100 text-emerald-700' };
+    case 'refund':
+      return { label: 'Hoàn tiền', badgeClass: 'bg-blue-100 text-blue-700' };
+    case 'charge':
+      return { label: 'Trừ tiền', badgeClass: 'bg-orange-100 text-orange-700' };
+    default:
+      return { label: 'Điều chỉnh', badgeClass: 'bg-gray-100 text-gray-700' };
+  }
+}
+
 function getInvoiceLabel(invoice: Invoice) {
   return invoice.invoiceNumber || invoice.invoiceCode || invoice.id;
+}
+
+function getInvoiceTitle(invoice: Invoice) {
+  const type = invoice.metadata?.invoiceType as string | undefined;
+  const mapping: Record<string, string> = {
+    appointment_booking: 'Đặt lịch khám',
+    wallet_topup: 'Nạp ví tài khoản',
+    late_cancellation_fee: 'Phí hủy lịch muộn',
+    reschedule_fee: 'Phí đổi lịch hẹn',
+    no_show_fee: 'Phí bỏ khám',
+    prescription: 'Thanh toán đơn thuốc',
+    lab_test: 'Thanh toán xét nghiệm',
+    treatment_plan: 'Thanh toán kế hoạch điều trị',
+    medical_record: 'Thanh toán hồ sơ y tế',
+    refund: 'Hoàn tiền',
+    medical_service: 'Dịch vụ y tế',
+  };
+  if (type && mapping[type]) {
+    return mapping[type];
+  }
+  if (invoice.metadata?.serviceName) {
+    return invoice.metadata.serviceName;
+  }
+  return getInvoiceLabel(invoice);
+}
+
+function getPrimaryServiceName(invoice: Invoice) {
+  const meta = invoice.metadata || {};
+  if (meta.serviceDescription) {
+    return meta.serviceDescription;
+  }
+  if (meta.serviceName) {
+    return meta.serviceName;
+  }
+  if (invoice.items && invoice.items.length > 0) {
+    return invoice.items[0]?.description || 'Dịch vụ y tế';
+  }
+  if (meta.description) {
+    return meta.description;
+  }
+  return 'Dịch vụ y tế';
 }
 
 function isPendingStatus(status: Invoice['status']) {
@@ -913,4 +1425,30 @@ function getRefundAmount(invoice: Invoice): number {
   return invoice.payments
     .filter((p) => p.method === 'refund' || p.amount < 0)
     .reduce((sum, p) => sum + Math.abs(p.amount), 0);
+}
+
+function getOutstandingAmount(invoice: Invoice): number {
+  if (!invoice) return 0;
+  if (typeof invoice.outstandingAmount === 'number') {
+    return Math.max(0, invoice.outstandingAmount);
+  }
+
+  const fallbackOutstanding =
+    typeof invoice.outstandingAmount === 'number' ? invoice.outstandingAmount : 0;
+  const paidFromField = Math.max(
+    0,
+    invoice.paidAmount ?? (invoice.totalAmount ?? 0) - fallbackOutstanding
+  );
+
+  const paidFromPayments =
+    invoice.payments
+      ?.filter((p) => p.method !== 'refund')
+      .reduce((sum, payment) => {
+        const amount =
+          typeof payment.amount === 'number' ? payment.amount : Number(payment.amount ?? 0);
+        return sum + Math.max(0, amount);
+      }, 0) ?? 0;
+
+  const paid = Math.max(paidFromField, paidFromPayments);
+  return Math.max(0, (invoice.totalAmount ?? 0) - paid);
 }

@@ -1,12 +1,20 @@
-
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { toast } from 'sonner';
 
 import {
   getUserNotifications,
   markNotificationAsRead,
+  type NotificationStatusFilter,
   type UserNotification,
 } from '@/lib/api/notifications.service';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase-client';
@@ -20,7 +28,16 @@ interface UseNotificationsState {
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refresh: () => Promise<void>;
+  filter: NotificationStatusFilter;
+  setFilter: (filter: NotificationStatusFilter) => void;
 }
+
+type NotificationContextValue = UseNotificationsState;
+
+const NotificationContext = createContext<NotificationContextValue | null>(null);
+
+const buildUnreadCacheKey = (recipientId: string) =>
+  `hmv2:notifications:unread:${recipientId}`;
 
 const getPlainText = (value?: string | null) =>
   value ? value.replace(/<[^>]*>/g, '').trim() : '';
@@ -28,7 +45,24 @@ const getPlainText = (value?: string | null) =>
 const resolveRecipientId = (user: ReturnType<typeof useAuth>['user']) =>
   user?.patientId || user?.staffId || user?.userId || null;
 
-export function useNotifications(): UseNotificationsState {
+export function NotificationProvider({ children }: { children: ReactNode }) {
+  const value = useProvideNotifications();
+  return (
+    <NotificationContext.Provider value={value} >
+      {children}
+    </NotificationContext.Provider>
+  );
+}
+
+export function useNotifications(): NotificationContextValue {
+  const context = useContext(NotificationContext);
+  if (context) {
+    return context;
+  }
+  return useProvideNotifications();
+}
+
+function useProvideNotifications(): NotificationContextValue {
   const { user } = useAuth();
   const recipientId = useMemo(() => resolveRecipientId(user), [user]);
 
@@ -36,6 +70,43 @@ export function useNotifications(): UseNotificationsState {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<NotificationStatusFilter>('all');
+
+  const persistUnreadCount = useCallback(
+    (value: number) => {
+      if (!recipientId || typeof window === 'undefined') {
+        return;
+      }
+      try {
+        window.localStorage.setItem(
+          buildUnreadCacheKey(recipientId),
+          String(value),
+        );
+      } catch {
+        // Ignore quota errors
+      }
+    },
+    [recipientId],
+  );
+
+  useEffect(() => {
+    if (!recipientId || typeof window === 'undefined') {
+      return;
+    }
+    try {
+      const cached = window.localStorage.getItem(
+        buildUnreadCacheKey(recipientId),
+      );
+      if (cached !== null) {
+        const parsed = Number.parseInt(cached, 10);
+        if (!Number.isNaN(parsed)) {
+          setUnreadCount(parsed);
+        }
+      }
+    } catch {
+      // Ignore malformed cache
+    }
+  }, [recipientId]);
 
   const fetchNotifications = useCallback(async () => {
     if (!recipientId) {
@@ -49,21 +120,27 @@ export function useNotifications(): UseNotificationsState {
       setIsLoading(true);
       setError(null);
 
-      const response = await getUserNotifications(recipientId, { limit: 20 });
+      const response = await getUserNotifications(recipientId, {
+        limit: 20,
+        status: filter,
+      });
+
       if (response.success) {
         setNotifications(response.data.notifications);
         setUnreadCount(response.data.unreadCount);
+        persistUnreadCount(response.data.unreadCount);
       } else {
         setNotifications([]);
         setUnreadCount(0);
+        persistUnreadCount(0);
       }
     } catch (err) {
       console.error('[useNotifications] Failed to fetch notifications:', err);
-      setError('Kh?ng th? t?i th?ng b?o');
+      setError('Không thể tải thông báo');
     } finally {
       setIsLoading(false);
     }
-  }, [recipientId]);
+  }, [recipientId, filter, persistUnreadCount]);
 
   useEffect(() => {
     fetchNotifications();
@@ -90,7 +167,7 @@ export function useNotifications(): UseNotificationsState {
           filter: `recipient_id=eq.${recipientId}`,
         },
         (payload) => {
-          const subject = payload.new?.subject || 'Th?ng b?o m?i';
+          const subject = payload.new?.subject || 'Thông báo mới';
           const body = getPlainText(payload.new?.body);
           toast.info(subject, {
             description: body ? body.substring(0, 120) : undefined,
@@ -113,7 +190,7 @@ export function useNotifications(): UseNotificationsState {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase?.removeChannel(channel);
     };
   }, [recipientId, fetchNotifications]);
 
@@ -130,23 +207,31 @@ export function useNotifications(): UseNotificationsState {
 
       try {
         await markNotificationAsRead(notificationId, recipientId, true);
-        setNotifications((prev) =>
-          prev.map((notification) =>
+        setNotifications((prev) => {
+          const updated = prev.map((notification) =>
             notification.notificationId === notificationId
               ? {
-                  ...notification,
-                  readAt: new Date().toISOString(),
-                }
+                ...notification,
+                readAt: new Date().toISOString(),
+              }
               : notification,
-          ),
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+          );
+          if (filter === 'unread') {
+            return updated.filter((notification) => !notification.readAt);
+          }
+          return updated;
+        });
+        setUnreadCount((prev) => {
+          const next = Math.max(0, prev - 1);
+          persistUnreadCount(next);
+          return next;
+        });
       } catch (err) {
         console.error('[useNotifications] Failed to mark as read:', err);
-        toast.error('Kh?ng th? ??nh d?u th?ng b?o ?? ??c');
+        toast.error('Không thể đánh dấu thông báo đã đọc');
       }
     },
-    [notifications, recipientId],
+    [notifications, recipientId, persistUnreadCount, filter],
   );
 
   const markAllAsRead = useCallback(async () => {
@@ -160,22 +245,24 @@ export function useNotifications(): UseNotificationsState {
           markNotificationAsRead(notification.notificationId, recipientId, true),
         ),
       );
-      setNotifications((prev) =>
-        prev.map((notification) =>
+      setNotifications((prev) => {
+        const updated = prev.map((notification) =>
           notification.readAt
             ? notification
             : {
-                ...notification,
-                readAt: new Date().toISOString(),
-              },
-        ),
-      );
+              ...notification,
+              readAt: new Date().toISOString(),
+            },
+        );
+        return filter === 'unread' ? [] : updated;
+      });
       setUnreadCount(0);
+      persistUnreadCount(0);
     } catch (err) {
       console.error('[useNotifications] Failed to mark all as read:', err);
-      toast.error('Kh?ng th? ??nh d?u t?t c? th?ng b?o');
+      toast.error('Không thể đánh dấu tất cả thông báo');
     }
-  }, [notifications, recipientId]);
+  }, [notifications, recipientId, persistUnreadCount, filter]);
 
   return {
     notifications,
@@ -185,5 +272,7 @@ export function useNotifications(): UseNotificationsState {
     markAsRead,
     markAllAsRead,
     refresh: fetchNotifications,
+    filter,
+    setFilter,
   };
 }

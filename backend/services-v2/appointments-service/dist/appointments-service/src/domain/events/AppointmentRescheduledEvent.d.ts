@@ -99,6 +99,7 @@ export interface AppointmentRescheduledEventData {
         };
         billingUpdate?: {
             patientId: string;
+            patientRecordId?: string;
             appointmentId: string;
             action: "reschedule_fee" | "no_charge";
             amount?: number;
@@ -129,6 +130,7 @@ export declare class AppointmentRescheduledEvent extends DomainEvent {
     readonly newEndTime: Date;
     readonly rescheduleReason: string;
     readonly rescheduledBy: string;
+    private patientRecordId?;
     constructor(appointmentId: string, patientId: string, doctorId: string, // Changed from providerId to doctorId
     originalStartTime: Date, originalEndTime: Date, newStartTime: Date, newEndTime: Date, rescheduleReason: string, rescheduledBy: string, correlationId?: string, causationId?: string, userId?: string);
     /**
@@ -170,5 +172,9 @@ export declare class AppointmentRescheduledEvent extends DomainEvent {
     private getPatientAppointmentHistory;
     private getNotificationRequests;
     private getBillingUpdate;
+    /**
+     * Attach patient record UUID for downstream billing service
+     */
+    attachPatientRecordId(patientRecordId: string): this;
 }
 //# sourceMappingURL=AppointmentRescheduledEvent.d.ts.map

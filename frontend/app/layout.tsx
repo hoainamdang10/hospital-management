@@ -36,7 +36,9 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.variable} ${robotoMono.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

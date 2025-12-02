@@ -151,9 +151,22 @@ export class BillingEventConsumer {
       const event = JSON.parse(content);
 
       // FIX: EventBus serializes events using toJSON() which returns { eventType, eventData, ... }
-      // Not { type, data, ... }
-      const eventType = event.eventType || event.type;
-      const eventData = event.eventData || event.data;
+      // Other services sometimes emit { type, payload } or rely on routing keys only.
+      const routingKey = msg.fields?.routingKey;
+      const eventType =
+        event.eventType ||
+        event.type ||
+        event.event_type ||
+        event.metadata?.eventType ||
+        routingKey ||
+        "unknown";
+      const eventData =
+        event.eventData ||
+        event.data ||
+        event.payload ||
+        event.body ||
+        event.message ||
+        event;
 
       // Normalize common billing payload shapes (snake_case -> camelCase)
       if (eventData) {
@@ -207,7 +220,9 @@ export class BillingEventConsumer {
           await this.handleInsuranceCoverageVerified(eventData);
           break;
         default:
-          console.warn(`Unknown event type: ${eventType}`);
+          console.warn(`Unknown event type: ${eventType}`, {
+            routingKey,
+          });
       }
 
       // Save to inbox after successful processing

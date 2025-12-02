@@ -14,16 +14,17 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     constructor(props, id) {
         super(props, id);
     }
-    static create(patientId, items) {
+    static create(patientId, items, options = {}) {
         if (items.length === 0) {
             throw new Error("Invoice must have at least one item");
         }
         const invoiceId = InvoiceId_1.InvoiceId.generate();
         const now = new Date();
+        const taxRate = options.taxRate ?? 0.1;
         // Calculate subtotal
         const subtotal = items.reduce((sum, item) => sum.add(item.totalPrice), Money_1.Money.zero());
         // Calculate tax (10% VAT)
-        const tax = subtotal.multiply(0.1);
+        const tax = subtotal.multiply(taxRate);
         // Calculate total and outstanding (no insurance coverage in Phase 1 Prepaid Model)
         const totalAmount = subtotal.add(tax);
         const outstandingAmount = totalAmount;

@@ -18,12 +18,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RefundPaymentUseCase = void 0;
 const use_case_interface_1 = require("../../../../shared/application/use-cases/base/use-case.interface");
 class RefundPaymentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
-    constructor(invoiceRepository, eventBus, logger, config) {
+    constructor(invoiceRepository, eventBus, logger, config, walletService) {
         super();
         this.invoiceRepository = invoiceRepository;
         this.eventBus = eventBus;
         this.logger = logger;
         this.config = config;
+        this.walletService = walletService;
     }
     async executeInternal(request) {
         try {
@@ -99,6 +100,7 @@ class RefundPaymentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
                     refundId: existingRefund.id,
                 };
             }
+            const hadWalletPayment = invoice.payments.some((p) => p.method === "wallet");
             // 5. Process refund
             const refundAmount = invoice.processRefund(request.refundPercentage, request.reason, request.refundedBy);
             const refundPayment = invoice.payments.find((p) => p.method === "refund" && p.status === "refund_pending");
@@ -110,22 +112,26 @@ class RefundPaymentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
                 await this.eventBus.publish(event);
             }
             invoice.markEventsAsCommitted();
+            let refundCompleted = false;
+            if (hadWalletPayment && this.walletService && refundPayment) {
+                await this.refundWallet(invoice, refundAmount, refundPayment.id, request.refundedBy, request.reason);
+                try {
+                    invoice.completeRefund(refundPayment.id, `WALLET-REFUND-${Date.now()}`);
+                    refundCompleted = true;
+                }
+                catch (e) {
+                    this.logger.error("Wallet refund completion failed", {
+                        invoiceId: invoice.id,
+                        error: e instanceof Error ? e.message : "Unknown error",
+                    });
+                }
+            }
             // Nếu không dùng gateway refund, complete ngay để tránh pending
-            if (!this.config.useGatewayRefund) {
-                const refundPayment = invoice.payments.find((p) => p.method === "refund");
+            if (!this.config.useGatewayRefund && !refundCompleted) {
                 if (refundPayment) {
                     try {
                         invoice.completeRefund(refundPayment.id, `REFUND-SYSTEM-${Date.now()}`);
-                        await this.invoiceRepository.save(invoice);
-                        const completeEvents = invoice.getUncommittedEvents();
-                        for (const event of completeEvents) {
-                            await this.eventBus.publish(event);
-                        }
-                        invoice.markEventsAsCommitted();
-                        this.logger.info("Refund auto-completed (gateway disabled)", {
-                            invoiceId: invoice.id,
-                            refundPaymentId: refundPayment.id,
-                        });
+                        refundCompleted = true;
                     }
                     catch (e) {
                         this.logger.error("Auto-complete refund failed", {
@@ -134,6 +140,14 @@ class RefundPaymentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
                         });
                     }
                 }
+            }
+            if (refundCompleted) {
+                await this.invoiceRepository.save(invoice);
+                const completeEvents = invoice.getUncommittedEvents();
+                for (const event of completeEvents) {
+                    await this.eventBus.publish(event);
+                }
+                invoice.markEventsAsCommitted();
             }
             this.logger.info("Refund request recorded", {
                 invoiceId: invoice.id,
@@ -168,6 +182,63 @@ class RefundPaymentUseCase extends use_case_interface_1.BaseHealthcareUseCase {
     }
     getPatientId(request) {
         return request.patientId;
+    }
+    async refundWallet(invoice, refundAmount, refundPaymentId, refundedBy, reason) {
+        if (!this.walletService) {
+            this.logger.warn("Wallet service not configured for refunds");
+            return null;
+        }
+        const patientId = invoice.getPatientId();
+        if (!patientId) {
+            this.logger.warn("Unable to refund wallet: missing patientId", {
+                invoiceId: invoice.id,
+            });
+            return null;
+        }
+        if (refundAmount <= 0) {
+            return null;
+        }
+        const walletContribution = invoice.payments
+            .filter((payment) => payment.method === "wallet")
+            .reduce((sum, payment) => sum + Math.max(0, payment.amount.amount), 0);
+        const normalizedAmount = Math.min(refundAmount, walletContribution);
+        if (normalizedAmount <= 0) {
+            this.logger.info("No wallet contribution to refund", {
+                invoiceId: invoice.id,
+                walletContribution,
+            });
+            return null;
+        }
+        const descriptionParts = [
+            `Hoàn tiền ví cho hóa đơn ${invoice.invoiceNumber || invoice.id}`,
+        ];
+        if (reason) {
+            descriptionParts.push(`(${reason})`);
+        }
+        const description = descriptionParts.join(" ");
+        try {
+            const transaction = await this.walletService.refund(patientId, normalizedAmount, description, refundPaymentId, refundedBy, {
+                invoiceId: invoice.id,
+                appointmentId: invoice.getAppointmentId(),
+                refundPaymentId,
+                type: "invoice_refund",
+            });
+            this.logger.info("Wallet refund processed", {
+                invoiceId: invoice.id,
+                refundPaymentId,
+                transactionId: transaction.id,
+                amount: normalizedAmount,
+            });
+            return transaction;
+        }
+        catch (error) {
+            this.logger.error("Wallet refund failed", {
+                invoiceId: invoice.id,
+                refundPaymentId,
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+            throw error;
+        }
     }
 }
 exports.RefundPaymentUseCase = RefundPaymentUseCase;

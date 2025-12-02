@@ -43,6 +43,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentEventConsumer = void 0;
+const priority_normalizer_1 = require("../../domain/services/priority-normalizer");
 /**
  * AppointmentEventConsumer - Handles appointment events for notifications
  */
@@ -191,37 +192,52 @@ class AppointmentEventConsumer {
                 return;
             }
             console.log(`[AppointmentEventConsumer] Processing event: ${routingKey} (${eventId})`);
+            let handled = false;
             // Route to appropriate handler
             // ✅ MVP SCOPE: Only handle core booking + payment flow
-            switch (routingKey) {
-                case "appointment.scheduled":
-                    await this.handleAppointmentScheduled(payload);
-                    break;
-                case "appointment.confirmed":
-                    await this.handleAppointmentConfirmed(payload);
-                    break;
-                case "appointment.cancelled":
-                    await this.handleAppointmentCancelled(payload);
-                    break;
-                case "appointment.rescheduled":
-                    await this.handleAppointmentRescheduled(payload);
-                    break;
-                // case 'appointment.reminder':
-                //   await this.handleAppointmentReminder(event.payload as AppointmentReminderEventData);
-                //   break;
-                // case 'appointment.no_show':
-                //   await this.handleAppointmentNoShow(event.payload as AppointmentNoShowEventData);
-                //   break;
-                default:
-                    console.warn("[AppointmentEventConsumer] Unhandled routing key (may be out of MVP scope)", { routingKey });
-                    break;
+            if (routingKey.startsWith("appointment.reminder")) {
+                await this.handleAppointmentReminder(payload);
+                handled = true;
             }
-            // Store in inbox after successful processing
-            await this.inboxRepo.store({
-                idempotencyKey: eventId,
-                eventType: routingKey,
-                payload: event,
-            });
+            else {
+                switch (routingKey) {
+                    case "appointment.scheduled":
+                        await this.handleAppointmentScheduled(payload);
+                        handled = true;
+                        break;
+                    case "appointment.confirmed":
+                        await this.handleAppointmentConfirmed(payload);
+                        handled = true;
+                        break;
+                    case "appointment.cancelled":
+                        await this.handleAppointmentCancelled(payload);
+                        handled = true;
+                        break;
+                    case "appointment.rescheduled":
+                        await this.handleAppointmentRescheduled(payload);
+                        handled = true;
+                        break;
+                    case "appointment.completed":
+                        await this.handleAppointmentCompleted(payload);
+                        handled = true;
+                        break;
+                    // case 'appointment.no_show':
+                    //   await this.handleAppointmentNoShow(event.payload as AppointmentNoShowEventData);
+                    //   handled = true;
+                    //   break;
+                    default:
+                        console.warn("[AppointmentEventConsumer] Unhandled routing key (may be out of MVP scope)", { routingKey });
+                        break;
+                }
+            }
+            if (handled) {
+                // Store in inbox after successful processing
+                await this.inboxRepo.store({
+                    idempotencyKey: eventId,
+                    eventType: routingKey,
+                    payload: event,
+                });
+            }
             // Acknowledge message
             this.channel.ack(msg);
         }
@@ -280,7 +296,7 @@ class AppointmentEventConsumer {
             });
             // Send initial booking notification to patient
             // ⚠️ UX CLEAR: "Yêu cầu đã nhận, vui lòng thanh toán trong 30 phút"
-            await this.sendNotificationUseCase.execute({
+            await this.dispatchNotification({
                 recipientId: data.patientId,
                 recipientType: "PATIENT",
                 recipientName: data.patientName,
@@ -349,7 +365,7 @@ class AppointmentEventConsumer {
                 userId: data.patientId,
                 userType: "patient",
             });
-            await this.sendNotificationUseCase.execute({
+            await this.dispatchNotification({
                 recipientId: data.patientId,
                 recipientType: "PATIENT",
                 recipientName: data.patientName,
@@ -386,7 +402,7 @@ class AppointmentEventConsumer {
                 userId: data.doctorId,
                 userType: "staff",
             });
-            await this.sendNotificationUseCase.execute({
+            await this.dispatchNotification({
                 recipientId: data.doctorId,
                 recipientType: "DOCTOR",
                 recipientName: data.doctorName,
@@ -510,7 +526,7 @@ class AppointmentEventConsumer {
                 userId: data.patientId,
                 userType: "patient",
             });
-            await this.sendNotificationUseCase.execute({
+            await this.dispatchNotification({
                 recipientId: data.patientId,
                 recipientType: "PATIENT",
                 recipientName: data.patientName,
@@ -551,7 +567,7 @@ class AppointmentEventConsumer {
                 userId: data.doctorId,
                 userType: "staff",
             });
-            await this.sendNotificationUseCase.execute({
+            await this.dispatchNotification({
                 recipientId: data.doctorId,
                 recipientType: "DOCTOR",
                 recipientName: data.doctorName,
@@ -695,34 +711,43 @@ class AppointmentEventConsumer {
      * Handle appointment reminder event
      */
     async handleAppointmentReminder(data) {
+        const normalized = {
+            ...data,
+            appointmentDate: data.appointmentDate instanceof Date
+                ? data.appointmentDate
+                : new Date(data.appointmentDate),
+            reminderSentAt: data.reminderSentAt instanceof Date
+                ? data.reminderSentAt
+                : new Date(data.reminderSentAt || Date.now()),
+        };
         console.log("Processing appointment reminder for notifications", {
-            appointmentId: data.appointmentId,
-            patientId: data.patientId,
-            reminderType: data.reminderType,
-            appointmentDate: data.appointmentDate,
-            appointmentTime: data.appointmentTime,
+            appointmentId: normalized.appointmentId,
+            patientId: normalized.patientId,
+            reminderType: normalized.reminderType,
+            appointmentDate: normalized.appointmentDate,
+            appointmentTime: normalized.appointmentTime,
         });
         try {
             // Get patient notification preferences
             const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-                userId: data.patientId,
+                userId: normalized.patientId,
                 userType: "patient",
             });
             // Send reminder notification to patient
-            await this.sendAppointmentReminderNotification(data, patientPreferences);
+            await this.sendAppointmentReminderNotification(normalized, patientPreferences);
             // Send reminder to doctor for specific reminder types
-            if (data.reminderType === "2_hours" ||
-                data.reminderType === "30_minutes") {
+            if (normalized.reminderType === "2_hours" ||
+                normalized.reminderType === "30_minutes") {
                 const doctorPreferences = await this.getNotificationPreferencesUseCase.execute({
-                    userId: data.doctorId,
+                    userId: normalized.doctorId,
                     userType: "staff",
                 });
-                await this.sendDoctorReminderNotification(data, doctorPreferences);
+                await this.sendDoctorReminderNotification(normalized, doctorPreferences);
             }
         }
         catch (error) {
             console.error("Failed to process appointment reminder", {
-                appointmentId: data.appointmentId,
+                appointmentId: normalized.appointmentId,
                 error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
@@ -780,7 +805,7 @@ class AppointmentEventConsumer {
                     "sms",
                     "in_app",
                 ]),
-                priority: this.mapPriority(data.priority),
+                priority: this.mapPriority(data.priority || "NORMAL"),
                 scheduledAt: new Date(),
                 metadata: {
                     appointmentId: data.appointmentId,
@@ -799,7 +824,7 @@ class AppointmentEventConsumer {
                     consultationFee: data.consultationFee,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent appointment confirmation to patient", {
                 appointmentId: data.appointmentId,
                 patientId: data.patientId,
@@ -843,7 +868,7 @@ class AppointmentEventConsumer {
                     departmentName: data.departmentName,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent appointment notification to doctor", {
                 appointmentId: data.appointmentId,
                 doctorId: data.doctorId,
@@ -878,7 +903,7 @@ class AppointmentEventConsumer {
                     urgency: data.priority,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent urgent appointment notification", {
                 appointmentId: data.appointmentId,
                 departmentId: data.departmentId,
@@ -998,14 +1023,15 @@ class AppointmentEventConsumer {
      * Map priority from appointment system to notification system
      */
     mapPriority(appointmentPriority) {
+        const normalized = appointmentPriority?.toLowerCase?.() ?? "normal";
         const priorityMap = {
-            emergency: "urgent",
-            urgent: "high",
-            high: "high",
-            normal: "normal",
-            low: "low",
+            emergency: "URGENT",
+            urgent: "HIGH",
+            high: "HIGH",
+            normal: "NORMAL",
+            low: "LOW",
         };
-        return priorityMap[appointmentPriority] || "normal";
+        return priorityMap[normalized] ?? "NORMAL";
     }
     /**
      * Format date for Vietnamese locale
@@ -1016,6 +1042,12 @@ class AppointmentEventConsumer {
             year: "numeric",
             month: "long",
             day: "numeric",
+        });
+    }
+    async dispatchNotification(payload) {
+        await this.sendNotificationUseCase.execute({
+            ...payload,
+            priority: (0, priority_normalizer_1.normalizePriority)(payload.priority),
         });
     }
     formatTime(date) {
@@ -1041,7 +1073,7 @@ class AppointmentEventConsumer {
                     "sms",
                     "in_app",
                 ]),
-                priority: "normal",
+                priority: this.mapPriority("NORMAL"),
                 scheduledAt: new Date(),
                 metadata: {
                     appointmentId: data.appointmentId,
@@ -1049,7 +1081,7 @@ class AppointmentEventConsumer {
                     confirmedAt: data.confirmedAt,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send appointment confirmed notification", {
@@ -1077,7 +1109,7 @@ class AppointmentEventConsumer {
                     confirmedBy: data.confirmedBy,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send doctor appointment confirmed notification", {
@@ -1110,7 +1142,7 @@ class AppointmentEventConsumer {
                     cancellationReason: data.cancellationReason,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send appointment cancelled notification", {
@@ -1138,7 +1170,7 @@ class AppointmentEventConsumer {
                     cancelledBy: data.cancelledBy,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send doctor appointment cancelled notification", {
@@ -1166,7 +1198,7 @@ class AppointmentEventConsumer {
                     refundAmount: data.refundAmount,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send refund notification", {
@@ -1195,7 +1227,7 @@ class AppointmentEventConsumer {
                     outcome: data.outcome,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send appointment completed notification", {
@@ -1227,7 +1259,7 @@ class AppointmentEventConsumer {
                     followUpDate: data.followUpDate,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send follow-up notification", {
@@ -1254,7 +1286,7 @@ class AppointmentEventConsumer {
                     appointmentId: data.appointmentId,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send prescription notification", {
@@ -1281,7 +1313,7 @@ class AppointmentEventConsumer {
                     appointmentId: data.appointmentId,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send lab test notification", {
@@ -1316,7 +1348,7 @@ class AppointmentEventConsumer {
                     newTime: data.newTime,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send appointment rescheduled notification", {
@@ -1344,7 +1376,7 @@ class AppointmentEventConsumer {
                     rescheduledBy: data.rescheduledBy,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send doctor appointment rescheduled notification", {
@@ -1423,7 +1455,7 @@ class AppointmentEventConsumer {
                     reminderType: data.reminderType,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send appointment reminder notification", {
@@ -1451,7 +1483,7 @@ class AppointmentEventConsumer {
                     reminderType: data.reminderType,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send doctor reminder notification", {
@@ -1487,7 +1519,7 @@ class AppointmentEventConsumer {
                     noShowFee: data.noShowFee,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send no-show notification", {
@@ -1514,7 +1546,7 @@ class AppointmentEventConsumer {
                     appointmentId: data.appointmentId,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send doctor no-show notification", {
@@ -1541,7 +1573,7 @@ class AppointmentEventConsumer {
                     appointmentId: data.appointmentId,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send reschedule offer", {

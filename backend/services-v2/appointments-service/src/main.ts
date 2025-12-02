@@ -187,8 +187,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Health check endpoints
 app.get("/health", async (req: Request, res: Response) => {
   try {
+    const detailedRequested = req.query.detailed === "true";
     const detailed =
-      req.query.detailed === "true" || config.healthCheck.enableDetailedCheck;
+      detailedRequested || config.healthCheck.enableDetailedCheck;
     const healthStatus = await healthCheckService.check(detailed);
 
     const statusCode =

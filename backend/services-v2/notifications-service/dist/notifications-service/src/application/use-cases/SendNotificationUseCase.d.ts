@@ -11,7 +11,7 @@ import { ITemplateService } from "../../domain/services/ITemplateService";
 import { IDeliveryService, DeliveryResult } from "../../domain/services/IDeliveryService";
 export interface SendNotificationCommand {
     recipientId: string;
-    recipientType: "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | string;
+    recipientType: "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | "STAFF" | "DEPARTMENT" | string;
     recipientName?: string;
     recipientEmail?: string;
     recipientPhone?: string;

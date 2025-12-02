@@ -36,8 +36,10 @@ export interface AppointmentEventConsumerConfig {
 export interface AppointmentScheduledEventData {
   appointmentId: string;
   patientId: string;
-  staffId: string;
-  departmentId: string;
+  patientRecordId?: string | null;
+  patientCode?: string | null;
+  staffId: string | null;
+  departmentId: string | null;
   doctorName?: string;
   doctorDepartment?: string;
   scheduledAt: Date;
@@ -51,8 +53,10 @@ export interface AppointmentScheduledEventData {
 export interface AppointmentCancelledLateEventData {
   appointmentId: string;
   patientId: string;
-  staffId: string;
-  departmentId: string;
+  patientRecordId?: string | null;
+  patientCode?: string | null;
+  staffId: string | null;
+  departmentId: string | null;
   scheduledAt: Date;
   cancelledAt: Date;
   reason: string;
@@ -64,8 +68,10 @@ export interface AppointmentCancelledLateEventData {
 export interface AppointmentNoShowEventData {
   appointmentId: string;
   patientId: string;
-  staffId: string;
-  departmentId: string;
+  patientRecordId?: string | null;
+  patientCode?: string | null;
+  staffId: string | null;
+  departmentId: string | null;
   scheduledAt: Date;
   noShowFeeApplied: boolean;
   noShowFeeAmount: number;
@@ -75,8 +81,10 @@ export interface AppointmentNoShowEventData {
 export interface AppointmentCancelledRefundEventData {
   appointmentId: string;
   patientId: string;
-  staffId: string;
-  departmentId: string;
+  patientRecordId?: string | null;
+  patientCode?: string | null;
+  staffId: string | null;
+  departmentId: string | null;
   scheduledAt: Date;
   cancelledAt: Date;
   cancellationReason: string;
@@ -93,6 +101,8 @@ export interface AppointmentCancelledRefundEventData {
 export interface AppointmentRescheduledEventData {
   appointmentId: string;
   patientId: string;
+  patientRecordId?: string | null;
+  patientCode?: string | null;
   staffId: string | null;
   departmentId: string | null;
   originalStartTime?: Date;
@@ -108,6 +118,18 @@ export interface AppointmentRescheduledEventData {
   };
 }
 
+interface CommonAppointmentFields {
+  appointmentId: string;
+  patientId: string | null;
+  patientRecordId?: string | null;
+  patientCode?: string | null;
+  staffId: string | null;
+  doctorName?: string;
+  doctorDepartment?: string | null;
+  departmentId: string | null;
+  scheduledAt: Date;
+}
+
 /**
  * AppointmentEventConsumer - Handles appointment lifecycle events for billing
  */
@@ -115,6 +137,7 @@ export class AppointmentEventConsumer {
   private connection?: any;
   private channel?: any;
   private isConnected = false;
+  private patientIdCache = new Map<string, string>();
 
   constructor(
     private config: AppointmentEventConsumerConfig,
@@ -314,7 +337,10 @@ export class AppointmentEventConsumer {
 
     return {
       appointmentId: common.appointmentId,
-      patientId: common.patientId,
+      patientId:
+        common.patientId || common.patientRecordId || common.patientCode || "",
+      patientRecordId: common.patientRecordId,
+      patientCode: common.patientCode,
       staffId: common.staffId,
       departmentId: common.departmentId,
       scheduledAt: common.scheduledAt,
@@ -343,7 +369,10 @@ export class AppointmentEventConsumer {
 
     return {
       appointmentId: common.appointmentId,
-      patientId: common.patientId,
+      patientId:
+        common.patientId || common.patientRecordId || common.patientCode || "",
+      patientRecordId: common.patientRecordId,
+      patientCode: common.patientCode,
       staffId: common.staffId,
       departmentId: common.departmentId,
       scheduledAt: common.scheduledAt,
@@ -367,7 +396,10 @@ export class AppointmentEventConsumer {
 
     return {
       appointmentId: common.appointmentId,
-      patientId: common.patientId,
+      patientId:
+        common.patientId || common.patientRecordId || common.patientCode || "",
+      patientRecordId: common.patientRecordId,
+      patientCode: common.patientCode,
       staffId: common.staffId,
       departmentId: common.departmentId,
       scheduledAt: common.scheduledAt,
@@ -385,7 +417,10 @@ export class AppointmentEventConsumer {
 
     return {
       appointmentId: common.appointmentId,
-      patientId: common.patientId,
+      patientId:
+        common.patientId || common.patientRecordId || common.patientCode || "",
+      patientRecordId: common.patientRecordId,
+      patientCode: common.patientCode,
       staffId: common.staffId,
       departmentId: common.departmentId,
       scheduledAt: common.scheduledAt,
@@ -422,7 +457,10 @@ export class AppointmentEventConsumer {
 
     return {
       appointmentId: common.appointmentId,
-      patientId: common.patientId,
+      patientId:
+        common.patientId || common.patientRecordId || common.patientCode || "",
+      patientRecordId: common.patientRecordId,
+      patientCode: common.patientCode,
       staffId: common.staffId,
       departmentId: common.departmentId,
       originalStartTime:
@@ -447,24 +485,60 @@ export class AppointmentEventConsumer {
     };
   }
 
-  private extractCommonAppointmentFields(payload: any, rawEvent: any) {
-    const appointmentId = payload?.appointmentId || rawEvent?.aggregateId;
+  private extractCommonAppointmentFields(
+    payload: any,
+    rawEvent: any,
+  ): CommonAppointmentFields {
+    const appointmentId =
+      payload?.appointmentId ||
+      payload?.appointment_id ||
+      rawEvent?.aggregateId ||
+      rawEvent?.appointmentId;
     const scheduledAt = this.resolveScheduledAt(payload);
     const patientId =
-      payload?.patientId || payload?.patient_id || payload?.patient?.id || null;
+      payload?.patientId ||
+      payload?.patient_id ||
+      payload?.patientCode ||
+      payload?.patient_code ||
+      payload?.patient?.patientId ||
+      payload?.patient?.patient_id ||
+      rawEvent?.patientId ||
+      rawEvent?.patient_id ||
+      null;
+    const patientRecordId =
+      payload?.patientRecordId ||
+      payload?.patient_record_id ||
+      payload?.patient?.recordId ||
+      payload?.patient?.id ||
+      rawEvent?.patientRecordId ||
+      rawEvent?.patient_record_id ||
+      null;
+    const patientCode =
+      payload?.patientCode ||
+      payload?.patient_code ||
+      payload?.patient?.patientCode ||
+      rawEvent?.patientCode ||
+      rawEvent?.patient_code ||
+      null;
     const staffId =
       payload?.staffId ||
       payload?.doctorId ||
       payload?.providerId ||
       payload?.staff_id ||
+      payload?.doctor_id ||
       null;
 
     return {
       appointmentId,
       patientId,
+      patientRecordId,
+      patientCode,
       staffId,
       doctorName:
-        payload?.doctorName || payload?.doctor_name || payload?.doctorFullName,
+        payload?.doctorName ||
+        payload?.doctor_name ||
+        payload?.doctorFullName ||
+        payload?.doctor?.name,
       doctorDepartment:
         payload?.departmentName ||
         payload?.department?.name ||
@@ -619,7 +693,10 @@ export class AppointmentEventConsumer {
   private async handleAppointmentScheduled(
     data: AppointmentScheduledEventData,
   ): Promise<void> {
-    const staffUuid = await this.resolveStaffIdentifier(data.staffId);
+    const staffUuid =
+      data.staffId && data.staffId.trim().length > 0
+        ? await this.resolveStaffIdentifier(data.staffId)
+        : null;
     if (!staffUuid) {
       this.loggerInstance.error("Unable to resolve staff ID for appointment", {
         appointmentId: data.appointmentId,
@@ -639,6 +716,9 @@ export class AppointmentEventConsumer {
         return;
       }
       const patientUuid = patient.id;
+      this.cachePatientIdentifier(data.patientId, patientUuid);
+      this.cachePatientIdentifier(data.patientRecordId, patientUuid);
+      this.cachePatientIdentifier(data.patientCode, patientUuid);
       const enrichedData = await this.enrichDoctorInfo({
         ...data,
         staffId: staffUuid || data.staffId,
@@ -662,7 +742,7 @@ export class AppointmentEventConsumer {
         appointmentId: enrichedData.appointmentId,
         patientId: patientUuid,
         staffId: staffUuid,
-        departmentId: enrichedData.departmentId,
+        departmentId: enrichedData.departmentId || "",
         doctorName: enrichedData.doctorName,
         doctorDepartment: enrichedData.doctorDepartment,
         serviceType: enrichedData.serviceType,
@@ -755,9 +835,17 @@ export class AppointmentEventConsumer {
   private async handleAppointmentCancelledLate(
     data: AppointmentCancelledLateEventData,
   ): Promise<void> {
+    const patientUuid = await this.resolvePatientUuidForEvent(
+      data,
+      "appointment.cancelled_late",
+    );
+    if (!patientUuid) {
+      return;
+    }
+
     this.loggerInstance.info("Processing late cancellation fee", {
       appointmentId: data.appointmentId,
-      patientId: data.patientId,
+      patientId: patientUuid,
       lateFeeAmount: data.lateFeeAmount,
     });
 
@@ -767,7 +855,7 @@ export class AppointmentEventConsumer {
         const feeInvoice =
           await this.billingService.generateLateCancellationFee({
             appointmentId: data.appointmentId,
-            patientId: data.patientId,
+            patientId: patientUuid,
             cancelledAt: data.cancelledAt,
             reason: data.reason,
             feeAmount: data.lateFeeAmount,
@@ -794,9 +882,17 @@ export class AppointmentEventConsumer {
   private async handleAppointmentNoShow(
     data: AppointmentNoShowEventData,
   ): Promise<void> {
+    const patientUuid = await this.resolvePatientUuidForEvent(
+      data,
+      "appointment.no_show",
+    );
+    if (!patientUuid) {
+      return;
+    }
+
     this.loggerInstance.info("Processing no-show fee", {
       appointmentId: data.appointmentId,
-      patientId: data.patientId,
+      patientId: patientUuid,
       noShowCount: data.noShowCount,
       noShowFeeAmount: data.noShowFeeAmount,
     });
@@ -806,7 +902,7 @@ export class AppointmentEventConsumer {
         // Generate no-show fee invoice
         const feeInvoice = await this.billingService.generateNoShowFee({
           appointmentId: data.appointmentId,
-          patientId: data.patientId,
+          patientId: patientUuid,
           scheduledAt: data.scheduledAt,
           noShowCount: data.noShowCount,
           feeAmount: data.noShowFeeAmount,
@@ -838,6 +934,14 @@ export class AppointmentEventConsumer {
       return;
     }
 
+    const patientUuid = await this.resolvePatientUuidForEvent(
+      data,
+      "appointment.rescheduled",
+    );
+    if (!patientUuid) {
+      return;
+    }
+
     const feeApplied =
       data.reschedulePolicy?.feeApplied &&
       Number(data.reschedulePolicy?.rescheduleAmount) > 0;
@@ -854,7 +958,7 @@ export class AppointmentEventConsumer {
     try {
       await this.billingService.generateRescheduleFee({
         appointmentId: data.appointmentId,
-        patientId: data.patientId,
+        patientId: patientUuid,
         rescheduleAmount: amount,
         reason: data.reason || "Đổi lịch hẹn",
       });
@@ -879,9 +983,17 @@ export class AppointmentEventConsumer {
   private async handleAppointmentCancelled(
     data: AppointmentCancelledRefundEventData,
   ): Promise<void> {
+    const patientUuid = await this.resolvePatientUuidForEvent(
+      data,
+      "appointment.cancelled",
+    );
+    if (!patientUuid) {
+      return;
+    }
+
     this.loggerInstance.info("Processing appointment cancellation for refund", {
       appointmentId: data.appointmentId,
-      patientId: data.patientId,
+      patientId: patientUuid,
       refundEligible: data.cancellationPolicy.refundEligible,
       refundPercentage: data.cancellationPolicy.refundPercentage,
     });
@@ -901,7 +1013,7 @@ export class AppointmentEventConsumer {
       if (refundEligible && refundPercentage > 0) {
         this.loggerInstance.info("Refund eligible - processing refund", {
           appointmentId: data.appointmentId,
-          patientId: data.patientId,
+          patientId: patientUuid,
           refundPercentage,
           reason: data.cancellationReason,
         });
@@ -911,7 +1023,7 @@ export class AppointmentEventConsumer {
           const refundResult = await this.refundPaymentUseCase.execute(
             {
               appointmentId: data.appointmentId,
-              patientId: data.patientId,
+              patientId: patientUuid,
               refundPercentage,
               reason: data.cancellationReason,
               refundedBy: data.cancelledBy,
@@ -961,7 +1073,7 @@ export class AppointmentEventConsumer {
           "Penalty applied - generating penalty invoice",
           {
             appointmentId: data.appointmentId,
-            patientId: data.patientId,
+            patientId: patientUuid,
             penaltyAmount: data.cancellationPolicy.penaltyAmount,
           },
         );
@@ -970,7 +1082,7 @@ export class AppointmentEventConsumer {
         const penaltyInvoice =
           await this.billingService.generateLateCancellationFee({
             appointmentId: data.appointmentId,
-            patientId: data.patientId,
+            patientId: patientUuid,
             cancelledAt: data.cancelledAt,
             reason: data.cancellationReason,
             feeAmount: data.cancellationPolicy.penaltyAmount,
@@ -1002,6 +1114,95 @@ export class AppointmentEventConsumer {
       timestamp: new Date(),
       correlationId: undefined,
     };
+  }
+
+  /**
+   * Resolve canonical patient UUID for downstream billing operations.
+   */
+  private async resolvePatientUuidForEvent(
+    data: {
+      patientId: string | null;
+      patientRecordId?: string | null;
+      patientCode?: string | null;
+    },
+    context: string,
+  ): Promise<string | null> {
+    const directRecordId = data.patientRecordId;
+    if (directRecordId && this.isUUID(directRecordId)) {
+      this.cachePatientIdentifier(data.patientId, directRecordId);
+      this.cachePatientIdentifier(data.patientCode, directRecordId);
+      return directRecordId;
+    }
+
+    const candidatePatientId = data.patientId;
+    if (candidatePatientId && this.isUUID(candidatePatientId)) {
+      this.cachePatientIdentifier(candidatePatientId, candidatePatientId);
+      this.cachePatientIdentifier(data.patientRecordId, candidatePatientId);
+      this.cachePatientIdentifier(data.patientCode, candidatePatientId);
+      return candidatePatientId;
+    }
+
+    const cached = [data.patientId, data.patientRecordId, data.patientCode]
+      .filter((key): key is string => Boolean(key))
+      .map((key) => this.patientIdCache.get(key))
+      .find((value) => Boolean(value));
+
+    if (cached) {
+      this.cachePatientIdentifier(data.patientId, cached);
+      this.cachePatientIdentifier(data.patientCode, cached);
+      return cached;
+    }
+
+    const lookupId = data.patientRecordId || data.patientId || data.patientCode;
+    if (!lookupId) {
+      this.loggerInstance.error("Missing patient identifier in event", {
+        context,
+      });
+      return null;
+    }
+
+    try {
+      const patient = await this.patientRepository.findById(lookupId);
+      if (!patient) {
+        this.loggerInstance.error(
+          "Patient not found while processing appointment event",
+          { context, lookupId },
+        );
+        return null;
+      }
+
+      this.cachePatientIdentifier(lookupId, patient.id);
+      this.cachePatientIdentifier(data.patientId, patient.id);
+      this.cachePatientIdentifier(data.patientCode, patient.id);
+      this.cachePatientIdentifier(data.patientRecordId, patient.id);
+      return patient.id;
+    } catch (error) {
+      this.loggerInstance.error(
+        "Failed to resolve patient identifier for event",
+        {
+          context,
+          lookupId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
+      return null;
+    }
+  }
+
+  private cachePatientIdentifier(
+    identifier?: string | null,
+    resolvedUuid?: string | null,
+  ): void {
+    if (!identifier || !resolvedUuid) {
+      return;
+    }
+    this.patientIdCache.set(identifier, resolvedUuid);
+  }
+
+  private isUUID(value: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(value);
   }
 
   /**

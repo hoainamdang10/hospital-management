@@ -44,6 +44,12 @@ export class HealthCheckService {
   private supabaseClient: SupabaseClient<any, "appointments_schema">;
   private startTime: number;
   private eventSubscriptions?: EventSubscriptions;
+  private detailedCache?: {
+    status: HealthStatus["status"];
+    checks: HealthStatus["checks"];
+    expiresAt: number;
+  };
+  private readonly detailedCacheTtlMs = 10_000;
 
   constructor(
     private config: AppConfig,
@@ -91,6 +97,21 @@ export class HealthCheckService {
       };
     }
 
+    if (
+      detailed &&
+      this.detailedCache &&
+      Date.now() < this.detailedCache.expiresAt
+    ) {
+      return {
+        status: this.detailedCache.status,
+        timestamp,
+        service: this.config.serviceName,
+        version: "3.0.0",
+        uptime,
+        checks: this.detailedCache.checks,
+      };
+    }
+
     // Detailed health check - check all dependencies
     const [
       databaseCheck,
@@ -135,22 +156,32 @@ export class HealthCheckService {
       overallStatus = "healthy";
     }
 
+    const checks: HealthStatus["checks"] = {
+      database: databaseCheck,
+      redis: redisCheck,
+      rabbitmq: rabbitmqCheck,
+      externalServices: {
+        patientService: patientServiceCheck,
+        providerService: providerServiceCheck,
+        // schedulerService removed - merged into notifications-service
+      },
+    };
+
+    if (detailed) {
+      this.detailedCache = {
+        status: overallStatus,
+        checks,
+        expiresAt: Date.now() + this.detailedCacheTtlMs,
+      };
+    }
+
     return {
       status: overallStatus,
       timestamp,
       service: this.config.serviceName,
       version: "3.0.0",
       uptime,
-      checks: {
-        database: databaseCheck,
-        redis: redisCheck,
-        rabbitmq: rabbitmqCheck,
-        externalServices: {
-          patientService: patientServiceCheck,
-          providerService: providerServiceCheck,
-          // schedulerService removed - merged into notifications-service
-        },
-      },
+      checks,
     };
   }
 

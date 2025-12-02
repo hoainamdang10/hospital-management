@@ -19,6 +19,9 @@ import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository
 import { IEventBus } from "@shared/application/services/event-bus.interface";
 import { ILogger } from "@shared/application/services/logger.interface";
 import { UseCaseContext } from "@shared/application/use-cases/base/use-case.interface";
+import type { Invoice } from "../../domain/aggregates/Invoice";
+import { WalletService } from "../services/WalletService";
+import { WalletTransaction } from "../../domain/entities/Wallet";
 
 export interface RefundPaymentRequest {
   appointmentId: string;
@@ -45,6 +48,7 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
     private readonly config: { useGatewayRefund: boolean },
+    private readonly walletService?: WalletService,
   ) {
     super();
   }
@@ -138,6 +142,10 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
         };
       }
 
+      const hadWalletPayment = invoice.payments.some(
+        (p) => p.method === "wallet",
+      );
+
       // 5. Process refund
       const refundAmount = invoice.processRefund(
         request.refundPercentage,
@@ -158,27 +166,38 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
       }
       invoice.markEventsAsCommitted();
 
-      // Nếu không dùng gateway refund, complete ngay để tránh pending
-      if (!this.config.useGatewayRefund) {
-        const refundPayment = invoice.payments.find(
-          (p) => p.method === "refund",
+      let refundCompleted = false;
+      if (hadWalletPayment && this.walletService && refundPayment) {
+        await this.refundWallet(
+          invoice,
+          refundAmount,
+          refundPayment.id,
+          request.refundedBy,
+          request.reason,
         );
+        try {
+          invoice.completeRefund(
+            refundPayment.id,
+            `WALLET-REFUND-${Date.now()}`,
+          );
+          refundCompleted = true;
+        } catch (e) {
+          this.logger.error("Wallet refund completion failed", {
+            invoiceId: invoice.id,
+            error: e instanceof Error ? e.message : "Unknown error",
+          });
+        }
+      }
+
+      // Nếu không dùng gateway refund, complete ngay để tránh pending
+      if (!this.config.useGatewayRefund && !refundCompleted) {
         if (refundPayment) {
           try {
             invoice.completeRefund(
               refundPayment.id,
               `REFUND-SYSTEM-${Date.now()}`,
             );
-            await this.invoiceRepository.save(invoice);
-            const completeEvents = invoice.getUncommittedEvents();
-            for (const event of completeEvents) {
-              await this.eventBus.publish(event);
-            }
-            invoice.markEventsAsCommitted();
-            this.logger.info("Refund auto-completed (gateway disabled)", {
-              invoiceId: invoice.id,
-              refundPaymentId: refundPayment.id,
-            });
+            refundCompleted = true;
           } catch (e) {
             this.logger.error("Auto-complete refund failed", {
               invoiceId: invoice.id,
@@ -186,6 +205,15 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
             });
           }
         }
+      }
+
+      if (refundCompleted) {
+        await this.invoiceRepository.save(invoice);
+        const completeEvents = invoice.getUncommittedEvents();
+        for (const event of completeEvents) {
+          await this.eventBus.publish(event);
+        }
+        invoice.markEventsAsCommitted();
       }
 
       this.logger.info("Refund request recorded", {
@@ -228,5 +256,84 @@ export class RefundPaymentUseCase extends BaseHealthcareUseCase<
 
   getPatientId(request: RefundPaymentRequest): string | null {
     return request.patientId;
+  }
+
+  private async refundWallet(
+    invoice: Invoice,
+    refundAmount: number,
+    refundPaymentId: string,
+    refundedBy: string,
+    reason?: string,
+  ): Promise<WalletTransaction | null> {
+    if (!this.walletService) {
+      this.logger.warn("Wallet service not configured for refunds");
+      return null;
+    }
+
+    const patientId = invoice.getPatientId();
+    if (!patientId) {
+      this.logger.warn("Unable to refund wallet: missing patientId", {
+        invoiceId: invoice.id,
+      });
+      return null;
+    }
+
+    if (refundAmount <= 0) {
+      return null;
+    }
+
+    const walletContribution = invoice.payments
+      .filter((payment) => payment.method === "wallet")
+      .reduce((sum, payment) => sum + Math.max(0, payment.amount.amount), 0);
+
+    const normalizedAmount = Math.min(refundAmount, walletContribution);
+    if (normalizedAmount <= 0) {
+      this.logger.info("No wallet contribution to refund", {
+        invoiceId: invoice.id,
+        walletContribution,
+      });
+      return null;
+    }
+
+    const descriptionParts = [
+      `Hoàn tiền ví cho hóa đơn ${invoice.invoiceNumber || invoice.id}`,
+    ];
+    if (reason) {
+      descriptionParts.push(`(${reason})`);
+    }
+
+    const description = descriptionParts.join(" ");
+
+    try {
+      const transaction = await this.walletService.refund(
+        patientId,
+        normalizedAmount,
+        description,
+        refundPaymentId,
+        refundedBy,
+        {
+          invoiceId: invoice.id,
+          appointmentId: invoice.getAppointmentId(),
+          refundPaymentId,
+          type: "invoice_refund",
+        },
+      );
+
+      this.logger.info("Wallet refund processed", {
+        invoiceId: invoice.id,
+        refundPaymentId,
+        transactionId: transaction.id,
+        amount: normalizedAmount,
+      });
+
+      return transaction;
+    } catch (error) {
+      this.logger.error("Wallet refund failed", {
+        invoiceId: invoice.id,
+        refundPaymentId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
   }
 }

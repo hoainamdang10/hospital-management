@@ -161,12 +161,18 @@ export class InvoiceMapper {
       );
     });
 
+    const normalizedMetadata = this.normalizeMetadata(
+      record,
+      itemRecords,
+      paymentRecords,
+    );
+
     const props = {
       id: InvoiceId.create(record.id),
       patientId: record.patient_id,
       appointmentId: record.appointment_id,
       staffId: record.doctor_id,
-      metadata: record.metadata || {},
+      metadata: normalizedMetadata,
       invoiceNumber: record.vietnamese_invoice_number || record.invoice_id,
       items,
       subtotal: Money.create(record.subtotal_amount, record.subtotal_currency),
@@ -304,5 +310,114 @@ export class InvoiceMapper {
       items: itemRecords,
       payments: paymentRecords,
     };
+  }
+
+  private static normalizeMetadata(
+    record: InvoiceRecord,
+    itemRecords: BillingItemRecord[],
+    paymentRecords: PaymentRecordData[],
+  ): Record<string, any> {
+    const metadata = { ...(record.metadata || {}) };
+    const invoiceType = metadata.invoiceType;
+
+    if (!invoiceType) {
+      metadata.invoiceType = this.detectInvoiceType(
+        record,
+        itemRecords,
+        paymentRecords,
+        metadata,
+      );
+    }
+
+    if (!metadata.serviceName) {
+      metadata.serviceName = this.getDefaultServiceName(metadata.invoiceType);
+    }
+
+    if (!metadata.serviceDescription) {
+      metadata.serviceDescription =
+        itemRecords[0]?.description ||
+        metadata.description ||
+        metadata.serviceName;
+    }
+
+    return metadata;
+  }
+
+  private static detectInvoiceType(
+    record: InvoiceRecord,
+    itemRecords: BillingItemRecord[],
+    paymentRecords: PaymentRecordData[],
+    metadata: Record<string, any>,
+  ): string {
+    if (metadata.walletTopUp || metadata.wallet_top_up) {
+      return "wallet_topup";
+    }
+
+    if (
+      record.status?.toLowerCase() === "refunded" ||
+      paymentRecords.some(
+        (p) =>
+          p.method?.toLowerCase() === "refund" ||
+          p.status?.toLowerCase() === "refund_completed",
+      )
+    ) {
+      return "refund";
+    }
+
+    if (record.appointment_id) {
+      return "appointment_booking";
+    }
+
+    const lowerDescriptions = itemRecords
+      .map((item) => item.description?.toLowerCase() || "")
+      .join(" ");
+
+    if (lowerDescriptions.includes("late cancellation")) {
+      return "late_cancellation_fee";
+    }
+
+    if (lowerDescriptions.includes("no-show")) {
+      return "no_show_fee";
+    }
+
+    if (
+      lowerDescriptions.includes("đổi lịch") ||
+      lowerDescriptions.includes("reschedule")
+    ) {
+      return "reschedule_fee";
+    }
+
+    if (lowerDescriptions.includes("thuốc")) {
+      return "prescription";
+    }
+
+    if (
+      lowerDescriptions.includes("xét nghiệm") ||
+      lowerDescriptions.includes("lab")
+    ) {
+      return "lab_test";
+    }
+
+    return "medical_service";
+  }
+
+  private static getDefaultServiceName(invoiceType?: string): string {
+    const mapping: Record<string, string> = {
+      appointment_booking: "Đặt lịch khám",
+      wallet_topup: "Nạp ví tài khoản",
+      late_cancellation_fee: "Phí hủy lịch muộn",
+      reschedule_fee: "Phí đổi lịch hẹn",
+      no_show_fee: "Phí bỏ khám",
+      prescription: "Thanh toán đơn thuốc",
+      lab_test: "Thanh toán xét nghiệm",
+      treatment_plan: "Thanh toán kế hoạch điều trị",
+      medical_record: "Thanh toán hồ sơ y tế",
+      refund: "Hoàn tiền",
+      medical_service: "Dịch vụ y tế",
+    };
+    if (invoiceType && mapping[invoiceType]) {
+      return mapping[invoiceType];
+    }
+    return "Dịch vụ y tế";
   }
 }

@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   MoreVertical,
   UserCheck,
@@ -32,36 +32,36 @@ const MOCK_ACTIVITIES: Activity[] = [
   {
     id: '1',
     type: 'discharge',
-    title: 'B?n ?? xu?t vi?n t? Ph?ng 205',
-    description: 'sau khi ?i?u tr? th?nh c?ng',
+    title: 'Ban da xuat vien tu Phong 205',
+    description: 'sau khi dieu tri thanh cong',
     time: '08:30 AM',
   },
   {
     id: '2',
     type: 'appointment',
-    title: 'L?ch h?n kh?m v?i BS. Nguy?n V?n A',
-    description: '?? ???c x?c nh?n cho ng?y mai',
+    title: 'Lich hen kham voi BS. Nguyen Van A',
+    description: 'Da duoc xac nhan cho ngay mai',
     time: '09:15 AM',
   },
   {
     id: '3',
     type: 'test_result',
-    title: 'K?t qu? x?t nghi?m m?u ?? s?n s?ng',
-    description: 'vui l?ng xem trong h? s? b?nh ?n',
+    title: 'Ket qua xet nghiem mau da san sang',
+    description: 'vui long xem trong ho so benh an',
     time: '10:00 AM',
   },
   {
     id: '4',
     type: 'medication',
-    title: '??n thu?c m?i ?? ???c k?',
-    description: 'b?i BS. Tr?n Th? B',
+    title: 'Don thuoc moi da duoc ke',
+    description: 'boi BS. Tran Thi B',
     time: '11:30 AM',
   },
   {
     id: '5',
     type: 'payment',
-    title: 'H?a ??n thanh to?n ?? ???c t?o',
-    description: 't?ng s? ti?n: 1,500,000 VN?',
+    title: 'Hoa don thanh toan da duoc tao',
+    description: 'Tong so tien: 1.500.000 VND',
     time: '01:15 PM',
   },
 ];
@@ -72,8 +72,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
   const [fallbackActivities, setFallbackActivities] = useState<Activity[]>([]);
   const [fallbackLoading, setFallbackLoading] = useState(false);
 
-  const shouldUseHook =
-    !patientId || (user?.patientId && user.patientId === patientId);
+  const shouldUseHook = !patientId || (user?.patientId && user.patientId === patientId);
 
   useEffect(() => {
     if (shouldUseHook || !patientId) {
@@ -86,9 +85,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
         const response = await getUserNotifications(patientId, { limit: 10 });
 
         if (response.success) {
-          setFallbackActivities(
-            transformNotificationsToActivities(response.data.notifications),
-          );
+          setFallbackActivities(transformNotificationsToActivities(response.data.notifications));
         } else {
           setFallbackActivities(MOCK_ACTIVITIES);
         }
@@ -109,10 +106,10 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
       return converted.length > 0 ? converted : MOCK_ACTIVITIES;
     }
 
-    return fallbackActivities.length > 0
-      ? fallbackActivities
-      : MOCK_ACTIVITIES;
+    return fallbackActivities.length > 0 ? fallbackActivities : MOCK_ACTIVITIES;
   }, [shouldUseHook, notifications, fallbackActivities]);
+
+  const activitiesToShow = activities.slice(0, 3);
 
   const loading = shouldUseHook ? hookLoading : fallbackLoading;
 
@@ -120,11 +117,11 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
     return (
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Ho?t ??ng g?n ??y</h2>
+          <h2 className="text-xl font-bold text-gray-900">Hoat dong gan day</h2>
         </div>
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex gap-4 animate-pulse">
+            <div key={i} className="flex animate-pulse gap-4">
               <div className="h-10 w-10 rounded-full bg-gray-100" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 rounded bg-gray-100" />
@@ -190,7 +187,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
           <div className="rounded-xl bg-purple-100 p-2">
             <ActivityIcon className="h-6 w-6 text-purple-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Ho?t ??ng g?n ??y</h2>
+          <h2 className="text-xl font-bold text-gray-900">Hoat dong gan day</h2>
         </div>
         <button
           className="rounded-lg p-2 transition-colors hover:bg-gray-100"
@@ -201,44 +198,45 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
       </div>
 
       <div className="space-y-0">
-        {activities.map((activity, index) => {
+        {activitiesToShow.map((activity, index) => {
           const Icon = getActivityIcon(activity.type);
-          const isLast = index === activities.length - 1;
+          const isLast = index === activitiesToShow.length - 1;
 
           return (
-            <div
-              key={activity.id}
-              className="group relative flex gap-4 pb-8 last:pb-0"
-            >
+            <div key={activity.id} className="group relative flex gap-4 pb-8 last:pb-0">
               {!isLast && (
-                <div className="absolute left-5 top-12 bottom-0 w-px bg-gray-200 transition-colors group-hover:bg-gray-300" />
+                <div className="absolute top-12 bottom-0 left-5 w-px bg-gray-200 transition-colors group-hover:bg-gray-300" />
               )}
 
               <div
                 className={cn(
                   'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-4 ring-white transition-all group-hover:scale-110',
-                  getActivityColor(activity.type),
+                  getActivityColor(activity.type)
                 )}
               >
                 <Icon className="h-5 w-5" />
               </div>
 
               <div className="flex-1 pt-1">
-                <p className="text-sm font-medium leading-relaxed text-gray-900 transition-colors group-hover:text-primary-700">
+                <p className="group-hover:text-primary-700 text-sm leading-relaxed font-medium text-gray-900 transition-colors">
                   {activity.title}
                 </p>
                 {activity.description && (
-                  <p className="mt-0.5 text-sm text-gray-500">
-                    {activity.description}
-                  </p>
+                  <p className="mt-0.5 text-sm text-gray-500">{activity.description}</p>
                 )}
-                <p className="mt-1 text-xs font-medium text-gray-400">
-                  {activity.time}
-                </p>
+                <p className="mt-1 text-xs font-medium text-gray-400">{activity.time}</p>
               </div>
             </div>
           );
         })}
+      </div>
+      <div className="mt-6 text-right">
+        <Link
+          href="/dashboard/notifications"
+          className="text-sm font-semibold text-blue-600 hover:underline"
+        >
+          Xem tat ca thong bao
+        </Link>
       </div>
     </div>
   );

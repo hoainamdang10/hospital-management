@@ -25,29 +25,56 @@ export class AppointmentScheduledEventHandler
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
-    const appointmentEvent: AppointmentScheduledEvent = {
+    const raw = event as any;
+    const containers = [
+      raw,
+      raw.payload,
+      raw.eventData,
+      raw.payload?.eventData,
+      raw.data,
+    ];
+
+    const pick = (field: string) => {
+      for (const source of containers) {
+        if (source && source[field] !== undefined && source[field] !== null) {
+          return source[field];
+        }
+      }
+      return undefined;
+    };
+
+    const appointmentEvent: AppointmentScheduledEvent & {
+      rawEvent?: any;
+      payload?: any;
+      eventData?: any;
+      data?: any;
+    } = {
       eventId: event.eventId,
       eventType: "appointment.scheduled",
-      appointmentId: (event as any).appointmentId,
-      patientId: (event as any).patientId,
-      doctorId: (event as any).doctorId,
-      appointmentDate: (event as any).appointmentDate, // Keep as string (ISO format)
-      appointmentTime: (event as any).appointmentTime,
-      durationMinutes: (event as any).durationMinutes,
-      type: (event as any).type,
-      priority: (event as any).priority,
-      status: (event as any).status,
-      roomId: (event as any).roomId,
-      departmentId: (event as any).departmentId,
-      consultationFee: (event as any).consultationFee, // Billing reference only
-      reason: (event as any).reason,
-      chiefComplaint: (event as any).chiefComplaint,
-      symptoms: (event as any).symptoms,
-      notes: (event as any).notes,
-      specialInstructions: (event as any).specialInstructions,
-      requiredEquipment: (event as any).requiredEquipment,
-      occurredAt: event.occurredAt,
-    };
+      appointmentId: pick("appointmentId"),
+      patientId: pick("patientId"),
+      doctorId: pick("doctorId"),
+      appointmentDate: pick("appointmentDate"),
+      appointmentTime: pick("appointmentTime"),
+      durationMinutes: pick("durationMinutes"),
+      type: pick("type"),
+      priority: pick("priority"),
+      status: pick("status"),
+      roomId: pick("roomId"),
+      departmentId: pick("departmentId"),
+      consultationFee: pick("consultationFee"),
+      reason: pick("reason"),
+      chiefComplaint: pick("chiefComplaint"),
+      symptoms: pick("symptoms"),
+      notes: pick("notes"),
+      specialInstructions: pick("specialInstructions"),
+      requiredEquipment: pick("requiredEquipment"),
+      occurredAt: raw.occurredAt || event.occurredAt,
+      rawEvent: raw,
+      payload: raw.payload,
+      eventData: raw.eventData || raw.payload?.eventData,
+      data: raw.data,
+    } as any;
 
     await this.readModelHandler.handleAppointmentScheduled(appointmentEvent);
   }

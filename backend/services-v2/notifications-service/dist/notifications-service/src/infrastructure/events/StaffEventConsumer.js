@@ -10,6 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaffEventConsumer = void 0;
+const priority_normalizer_1 = require("../../domain/services/priority-normalizer");
 /**
  * StaffEventConsumer - Handles staff events for notifications
  */
@@ -466,7 +467,7 @@ class StaffEventConsumer {
                     endTime: data.endTime,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent availability change notification to staff", {
                 staffId: data.staffId,
                 availabilityStatus: data.availabilityStatus,
@@ -500,7 +501,7 @@ class StaffEventConsumer {
                     affectedAppointments: data.affectedAppointments,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send critical availability notification", {
@@ -532,7 +533,7 @@ class StaffEventConsumer {
                     affectedAppointments: data.affectedAppointments,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send affected patients notification", {
@@ -577,7 +578,7 @@ class StaffEventConsumer {
                     isRecurring: data.isRecurring,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent shift assignment notification to staff", {
                 staffId: data.staffId,
                 shiftId: data.shiftId,
@@ -610,7 +611,7 @@ class StaffEventConsumer {
                     shiftType: data.shiftType,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send critical shift notification", {
@@ -641,7 +642,7 @@ class StaffEventConsumer {
                     addToCalendar: true,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send calendar invitation", {
@@ -675,7 +676,7 @@ class StaffEventConsumer {
                     cancellationReason: data.cancellationReason,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent shift cancellation notification to staff", {
                 staffId: data.staffId,
                 shiftId: data.shiftId,
@@ -709,7 +710,7 @@ class StaffEventConsumer {
                     cancellationReason: data.cancellationReason,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send shift cancellation manager notification", {
@@ -741,7 +742,7 @@ class StaffEventConsumer {
                     affectedAppointments: data.affectedAppointments,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send shift cancellation patients notification", {
@@ -778,7 +779,7 @@ class StaffEventConsumer {
                     newSchedule: data.newSchedule,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent schedule update notification to staff", {
                 staffId: data.staffId,
                 updateType: data.updateType,
@@ -811,7 +812,7 @@ class StaffEventConsumer {
                     reason: data.reason,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send emergency schedule notification", {
@@ -843,7 +844,7 @@ class StaffEventConsumer {
                     affectedAppointments: data.affectedAppointments,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send schedule update patients notification", {
@@ -873,7 +874,7 @@ class StaffEventConsumer {
                     role: data.role,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent department assignment notification to staff", {
                 staffId: data.staffId,
                 newDepartmentName: data.newDepartmentName,
@@ -906,7 +907,7 @@ class StaffEventConsumer {
                     role: data.role,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send department welcome notification", {
@@ -937,7 +938,7 @@ class StaffEventConsumer {
                     newDepartmentId: data.newDepartmentId,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send department transfer notification", {
@@ -977,7 +978,7 @@ class StaffEventConsumer {
                     contactNumber: data.contactNumber,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent on-call assignment notification to staff", {
                 staffId: data.staffId,
                 onCallType: data.onCallType,
@@ -1011,7 +1012,7 @@ class StaffEventConsumer {
                     endTime: data.endTime,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send primary on-call notification", {
@@ -1041,7 +1042,7 @@ class StaffEventConsumer {
                     endTime: data.endTime,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send on-call schedule notification", {
@@ -1073,7 +1074,7 @@ class StaffEventConsumer {
                     nextReviewDate: data.nextReviewDate,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
             console.log("Sent performance review notification to staff", {
                 staffId: data.staffId,
                 reviewType: data.reviewType,
@@ -1108,7 +1109,7 @@ class StaffEventConsumer {
                     nextReviewDate: data.nextReviewDate,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to send performance review manager notification", {
@@ -1139,7 +1140,7 @@ class StaffEventConsumer {
                     areasForImprovement: data.areasForImprovement,
                 },
             };
-            await this.sendNotificationUseCase.execute(notificationData);
+            await this.dispatchNotification(notificationData);
         }
         catch (error) {
             console.error("Failed to schedule improvement follow-up", {
@@ -1191,6 +1192,12 @@ class StaffEventConsumer {
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
+        });
+    }
+    async dispatchNotification(payload) {
+        await this.sendNotificationUseCase.execute({
+            ...payload,
+            priority: (0, priority_normalizer_1.normalizePriority)(payload.priority),
         });
     }
     /**

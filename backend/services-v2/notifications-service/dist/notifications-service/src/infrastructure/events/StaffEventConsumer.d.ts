@@ -294,6 +294,7 @@ export declare class StaffEventConsumer {
      * Format date and time for Vietnamese locale
      */
     private formatDateTime;
+    private dispatchNotification;
     /**
      * Disconnect from RabbitMQ
      */

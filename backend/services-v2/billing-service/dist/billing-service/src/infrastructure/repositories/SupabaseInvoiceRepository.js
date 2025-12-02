@@ -11,6 +11,20 @@ class SupabaseInvoiceRepository {
     }
     async save(invoice) {
         const { invoice: invoiceRecord, items, payments, } = InvoiceMapper_1.InvoiceMapper.toPersistence(invoice);
+        const originalPatientIdentifier = invoiceRecord.patient_id;
+        const canonicalPatientId = await this.resolvePatientIdentifier(originalPatientIdentifier);
+        if (canonicalPatientId) {
+            invoiceRecord.patient_id = canonicalPatientId;
+            payments.forEach((payment) => {
+                if (!payment.processed_by ||
+                    payment.processed_by === originalPatientIdentifier) {
+                    payment.processed_by = canonicalPatientId;
+                }
+            });
+        }
+        else if (!this.isUUID(originalPatientIdentifier)) {
+            throw new Error(`Failed to resolve patient identifier: ${originalPatientIdentifier}`);
+        }
         // Start transaction-like operation
         // 1. Upsert main invoice
         const { error: invoiceError } = await this.supabase

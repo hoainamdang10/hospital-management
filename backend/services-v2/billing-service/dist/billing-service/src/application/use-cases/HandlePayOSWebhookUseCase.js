@@ -5,11 +5,12 @@ const base_healthcare_use_case_1 = require("../../../../shared/application/base/
 const Payment_1 = require("../../domain/entities/Payment");
 const Money_1 = require("../../domain/value-objects/Money");
 class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase {
-    constructor(invoiceRepository, eventBus, payosService, logger) {
+    constructor(invoiceRepository, eventBus, payosService, logger, walletService) {
         super();
         this.invoiceRepository = invoiceRepository;
         this.eventBus = eventBus;
         this.payosService = payosService;
+        this.walletService = walletService;
         this.logger = logger;
     }
     async executeImpl(request) {
@@ -113,6 +114,16 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
         vnpayData);
         // Process payment
         invoice.processPayment(payment);
+        const metadata = this.getInvoiceMetadata(invoice);
+        const requiresWalletTopUp = this.isWalletTopUpInvoice(metadata);
+        const walletAlreadyProcessed = this.isWalletTopUpProcessed(metadata) === true;
+        if (requiresWalletTopUp && !walletAlreadyProcessed) {
+            invoice.setMetadata({
+                ...metadata,
+                walletTopUpPending: true,
+                walletTopUpProcessed: false,
+            });
+        }
         await this.invoiceRepository.save(invoice);
         // Publish events
         const events = invoice.getUncommittedEvents();
@@ -120,6 +131,10 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
             await this.eventBus.publish(event);
         }
         invoice.markEventsAsCommitted();
+        if (requiresWalletTopUp && !walletAlreadyProcessed) {
+            await this.handleWalletTopUp(invoice, payment, request);
+            await this.invoiceRepository.save(invoice);
+        }
         this.logger.info("PayOS webhook processed successfully", {
             invoiceId: invoice.id,
             paymentId: payment.id,
@@ -155,6 +170,70 @@ class HandlePayOSWebhookUseCase extends base_healthcare_use_case_1.BaseHealthcar
             return true;
         }
         return false;
+    }
+    getInvoiceMetadata(invoice) {
+        const metadata = invoice.metadata || {};
+        if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+            return {};
+        }
+        return metadata;
+    }
+    isWalletTopUpInvoice(metadata) {
+        const flag = metadata.walletTopUp ?? metadata.wallet_top_up;
+        if (typeof flag === "string") {
+            return flag.toLowerCase() === "true";
+        }
+        return Boolean(flag);
+    }
+    isWalletTopUpProcessed(metadata) {
+        const flag = metadata.walletTopUpProcessed ?? metadata.wallet_top_up_processed;
+        if (typeof flag === "string") {
+            return flag.toLowerCase() === "true";
+        }
+        return Boolean(flag);
+    }
+    async handleWalletTopUp(invoice, payment, request) {
+        if (!this.walletService) {
+            this.logger.warn("Wallet service not configured, skipping wallet top-up credit", { invoiceId: invoice.id });
+            return;
+        }
+        const metadata = this.getInvoiceMetadata(invoice);
+        if (this.isWalletTopUpProcessed(metadata)) {
+            this.logger.info("Wallet top-up already processed for invoice", {
+                invoiceId: invoice.id,
+            });
+            return;
+        }
+        const amount = Number(metadata.walletTopUpAmount ?? payment.amount.amount) || 0;
+        if (amount <= 0) {
+            throw new Error(`Invalid wallet top-up amount for invoice ${invoice.id}`);
+        }
+        const description = metadata.walletTopUpDescription ||
+            metadata.description ||
+            "Wallet top-up via online payment";
+        const createdBy = metadata.walletTopUpCreatedBy || "system";
+        const referenceId = metadata.walletTopUpReferenceId || payment.id || invoice.id;
+        const walletTransaction = await this.walletService.topUp(invoice.getPatientId(), amount, description, referenceId, createdBy, {
+            invoiceId: invoice.id,
+            paymentId: payment.id,
+            orderCode: request.webhookData.orderCode,
+            reference: request.webhookData.reference,
+            description: request.webhookData.description,
+            vnpTxnRef: request.rawPayload?.vnp_TxnRef,
+        });
+        invoice.setMetadata({
+            ...metadata,
+            walletTopUpProcessed: true,
+            walletTopUpPending: false,
+            walletTopUpTransactionId: walletTransaction.id,
+            walletTopUpProcessedAt: new Date().toISOString(),
+        });
+        this.logger.info("Wallet top-up credited from webhook", {
+            invoiceId: invoice.id,
+            patientId: invoice.getPatientId(),
+            walletTransactionId: walletTransaction.id,
+            amount,
+        });
     }
 }
 exports.HandlePayOSWebhookUseCase = HandlePayOSWebhookUseCase;

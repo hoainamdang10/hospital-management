@@ -32,9 +32,9 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture, Vietnamese Healthcare Standards, Inbox Pattern
  */
-import { NotificationApplicationService } from '../../application/services/NotificationApplicationService';
-import { IInboxRepository } from '../../domain/repositories/IInboxRepository';
-import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
+import { NotificationApplicationService } from "../../application/services/NotificationApplicationService";
+import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
+import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
 export interface DomainEvent {
     eventId: string;
     eventType: string;
@@ -78,7 +78,7 @@ export interface ScheduleRunDueEvent {
         };
         content: any;
         channels: string[];
-        priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+        priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
         metadata?: {
             correlationId?: string;
             healthcareContext?: {
@@ -181,5 +181,6 @@ export declare class NotificationEventHandlers {
      * Generic event handler dispatcher
      */
     handleEvent(event: IntegrationEvent | ScheduleRunDueEvent): Promise<void>;
+    private dispatchNotification;
 }
 //# sourceMappingURL=NotificationEventHandlers.d.ts.map

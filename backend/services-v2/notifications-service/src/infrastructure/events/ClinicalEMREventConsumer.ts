@@ -2,16 +2,20 @@
  * Clinical EMR Event Consumer - Infrastructure Layer
  * Consumes clinical events from Clinical EMR Service
  * Handles clinical notifications, test results, vital alerts, and medical updates
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
 
-import { ConsumeMessage } from 'amqplib';
-import { IInboxRepository } from '../../domain/repositories/IInboxRepository';
-import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
-import { GetNotificationPreferencesUseCase } from '../../application/use-cases/GetNotificationPreferencesUseCase';
+import { ConsumeMessage } from "amqplib";
+import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
+import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
+import {
+  SendNotificationCommand,
+  SendNotificationUseCase,
+} from "../../application/use-cases/SendNotificationUseCase";
+import { normalizePriority } from "../../domain/services/priority-normalizer";
 
 export interface ClinicalEMREventConsumerConfig {
   rabbitmqUrl: string;
@@ -32,7 +36,7 @@ export interface PatientClinicalProfileUpdatedEventData {
     conditions: string[];
     lastVisitDate?: Date;
     primaryPhysician?: string;
-    riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    riskLevel: "low" | "medium" | "high" | "critical";
     specialRequirements?: string[];
   };
   updatedAt: Date;
@@ -64,8 +68,13 @@ export interface MedicalTestOrderedEventData {
   physicianId: string;
   physicianName: string;
   testType: string;
-  testCategory: 'laboratory' | 'radiology' | 'cardiology' | 'pathology' | 'other';
-  urgencyLevel: 'routine' | 'urgent' | 'stat';
+  testCategory:
+    | "laboratory"
+    | "radiology"
+    | "cardiology"
+    | "pathology"
+    | "other";
+  urgencyLevel: "routine" | "urgent" | "stat";
   orderedAt: Date;
   orderedBy: string;
   preparationInstructions?: string[];
@@ -79,15 +88,20 @@ export interface MedicalTestResultReadyEventData {
   physicianId: string;
   physicianName: string;
   testType: string;
-  testCategory: 'laboratory' | 'radiology' | 'cardiology' | 'pathology' | 'other';
-  resultStatus: 'normal' | 'abnormal' | 'critical' | 'pending_review';
+  testCategory:
+    | "laboratory"
+    | "radiology"
+    | "cardiology"
+    | "pathology"
+    | "other";
+  resultStatus: "normal" | "abnormal" | "critical" | "pending_review";
   completedAt: Date;
   completedBy: string;
   criticalValues?: {
     parameter: string;
     value: string;
     normalRange: string;
-    severity: 'mild' | 'moderate' | 'severe';
+    severity: "mild" | "moderate" | "severe";
   }[];
   requiresFollowUp: boolean;
   followUpInstructions?: string;
@@ -97,7 +111,13 @@ export interface ClinicalDocumentAddedEventData {
   documentId: string;
   patientId: string;
   patientName: string;
-  documentType: 'referral' | 'prescription' | 'lab_result' | 'imaging' | 'discharge_summary' | 'other';
+  documentType:
+    | "referral"
+    | "prescription"
+    | "lab_result"
+    | "imaging"
+    | "discharge_summary"
+    | "other";
   documentTitle: string;
   physicianId?: string;
   physicianName?: string;
@@ -124,7 +144,7 @@ export interface VitalSignsRecordedEventData {
   };
   alerts?: {
     type: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    severity: "low" | "medium" | "high" | "critical";
     message: string;
   }[];
 }
@@ -153,8 +173,13 @@ export interface EmergencyAlertTriggeredEventData {
   patientId: string;
   patientName: string;
   location: string;
-  alertType: 'cardiac_arrest' | 'respiratory_distress' | 'severe_bleeding' | 'fall' | 'other';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  alertType:
+    | "cardiac_arrest"
+    | "respiratory_distress"
+    | "severe_bleeding"
+    | "fall"
+    | "other";
+  severity: "low" | "medium" | "high" | "critical";
   triggeredAt: Date;
   triggeredBy: string;
   description: string;
@@ -182,20 +207,20 @@ export class ClinicalEMREventConsumer {
    */
   async connect(): Promise<void> {
     try {
-      console.log('Connecting to RabbitMQ for Clinical EMR events', {
+      console.log("Connecting to RabbitMQ for Clinical EMR events", {
         queueName: this.config.queueName,
       });
 
-      const amqp = require('amqplib');
+      const amqp = require("amqplib");
       this.connection = await amqp.connect(this.config.rabbitmqUrl);
       this.channel = await this.connection.createChannel();
 
       if (!this.channel) {
-        throw new Error('Failed to create RabbitMQ channel');
+        throw new Error("Failed to create RabbitMQ channel");
       }
 
       // Assert exchange
-      await this.channel.assertExchange(this.config.exchangeName, 'topic', {
+      await this.channel.assertExchange(this.config.exchangeName, "topic", {
         durable: true,
       });
 
@@ -211,7 +236,7 @@ export class ClinicalEMREventConsumer {
           this.config.exchangeName,
           routingKey,
         );
-        console.log('Queue bound to routing key', {
+        console.log("Queue bound to routing key", {
           queueName: this.config.queueName,
           routingKey,
         });
@@ -225,24 +250,23 @@ export class ClinicalEMREventConsumer {
       );
 
       this.isConnected = true;
-      console.log('Clinical EMR event consumer connected successfully');
+      console.log("Clinical EMR event consumer connected successfully");
 
       // Handle connection errors
-      this.connection.on('error', (error: Error) => {
-        console.error('RabbitMQ connection error', {
+      this.connection.on("error", (error: Error) => {
+        console.error("RabbitMQ connection error", {
           error: error.message,
         });
         this.isConnected = false;
       });
 
-      this.connection.on('close', () => {
-        console.warn('RabbitMQ connection closed');
+      this.connection.on("close", () => {
+        console.warn("RabbitMQ connection closed");
         this.isConnected = false;
       });
-
     } catch (error) {
-      console.error('Failed to connect to RabbitMQ', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      console.error("Failed to connect to RabbitMQ", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -264,55 +288,78 @@ export class ClinicalEMREventConsumer {
       // Idempotency check
       const eventId = event.eventId || event.id || event.metadata?.eventId;
       if (!eventId) {
-        console.error('[ClinicalEMREventConsumer] Missing eventId, cannot process:', event);
+        console.error(
+          "[ClinicalEMREventConsumer] Missing eventId, cannot process:",
+          event,
+        );
         this.channel?.ack(msg);
         return;
       }
 
       if (await this.inboxRepo.exists(eventId)) {
-        console.debug(`[ClinicalEMREventConsumer] Duplicate event ${eventId}, skipping`);
+        console.debug(
+          `[ClinicalEMREventConsumer] Duplicate event ${eventId}, skipping`,
+        );
         this.channel?.ack(msg);
         return;
       }
 
-      console.log(`[ClinicalEMREventConsumer] Processing event: ${routingKey} (${eventId})`);
+      console.log(
+        `[ClinicalEMREventConsumer] Processing event: ${routingKey} (${eventId})`,
+      );
 
       // Route to appropriate handler
       switch (routingKey) {
-        case 'clinical.patient.profile.updated':
-          await this.handlePatientClinicalProfileUpdated(event.payload as PatientClinicalProfileUpdatedEventData);
+        case "clinical.patient.profile.updated":
+          await this.handlePatientClinicalProfileUpdated(
+            event.payload as PatientClinicalProfileUpdatedEventData,
+          );
           break;
 
-        case 'clinical.treatment.plan.created':
-          await this.handleTreatmentPlanCreated(event.payload as TreatmentPlanCreatedEventData);
+        case "clinical.treatment.plan.created":
+          await this.handleTreatmentPlanCreated(
+            event.payload as TreatmentPlanCreatedEventData,
+          );
           break;
 
-        case 'clinical.test.ordered':
-          await this.handleMedicalTestOrdered(event.payload as MedicalTestOrderedEventData);
+        case "clinical.test.ordered":
+          await this.handleMedicalTestOrdered(
+            event.payload as MedicalTestOrderedEventData,
+          );
           break;
 
-        case 'clinical.test.result.ready':
-          await this.handleMedicalTestResultReady(event.payload as MedicalTestResultReadyEventData);
+        case "clinical.test.result.ready":
+          await this.handleMedicalTestResultReady(
+            event.payload as MedicalTestResultReadyEventData,
+          );
           break;
 
-        case 'clinical.document.added':
-          await this.handleClinicalDocumentAdded(event.payload as ClinicalDocumentAddedEventData);
+        case "clinical.document.added":
+          await this.handleClinicalDocumentAdded(
+            event.payload as ClinicalDocumentAddedEventData,
+          );
           break;
 
-        case 'clinical.vitals.recorded':
-          await this.handleVitalSignsRecorded(event.payload as VitalSignsRecordedEventData);
+        case "clinical.vitals.recorded":
+          await this.handleVitalSignsRecorded(
+            event.payload as VitalSignsRecordedEventData,
+          );
           break;
 
-        case 'clinical.medication.prescribed':
-          await this.handleMedicationPrescribed(event.payload as MedicationPrescribedEventData);
+        case "clinical.medication.prescribed":
+          await this.handleMedicationPrescribed(
+            event.payload as MedicationPrescribedEventData,
+          );
           break;
 
-        case 'clinical.emergency.alert':
-          await this.handleEmergencyAlertTriggered(event.payload as EmergencyAlertTriggeredEventData);
+        case "clinical.emergency.alert":
+          await this.handleEmergencyAlertTriggered(
+            event.payload as EmergencyAlertTriggeredEventData,
+          );
           break;
 
         default:
-          console.warn('Unhandled routing key', { routingKey });
+          console.warn("Unhandled routing key", { routingKey });
           break;
       }
 
@@ -320,15 +367,14 @@ export class ClinicalEMREventConsumer {
       await this.inboxRepo.store({
         idempotencyKey: eventId,
         eventType: routingKey,
-        payload: event
+        payload: event,
       });
 
       // Acknowledge message
       this.channel.ack(msg);
-
     } catch (error) {
-      console.error('Error processing clinical EMR event', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      console.error("Error processing clinical EMR event", {
+        error: error instanceof Error ? error.message : "Unknown error",
         routingKey: msg.fields.routingKey,
       });
 
@@ -342,27 +388,41 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle patient clinical profile updated event
    */
-  private async handlePatientClinicalProfileUpdated(data: PatientClinicalProfileUpdatedEventData): Promise<void> {
-    console.log('Processing patient clinical profile update for notifications', {
-      patientId: data.patientId,
-      patientName: data.patientName,
-      riskLevel: data.clinicalData.riskLevel,
-      hasAllergies: data.clinicalData.allergies.length > 0,
-      hasSpecialRequirements: data.clinicalData.specialRequirements?.length ? data.clinicalData.specialRequirements.length > 0 : false,
-    });
+  private async handlePatientClinicalProfileUpdated(
+    data: PatientClinicalProfileUpdatedEventData,
+  ): Promise<void> {
+    console.log(
+      "Processing patient clinical profile update for notifications",
+      {
+        patientId: data.patientId,
+        patientName: data.patientName,
+        riskLevel: data.clinicalData.riskLevel,
+        hasAllergies: data.clinicalData.allergies.length > 0,
+        hasSpecialRequirements: data.clinicalData.specialRequirements?.length
+          ? data.clinicalData.specialRequirements.length > 0
+          : false,
+      },
+    );
 
     try {
       // Get patient notification preferences
-      const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.patientId,
-        userType: 'patient',
-      });
+      const patientPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.patientId,
+          userType: "patient",
+        });
 
       // Send clinical profile update notification to patient
-      await this.sendClinicalProfileUpdateNotification(data, patientPreferences);
+      await this.sendClinicalProfileUpdateNotification(
+        data,
+        patientPreferences,
+      );
 
       // Send high-risk notification to primary physician
-      if (data.clinicalData.riskLevel === 'high' || data.clinicalData.riskLevel === 'critical') {
+      if (
+        data.clinicalData.riskLevel === "high" ||
+        data.clinicalData.riskLevel === "critical"
+      ) {
         await this.sendHighRiskProfileNotification(data);
       }
 
@@ -370,11 +430,10 @@ export class ClinicalEMREventConsumer {
       if (data.clinicalData.allergies.length > 0) {
         await this.sendAllergyAlertNotification(data);
       }
-
     } catch (error) {
-      console.error('Failed to process patient clinical profile update', {
+      console.error("Failed to process patient clinical profile update", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -383,8 +442,10 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle treatment plan created event
    */
-  private async handleTreatmentPlanCreated(data: TreatmentPlanCreatedEventData): Promise<void> {
-    console.log('Processing treatment plan creation for notifications', {
+  private async handleTreatmentPlanCreated(
+    data: TreatmentPlanCreatedEventData,
+  ): Promise<void> {
+    console.log("Processing treatment plan creation for notifications", {
       treatmentPlanId: data.treatmentPlanId,
       patientId: data.patientId,
       physicianId: data.physicianId,
@@ -395,30 +456,34 @@ export class ClinicalEMREventConsumer {
 
     try {
       // Get patient notification preferences
-      const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.patientId,
-        userType: 'patient',
-      });
+      const patientPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.patientId,
+          userType: "patient",
+        });
 
       // Send treatment plan notification to patient
       await this.sendTreatmentPlanNotification(data, patientPreferences);
 
       // Send treatment plan confirmation to physician
-      const physicianPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.physicianId,
-        userType: 'staff',
-      });
+      const physicianPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.physicianId,
+          userType: "staff",
+        });
 
-      await this.sendTreatmentPlanPhysicianNotification(data, physicianPreferences);
+      await this.sendTreatmentPlanPhysicianNotification(
+        data,
+        physicianPreferences,
+      );
 
       // Schedule treatment reminders
       await this.scheduleTreatmentReminders(data, patientPreferences);
-
     } catch (error) {
-      console.error('Failed to process treatment plan creation', {
+      console.error("Failed to process treatment plan creation", {
         treatmentPlanId: data.treatmentPlanId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -427,8 +492,10 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle medical test ordered event
    */
-  private async handleMedicalTestOrdered(data: MedicalTestOrderedEventData): Promise<void> {
-    console.log('Processing medical test order for notifications', {
+  private async handleMedicalTestOrdered(
+    data: MedicalTestOrderedEventData,
+  ): Promise<void> {
+    console.log("Processing medical test order for notifications", {
       testId: data.testId,
       patientId: data.patientId,
       testType: data.testType,
@@ -438,34 +505,38 @@ export class ClinicalEMREventConsumer {
 
     try {
       // Get patient notification preferences
-      const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.patientId,
-        userType: 'patient',
-      });
+      const patientPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.patientId,
+          userType: "patient",
+        });
 
       // Send test order notification to patient
       await this.sendTestOrderNotification(data, patientPreferences);
 
       // Send urgent test notification to physician
-      if (data.urgencyLevel === 'urgent' || data.urgencyLevel === 'stat') {
-        const physicianPreferences = await this.getNotificationPreferencesUseCase.execute({
-          userId: data.physicianId,
-          userType: 'staff',
-        });
+      if (data.urgencyLevel === "urgent" || data.urgencyLevel === "stat") {
+        const physicianPreferences =
+          await this.getNotificationPreferencesUseCase.execute({
+            userId: data.physicianId,
+            userType: "staff",
+          });
 
         await this.sendUrgentTestNotification(data, physicianPreferences);
       }
 
       // Send preparation instructions if provided
-      if (data.preparationInstructions && data.preparationInstructions.length > 0) {
+      if (
+        data.preparationInstructions &&
+        data.preparationInstructions.length > 0
+      ) {
         await this.sendTestPreparationInstructions(data, patientPreferences);
       }
-
     } catch (error) {
-      console.error('Failed to process medical test order', {
+      console.error("Failed to process medical test order", {
         testId: data.testId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -474,8 +545,10 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle medical test result ready event
    */
-  private async handleMedicalTestResultReady(data: MedicalTestResultReadyEventData): Promise<void> {
-    console.log('Processing medical test result for notifications', {
+  private async handleMedicalTestResultReady(
+    data: MedicalTestResultReadyEventData,
+  ): Promise<void> {
+    console.log("Processing medical test result for notifications", {
       testId: data.testId,
       patientId: data.patientId,
       testType: data.testType,
@@ -485,20 +558,25 @@ export class ClinicalEMREventConsumer {
 
     try {
       // Get patient notification preferences
-      const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.patientId,
-        userType: 'patient',
-      });
+      const patientPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.patientId,
+          userType: "patient",
+        });
 
       // Send test result notification to patient
       await this.sendTestResultNotification(data, patientPreferences);
 
       // Send critical result notification to physician
-      if (data.resultStatus === 'critical' || data.resultStatus === 'abnormal') {
-        const physicianPreferences = await this.getNotificationPreferencesUseCase.execute({
-          userId: data.physicianId,
-          userType: 'staff',
-        });
+      if (
+        data.resultStatus === "critical" ||
+        data.resultStatus === "abnormal"
+      ) {
+        const physicianPreferences =
+          await this.getNotificationPreferencesUseCase.execute({
+            userId: data.physicianId,
+            userType: "staff",
+          });
 
         await this.sendCriticalResultNotification(data, physicianPreferences);
       }
@@ -507,12 +585,11 @@ export class ClinicalEMREventConsumer {
       if (data.requiresFollowUp && data.followUpInstructions) {
         await this.sendTestFollowUpNotification(data, patientPreferences);
       }
-
     } catch (error) {
-      console.error('Failed to process medical test result', {
+      console.error("Failed to process medical test result", {
         testId: data.testId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -521,8 +598,10 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle clinical document added event
    */
-  private async handleClinicalDocumentAdded(data: ClinicalDocumentAddedEventData): Promise<void> {
-    console.log('Processing clinical document addition for notifications', {
+  private async handleClinicalDocumentAdded(
+    data: ClinicalDocumentAddedEventData,
+  ): Promise<void> {
+    console.log("Processing clinical document addition for notifications", {
       documentId: data.documentId,
       patientId: data.patientId,
       documentType: data.documentType,
@@ -532,34 +611,38 @@ export class ClinicalEMREventConsumer {
 
     try {
       // Get patient notification preferences
-      const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.patientId,
-        userType: 'patient',
-      });
+      const patientPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.patientId,
+          userType: "patient",
+        });
 
       // Send document notification to patient
       await this.sendDocumentNotification(data, patientPreferences);
 
       // Send physician notification if applicable
       if (data.physicianId) {
-        const physicianPreferences = await this.getNotificationPreferencesUseCase.execute({
-          userId: data.physicianId,
-          userType: 'staff',
-        });
+        const physicianPreferences =
+          await this.getNotificationPreferencesUseCase.execute({
+            userId: data.physicianId,
+            userType: "staff",
+          });
 
-        await this.sendDocumentPhysicianNotification(data, physicianPreferences);
+        await this.sendDocumentPhysicianNotification(
+          data,
+          physicianPreferences,
+        );
       }
 
       // Send follow-up notification if required
       if (data.requiresFollowUp && data.followUpInstructions) {
         await this.sendDocumentFollowUpNotification(data, patientPreferences);
       }
-
     } catch (error) {
-      console.error('Failed to process clinical document addition', {
+      console.error("Failed to process clinical document addition", {
         documentId: data.documentId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -568,8 +651,10 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle vital signs recorded event
    */
-  private async handleVitalSignsRecorded(data: VitalSignsRecordedEventData): Promise<void> {
-    console.log('Processing vital signs recording for notifications', {
+  private async handleVitalSignsRecorded(
+    data: VitalSignsRecordedEventData,
+  ): Promise<void> {
+    console.log("Processing vital signs recording for notifications", {
       recordingId: data.recordingId,
       patientId: data.patientId,
       recordedAt: data.recordedAt,
@@ -583,18 +668,18 @@ export class ClinicalEMREventConsumer {
       }
 
       // Send routine vital signs notification to patient
-      const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.patientId,
-        userType: 'patient',
-      });
+      const patientPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.patientId,
+          userType: "patient",
+        });
 
       await this.sendVitalSignsNotification(data, patientPreferences);
-
     } catch (error) {
-      console.error('Failed to process vital signs recording', {
+      console.error("Failed to process vital signs recording", {
         recordingId: data.recordingId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -603,8 +688,10 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle medication prescribed event
    */
-  private async handleMedicationPrescribed(data: MedicationPrescribedEventData): Promise<void> {
-    console.log('Processing medication prescription for notifications', {
+  private async handleMedicationPrescribed(
+    data: MedicationPrescribedEventData,
+  ): Promise<void> {
+    console.log("Processing medication prescription for notifications", {
       prescriptionId: data.prescriptionId,
       patientId: data.patientId,
       medicationsCount: data.medications.length,
@@ -613,10 +700,11 @@ export class ClinicalEMREventConsumer {
 
     try {
       // Get patient notification preferences
-      const patientPreferences = await this.getNotificationPreferencesUseCase.execute({
-        userId: data.patientId,
-        userType: 'patient',
-      });
+      const patientPreferences =
+        await this.getNotificationPreferencesUseCase.execute({
+          userId: data.patientId,
+          userType: "patient",
+        });
 
       // Send prescription notification to patient
       await this.sendPrescriptionNotification(data, patientPreferences);
@@ -628,12 +716,11 @@ export class ClinicalEMREventConsumer {
 
       // Send medication reminders
       await this.scheduleMedicationReminders(data, patientPreferences);
-
     } catch (error) {
-      console.error('Failed to process medication prescription', {
+      console.error("Failed to process medication prescription", {
         prescriptionId: data.prescriptionId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -642,8 +729,10 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle emergency alert triggered event
    */
-  private async handleEmergencyAlertTriggered(data: EmergencyAlertTriggeredEventData): Promise<void> {
-    console.log('Processing emergency alert for notifications', {
+  private async handleEmergencyAlertTriggered(
+    data: EmergencyAlertTriggeredEventData,
+  ): Promise<void> {
+    console.log("Processing emergency alert for notifications", {
       alertId: data.alertId,
       patientId: data.patientId,
       alertType: data.alertType,
@@ -663,12 +752,11 @@ export class ClinicalEMREventConsumer {
 
       // Log emergency notification for compliance
       await this.logEmergencyNotification(data);
-
     } catch (error) {
-      console.error('Failed to process emergency alert', {
+      console.error("Failed to process emergency alert", {
         alertId: data.alertId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -679,24 +767,26 @@ export class ClinicalEMREventConsumer {
    */
   private async sendClinicalProfileUpdateNotification(
     data: PatientClinicalProfileUpdatedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
-      const riskLevelText = {
-        'low': 'thấp',
-        'medium': 'trung bình',
-        'high': 'cao',
-        'critical': 'nguy hiểm',
-      }[data.clinicalData.riskLevel] || data.clinicalData.riskLevel;
+      const riskLevelText =
+        {
+          low: "thấp",
+          medium: "trung bình",
+          high: "cao",
+          critical: "nguy hiểm",
+        }[data.clinicalData.riskLevel] || data.clinicalData.riskLevel;
 
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'clinical_profile_updated',
-        title: 'Cập nhật hồ sơ lâm sàng',
-        content: `Hồ sơ lâm sàng của bạn đã được cập nhật. Mức độ rủi ro: ${riskLevelText}.${data.clinicalData.primaryPhysician ? ` Bác sĩ chính: ${data.clinicalData.primaryPhysician}.` : ''}`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: data.clinicalData.riskLevel === 'critical' ? 'high' : 'normal',
+        recipientType: "patient",
+        type: "clinical_profile_updated",
+        title: "Cập nhật hồ sơ lâm sàng",
+        content: `Hồ sơ lâm sàng của bạn đã được cập nhật. Mức độ rủi ro: ${riskLevelText}.${data.clinicalData.primaryPhysician ? ` Bác sĩ chính: ${data.clinicalData.primaryPhysician}.` : ""}`,
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority:
+          data.clinicalData.riskLevel === "critical" ? "high" : "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -705,16 +795,15 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
-      console.log('Sent clinical profile update notification to patient', {
+      await this.dispatchNotification(notificationData);
+      console.log("Sent clinical profile update notification to patient", {
         patientId: data.patientId,
         riskLevel: data.clinicalData.riskLevel,
       });
-
     } catch (error) {
-      console.error('Failed to send clinical profile update notification', {
+      console.error("Failed to send clinical profile update notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -722,18 +811,20 @@ export class ClinicalEMREventConsumer {
   /**
    * Send high-risk profile notification to physician
    */
-  private async sendHighRiskProfileNotification(data: PatientClinicalProfileUpdatedEventData): Promise<void> {
+  private async sendHighRiskProfileNotification(
+    data: PatientClinicalProfileUpdatedEventData,
+  ): Promise<void> {
     try {
       if (!data.clinicalData.primaryPhysician) return;
 
       const notificationData = {
         recipientId: data.clinicalData.primaryPhysician,
-        recipientType: 'staff',
-        type: 'high_risk_patient',
-        title: 'Bệnh nhân nguy cơ cao',
+        recipientType: "staff",
+        type: "high_risk_patient",
+        title: "Bệnh nhân nguy cơ cao",
         content: `Bệnh nhân ${data.patientName} đã được cập nhật hồ sơ với mức độ rủi ro ${data.clinicalData.riskLevel}. Cần theo dõi đặc biệt.`,
-        channels: ['in_app', 'email'],
-        priority: 'high',
+        channels: ["in_app", "email"],
+        priority: "high",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -742,11 +833,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send high-risk profile notification', {
+      console.error("Failed to send high-risk profile notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -754,16 +845,18 @@ export class ClinicalEMREventConsumer {
   /**
    * Send allergy alert notification
    */
-  private async sendAllergyAlertNotification(data: PatientClinicalProfileUpdatedEventData): Promise<void> {
+  private async sendAllergyAlertNotification(
+    data: PatientClinicalProfileUpdatedEventData,
+  ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'allergy_alert',
-        title: 'Cảnh báo dị ứng',
-        content: `Hồ sơ của bạn đã được cập nhật với các thông tin dị ứng: ${data.clinicalData.allergies.join(', ')}. Vui lòng thông báo cho nhân viên y tế khi khám bệnh.`,
-        channels: ['in_app', 'email'],
-        priority: 'high',
+        recipientType: "patient",
+        type: "allergy_alert",
+        title: "Cảnh báo dị ứng",
+        content: `Hồ sơ của bạn đã được cập nhật với các thông tin dị ứng: ${data.clinicalData.allergies.join(", ")}. Vui lòng thông báo cho nhân viên y tế khi khám bệnh.`,
+        channels: ["in_app", "email"],
+        priority: "high",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -772,11 +865,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send allergy alert notification', {
+      console.error("Failed to send allergy alert notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -786,17 +879,17 @@ export class ClinicalEMREventConsumer {
    */
   private async sendTreatmentPlanNotification(
     data: TreatmentPlanCreatedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'treatment_plan_created',
-        title: 'Kế hoạch điều trị mới',
+        recipientType: "patient",
+        type: "treatment_plan_created",
+        title: "Kế hoạch điều trị mới",
         content: `Kế hoạch điều trị ${data.treatmentType} đã được tạo cho bạn. Tần suất: ${data.frequency}, Thời gian: ${data.duration}. Bắt đầu từ ${this.formatDate(data.startDate)}.`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: 'normal',
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -806,16 +899,15 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
-      console.log('Sent treatment plan notification to patient', {
+      await this.dispatchNotification(notificationData);
+      console.log("Sent treatment plan notification to patient", {
         patientId: data.patientId,
         treatmentPlanId: data.treatmentPlanId,
       });
-
     } catch (error) {
-      console.error('Failed to send treatment plan notification', {
+      console.error("Failed to send treatment plan notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -825,17 +917,17 @@ export class ClinicalEMREventConsumer {
    */
   private async sendTreatmentPlanPhysicianNotification(
     data: TreatmentPlanCreatedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.physicianId,
-        recipientType: 'staff',
-        type: 'treatment_plan_created',
-        title: 'Kế hoạch điều trị đã tạo',
+        recipientType: "staff",
+        type: "treatment_plan_created",
+        title: "Kế hoạch điều trị đã tạo",
         content: `Kế hoạch điều trị ${data.treatmentType} đã được tạo cho bệnh nhân ${data.patientName}. Bắt đầu từ ${this.formatDate(data.startDate)}.`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: 'normal',
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -845,11 +937,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send treatment plan physician notification', {
+      console.error("Failed to send treatment plan physician notification", {
         physicianId: data.physicianId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -859,11 +951,13 @@ export class ClinicalEMREventConsumer {
    */
   private async scheduleTreatmentReminders(
     data: TreatmentPlanCreatedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const treatmentFrequency = this.getTreatmentFrequency(data.frequency);
-      const endDate = data.endDate || new Date(data.startDate.getTime() + (90 * 24 * 60 * 60 * 1000)); // Default 90 days
+      const endDate =
+        data.endDate ||
+        new Date(data.startDate.getTime() + 90 * 24 * 60 * 60 * 1000); // Default 90 days
 
       let currentDate = new Date(data.startDate);
       let reminderCount = 0;
@@ -871,17 +965,23 @@ export class ClinicalEMREventConsumer {
 
       while (currentDate <= endDate && reminderCount < maxReminders) {
         // Schedule reminder 1 day before treatment
-        const reminderDate = new Date(currentDate.getTime() - (24 * 60 * 60 * 1000));
-        
+        const reminderDate = new Date(
+          currentDate.getTime() - 24 * 60 * 60 * 1000,
+        );
+
         if (reminderDate > new Date()) {
           const notificationData = {
             recipientId: data.patientId,
-            recipientType: 'patient',
-            type: 'treatment_reminder',
-            title: 'Nhắc nhở điều trị',
+            recipientType: "patient",
+            type: "treatment_reminder",
+            title: "Nhắc nhở điều trị",
             content: `Nhắc nhở: Bạn có buổi điều trị ${data.treatmentType} vào ngày mai (${this.formatDate(currentDate)}).`,
-            channels: this.getEnabledChannels(preferences, ['sms', 'email', 'in_app']),
-            priority: 'normal',
+            channels: this.getEnabledChannels(preferences, [
+              "sms",
+              "email",
+              "in_app",
+            ]),
+            priority: "normal",
             scheduledAt: reminderDate,
             metadata: {
               patientId: data.patientId,
@@ -890,25 +990,27 @@ export class ClinicalEMREventConsumer {
             },
           };
 
-          await this.sendNotificationUseCase.execute(notificationData);
+          await this.dispatchNotification(notificationData);
           reminderCount++;
         }
 
         // Move to next treatment date
-        currentDate = this.getNextTreatmentDate(currentDate, treatmentFrequency);
+        currentDate = this.getNextTreatmentDate(
+          currentDate,
+          treatmentFrequency,
+        );
       }
 
-      console.log('Scheduled treatment reminders', {
+      console.log("Scheduled treatment reminders", {
         treatmentPlanId: data.treatmentPlanId,
         patientId: data.patientId,
         remindersCount: reminderCount,
       });
-
     } catch (error) {
-      console.error('Failed to schedule treatment reminders', {
+      console.error("Failed to schedule treatment reminders", {
         treatmentPlanId: data.treatmentPlanId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -918,23 +1020,24 @@ export class ClinicalEMREventConsumer {
    */
   private async sendTestOrderNotification(
     data: MedicalTestOrderedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
-      const urgencyText = {
-        'routine': 'thường quy',
-        'urgent': 'khẩn',
-        'stat': 'cấp cứu',
-      }[data.urgencyLevel] || data.urgencyLevel;
+      const urgencyText =
+        {
+          routine: "thường quy",
+          urgent: "khẩn",
+          stat: "cấp cứu",
+        }[data.urgencyLevel] || data.urgencyLevel;
 
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'test_ordered',
-        title: 'Đặt lịch xét nghiệm',
+        recipientType: "patient",
+        type: "test_ordered",
+        title: "Đặt lịch xét nghiệm",
         content: `Bạn đã được chỉ định xét nghiệm ${data.testType} (${urgencyText}). Thời gian dự kiến: ${data.estimatedDuration} phút.`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: data.urgencyLevel === 'stat' ? 'urgent' : 'normal',
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority: data.urgencyLevel === "stat" ? "urgent" : "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -944,16 +1047,15 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
-      console.log('Sent test order notification to patient', {
+      await this.dispatchNotification(notificationData);
+      console.log("Sent test order notification to patient", {
         patientId: data.patientId,
         testId: data.testId,
       });
-
     } catch (error) {
-      console.error('Failed to send test order notification', {
+      console.error("Failed to send test order notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -963,17 +1065,21 @@ export class ClinicalEMREventConsumer {
    */
   private async sendUrgentTestNotification(
     data: MedicalTestOrderedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.physicianId,
-        recipientType: 'staff',
-        type: 'urgent_test_ordered',
-        title: 'Xét nghiệm khẩn cấp',
+        recipientType: "staff",
+        type: "urgent_test_ordered",
+        title: "Xét nghiệm khẩn cấp",
         content: `Xét nghiệm ${data.testType} khẩn cấp đã được đặt cho bệnh nhân ${data.patientName}. Mức độ: ${data.urgencyLevel}.`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email', 'sms']),
-        priority: 'urgent',
+        channels: this.getEnabledChannels(preferences, [
+          "in_app",
+          "email",
+          "sms",
+        ]),
+        priority: "urgent",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -983,11 +1089,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send urgent test notification', {
+      console.error("Failed to send urgent test notification", {
         physicianId: data.physicianId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -997,18 +1103,18 @@ export class ClinicalEMREventConsumer {
    */
   private async sendTestPreparationInstructions(
     data: MedicalTestOrderedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
-      const instructions = data.preparationInstructions?.join('\n- ') || '';
+      const instructions = data.preparationInstructions?.join("\n- ") || "";
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'test_preparation',
-        title: 'Hướng dẫn chuẩn bị xét nghiệm',
+        recipientType: "patient",
+        type: "test_preparation",
+        title: "Hướng dẫn chuẩn bị xét nghiệm",
         content: `Hướng dẫn chuẩn bị cho xét nghiệm ${data.testType}:\n- ${instructions}`,
-        channels: this.getEnabledChannels(preferences, ['email', 'in_app']),
-        priority: 'normal',
+        channels: this.getEnabledChannels(preferences, ["email", "in_app"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1017,11 +1123,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send test preparation instructions', {
+      console.error("Failed to send test preparation instructions", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1031,24 +1137,25 @@ export class ClinicalEMREventConsumer {
    */
   private async sendTestResultNotification(
     data: MedicalTestResultReadyEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
-      const statusText = {
-        'normal': 'bình thường',
-        'abnormal': 'bất thường',
-        'critical': 'nguy hiểm',
-        'pending_review': 'chờ đánh giá',
-      }[data.resultStatus] || data.resultStatus;
+      const statusText =
+        {
+          normal: "bình thường",
+          abnormal: "bất thường",
+          critical: "nguy hiểm",
+          pending_review: "chờ đánh giá",
+        }[data.resultStatus] || data.resultStatus;
 
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'test_result_ready',
-        title: 'Kết quả xét nghiệm',
-        content: `Kết quả xét nghiệm ${data.testType} của bạn đã sẵn sàng. Trạng thái: ${statusText}.${data.requiresFollowUp ? ' Cần theo dõi thêm.' : ''}`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: data.resultStatus === 'critical' ? 'urgent' : 'normal',
+        recipientType: "patient",
+        type: "test_result_ready",
+        title: "Kết quả xét nghiệm",
+        content: `Kết quả xét nghiệm ${data.testType} của bạn đã sẵn sàng. Trạng thái: ${statusText}.${data.requiresFollowUp ? " Cần theo dõi thêm." : ""}`,
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority: data.resultStatus === "critical" ? "urgent" : "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1058,17 +1165,16 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
-      console.log('Sent test result notification to patient', {
+      await this.dispatchNotification(notificationData);
+      console.log("Sent test result notification to patient", {
         patientId: data.patientId,
         testId: data.testId,
         resultStatus: data.resultStatus,
       });
-
     } catch (error) {
-      console.error('Failed to send test result notification', {
+      console.error("Failed to send test result notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1078,22 +1184,26 @@ export class ClinicalEMREventConsumer {
    */
   private async sendCriticalResultNotification(
     data: MedicalTestResultReadyEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
-      let criticalInfo = '';
+      let criticalInfo = "";
       if (data.criticalValues && data.criticalValues.length > 0) {
-        criticalInfo = ` Giá trị nguy hiểm: ${data.criticalValues.map(cv => `${cv.parameter}: ${cv.value}`).join(', ')}`;
+        criticalInfo = ` Giá trị nguy hiểm: ${data.criticalValues.map((cv) => `${cv.parameter}: ${cv.value}`).join(", ")}`;
       }
 
       const notificationData = {
         recipientId: data.physicianId,
-        recipientType: 'staff',
-        type: 'critical_test_result',
-        title: 'Kết quả xét nghiệm nguy hiểm',
+        recipientType: "staff",
+        type: "critical_test_result",
+        title: "Kết quả xét nghiệm nguy hiểm",
         content: `Kết quả ${data.resultStatus} cho xét nghiệm ${data.testType} của bệnh nhân ${data.patientName}.${criticalInfo}`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email', 'sms']),
-        priority: 'urgent',
+        channels: this.getEnabledChannels(preferences, [
+          "in_app",
+          "email",
+          "sms",
+        ]),
+        priority: "urgent",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1104,11 +1214,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send critical result notification', {
+      console.error("Failed to send critical result notification", {
         physicianId: data.physicianId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1118,17 +1228,17 @@ export class ClinicalEMREventConsumer {
    */
   private async sendTestFollowUpNotification(
     data: MedicalTestResultReadyEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'test_follow_up',
-        title: 'Cần theo dõi xét nghiệm',
+        recipientType: "patient",
+        type: "test_follow_up",
+        title: "Cần theo dõi xét nghiệm",
         content: `Kết quả xét nghiệm ${data.testType} cần theo dõi. ${data.followUpInstructions}`,
-        channels: this.getEnabledChannels(preferences, ['email', 'in_app']),
-        priority: 'high',
+        channels: this.getEnabledChannels(preferences, ["email", "in_app"]),
+        priority: "high",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1138,11 +1248,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send test follow-up notification', {
+      console.error("Failed to send test follow-up notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1152,26 +1262,27 @@ export class ClinicalEMREventConsumer {
    */
   private async sendDocumentNotification(
     data: ClinicalDocumentAddedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
-      const documentTypeText = {
-        'referral': 'giới thiệu',
-        'prescription': 'đơn thuốc',
-        'lab_result': 'kết quả xét nghiệm',
-        'imaging': 'hình ảnh y khoa',
-        'discharge_summary': 'tóm tắt ra viện',
-        'other': 'tài liệu khác',
-      }[data.documentType] || data.documentType;
+      const documentTypeText =
+        {
+          referral: "giới thiệu",
+          prescription: "đơn thuốc",
+          lab_result: "kết quả xét nghiệm",
+          imaging: "hình ảnh y khoa",
+          discharge_summary: "tóm tắt ra viện",
+          other: "tài liệu khác",
+        }[data.documentType] || data.documentType;
 
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'clinical_document_added',
-        title: 'Tài liệu y khoa mới',
-        content: `${documentTypeText} "${data.documentTitle}" đã được thêm vào hồ sơ của bạn.${data.requiresFollowUp ? ' Cần theo dõi thêm.' : ''}`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: 'normal',
+        recipientType: "patient",
+        type: "clinical_document_added",
+        title: "Tài liệu y khoa mới",
+        content: `${documentTypeText} "${data.documentTitle}" đã được thêm vào hồ sơ của bạn.${data.requiresFollowUp ? " Cần theo dõi thêm." : ""}`,
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1180,16 +1291,15 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
-      console.log('Sent document notification to patient', {
+      await this.dispatchNotification(notificationData);
+      console.log("Sent document notification to patient", {
         patientId: data.patientId,
         documentId: data.documentId,
       });
-
     } catch (error) {
-      console.error('Failed to send document notification', {
+      console.error("Failed to send document notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1199,22 +1309,22 @@ export class ClinicalEMREventConsumer {
    */
   private async sendDocumentPhysicianNotification(
     data: ClinicalDocumentAddedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       if (!data.physicianId) {
-        console.warn('No physician ID provided for document notification');
+        console.warn("No physician ID provided for document notification");
         return;
       }
 
       const notificationData = {
         recipientId: data.physicianId,
-        recipientType: 'staff',
-        type: 'clinical_document_added',
-        title: 'Tài liệu y khoa mới',
+        recipientType: "staff",
+        type: "clinical_document_added",
+        title: "Tài liệu y khoa mới",
         content: `Tài liệu "${data.documentTitle}" đã được thêm vào hồ sơ của bệnh nhân ${data.patientName}.`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: 'normal',
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1223,11 +1333,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send document physician notification', {
+      console.error("Failed to send document physician notification", {
         physicianId: data.physicianId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1237,17 +1347,17 @@ export class ClinicalEMREventConsumer {
    */
   private async sendDocumentFollowUpNotification(
     data: ClinicalDocumentAddedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'document_follow_up',
-        title: 'Cần theo dõi tài liệu y khoa',
+        recipientType: "patient",
+        type: "document_follow_up",
+        title: "Cần theo dõi tài liệu y khoa",
         content: `Tài liệu "${data.documentTitle}" cần theo dõi. ${data.followUpInstructions}`,
-        channels: this.getEnabledChannels(preferences, ['email', 'in_app']),
-        priority: 'high',
+        channels: this.getEnabledChannels(preferences, ["email", "in_app"]),
+        priority: "high",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1256,11 +1366,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send document follow-up notification', {
+      console.error("Failed to send document follow-up notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1268,24 +1378,25 @@ export class ClinicalEMREventConsumer {
   /**
    * Handle vital signs alerts
    */
-  private async handleVitalSignsAlerts(data: VitalSignsRecordedEventData): Promise<void> {
+  private async handleVitalSignsAlerts(
+    data: VitalSignsRecordedEventData,
+  ): Promise<void> {
     try {
       if (!data.alerts || data.alerts.length === 0) return;
 
       for (const alert of data.alerts) {
         // Send critical alert to physician
-        if (alert.severity === 'high' || alert.severity === 'critical') {
+        if (alert.severity === "high" || alert.severity === "critical") {
           await this.sendCriticalVitalSignsAlert(data, alert);
         }
 
         // Send alert notification to patient
         await this.sendVitalSignsAlertNotification(data, alert);
       }
-
     } catch (error) {
-      console.error('Failed to handle vital signs alerts', {
+      console.error("Failed to handle vital signs alerts", {
         recordingId: data.recordingId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1295,18 +1406,18 @@ export class ClinicalEMREventConsumer {
    */
   private async sendVitalSignsNotification(
     data: VitalSignsRecordedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const vitalSignsText = this.formatVitalSigns(data.vitalSigns);
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'vital_signs_recorded',
-        title: 'Đo dấu hiệu sinh tồn',
+        recipientType: "patient",
+        type: "vital_signs_recorded",
+        title: "Đo dấu hiệu sinh tồn",
         content: `Dấu hiệu sinh tồn của bạn đã được đo:\n${vitalSignsText}`,
-        channels: this.getEnabledChannels(preferences, ['in_app']),
-        priority: 'normal',
+        channels: this.getEnabledChannels(preferences, ["in_app"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1315,11 +1426,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send vital signs notification', {
+      console.error("Failed to send vital signs notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1329,17 +1440,17 @@ export class ClinicalEMREventConsumer {
    */
   private async sendCriticalVitalSignsAlert(
     data: VitalSignsRecordedEventData,
-    alert: any
+    alert: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.recordedBy,
-        recipientType: 'staff',
-        type: 'critical_vital_signs',
-        title: 'Cảnh báo dấu hiệu sinh tồn nguy hiểm',
+        recipientType: "staff",
+        type: "critical_vital_signs",
+        title: "Cảnh báo dấu hiệu sinh tồn nguy hiểm",
         content: `Bệnh nhân ${data.patientName}: ${alert.message}. Cần hành động ngay lập tức.`,
-        channels: ['in_app', 'email', 'sms'],
-        priority: 'urgent',
+        channels: ["in_app", "email", "sms"],
+        priority: "urgent",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1349,11 +1460,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send critical vital signs alert', {
+      console.error("Failed to send critical vital signs alert", {
         recordingId: data.recordingId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1363,17 +1474,17 @@ export class ClinicalEMREventConsumer {
    */
   private async sendVitalSignsAlertNotification(
     data: VitalSignsRecordedEventData,
-    alert: any
+    alert: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'vital_signs_alert',
-        title: 'Cảnh báo sức khỏe',
+        recipientType: "patient",
+        type: "vital_signs_alert",
+        title: "Cảnh báo sức khỏe",
         content: `Dấu hiệu sinh tồn của bạn có bất thường: ${alert.message}. Vui lòng liên hệ nhân viên y tế.`,
-        channels: ['in_app', 'sms'],
-        priority: 'high',
+        channels: ["in_app", "sms"],
+        priority: "high",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1383,11 +1494,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send vital signs alert notification', {
+      console.error("Failed to send vital signs alert notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1397,21 +1508,21 @@ export class ClinicalEMREventConsumer {
    */
   private async sendPrescriptionNotification(
     data: MedicationPrescribedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
-      const medicationList = data.medications.map(med => 
-        `${med.name} (${med.dosage}, ${med.frequency})`
-      ).join(', ');
+      const medicationList = data.medications
+        .map((med) => `${med.name} (${med.dosage}, ${med.frequency})`)
+        .join(", ");
 
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'medication_prescribed',
-        title: 'Đơn thuốc mới',
+        recipientType: "patient",
+        type: "medication_prescribed",
+        title: "Đơn thuốc mới",
         content: `Đơn thuốc mới đã được kê cho bạn:\n${medicationList}`,
-        channels: this.getEnabledChannels(preferences, ['in_app', 'email']),
-        priority: 'normal',
+        channels: this.getEnabledChannels(preferences, ["in_app", "email"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1420,16 +1531,15 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
-      console.log('Sent prescription notification to patient', {
+      await this.dispatchNotification(notificationData);
+      console.log("Sent prescription notification to patient", {
         patientId: data.patientId,
         prescriptionId: data.prescriptionId,
       });
-
     } catch (error) {
-      console.error('Failed to send prescription notification', {
+      console.error("Failed to send prescription notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1439,17 +1549,17 @@ export class ClinicalEMREventConsumer {
    */
   private async sendPharmacyPickupNotification(
     data: MedicationPrescribedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'pharmacy_pickup',
-        title: 'Nhận thuốc tại nhà thuốc',
-        content: `Đơn thuốc của bạn đã sẵn sàng tại nhà thuốc. Vui lòng mang theo ID đơn thuốc: ${data.prescriptionId}.${data.pharmacyInstructions ? ` ${data.pharmacyInstructions}` : ''}`,
-        channels: this.getEnabledChannels(preferences, ['sms', 'email']),
-        priority: 'normal',
+        recipientType: "patient",
+        type: "pharmacy_pickup",
+        title: "Nhận thuốc tại nhà thuốc",
+        content: `Đơn thuốc của bạn đã sẵn sàng tại nhà thuốc. Vui lòng mang theo ID đơn thuốc: ${data.prescriptionId}.${data.pharmacyInstructions ? ` ${data.pharmacyInstructions}` : ""}`,
+        channels: this.getEnabledChannels(preferences, ["sms", "email"]),
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           patientId: data.patientId,
@@ -1457,11 +1567,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send pharmacy pickup notification', {
+      console.error("Failed to send pharmacy pickup notification", {
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1471,30 +1581,35 @@ export class ClinicalEMREventConsumer {
    */
   private async scheduleMedicationReminders(
     data: MedicationPrescribedEventData,
-    preferences: any
+    preferences: any,
   ): Promise<void> {
     try {
       for (const medication of data.medications) {
-        const reminderTimes = this.getMedicationReminderTimes(medication.frequency);
-        
+        const reminderTimes = this.getMedicationReminderTimes(
+          medication.frequency,
+        );
+
         for (const reminderTime of reminderTimes) {
           // Schedule reminders for next 30 days
           for (let day = 0; day < 30; day++) {
             const reminderDate = new Date();
             reminderDate.setDate(reminderDate.getDate() + day);
-            
-            const [hours, minutes] = reminderTime.split(':');
+
+            const [hours, minutes] = reminderTime.split(":");
             reminderDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
             if (reminderDate > new Date()) {
               const notificationData = {
                 recipientId: data.patientId,
-                recipientType: 'patient',
-                type: 'medication_reminder',
-                title: 'Nhắc nhở uống thuốc',
-                content: `Đã đến giờ uống thuốc ${medication.name} (${medication.dosage}).${medication.instructions ? ` ${medication.instructions}` : ''}`,
-                channels: this.getEnabledChannels(preferences, ['sms', 'in_app']),
-                priority: 'normal',
+                recipientType: "patient",
+                type: "medication_reminder",
+                title: "Nhắc nhở uống thuốc",
+                content: `Đã đến giờ uống thuốc ${medication.name} (${medication.dosage}).${medication.instructions ? ` ${medication.instructions}` : ""}`,
+                channels: this.getEnabledChannels(preferences, [
+                  "sms",
+                  "in_app",
+                ]),
+                priority: "normal",
                 scheduledAt: reminderDate,
                 metadata: {
                   patientId: data.patientId,
@@ -1503,23 +1618,22 @@ export class ClinicalEMREventConsumer {
                 },
               };
 
-              await this.sendNotificationUseCase.execute(notificationData);
+              await this.dispatchNotification(notificationData);
             }
           }
         }
       }
 
-      console.log('Scheduled medication reminders', {
+      console.log("Scheduled medication reminders", {
         prescriptionId: data.prescriptionId,
         patientId: data.patientId,
         medicationsCount: data.medications.length,
       });
-
     } catch (error) {
-      console.error('Failed to schedule medication reminders', {
+      console.error("Failed to schedule medication reminders", {
         prescriptionId: data.prescriptionId,
         patientId: data.patientId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1527,24 +1641,27 @@ export class ClinicalEMREventConsumer {
   /**
    * Send emergency alert notification
    */
-  private async sendEmergencyAlertNotification(data: EmergencyAlertTriggeredEventData): Promise<void> {
+  private async sendEmergencyAlertNotification(
+    data: EmergencyAlertTriggeredEventData,
+  ): Promise<void> {
     try {
-      const alertTypeText = {
-        'cardiac_arrest': 'ngưng tim',
-        'respiratory_distress': 'khó thở',
-        'severe_bleeding': 'chảy máu nặng',
-        'fall': 'ngã',
-        'other': 'khẩn cấp khác',
-      }[data.alertType] || data.alertType;
+      const alertTypeText =
+        {
+          cardiac_arrest: "ngưng tim",
+          respiratory_distress: "khó thở",
+          severe_bleeding: "chảy máu nặng",
+          fall: "ngã",
+          other: "khẩn cấp khác",
+        }[data.alertType] || data.alertType;
 
       const notificationData = {
-        recipientId: 'emergency_team',
-        recipientType: 'department',
-        type: 'emergency_alert',
-        title: 'CẢNH BÁO KHẨN CẤP Y KHOA',
+        recipientId: "emergency_team",
+        recipientType: "department",
+        type: "emergency_alert",
+        title: "CẢNH BÁO KHẨN CẤP Y KHOA",
         content: `${alertTypeText} tại ${data.location}. Bệnh nhân: ${data.patientName}. Mức độ: ${data.severity}. ${data.description}`,
-        channels: ['in_app', 'email', 'sms'],
-        priority: 'urgent',
+        channels: ["in_app", "email", "sms"],
+        priority: "urgent",
         scheduledAt: new Date(),
         metadata: {
           alertId: data.alertId,
@@ -1556,11 +1673,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send emergency alert notification', {
+      console.error("Failed to send emergency alert notification", {
         alertId: data.alertId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1568,16 +1685,18 @@ export class ClinicalEMREventConsumer {
   /**
    * Send emergency contact notification
    */
-  private async sendEmergencyContactNotification(data: EmergencyAlertTriggeredEventData): Promise<void> {
+  private async sendEmergencyContactNotification(
+    data: EmergencyAlertTriggeredEventData,
+  ): Promise<void> {
     try {
       const notificationData = {
         recipientId: data.patientId,
-        recipientType: 'patient',
-        type: 'emergency_contact',
-        title: 'Thông báo khẩn cấp',
+        recipientType: "patient",
+        type: "emergency_contact",
+        title: "Thông báo khẩn cấp",
         content: `Đã xảy ra tình huống khẩn cấp tại ${data.location}. Người nhà vui lòng liên hệ bệnh viện.`,
-        channels: ['sms'],
-        priority: 'urgent',
+        channels: ["sms"],
+        priority: "urgent",
         scheduledAt: new Date(),
         metadata: {
           alertId: data.alertId,
@@ -1587,11 +1706,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send emergency contact notification', {
+      console.error("Failed to send emergency contact notification", {
         alertId: data.alertId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1599,16 +1718,18 @@ export class ClinicalEMREventConsumer {
   /**
    * Send department emergency notification
    */
-  private async sendDepartmentEmergencyNotification(data: EmergencyAlertTriggeredEventData): Promise<void> {
+  private async sendDepartmentEmergencyNotification(
+    data: EmergencyAlertTriggeredEventData,
+  ): Promise<void> {
     try {
       const notificationData = {
-        recipientId: 'all_departments',
-        recipientType: 'department',
-        type: 'department_emergency',
-        title: 'Tình huống khẩn cấp khoa',
-        content: `Tình huống khẩn cấp ${data.alertType} tại ${data.location}. Cần hỗ trợ từ các khoa: ${data.responseTeamRequired.join(', ')}`,
-        channels: ['in_app'],
-        priority: 'urgent',
+        recipientId: "all_departments",
+        recipientType: "department",
+        type: "department_emergency",
+        title: "Tình huống khẩn cấp khoa",
+        content: `Tình huống khẩn cấp ${data.alertType} tại ${data.location}. Cần hỗ trợ từ các khoa: ${data.responseTeamRequired.join(", ")}`,
+        channels: ["in_app"],
+        priority: "urgent",
         scheduledAt: new Date(),
         metadata: {
           alertId: data.alertId,
@@ -1618,11 +1739,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to send department emergency notification', {
+      console.error("Failed to send department emergency notification", {
         alertId: data.alertId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1630,16 +1751,18 @@ export class ClinicalEMREventConsumer {
   /**
    * Log emergency notification for compliance
    */
-  private async logEmergencyNotification(data: EmergencyAlertTriggeredEventData): Promise<void> {
+  private async logEmergencyNotification(
+    data: EmergencyAlertTriggeredEventData,
+  ): Promise<void> {
     try {
       const notificationData = {
-        recipientId: 'compliance_log',
-        recipientType: 'system',
-        type: 'emergency_log',
-        title: 'Log cảnh báo khẩn cấp',
+        recipientId: "compliance_log",
+        recipientType: "system",
+        type: "emergency_log",
+        title: "Log cảnh báo khẩn cấp",
         content: `Emergency alert logged: ${data.alertId} - ${data.alertType} - Patient: ${data.patientId} - Location: ${data.location}`,
-        channels: ['email'],
-        priority: 'normal',
+        channels: ["email"],
+        priority: "normal",
         scheduledAt: new Date(),
         metadata: {
           alertId: data.alertId,
@@ -1652,11 +1775,11 @@ export class ClinicalEMREventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
-      console.error('Failed to log emergency notification', {
+      console.error("Failed to log emergency notification", {
         alertId: data.alertId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -1664,23 +1787,26 @@ export class ClinicalEMREventConsumer {
   /**
    * Helper methods
    */
-  private getEnabledChannels(preferences: any, defaultChannels: string[]): string[] {
+  private getEnabledChannels(
+    preferences: any,
+    defaultChannels: string[],
+  ): string[] {
     if (!preferences || !preferences.channels) {
       return defaultChannels;
     }
 
-    return defaultChannels.filter(channel => 
-      preferences.channels[channel] !== false
+    return defaultChannels.filter(
+      (channel) => preferences.channels[channel] !== false,
     );
   }
 
   private getTreatmentFrequency(frequency: string): number {
     const frequencyMap: { [key: string]: number } = {
-      'daily': 1,
-      'weekly': 7,
-      'biweekly': 14,
-      'monthly': 30,
-      'quarterly': 90,
+      daily: 1,
+      weekly: 7,
+      biweekly: 14,
+      monthly: 30,
+      quarterly: 90,
     };
 
     return frequencyMap[frequency] || 7;
@@ -1694,21 +1820,23 @@ export class ClinicalEMREventConsumer {
 
   private getMedicationReminderTimes(frequency: string): string[] {
     const frequencyMap: { [key: string]: string[] } = {
-      'once_daily': ['08:00'],
-      'twice_daily': ['08:00', '20:00'],
-      'three_times_daily': ['08:00', '14:00', '20:00'],
-      'four_times_daily': ['08:00', '12:00', '16:00', '20:00'],
-      'as_needed': [], // No scheduled reminders for as-needed
+      once_daily: ["08:00"],
+      twice_daily: ["08:00", "20:00"],
+      three_times_daily: ["08:00", "14:00", "20:00"],
+      four_times_daily: ["08:00", "12:00", "16:00", "20:00"],
+      as_needed: [], // No scheduled reminders for as-needed
     };
 
-    return frequencyMap[frequency] || ['08:00'];
+    return frequencyMap[frequency] || ["08:00"];
   }
 
   private formatVitalSigns(vitalSigns: any): string {
     const parts: string[] = [];
-    
+
     if (vitalSigns.bloodPressure) {
-      parts.push(`Huyết áp: ${vitalSigns.bloodPressure.systolic}/${vitalSigns.bloodPressure.diastolic} mmHg`);
+      parts.push(
+        `Huyết áp: ${vitalSigns.bloodPressure.systolic}/${vitalSigns.bloodPressure.diastolic} mmHg`,
+      );
     }
     if (vitalSigns.heartRate) {
       parts.push(`Nhịp tim: ${vitalSigns.heartRate} bpm`);
@@ -1729,14 +1857,23 @@ export class ClinicalEMREventConsumer {
       parts.push(`Chiều cao: ${vitalSigns.height} cm`);
     }
 
-    return parts.join('\n') || 'Không có dữ liệu';
+    return parts.join("\n") || "Không có dữ liệu";
   }
 
   private formatDate(date: Date): string {
-    return date.toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return date.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  private async dispatchNotification(
+    payload: SendNotificationCommand,
+  ): Promise<void> {
+    await this.sendNotificationUseCase.execute({
+      ...payload,
+      priority: normalizePriority(payload.priority),
     });
   }
 
@@ -1756,11 +1893,10 @@ export class ClinicalEMREventConsumer {
       }
 
       this.isConnected = false;
-      console.log('Clinical EMR event consumer disconnected successfully');
-
+      console.log("Clinical EMR event consumer disconnected successfully");
     } catch (error) {
-      console.error('Error disconnecting clinical EMR event consumer', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      console.error("Error disconnecting clinical EMR event consumer", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

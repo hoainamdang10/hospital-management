@@ -1,6 +1,6 @@
 import { Entity } from "../../../../shared/domain/base/entity";
 import { Money } from "../value-objects/Money";
-export type PaymentMethod = "cash" | "card" | "bank_transfer" | "payos" | "insurance" | "refund";
+export type PaymentMethod = "cash" | "card" | "bank_transfer" | "payos" | "insurance" | "refund" | "wallet";
 export type PaymentStatus = "pending" | "completed" | "failed" | "refunded" | "refund_pending";
 export interface VnpayTransactionData {
     vnpTxnRef: string;

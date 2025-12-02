@@ -115,6 +115,7 @@ export interface AppointmentRescheduledEventData {
     // Billing Service - handle reschedule fees
     billingUpdate?: {
       patientId: string;
+      patientRecordId?: string;
       appointmentId: string;
       action: "reschedule_fee" | "no_charge";
       amount?: number;
@@ -139,6 +140,8 @@ export interface AppointmentRescheduledEventData {
  * Triggered when an appointment is rescheduled to a new time
  */
 export class AppointmentRescheduledEvent extends DomainEvent {
+  private patientRecordId?: string;
+
   constructor(
     public readonly appointmentId: string,
     public readonly patientId: string,
@@ -412,9 +415,7 @@ export class AppointmentRescheduledEvent extends DomainEvent {
   /**
    * Generate reminder schedule for new appointment time
    */
-  private static generateReminderSchedule(
-    newAppointmentTime: Date,
-  ): {
+  private static generateReminderSchedule(newAppointmentTime: Date): {
     type: "24h" | "2h" | "30min";
     scheduledFor: Date;
     channels: ("sms" | "email" | "push")[];
@@ -623,6 +624,7 @@ export class AppointmentRescheduledEvent extends DomainEvent {
 
     return {
       patientId: this.patientId,
+      patientRecordId: this.patientRecordId,
       appointmentId: this.appointmentId,
       action: "reschedule_fee" as const,
       amount: reschedulePolicy.rescheduleAmount,
@@ -631,5 +633,12 @@ export class AppointmentRescheduledEvent extends DomainEvent {
       newAppointmentDate: this.newStartTime,
       newAppointmentTime: this.newStartTime,
     };
+  }
+  /**
+   * Attach patient record UUID for downstream billing service
+   */
+  public attachPatientRecordId(patientRecordId: string): this {
+    this.patientRecordId = patientRecordId;
+    return this;
   }
 }

@@ -139,6 +139,11 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
      */
     private toDomain;
     /**
+     * Resolve internal patient UUID from business-facing patient code (e.g. PAT-202511-425)
+     * Used to provide correct foreign keys for billing-service integration events.
+     */
+    private resolvePatientRecordId;
+    /**
      * Update appointment (alias for save - uses aggregate pattern)
      * Used by event consumers for status changes and updates
      */

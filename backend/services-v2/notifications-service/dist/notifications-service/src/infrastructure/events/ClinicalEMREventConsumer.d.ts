@@ -7,9 +7,9 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { IInboxRepository } from '../../domain/repositories/IInboxRepository';
-import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
-import { GetNotificationPreferencesUseCase } from '../../application/use-cases/GetNotificationPreferencesUseCase';
+import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
+import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
+import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
 export interface ClinicalEMREventConsumerConfig {
     rabbitmqUrl: string;
     queueName: string;
@@ -28,7 +28,7 @@ export interface PatientClinicalProfileUpdatedEventData {
         conditions: string[];
         lastVisitDate?: Date;
         primaryPhysician?: string;
-        riskLevel: 'low' | 'medium' | 'high' | 'critical';
+        riskLevel: "low" | "medium" | "high" | "critical";
         specialRequirements?: string[];
     };
     updatedAt: Date;
@@ -58,8 +58,8 @@ export interface MedicalTestOrderedEventData {
     physicianId: string;
     physicianName: string;
     testType: string;
-    testCategory: 'laboratory' | 'radiology' | 'cardiology' | 'pathology' | 'other';
-    urgencyLevel: 'routine' | 'urgent' | 'stat';
+    testCategory: "laboratory" | "radiology" | "cardiology" | "pathology" | "other";
+    urgencyLevel: "routine" | "urgent" | "stat";
     orderedAt: Date;
     orderedBy: string;
     preparationInstructions?: string[];
@@ -72,15 +72,15 @@ export interface MedicalTestResultReadyEventData {
     physicianId: string;
     physicianName: string;
     testType: string;
-    testCategory: 'laboratory' | 'radiology' | 'cardiology' | 'pathology' | 'other';
-    resultStatus: 'normal' | 'abnormal' | 'critical' | 'pending_review';
+    testCategory: "laboratory" | "radiology" | "cardiology" | "pathology" | "other";
+    resultStatus: "normal" | "abnormal" | "critical" | "pending_review";
     completedAt: Date;
     completedBy: string;
     criticalValues?: {
         parameter: string;
         value: string;
         normalRange: string;
-        severity: 'mild' | 'moderate' | 'severe';
+        severity: "mild" | "moderate" | "severe";
     }[];
     requiresFollowUp: boolean;
     followUpInstructions?: string;
@@ -89,7 +89,7 @@ export interface ClinicalDocumentAddedEventData {
     documentId: string;
     patientId: string;
     patientName: string;
-    documentType: 'referral' | 'prescription' | 'lab_result' | 'imaging' | 'discharge_summary' | 'other';
+    documentType: "referral" | "prescription" | "lab_result" | "imaging" | "discharge_summary" | "other";
     documentTitle: string;
     physicianId?: string;
     physicianName?: string;
@@ -118,7 +118,7 @@ export interface VitalSignsRecordedEventData {
     };
     alerts?: {
         type: string;
-        severity: 'low' | 'medium' | 'high' | 'critical';
+        severity: "low" | "medium" | "high" | "critical";
         message: string;
     }[];
 }
@@ -145,8 +145,8 @@ export interface EmergencyAlertTriggeredEventData {
     patientId: string;
     patientName: string;
     location: string;
-    alertType: 'cardiac_arrest' | 'respiratory_distress' | 'severe_bleeding' | 'fall' | 'other';
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    alertType: "cardiac_arrest" | "respiratory_distress" | "severe_bleeding" | "fall" | "other";
+    severity: "low" | "medium" | "high" | "critical";
     triggeredAt: Date;
     triggeredBy: string;
     description: string;
@@ -318,6 +318,7 @@ export declare class ClinicalEMREventConsumer {
     private getMedicationReminderTimes;
     private formatVitalSigns;
     private formatDate;
+    private dispatchNotification;
     /**
      * Disconnect from RabbitMQ
      */

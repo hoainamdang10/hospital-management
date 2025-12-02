@@ -241,6 +241,8 @@ class RecipientInfo {
             NURSE: "Điều dưỡng",
             ADMIN: "Quản trị viên",
             FAMILY: "Thân nhân",
+            STAFF: "Nhân sự",
+            DEPARTMENT: "Khoa/Phòng",
             EXTERNAL: "Bên ngoài",
         };
         return typeNames[this.recipientType];

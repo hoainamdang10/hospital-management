@@ -220,6 +220,25 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         // Continue without enrichment - events still published with IDs
       }
 
+      // Resolve patient record UUID for downstream Billing service
+      let patientRecordId: string | null = null;
+      try {
+        patientRecordId = await this.resolvePatientRecordId(
+          appointment.patientId,
+        );
+      } catch (patientLookupError) {
+        console.warn(
+          "[SupabaseAppointmentRepository] Failed to resolve patient record ID",
+          {
+            patientId: appointment.patientId,
+            error:
+              patientLookupError instanceof Error
+                ? patientLookupError.message
+                : "Unknown",
+          },
+        );
+      }
+
       // ===== ENRICH EVENTS BEFORE PUBLISHING =====
       for (const event of events) {
         // Enrich AppointmentConfirmedEvent with read model data
@@ -249,6 +268,27 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
           (event as any).patientName = readModel.patient_full_name;
           (event as any).doctorName = readModel.doctor_full_name;
           (event as any).departmentName = readModel.doctor_department;
+        }
+
+        // Attach patient record UUID for billing integration events
+        if (
+          patientRecordId &&
+          typeof (event as any).attachPatientRecordId === "function"
+        ) {
+          try {
+            (event as any).attachPatientRecordId(patientRecordId);
+          } catch (attachError) {
+            console.warn(
+              "[SupabaseAppointmentRepository] Failed to attach patientRecordId to event",
+              {
+                eventType: event.eventType,
+                error:
+                  attachError instanceof Error
+                    ? attachError.message
+                    : "Unknown",
+              },
+            );
+          }
         }
       }
 
@@ -765,16 +805,11 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
    * Query: status IN ('CONFIRMED', 'SCHEDULED') AND appointment_datetime < cutoffTime
    */
   async findPastAppointments(cutoffTime: Date): Promise<Appointment[]> {
-    const cutoffDateStr = cutoffTime.toISOString().split("T")[0];
-    const cutoffTimeStr = cutoffTime.toTimeString().split(" ")[0];
-
     const { data, error } = await this.supabase
       .from(this.tableName)
       .select("*")
       .in("status", ["CONFIRMED", "SCHEDULED", "ARRIVED", "IN_PROGRESS"])
-      .or(
-        `appointment_date.lt.${cutoffDateStr},and(appointment_date.eq.${cutoffDateStr},appointment_time.lt.${cutoffTimeStr})`,
-      )
+      .lt("start_at_utc", cutoffTime.toISOString())
       .order("appointment_date", { ascending: true })
       .order("appointment_time", { ascending: true });
 
@@ -1586,6 +1621,57 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     // Reconstitute with UUID from database
     return Appointment.reconstitute(props, record.id);
+  }
+
+  /**
+   * Resolve internal patient UUID from business-facing patient code (e.g. PAT-202511-425)
+   * Used to provide correct foreign keys for billing-service integration events.
+   */
+  private async resolvePatientRecordId(
+    patientBusinessId: string,
+  ): Promise<string | null> {
+    if (!patientBusinessId) {
+      return null;
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .schema("patient_schema")
+        .from("patients")
+        .select("id")
+        .eq("patient_id", patientBusinessId)
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") {
+        console.warn(
+          "[SupabaseAppointmentRepository] Patient UUID lookup failed",
+          {
+            patientId: patientBusinessId,
+            error: error.message,
+          },
+        );
+        return null;
+      }
+
+      if (!data?.id) {
+        console.debug(
+          "[SupabaseAppointmentRepository] Patient UUID not found for business ID",
+          { patientId: patientBusinessId },
+        );
+        return null;
+      }
+
+      return data.id;
+    } catch (error) {
+      console.warn(
+        "[SupabaseAppointmentRepository] Unexpected error resolving patient UUID",
+        {
+          patientId: patientBusinessId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
+      return null;
+    }
   }
 
   // ==================== MISSING METHODS - CRITICAL ====================

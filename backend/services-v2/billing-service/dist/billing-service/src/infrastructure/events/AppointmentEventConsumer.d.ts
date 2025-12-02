@@ -30,8 +30,10 @@ export interface AppointmentEventConsumerConfig {
 export interface AppointmentScheduledEventData {
     appointmentId: string;
     patientId: string;
-    staffId: string;
-    departmentId: string;
+    patientRecordId?: string | null;
+    patientCode?: string | null;
+    staffId: string | null;
+    departmentId: string | null;
     doctorName?: string;
     doctorDepartment?: string;
     scheduledAt: Date;
@@ -44,8 +46,10 @@ export interface AppointmentScheduledEventData {
 export interface AppointmentCancelledLateEventData {
     appointmentId: string;
     patientId: string;
-    staffId: string;
-    departmentId: string;
+    patientRecordId?: string | null;
+    patientCode?: string | null;
+    staffId: string | null;
+    departmentId: string | null;
     scheduledAt: Date;
     cancelledAt: Date;
     reason: string;
@@ -56,8 +60,10 @@ export interface AppointmentCancelledLateEventData {
 export interface AppointmentNoShowEventData {
     appointmentId: string;
     patientId: string;
-    staffId: string;
-    departmentId: string;
+    patientRecordId?: string | null;
+    patientCode?: string | null;
+    staffId: string | null;
+    departmentId: string | null;
     scheduledAt: Date;
     noShowFeeApplied: boolean;
     noShowFeeAmount: number;
@@ -66,8 +72,10 @@ export interface AppointmentNoShowEventData {
 export interface AppointmentCancelledRefundEventData {
     appointmentId: string;
     patientId: string;
-    staffId: string;
-    departmentId: string;
+    patientRecordId?: string | null;
+    patientCode?: string | null;
+    staffId: string | null;
+    departmentId: string | null;
     scheduledAt: Date;
     cancelledAt: Date;
     cancellationReason: string;
@@ -83,6 +91,8 @@ export interface AppointmentCancelledRefundEventData {
 export interface AppointmentRescheduledEventData {
     appointmentId: string;
     patientId: string;
+    patientRecordId?: string | null;
+    patientCode?: string | null;
     staffId: string | null;
     departmentId: string | null;
     originalStartTime?: Date;
@@ -113,6 +123,7 @@ export declare class AppointmentEventConsumer {
     private connection?;
     private channel?;
     private isConnected;
+    private patientIdCache;
     constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, staffRepository: SupabaseStaffRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus, refundPaymentUseCase?: any | undefined);
     /**
      * Connect to RabbitMQ and start consuming
@@ -173,6 +184,12 @@ export declare class AppointmentEventConsumer {
      * Prevents "User context required" errors while keeping audit metadata consistent.
      */
     private getSystemContext;
+    /**
+     * Resolve canonical patient UUID for downstream billing operations.
+     */
+    private resolvePatientUuidForEvent;
+    private cachePatientIdentifier;
+    private isUUID;
     /**
      * Disconnect from RabbitMQ
      */

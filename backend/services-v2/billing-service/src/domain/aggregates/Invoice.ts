@@ -31,18 +31,27 @@ export interface InvoiceProps {
   // REMOVED (Phase 1 Prepaid Model): finalizedAt, cancelledAt, cancellationReason, insurance, insuranceCoverage
 }
 
+interface InvoiceCreateOptions {
+  taxRate?: number;
+}
+
 export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
   private constructor(props: InvoiceProps, id?: string) {
     super(props, id);
   }
 
-  public static create(patientId: string, items: InvoiceItem[]): Invoice {
+  public static create(
+    patientId: string,
+    items: InvoiceItem[],
+    options: InvoiceCreateOptions = {},
+  ): Invoice {
     if (items.length === 0) {
       throw new Error("Invoice must have at least one item");
     }
 
     const invoiceId = InvoiceId.generate();
     const now = new Date();
+    const taxRate = options.taxRate ?? 0.1;
 
     // Calculate subtotal
     const subtotal = items.reduce(
@@ -51,7 +60,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     );
 
     // Calculate tax (10% VAT)
-    const tax = subtotal.multiply(0.1);
+    const tax = subtotal.multiply(taxRate);
 
     // Calculate total and outstanding (no insurance coverage in Phase 1 Prepaid Model)
     const totalAmount = subtotal.add(tax);

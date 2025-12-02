@@ -57,7 +57,13 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<
     );
 
     // Create invoice (Phase 1 Prepaid Model: no insurance)
-    const invoice = Invoice.create(request.patientId, items);
+    const isWalletTopUp = Boolean(
+      request.metadata?.walletTopUp ?? request.metadata?.wallet_top_up,
+    );
+
+    const invoice = Invoice.create(request.patientId, items, {
+      taxRate: isWalletTopUp ? 0 : undefined,
+    });
 
     // Set appointment ID if provided
     if (request.appointmentId) {

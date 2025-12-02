@@ -10,8 +10,12 @@
 
 import { ConsumeMessage } from "amqplib";
 import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
-import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
+import {
+  SendNotificationCommand,
+  SendNotificationUseCase,
+} from "../../application/use-cases/SendNotificationUseCase";
 import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
+import { normalizePriority } from "../../domain/services/priority-normalizer";
 
 export interface BillingEventConsumerConfig {
   rabbitmqUrl: string;
@@ -738,7 +742,7 @@ export class BillingEventConsumer {
         });
 
       // ===== Send payment receipt notification =====
-      await this.sendNotificationUseCase.execute({
+      await this.dispatchNotification({
         recipientId: data.patientId,
         recipientType: "PATIENT",
         recipientName: data.patientName,
@@ -963,7 +967,7 @@ export class BillingEventConsumer {
       }
 
       // Send notification to patient
-      await this.sendNotificationUseCase.execute({
+      await this.dispatchNotification({
         recipientId: data.patientId,
         recipientType: "patient",
         type: "payment_reminder",
@@ -1078,7 +1082,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent insurance verification notification to patient", {
         patientId: data.patientId,
         coverageStatus: data.coverageStatus,
@@ -1123,7 +1127,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send coverage issue notification", {
         patientId: data.patientId,
@@ -1156,7 +1160,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send billing review notification", {
         patientId: data.patientId,
@@ -1197,7 +1201,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent pre-authorization request notification to patient", {
         patientId: data.patientId,
         preAuthId: data.preAuthId,
@@ -1239,7 +1243,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send urgent pre-authorization notification", {
         physicianId: data.physicianId,
@@ -1276,7 +1280,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to schedule pre-authorization follow-up", {
         preAuthId: data.preAuthId,
@@ -1311,7 +1315,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent pre-authorization approval notification to patient", {
         patientId: data.patientId,
         preAuthId: data.preAuthId,
@@ -1348,7 +1352,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error(
         "Failed to send pre-authorization physician approval notification",
@@ -1384,7 +1388,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send pre-authorization billing notification", {
         preAuthId: data.preAuthId,
@@ -1423,7 +1427,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent pre-authorization denial notification to patient", {
         patientId: data.patientId,
         preAuthId: data.preAuthId,
@@ -1460,7 +1464,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error(
         "Failed to send pre-authorization physician denial notification",
@@ -1502,7 +1506,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to schedule appeal reminder", {
         preAuthId: data.preAuthId,
@@ -1543,7 +1547,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send rate update notification", {
         rateId: data.rateId,
@@ -1585,7 +1589,7 @@ export class BillingEventConsumer {
           },
         };
 
-        await this.sendNotificationUseCase.execute(notificationData);
+        await this.dispatchNotification(notificationData);
       }
     } catch (error) {
       console.error("Failed to send patient rate change notifications", {
@@ -1619,7 +1623,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send physician rate change notifications", {
         rateId: data.rateId,
@@ -1667,7 +1671,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent payment notification to patient", {
         patientId: data.patientId,
         paymentId: data.paymentId,
@@ -1705,7 +1709,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send payment failure notification", {
         patientId: data.patientId,
@@ -1738,7 +1742,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send refund notification", {
         patientId: data.patientId,
@@ -1773,7 +1777,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent invoice notification to patient", {
         patientId: data.patientId,
         invoiceId: data.invoiceId,
@@ -1809,7 +1813,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send high-value invoice notification", {
         invoiceId: data.invoiceId,
@@ -1865,7 +1869,7 @@ export class BillingEventConsumer {
             },
           };
 
-          await this.sendNotificationUseCase.execute(notificationData);
+          await this.dispatchNotification(notificationData);
         }
       }
 
@@ -1915,7 +1919,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent payment reminder notification", {
         patientId: data.patientId,
         invoiceId: data.invoiceId,
@@ -1952,7 +1956,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send overdue account notification", {
         invoiceId: data.invoiceId,
@@ -1990,7 +1994,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent refund processed notification to patient", {
         patientId: data.patientId,
         refundId: data.refundId,
@@ -2027,7 +2031,7 @@ export class BillingEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send refund department notification", {
         refundId: data.refundId,
@@ -2074,6 +2078,15 @@ export class BillingEventConsumer {
       year: "numeric",
       month: "long",
       day: "numeric",
+    });
+  }
+
+  private async dispatchNotification(
+    payload: SendNotificationCommand,
+  ): Promise<void> {
+    await this.sendNotificationUseCase.execute({
+      ...payload,
+      priority: normalizePriority(payload.priority),
     });
   }
 

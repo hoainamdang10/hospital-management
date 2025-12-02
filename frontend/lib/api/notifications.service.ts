@@ -64,7 +64,7 @@ export async function getUserNotifications(
     priority?: string;
     startDate?: string;
     endDate?: string;
-  },
+  }
 ): Promise<UserNotificationsResponse> {
   const response = await apiClient.get(`/v1/notifications/user/${userId}`, {
     params,
@@ -73,9 +73,7 @@ export async function getUserNotifications(
 }
 
 export async function getUnreadNotificationsCount(userId: string) {
-  const response = await apiClient.get(
-    `/v1/notifications/user/${userId}/unread-count`,
-  );
+  const response = await apiClient.get(`/v1/notifications/user/${userId}/unread-count`);
   return response.data as {
     success: boolean;
     data: { userId: string; unreadCount: number };
@@ -85,36 +83,114 @@ export async function getUnreadNotificationsCount(userId: string) {
 export async function markNotificationAsRead(
   notificationId: string,
   userId: string,
-  isRead: boolean = true,
+  isRead: boolean = true
 ) {
-  const response = await apiClient.patch(
-    `/v1/notifications/${notificationId}/read`,
-    { userId, isRead },
-  );
+  const response = await apiClient.patch(`/v1/notifications/${notificationId}/read`, {
+    userId,
+    isRead,
+  });
   return response.data;
 }
 
 export function transformNotificationsToActivities(
-  notifications: UserNotification[],
+  notifications: UserNotification[]
 ): RecentActivity[] {
   return notifications.map((notification) => ({
     id: notification.notificationId,
     type: mapNotificationToActivityType(notification),
-    title: notification.subject || 'Th?ng b?o m?i',
-    description: extractDescription(notification),
+    title: formatNotificationPreview(notification).title,
+    description: formatNotificationPreview(notification).description,
     time: formatTime(notification.createdAt),
   }));
 }
 
-function mapNotificationToActivityType(
-  notification: UserNotification,
-): RecentActivity['type'] {
+export interface NotificationPreview {
+  title: string;
+  description: string;
+}
+
+type AppointmentNotificationPayload = {
+  patientName?: string;
+  doctorName?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  newAppointmentDate?: string;
+  newAppointmentTime?: string;
+  oldAppointmentDate?: string;
+  oldAppointmentTime?: string;
+  reason?: string;
+  cancellationReason?: string;
+};
+
+export function formatNotificationPreview(notification: UserNotification): NotificationPreview {
+  const template = (notification.templateType || notification.subject || '').toUpperCase();
+  const payload = parseStructuredBody(notification.body);
+  const fallbackDescription = extractDescription(notification);
+
+  switch (template) {
+    case 'APPOINTMENT_CONFIRMED': {
+      const dateText = formatAppointmentDate(payload?.appointmentDate, payload?.appointmentTime);
+      return {
+        title: 'Lịch hẹn đã được xác nhận',
+        description: dateText
+          ? `Bác sĩ ${payload?.doctorName || 'phụ trách'} sẽ khám vào ${dateText}.`
+          : fallbackDescription,
+      };
+    }
+    case 'APPOINTMENT_SCHEDULED': {
+      const dateText = formatAppointmentDate(payload?.appointmentDate, payload?.appointmentTime);
+      return {
+        title: 'Bạn đã đặt lịch thành công',
+        description: dateText
+          ? `Lịch hẹn với ${payload?.doctorName || 'bác sĩ'} vào ${dateText}.`
+          : fallbackDescription,
+      };
+    }
+    case 'APPOINTMENT_RESCHEDULED': {
+      const newDate = formatAppointmentDate(
+        payload?.newAppointmentDate,
+        payload?.newAppointmentTime
+      );
+      const oldDate = formatAppointmentDate(
+        payload?.appointmentDate || payload?.oldAppointmentDate,
+        payload?.appointmentTime || payload?.oldAppointmentTime
+      );
+      return {
+        title: 'Lịch hẹn đã được dời',
+        description:
+          newDate && oldDate
+            ? `Từ ${oldDate} sang ${newDate}.`
+            : newDate
+              ? `Thời gian mới: ${newDate}.`
+              : fallbackDescription,
+      };
+    }
+    case 'APPOINTMENT_CANCELLED': {
+      return {
+        title: 'Lịch hẹn đã bị hủy',
+        description:
+          payload?.reason ||
+          payload?.cancellationReason ||
+          fallbackDescription ||
+          'Vui lòng đặt lịch lại nếu cần.',
+      };
+    }
+    default:
+      return {
+        title: notification.subject || 'Thông báo mới',
+        description: fallbackDescription,
+      };
+  }
+}
+
+function mapNotificationToActivityType(notification: UserNotification): RecentActivity['type'] {
   const template = notification.templateType?.toUpperCase();
   const typeMap: Record<string, RecentActivity['type']> = {
     APPOINTMENT_REMINDER: 'appointment',
     APPOINTMENT_CONFIRMATION: 'appointment',
     APPOINTMENT_CANCELLED: 'appointment',
     APPOINTMENT_UPDATED: 'appointment',
+    APPOINTMENT_RESCHEDULED: 'appointment',
     TEST_RESULTS_READY: 'test_result',
     BILLING_PAYMENT_COMPLETED: 'payment',
     PAYMENT_REMINDER: 'payment',
@@ -138,9 +214,7 @@ function extractDescription(notification: UserNotification): string {
   const body = notification.body ?? '';
   if (body.trim().length > 0) {
     const plainText = body.replace(/<[^>]*>/g, '').trim();
-    return plainText.length > 100
-      ? `${plainText.substring(0, 100)}...`
-      : plainText;
+    return plainText.length > 100 ? `${plainText.substring(0, 100)}...` : plainText;
   }
 
   if (notification.healthcareContext?.appointmentId) {
@@ -178,9 +252,7 @@ function formatTime(dateString: string): string {
   });
 }
 
-export async function getRecentActivities(
-  userId: string,
-): Promise<RecentActivity[]> {
+export async function getRecentActivities(userId: string): Promise<RecentActivity[]> {
   try {
     const response = await getUserNotifications(userId, { limit: 10 });
     if (response.success) {
@@ -191,4 +263,35 @@ export async function getRecentActivities(
     console.error('Error fetching recent activities:', error);
     return [];
   }
+}
+
+function parseStructuredBody(body?: string | null): AppointmentNotificationPayload | null {
+  if (!body) return null;
+  const trimmed = body.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+    return null;
+  }
+  try {
+    return JSON.parse(trimmed) as AppointmentNotificationPayload;
+  } catch {
+    return null;
+  }
+}
+
+function formatAppointmentDate(date?: string, time?: string): string | null {
+  if (!date) return null;
+  const isoString = time ? `${date}T${time}` : `${date}T00:00:00`;
+  const parsed = new Date(isoString);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toLocaleString('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

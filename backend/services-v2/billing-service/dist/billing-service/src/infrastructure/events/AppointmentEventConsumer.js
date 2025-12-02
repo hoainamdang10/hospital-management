@@ -30,6 +30,7 @@ class AppointmentEventConsumer {
         this.eventBus = eventBus;
         this.refundPaymentUseCase = refundPaymentUseCase;
         this.isConnected = false;
+        this.patientIdCache = new Map();
     }
     /**
      * Connect to RabbitMQ and start consuming
@@ -159,7 +160,9 @@ class AppointmentEventConsumer {
         const consultationFee = this.toNumber(consultationFeeRaw, NaN);
         return {
             appointmentId: common.appointmentId,
-            patientId: common.patientId,
+            patientId: common.patientId || common.patientRecordId || common.patientCode || "",
+            patientRecordId: common.patientRecordId,
+            patientCode: common.patientCode,
             staffId: common.staffId,
             departmentId: common.departmentId,
             scheduledAt: common.scheduledAt,
@@ -179,7 +182,9 @@ class AppointmentEventConsumer {
         const common = this.extractCommonAppointmentFields(payload, rawEvent);
         return {
             appointmentId: common.appointmentId,
-            patientId: common.patientId,
+            patientId: common.patientId || common.patientRecordId || common.patientCode || "",
+            patientRecordId: common.patientRecordId,
+            patientCode: common.patientCode,
             staffId: common.staffId,
             departmentId: common.departmentId,
             scheduledAt: common.scheduledAt,
@@ -194,7 +199,9 @@ class AppointmentEventConsumer {
         const common = this.extractCommonAppointmentFields(payload, rawEvent);
         return {
             appointmentId: common.appointmentId,
-            patientId: common.patientId,
+            patientId: common.patientId || common.patientRecordId || common.patientCode || "",
+            patientRecordId: common.patientRecordId,
+            patientCode: common.patientCode,
             staffId: common.staffId,
             departmentId: common.departmentId,
             scheduledAt: common.scheduledAt,
@@ -207,7 +214,9 @@ class AppointmentEventConsumer {
         const common = this.extractCommonAppointmentFields(payload, rawEvent);
         return {
             appointmentId: common.appointmentId,
-            patientId: common.patientId,
+            patientId: common.patientId || common.patientRecordId || common.patientCode || "",
+            patientRecordId: common.patientRecordId,
+            patientCode: common.patientCode,
             staffId: common.staffId,
             departmentId: common.departmentId,
             scheduledAt: common.scheduledAt,
@@ -228,7 +237,9 @@ class AppointmentEventConsumer {
         const policy = payload?.reschedulePolicy || payload?.policy;
         return {
             appointmentId: common.appointmentId,
-            patientId: common.patientId,
+            patientId: common.patientId || common.patientRecordId || common.patientCode || "",
+            patientRecordId: common.patientRecordId,
+            patientCode: common.patientCode,
             staffId: common.staffId,
             departmentId: common.departmentId,
             originalStartTime: this.safeDate(payload?.originalStartTime) ??
@@ -249,19 +260,49 @@ class AppointmentEventConsumer {
         };
     }
     extractCommonAppointmentFields(payload, rawEvent) {
-        const appointmentId = payload?.appointmentId || rawEvent?.aggregateId;
+        const appointmentId = payload?.appointmentId ||
+            payload?.appointment_id ||
+            rawEvent?.aggregateId ||
+            rawEvent?.appointmentId;
         const scheduledAt = this.resolveScheduledAt(payload);
-        const patientId = payload?.patientId || payload?.patient_id || payload?.patient?.id || null;
+        const patientId = payload?.patientId ||
+            payload?.patient_id ||
+            payload?.patientCode ||
+            payload?.patient_code ||
+            payload?.patient?.patientId ||
+            payload?.patient?.patient_id ||
+            rawEvent?.patientId ||
+            rawEvent?.patient_id ||
+            null;
+        const patientRecordId = payload?.patientRecordId ||
+            payload?.patient_record_id ||
+            payload?.patient?.recordId ||
+            payload?.patient?.id ||
+            rawEvent?.patientRecordId ||
+            rawEvent?.patient_record_id ||
+            null;
+        const patientCode = payload?.patientCode ||
+            payload?.patient_code ||
+            payload?.patient?.patientCode ||
+            rawEvent?.patientCode ||
+            rawEvent?.patient_code ||
+            null;
         const staffId = payload?.staffId ||
             payload?.doctorId ||
             payload?.providerId ||
             payload?.staff_id ||
+            payload?.doctor_id ||
             null;
         return {
             appointmentId,
             patientId,
+            patientRecordId,
+            patientCode,
             staffId,
-            doctorName: payload?.doctorName || payload?.doctor_name || payload?.doctorFullName,
+            doctorName: payload?.doctorName ||
+                payload?.doctor_name ||
+                payload?.doctorFullName ||
+                payload?.doctor?.name,
             doctorDepartment: payload?.departmentName ||
                 payload?.department?.name ||
                 payload?.doctorDepartment ||
@@ -384,7 +425,9 @@ class AppointmentEventConsumer {
      * Creates invoice with PENDING status and generates PayOS payment link
      */
     async handleAppointmentScheduled(data) {
-        const staffUuid = await this.resolveStaffIdentifier(data.staffId);
+        const staffUuid = data.staffId && data.staffId.trim().length > 0
+            ? await this.resolveStaffIdentifier(data.staffId)
+            : null;
         if (!staffUuid) {
             this.loggerInstance.error("Unable to resolve staff ID for appointment", {
                 appointmentId: data.appointmentId,
@@ -403,6 +446,9 @@ class AppointmentEventConsumer {
                 return;
             }
             const patientUuid = patient.id;
+            this.cachePatientIdentifier(data.patientId, patientUuid);
+            this.cachePatientIdentifier(data.patientRecordId, patientUuid);
+            this.cachePatientIdentifier(data.patientCode, patientUuid);
             const enrichedData = await this.enrichDoctorInfo({
                 ...data,
                 staffId: staffUuid || data.staffId,
@@ -421,7 +467,7 @@ class AppointmentEventConsumer {
                 appointmentId: enrichedData.appointmentId,
                 patientId: patientUuid,
                 staffId: staffUuid,
-                departmentId: enrichedData.departmentId,
+                departmentId: enrichedData.departmentId || "",
                 doctorName: enrichedData.doctorName,
                 doctorDepartment: enrichedData.doctorDepartment,
                 serviceType: enrichedData.serviceType,
@@ -490,9 +536,13 @@ class AppointmentEventConsumer {
      * Handle appointment cancelled late event
      */
     async handleAppointmentCancelledLate(data) {
+        const patientUuid = await this.resolvePatientUuidForEvent(data, "appointment.cancelled_late");
+        if (!patientUuid) {
+            return;
+        }
         this.loggerInstance.info("Processing late cancellation fee", {
             appointmentId: data.appointmentId,
-            patientId: data.patientId,
+            patientId: patientUuid,
             lateFeeAmount: data.lateFeeAmount,
         });
         try {
@@ -500,7 +550,7 @@ class AppointmentEventConsumer {
                 // Generate late cancellation fee invoice
                 const feeInvoice = await this.billingService.generateLateCancellationFee({
                     appointmentId: data.appointmentId,
-                    patientId: data.patientId,
+                    patientId: patientUuid,
                     cancelledAt: data.cancelledAt,
                     reason: data.reason,
                     feeAmount: data.lateFeeAmount,
@@ -524,9 +574,13 @@ class AppointmentEventConsumer {
      * Handle appointment no-show event
      */
     async handleAppointmentNoShow(data) {
+        const patientUuid = await this.resolvePatientUuidForEvent(data, "appointment.no_show");
+        if (!patientUuid) {
+            return;
+        }
         this.loggerInstance.info("Processing no-show fee", {
             appointmentId: data.appointmentId,
-            patientId: data.patientId,
+            patientId: patientUuid,
             noShowCount: data.noShowCount,
             noShowFeeAmount: data.noShowFeeAmount,
         });
@@ -535,7 +589,7 @@ class AppointmentEventConsumer {
                 // Generate no-show fee invoice
                 const feeInvoice = await this.billingService.generateNoShowFee({
                     appointmentId: data.appointmentId,
-                    patientId: data.patientId,
+                    patientId: patientUuid,
                     scheduledAt: data.scheduledAt,
                     noShowCount: data.noShowCount,
                     feeAmount: data.noShowFeeAmount,
@@ -563,6 +617,10 @@ class AppointmentEventConsumer {
             this.loggerInstance.warn("Reschedule event missing payload");
             return;
         }
+        const patientUuid = await this.resolvePatientUuidForEvent(data, "appointment.rescheduled");
+        if (!patientUuid) {
+            return;
+        }
         const feeApplied = data.reschedulePolicy?.feeApplied &&
             Number(data.reschedulePolicy?.rescheduleAmount) > 0;
         if (!feeApplied) {
@@ -575,7 +633,7 @@ class AppointmentEventConsumer {
         try {
             await this.billingService.generateRescheduleFee({
                 appointmentId: data.appointmentId,
-                patientId: data.patientId,
+                patientId: patientUuid,
                 rescheduleAmount: amount,
                 reason: data.reason || "Đổi lịch hẹn",
             });
@@ -597,9 +655,13 @@ class AppointmentEventConsumer {
      * Simplified approach: Only handle billing refund logic
      */
     async handleAppointmentCancelled(data) {
+        const patientUuid = await this.resolvePatientUuidForEvent(data, "appointment.cancelled");
+        if (!patientUuid) {
+            return;
+        }
         this.loggerInstance.info("Processing appointment cancellation for refund", {
             appointmentId: data.appointmentId,
-            patientId: data.patientId,
+            patientId: patientUuid,
             refundEligible: data.cancellationPolicy.refundEligible,
             refundPercentage: data.cancellationPolicy.refundPercentage,
         });
@@ -615,7 +677,7 @@ class AppointmentEventConsumer {
             if (refundEligible && refundPercentage > 0) {
                 this.loggerInstance.info("Refund eligible - processing refund", {
                     appointmentId: data.appointmentId,
-                    patientId: data.patientId,
+                    patientId: patientUuid,
                     refundPercentage,
                     reason: data.cancellationReason,
                 });
@@ -623,7 +685,7 @@ class AppointmentEventConsumer {
                 if (this.refundPaymentUseCase) {
                     const refundResult = await this.refundPaymentUseCase.execute({
                         appointmentId: data.appointmentId,
-                        patientId: data.patientId,
+                        patientId: patientUuid,
                         refundPercentage,
                         reason: data.cancellationReason,
                         refundedBy: data.cancelledBy,
@@ -662,13 +724,13 @@ class AppointmentEventConsumer {
                 data.cancellationPolicy.penaltyAmount > 0) {
                 this.loggerInstance.info("Penalty applied - generating penalty invoice", {
                     appointmentId: data.appointmentId,
-                    patientId: data.patientId,
+                    patientId: patientUuid,
                     penaltyAmount: data.cancellationPolicy.penaltyAmount,
                 });
                 // Generate penalty invoice
                 const penaltyInvoice = await this.billingService.generateLateCancellationFee({
                     appointmentId: data.appointmentId,
-                    patientId: data.patientId,
+                    patientId: patientUuid,
                     cancelledAt: data.cancelledAt,
                     reason: data.cancellationReason,
                     feeAmount: data.cancellationPolicy.penaltyAmount,
@@ -699,6 +761,70 @@ class AppointmentEventConsumer {
             timestamp: new Date(),
             correlationId: undefined,
         };
+    }
+    /**
+     * Resolve canonical patient UUID for downstream billing operations.
+     */
+    async resolvePatientUuidForEvent(data, context) {
+        const directRecordId = data.patientRecordId;
+        if (directRecordId && this.isUUID(directRecordId)) {
+            this.cachePatientIdentifier(data.patientId, directRecordId);
+            this.cachePatientIdentifier(data.patientCode, directRecordId);
+            return directRecordId;
+        }
+        const candidatePatientId = data.patientId;
+        if (candidatePatientId && this.isUUID(candidatePatientId)) {
+            this.cachePatientIdentifier(candidatePatientId, candidatePatientId);
+            this.cachePatientIdentifier(data.patientRecordId, candidatePatientId);
+            this.cachePatientIdentifier(data.patientCode, candidatePatientId);
+            return candidatePatientId;
+        }
+        const cached = [data.patientId, data.patientRecordId, data.patientCode]
+            .filter((key) => Boolean(key))
+            .map((key) => this.patientIdCache.get(key))
+            .find((value) => Boolean(value));
+        if (cached) {
+            this.cachePatientIdentifier(data.patientId, cached);
+            this.cachePatientIdentifier(data.patientCode, cached);
+            return cached;
+        }
+        const lookupId = data.patientRecordId || data.patientId || data.patientCode;
+        if (!lookupId) {
+            this.loggerInstance.error("Missing patient identifier in event", {
+                context,
+            });
+            return null;
+        }
+        try {
+            const patient = await this.patientRepository.findById(lookupId);
+            if (!patient) {
+                this.loggerInstance.error("Patient not found while processing appointment event", { context, lookupId });
+                return null;
+            }
+            this.cachePatientIdentifier(lookupId, patient.id);
+            this.cachePatientIdentifier(data.patientId, patient.id);
+            this.cachePatientIdentifier(data.patientCode, patient.id);
+            this.cachePatientIdentifier(data.patientRecordId, patient.id);
+            return patient.id;
+        }
+        catch (error) {
+            this.loggerInstance.error("Failed to resolve patient identifier for event", {
+                context,
+                lookupId,
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+            return null;
+        }
+    }
+    cachePatientIdentifier(identifier, resolvedUuid) {
+        if (!identifier || !resolvedUuid) {
+            return;
+        }
+        this.patientIdCache.set(identifier, resolvedUuid);
+    }
+    isUUID(value) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(value);
     }
     /**
      * Disconnect from RabbitMQ

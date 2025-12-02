@@ -22,9 +22,12 @@ export interface InvoiceProps {
     createdAt: Date;
     updatedAt: Date;
 }
+interface InvoiceCreateOptions {
+    taxRate?: number;
+}
 export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     private constructor();
-    static create(patientId: string, items: InvoiceItem[]): Invoice;
+    static create(patientId: string, items: InvoiceItem[], options?: InvoiceCreateOptions): Invoice;
     /**
      * Process refund for cancelled appointment
      * @param refundPercentage Percentage of total amount to refund (0-100)
@@ -68,4 +71,5 @@ export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     get updatedAt(): Date;
     get paidAt(): Date | undefined;
 }
+export {};
 //# sourceMappingURL=Invoice.d.ts.map

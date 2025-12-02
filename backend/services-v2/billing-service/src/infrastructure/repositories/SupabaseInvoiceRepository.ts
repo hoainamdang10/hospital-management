@@ -21,6 +21,27 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
       payments,
     } = InvoiceMapper.toPersistence(invoice);
 
+    const originalPatientIdentifier = invoiceRecord.patient_id as string;
+    const canonicalPatientId = await this.resolvePatientIdentifier(
+      originalPatientIdentifier,
+    );
+
+    if (canonicalPatientId) {
+      invoiceRecord.patient_id = canonicalPatientId;
+      payments.forEach((payment) => {
+        if (
+          !payment.processed_by ||
+          payment.processed_by === originalPatientIdentifier
+        ) {
+          payment.processed_by = canonicalPatientId;
+        }
+      });
+    } else if (!this.isUUID(originalPatientIdentifier)) {
+      throw new Error(
+        `Failed to resolve patient identifier: ${originalPatientIdentifier}`,
+      );
+    }
+
     // Start transaction-like operation
     // 1. Upsert main invoice
     const { error: invoiceError } = await this.supabase

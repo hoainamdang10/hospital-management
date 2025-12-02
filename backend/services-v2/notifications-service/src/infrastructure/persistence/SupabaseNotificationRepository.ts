@@ -23,6 +23,7 @@ import { RecipientInfo } from "../../domain/value-objects/RecipientInfo";
 import { NotificationContent } from "../../domain/value-objects/NotificationContent";
 import { NotificationChannel } from "../../domain/value-objects/NotificationChannel";
 import { IEventBus } from "../../../../shared/infrastructure/event-bus/EventBus";
+import { normalizeRecipientType } from "../../domain/services/recipient-type-normalizer";
 
 /**
  * Supabase Notification Repository
@@ -1103,7 +1104,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       html_body: null, // Not supported in current NotificationContent
       channels: notification.channels.map((c) => c.getType()),
       status: notification.status,
-      priority: notification.priority,
+      priority: notification.priority?.toUpperCase?.() || "NORMAL",
       sent_at: notification.sentAt?.toISOString(),
       delivered_at: notification.deliveredAt?.toISOString(),
       read_at: notification.readAt?.toISOString(),
@@ -1124,9 +1125,13 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   }
 
   private mapToAggregate(record: any): Notification {
+    const normalizedRecipientType = normalizeRecipientType(
+      record.recipient_type,
+    );
+
     const recipient = RecipientInfo.create({
       recipientId: record.recipient_id,
-      recipientType: record.recipient_type,
+      recipientType: normalizedRecipientType,
       fullName: record.recipient_name || "Unknown",
       contactInfo: {
         email: record.recipient_email,

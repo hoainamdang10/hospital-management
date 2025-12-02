@@ -6,6 +6,8 @@ import { Toaster } from 'sonner';
 import { useState } from 'react';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
+import { NotificationProvider } from '@/hooks/useNotifications';
+import ChatBot from '@/components/ChatBot';
 
 /**
  * Global Providers Component
@@ -28,21 +30,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          {children}
-          <Toaster
-            position="top-right"
-            richColors
-            closeButton
-            duration={4000}
-            toastOptions={{
-              style: {
-                fontFamily: 'var(--font-inter)',
-              },
-            }}
-          />
-          <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
+        <NotificationProvider>
+          <QueryClientProvider client={queryClient}>
+            {children}
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              duration={4000}
+              toastOptions={{
+                style: {
+                  fontFamily: 'var(--font-inter)',
+                },
+              }}
+            />
+            <ReactQueryDevtools initialIsOpen={false} />
+            <ChatBot />
+          </QueryClientProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

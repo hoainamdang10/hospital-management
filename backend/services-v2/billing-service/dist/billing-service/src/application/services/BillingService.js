@@ -35,9 +35,10 @@ class BillingService {
             const baseFee = request.consultationFee ??
                 this.calculateConsultationFee(request.serviceType, request.duration);
             // Build line items
+            const serviceName = this.getAppointmentServiceName(request.serviceType);
             const lineItems = [
                 {
-                    description: `${this.getServiceTypeDescription(request.serviceType)} - ${request.duration} minutes`,
+                    description: `${serviceName} - ${request.duration} phút`,
                     quantity: 1,
                     unitPrice: baseFee,
                     total: baseFee,
@@ -55,6 +56,12 @@ class BillingService {
                 appointmentId: request.appointmentId,
                 staffId: request.staffId,
                 metadata: {
+                    invoiceType: "appointment_booking",
+                    serviceName,
+                    serviceCategory: request.serviceType,
+                    serviceDescription: `Đặt lịch khám lúc ${request.scheduledAt.toISOString()}`,
+                    appointmentId: request.appointmentId,
+                    appointmentTime: request.scheduledAt.toISOString(),
                     doctorName: request.doctorName,
                     doctorDepartment: request.doctorDepartment,
                 },
@@ -105,6 +112,13 @@ class BillingService {
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
                 appointmentId: request.appointmentId,
+                metadata: {
+                    invoiceType: "late_cancellation_fee",
+                    serviceName: "Phí hủy lịch muộn",
+                    serviceDescription: request.reason,
+                    appointmentId: request.appointmentId,
+                    cancelledAt: request.cancelledAt.toISOString(),
+                },
                 items: lineItems,
                 // REMOVED (Phase 1): insurance
             });
@@ -142,6 +156,12 @@ class BillingService {
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
                 appointmentId: request.appointmentId,
+                metadata: {
+                    invoiceType: "reschedule_fee",
+                    serviceName: "Phí đổi lịch hẹn",
+                    serviceDescription: request.reason || "Đổi lịch",
+                    appointmentId: request.appointmentId,
+                },
                 items: [
                     {
                         description: `Phí đổi lịch hẹn - ${request.reason || "Đổi lịch"}`,
@@ -190,6 +210,13 @@ class BillingService {
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
                 appointmentId: request.appointmentId,
+                metadata: {
+                    invoiceType: "no_show_fee",
+                    serviceName: "Phí bỏ khám",
+                    occurrence: request.noShowCount,
+                    appointmentId: request.appointmentId,
+                    scheduledAt: request.scheduledAt.toISOString(),
+                },
                 items: lineItems,
                 // REMOVED (Phase 1): insurance
             });
@@ -230,6 +257,12 @@ class BillingService {
             }));
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
+                metadata: {
+                    invoiceType: "prescription",
+                    serviceName: "Thanh toán đơn thuốc",
+                    prescriptionId: request.prescriptionId,
+                    prescribedAt: request.prescribedAt.toISOString(),
+                },
                 items: lineItems,
                 // REMOVED (Phase 1 Prepaid Model): insurance
             });
@@ -276,6 +309,14 @@ class BillingService {
             ];
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
+                metadata: {
+                    invoiceType: "lab_test",
+                    serviceName: request.testType,
+                    urgent: request.isUrgent,
+                    labResultId: request.labResultId,
+                    appointmentId: request.appointmentId,
+                    performedAt: request.performedAt.toISOString(),
+                },
                 items: lineItems,
                 // REMOVED (Phase 1 Prepaid Model): insurance
             });
@@ -316,6 +357,13 @@ class BillingService {
             }));
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
+                metadata: {
+                    invoiceType: "treatment_plan",
+                    serviceName: "Kế hoạch điều trị",
+                    treatmentPlanId: request.treatmentPlanId,
+                    appointmentId: request.appointmentId,
+                    createdAt: request.createdAt.toISOString(),
+                },
                 items: lineItems,
                 // REMOVED (Phase 1 Prepaid Model): insurance
             });
@@ -357,6 +405,14 @@ class BillingService {
             }));
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
+                metadata: {
+                    invoiceType: "medical_record",
+                    serviceName: "Hồ sơ y tế",
+                    medicalRecordId: request.medicalRecordId,
+                    recordType: request.recordType,
+                    appointmentId: request.appointmentId,
+                    createdAt: request.createdAt.toISOString(),
+                },
                 items: lineItems,
                 // REMOVED (Phase 1 Prepaid Model): insurance
             });
@@ -411,6 +467,14 @@ class BillingService {
             follow_up: "FOLLOW",
         };
         return codes[serviceType] || "MEDICAL";
+    }
+    getAppointmentServiceName(serviceType) {
+        const mapping = {
+            consultation: "Đặt lịch khám",
+            procedure: "Đăng ký thủ thuật",
+            follow_up: "Đặt lịch tái khám",
+        };
+        return mapping[serviceType] || "Dịch vụ khám chữa bệnh";
     }
     calculateInsuranceCoverage(amount, insuranceInfo, category) {
         if (!insuranceInfo || !insuranceInfo.coverage) {

@@ -10,6 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabasePreferencesRepository = void 0;
+const recipient_type_normalizer_1 = require("../../domain/services/recipient-type-normalizer");
 /**
  * Preferences Repository for Supabase
  */
@@ -23,45 +24,99 @@ class SupabasePreferencesRepository {
     async findByUserId(userId) {
         try {
             const { data, error } = await this.supabase
-                .from('notification_preferences')
-                .select('*')
-                .eq('user_id', userId)
-                .eq('is_active', true)
+                .from("notification_preferences")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("is_active", true)
                 .single();
             if (error) {
-                if (error.code === 'PGRST116')
+                if (error.code === "PGRST116")
                     return null;
                 throw new Error(`Supabase error: ${error.message}`);
             }
             return this.mapToPreferences(data);
         }
         catch (error) {
-            throw new Error(`Failed to find preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new Error(`Failed to find preferences: ${error instanceof Error ? error.message : "Unknown error"}`);
         }
     }
     /**
      * Get or create default preferences
      */
     async getOrCreate(userId, recipientType, email, phoneNumber) {
+        if (!userId) {
+            // Fallback: nếu thiếu userId, trả về cấu hình mặc định trong RAM, không ghi DB
+            const normalizedType = (0, recipient_type_normalizer_1.normalizeRecipientType)(recipientType);
+            return this.buildDefaultPreferences("unknown", normalizedType, email, phoneNumber);
+        }
         let preferences = await this.findByUserId(userId);
         if (!preferences) {
-            // Create using database function
+            const normalizedType = (0, recipient_type_normalizer_1.normalizeRecipientType)(recipientType);
             const { error } = await this.supabase
-                .rpc('create_default_preferences', {
-                p_user_id: userId,
-                p_recipient_type: recipientType,
-                p_email: email,
-                p_phone_number: phoneNumber
+                .from("notification_preferences")
+                .insert({
+                user_id: userId,
+                recipient_type: normalizedType,
+                email,
+                phone_number: phoneNumber,
             });
-            if (error)
+            if (error && !error.message?.includes("duplicate key value")) {
                 throw new Error(`Supabase error: ${error.message}`);
+            }
             // Fetch created preferences
             preferences = await this.findByUserId(userId);
             if (!preferences) {
-                throw new Error('Failed to create default preferences');
+                throw new Error("Failed to create default preferences");
             }
         }
         return preferences;
+    }
+    buildDefaultPreferences(userId, recipientType, email, phoneNumber) {
+        return {
+            userId,
+            recipientType: (0, recipient_type_normalizer_1.normalizeRecipientType)(recipientType),
+            email,
+            phoneNumber,
+            pushToken: undefined,
+            preferredChannels: ["EMAIL"],
+            enabledChannels: ["EMAIL", "SMS"],
+            disabledChannels: [],
+            emailEnabled: true,
+            smsEnabled: true,
+            pushEnabled: false,
+            inAppEnabled: true,
+            voiceEnabled: false,
+            optOutAll: false,
+            optOutMarketing: false,
+            optOutReminders: false,
+            optOutEmergency: false,
+            optOutTransactional: false,
+            appointmentNotifications: true,
+            billingNotifications: true,
+            medicalNotifications: true,
+            emergencyNotifications: true,
+            promotionalNotifications: false,
+            preferredLanguage: "vi",
+            timezone: "Asia/Ho_Chi_Minh",
+            quietHoursEnabled: false,
+            quietHoursStart: undefined,
+            quietHoursEnd: undefined,
+            quietHoursExceptions: ["URGENT", "EMERGENCY"],
+            maxNotificationsPerDay: undefined,
+            maxNotificationsPerHour: undefined,
+            maxSmsPerDay: 5,
+            maxEmailsPerDay: 20,
+            batchNotifications: false,
+            immediateDelivery: true,
+            digestFrequency: undefined,
+            digestTime: undefined,
+            channelPriority: ["EMAIL", "SMS"],
+            metadata: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastNotificationAt: undefined,
+            isActive: true,
+        };
     }
     /**
      * Save preferences
@@ -69,7 +124,7 @@ class SupabasePreferencesRepository {
     async save(preferences) {
         const record = this.mapToRecord(preferences);
         const { error } = await this.supabase
-            .from('notification_preferences')
+            .from("notification_preferences")
             .insert(record);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
@@ -81,12 +136,12 @@ class SupabasePreferencesRepository {
         const record = this.mapToRecord(preferences);
         const { user_id, created_at, ...updateData } = record;
         const { error } = await this.supabase
-            .from('notification_preferences')
+            .from("notification_preferences")
             .update({
             ...updateData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         })
-            .eq('user_id', user_id);
+            .eq("user_id", user_id);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
     }
@@ -94,12 +149,11 @@ class SupabasePreferencesRepository {
      * Check if user can receive notification (using database function)
      */
     async canReceiveNotification(userId, channel, category, priority) {
-        const { data, error } = await this.supabase
-            .rpc('can_user_receive_notification', {
+        const { data, error } = await this.supabase.rpc("can_user_receive_notification", {
             p_user_id: userId,
             p_channel: channel,
             p_category: category,
-            p_priority: priority
+            p_priority: priority,
         });
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
@@ -109,10 +163,9 @@ class SupabasePreferencesRepository {
      * Check rate limit (using database function)
      */
     async checkRateLimit(userId, channel) {
-        const { data, error } = await this.supabase
-            .rpc('check_rate_limit', {
+        const { data, error } = await this.supabase.rpc("check_rate_limit", {
             p_user_id: userId,
-            p_channel: channel
+            p_channel: channel,
         });
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
@@ -122,21 +175,19 @@ class SupabasePreferencesRepository {
      * Get user's preferred channels (using database function)
      */
     async getPreferredChannels(userId) {
-        const { data, error } = await this.supabase
-            .rpc('get_user_preferred_channels', {
-            p_user_id: userId
+        const { data, error } = await this.supabase.rpc("get_user_preferred_channels", {
+            p_user_id: userId,
         });
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
-        return data || ['EMAIL'];
+        return data || ["EMAIL"];
     }
     /**
      * Update last notification timestamp (using database function)
      */
     async updateLastNotificationTimestamp(userId) {
-        const { error } = await this.supabase
-            .rpc('update_last_notification_timestamp', {
-            p_user_id: userId
+        const { error } = await this.supabase.rpc("update_last_notification_timestamp", {
+            p_user_id: userId,
         });
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
@@ -146,12 +197,12 @@ class SupabasePreferencesRepository {
      */
     async optOutAll(userId) {
         const { error } = await this.supabase
-            .from('notification_preferences')
+            .from("notification_preferences")
             .update({
             opt_out_all: true,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         })
-            .eq('user_id', userId);
+            .eq("user_id", userId);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
     }
@@ -160,15 +211,15 @@ class SupabasePreferencesRepository {
      */
     async optInAll(userId) {
         const { error } = await this.supabase
-            .from('notification_preferences')
+            .from("notification_preferences")
             .update({
             opt_out_all: false,
             opt_out_marketing: false,
             opt_out_reminders: false,
             opt_out_transactional: false,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         })
-            .eq('user_id', userId);
+            .eq("user_id", userId);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
     }
@@ -177,18 +228,18 @@ class SupabasePreferencesRepository {
      */
     async updateChannelPreferences(userId, enabledChannels) {
         const { error } = await this.supabase
-            .from('notification_preferences')
+            .from("notification_preferences")
             .update({
             enabled_channels: enabledChannels,
             preferred_channels: enabledChannels.slice(0, 2), // Top 2 as preferred
-            email_enabled: enabledChannels.includes('EMAIL'),
-            sms_enabled: enabledChannels.includes('SMS'),
-            push_enabled: enabledChannels.includes('PUSH'),
-            in_app_enabled: enabledChannels.includes('IN_APP'),
-            voice_enabled: enabledChannels.includes('VOICE'),
-            updated_at: new Date().toISOString()
+            email_enabled: enabledChannels.includes("EMAIL"),
+            sms_enabled: enabledChannels.includes("SMS"),
+            push_enabled: enabledChannels.includes("PUSH"),
+            in_app_enabled: enabledChannels.includes("IN_APP"),
+            voice_enabled: enabledChannels.includes("VOICE"),
+            updated_at: new Date().toISOString(),
         })
-            .eq('user_id', userId);
+            .eq("user_id", userId);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
     }
@@ -197,14 +248,14 @@ class SupabasePreferencesRepository {
      */
     async updateQuietHours(userId, enabled, start, end) {
         const { error } = await this.supabase
-            .from('notification_preferences')
+            .from("notification_preferences")
             .update({
             quiet_hours_enabled: enabled,
             quiet_hours_start: start,
             quiet_hours_end: end,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         })
-            .eq('user_id', userId);
+            .eq("user_id", userId);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
     }
@@ -213,23 +264,23 @@ class SupabasePreferencesRepository {
      */
     async findAll(limit = 100, offset = 0) {
         const { data, error } = await this.supabase
-            .from('notification_preferences')
-            .select('*')
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
+            .from("notification_preferences")
+            .select("*")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
             .range(offset, offset + limit - 1);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
-        return (data || []).map(record => this.mapToPreferences(record));
+        return (data || []).map((record) => this.mapToPreferences(record));
     }
     /**
      * Count active preferences
      */
     async count() {
         const { count, error } = await this.supabase
-            .from('notification_preferences')
-            .select('*', { count: 'exact', head: true })
-            .eq('is_active', true);
+            .from("notification_preferences")
+            .select("*", { count: "exact", head: true })
+            .eq("is_active", true);
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
         return count || 0;
@@ -276,7 +327,7 @@ class SupabasePreferencesRepository {
             digest_time: preferences.digestTime,
             channel_priority: preferences.channelPriority,
             metadata: preferences.metadata,
-            is_active: preferences.isActive
+            is_active: preferences.isActive,
         };
     }
     mapToPreferences(record) {
@@ -322,8 +373,10 @@ class SupabasePreferencesRepository {
             metadata: record.metadata,
             createdAt: new Date(record.created_at),
             updatedAt: new Date(record.updated_at),
-            lastNotificationAt: record.last_notification_at ? new Date(record.last_notification_at) : undefined,
-            isActive: record.is_active
+            lastNotificationAt: record.last_notification_at
+                ? new Date(record.last_notification_at)
+                : undefined,
+            isActive: record.is_active,
         };
     }
 }

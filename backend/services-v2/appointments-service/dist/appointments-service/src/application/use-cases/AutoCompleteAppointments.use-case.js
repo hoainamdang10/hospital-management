@@ -43,7 +43,7 @@ class AutoCompleteAppointmentsUseCase {
             for (const appointment of pastAppointments) {
                 try {
                     // Verify appointment is actually in the past
-                    const appointmentDateTime = appointment.getTimeSlot().toDate();
+                    const appointmentDateTime = appointment.getTimeSlot().getStartTime();
                     if (appointmentDateTime > cutoffTime) {
                         logger.warn(`[AutoCompleteAppointmentsUseCase] Appointment ${appointment.getAppointmentId().value} not yet past cutoff, skipping`);
                         continue;

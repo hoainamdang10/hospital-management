@@ -9,6 +9,7 @@ import { GetPatientBillingSummaryUseCase } from "../../application/use-cases/Get
 import { GetRevenueReportUseCase } from "../../application/use-cases/GetRevenueReportUseCase";
 import { CreatePayOSPaymentLinkUseCase } from "../../application/use-cases/CreatePayOSPaymentLinkUseCase";
 import { HandlePayOSWebhookUseCase } from "../../application/use-cases/HandlePayOSWebhookUseCase";
+import { PayInvoiceWithWalletUseCase } from "../../application/use-cases/PayInvoiceWithWalletUseCase";
 import { AuthenticatedRequest } from "../middleware/AuthenticationMiddleware";
 export declare class InvoiceController {
     private readonly createInvoiceUseCase;
@@ -21,10 +22,12 @@ export declare class InvoiceController {
     private readonly getRevenueReportUseCase;
     private readonly createPayOSPaymentLinkUseCase;
     private readonly handlePayOSWebhookUseCase;
-    constructor(createInvoiceUseCase: CreateInvoiceUseCase, getInvoiceUseCase: GetInvoiceUseCase, processPaymentUseCase: ProcessPaymentUseCase, getPatientInvoicesUseCase: GetPatientInvoicesUseCase, searchInvoicesUseCase: SearchInvoicesUseCase, getOverdueInvoicesUseCase: GetOverdueInvoicesUseCase, getPatientBillingSummaryUseCase: GetPatientBillingSummaryUseCase, getRevenueReportUseCase: GetRevenueReportUseCase, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase);
+    private readonly payInvoiceWithWalletUseCase;
+    constructor(createInvoiceUseCase: CreateInvoiceUseCase, getInvoiceUseCase: GetInvoiceUseCase, processPaymentUseCase: ProcessPaymentUseCase, getPatientInvoicesUseCase: GetPatientInvoicesUseCase, searchInvoicesUseCase: SearchInvoicesUseCase, getOverdueInvoicesUseCase: GetOverdueInvoicesUseCase, getPatientBillingSummaryUseCase: GetPatientBillingSummaryUseCase, getRevenueReportUseCase: GetRevenueReportUseCase, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase, payInvoiceWithWalletUseCase: PayInvoiceWithWalletUseCase);
     createInvoice: (req: AuthenticatedRequest, res: Response) => Promise<void>;
     getInvoice: (req: Request, res: Response) => Promise<void>;
     processPayment: (req: AuthenticatedRequest, res: Response) => Promise<void>;
+    payWithWallet: (req: AuthenticatedRequest, res: Response) => Promise<void>;
     getPatientInvoices: (req: Request, res: Response) => Promise<void>;
     searchInvoices: (req: Request, res: Response) => Promise<void>;
     getOverdueInvoices: (req: Request, res: Response) => Promise<void>;

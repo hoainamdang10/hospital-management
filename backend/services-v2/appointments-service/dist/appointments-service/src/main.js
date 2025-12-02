@@ -177,7 +177,8 @@ app.use((req, res, next) => {
 // Health check endpoints
 app.get("/health", async (req, res) => {
     try {
-        const detailed = req.query.detailed === "true" || config.healthCheck.enableDetailedCheck;
+        const detailedRequested = req.query.detailed === "true";
+        const detailed = detailedRequested || config.healthCheck.enableDetailedCheck;
         const healthStatus = await healthCheckService.check(detailed);
         const statusCode = healthStatus.status === "healthy"
             ? 200

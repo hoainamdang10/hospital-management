@@ -7,7 +7,8 @@ export type PaymentMethod =
   | "bank_transfer"
   | "payos"
   | "insurance"
-  | "refund";
+  | "refund"
+  | "wallet";
 export type PaymentStatus =
   | "pending"
   | "completed"

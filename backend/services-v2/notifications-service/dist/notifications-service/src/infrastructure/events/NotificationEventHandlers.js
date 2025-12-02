@@ -35,6 +35,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationEventHandlers = void 0;
+const priority_normalizer_1 = require("../../domain/services/priority-normalizer");
 class NotificationEventHandlers {
     constructor(notificationService, inboxRepo, sendNotificationUseCase) {
         this.notificationService = notificationService;
@@ -64,7 +65,7 @@ class NotificationEventHandlers {
             inboxEvent.markAsProcessing();
             await this.inboxRepo.update(inboxEvent);
             // Step 3: Send notification immediately
-            await this.sendNotificationUseCase.execute({
+            await this.dispatchNotification({
                 recipientId: event.payload.recipient.recipientId,
                 recipientType: event.payload.recipient.recipientType,
                 templateType: event.payload.template.templateType,
@@ -72,10 +73,11 @@ class NotificationEventHandlers {
                 channels: event.payload.channels,
                 priority: event.payload.priority,
                 metadata: {
-                    correlationId: event.headers.correlation_id || event.payload.metadata?.correlationId,
-                    source: event.payload.metadata?.source || 'SCHEDULER_SERVICE',
-                    healthcareContext: event.payload.metadata?.healthcareContext
-                }
+                    correlationId: event.headers.correlation_id ||
+                        event.payload.metadata?.correlationId,
+                    source: event.payload.metadata?.source || "SCHEDULER_SERVICE",
+                    healthcareContext: event.payload.metadata?.healthcareContext,
+                },
             });
             // Step 4: Mark inbox event as completed
             inboxEvent.markAsCompleted();
@@ -88,14 +90,14 @@ class NotificationEventHandlers {
             try {
                 const inboxEvent = await this.inboxRepo.findByIdempotencyKey(idempotencyKey);
                 if (inboxEvent) {
-                    inboxEvent.markAsFailed(error instanceof Error ? error.message : 'Unknown error');
+                    inboxEvent.markAsFailed(error instanceof Error ? error.message : "Unknown error");
                     await this.inboxRepo.update(inboxEvent);
                 }
             }
             catch (updateError) {
                 console.error(`[Inbox] Failed to update inbox event ${idempotencyKey}:`, updateError);
             }
-            throw new Error(`Lỗi xử lý sự kiện schedule run due: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            throw new Error(`Lỗi xử lý sự kiện schedule run due: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -104,38 +106,38 @@ class NotificationEventHandlers {
      */
     async handleAppointmentScheduled(event) {
         try {
-            const { appointmentId, patientId, doctorId, appointmentDate, appointmentTime, doctorName, roomNumber } = event.eventData;
+            const { appointmentId, patientId, doctorId, appointmentDate, appointmentTime, doctorName, roomNumber, } = event.eventData;
             // Send immediate confirmation ONLY
             // Reminder scheduling is handled by Appointments Service calling Scheduler Service
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'APPOINTMENT_CONFIRMATION',
+                recipientType: "PATIENT",
+                templateType: "APPOINTMENT_CONFIRMATION",
                 templateData: {
-                    patientName: event.eventData.patientName || 'Quý khách',
-                    appointmentDate: new Date(appointmentDate).toLocaleDateString('vi-VN'),
+                    patientName: event.eventData.patientName || "Quý khách",
+                    appointmentDate: new Date(appointmentDate).toLocaleDateString("vi-VN"),
                     appointmentTime: appointmentTime,
                     doctorName: doctorName,
-                    roomNumber: roomNumber || 'Sẽ thông báo sau',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    contactPhone: '1900-xxxx'
+                    roomNumber: roomNumber || "Sẽ thông báo sau",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    contactPhone: "1900-xxxx",
                 },
-                channels: ['EMAIL', 'SMS'],
-                priority: 'NORMAL',
+                channels: ["EMAIL", "SMS"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'APPOINTMENT_SERVICE',
+                    source: "APPOINTMENT_SERVICE",
                     healthcareContext: {
                         patientId,
                         doctorId,
-                        appointmentId
-                    }
-                }
+                        appointmentId,
+                    },
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện appointment scheduled:', error);
-            throw new Error(`Lỗi xử lý sự kiện appointment scheduled: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện appointment scheduled:", error);
+            throw new Error(`Lỗi xử lý sự kiện appointment scheduled: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -143,41 +145,41 @@ class NotificationEventHandlers {
      */
     async handleAppointmentCancelled(event) {
         try {
-            const { appointmentId, patientId, doctorId, appointmentDate, appointmentTime, doctorName, cancellationReason } = event.eventData;
+            const { appointmentId, patientId, doctorId, appointmentDate, appointmentTime, doctorName, cancellationReason, } = event.eventData;
             // Send cancellation notification
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'APPOINTMENT_CANCELLED',
+                recipientType: "PATIENT",
+                templateType: "APPOINTMENT_CANCELLED",
                 templateData: {
-                    patientName: event.eventData.patientName || 'Quý khách',
-                    appointmentDate: new Date(appointmentDate).toLocaleDateString('vi-VN'),
+                    patientName: event.eventData.patientName || "Quý khách",
+                    appointmentDate: new Date(appointmentDate).toLocaleDateString("vi-VN"),
                     appointmentTime: appointmentTime,
                     doctorName: doctorName,
-                    cancellationReason: cancellationReason || 'Không có lý do cụ thể',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    contactPhone: '1900-xxxx',
-                    rebookingUrl: 'https://booking.hospital.com'
+                    cancellationReason: cancellationReason || "Không có lý do cụ thể",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    contactPhone: "1900-xxxx",
+                    rebookingUrl: "https://booking.hospital.com",
                 },
-                channels: ['EMAIL', 'SMS', 'PUSH'],
-                priority: 'HIGH',
+                channels: ["EMAIL", "SMS", "PUSH"],
+                priority: "HIGH",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
                     healthcareContext: {
                         patientId,
                         doctorId,
-                        appointmentId
+                        appointmentId,
                     },
-                    source: 'APPOINTMENT_SERVICE'
-                }
+                    source: "APPOINTMENT_SERVICE",
+                },
             });
             // Cancel any pending appointment reminders
             // This would require implementing a cancel notification feature
             // await this.notificationService.cancelNotificationsByContext({ appointmentId });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện appointment cancelled:', error);
-            throw new Error(`Lỗi xử lý sự kiện appointment cancelled: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện appointment cancelled:", error);
+            throw new Error(`Lỗi xử lý sự kiện appointment cancelled: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -185,68 +187,70 @@ class NotificationEventHandlers {
      */
     async handleMedicalRecordUpdated(event) {
         try {
-            const { recordId, patientId, doctorId, updateType, hasTestResults, requiresFollowUp } = event.eventData;
+            const { recordId, patientId, doctorId, updateType, hasTestResults, requiresFollowUp, } = event.eventData;
             // Send notification for test results
-            if (updateType === 'TEST_RESULTS' && hasTestResults) {
+            if (updateType === "TEST_RESULTS" && hasTestResults) {
                 await this.notificationService.sendNotification({
                     recipientId: patientId,
-                    recipientType: 'PATIENT',
-                    templateType: 'TEST_RESULTS_READY',
+                    recipientType: "PATIENT",
+                    templateType: "TEST_RESULTS_READY",
                     templateData: {
-                        patientName: event.eventData.patientName || 'Quý khách',
-                        testType: event.eventData.testType || 'Xét nghiệm',
+                        patientName: event.eventData.patientName || "Quý khách",
+                        testType: event.eventData.testType || "Xét nghiệm",
                         testCode: event.eventData.testCode || recordId,
-                        sampleDate: event.eventData.sampleDate ? new Date(event.eventData.sampleDate).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+                        sampleDate: event.eventData.sampleDate
+                            ? new Date(event.eventData.sampleDate).toLocaleDateString("vi-VN")
+                            : new Date().toLocaleDateString("vi-VN"),
                         requiresConsultation: requiresFollowUp || false,
-                        onlinePortalUrl: 'https://portal.hospital.com',
-                        consultationBookingUrl: 'https://booking.hospital.com',
-                        hospitalName: 'Bệnh viện Đa khoa',
-                        contactPhone: '1900-xxxx'
+                        onlinePortalUrl: "https://portal.hospital.com",
+                        consultationBookingUrl: "https://booking.hospital.com",
+                        hospitalName: "Bệnh viện Đa khoa",
+                        contactPhone: "1900-xxxx",
                     },
-                    channels: ['EMAIL', 'SMS', 'PUSH'],
-                    priority: requiresFollowUp ? 'HIGH' : 'NORMAL',
+                    channels: ["EMAIL", "SMS", "PUSH"],
+                    priority: requiresFollowUp ? "HIGH" : "NORMAL",
                     metadata: {
                         correlationId: event.metadata?.correlationId,
                         healthcareContext: {
                             patientId,
                             doctorId,
-                            medicalRecordId: recordId
+                            medicalRecordId: recordId,
                         },
-                        source: 'CLINICAL_EMR_SERVICE'
-                    }
+                        source: "CLINICAL_EMR_SERVICE",
+                    },
                 });
             }
             // Send follow-up notification if required
             if (requiresFollowUp) {
                 await this.notificationService.sendNotification({
                     recipientId: patientId,
-                    recipientType: 'PATIENT',
-                    templateType: 'FOLLOW_UP_REQUIRED',
+                    recipientType: "PATIENT",
+                    templateType: "FOLLOW_UP_REQUIRED",
                     templateData: {
-                        patientName: event.eventData.patientName || 'Quý khách',
-                        doctorName: event.eventData.doctorName || 'Bác sĩ',
-                        followUpReason: event.eventData.followUpReason || 'Cần tái khám',
-                        bookingUrl: 'https://booking.hospital.com',
-                        hospitalName: 'Bệnh viện Đa khoa',
-                        contactPhone: '1900-xxxx'
+                        patientName: event.eventData.patientName || "Quý khách",
+                        doctorName: event.eventData.doctorName || "Bác sĩ",
+                        followUpReason: event.eventData.followUpReason || "Cần tái khám",
+                        bookingUrl: "https://booking.hospital.com",
+                        hospitalName: "Bệnh viện Đa khoa",
+                        contactPhone: "1900-xxxx",
                     },
-                    channels: ['EMAIL', 'SMS'],
-                    priority: 'HIGH',
+                    channels: ["EMAIL", "SMS"],
+                    priority: "HIGH",
                     metadata: {
                         correlationId: event.metadata?.correlationId,
                         healthcareContext: {
                             patientId,
                             doctorId,
-                            medicalRecordId: recordId
+                            medicalRecordId: recordId,
                         },
-                        source: 'CLINICAL_EMR_SERVICE'
-                    }
+                        source: "CLINICAL_EMR_SERVICE",
+                    },
                 });
             }
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện medical record updated:', error);
-            throw new Error(`Lỗi xử lý sự kiện medical record updated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện medical record updated:", error);
+            throw new Error(`Lỗi xử lý sự kiện medical record updated: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -255,42 +259,48 @@ class NotificationEventHandlers {
      */
     async handleInvoiceGenerated(event) {
         try {
-            const { invoiceId, patientId, amount, dueDate, services, insuranceCoverage } = event.eventData;
+            const { invoiceId, patientId, amount, dueDate, services, insuranceCoverage, } = event.eventData;
             // Send invoice notification ONLY
             // Payment reminder scheduling is handled by Billing Service calling Scheduler Service
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'INVOICE_GENERATED',
+                recipientType: "PATIENT",
+                templateType: "INVOICE_GENERATED",
                 templateData: {
-                    patientName: event.eventData.patientName || 'Quý khách',
+                    patientName: event.eventData.patientName || "Quý khách",
                     invoiceNumber: invoiceId,
-                    amount: amount.toLocaleString('vi-VN'),
-                    serviceDate: event.eventData.serviceDate ? new Date(event.eventData.serviceDate).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
-                    dueDate: new Date(dueDate).toLocaleDateString('vi-VN'),
+                    amount: amount.toLocaleString("vi-VN"),
+                    serviceDate: event.eventData.serviceDate
+                        ? new Date(event.eventData.serviceDate).toLocaleDateString("vi-VN")
+                        : new Date().toLocaleDateString("vi-VN"),
+                    dueDate: new Date(dueDate).toLocaleDateString("vi-VN"),
                     services: services || [],
                     insuranceCoverage: insuranceCoverage || false,
-                    insuranceAmount: event.eventData.insuranceAmount ? event.eventData.insuranceAmount.toLocaleString('vi-VN') : '0',
-                    finalAmount: event.eventData.finalAmount ? event.eventData.finalAmount.toLocaleString('vi-VN') : amount.toLocaleString('vi-VN'),
-                    bankAccount: 'STK: 123456789 - Ngân hàng ABC',
-                    paymentUrl: 'https://payment.hospital.com',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    contactPhone: '1900-xxxx'
+                    insuranceAmount: event.eventData.insuranceAmount
+                        ? event.eventData.insuranceAmount.toLocaleString("vi-VN")
+                        : "0",
+                    finalAmount: event.eventData.finalAmount
+                        ? event.eventData.finalAmount.toLocaleString("vi-VN")
+                        : amount.toLocaleString("vi-VN"),
+                    bankAccount: "STK: 123456789 - Ngân hàng ABC",
+                    paymentUrl: "https://payment.hospital.com",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    contactPhone: "1900-xxxx",
                 },
-                channels: ['EMAIL', 'SMS'],
-                priority: 'NORMAL',
+                channels: ["EMAIL", "SMS"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'BILLING_SERVICE',
+                    source: "BILLING_SERVICE",
                     healthcareContext: {
-                        patientId
-                    }
-                }
+                        patientId,
+                    },
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện invoice generated:', error);
-            throw new Error(`Lỗi xử lý sự kiện invoice generated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện invoice generated:", error);
+            throw new Error(`Lỗi xử lý sự kiện invoice generated: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -302,32 +312,32 @@ class NotificationEventHandlers {
             // Send payment confirmation
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'PAYMENT_CONFIRMATION',
+                recipientType: "PATIENT",
+                templateType: "PAYMENT_CONFIRMATION",
                 templateData: {
-                    patientName: event.eventData.patientName || 'Quý khách',
+                    patientName: event.eventData.patientName || "Quý khách",
                     invoiceNumber: invoiceId,
                     paymentId: paymentId,
-                    amount: amount.toLocaleString('vi-VN'),
-                    paymentMethod: paymentMethod || 'Chuyển khoản',
-                    paymentDate: new Date().toLocaleDateString('vi-VN'),
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    contactPhone: '1900-xxxx'
+                    amount: amount.toLocaleString("vi-VN"),
+                    paymentMethod: paymentMethod || "Chuyển khoản",
+                    paymentDate: new Date().toLocaleDateString("vi-VN"),
+                    hospitalName: "Bệnh viện Đa khoa",
+                    contactPhone: "1900-xxxx",
                 },
-                channels: ['EMAIL', 'SMS'],
-                priority: 'NORMAL',
+                channels: ["EMAIL", "SMS"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'BILLING_SERVICE',
+                    source: "BILLING_SERVICE",
                     healthcareContext: {
-                        patientId
-                    }
-                }
+                        patientId,
+                    },
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện payment completed:', error);
-            throw new Error(`Lỗi xử lý sự kiện payment completed: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện payment completed:", error);
+            throw new Error(`Lỗi xử lý sự kiện payment completed: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -335,65 +345,65 @@ class NotificationEventHandlers {
      */
     async handleEmergencyAlert(event) {
         try {
-            const { patientId, alertType, alertMessage, location, emergencyContacts } = event.eventData;
+            const { patientId, alertType, alertMessage, location, emergencyContacts, } = event.eventData;
             // Send emergency alert to patient
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'EMERGENCY_ALERT',
+                recipientType: "PATIENT",
+                templateType: "EMERGENCY_ALERT",
                 templateData: {
-                    patientName: event.eventData.patientName || 'Bệnh nhân',
+                    patientName: event.eventData.patientName || "Bệnh nhân",
                     alertType: alertType,
                     alertMessage: alertMessage,
-                    alertTime: new Date().toLocaleString('vi-VN'),
-                    location: location || 'Bệnh viện',
-                    actionRequired: event.eventData.actionRequired || 'Liên hệ ngay với bệnh viện',
-                    emergencyPhone: '115',
-                    hospitalName: 'Bệnh viện Đa khoa'
+                    alertTime: new Date().toLocaleString("vi-VN"),
+                    location: location || "Bệnh viện",
+                    actionRequired: event.eventData.actionRequired || "Liên hệ ngay với bệnh viện",
+                    emergencyPhone: "115",
+                    hospitalName: "Bệnh viện Đa khoa",
                 },
-                channels: ['SMS', 'VOICE', 'PUSH'],
-                priority: 'URGENT',
+                channels: ["SMS", "VOICE", "PUSH"],
+                priority: "URGENT",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
                     healthcareContext: {
-                        patientId
+                        patientId,
                     },
-                    source: event.metadata?.source || 'EMERGENCY_SYSTEM'
-                }
+                    source: event.metadata?.source || "EMERGENCY_SYSTEM",
+                },
             });
             // Send alerts to emergency contacts
             if (emergencyContacts && emergencyContacts.length > 0) {
                 for (const contact of emergencyContacts) {
                     await this.notificationService.sendNotification({
                         recipientId: contact.contactId,
-                        recipientType: 'PATIENT', // FAMILY not in type, use PATIENT
-                        templateType: 'EMERGENCY_ALERT',
+                        recipientType: "PATIENT", // FAMILY not in type, use PATIENT
+                        templateType: "EMERGENCY_ALERT",
                         templateData: {
-                            patientName: event.eventData.patientName || 'Bệnh nhân',
+                            patientName: event.eventData.patientName || "Bệnh nhân",
                             alertType: alertType,
                             alertMessage: alertMessage,
-                            alertTime: new Date().toLocaleString('vi-VN'),
-                            location: location || 'Bệnh viện',
-                            actionRequired: 'Vui lòng liên hệ ngay với bệnh viện',
-                            emergencyPhone: '115',
-                            hospitalName: 'Bệnh viện Đa khoa'
+                            alertTime: new Date().toLocaleString("vi-VN"),
+                            location: location || "Bệnh viện",
+                            actionRequired: "Vui lòng liên hệ ngay với bệnh viện",
+                            emergencyPhone: "115",
+                            hospitalName: "Bệnh viện Đa khoa",
                         },
-                        channels: ['SMS', 'VOICE'],
-                        priority: 'URGENT',
+                        channels: ["SMS", "VOICE"],
+                        priority: "URGENT",
                         metadata: {
                             correlationId: event.metadata?.correlationId,
                             healthcareContext: {
-                                patientId
+                                patientId,
                             },
-                            source: event.metadata?.source || 'EMERGENCY_SYSTEM'
-                        }
+                            source: event.metadata?.source || "EMERGENCY_SYSTEM",
+                        },
                     });
                 }
             }
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện emergency alert:', error);
-            throw new Error(`Lỗi xử lý sự kiện emergency alert: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện emergency alert:", error);
+            throw new Error(`Lỗi xử lý sự kiện emergency alert: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -401,36 +411,36 @@ class NotificationEventHandlers {
      */
     async handleMedicationReminder(event) {
         try {
-            const { patientId, medicationName, dosage, medicationTime, mealInstruction } = event.eventData;
+            const { patientId, medicationName, dosage, medicationTime, mealInstruction, } = event.eventData;
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'MEDICATION_REMINDER',
+                recipientType: "PATIENT",
+                templateType: "MEDICATION_REMINDER",
                 templateData: {
-                    patientName: event.eventData.patientName || 'Quý khách',
+                    patientName: event.eventData.patientName || "Quý khách",
                     medicationName: medicationName,
                     dosage: dosage,
                     medicationTime: medicationTime,
-                    mealInstruction: mealInstruction || 'Uống sau khi ăn',
+                    mealInstruction: mealInstruction || "Uống sau khi ăn",
                     sideEffects: event.eventData.sideEffects,
                     specialInstructions: event.eventData.specialInstructions,
-                    doctorPhone: event.eventData.doctorPhone || '1900-xxxx',
-                    hospitalName: 'Bệnh viện Đa khoa'
+                    doctorPhone: event.eventData.doctorPhone || "1900-xxxx",
+                    hospitalName: "Bệnh viện Đa khoa",
                 },
-                channels: ['SMS', 'PUSH', 'IN_APP'],
-                priority: 'HIGH',
+                channels: ["SMS", "PUSH", "IN_APP"],
+                priority: "HIGH",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
                     healthcareContext: {
-                        patientId
+                        patientId,
                     },
-                    source: 'MEDICATION_SERVICE'
-                }
+                    source: "MEDICATION_SERVICE",
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện medication reminder:', error);
-            throw new Error(`Lỗi xử lý sự kiện medication reminder: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện medication reminder:", error);
+            throw new Error(`Lỗi xử lý sự kiện medication reminder: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -442,28 +452,28 @@ class NotificationEventHandlers {
             // Send welcome email to new user
             await this.notificationService.sendNotification({
                 recipientId: userId,
-                recipientType: role === 'PATIENT' ? 'PATIENT' : 'ADMIN',
-                templateType: 'USER_WELCOME',
+                recipientType: role === "PATIENT" ? "PATIENT" : "ADMIN",
+                templateType: "USER_WELCOME",
                 templateData: {
                     userName: `${firstName} ${lastName}`,
                     email: email,
                     role: role,
-                    loginUrl: 'https://portal.hospital.com/login',
-                    supportEmail: 'support@hospital.com',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    contactPhone: '1900-xxxx'
+                    loginUrl: "https://portal.hospital.com/login",
+                    supportEmail: "support@hospital.com",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    contactPhone: "1900-xxxx",
                 },
-                channels: ['EMAIL'],
-                priority: 'NORMAL',
+                channels: ["EMAIL"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'IDENTITY_SERVICE'
-                }
+                    source: "IDENTITY_SERVICE",
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện user created:', error);
-            throw new Error(`Lỗi xử lý sự kiện user created: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện user created:", error);
+            throw new Error(`Lỗi xử lý sự kiện user created: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -475,27 +485,27 @@ class NotificationEventHandlers {
             // Send account activation confirmation
             await this.notificationService.sendNotification({
                 recipientId: userId,
-                recipientType: event.eventData.role === 'PATIENT' ? 'PATIENT' : 'ADMIN',
-                templateType: 'ACCOUNT_ACTIVATED',
+                recipientType: event.eventData.role === "PATIENT" ? "PATIENT" : "ADMIN",
+                templateType: "ACCOUNT_ACTIVATED",
                 templateData: {
                     userName: `${firstName} ${lastName}`,
                     email: email,
-                    activationDate: new Date().toLocaleDateString('vi-VN'),
-                    loginUrl: 'https://portal.hospital.com/login',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    supportEmail: 'support@hospital.com'
+                    activationDate: new Date().toLocaleDateString("vi-VN"),
+                    loginUrl: "https://portal.hospital.com/login",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    supportEmail: "support@hospital.com",
                 },
-                channels: ['EMAIL', 'SMS'],
-                priority: 'NORMAL',
+                channels: ["EMAIL", "SMS"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'IDENTITY_SERVICE'
-                }
+                    source: "IDENTITY_SERVICE",
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện user activated:', error);
-            throw new Error(`Lỗi xử lý sự kiện user activated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện user activated:", error);
+            throw new Error(`Lỗi xử lý sự kiện user activated: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -507,29 +517,30 @@ class NotificationEventHandlers {
             // Send password reset confirmation
             await this.notificationService.sendNotification({
                 recipientId: userId,
-                recipientType: event.eventData.role === 'PATIENT' ? 'PATIENT' : 'ADMIN',
-                templateType: 'PASSWORD_RESET',
+                recipientType: event.eventData.role === "PATIENT" ? "PATIENT" : "ADMIN",
+                templateType: "PASSWORD_RESET",
                 templateData: {
                     userName: `${firstName} ${lastName}`,
                     email: email,
-                    resetUrl: resetUrl || `https://portal.hospital.com/reset-password?token=${resetToken}`,
-                    expiryTime: '24 giờ',
-                    resetDate: new Date().toLocaleDateString('vi-VN'),
-                    supportEmail: 'support@hospital.com',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    securityTip: 'Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này và liên hệ với chúng tôi ngay.'
+                    resetUrl: resetUrl ||
+                        `https://portal.hospital.com/reset-password?token=${resetToken}`,
+                    expiryTime: "24 giờ",
+                    resetDate: new Date().toLocaleDateString("vi-VN"),
+                    supportEmail: "support@hospital.com",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    securityTip: "Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này và liên hệ với chúng tôi ngay.",
                 },
-                channels: ['EMAIL'],
-                priority: 'HIGH',
+                channels: ["EMAIL"],
+                priority: "HIGH",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'IDENTITY_SERVICE'
-                }
+                    source: "IDENTITY_SERVICE",
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện password reset:', error);
-            throw new Error(`Lỗi xử lý sự kiện password reset: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện password reset:", error);
+            throw new Error(`Lỗi xử lý sự kiện password reset: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -541,29 +552,29 @@ class NotificationEventHandlers {
             // Send role change notification
             await this.notificationService.sendNotification({
                 recipientId: userId,
-                recipientType: newRole === 'PATIENT' ? 'PATIENT' : 'ADMIN',
-                templateType: 'ROLE_CHANGED',
+                recipientType: newRole === "PATIENT" ? "PATIENT" : "ADMIN",
+                templateType: "ROLE_CHANGED",
                 templateData: {
                     userName: `${firstName} ${lastName}`,
                     email: email,
                     oldRole: oldRole,
                     newRole: newRole,
-                    changeDate: new Date().toLocaleDateString('vi-VN'),
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    supportEmail: 'support@hospital.com',
-                    loginUrl: 'https://portal.hospital.com/login'
+                    changeDate: new Date().toLocaleDateString("vi-VN"),
+                    hospitalName: "Bệnh viện Đa khoa",
+                    supportEmail: "support@hospital.com",
+                    loginUrl: "https://portal.hospital.com/login",
                 },
-                channels: ['EMAIL'],
-                priority: 'NORMAL',
+                channels: ["EMAIL"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'IDENTITY_SERVICE'
-                }
+                    source: "IDENTITY_SERVICE",
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện user role changed:', error);
-            throw new Error(`Lỗi xử lý sự kiện user role changed: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện user role changed:", error);
+            throw new Error(`Lỗi xử lý sự kiện user role changed: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -571,33 +582,36 @@ class NotificationEventHandlers {
      */
     async handleStaffInvitationCreated(event) {
         try {
-            const { invitationId, email, firstName, lastName, role, invitationToken, invitationUrl, expiresAt } = event.eventData;
+            const { invitationId, email, firstName, lastName, role, invitationToken, invitationUrl, expiresAt, } = event.eventData;
             // Send staff invitation email
             await this.notificationService.sendNotification({
                 recipientId: invitationId,
-                recipientType: 'ADMIN',
-                templateType: 'STAFF_INVITATION',
+                recipientType: "ADMIN",
+                templateType: "STAFF_INVITATION",
                 templateData: {
                     staffName: `${firstName} ${lastName}`,
                     email: email,
                     role: role,
-                    invitationUrl: invitationUrl || `https://portal.hospital.com/accept-invitation?token=${invitationToken}`,
-                    expiryDate: expiresAt ? new Date(expiresAt).toLocaleDateString('vi-VN') : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN'),
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    contactEmail: 'hr@hospital.com',
-                    contactPhone: '1900-xxxx'
+                    invitationUrl: invitationUrl ||
+                        `https://portal.hospital.com/accept-invitation?token=${invitationToken}`,
+                    expiryDate: expiresAt
+                        ? new Date(expiresAt).toLocaleDateString("vi-VN")
+                        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString("vi-VN"),
+                    hospitalName: "Bệnh viện Đa khoa",
+                    contactEmail: "hr@hospital.com",
+                    contactPhone: "1900-xxxx",
                 },
-                channels: ['EMAIL'],
-                priority: 'HIGH',
+                channels: ["EMAIL"],
+                priority: "HIGH",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'IDENTITY_SERVICE'
-                }
+                    source: "IDENTITY_SERVICE",
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện staff invitation created:', error);
-            throw new Error(`Lỗi xử lý sự kiện staff invitation created: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện staff invitation created:", error);
+            throw new Error(`Lỗi xử lý sự kiện staff invitation created: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -611,34 +625,34 @@ class NotificationEventHandlers {
             // Send welcome email to new patient
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'PATIENT_WELCOME',
+                recipientType: "PATIENT",
+                templateType: "PATIENT_WELCOME",
                 templateData: {
                     patientName: `${firstName} ${lastName}`,
                     email: email,
                     phoneNumber: phoneNumber,
                     patientId: patientId,
-                    loginUrl: 'https://portal.hospital.com/patient/login',
-                    bookingUrl: 'https://booking.hospital.com',
-                    mobileAppUrl: 'https://app.hospital.com',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    contactPhone: '1900-xxxx',
-                    emergencyPhone: '115'
+                    loginUrl: "https://portal.hospital.com/patient/login",
+                    bookingUrl: "https://booking.hospital.com",
+                    mobileAppUrl: "https://app.hospital.com",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    contactPhone: "1900-xxxx",
+                    emergencyPhone: "115",
                 },
-                channels: ['EMAIL', 'SMS'],
-                priority: 'NORMAL',
+                channels: ["EMAIL", "SMS"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'PATIENT_REGISTRY_SERVICE',
+                    source: "PATIENT_REGISTRY_SERVICE",
                     healthcareContext: {
-                        patientId
-                    }
-                }
+                        patientId,
+                    },
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện patient registered:', error);
-            throw new Error(`Lỗi xử lý sự kiện patient registered: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện patient registered:", error);
+            throw new Error(`Lỗi xử lý sự kiện patient registered: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -649,34 +663,36 @@ class NotificationEventHandlers {
             const { patientId, personalInfo, updateType } = event.eventData;
             const { firstName, lastName } = personalInfo || {};
             // Only send notification for significant updates
-            if (updateType === 'CONTACT_INFO' || updateType === 'EMERGENCY_CONTACT') {
+            if (updateType === "CONTACT_INFO" || updateType === "EMERGENCY_CONTACT") {
                 await this.notificationService.sendNotification({
                     recipientId: patientId,
-                    recipientType: 'PATIENT',
-                    templateType: 'PATIENT_UPDATED',
+                    recipientType: "PATIENT",
+                    templateType: "PATIENT_UPDATED",
                     templateData: {
                         patientName: `${firstName} ${lastName}`,
-                        updateType: updateType === 'CONTACT_INFO' ? 'Thông tin liên hệ' : 'Người liên hệ khẩn cấp',
-                        updateDate: new Date().toLocaleDateString('vi-VN'),
-                        portalUrl: 'https://portal.hospital.com/patient/profile',
-                        hospitalName: 'Bệnh viện Đa khoa',
-                        supportEmail: 'support@hospital.com'
+                        updateType: updateType === "CONTACT_INFO"
+                            ? "Thông tin liên hệ"
+                            : "Người liên hệ khẩn cấp",
+                        updateDate: new Date().toLocaleDateString("vi-VN"),
+                        portalUrl: "https://portal.hospital.com/patient/profile",
+                        hospitalName: "Bệnh viện Đa khoa",
+                        supportEmail: "support@hospital.com",
                     },
-                    channels: ['EMAIL'],
-                    priority: 'NORMAL',
+                    channels: ["EMAIL"],
+                    priority: "NORMAL",
                     metadata: {
                         correlationId: event.metadata?.correlationId,
-                        source: 'PATIENT_REGISTRY_SERVICE',
+                        source: "PATIENT_REGISTRY_SERVICE",
                         healthcareContext: {
-                            patientId
-                        }
-                    }
+                            patientId,
+                        },
+                    },
                 });
             }
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện patient updated:', error);
-            throw new Error(`Lỗi xử lý sự kiện patient updated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện patient updated:", error);
+            throw new Error(`Lỗi xử lý sự kiện patient updated: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -689,32 +705,32 @@ class NotificationEventHandlers {
             // Send account deactivation notification
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'PATIENT_DEACTIVATED',
+                recipientType: "PATIENT",
+                templateType: "PATIENT_DEACTIVATED",
                 templateData: {
                     patientName: `${firstName} ${lastName}`,
-                    reason: reason || 'Theo yêu cầu của bệnh nhân',
-                    deactivationDate: new Date().toLocaleDateString('vi-VN'),
-                    reactivationUrl: 'https://portal.hospital.com/patient/reactivate',
-                    dataRetentionPeriod: '90 ngày',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    supportEmail: 'support@hospital.com',
-                    contactPhone: '1900-xxxx'
+                    reason: reason || "Theo yêu cầu của bệnh nhân",
+                    deactivationDate: new Date().toLocaleDateString("vi-VN"),
+                    reactivationUrl: "https://portal.hospital.com/patient/reactivate",
+                    dataRetentionPeriod: "90 ngày",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    supportEmail: "support@hospital.com",
+                    contactPhone: "1900-xxxx",
                 },
-                channels: ['EMAIL'],
-                priority: 'HIGH',
+                channels: ["EMAIL"],
+                priority: "HIGH",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'PATIENT_REGISTRY_SERVICE',
+                    source: "PATIENT_REGISTRY_SERVICE",
                     healthcareContext: {
-                        patientId
-                    }
-                }
+                        patientId,
+                    },
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện patient deactivated:', error);
-            throw new Error(`Lỗi xử lý sự kiện patient deactivated: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện patient deactivated:", error);
+            throw new Error(`Lỗi xử lý sự kiện patient deactivated: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -727,32 +743,33 @@ class NotificationEventHandlers {
             // Send consent confirmation
             await this.notificationService.sendNotification({
                 recipientId: patientId,
-                recipientType: 'PATIENT',
-                templateType: 'CONSENT_GRANTED',
+                recipientType: "PATIENT",
+                templateType: "CONSENT_GRANTED",
                 templateData: {
                     patientName: `${firstName} ${lastName}`,
-                    consentType: consentType || 'Đồng ý sử dụng thông tin',
-                    consentDetails: consentDetails || 'Đồng ý cho phép bệnh viện sử dụng thông tin y tế',
-                    consentDate: new Date().toLocaleDateString('vi-VN'),
-                    revokeUrl: 'https://portal.hospital.com/patient/consents',
-                    privacyPolicyUrl: 'https://hospital.com/privacy-policy',
-                    hospitalName: 'Bệnh viện Đa khoa',
-                    supportEmail: 'privacy@hospital.com'
+                    consentType: consentType || "Đồng ý sử dụng thông tin",
+                    consentDetails: consentDetails ||
+                        "Đồng ý cho phép bệnh viện sử dụng thông tin y tế",
+                    consentDate: new Date().toLocaleDateString("vi-VN"),
+                    revokeUrl: "https://portal.hospital.com/patient/consents",
+                    privacyPolicyUrl: "https://hospital.com/privacy-policy",
+                    hospitalName: "Bệnh viện Đa khoa",
+                    supportEmail: "privacy@hospital.com",
                 },
-                channels: ['EMAIL'],
-                priority: 'NORMAL',
+                channels: ["EMAIL"],
+                priority: "NORMAL",
                 metadata: {
                     correlationId: event.metadata?.correlationId,
-                    source: 'PATIENT_REGISTRY_SERVICE',
+                    source: "PATIENT_REGISTRY_SERVICE",
                     healthcareContext: {
-                        patientId
-                    }
-                }
+                        patientId,
+                    },
+                },
             });
         }
         catch (error) {
-            console.error('Lỗi khi xử lý sự kiện patient consent granted:', error);
-            throw new Error(`Lỗi xử lý sự kiện patient consent granted: ${error instanceof Error ? error.message : 'Lỗi không xác định'}`);
+            console.error("Lỗi khi xử lý sự kiện patient consent granted:", error);
+            throw new Error(`Lỗi xử lý sự kiện patient consent granted: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
         }
     }
     /**
@@ -760,11 +777,11 @@ class NotificationEventHandlers {
      */
     async handleEvent(event) {
         try {
-            const eventType = 'eventType' in event ? event.eventType : event.type;
-            const serviceName = 'serviceName' in event ? event.serviceName : 'SCHEDULER_SERVICE';
+            const eventType = "eventType" in event ? event.eventType : event.type;
+            const serviceName = "serviceName" in event ? event.serviceName : "SCHEDULER_SERVICE";
             console.log(`Xử lý sự kiện: ${eventType} từ ${serviceName}`);
             // Handle ScheduleRunDue event from Scheduler Service (CRITICAL PATH)
-            if (eventType === 'schedule.run.due' || eventType === 'ScheduleRunDue') {
+            if (eventType === "schedule.run.due" || eventType === "ScheduleRunDue") {
                 await this.handleScheduleRunDue(event);
                 return;
             }
@@ -772,56 +789,56 @@ class NotificationEventHandlers {
             const integrationEvent = event;
             switch (integrationEvent.eventType) {
                 // Appointments Service Events
-                case 'AppointmentScheduled':
+                case "AppointmentScheduled":
                     await this.handleAppointmentScheduled(integrationEvent);
                     break;
-                case 'AppointmentCancelled':
+                case "AppointmentCancelled":
                     await this.handleAppointmentCancelled(integrationEvent);
                     break;
                 // Clinical EMR Service Events
-                case 'MedicalRecordUpdated':
+                case "MedicalRecordUpdated":
                     await this.handleMedicalRecordUpdated(integrationEvent);
                     break;
-                case 'EmergencyAlert':
+                case "EmergencyAlert":
                     await this.handleEmergencyAlert(integrationEvent);
                     break;
-                case 'MedicationReminder':
+                case "MedicationReminder":
                     await this.handleMedicationReminder(integrationEvent);
                     break;
                 // Billing Service Events
-                case 'InvoiceGenerated':
+                case "InvoiceGenerated":
                     await this.handleInvoiceGenerated(integrationEvent);
                     break;
-                case 'PaymentCompleted':
+                case "PaymentCompleted":
                     await this.handlePaymentCompleted(integrationEvent);
                     break;
                 // Identity Service Events - NEW
-                case 'UserCreated':
+                case "UserCreated":
                     await this.handleUserCreated(integrationEvent);
                     break;
-                case 'UserActivated':
+                case "UserActivated":
                     await this.handleUserActivated(integrationEvent);
                     break;
-                case 'PasswordReset':
+                case "PasswordReset":
                     await this.handlePasswordReset(integrationEvent);
                     break;
-                case 'UserRoleChanged':
+                case "UserRoleChanged":
                     await this.handleUserRoleChanged(integrationEvent);
                     break;
-                case 'StaffInvitationCreated':
+                case "StaffInvitationCreated":
                     await this.handleStaffInvitationCreated(integrationEvent);
                     break;
                 // Patient Registry Service Events - NEW
-                case 'PatientRegistered':
+                case "PatientRegistered":
                     await this.handlePatientRegistered(integrationEvent);
                     break;
-                case 'PatientUpdated':
+                case "PatientUpdated":
                     await this.handlePatientUpdated(integrationEvent);
                     break;
-                case 'PatientDeactivated':
+                case "PatientDeactivated":
                     await this.handlePatientDeactivated(integrationEvent);
                     break;
-                case 'PatientConsentGranted':
+                case "PatientConsentGranted":
                     await this.handlePatientConsentGranted(integrationEvent);
                     break;
                 default:
@@ -830,10 +847,16 @@ class NotificationEventHandlers {
             }
         }
         catch (error) {
-            const eventType = 'eventType' in event ? event.eventType : event.type;
+            const eventType = "eventType" in event ? event.eventType : event.type;
             console.error(`Lỗi khi xử lý sự kiện ${eventType}:`, error);
             throw error;
         }
+    }
+    async dispatchNotification(payload) {
+        await this.sendNotificationUseCase.execute({
+            ...payload,
+            priority: (0, priority_normalizer_1.normalizePriority)(payload.priority),
+        });
     }
 }
 exports.NotificationEventHandlers = NotificationEventHandlers;

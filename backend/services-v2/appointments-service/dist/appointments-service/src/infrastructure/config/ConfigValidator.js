@@ -88,8 +88,8 @@ function loadConfig() {
         },
         // Health Check
         healthCheck: {
-            timeoutMs: parseInt(process.env.HEALTH_CHECK_TIMEOUT_MS || "5000", 10),
-            enableDetailedCheck: process.env.ENABLE_DETAILED_HEALTH_CHECK !== "false",
+            timeoutMs: parseInt(process.env.HEALTH_CHECK_TIMEOUT_MS || "2000", 10),
+            enableDetailedCheck: process.env.ENABLE_DETAILED_HEALTH_CHECK === "true",
         },
         // Feature Flags
         features: {

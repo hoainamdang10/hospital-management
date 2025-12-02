@@ -94,5 +94,8 @@ export declare class InvoiceMapper {
         items: Partial<BillingItemRecord>[];
         payments: Partial<PaymentRecordData>[];
     };
+    private static normalizeMetadata;
+    private static detectInvoiceType;
+    private static getDefaultServiceName;
 }
 //# sourceMappingURL=InvoiceMapper.d.ts.map

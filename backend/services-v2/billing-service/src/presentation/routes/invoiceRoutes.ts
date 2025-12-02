@@ -5,9 +5,7 @@
 import { Router } from "express";
 import { InvoiceController } from "../controllers/InvoiceController";
 
-export function createInvoiceRoutes(
-  controller: InvoiceController
-): Router {
+export function createInvoiceRoutes(controller: InvoiceController): Router {
   const router = Router();
 
   // Invoice management
@@ -21,18 +19,31 @@ export function createInvoiceRoutes(
 
   // Payment
   router.post("/:id/payments", controller.processPayment.bind(controller));
+  router.post(
+    "/:id/payments/wallet",
+    controller.payWithWallet.bind(controller),
+  );
   // REMOVED (Phase 1 Out-of-Scope): refund endpoint
   // router.post("/:id/payments/refund", controller.refundPayment.bind(controller));
 
   // PayOS/VNPAY Integration
-  router.post("/:id/payos/payment-link", controller.createPayOSPaymentLink.bind(controller));
+  router.post(
+    "/:id/payos/payment-link",
+    controller.createPayOSPaymentLink.bind(controller),
+  );
   // VNPAY sends IPN via GET, PayOS via POST - support both
   router.get("/payos/webhook", controller.handlePayOSWebhook.bind(controller));
   router.post("/payos/webhook", controller.handlePayOSWebhook.bind(controller));
 
   // Test endpoint to log raw VNPAY webhook data
-  router.get("/payos/webhook-test", controller.logRawWebhookData.bind(controller));
-  router.post("/payos/webhook-test", controller.logRawWebhookData.bind(controller));
+  router.get(
+    "/payos/webhook-test",
+    controller.logRawWebhookData.bind(controller),
+  );
+  router.post(
+    "/payos/webhook-test",
+    controller.logRawWebhookData.bind(controller),
+  );
 
   // REMOVED (Phase 1 Out-of-Scope): insurance-claim endpoint
   // router.post("/:id/insurance-claim", controller.processInsuranceClaim.bind(controller));
@@ -42,8 +53,14 @@ export function createInvoiceRoutes(
   // router.post("/:id/payment-reminder", controller.createPaymentReminder.bind(controller));
 
   // Patient invoices
-  router.get("/patient/:patientId", controller.getPatientInvoices.bind(controller));
-  router.get("/patient/:patientId/summary", controller.getPatientBillingSummary.bind(controller));
+  router.get(
+    "/patient/:patientId",
+    controller.getPatientInvoices.bind(controller),
+  );
+  router.get(
+    "/patient/:patientId/summary",
+    controller.getPatientBillingSummary.bind(controller),
+  );
 
   // Reports
   router.get("/reports/revenue", controller.getRevenueReport.bind(controller));

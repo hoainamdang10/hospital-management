@@ -16,6 +16,7 @@ export { GetPatientBillingSummaryUseCase } from "./use-cases/GetPatientBillingSu
 export { GetRevenueReportUseCase } from "./use-cases/GetRevenueReportUseCase";
 export { CreateVnpayPaymentLinkUseCase } from "./use-cases/CreateVnpayPaymentLinkUseCase";
 export { HandlePayOSWebhookUseCase } from "./use-cases/HandlePayOSWebhookUseCase";
+export { PayInvoiceWithWalletUseCase } from "./use-cases/PayInvoiceWithWalletUseCase";
 // REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase, ProcessInsuranceClaimUseCase, RefundPaymentUseCase
 
 // Services

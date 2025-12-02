@@ -17,6 +17,7 @@ function createInvoiceRoutes(controller) {
     // router.post("/:id/cancel", controller.cancelInvoice.bind(controller));
     // Payment
     router.post("/:id/payments", controller.processPayment.bind(controller));
+    router.post("/:id/payments/wallet", controller.payWithWallet.bind(controller));
     // REMOVED (Phase 1 Out-of-Scope): refund endpoint
     // router.post("/:id/payments/refund", controller.refundPayment.bind(controller));
     // PayOS/VNPAY Integration

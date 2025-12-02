@@ -403,6 +403,7 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
         }
         return {
             patientId: this.patientId,
+            patientRecordId: this.patientRecordId,
             appointmentId: this.appointmentId,
             action: "reschedule_fee",
             amount: reschedulePolicy.rescheduleAmount,
@@ -411,6 +412,13 @@ class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
             newAppointmentDate: this.newStartTime,
             newAppointmentTime: this.newStartTime,
         };
+    }
+    /**
+     * Attach patient record UUID for downstream billing service
+     */
+    attachPatientRecordId(patientRecordId) {
+        this.patientRecordId = patientRecordId;
+        return this;
     }
 }
 exports.AppointmentRescheduledEvent = AppointmentRescheduledEvent;

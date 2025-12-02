@@ -37,6 +37,7 @@ export interface Invoice {
   finalizedAt?: string;
   cancelledAt?: string;
   cancellationReason?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface InvoiceItem {
@@ -78,6 +79,14 @@ export interface PayOSPaymentLink {
   paymentLinkId: string;
   orderCode: number;
   amount: number;
+}
+
+export interface WalletPaymentResult {
+  success: boolean;
+  message: string;
+  invoiceId?: string;
+  paymentId?: string;
+  errors?: string[];
 }
 
 class BillingService {
@@ -148,6 +157,28 @@ class BillingService {
   ): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post(`${this.baseUrl}/${invoiceId}/payments`, paymentData);
     return response.data;
+  }
+
+  /**
+   * Pay invoice with wallet balance
+   */
+  async payInvoiceWithWallet(
+    invoiceId: string,
+    payload?: { description?: string }
+  ): Promise<WalletPaymentResult> {
+    const response = await apiClient.post(
+      `${this.baseUrl}/${invoiceId}/payments/wallet`,
+      payload ?? {}
+    );
+
+    const data = response.data?.data ?? response.data;
+    return {
+      success: Boolean(data?.success ?? data?.invoiceId),
+      message: data?.message || 'Thanh toán ví thành công',
+      invoiceId: data?.invoiceId ?? data?.data?.invoiceId ?? data?.invoice?.id,
+      paymentId: data?.paymentId ?? data?.data?.paymentId,
+      errors: data?.errors,
+    };
   }
 
   /**
@@ -224,6 +255,7 @@ class BillingService {
     return {
       ...invoice,
       id: normalizedId.toString(),
+      metadata: invoice?.metadata || invoice?.meta || {},
       invoiceNumber:
         invoice?.invoiceNumber ||
         invoice?.invoice_number ||

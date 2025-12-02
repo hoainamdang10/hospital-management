@@ -23,6 +23,7 @@ import { IEventBus } from "@shared/application/services/event-bus.interface";
 import { SupabaseInvoiceRepository } from "./infrastructure/repositories/SupabaseInvoiceRepository";
 import { SupabasePatientRepository } from "./infrastructure/repositories/SupabasePatientRepository";
 import { SupabaseStaffRepository } from "./infrastructure/repositories/SupabaseStaffRepository";
+import { SupabaseWalletRepository } from "./infrastructure/repositories/SupabaseWalletRepository";
 import { Patient } from "./domain/entities/Patient";
 
 // Application
@@ -39,10 +40,13 @@ import { GetOverdueInvoicesUseCase } from "./application/use-cases/GetOverdueInv
 import { GetPatientBillingSummaryUseCase } from "./application/use-cases/GetPatientBillingSummaryUseCase";
 import { GetRevenueReportUseCase } from "./application/use-cases/GetRevenueReportUseCase";
 import { CreateVnpayPaymentLinkUseCase } from "./application/use-cases/CreateVnpayPaymentLinkUseCase";
+import { CreateWalletTopUpLinkUseCase } from "./application/use-cases/CreateWalletTopUpLinkUseCase";
 import { HandlePayOSWebhookUseCase } from "./application/use-cases/HandlePayOSWebhookUseCase";
+import { PayInvoiceWithWalletUseCase } from "./application/use-cases/PayInvoiceWithWalletUseCase";
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 import { VnpayIntegrationService } from "./infrastructure/services/VnpayIntegrationService";
 import { BillingService } from "./application/services/BillingService";
+import { WalletService } from "./application/services/WalletService";
 
 // Event Consumers & Workers
 import { AppointmentEventConsumer } from "./infrastructure/events/AppointmentEventConsumer";
@@ -52,7 +56,9 @@ import { logger as loggerInstance } from "./infrastructure/logging/logger";
 
 // Presentation
 import { InvoiceController } from "./presentation/controllers/InvoiceController";
+import { WalletController } from "./presentation/controllers/WalletController";
 import { createInvoiceRoutes } from "./presentation/routes/invoiceRoutes";
+import { createWalletRoutes } from "./presentation/routes/walletRoutes";
 import { createHealthRoutes } from "./presentation/routes/healthRoutes";
 import { ErrorHandlingMiddleware } from "./presentation/middleware/ErrorHandlingMiddleware";
 import { AuthenticationMiddleware } from "./presentation/middleware/AuthenticationMiddleware";
@@ -100,9 +106,11 @@ class BillingServiceApp {
   private invoiceRepository!: SupabaseInvoiceRepository;
   private patientRepository!: SupabasePatientRepository;
   private staffRepository!: SupabaseStaffRepository;
+  private walletRepository!: SupabaseWalletRepository;
   private optimizedSupabase!: OptimizedSupabaseClient;
   private paymentGateway!: VnpayIntegrationService;
   private billingService!: BillingService;
+  private walletService!: WalletService;
 
   // Event Consumers & Workers
   private appointmentEventConsumer!: AppointmentEventConsumer;
@@ -122,11 +130,14 @@ class BillingServiceApp {
   private getPatientBillingSummaryUseCase!: GetPatientBillingSummaryUseCase;
   private getRevenueReportUseCase!: GetRevenueReportUseCase;
   private createPaymentLinkUseCase!: CreateVnpayPaymentLinkUseCase;
+  private createWalletTopUpLinkUseCase!: CreateWalletTopUpLinkUseCase;
   private handlePayOSWebhookUseCase!: HandlePayOSWebhookUseCase;
+  private payInvoiceWithWalletUseCase!: PayInvoiceWithWalletUseCase;
   // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase - Out of scope for Phase 1
 
   // Controllers
   private invoiceController!: InvoiceController;
+  private walletController!: WalletController;
 
   // Middleware
   private errorHandlingMiddleware!: ErrorHandlingMiddleware;
@@ -134,6 +145,8 @@ class BillingServiceApp {
 
   constructor() {
     this.app = express();
+    // khi chạy sau gateway/ngrok, express cần trust proxy để rate-limit đọc đúng X-Forwarded-For
+    this.app.set("trust proxy", 1);
   }
 
   private async initializeDependencies(): Promise<void> {
@@ -171,6 +184,10 @@ class BillingServiceApp {
       loggerInstance,
     );
     this.staffRepository = new SupabaseStaffRepository(
+      this.optimizedSupabase,
+      loggerInstance,
+    );
+    this.walletRepository = new SupabaseWalletRepository(
       this.optimizedSupabase,
       loggerInstance,
     );
@@ -260,22 +277,39 @@ class BillingServiceApp {
       config.vnpayCancelUrl || `${config.frontendUrl}/patient/billing/cancel`,
     );
 
-    this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase(
-      this.invoiceRepository,
-      this.eventBus,
-      this.paymentGateway,
-      loggerInstance,
+    this.createWalletTopUpLinkUseCase = new CreateWalletTopUpLinkUseCase(
+      this.createInvoiceUseCase,
+      this.createPaymentLinkUseCase,
     );
 
     // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase initialization - Out of scope for Phase 1
 
-    // Initialize Billing Service
+    // Initialize Services
     this.billingService = new BillingService(
       this.invoiceRepository,
       this.patientRepository,
       this.createInvoiceUseCase,
       this.processPaymentUseCase,
       loggerInstance,
+    );
+    this.walletService = new WalletService(
+      this.walletRepository,
+      loggerInstance,
+    );
+
+    this.payInvoiceWithWalletUseCase = new PayInvoiceWithWalletUseCase(
+      this.invoiceRepository,
+      this.eventBus,
+      this.walletService,
+      loggerInstance,
+    );
+
+    this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase(
+      this.invoiceRepository,
+      this.eventBus,
+      this.paymentGateway,
+      loggerInstance,
+      this.walletService,
     );
 
     // Initialize Event Consumers
@@ -371,7 +405,12 @@ class BillingServiceApp {
       this.getRevenueReportUseCase,
       this.createPaymentLinkUseCase,
       this.handlePayOSWebhookUseCase,
+      this.payInvoiceWithWalletUseCase,
       // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
+    );
+    this.walletController = new WalletController(
+      this.walletService,
+      this.createWalletTopUpLinkUseCase,
     );
 
     // Initialize Middleware
@@ -475,6 +514,19 @@ class BillingServiceApp {
       "/api/v1/billing/invoices",
       this.authMiddleware.authenticate,
       invoiceRoutes,
+    );
+
+    // Wallet routes (protected)
+    const walletRoutes = createWalletRoutes(this.walletController);
+    this.app.use(
+      "/api/v1/wallet",
+      this.authMiddleware.authenticate,
+      walletRoutes,
+    );
+    this.app.use(
+      "/api/v1/billing/wallet",
+      this.authMiddleware.authenticate,
+      walletRoutes,
     );
 
     // 404 handler

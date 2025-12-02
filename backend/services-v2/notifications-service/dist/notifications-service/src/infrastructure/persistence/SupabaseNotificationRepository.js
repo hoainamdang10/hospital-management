@@ -14,6 +14,7 @@ const Notification_1 = require("../../domain/aggregates/Notification");
 const RecipientInfo_1 = require("../../domain/value-objects/RecipientInfo");
 const NotificationContent_1 = require("../../domain/value-objects/NotificationContent");
 const NotificationChannel_1 = require("../../domain/value-objects/NotificationChannel");
+const recipient_type_normalizer_1 = require("../../domain/services/recipient-type-normalizer");
 /**
  * Supabase Notification Repository
  * Implements full INotificationRepository interface
@@ -823,7 +824,7 @@ class SupabaseNotificationRepository {
             html_body: null, // Not supported in current NotificationContent
             channels: notification.channels.map((c) => c.getType()),
             status: notification.status,
-            priority: notification.priority,
+            priority: notification.priority?.toUpperCase?.() || "NORMAL",
             sent_at: notification.sentAt?.toISOString(),
             delivered_at: notification.deliveredAt?.toISOString(),
             read_at: notification.readAt?.toISOString(),
@@ -841,9 +842,10 @@ class SupabaseNotificationRepository {
         };
     }
     mapToAggregate(record) {
+        const normalizedRecipientType = (0, recipient_type_normalizer_1.normalizeRecipientType)(record.recipient_type);
         const recipient = RecipientInfo_1.RecipientInfo.create({
             recipientId: record.recipient_id,
-            recipientType: record.recipient_type,
+            recipientType: normalizedRecipientType,
             fullName: record.recipient_name || "Unknown",
             contactInfo: {
                 email: record.recipient_email,

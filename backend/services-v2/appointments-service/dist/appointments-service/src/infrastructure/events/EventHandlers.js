@@ -16,28 +16,48 @@ class AppointmentScheduledEventHandler {
         this.readModelHandler = readModelHandler;
     }
     async handle(event) {
+        const raw = event;
+        const containers = [
+            raw,
+            raw.payload,
+            raw.eventData,
+            raw.payload?.eventData,
+            raw.data,
+        ];
+        const pick = (field) => {
+            for (const source of containers) {
+                if (source && source[field] !== undefined && source[field] !== null) {
+                    return source[field];
+                }
+            }
+            return undefined;
+        };
         const appointmentEvent = {
             eventId: event.eventId,
             eventType: "appointment.scheduled",
-            appointmentId: event.appointmentId,
-            patientId: event.patientId,
-            doctorId: event.doctorId,
-            appointmentDate: event.appointmentDate, // Keep as string (ISO format)
-            appointmentTime: event.appointmentTime,
-            durationMinutes: event.durationMinutes,
-            type: event.type,
-            priority: event.priority,
-            status: event.status,
-            roomId: event.roomId,
-            departmentId: event.departmentId,
-            consultationFee: event.consultationFee, // Billing reference only
-            reason: event.reason,
-            chiefComplaint: event.chiefComplaint,
-            symptoms: event.symptoms,
-            notes: event.notes,
-            specialInstructions: event.specialInstructions,
-            requiredEquipment: event.requiredEquipment,
-            occurredAt: event.occurredAt,
+            appointmentId: pick("appointmentId"),
+            patientId: pick("patientId"),
+            doctorId: pick("doctorId"),
+            appointmentDate: pick("appointmentDate"),
+            appointmentTime: pick("appointmentTime"),
+            durationMinutes: pick("durationMinutes"),
+            type: pick("type"),
+            priority: pick("priority"),
+            status: pick("status"),
+            roomId: pick("roomId"),
+            departmentId: pick("departmentId"),
+            consultationFee: pick("consultationFee"),
+            reason: pick("reason"),
+            chiefComplaint: pick("chiefComplaint"),
+            symptoms: pick("symptoms"),
+            notes: pick("notes"),
+            specialInstructions: pick("specialInstructions"),
+            requiredEquipment: pick("requiredEquipment"),
+            occurredAt: raw.occurredAt || event.occurredAt,
+            rawEvent: raw,
+            payload: raw.payload,
+            eventData: raw.eventData || raw.payload?.eventData,
+            data: raw.data,
         };
         await this.readModelHandler.handleAppointmentScheduled(appointmentEvent);
     }

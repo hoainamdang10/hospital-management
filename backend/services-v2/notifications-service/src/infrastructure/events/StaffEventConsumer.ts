@@ -10,8 +10,12 @@
 
 import { ConsumeMessage } from "amqplib";
 import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
-import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
+import {
+  SendNotificationCommand,
+  SendNotificationUseCase,
+} from "../../application/use-cases/SendNotificationUseCase";
 import { GetNotificationPreferencesUseCase } from "../../application/use-cases/GetNotificationPreferencesUseCase";
+import { normalizePriority } from "../../domain/services/priority-normalizer";
 
 export interface StaffEventConsumerConfig {
   rabbitmqUrl: string;
@@ -744,7 +748,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent availability change notification to staff", {
         staffId: data.staffId,
         availabilityStatus: data.availabilityStatus,
@@ -781,7 +785,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send critical availability notification", {
         staffId: data.staffId,
@@ -819,7 +823,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send affected patients notification", {
         staffId: data.staffId,
@@ -870,7 +874,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent shift assignment notification to staff", {
         staffId: data.staffId,
         shiftId: data.shiftId,
@@ -906,7 +910,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send critical shift notification", {
         staffId: data.staffId,
@@ -940,7 +944,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send calendar invitation", {
         staffId: data.staffId,
@@ -978,7 +982,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent shift cancellation notification to staff", {
         staffId: data.staffId,
         shiftId: data.shiftId,
@@ -1015,7 +1019,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send shift cancellation manager notification", {
         staffId: data.staffId,
@@ -1053,7 +1057,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send shift cancellation patients notification", {
         staffId: data.staffId,
@@ -1096,7 +1100,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent schedule update notification to staff", {
         staffId: data.staffId,
         updateType: data.updateType,
@@ -1132,7 +1136,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send emergency schedule notification", {
         staffId: data.staffId,
@@ -1170,7 +1174,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send schedule update patients notification", {
         staffId: data.staffId,
@@ -1204,7 +1208,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent department assignment notification to staff", {
         staffId: data.staffId,
         newDepartmentName: data.newDepartmentName,
@@ -1240,7 +1244,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send department welcome notification", {
         staffId: data.staffId,
@@ -1274,7 +1278,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send department transfer notification", {
         staffId: data.staffId,
@@ -1320,7 +1324,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent on-call assignment notification to staff", {
         staffId: data.staffId,
         onCallType: data.onCallType,
@@ -1357,7 +1361,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send primary on-call notification", {
         staffId: data.staffId,
@@ -1390,7 +1394,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send on-call schedule notification", {
         staffId: data.staffId,
@@ -1426,7 +1430,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
       console.log("Sent performance review notification to staff", {
         staffId: data.staffId,
         reviewType: data.reviewType,
@@ -1464,7 +1468,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to send performance review manager notification", {
         staffId: data.staffId,
@@ -1502,7 +1506,7 @@ export class StaffEventConsumer {
         },
       };
 
-      await this.sendNotificationUseCase.execute(notificationData);
+      await this.dispatchNotification(notificationData);
     } catch (error) {
       console.error("Failed to schedule improvement follow-up", {
         staffId: data.staffId,
@@ -1559,6 +1563,15 @@ export class StaffEventConsumer {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+    });
+  }
+
+  private async dispatchNotification(
+    payload: SendNotificationCommand,
+  ): Promise<void> {
+    await this.sendNotificationUseCase.execute({
+      ...payload,
+      priority: normalizePriority(payload.priority),
     });
   }
 

@@ -338,6 +338,7 @@ export declare class BillingEventConsumer {
     private getEnabledChannels;
     private getReminderMessage;
     private formatDate;
+    private dispatchNotification;
     /**
      * Disconnect from RabbitMQ
      */

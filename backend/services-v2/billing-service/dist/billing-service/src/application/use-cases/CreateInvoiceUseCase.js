@@ -17,7 +17,10 @@ class CreateInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseC
         // Create invoice items
         const items = request.items.map((item) => InvoiceItem_1.InvoiceItem.create(item.description, item.quantity, Money_1.Money.create(item.unitPrice)));
         // Create invoice (Phase 1 Prepaid Model: no insurance)
-        const invoice = Invoice_1.Invoice.create(request.patientId, items);
+        const isWalletTopUp = Boolean(request.metadata?.walletTopUp ?? request.metadata?.wallet_top_up);
+        const invoice = Invoice_1.Invoice.create(request.patientId, items, {
+            taxRate: isWalletTopUp ? 0 : undefined,
+        });
         // Set appointment ID if provided
         if (request.appointmentId) {
             invoice.setAppointmentId(request.appointmentId);

@@ -13,6 +13,8 @@ const Notification_1 = require("../../domain/aggregates/Notification");
 const RecipientInfo_1 = require("../../domain/value-objects/RecipientInfo");
 const NotificationChannel_1 = require("../../domain/value-objects/NotificationChannel");
 const NotificationContent_1 = require("../../domain/value-objects/NotificationContent");
+const priority_normalizer_1 = require("../../domain/services/priority-normalizer");
+const recipient_type_normalizer_1 = require("../../domain/services/recipient-type-normalizer");
 class SendNotificationUseCase {
     constructor(notificationRepository, templateService, deliveryService) {
         this.notificationRepository = notificationRepository;
@@ -26,6 +28,7 @@ class SendNotificationUseCase {
             !command.channels.length) {
             throw new Error("Invalid notification command: missing required fields");
         }
+        const normalizedRecipientType = (0, recipient_type_normalizer_1.normalizeRecipientType)(command.recipientType);
         const candidateName = (command.recipientName ||
             command.metadata?.recipientName ||
             "").trim();
@@ -36,7 +39,7 @@ class SendNotificationUseCase {
         const contactPushToken = command.metadata?.pushToken;
         const recipient = RecipientInfo_1.RecipientInfo.create({
             recipientId: command.recipientId,
-            recipientType: command.recipientType,
+            recipientType: normalizedRecipientType,
             fullName: normalizedName || fallbackName,
             contactInfo: {
                 email: contactEmail || `${command.recipientId}@example.com`,
@@ -91,12 +94,13 @@ class SendNotificationUseCase {
             });
         }
         const channels = this.determineChannels(command.channels, recipient);
+        const normalizedPriority = (0, priority_normalizer_1.normalizePriority)(command.priority);
         const notification = Notification_1.Notification.create({
             recipient,
             templateType: command.templateType || "NOTIFICATION",
             content,
             channels,
-            priority: command.priority || "NORMAL",
+            priority: normalizedPriority,
             metadata: command.metadata || {
                 source: "event-consumer",
             },

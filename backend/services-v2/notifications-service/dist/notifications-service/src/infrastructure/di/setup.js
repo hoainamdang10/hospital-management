@@ -334,7 +334,10 @@ function setupDependencies(container) {
                 "appointment.scheduled", // ✅ THESIS SCOPE
                 "appointment.confirmed", // ✅ THESIS SCOPE
                 "appointment.cancelled", // ✅ THESIS SCOPE
-                // FUTURE: appointment.completed, appointment.rescheduled, appointment.reminder, appointment.no_show
+                "appointment.rescheduled", // ✅ Included để xử lý badge/reschedule flow
+                "appointment.completed", // ✅ Hoàn tất khám -> gửi đánh giá/lời nhắc follow-up
+                "appointment.reminder.*", // ✅ Nhận mọi nhắc lịch (24h/2h/30m)
+                // FUTURE: appointment.no_show
             ],
             prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10"),
             retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || "3"),
@@ -377,7 +380,9 @@ function setupDependencies(container) {
                 "billing.payment.completed", // ✅ THESIS SCOPE - Payment receipt
                 "billing.payment.refunded",
                 "billing.payment.refund_requested",
-                // FUTURE: billing.invoice.generated, billing.payment.reminder, billing.insurance
+                "billing.invoice.generated", // ✅ Cho biết hóa đơn mới
+                "billing.payment.reminder.due", // ✅ Nhắc tới hạn thanh toán
+                // FUTURE: billing.payment.reminder.before/after, billing.insurance
             ],
             prefetchCount: parseInt(process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10"),
             retryAttempts: parseInt(process.env.EVENT_CONSUMER_RETRY_ATTEMPTS || "3"),
@@ -469,6 +474,6 @@ function setupDependencies(container) {
         const markNotificationAsReadUseCase = container.resolve(exports.ServiceTokens.MARK_AS_READ_USE_CASE);
         const getUnreadNotificationsCountUseCase = container.resolve(exports.ServiceTokens.GET_UNREAD_NOTIFICATIONS_COUNT_USE_CASE);
         return new NotificationController_1.NotificationController(getNotificationsByRecipientUseCase, getUserNotificationsUseCase, markNotificationAsReadUseCase, getUnreadNotificationsCountUseCase);
-    }, container_1.ServiceLifetime.SCOPED);
+    }, container_1.ServiceLifetime.SINGLETON);
 }
 //# sourceMappingURL=setup.js.map

@@ -21,27 +21,48 @@ class AppointmentReadModelEventHandler {
      */
     async handleAppointmentScheduled(event) {
         try {
-            // FIX: After deserialization, event data is spread into root level of event object
-            // Access properties directly instead of relying on readonly properties
             const eventAny = event;
-            const appointmentId = eventAny.appointmentId;
-            const patientId = eventAny.patientId;
-            const doctorId = eventAny.doctorId;
-            const appointmentDate = eventAny.appointmentDate;
-            const appointmentTime = eventAny.appointmentTime;
-            const durationMinutes = eventAny.durationMinutes;
-            const type = eventAny.type;
-            const priority = eventAny.priority;
-            const status = eventAny.status;
-            const roomId = eventAny.roomId;
-            const departmentId = eventAny.departmentId;
-            const consultationFee = eventAny.consultationFee;
-            const reason = eventAny.reason;
-            const chiefComplaint = eventAny.chiefComplaint;
-            const symptoms = eventAny.symptoms;
-            const notes = eventAny.notes;
-            const specialInstructions = eventAny.specialInstructions;
-            const requiredEquipment = eventAny.requiredEquipment;
+            const containers = [
+                eventAny,
+                eventAny.payload,
+                eventAny.eventData,
+                eventAny.payload?.eventData,
+                eventAny.data,
+            ];
+            const pick = (field) => {
+                for (const source of containers) {
+                    if (source && source[field] !== undefined && source[field] !== null) {
+                        return source[field];
+                    }
+                }
+                return undefined;
+            };
+            const appointmentId = pick("appointmentId");
+            const patientId = pick("patientId");
+            const doctorId = pick("doctorId");
+            const appointmentDate = pick("appointmentDate");
+            const appointmentTime = pick("appointmentTime");
+            const durationMinutes = pick("durationMinutes");
+            const type = pick("type");
+            const priority = pick("priority");
+            const status = pick("status");
+            const roomId = pick("roomId");
+            const departmentId = pick("departmentId");
+            const consultationFee = pick("consultationFee");
+            const reason = pick("reason");
+            const chiefComplaint = pick("chiefComplaint");
+            const symptoms = pick("symptoms");
+            const notes = pick("notes");
+            const specialInstructions = pick("specialInstructions");
+            const requiredEquipment = pick("requiredEquipment");
+            if (!appointmentId || !patientId || !doctorId) {
+                console.error(`[ReadModel] Missing critical fields in AppointmentScheduledEvent. appointmentId=${appointmentId}, patientId=${patientId}, doctorId=${doctorId}`);
+                return;
+            }
+            if (!appointmentDate || !appointmentTime) {
+                console.error(`[ReadModel] Missing appointmentDate/time in event ${appointmentId}, skipping read-model upsert`);
+                return;
+            }
             console.log(`[ReadModel] Processing AppointmentScheduledEvent: ${appointmentId}`);
             // 1. Fetch patient data from Patient Service
             let patientData;
@@ -73,7 +94,7 @@ class AppointmentReadModelEventHandler {
             catch (error) {
                 console.error(`[ReadModel] Failed to fetch patient data for ${patientId}:`, error);
                 console.error(`[ReadModel] Error details:`, {
-                    message: error instanceof Error ? error.message : 'Unknown error',
+                    message: error instanceof Error ? error.message : "Unknown error",
                     stack: error instanceof Error ? error.stack : undefined,
                 });
                 // Continue without patient data - will be synced later via PatientUpdatedEvent
@@ -105,7 +126,7 @@ class AppointmentReadModelEventHandler {
             catch (error) {
                 console.error(`[ReadModel] Failed to fetch doctor data for ${doctorId}:`, error);
                 console.error(`[ReadModel] Error details:`, {
-                    message: error instanceof Error ? error.message : 'Unknown error',
+                    message: error instanceof Error ? error.message : "Unknown error",
                     stack: error instanceof Error ? error.stack : undefined,
                 });
                 // Continue without doctor data - will be synced later via DoctorUpdatedEvent

@@ -14,6 +14,7 @@ export { GetPatientBillingSummaryUseCase } from "./use-cases/GetPatientBillingSu
 export { GetRevenueReportUseCase } from "./use-cases/GetRevenueReportUseCase";
 export { CreateVnpayPaymentLinkUseCase } from "./use-cases/CreateVnpayPaymentLinkUseCase";
 export { HandlePayOSWebhookUseCase } from "./use-cases/HandlePayOSWebhookUseCase";
+export { PayInvoiceWithWalletUseCase } from "./use-cases/PayInvoiceWithWalletUseCase";
 export { BillingService } from "./services/BillingService";
 export type { AppointmentInvoiceRequest, LateCancellationFeeRequest, NoShowFeeRequest, PrescriptionInvoiceRequest, LabTestInvoiceRequest, TreatmentPlanInvoiceRequest, MedicalRecordInvoiceRequest, } from "./services/BillingService";
 //# sourceMappingURL=index.d.ts.map

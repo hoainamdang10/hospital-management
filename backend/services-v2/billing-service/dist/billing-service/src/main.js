@@ -23,6 +23,7 @@ const EventBus_1 = require("../../shared/infrastructure/event-bus/EventBus");
 const SupabaseInvoiceRepository_1 = require("./infrastructure/repositories/SupabaseInvoiceRepository");
 const SupabasePatientRepository_1 = require("./infrastructure/repositories/SupabasePatientRepository");
 const SupabaseStaffRepository_1 = require("./infrastructure/repositories/SupabaseStaffRepository");
+const SupabaseWalletRepository_1 = require("./infrastructure/repositories/SupabaseWalletRepository");
 // Application
 const CreateInvoiceUseCase_1 = require("./application/use-cases/CreateInvoiceUseCase");
 const GetInvoiceUseCase_1 = require("./application/use-cases/GetInvoiceUseCase");
@@ -37,10 +38,13 @@ const GetOverdueInvoicesUseCase_1 = require("./application/use-cases/GetOverdueI
 const GetPatientBillingSummaryUseCase_1 = require("./application/use-cases/GetPatientBillingSummaryUseCase");
 const GetRevenueReportUseCase_1 = require("./application/use-cases/GetRevenueReportUseCase");
 const CreateVnpayPaymentLinkUseCase_1 = require("./application/use-cases/CreateVnpayPaymentLinkUseCase");
+const CreateWalletTopUpLinkUseCase_1 = require("./application/use-cases/CreateWalletTopUpLinkUseCase");
 const HandlePayOSWebhookUseCase_1 = require("./application/use-cases/HandlePayOSWebhookUseCase");
+const PayInvoiceWithWalletUseCase_1 = require("./application/use-cases/PayInvoiceWithWalletUseCase");
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 const VnpayIntegrationService_1 = require("./infrastructure/services/VnpayIntegrationService");
 const BillingService_1 = require("./application/services/BillingService");
+const WalletService_1 = require("./application/services/WalletService");
 // Event Consumers & Workers
 const AppointmentEventConsumer_1 = require("./infrastructure/events/AppointmentEventConsumer");
 const ClinicalEventConsumer_1 = require("./infrastructure/events/ClinicalEventConsumer");
@@ -48,7 +52,9 @@ const RefundGatewayWorker_1 = require("./infrastructure/workers/RefundGatewayWor
 const logger_1 = require("./infrastructure/logging/logger");
 // Presentation
 const InvoiceController_1 = require("./presentation/controllers/InvoiceController");
+const WalletController_1 = require("./presentation/controllers/WalletController");
 const invoiceRoutes_1 = require("./presentation/routes/invoiceRoutes");
+const walletRoutes_1 = require("./presentation/routes/walletRoutes");
 const healthRoutes_1 = require("./presentation/routes/healthRoutes");
 const ErrorHandlingMiddleware_1 = require("./presentation/middleware/ErrorHandlingMiddleware");
 const AuthenticationMiddleware_1 = require("./presentation/middleware/AuthenticationMiddleware");
@@ -83,6 +89,8 @@ const config = {
 class BillingServiceApp {
     constructor() {
         this.app = (0, express_1.default)();
+        // khi chạy sau gateway/ngrok, express cần trust proxy để rate-limit đọc đúng X-Forwarded-For
+        this.app.set("trust proxy", 1);
     }
     async initializeDependencies() {
         logger_1.logger.info("Initializing dependencies...");
@@ -110,6 +118,7 @@ class BillingServiceApp {
         this.invoiceRepository = new SupabaseInvoiceRepository_1.SupabaseInvoiceRepository(this.optimizedSupabase);
         this.patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(this.optimizedSupabase, logger_1.logger);
         this.staffRepository = new SupabaseStaffRepository_1.SupabaseStaffRepository(this.optimizedSupabase, logger_1.logger);
+        this.walletRepository = new SupabaseWalletRepository_1.SupabaseWalletRepository(this.optimizedSupabase, logger_1.logger);
         // Initialize VNPAY Service
         this.paymentGateway = new VnpayIntegrationService_1.VnpayIntegrationService({
             tmnCode: config.vnpayTmnCode,
@@ -135,10 +144,13 @@ class BillingServiceApp {
         this.getPatientBillingSummaryUseCase = new GetPatientBillingSummaryUseCase_1.GetPatientBillingSummaryUseCase(this.invoiceRepository, logger_1.logger);
         this.getRevenueReportUseCase = new GetRevenueReportUseCase_1.GetRevenueReportUseCase(this.invoiceRepository, logger_1.logger);
         this.createPaymentLinkUseCase = new CreateVnpayPaymentLinkUseCase_1.CreateVnpayPaymentLinkUseCase(this.invoiceRepository, this.paymentGateway, logger_1.logger, config.vnpayReturnUrl || `${config.frontendUrl}/patient/billing/success`, config.vnpayCancelUrl || `${config.frontendUrl}/patient/billing/cancel`);
-        this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase(this.invoiceRepository, this.eventBus, this.paymentGateway, logger_1.logger);
+        this.createWalletTopUpLinkUseCase = new CreateWalletTopUpLinkUseCase_1.CreateWalletTopUpLinkUseCase(this.createInvoiceUseCase, this.createPaymentLinkUseCase);
         // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase initialization - Out of scope for Phase 1
-        // Initialize Billing Service
+        // Initialize Services
         this.billingService = new BillingService_1.BillingService(this.invoiceRepository, this.patientRepository, this.createInvoiceUseCase, this.processPaymentUseCase, logger_1.logger);
+        this.walletService = new WalletService_1.WalletService(this.walletRepository, logger_1.logger);
+        this.payInvoiceWithWalletUseCase = new PayInvoiceWithWalletUseCase_1.PayInvoiceWithWalletUseCase(this.invoiceRepository, this.eventBus, this.walletService, logger_1.logger);
+        this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase(this.invoiceRepository, this.eventBus, this.paymentGateway, logger_1.logger, this.walletService);
         // Initialize Event Consumers
         this.appointmentEventConsumer = new AppointmentEventConsumer_1.AppointmentEventConsumer({
             rabbitmqUrl: config.rabbitmqUrl,
@@ -193,7 +205,8 @@ class BillingServiceApp {
         });
         logger_1.logger.info("Refund gateway worker initialized (VNPAY integration)");
         // Initialize Controllers - Phase 1 (Prepaid Model)
-        this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPaymentLinkUseCase, this.handlePayOSWebhookUseCase);
+        this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPaymentLinkUseCase, this.handlePayOSWebhookUseCase, this.payInvoiceWithWalletUseCase);
+        this.walletController = new WalletController_1.WalletController(this.walletService, this.createWalletTopUpLinkUseCase);
         // Initialize Middleware
         this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger_1.logger);
         this.authMiddleware = new AuthenticationMiddleware_1.AuthenticationMiddleware({
@@ -261,6 +274,10 @@ class BillingServiceApp {
         const invoiceRoutes = (0, invoiceRoutes_1.createInvoiceRoutes)(this.invoiceController);
         this.app.use("/api/v1/invoices", this.authMiddleware.authenticate, invoiceRoutes);
         this.app.use("/api/v1/billing/invoices", this.authMiddleware.authenticate, invoiceRoutes);
+        // Wallet routes (protected)
+        const walletRoutes = (0, walletRoutes_1.createWalletRoutes)(this.walletController);
+        this.app.use("/api/v1/wallet", this.authMiddleware.authenticate, walletRoutes);
+        this.app.use("/api/v1/billing/wallet", this.authMiddleware.authenticate, walletRoutes);
         // 404 handler
         this.app.use(this.errorHandlingMiddleware.notFound());
         // Error handling middleware (must be last)

@@ -16,6 +16,7 @@ class HealthCheckService {
     constructor(config, cacheService, eventSubscriptions) {
         this.config = config;
         this.cacheService = cacheService;
+        this.detailedCacheTtlMs = 10000;
         this.supabaseClient = (0, supabase_js_1.createClient)(config.supabase.url, config.supabase.serviceRoleKey, {
             db: {
                 schema: "appointments_schema",
@@ -50,6 +51,18 @@ class HealthCheckService {
                 },
             };
         }
+        if (detailed &&
+            this.detailedCache &&
+            Date.now() < this.detailedCache.expiresAt) {
+            return {
+                status: this.detailedCache.status,
+                timestamp,
+                service: this.config.serviceName,
+                version: "3.0.0",
+                uptime,
+                checks: this.detailedCache.checks,
+            };
+        }
         // Detailed health check - check all dependencies
         const [databaseCheck, redisCheck, rabbitmqCheck, patientServiceCheck, providerServiceCheck,] = await Promise.all([
             this.checkDatabase(),
@@ -80,22 +93,30 @@ class HealthCheckService {
         else {
             overallStatus = "healthy";
         }
+        const checks = {
+            database: databaseCheck,
+            redis: redisCheck,
+            rabbitmq: rabbitmqCheck,
+            externalServices: {
+                patientService: patientServiceCheck,
+                providerService: providerServiceCheck,
+                // schedulerService removed - merged into notifications-service
+            },
+        };
+        if (detailed) {
+            this.detailedCache = {
+                status: overallStatus,
+                checks,
+                expiresAt: Date.now() + this.detailedCacheTtlMs,
+            };
+        }
         return {
             status: overallStatus,
             timestamp,
             service: this.config.serviceName,
             version: "3.0.0",
             uptime,
-            checks: {
-                database: databaseCheck,
-                redis: redisCheck,
-                rabbitmq: rabbitmqCheck,
-                externalServices: {
-                    patientService: patientServiceCheck,
-                    providerService: providerServiceCheck,
-                    // schedulerService removed - merged into notifications-service
-                },
-            },
+            checks,
         };
     }
     /**

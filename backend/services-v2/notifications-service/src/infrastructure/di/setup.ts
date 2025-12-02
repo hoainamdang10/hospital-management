@@ -490,7 +490,10 @@ export function setupDependencies(container: DIContainer): void {
           "appointment.scheduled", // ✅ THESIS SCOPE
           "appointment.confirmed", // ✅ THESIS SCOPE
           "appointment.cancelled", // ✅ THESIS SCOPE
-          // FUTURE: appointment.completed, appointment.rescheduled, appointment.reminder, appointment.no_show
+          "appointment.rescheduled", // ✅ Included để xử lý badge/reschedule flow
+          "appointment.completed", // ✅ Hoàn tất khám -> gửi đánh giá/lời nhắc follow-up
+          "appointment.reminder.*", // ✅ Nhận mọi nhắc lịch (24h/2h/30m)
+          // FUTURE: appointment.no_show
         ],
         prefetchCount: parseInt(
           process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10",
@@ -581,7 +584,9 @@ export function setupDependencies(container: DIContainer): void {
           "billing.payment.completed", // ✅ THESIS SCOPE - Payment receipt
           "billing.payment.refunded",
           "billing.payment.refund_requested",
-          // FUTURE: billing.invoice.generated, billing.payment.reminder, billing.insurance
+          "billing.invoice.generated", // ✅ Cho biết hóa đơn mới
+          "billing.payment.reminder.due", // ✅ Nhắc tới hạn thanh toán
+          // FUTURE: billing.payment.reminder.before/after, billing.insurance
         ],
         prefetchCount: parseInt(
           process.env.EVENT_CONSUMER_PREFETCH_COUNT || "10",
@@ -753,6 +758,6 @@ export function setupDependencies(container: DIContainer): void {
         getUnreadNotificationsCountUseCase,
       );
     },
-    ServiceLifetime.SCOPED,
+    ServiceLifetime.SINGLETON,
   );
 }

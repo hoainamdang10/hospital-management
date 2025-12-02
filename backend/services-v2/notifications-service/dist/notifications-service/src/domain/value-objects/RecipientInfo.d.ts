@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
-export type RecipientType = "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | "FAMILY" | "EXTERNAL";
+export type RecipientType = "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | "FAMILY" | "STAFF" | "DEPARTMENT" | "EXTERNAL";
 export interface ContactInfo {
     email?: string;
     phoneNumber?: string;

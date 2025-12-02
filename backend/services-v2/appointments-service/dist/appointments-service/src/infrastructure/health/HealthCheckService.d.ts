@@ -40,6 +40,8 @@ export declare class HealthCheckService {
     private supabaseClient;
     private startTime;
     private eventSubscriptions?;
+    private detailedCache?;
+    private readonly detailedCacheTtlMs;
     constructor(config: AppConfig, cacheService: RedisCacheService, eventSubscriptions?: EventSubscriptions);
     /**
      * Perform comprehensive health check

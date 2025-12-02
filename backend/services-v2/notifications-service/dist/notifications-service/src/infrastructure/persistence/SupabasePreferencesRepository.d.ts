@@ -7,10 +7,10 @@
  * @version 2.0.0
  * @compliance Clean Architecture, GDPR, Opt-out Management
  */
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from "@supabase/supabase-js";
 export interface NotificationPreferences {
     userId: string;
-    recipientType: 'PATIENT' | 'DOCTOR' | 'NURSE' | 'ADMIN' | 'STAFF';
+    recipientType: "PATIENT" | "DOCTOR" | "NURSE" | "ADMIN" | "STAFF" | "FAMILY" | "DEPARTMENT" | "EXTERNAL";
     email?: string;
     phoneNumber?: string;
     pushToken?: string;
@@ -32,7 +32,7 @@ export interface NotificationPreferences {
     medicalNotifications: boolean;
     emergencyNotifications: boolean;
     promotionalNotifications: boolean;
-    preferredLanguage: 'vi' | 'en';
+    preferredLanguage: "vi" | "en";
     timezone: string;
     quietHoursEnabled: boolean;
     quietHoursStart?: string;
@@ -44,7 +44,7 @@ export interface NotificationPreferences {
     maxEmailsPerDay: number;
     batchNotifications: boolean;
     immediateDelivery: boolean;
-    digestFrequency?: 'NONE' | 'HOURLY' | 'DAILY' | 'WEEKLY';
+    digestFrequency?: "NONE" | "HOURLY" | "DAILY" | "WEEKLY";
     digestTime?: string;
     channelPriority: any;
     metadata?: any;
@@ -67,6 +67,7 @@ export declare class SupabasePreferencesRepository {
      * Get or create default preferences
      */
     getOrCreate(userId: string, recipientType: string, email?: string, phoneNumber?: string): Promise<NotificationPreferences>;
+    private buildDefaultPreferences;
     /**
      * Save preferences
      */
